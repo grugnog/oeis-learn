@@ -367,5 +367,5 @@ failed with the exact public hash of `KeyError('source')`. Learner projections
 intentionally omit source text; this repair must preserve that boundary.
 
 - [X] F010 Reproduce calibration's missing source field with actual prepared learner rows and add whole-handler CPU tensor/update/checkpoint and native-failure counterexamples.
-- [ ] F011 Decode the already-verified literal target tokens for native calibration only; preserve lean learner projections and add safe historical missing-field diagnostics.
+- [X] F011 Decode the already-verified literal target tokens for native calibration only; preserve lean learner projections and add safe historical missing-field diagnostics.
 - [ ] F012 Run the stable combined non-HIP regression selection, refresh the current fingerprint, record actual operator progress and fresh-plan instructions, and publish incremental commits without CI wait.

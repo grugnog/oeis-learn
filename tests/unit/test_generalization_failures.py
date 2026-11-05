@@ -107,3 +107,16 @@ def test_old_unknown_or_truncated_detail_stays_private(tmp_path,raw,truncated):
     result=stage_failures(tmp_path)
     assert result['failures'][0]['detail']==old
     assert '/private/host' not in json.dumps(result)
+
+
+def test_reported_calibration_missing_source_hash_recovers_readably(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_failures import public_failure,stage_failures
+    detail=public_failure(KeyError('source'))
+    assert detail['private_detail_sha256']=='sha256:a524ceb061775a34f3f255c6328fda28d2833b6fe33db8cff18db11fef01216d'
+    assert detail['code']=='missing_source_field'
+    old=seal(dict(detail,code='private_exception_detail',message='Private exception detail omitted; inspect the original producer result.'))
+    write(tmp_path/'role/result.json',seal(dict(status='FAIL',failure=old)))
+    original=(tmp_path/'role/result.json').read_bytes()
+    recovered=stage_failures(tmp_path)
+    assert recovered['failures'][0]['detail']['message']=='A required source field is missing.'
+    assert (tmp_path/'role/result.json').read_bytes()==original

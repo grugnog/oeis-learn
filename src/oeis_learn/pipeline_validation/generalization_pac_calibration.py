@@ -35,6 +35,7 @@ def calibrate(inputs,output,settings,*,seconds):
     from .generalization_execution import verify_execution
     from oeis_learn.generalization.contracts import verify_artifact
     from oeis_learn.generalization.budgets import charge_tokens
+    from oeis_learn.decoder.bigint_codec import decode_body
     verify_execution()
     if not torch.version.hip or not torch.cuda.is_available():raise RuntimeError('actual HIP required for representative calibration')
     if set(settings)!={'recipe','source','environment','bundle','study'}:raise ValueError('closed production calibration request')
@@ -52,8 +53,11 @@ def calibrate(inputs,output,settings,*,seconds):
     with client(dict(recipe=settings['recipe'],contract_sha256=settings['source']),output/'private/native') as native:
         for row in selected:
             literal=literals.rows[row['id']]
+            # Learner rows intentionally omit source text. Their literal tokens
+            # were verified against the sealed source by PacPreparedBatches.
+            source=decode_body(literal['tokens'])
             def execute():
-                value=native.execute(literal['source'],list(map(str,range(100))),deadline=min(deadline,time.monotonic()+4))
+                value=native.execute(source,list(map(str,range(100))),deadline=min(deadline,time.monotonic()+4))
                 if value['outcome']!='ok':raise ValueError('representative native execution incomplete')
                 return value
             measured('cold_native',execute);measured('warm_native',execute)

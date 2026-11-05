@@ -35,8 +35,8 @@ def calibration_case(tmp_path,monkeypatch):
     monkeypatch.setattr(bigint_worker,'models',models)
     original_run=training.run_torch;original_step=training.torch_update;original_observe=curriculum.observe_targets
     def run(root,output,config,**kwargs):
-        assert config['device']=='cuda' and config['pac']['purpose']=='research' and kwargs==dict(stop_after_updates=64)
-        adapted=copy.deepcopy(config);adapted['device']='cpu';adapted['pac'].update(purpose='acceptance',observation_seconds=120)
+        assert config['device']=='cuda' and config['pac']['purpose']=='research' and config['batch_size']==32 and kwargs==dict(stop_after_updates=64)
+        adapted=copy.deepcopy(config);adapted.update(device='cpu',batch_size=2);adapted['pac'].update(purpose='acceptance',observation_seconds=120)
         with monkeypatch.context() as m:
             m.setattr(torch.cuda,'is_available',lambda:False)
             result=original_run(root,output,adapted,**kwargs)

@@ -792,3 +792,43 @@ previous source's measured successful admission is preserved without claiming
 qualification, current-source agreement or completed E. T067–T074 and historical
 011 closeout remain unchanged. F007/F008/F009 have separate incremental commits
 published to PR 63 against main; no merge, HIP run or CI wait was performed.
+
+
+## F010–F011 — Calibration reads verified literal tokens
+
+The third operator archive (`report(9).zip`) independently verifies under
+stdlib-only `python -S`: integrity PASS, software FAIL, science UNMEASURED,
+evidence `sha256:29988d4204715ce85804c1876de855a28cd7d3ae4fafbc6ed24353b82d34033a`.
+Its frozen source is
+`sha256:76b445cc5b5093201f53907cbd973ecb6073593a58ded12583244575930cf9b6`.
+Admission passed in 1,064.994 seconds and qualification passed in 715.419 seconds,
+including 1,496 CPU tests and 27 HIP tests (zero failures/errors/skips). Calibration
+failed in 116.926 seconds. Process cleanup was acknowledged within bound for all
+three stages. These successes describe that original producer, not changed-source
+qualification or a completed PAC acceptance/research result.
+
+The public error hash
+`sha256:a524ceb061775a34f3f255c6328fda28d2833b6fe33db8cff18db11fef01216d`
+is the exact canonical digest of `str(KeyError('source'))`. Actual prepared learner
+rows intentionally omit source text. The first native calibration call incorrectly
+indexed that field. Both new whole-handler tests reproduced this precise KeyError
+before the fix. Calibration now decodes the paired literal row's already-verified
+target tokens for its own native execution only. No source field was added to
+learner projections or checkpoints, and parameterized targets are not executed as
+literal native programs.
+
+The complete handler now runs in a clearly labeled CPU adapter fixture: real
+prepared rows, tiny real encoder/decoder tensors, 64 optimizer updates, at least
+six valid feedback events, actual checkpoint publication/load, subsequent short/
+long updates and observations, every required sample and independently reconstructed
+forecasts. Only the device boundary, model/batch scale, and native semantic service
+are replaced; the native adapter independently checks decoded literal programs
+against all 100 original training values. An incomplete native result blocks before
+the learner and publishes no calibration receipt. This is not device/performance
+qualification. The initial adapter run also rejected an undersized fixture family;
+its batch size was explicitly reduced to two without changing production's 32.
+
+Fixed public vocabulary also recognizes this exact missing-source field error.
+Recovery recognizes the old hash without rewriting original producer bytes;
+arbitrary private text remains omitted. Focused calibration/forecast/failure checks:
+**16 passed**, one existing PyTorch warning, 3.79 seconds.

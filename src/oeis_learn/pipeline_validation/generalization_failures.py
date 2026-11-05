@@ -7,6 +7,7 @@ from .identity import seal,digest,file_hash,confined
 from oeis_learn.generalization.contracts import verify_artifact
 
 _MESSAGES={
+    "'source'":('missing_source_field','A required source field is missing.'),
     'missing artifact':('missing_artifact','A required verified artifact is missing.'),
     'invalid frozen execution: missing artifact':('missing_artifact','A required verified artifact is missing.'),
     'completed post-exclusion quota deficit; no timeout/reseed retry':('structural_quota_deficit','Frozen post-exclusion structural quotas are incomplete.'),
