@@ -191,3 +191,37 @@ def test_documented_operator_block_routes_once_and_resume_recover_are_separate(t
     assert h.main(['recover','--previous','previous','--output','recovered'])==0
     assert calls[-1][0]=='recover' and 'Verified recovered report' in capsys.readouterr().out
     with pytest.raises(ValueError):h.main(['run','--engine','docker','--plan','plan.json','--output','wrong'])
+
+
+def test_real_nonzero_subprocess_transports_sealed_terminal_instead_of_hiding_cause(tmp_path):
+    import sys,json
+    h=helper();target=tmp_path/'role';target.mkdir()
+    terminal=target/'result.json'
+    code="from pathlib import Path; import json,sys; from oeis_learn.pipeline_validation.identity import seal; Path(sys.argv[1]).write_text(json.dumps(seal(dict(status='FAIL',reason='QuotaDeficit')))); raise SystemExit(1)"
+    value=h.launch_terminal([sys.executable,'-c',code,str(terminal)],tmp_path/'supervision',terminal,seconds=30)
+    assert value['reason']=='QuotaDeficit' and value['status']=='FAIL'
+    process=json.loads((tmp_path/'supervision/process.json').read_text())
+    assert process['returncode']==1 and process['outcome']=='FAIL'
+
+
+def test_nested_quota_cause_and_wrapper_error_both_survive_read_only_recovery(tmp_path):
+    import json,zipfile
+    from oeis_learn.pipeline_validation.identity import digest,seal,write
+    h=helper();order=h.stage_order()
+    stages=[dict(name=n,operation='prepare',manifest='unavailable',seconds=3600,extra=[],requires=[] if i==0 else [order[i-1]]) for i,n in enumerate(order)]
+    plan=h.prepare_plan(tmp_path,engine='podman',stages=stages,inputs=[],source=digest('source'),images=[digest('cpu'),digest('gpu')])
+    def failed(stage,target):
+        write(target/'execution/execution/role/result.json',seal(dict(status='FAIL',reason='QuotaDeficit',error='completed post-exclusion quota deficit; no timeout/reseed retry',secret='private teacher')))
+        raise RuntimeError('outer process exited; /home/private')
+    result=h.execute_plan(plan,tmp_path/'original',workspace=tmp_path,runner=failed)
+    assert result['status']=='FAIL'
+    original=(tmp_path/'original/workflow.json').read_bytes()
+    archive=h.recover(tmp_path/'original',tmp_path/'recovery')
+    assert (tmp_path/'original/workflow.json').read_bytes()==original
+    with zipfile.ZipFile(archive) as z:
+        evidence=json.loads(z.read('evidence.json'))
+        assert evidence['errors'][0]['kind']=='QuotaDeficit'
+        assert any(e['kind']=='RuntimeError' for e in evidence['errors'])
+        detail=json.loads(z.read('failures/admission.json'))
+        assert detail['failures'][0]['detail']['code']=='structural_quota_deficit'
+        assert all(b'private teacher' not in z.read(n) and b'/home/private' not in z.read(n) for n in z.namelist())
