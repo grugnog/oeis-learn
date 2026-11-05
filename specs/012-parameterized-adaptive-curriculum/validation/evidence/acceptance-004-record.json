@@ -246,6 +246,19 @@
   ],
   "plan": "sha256:7f0cd8e86a10e450998eaf26fab1b0704cee882d7fa0001ce5858e14bcf351c8",
   "qualification": "sha256:164f508c704d028d1581b0e3bfd24b15ddf99ba81d45c30bfd4056c11087d7a4",
+  "recovery_review": {
+    "clean_hip_pause_boundaries": [
+      1,
+      2
+    ],
+    "cpu_crash_debit_test": "PASS in original CPU qualification",
+    "hip_crash_discarded_debit": "MISSING",
+    "model_optimizer_rng_data_ledger_equal": true,
+    "negative_archive_scope": "synthetic failure packaging after actual updates",
+    "negative_archive_verified": true,
+    "pac_policy_scaler_review_equal": true,
+    "task": "T072 BLOCKED"
+  },
   "representation_review": {
     "acceptance_updates": 16,
     "corpus_tokens": {

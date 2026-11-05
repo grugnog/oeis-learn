@@ -197,3 +197,59 @@ the ceiling is not an ETA. Preparation/generation forecasts remain explicit gaps
 No wall limit or scientific budget was silently enlarged during research; no
 research arm ran. The observed production calibration and reduced correctness
 acceptance serve separate purposes.
+
+## T072: Verified clean resume/export; actual HIP crash debit BLOCKED
+
+Both original pause proofs report `resume_equal=true`, `pac_equal=true`, matching
+initial/final weight identities and sixteen committed updates/752 tokens. The
+installed proof compares model tensors, optimizer tensors, host/device RNG, data,
+replay and token ledger exactly, plus all PAC kernel/scaler/review/observer state.
+Only elapsed observation seconds are excluded from deterministic policy comparison;
+wall timings are not required to be identical. Device RNG must be present in the
+actual HIP acceptance producer. The two pause points are:
+
+| Boundary | Original pending state | Actual comparison |
+| --- | --- | --- |
+| After update 1 | Inside the two-update family block | Clean resumed state equals uninterrupted state |
+| After update 2 | Gradients complete, post-feedback still pending | Clean resumed state equals uninterrupted state |
+
+The recorded no-Lt execution-policy identity matches qualification, calibration
+and acceptance source/image/environment bindings. Its source-owned process-start
+requirements are `DISABLE_ADDMM_CUDA_LT=1`, `TORCH_BLAS_PREFER_HIPBLASLT=0`,
+`ROCBLAS_USE_HIPBLASLT=0`, `ROCBLAS_DEFAULT_ATOMICS_MODE=0`, with accepted cublas
+preference. The producer validates them before device work; raw command/environment
+logs remain outside this bounded closeout. A changed backend cannot inherit PASS.
+
+The success ZIP independently verifies original terminal/evidence/verifier/member
+hashes. Its original 869-byte `acceptance/failure.zip` also independently verifies:
+summary FAIL, exactly the mandatory `summary.json` and `failure.json`, and no private
+members. It was made after actual updates with primary
+`injected_after_actual_updates`. It demonstrates negative-scope packaging and
+private-payload exclusion, **not an actual crashed HIP learner**.
+
+The qualified CPU XML includes passing
+`test_pac_real_crash_discards_unsaved_work_without_policy_replay`. That test executes
+real CPU updates, injects a crash after the third optimizer call, restores the
+initial complete generation, verifies positive discarded tokens and bounded
+charged exposure, and keeps lost newer policy from being replayed. Its config is
+explicitly `device='cpu'`. Neither the 27-test GPU qualification selection nor the
+PAC acceptance handler executes the corresponding unsaved-segment HIP crash.
+There is no actual HIP discarded-crash receipt in the supplied ZIP.
+
+**T072 therefore remains unchecked**, despite verified clean device resume and
+verified success/negative exports. Do not infer HIP crash-debit proof from the old
+011 run, the CPU counterexample, the synthetic negative ZIP, or the aggregate
+`feature_qualified` flag. The current public verifier's software acceptance scope
+is narrower than this task's complete device/failure evidence requirement.
+
+The missing evidence requires an actual HIP crash/recovery exercise with original
+compatible input/checkpoint access: fail after uncheckpointed optimizer work,
+restore a complete generation, charge positive lost tokens/time, preserve the old
+model-bound policy rather than newer events, and export a source/image/environment-
+bound receipt. No engine or HIP workstation is available in the implementation
+session, and private tensors are intentionally absent from the upload. A re-upload
+of the same successful ZIP cannot establish an exercise that never occurred.
+A future proof must use canonical installed learner/persistence logic; any needed
+production/test-source change requires affected qualification and its own frozen
+scope. Preserve the existing PASS for its original closure; do not relabel it FAIL
+or automatically rerun all already-verified work.
