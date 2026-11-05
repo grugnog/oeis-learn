@@ -10,7 +10,7 @@ from fractions import Fraction
 from .reconciliation import fields,pac_comparison_report
 from .metrics import pac_structural_metrics
 from .retention import validate_history,FIELDS
-from oeis_learn.pipeline_validation.identity import seal,validate
+from oeis_learn.pipeline_validation.identity import seal,validate,digest
 
 CONTROLS=('raw','rescue','equal_budget','shuffled','absent','template','bank')
 CHANNELS=('fixed','bandit','review','fallback')
@@ -92,6 +92,7 @@ def recompute(inputs):
     metrics={};outcomes={}
     for arm,controls in inputs['outcomes'].items():
         fields(controls,CONTROLS,'all seven frozen controls')
+        if any(v is not None and not isinstance(v,dict) for v in controls.values()):raise ValueError('scored outcome map or explicit unavailable required')
         identity(inputs['scoring'][arm])
         metrics[arm]={c:pac_structural_metrics(inputs['roster'],v or {},scope=inputs['structural_scope']) for c,v in controls.items()}
         outcomes[arm]=controls['equal_budget'] or {}
@@ -116,6 +117,43 @@ def verify_analysis(report,inputs):
     if seal(report)!=report or report.get('version')!='pac-analysis/v2':raise ValueError('reconstructible PAC analysis version required')
     expected=recompute(inputs)
     extras={'version','identity','inputs','cases','missing_case_categories','case_scope','uncertainty'}
-    if set(report)!=set(expected)|extras or any(report[k]!=v for k,v in expected.items() if k!='version'):raise ValueError('analysis differs from recomputed measurements')
+    if set(report)!=set(expected)|extras or digest({k:report[k] for k in expected if k!='version'})!=digest({k:v for k,v in expected.items() if k!='version'}):raise ValueError('analysis differs from recomputed measurements')
     # The version belongs to the report envelope, not the nested comparison API.
     return expected
+
+
+def scientific_status(report,inputs):
+    """Finite, single-seed eligibility; software completion is a separate axis."""
+    arms=set(inputs['experiment']['arms'])|{'A'}
+    compared={a for pair in report['comparisons'] for a in pair.split('-')}
+    ready=(set(report['arms'])==arms and not report['missing_arms'] and
+        all(report['arms'][a]['certified']['tasks']==68 and report['arms'][a]['certified']['complete']>=65 for a in compared) and
+        all(inputs['training'][a] is not None for a in inputs['experiment']['arms']) and
+        bool(report['comparisons']) and all(v['interpretable'] for v in report['comparisons'].values()))
+    return 'EXPLORATORY_SINGLE_SEED' if ready else 'INCOMPLETE'
+
+
+def verify_research_authority(record,report,inputs,authority,native):
+    """Cross-bind reconstructed measurements to frozen scope and producer receipts."""
+    from .metrics import _pac_roster
+    from .structural import original_cells
+    validate(authority,{'version','experiment','control','profiles','study_sha256','runtime_sha256','admission_identity','producer','binding','inputs','images','plan'},'pac-research-authority/v1')
+    for key in ('study_sha256','runtime_sha256','admission_identity','producer','binding','inputs'):identity(authority[key])
+    if authority['inputs']!=inputs['identity'] or any(authority[k]!=inputs[k] for k in ('experiment','control','profiles')):raise ValueError('research measurements differ from frozen authority')
+    if authority['images']!=record['images'] or authority['plan']!=record['plan']:raise ValueError('research frozen image/plan binding')
+    identity(authority['plan'])
+    exp=inputs['experiment'];scope=record['scope']
+    if exp['source']!=record['source'] or exp['backend']!=record['backend'] or any(exp[k]!=scope[k] for k in ('arms','seed','target_tokens')):raise ValueError('scientific frozen source/arm/scope binding')
+    if native is None or seal(native)!=native or native.get('status')!='PASS' or native.get('source')!=record['source'] or native.get('images')!=record['images'] or native.get('admission_identity')!=authority['admission_identity']:raise ValueError('research native authority binding')
+    if native.get('version') not in {'pac-native-public/v1','pac-native-public/v2'} or (native['version']=='pac-native-public/v2')!=('structural_scope' in native):raise ValueError('native structural scope version mismatch')
+    if sorted(native['originals'],key=lambda r:r['name'])!=sorted(original_cells(),key=lambda r:r['name']):raise ValueError('research original exclusion cells')
+    _pac_roster(native['roster'],scope=native.get('structural_scope'))
+    if native['roster']!=inputs['roster'] or native.get('structural_scope')!=inputs['structural_scope']:raise ValueError('research denominator differs from native admission')
+    stages={s['stage']:s for s in record['stages']}
+    accepted=stages.get('acceptance',{})
+    if any(accepted.get(k)!=authority[k] for k in ('producer','binding')):raise ValueError('frozen authority acceptance producer differs')
+    if stages.get('analysis',{}).get('producer')!=report['identity']:raise ValueError('analysis bytes differ from terminal producer')
+    expected={n:{k:r.get(k) for k in ('producer','binding','elapsed_seconds')} for n,r in stages.items() if n!='analysis'}
+    if inputs['stages']!=expected:raise ValueError('observed stage costs/bindings differ from campaign')
+    complete=set(stages)==set(record['required']) and all(s['status']=='PASS' for s in stages.values())
+    return scientific_status(report,inputs) if complete else 'INCOMPLETE'

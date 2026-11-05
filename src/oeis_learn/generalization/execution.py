@@ -176,16 +176,33 @@ def reconcile_pac_policy(experiment,control,profiles):
     from importlib.resources import files
     from oeis_learn.pipeline_validation.identity import seal
     schemas=json.loads(files('oeis_learn.generalization').joinpath('schemas/pac.schema.json').read_text())['$defs']
+    def check(value,rule):
+        if '$ref' in rule:return check(value,schemas[rule['$ref'].split('/')[-1]])
+        if 'anyOf' in rule:
+            for option in rule['anyOf']:
+                try:check(value,option);return
+                except ValueError:pass
+            raise ValueError('PAC reconciliation alternatives differ')
+        if 'const' in rule and (value!=rule['const'] or type(value)!=type(rule['const'])):raise ValueError('frozen PAC reconciliation constant differs')
+        if 'enum' in rule and value not in rule['enum']:raise ValueError('PAC reconciliation enum differs')
+        kind=rule.get('type')
+        if kind=='object':
+            if not isinstance(value,dict) or set(value)!=set(rule['properties']):raise ValueError('closed PAC reconciliation fields required')
+            for key,child in rule['properties'].items():check(value[key],child)
+        elif kind=='array':
+            if not isinstance(value,list) or not rule.get('minItems',0)<=len(value)<=rule.get('maxItems',32768):raise ValueError('bounded PAC reconciliation array required')
+            for child in value:check(child,rule['items'])
+        elif kind=='string':
+            if not isinstance(value,str) or not rule.get('minLength',0)<=len(value)<=rule.get('maxLength',1024) or 'pattern' in rule and not re.fullmatch(rule['pattern'],value):raise ValueError('PAC reconciliation identity differs')
+        elif kind=='integer':
+            if type(value) is not int or not rule.get('minimum',0)<=value<=rule.get('maximum',2**63-1):raise ValueError('PAC reconciliation integer differs')
+        elif kind=='boolean':
+            if type(value) is not bool:raise ValueError('PAC reconciliation flag differs')
+        elif kind=='null' and value is not None:raise ValueError('PAC reconciliation null differs')
     for kind,record in [('experiment',experiment),('control',control)]:
-        schema=schemas[kind]
-        if not isinstance(record,dict) or set(record)-set(schema['properties']) or not set(schema['required'])<=set(record) or seal(record)!=record:
-            raise ValueError('closed canonically bound PAC reconciliation input required')
-        for key,rule in schema['properties'].items():
-            if key not in record:continue
-            value=record[key]
-            if 'const' in rule and (value!=rule['const'] or type(value)!=type(rule['const'])):raise ValueError('frozen PAC reconciliation constant differs')
-            if rule.get('type')=='integer' and (type(value) is not int or not rule.get('minimum',0)<=value<=rule.get('maximum',2**63-1)):raise ValueError('PAC reconciliation integer differs')
-            if rule.get('type')=='boolean' and type(value) is not bool:raise ValueError('PAC reconciliation flag differs')
-            if rule.get('type')=='string' and (not isinstance(value,str) or 'pattern' in rule and not re.fullmatch(rule['pattern'],value)):raise ValueError('PAC reconciliation identity differs')
-            if '$ref' in rule and rule['$ref'].endswith('/hash') and (not isinstance(value,str) or not re.fullmatch(r'sha256:[0-9a-f]{64}',value)):raise ValueError('PAC reconciliation hash differs')
+        check(record,schemas[kind])
+        if seal(record)!=record:raise ValueError('canonically bound PAC reconciliation input required')
+    for profile in profiles.values():
+        for key in ('initializer','pool','targets','model','optimizer','backend','order','exposure','diagnostics'):
+            check(profile.get(key),schemas['identity'])
     return _pac_policy(experiment,control,profiles)

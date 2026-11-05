@@ -107,6 +107,7 @@ def verify_pac_evidence(record,*,root,finalized=True):
     def read(ref):
         if ref is None or indexed.get(ref['path'])!=ref:raise ValueError('mandatory original proof missing from inventory')
         return json.loads(verify_artifact(root,ref,max_bytes=16<<20))
+    report=research_inputs=None
     analysis_ref=indexed.get('analysis/analysis.json')
     if analysis_ref is not None:
         report=read(analysis_ref)
@@ -114,7 +115,8 @@ def verify_pac_evidence(record,*,root,finalized=True):
             from .pac_analysis import verify_analysis
             if report['inputs']['path']!='research-inputs.json':raise ValueError('fixed public research input path required')
             input_ref=dict(report['inputs'],path='analysis/research-inputs.json')
-            verify_analysis(report,read(input_ref))
+            research_inputs=read(input_ref)
+            verify_analysis(report,research_inputs)
     seen=[]
     for stage in record['stages']:
         if set(stage)!={'stage','status','producer','binding','process','cleanup','elapsed_seconds','reused'}:raise ValueError('closed public stage receipt')
@@ -125,6 +127,14 @@ def verify_pac_evidence(record,*,root,finalized=True):
     status=record['software_status'];statuses={s['status'] for s in record['stages']}
     allowed={'PASS','FAIL','BLOCKED','PARTIAL','INCONCLUSIVE','INTERRUPTED'}
     if status not in allowed or not statuses<=allowed:raise ValueError('known terminal outcomes')
+    scientific='INCOMPLETE' if scope['research'] else 'UNMEASURED'
+    if research_inputs is not None and not scope['research']:raise ValueError('research payload in acceptance-only scientific scope')
+    if scope['research'] and research_inputs is not None:
+        from .pac_analysis import verify_research_authority
+        authority=read(indexed.get('research-authority.json'))
+        native=read(record['native_admission'])
+        scientific=verify_research_authority(record,report,research_inputs,authority,native)
+    if record['scientific_status']!=scientific:raise ValueError('scientific status differs from verified research scope/outcomes')
     qualified=False
     if status=='PASS':
         if seen!=required or statuses!={'PASS'} or record['errors']:raise ValueError('incomplete campaign cannot PASS')

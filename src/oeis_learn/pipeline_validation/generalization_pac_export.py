@@ -16,9 +16,10 @@ def helper_identity(root):
     return digest({str(p.relative_to(root)):file_hash(p) for p in files})
 
 
-def collect(original,staging):
+def collect(original,staging,*,workspace=None):
     from .bundle import public
     from .generalization_qualification_io import public_closure
+    workspace=Path(workspace) if workspace is not None else Path(__file__).resolve().parents[3]
     original=Path(original);staging=Path(staging);staging.mkdir(parents=True,exist_ok=False)
     workflow=json.loads((original/'workflow.json').read_text())
     plan=json.loads((original/'plan.json').read_text())
@@ -86,7 +87,24 @@ def collect(original,staging):
             inputs=json.loads(verify_artifact(analysis.parent,report['inputs']))
             verify_analysis(report,inputs)
             copy(analysis.parent,report['inputs'],'analysis')
-        scientific='EXPLORATORY_SINGLE_SEED' if report.get('comparisons') and all(v['interpretable'] for v in report['comparisons'].values()) else 'INCOMPLETE'
+            accepted=entries['acceptance'];authority=[]
+            for key in ('resolved_manifest','resolved_runtime'):
+                path=confined(workspace,accepted[key])
+                ref=next((r for r in accepted['resolved_refs'] if confined(workspace,r['path'])==path),None)
+                if ref is None:raise ValueError('frozen research authority absent from accepted inventory')
+                authority.append((json.loads(verify_artifact(workspace,ref,max_bytes=16<<20)),ref))
+            (study,study_ref),(runtime,runtime_ref)=authority
+            from .generalization_execution import verify_pac_runtime
+            verify_pac_runtime(study,runtime)
+            if runtime['purpose']!='research' or inputs['experiment']!=study or inputs['control']!=runtime['control'] or inputs['profiles']!=runtime['profiles']:raise ValueError('research measurements differ from frozen accepted authority')
+            if native is None:raise ValueError('research native population authority unavailable')
+            native_record=json.loads(verify_artifact(staging,native))
+            put('research-authority.json',seal(dict(version='pac-research-authority/v1',experiment=study,control=runtime['control'],profiles=runtime['profiles'],
+                study_sha256=study_ref['sha256'],runtime_sha256=runtime_ref['sha256'],admission_identity=native_record['admission_identity'],
+                producer=accepted['producer'],binding=accepted['binding'],inputs=inputs['identity'],images=runtime['images'],plan=plan['identity'])))
+        if plan['research'] and report.get('version')=='pac-analysis/v2':
+            from oeis_learn.generalization.pac_analysis import scientific_status
+            scientific=scientific_status(report,inputs)
     stages=[]
     for row in workflow['receipts']:
         stages.append(dict(stage=row['stage'],status=row['status'],producer=row['producer'],binding=row['binding'],
