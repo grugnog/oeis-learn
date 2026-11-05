@@ -1,0 +1,174 @@
+# R0 implementation and workstation handoff
+
+Implemented 2026-11-05. Local CPU/contract checks are software evidence only.
+Actual HIP R0 task T083 remains open. No device or full research run was executed
+by the implementer. Existing -004/T072 evidence retains its historical scope.
+
+## Implemented scope
+
+The temporary `validation/run.py` composes the canonical `pac-stage` operation
+`pac-rehearse` after native admission, current-source qualification, production
+calibration and reduced acceptance. It reuses the existing installed learner,
+checkpoint store, full-state proof and loaded-checkpoint forward handlers.
+There is no second training engine, fitter or adaptive policy.
+
+B/C/D each stop at exactly 256 committed updates using the production recipe,
+batch32, full original 32-family/32,768-row pool and production 8/32 clocks and real loss/recall probes. All
+start from the frozen seed20261016 and identical verified random tensor content.
+Diagnostic configurations have a distinct study/compatibility identity and cannot
+initialize or resume a 25M-token research learner. Their individual disposition
+remains PARTIAL; the separate diagnostic proof can PASS.
+
+C also pauses after update129 (one completed update inside a bandit block), then
+resumes to256 and is compared with uninterrupted C. Thus R0 performs **1,024 actual
+optimizer calls** in total: B256, C256, C129+127, D256. The extra C trace is proof
+work, not additional research exposure. Finite changed weights, optimizer/RNG/data/
+policy/observer equality, channels/debits, actual device RNG and final loaded forwards
+are checked. Wall-time observer coordinates are excluded only by the existing
+qualified deterministic comparison convention.
+
+Expected primary trace counts: B256 fixed; C192 bandit and64 review/fallback
+opportunities; D256 bandit. C completes24 rewards. D intentionally stops after
+gradient256 and before the last post-probe, so it has31 completed rewards and a
+pending final observation. This is recorded honestly rather than fabricating a
+32nd reward. Timed semantic generation is explicitly UNMEASURED in R0 to keep the full-state
+comparison independent of five-second inference censoring. Its closed diagnostic
+config flag is rejected for research and reduced-cadence acceptance; production
+calibration and R1 retain semantic generation. R0 does not prove production spaced retention at256 updates; initial
+acquisition/incidental practice is distinct from graded due review. Existing
+reduced-cadence acceptance separately covers acquired-anchor grades and recovery.
+
+Full learner/proof budgets are enclosed bottom-up even for the short stop schedule;
+calibration can raise them before work. No six/twelve-hour truncation is added.
+The initial B/C/D+R0 disk reservation is256GiB free; actual model sizes additionally
+reserve16 diagnostic snapshot generations alongside the research peak. Originals
+are preserved and GPU roles remain serial.
+
+## Run R0, stopping before research
+
+Use the existing workstation repository and a fresh output name. This freezes the
+entire selected R1 campaign before any new structural outcomes, then stops after R0.
+
+```sh
+git switch 012-parameterized-adaptive-curriculum
+git pull --ff-only origin 012-parameterized-adaptive-curriculum
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py run \
+  --engine podman \
+  --prepared run-state/generalization/fresh-p1-v2-20261103T035534Z \
+  --pilot run-state/generalization/fresh-p1-hourly-20261104T093555Z \
+  --research --bandit-only --rehearsal --stop-after-rehearsal \
+  --seed 20261016 \
+  --output run-state/generalization/pac-012-bcd-r0-001
+```
+
+Expected successful stop: command exit0, `rehearsal_status=PASS`, workflow/export
+PARTIAL, stop reason `REHEARSAL_COMPLETE_RESEARCH_PENDING`; scientific campaign
+status INCOMPLETE because R1 has not started. This is not a completed research PASS.
+The bounded `rehearsal/rehearsal.json` payload itself reports scientific UNMEASURED.
+
+R0's actual rehearsal work is provisionally **30–60 minutes**, including the extra
+C comparison trace, plus image builds, admission, qualification, calibration and
+acceptance. Those stages add time and depend on current-source measurements. Old
+samples imply about15 minutes of updates before real loss/recall observation,
+model load/checkpoint/proof and export overhead. Timed semantic portfolios are
+explicitly omitted from R0, so this is a generous planning range rather than a
+claim of measured semantic work. This is not a measured runtime guarantee or ceiling.
+
+Independently inspect the report without an engine or GPU:
+
+```sh
+PYTHONPATH=src python3 -S - <<'PY'
+import json
+from oeis_learn.pipeline_validation.generalization_archive import verify_archive
+v=verify_archive('run-state/generalization/pac-012-bcd-r0-001/campaign/report.zip')
+print(json.dumps(v,indent=2))
+assert v['integrity']=='PASS' and v.get('rehearsal_status')=='PASS'
+PY
+```
+
+## Continue R1 using the same frozen plan and completed gates
+
+After inspecting R0, keep the same source checkout/images. Do not edit the sealed
+plan, pull new code between R0/R1 or use the diagnostic weights as initializers.
+
+```sh
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py resume \
+  --plan run-state/generalization/pac-012-bcd-r0-001/inputs/plan.json \
+  --previous run-state/generalization/pac-012-bcd-r0-001/campaign \
+  --output run-state/generalization/pac-012-bcd-r1-001
+```
+
+This verifies and reuses compatible admission/qualification/calibration/acceptance/
+R0 artifacts, then evaluates the retained A reference and runs fresh B/C/D serially
+at25M charged target tokens each, with final structural evaluation and analysis.
+The reference does not establish a matched representation effect. The one-seed
+comparison is exploratory; no extra A/seed, winner adoption or assessment is added.
+
+Plan roughly **35 hours of learner work**, plus retained-reference/final evaluation
+and reporting; reserve a multi-day uninterrupted window. Recalibrated ETAs take
+precedence. The old approximately66-hour per-learner ceilings are operational
+margins, not expected training times. The R1 report is at
+`run-state/generalization/pac-012-bcd-r1-001/report.zip` (resume outputs have no
+extra `campaign/` component).
+
+For one uninterrupted invocation instead, omit `--stop-after-rehearsal` from the
+first command and choose a fresh output; it continues only after R0 passes.
+
+## Interrupted R0/R1 and read-only recovery
+
+To finish an interrupted R0 without starting research:
+
+```sh
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py resume \
+  --plan run-state/generalization/pac-012-bcd-r0-001/inputs/plan.json \
+  --previous run-state/generalization/pac-012-bcd-r0-001/campaign \
+  --output run-state/generalization/pac-012-bcd-r0-resumed-001 \
+  --stop-after-rehearsal
+```
+
+An unfinished R0 is one bounded diagnostic stage and is rerun; already sealed gates
+are reused. The in-stage C pause/resume is a deliberate full-state proof, not an
+external process-death recovery claim. Once resumed R0 passes, use its completed
+output as `--previous` for R1, retaining the original plan path.
+
+To resume an interrupted full campaign from its actual complete model state:
+
+```sh
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py resume \
+  --plan run-state/generalization/pac-012-bcd-r0-001/inputs/plan.json \
+  --previous run-state/generalization/pac-012-bcd-r1-001 \
+  --output run-state/generalization/pac-012-bcd-r1-resumed-001
+```
+
+Spent/discarded research tokens and time remain charged. The smallest compatible
+unfinished dependency is resumed; successful stages are not automatically repeated.
+Changed source/image/scientific scope requires a newly reviewed plan/qualification.
+
+To package existing R0 evidence only, without training or modifying original results:
+
+```sh
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py recover \
+  --previous run-state/generalization/pac-012-bcd-r0-001/campaign \
+  --output run-state/generalization/pac-012-bcd-r0-recovered-001
+```
+
+For R1 recovery, substitute its actual output as `--previous` and a fresh recovery
+output. Failures preserve first/secondary errors and produce a verified rich or
+minimal archive; the helper prints the exact archive path. Missing or invalid R0
+proof cannot exit as a successful intentional stop.
+
+## Contracts and validation boundary
+
+Rehearsal-enabled plans use `pac-serial-plan/v2` and reports use
+`pac-public-evidence/v2`; historical v1 interpretation is unchanged. Both full and
+stopped reports require the frozen R0 stage. The stdlib offline verifier reconciles
+closed diagnostic counts, bound installed tensor proofs, source/environment/seed,
+all prerequisite proof closures and terminal states. Research status is still
+independently reconstructed from the original final analysis/outcomes. No raw logs,
+private weights/state, original host paths or protected truth enter the public proof.
+
+Local checks and exact outcomes are recorded with T079–T082 in `../tasks.md`.
+The CPU handler fixture uses explicit small-data/model/device adapters while running
+real forward/backward/optimizer updates, checkpoints and in-block restore; it does
+not establish current-source HIP, production-pool or performance readiness. Actual
+T083 evidence must come from the workstation command above. No CI wait is required.

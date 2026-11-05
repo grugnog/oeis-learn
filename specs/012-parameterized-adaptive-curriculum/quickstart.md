@@ -1,13 +1,15 @@
 # 012 operator handoff
 
-Current B/C/D campaign choices and the proposed short rehearsal are recorded in
-[the research plan](validation/research-plan.md). The rehearsal is a pending
-preparation step; the historical command below does not include it. Post-conformance
-code requires current-source qualification before research.
+The R0 rehearsal is implemented. Use the exact current-source commands in
+[the R0/R1 handoff](validation/r0-implementation.md): first the 256-update B/C/D
+rehearsal and report, then resume the same frozen plan into the long campaign.
+Actual R0 HIP evidence remains pending. Current code requires rebuilt qualified
+images; historical acceptance commands below are retained for provenance.
 
 The operator's `pac-012-acceptance-004` run passed admission, CPU/HIP qualification,
 production calibration and reduced HIP acceptance. Independent archive verification
-reproduces software PASS and scientific UNMEASURED. **No acceptance rerun is needed.**
+reproduces software PASS and scientific UNMEASURED. **That historical acceptance needs no retroactive repair.** Current R0/R1
+uses its own source/image qualification and acceptance gates.
 
 [Phase E closeout](validation/closeout.md) records seven completed evidence tasks,
 including the verified [actual HIP crash result](validation/t072-result.md). Only

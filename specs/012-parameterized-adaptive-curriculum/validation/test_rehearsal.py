@@ -121,3 +121,19 @@ def test_failed_rehearsal_suppresses_research_and_read_only_recovery_verifies(tm
     recovered=h.recover(tmp_path/'run',tmp_path/'recovered')
     assert verify_archive(recovered)['software_status']=='FAIL'
     assert (tmp_path/'run/workflow.json').read_bytes()==before
+
+
+def test_documented_r0_cli_stops_with_zero_only_for_verified_expected_pause(tmp_path,monkeypatch):
+    h=helper();monkeypatch.setattr(h,'ROOT',tmp_path);seen=[]
+    def build(args):
+        seen.append((args.research,args.bandit_only,args.rehearsal,args.stop_after_rehearsal,args.seed))
+        return tmp_path/'plan.json',{'engine':'podman'}
+    monkeypatch.setattr(h,'build_plan',build)
+    def execute(plan,output,**kwargs):
+        seen.append(kwargs['stop_after_rehearsal'])
+        return dict(status='PARTIAL',stop_reason='REHEARSAL_COMPLETE_RESEARCH_PENDING',rehearsal_status='PASS',export_status='PARTIAL')
+    monkeypatch.setattr(h,'execute_plan',execute)
+    argv=['run','--engine','podman','--research','--bandit-only','--rehearsal','--stop-after-rehearsal','--seed','20261016','--output','r0']
+    assert h.main(argv)==0 and seen==[(True,True,True,True,20261016),True]
+    monkeypatch.setattr(h,'execute_plan',lambda *a,**kw:dict(status='FAIL',stop_reason='REHEARSAL_COMPLETE_RESEARCH_PENDING',rehearsal_status='PASS',export_status='FAIL'))
+    assert h.main(argv)==1  # a stale pause reason cannot mask failed finalization

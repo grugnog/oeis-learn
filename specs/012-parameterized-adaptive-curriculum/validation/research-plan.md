@@ -3,8 +3,9 @@
 Recorded 2026-11-05 against PR #63 implementation `e2279dda55ed88997c54da43ea4ae6314648d2ad`.
 The operator selected **B/C/D and one paired seed** during planning. The operator also permits adding a short rehearsal
 before expensive learners; its concrete diagnostic configuration is proposed below. No device work, research or new qualification
-has been performed by this planning pass. This document is a planning record, not
-a sealed execution manifest or a claim that the proposed rehearsal exists.
+has been performed by this planning/implementation pass. R0 software is now implemented; see [the current handoff](r0-implementation.md).
+Actual R0 HIP evidence remains pending. This document is a planning record, not
+a sealed execution manifest or a claim of current-source hardware readiness.
 
 ## Questions and comparisons
 
@@ -51,16 +52,16 @@ and zero fallback, with 2,064,384 charged parameterized corpus tokens. Verify th
 again under the new closure. For B, 25M is approximately 12.11 corpus passes under
 those counts; adaptive arms do not have a comparable uniform epoch count.
 
-## Short rehearsal proposal
+## Short diagnostic rehearsal
 
 The operator offered a tiny run to reduce reliability risk. Accept that approach,
 but keep the rehearsal separate from scientific evidence and initialization.
 
 Use a **temporary diagnostic harness**, composing existing canonical/installed
 handlers and the same verified inputs/images. Do not add another learner or
-change the registered 25M production recipe. The existing normal CLI does not
-currently expose a complete tiny B/C/D campaign: this harness and its insertion
-before production are a small remaining preparation step, not an existing flag.
+change the registered 25M production recipe. The temporary runner now exposes `--rehearsal` and `--stop-after-rehearsal`,
+with a canonical installed `pac-rehearse` stage and an independently verified
+diagnostic report. The exact current commands are in [the handoff](r0-implementation.md).
 
 Add **R0**, a diagnostic rehearsal, before **R1**, the three-arm research campaign.
 R0 is not another comparison arm and supplies no learning-effect claim.
@@ -97,12 +98,13 @@ miniature experiment/schema framework. If a complete diagnostic path cannot be
 composed without production changes, expose that scope explicitly, add focused
 local counterexamples first, and requalify the affected closure once.
 
-Provisional work allowance: approximately **15–30 minutes for the three 256-update
-learners together**, plus image build, admission, qualification, existing acceptance,
+Provisional work allowance: approximately **30–60 minutes for the three 256-update
+learners and the extra C equality trace together**, plus image build, admission, qualification, existing acceptance,
 checkpoint and packaging costs. This is an arithmetic planning range, not a measured
-rehearsal ETA: 768 updates at the old worst sampled .898s/update is about 11.5 minutes;
-up to six initial/final common-panel opportunities at the full 32*5s semantic
-budget add about 16 minutes before overhead. Recalibrate actual counts/costs and
+rehearsal ETA: 1,024 actual optimizer calls at the old worst sampled .898s/update are about15 minutes;
+real loss/recall observation, model load/checkpoint/proof and export add overhead.
+R0 explicitly omits timed semantic generation for deterministic state comparison;
+production calibration and R1 retain it, and the R0 report marks it UNMEASURED. Recalibrate actual counts/costs and
 retain a much larger finite wall ceiling. C extension, if chosen, adds real work.
 
 Prefer one composed invocation when that is straightforward. The operator permits
@@ -112,8 +114,8 @@ and R0 with verified export; then R1 after inspecting that diagnostic report. Re
 compatible producer evidence by full identity and do not repeat completed qualification
 merely because the plan now selects research. Freeze R1 scientific choices before
 any new structural outcomes. Automatic continuation is appropriate only if the
-combined plan already authorizes R1 and every gate passes. Publish the actual
-pending harness work; do not present the historical acceptance command as covering R0.
+combined plan already authorizes R1 and every gate passes. Use the implemented [R0/R1 handoff](r0-implementation.md);
+the historical acceptance command does not itself cover R0.
 
 ## Final evaluation and interpretation
 
@@ -190,7 +192,7 @@ behavior and changed diagnostic retention/export may change costs; current-sourc
 calibration takes precedence. These figures neither guarantee a bound nor promise
 that spending the full ceiling improves learning.
 
-The current initial disk reservation for B/C/D is **192 GiB free**, then enforce
+The current initial disk reservation for B/C/D is **256 GiB free with R0**, then enforce
 the measured peak-live graph and preserve originals, snapshots, proofs and recovery
 copies. GPU roles are serial; only bounded deterministic CPU work can parallelize.
 If interrupted, resume the smallest compatible unfinished dependency in a fresh
@@ -199,13 +201,13 @@ resetting clocks/caps or restoring newer policy journals onto old model weights.
 
 ## Handoff and remaining preparation
 
-1. Add/validate the temporary bounded B/D (and production-cadence C) rehearsal,
+1. The temporary bounded B/D (and production-cadence C) rehearsal is implemented,
    composed with existing qualification/acceptance. One separate R0 invocation is
    acceptable; repeated case-by-case manual loops are not needed. Record exact support/limitations and source/helper identities.
 2. Publish one fresh output, exact command, scientific plan identity and original
    input roots. Existing campaign selection is `--research --bandit-only --seed
-   20261016`, with no `--fresh-control`; these flags do not themselves add the
-   proposed rehearsal. Do not launch from this planning document automatically.
+   20261016`, with no `--fresh-control`; include `--rehearsal` for the implemented R0 stage and optionally
+   `--stop-after-rehearsal` to inspect it before resuming R1. Do not launch from this planning document automatically.
 3. Rebuild and qualify the current post-conformance source/image scope, run measured
    readiness gates and preserve longer computed deadlines. Historical -004/T072
    PASS remains historical evidence, not current-source qualification.
