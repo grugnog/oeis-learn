@@ -73,3 +73,22 @@ def test_canonical_job_writes_negative_terminal_for_host_side_failure(tmp_path,m
     assert value['job']==job['identity'] and value['result']['failure']['kind']=='ValueError'
     details=stage_failures(tmp_path)
     assert details['failures'][0]['detail']['kind']=='ValueError' and '/private/native' not in json.dumps(details)
+
+
+@pytest.mark.parametrize('message,expected_hash',[
+    ('missing artifact','sha256:027455ec0582bfb3d196a67af27b1a6291c34414508aa68ee93b5573cdfaa318'),
+    ('invalid frozen execution: missing artifact','sha256:531c31d1def9fd778f37fe34cf4e1dc18bd368beb8b1e56599d2f8694498724e'),
+])
+def test_reported_safe_literal_errors_are_readable_and_old_hashes_upgrade(tmp_path,message,expected_hash):
+    from oeis_learn.pipeline_validation.generalization_failures import public_failure,stage_failures
+    detail=public_failure(ValueError(message))
+    assert detail['private_detail_sha256']==expected_hash
+    assert detail['code']=='missing_artifact'
+    # The original producer remains byte-identical; new recovery can recognize
+    # only exact known safe constants, never guess an arbitrary private message.
+    old=seal(dict(detail,code='private_exception_detail',message='Private exception detail omitted; inspect the original producer result.'))
+    write(tmp_path/'role/result.json',seal(dict(status='FAIL',failure=old)))
+    immutable=(tmp_path/'role/result.json').read_bytes()
+    recovered=stage_failures(tmp_path)
+    assert recovered['failures'][0]['detail']['code']=='missing_artifact'
+    assert (tmp_path/'role/result.json').read_bytes()==immutable

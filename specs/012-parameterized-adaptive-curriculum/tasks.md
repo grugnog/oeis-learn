@@ -346,3 +346,15 @@ frozen before any model outcomes; training, exclusions and draw law stay unchang
 - [X] F004 Add nested-role/first-cause/cleanup/export failure counterexamples; preserve bounded safe cause types and quota details without private paths, truth or tensors.
 - [X] F005 Implement bounded nested failure capture and verified public export/recovery for new and existing failed runs, keeping original records immutable.
 - [X] F006 Run affected and combined non-HIP regression closure, update fingerprint and operator instructions, commit/push repairs and stop without HIP or CI wait.
+
+
+## Qualification projection repair (2026-11-05)
+
+Admission in the operator's second run passed in 1,155.7 seconds. Qualification
+failed before its tests: the isolated validator lacked the structural artifact
+referenced by the admission receipt. Neither this repair nor the earlier admission
+receipt completes E for a changed source/image closure.
+
+- [X] F007 Reproduce missing structural truth through the real custodian projection for historical/current admission versions, plus rejection and safe-error reporting counterexamples.
+- [ ] F008 Include verified structural truth only in the custodian validation closure; render exact known safe errors and recover their historical hashes without exposing private text or changing producer records.
+- [ ] F009 Run affected and combined non-HIP checks, refresh the implementation fingerprint, document the new-plan rerun, commit/push and stop without CI wait.
