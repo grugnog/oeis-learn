@@ -207,6 +207,8 @@ the reason. Keep hardware tasks unchecked until actual evidence is supplied.
   **T072 evidence status**: clean HIP pause/resume and success/negative export verified; actual unsaved-segment HIP crash/discard proof is absent. Blocked as detailed in `validation/hip-acceptance.md`; passing CPU crash tests do not substitute for that device proof.
 - [ ] T073 [US5] If authorized research completed in T068, run the scoped analysis over its final reports, examine passing/failing before/after cases and reconcile costs/denominators/attribution into `specs/012-parameterized-adaptive-curriculum/validation/research-results.md` (new); otherwise record research DEFERRED with exact missing evidence. Only check this task complete for actual research analysis; explicit deferral does not block software acceptance and does not authorize another campaign.
 
+  **T073 evidence status**: DEFERRED under the uploaded `research=false` scope; missing actual research outputs are enumerated in `validation/research-results.md`. This remains unchecked and does not authorize a new campaign.
+
 ### E3 — Close out with truthful completion
 
 - [ ] T074 Reconcile actual evidence, software readiness, scientific interpretability, deferred optional research and all failure/retry boundaries in `specs/012-parameterized-adaptive-curriculum/validation/closeout.md` (new), `specs/012-parameterized-adaptive-curriculum/tasks.md` and `specs/012-parameterized-adaptive-curriculum/reliability-review.md`; commit/push public evidence references and bounded reports only, preserve private artifacts and historical failures, and do not auto-launch seeds/ablations or select a winner.

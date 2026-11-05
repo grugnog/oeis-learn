@@ -285,6 +285,20 @@
     "rows": 32768,
     "supported": 32768
   },
+  "research_review": {
+    "authorized_in_uploaded_plan": false,
+    "completed_research_arms": [],
+    "missing": [
+      "complete B/C learner histories and final research checkpoints",
+      "v2 retained baseline and final structural attempt/scoring exports",
+      "65/68 completion per compared arm",
+      "full retention/exposure/cost curves",
+      "12 available research case-arm records"
+    ],
+    "scientific_status": "UNMEASURED",
+    "status": "DEFERRED",
+    "task": "T073 DEFERRED"
+  },
   "scope": {
     "arms": [
       "B",
