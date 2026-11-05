@@ -358,3 +358,14 @@ receipt completes E for a changed source/image closure.
 - [X] F007 Reproduce missing structural truth through the real custodian projection for historical/current admission versions, plus rejection and safe-error reporting counterexamples.
 - [X] F008 Include verified structural truth only in the custodian validation closure; render exact known safe errors and recover their historical hashes without exposing private text or changing producer records.
 - [X] F009 Run affected and combined non-HIP checks, refresh the implementation fingerprint, document the new-plan rerun, commit/push and stop without CI wait.
+
+
+## Calibration row-boundary repair (2026-11-05)
+
+The third operator run passed admission and CPU/HIP qualification, then calibration
+failed with the exact public hash of `KeyError('source')`. Learner projections
+intentionally omit source text; this repair must preserve that boundary.
+
+- [X] F010 Reproduce calibration's missing source field with actual prepared learner rows and add whole-handler CPU tensor/update/checkpoint and native-failure counterexamples.
+- [ ] F011 Decode the already-verified literal target tokens for native calibration only; preserve lean learner projections and add safe historical missing-field diagnostics.
+- [ ] F012 Run the stable combined non-HIP regression selection, refresh the current fingerprint, record actual operator progress and fresh-plan instructions, and publish incremental commits without CI wait.
