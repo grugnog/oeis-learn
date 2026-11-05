@@ -13,6 +13,7 @@ def envelope(*,purpose,arms):
     work={name:7200 for name in PAC_STAGES}
     for kind in ('preparation','learner','generation'):
         work[kind]=pac_work_allowance(kind,forecast=None,startup=1800,publication=1800,existing=0)['seconds']
+    work['generation']=max(work['generation'],3*(128*5*60+60)+7200)
     work.update(resume=work['learner'],acceptance=36000,calibration=18000,export=7200,validation=7200,proof=7200)
     if purpose=='acceptance':work['learner']=work['resume']=1800
     stages={name:dict(work=work[name],startup=1800,publication=1800 if name not in {'learner','resume'} or purpose=='research' else 300,
@@ -21,7 +22,7 @@ def envelope(*,purpose,arms):
     total=sum(s['outer'] for s in stages.values())+(len(arms)-1)*sum(stages[k]['outer'] for k in ('learner','generation','resume','proof','export'))+3600
     return dict(version='pac-envelope/v1',**stages,campaign=total,diagnostics_seconds=7200 if purpose=='research' else 1200,
         batch_size=32 if purpose=='research' else 2,acceptance_tokens=1000000,backend=POLICY_ID,
-        storage=dict(data_bytes=16<<30,data_copies=3,scratch_bytes=8<<30,logs_bytes=2<<30,package_bytes=512<<20,reserved_bytes=128<<30))
+        storage=dict(data_bytes=16<<30,data_copies=3,scratch_bytes=8<<30,logs_bytes=2<<30,package_bytes=512<<20,reserved_bytes=(128+64*max(0,len(arms)-2))<<30))
 
 
 def assemble(inputs,output,settings,*,seconds):

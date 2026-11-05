@@ -11,11 +11,26 @@ def publication_reserve(seconds):
 
 class TrainingTiming:
     """Bounded diagnostic windows; never alter optimization/accounting decisions."""
-    def __init__(self):
+    def __init__(self,snapshot=None):
         from collections import deque
         self.windows=deque(maxlen=64);self.start=None;self.anchor=None
         self.checkpoint_seconds=0.;self.update_seconds=0.;self.checkpoint_calls=0;self.max_checkpoint_seconds=0.
         self.trend=[];self.loss_sum=0.;self.loss_count=0;self.last_loss=None;self.last_gradient_norm=None
+        self.total_loss_sum=0.;self.total_loss_observations=0
+        if snapshot is not None:
+            import math
+            if set(snapshot)!=set(self.snapshot()) or snapshot['version']!='pac-timing-history/v1':raise ValueError('closed timing history required')
+            for key in ('checkpoint_seconds','update_seconds','checkpoint_calls','max_checkpoint_seconds','total_loss_observations'):
+                value=snapshot[key]
+                if type(value) not in (int,float) or not math.isfinite(value) or value<0:raise ValueError('finite nonnegative timing history required')
+            if len(snapshot['windows'])>64 or len(snapshot['trend'])>128:raise ValueError('bounded timing history required')
+            for key,value in snapshot.items():
+                if key=='windows':self.windows.extend(value)
+                elif key!='version':setattr(self,key,value)
+
+    def snapshot(self):
+        return dict(version='pac-timing-history/v1',**{k:getattr(self,k) for k in ('checkpoint_seconds','update_seconds','checkpoint_calls','max_checkpoint_seconds',
+            'total_loss_sum','total_loss_observations','last_loss','last_gradient_norm')},windows=list(self.windows),trend=list(self.trend))
 
     def record_update(self,result):
         import math
@@ -25,7 +40,9 @@ class TrainingTiming:
             if value is not None:
                 if type(value) not in (int,float) or not math.isfinite(value):raise ValueError('finite observed training metric required')
                 setattr(self,attr,value)
-        if result.get('loss') is not None:self.loss_sum+=result['loss'];self.loss_count+=1
+        if result.get('loss') is not None:
+            self.loss_sum+=result['loss'];self.loss_count+=1
+            self.total_loss_sum+=result['loss'];self.total_loss_observations+=1
 
     def observe(self,updates,tokens,now):
         if self.start is None:self.start=updates
@@ -269,6 +286,8 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
             if pac:
                 from .generalization_persistence import pac_crash_recovery
                 ledger=pac_crash_recovery(state,ledger,unclean=not json.loads(progress_path.read_text())['closed'],discarded_tokens=state['scheduler']['discarded_tokens'])
+    if pac and resume is not None and state['scheduler'].get('timing'):
+        timing=TrainingTiming(state['scheduler']['timing'])
     # Conservatively debit reduced enclosing allowance (I/O and cleanup reserve).
     previous_seconds=state['scheduler']['learner_seconds']+config['seconds']-seconds;saved_ledger=ledger
     discarded_tokens=state['scheduler'].get('discarded_tokens',0)
@@ -319,6 +338,8 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
             checkpoint_io=dict(store.io_stats),checkpoint_policy=checkpoint_policy,journal_writes=journal_writes,
             max_checkpoint_seconds=timing.max_checkpoint_seconds,trend=list(timing.trend),
             last_loss=timing.last_loss,last_gradient_norm=timing.last_gradient_norm,
+            total_loss_sum=timing.total_loss_sum,total_loss_observations=timing.total_loss_observations,
+            history_coverage='verified model snapshots plus current invocation; prior final save tail unavailable' if pac and resume else 'current invocation',
             invocation_seconds=time.monotonic()-began,
             progress=dict(tokens=saved_ledger.consumed-(saved_ledger.pending[1] if saved_ledger.debited else 0),
                 charged_tokens=saved_ledger.consumed+discarded_tokens,discarded_tokens=discarded_tokens,updates=saved_ledger.updates,
@@ -337,6 +358,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
                             device=torch.cuda.get_rng_state_all() if config['device']=='cuda' else [])
         def scheduler():
             current['scheduler']['learner_seconds']=previous_seconds+time.monotonic()-began
+            if pac:current['scheduler']['timing']=timing.snapshot()
             return current['scheduler']
         current['pins']=dict(permanent)
         current['history']['milestones']={str(k):v for k,v in milestone_keys.items()}

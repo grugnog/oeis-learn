@@ -432,3 +432,18 @@ def test_pac_batches_keep_fixed_order_and_exact_token_charge(tmp_path):
     cost=charge_tokens([r['tokens'] for r in stream[0]],bos=1,pad=0)
     result=train_updates(s,Ledger(cost-1),stream,update=seen.append,save=lambda state,ledger:saved.append(ledger))
     assert not seen and result['ledger'].consumed==0 and result['ledger'].pending[1]==cost
+
+
+def test_pac_timing_history_preserves_whole_run_totals_and_bounded_trend():
+    from oeis_learn.pipeline_validation.generalization_training import TrainingTiming
+    timing=TrainingTiming()
+    for i in range(2000):
+        timing.record_update(dict(loss=2.,gradient_norm=3.))
+        timing.observe(i,i*10,float(i))
+    timing.checkpoint_seconds=10.;timing.checkpoint_calls=3;timing.update_seconds=20.
+    restored=TrainingTiming(timing.snapshot())
+    assert restored.snapshot()==timing.snapshot()
+    restored.record_update(dict(loss=4.,gradient_norm=5.))
+    assert restored.total_loss_observations==2001 and restored.total_loss_sum==4004
+    assert restored.checkpoint_seconds==10 and len(restored.trend)<=128 and len(restored.windows)<=64
+    with pytest.raises(ValueError):TrainingTiming(dict(timing.snapshot(),extra='forbidden'))

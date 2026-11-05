@@ -108,3 +108,45 @@ def test_interrupted_campaign_resumes_only_unfinished_closure_and_binds_identiti
     assert all(e['binding'].startswith('sha256:') for e in resumed['receipts'])
     assert verify_archive(tmp_path/'resumed/report.zip')['software_status']=='PARTIAL'
     assert 'measured progress unavailable' in capsys.readouterr().out
+
+
+def test_bootstrap_failure_packages_independent_negative_evidence(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation.generalization_archive import verify_archive
+    h=helper()
+    from oeis_learn.experiments import source_snapshot
+    monkeypatch.setattr(source_snapshot,'collect_snapshot',lambda root:{})
+    args=SimpleNamespace(output='blocked',engine='podman',fresh_control=False,bandit_only=False,research=False,seed=7)
+    assert h.bootstrap_failure(args,FileNotFoundError('/private/original missing'),workspace=tmp_path)==1
+    verdict=verify_archive(tmp_path/'blocked/bootstrap-failure/report.zip')
+    assert verdict['software_status']=='BLOCKED' and not verdict['feature_qualified']
+    import zipfile
+    with zipfile.ZipFile(tmp_path/'blocked/bootstrap-failure/report.zip') as archive:
+        assert all(b'/private/original' not in archive.read(n) for n in archive.namelist())
+
+
+def test_failed_train_resume_requires_verified_full_state_and_exact_config(tmp_path,monkeypatch):
+    import json
+    from oeis_learn.pipeline_validation import generalization_commands as commands,generalization_runtime as runtime_module
+    from oeis_learn.pipeline_validation.identity import digest,write
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.pipeline_validation.generalization_execution import bind_compatibility
+    h=helper();stage=dict(name='train-C',manifest='@acceptance')
+    base=tmp_path/'base';base.mkdir()
+    write(base/'bundle.json',dict(identity=digest('bundle')));write(base/'recipe.json',{})
+    write(base/'study.json',dict(seed=7));write(base/'runtime.json',dict(prepared=dict(training=reference(base/'bundle.json',base)),recipe=reference(base/'recipe.json',base)))
+    receipts={'acceptance':dict(resolved_manifest='base/study.json',resolved_runtime='base/runtime.json')}
+    old=tmp_path/'old';root=old/'train-C/execution/training-C/role/private/learner/checkpoints';root.mkdir(parents=True)
+    path=root/'generation/manifest.json';path.parent.mkdir()
+    config=dict(batch_size=32)
+    data=digest(dict(prepared=digest('bundle'),arm='C',batch_size=32))
+    contract=digest(dict(config=config,data=data,**bind_compatibility('cuda',{})))
+    write(path,dict(contract=contract));ref=reference(path,root);write(root/'generalization-latest.json',ref)
+    calls=[]
+    def verified(workspace,value):calls.append(value);return root,ref,[]
+    monkeypatch.setattr(commands,'_resume_inputs',verified)
+    monkeypatch.setattr(runtime_module,'learner_config',lambda *a,**kw:config)
+    result=h._model_resume({},stage,old,tmp_path,receipts)
+    assert result==str(path.relative_to(tmp_path)) and calls==[result]
+    write(path,dict(contract=digest('wrong')),exclusive=False)
+    with pytest.raises(ValueError):h._model_resume({},stage,old,tmp_path,receipts)

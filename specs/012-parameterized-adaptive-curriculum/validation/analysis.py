@@ -72,7 +72,7 @@ def analyze_campaign(root,*,output):
     for name in ('baseline',*('evaluate-'+a for a in plan['arms'])):
         if name not in entries:continue
         arm='A' if name=='baseline' else name.split('-')[1]
-        folder=root/name/'execution/evaluation'/arm
+        folder=root/name/'execution/evaluation'/('A-reference' if name=='baseline' and study['control_mode']=='fresh-control' else arm)
         scoring=verified(name,folder/'scoring/role/scoring.json')
         if scoring['study']!=study['identity'] or seal(scoring)!=scoring:raise ValueError('scorer study/seal mismatch')
         if roster is None:roster=scoring['roster']

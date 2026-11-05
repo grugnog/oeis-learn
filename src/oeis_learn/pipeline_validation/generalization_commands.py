@@ -306,7 +306,7 @@ def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
             return finish(value)
         if args.operation=='qualify':
             from .generalization_qualification_io import produce
-            return finish(produce(host,workspace,output/'qualification',images=runtime['images'],contract=runtime['identity']))
+            return finish(produce(host,workspace,output/'qualification',images=runtime['images'],contract=runtime['identity'],pac_seconds=1800))
         require_pac_admission(study,runtime,'train' if args.operation=='acceptance' else args.operation)
         if not args.qualification:raise ValueError('original compatible PAC qualification required')
         from .generalization_qualification_io import consume_original
@@ -320,7 +320,7 @@ def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
                 environment=digest(dict(images=runtime['images'],engine=runtime['engine'],backend=study['backend'])),device='hip')
         qualification=consume_original(host,workspace,producer,output/'qualification',
             required_suites=['bigint-cpu','bigint-gpu'],required_capabilities=['weight-load','finite-update','native-exact'],
-            research=False,feature_receipt=None if runtime['purpose']=='research' else feature)
+            research=False,feature_receipt=None if runtime['purpose']=='research' else feature,pac_seconds=1800)
         if qualification['authority']['images']!=runtime['images'] or _document(producer,qualification['authority']['source_closure'])!=_document(base,runtime['source']):
             raise ValueError('PAC qualification image/source mismatch')
         if args.operation=='acceptance':

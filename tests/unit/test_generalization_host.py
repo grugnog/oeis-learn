@@ -107,3 +107,15 @@ def test_runtime_root_symlink_remains_forbidden(tmp_path):
     # fixture is disposable and must not be mistaken for the real runtime root.
     assert inventory(outer) == []
     with scope(outer, CAPS):guard(outer / 'disk').check()
+
+
+def test_pac_job_parser_and_portable_help_are_stdlib_only():
+    import subprocess,sys
+    root=Path(__file__).resolve().parents[2]
+    args=host_module().parser().parse_args(['--engine','podman','generalization','pac-stage','--job','job.json','--output','new'])
+    assert args.job=='job.json' and args.engine=='podman'
+    for script,rest in [('scripts/foundation_run.py',['generalization','pac-stage','--help']),
+                        ('specs/012-parameterized-adaptive-curriculum/validation/run.py',['run','--help'])]:
+        result=subprocess.run([sys.executable,'-S',script,*rest],cwd=root,text=True,capture_output=True,timeout=30)
+        assert result.returncode==0,result.stderr
+        assert '--output' in result.stdout

@@ -30,12 +30,12 @@ def checkpoint_request(workspace,request,study,runtime,recipe,prepared):
     from .generalization_execution import bind_compatibility
     try:arm,path=request.split('=',1)
     except ValueError:raise ValueError('PAC checkpoint requires arm=descriptor path') from None
-    if arm not in set(study['arms'])|{'A'}:raise ValueError('unfrozen evaluation arm')
+    if arm not in set(study['arms'])|{'A','A-reference'}:raise ValueError('unfrozen evaluation arm')
     file=confined(workspace,path)
     if file.stat().st_size>1<<20:raise ValueError('checkpoint descriptor cap')
     descriptor=json.loads(file.read_text());shape('checkpoint',descriptor)
     if seal(descriptor)!=descriptor:raise ValueError('checkpoint seal changed')
-    if arm=='A' and study['control_mode']!='fresh-control':
+    if arm=='A-reference' or arm=='A' and study['control_mode']!='fresh-control':
         if descriptor['identity']!=runtime['control']['checkpoint']:raise ValueError('retained A differs from frozen control')
         if descriptor.get('version')=='generalization-checkpoint/v2':
             from oeis_learn.generalization.legacy import verify_legacy

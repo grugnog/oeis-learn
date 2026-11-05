@@ -170,3 +170,39 @@ def test_pac_process_failure_cannot_be_overridden_by_stale_application_pass(tmp_
         roles.invoke(SimpleNamespace(engine=engine,policy={'memory_bytes':2<<30,'cpus':4}),
             'sha256:'+'a'*64,tmp_path,Role.REPORT,channels,output='out',operation='fixture',settings={},
             seconds=3900,launcher=launch,envelope=pac_envelope()['export'])
+
+
+@pytest.mark.parametrize('engine_name',['docker','podman'])
+@pytest.mark.parametrize('role_name,operation,stage,gpu',[
+    ('preparation','pac-assemble','preparation',False),('learner','pac-calibrate','calibration',True),
+    ('learner','pac-campaign-acceptance','acceptance',True),('preparation','pac-publish-evaluation','validation',False),
+    ('generator','pac-evaluate','generation',True),('selection','pac-score','proof',False)])
+def test_pac_delivery_commands_have_exact_mounts_and_full_envelope(tmp_path,monkeypatch,engine_name,role_name,operation,stage,gpu):
+    from types import SimpleNamespace
+    from contextlib import nullcontext
+    from oeis_learn.container_runtime import Engine
+    from oeis_learn.pipeline_validation import generalization_roles as roles,supervision
+    from oeis_learn.pipeline_validation.generalization_pac_setup import envelope
+    from oeis_learn.pipeline_validation.generalization_execution import startup_environment
+    engine=Engine(engine_name,executable=engine_name,details={})
+    monkeypatch.setattr(engine,'user_args',lambda:[])
+    monkeypatch.setattr(engine,'device_args',lambda render_node:['--device','/dev/kfd','--device','/dev/dri/renderD128'])
+    monkeypatch.setattr(supervision,'reclaim',lambda *a:None)
+    role=Role(role_name);channels={m.channel:m.channel for m in ROLE_INPUTS[role]}
+    for name in channels.values():(tmp_path/name).mkdir()
+    limits=envelope(purpose='research',arms=['B','C'])[stage];observed=[]
+    def launch(argv,output,**kw):
+        observed.extend(argv);runtime=json.loads(argv[-1])
+        assert runtime['operation']==operation and runtime['seconds']==limits['work']+limits['publication']
+        assert runtime['device']==('cuda' if gpu else 'cpu')
+        assert kw['seconds']>=runtime['seconds'] and kw['cleanup_seconds']==30
+        (output.parent/'result.json').write_text('{"status":"PASS"}')
+    host=SimpleNamespace(engine=engine,policy=dict(memory_bytes=8<<30,cpus=4),gpu_lock=nullcontext)
+    roles.invoke(host,'sha256:'+'a'*64,tmp_path,role,channels,output='out',operation=operation,settings={},
+        seconds=limits['outer'],envelope=limits,gpu=gpu,launcher=launch)
+    mounts=[observed[i+1] for i,x in enumerate(observed) if x=='--mount']
+    assert len(mounts)==len(channels)+1 and all(m.endswith(',readonly') for m in mounts[:-1])
+    assert '--network=none' in observed and '--read-only' in observed and not any('sock' in m for m in mounts)
+    if gpu:
+        env=dict(observed[i+1].split('=',1) for i,x in enumerate(observed) if x=='--env')
+        assert all(env[k]==v for k,v in startup_environment().items())

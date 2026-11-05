@@ -48,6 +48,11 @@ def collect_snapshot(root):
             # remain in this snapshot, including this versioned exclusion rule.
             and not (p.suffix=='.json' and Path('configs/foundation/pipeline_studies') in p.relative_to(root).parents)
         )
+    # Temporary delivery/analysis helpers execute authority-bearing code too.
+    # Bind code and its fixture tests, never outcome reports or mutable ledgers.
+    for directory in ('specs/011-controlled-generalization/validation',
+                      'specs/012-parameterized-adaptive-curriculum/validation'):
+        files.update((root/directory).glob('*.py'))
     files.update(
         root / name
         for name in ("Dockerfile", "MANIFEST.in", "pyproject.toml", "uv.lock", "setup.py")

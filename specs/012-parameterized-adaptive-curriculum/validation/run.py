@@ -147,7 +147,11 @@ def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
             try:
                 if time.monotonic()-start+stage['seconds']>effective_seconds-plan['finalization_seconds']:raise TimeoutError('protected finalization reserve')
                 if runner is not None:value=runner(stage,target)
-                else:value=_canonical_stage(plan,stage,target,workspace,receipts)
+                else:
+                    resume_path=None
+                    if existing and existing.get('binding')==binding and name.startswith('train-'):
+                        resume_path=_model_resume(plan,stage,Path(previous),workspace,receipts)
+                    value=_canonical_stage(plan,stage,target,workspace,receipts,resume_path=resume_path)
                 resolved=[]
                 for key in ('resolved_manifest','resolved_runtime'):
                     if value.get(key):
@@ -173,8 +177,8 @@ def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
         if name=='calibration' and entry['status']=='PASS' and entry.get('operational_envelope'):
             e=entry['operational_envelope']
             for future in effective_stages:
-                if future['name'].startswith('train-'):future['seconds']=max(future['seconds'],e['learner']['outer']+7200)
-                elif future['name']=='baseline' or future['name'].startswith('evaluate-'):future['seconds']=max(future['seconds'],e['generation']['outer']+e['proof']['outer']+e['validation']['outer']+7200)
+                if future['name'].startswith('train-'):future['seconds']=max(future['seconds'],e['learner']['outer']+e['validation']['outer']+4*1800+7200)
+                elif future['name']=='baseline' or future['name'].startswith('evaluate-'):future['seconds']=max(future['seconds'],e['generation']['outer']+e['proof']['outer']+2*e['validation']['outer']+4*1800+7200)
             effective_seconds=max(effective_seconds,sum(s['seconds'] for s in effective_stages)+3600)
             revision=seal(dict(version='pac-operational-freeze/v1',original_plan=plan['identity'],calibration=entry['producer'],stages=effective_stages,seconds=effective_seconds,finalization_seconds=3600))
             write(output/'operational-freeze.json',revision)
@@ -240,7 +244,7 @@ def _role_job(plan,operation,settings,artifacts,source_roots,target,workspace,qu
     write(target/'job.json',job)
     argv=[sys.executable,'scripts/foundation_run.py','--engine',plan['engine'],'generalization','pac-stage','--job',str((target/'job.json').relative_to(workspace)),
         '--output',str((target/'execution').relative_to(workspace))]
-    launch(argv,target/'supervision',seconds=limits['outer']+7200,cleanup_seconds=30,stream_cap=1<<20)
+    launch(argv,target/'supervision',seconds=limits['outer']+9000,cleanup_seconds=30,stream_cap=1<<20)
     value=_read(target/'execution/result.json');process=_read(target/'supervision/process.json')
     if value['job']!=job['identity'] or value['source']!=plan['source'] or seal(value)!=value:raise ValueError('canonical job producer mismatch')
     result=dict(status=value['status'],producer=value['identity'],process=process,
@@ -268,6 +272,9 @@ def build_plan(args,workspace=ROOT):
     from foundation_local import Host,parser
     host=Host(parser().parse_args(['--engine',args.engine,'status','--run','run-state/unused']))
     images=Images(cap=86400)
+    import shutil
+    required=(128+64*(int(args.fresh_control)+int(args.bandit_only)))<<30
+    if shutil.disk_usage(workspace).free<required:raise ValueError('insufficient free disk for complete selected-arm live graph: '+str(required)+' bytes required')
     pair=[images.ensure(host,target,folder/'build'/target,seconds=43200) for target in ('qualification','gpu')]
     base=confined(workspace,args.pilot)/'execution/private/prepared'
     context['recipe_ref']=reference(confined(base,context['runtime']['recipe']['path']),workspace)
@@ -281,7 +288,8 @@ def build_plan(args,workspace=ROOT):
     for i,name in enumerate(stage_order(research=args.research,arms=arms)):
         operation={'admission':'assemble','qualification':'qualify','calibration':'calibrate','acceptance':'acceptance','baseline':'evaluate','analysis':'analysis'}.get(name,'train' if name.startswith('train-') else 'evaluate')
         category={'admission':'preparation','qualification':'validation','calibration':'calibration','acceptance':'acceptance','baseline':'generation','analysis':'export'}.get(name,'learner' if name.startswith('train-') else 'generation')
-        seconds=limits[category]['outer']+(86400 if name=='qualification' else 7200)
+        overhead=limits['validation']['outer']+4*1800+7200
+        seconds=limits[category]['outer']+overhead+(limits['proof']['outer']+limits['validation']['outer'] if operation=='evaluate' else 0)+(86400 if name=='qualification' else 0)
         stages.append(dict(name=name,operation=operation,manifest='@admission',seconds=seconds,extra=[],requires=[] if not i else [stages[-1]['name']]))
     plan=prepare_plan(workspace,engine=args.engine,stages=stages,inputs=refs+[reference(folder/'original-context.json',workspace)],
         source=digest(collect_snapshot(workspace)),images=pair,research=args.research,arms=arms)
@@ -305,7 +313,7 @@ def _resolve_manifest(stage,workspace,receipts):
 
 _canonical_command_stage=_canonical_stage
 
-def _canonical_stage(plan,stage,target,workspace,receipts):
+def _canonical_stage(plan,stage,target,workspace,receipts,*,resume_path=None):
     from oeis_learn.pipeline_validation.generalization_preparation import reference
     from oeis_learn.generalization.contracts import artifact_refs,verify_artifact
     workspace=Path(workspace)
@@ -367,7 +375,9 @@ def _canonical_stage(plan,stage,target,workspace,receipts):
         return dict(status='PASS',producer=digest(value),process=dict(outcome='COMPLETE',returncode=0),cleanup=dict(acknowledged=True,within_bound=True),
             artifacts=[reference(target/'analysis.json',target)])
     extra=['--runtime',runtime_path] if runtime_path else []
-    if stage['operation']=='train':extra+=['--arms',stage['name'].split('-')[1],'--seeds',str(study['seed'])]
+    if stage['operation']=='train':
+        extra+=['--arms',stage['name'].split('-')[1],'--seeds',str(study['seed'])]
+        if resume_path:extra+=['--resume',resume_path]
     if stage['operation']=='evaluate':
         if stage['name']=='baseline':
             context=_read(confined(workspace,plan['stages'][0]['extra'][0]))
@@ -377,7 +387,7 @@ def _canonical_stage(plan,stage,target,workspace,receipts):
             destination=confined(owned,weights['path'],exists=False);destination.parent.mkdir(parents=True,exist_ok=True)
             shutil.copyfile(confined(root,weights['path']),destination)
             write(owned/'checkpoint.json',c['checkpoint'])
-            extra+=['--checkpoints','A='+str((owned/'checkpoint.json').relative_to(workspace))]
+            extra+=['--checkpoints',('A-reference=' if study['control_mode']=='fresh-control' else 'A=')+str((owned/'checkpoint.json').relative_to(workspace))]
         else:
             arm=stage['name'].split('-')[1]
             root=target.parent/('train-'+arm)/'execution'/('training-'+arm)/'role/private/learner/checkpoints'
@@ -389,6 +399,60 @@ def _canonical_stage(plan,stage,target,workspace,receipts):
     result=_canonical_command_stage(plan,effective,target,workspace,receipts)
     result.update(resolved_manifest=manifest,resolved_runtime=runtime_path)
     return result
+
+
+def _model_resume(plan,stage,previous,workspace,receipts):
+    """Use only verified compatible full state; never restore a policy journal alone."""
+    from oeis_learn.pipeline_validation.generalization_commands import _resume_inputs
+    from oeis_learn.pipeline_validation.generalization_runtime import learner_config
+    from oeis_learn.pipeline_validation.generalization_execution import bind_compatibility
+    from oeis_learn.generalization.contracts import verify_artifact
+    arm=stage['name'].split('-')[1]
+    root=previous/stage['name']/'execution'/('training-'+arm)/'role/private/learner/checkpoints'
+    pointer=root/'generalization-latest.json'
+    if not pointer.exists():return None
+    latest=_read(pointer);path=confined(root,latest['path'])
+    parent,ref,refs=_resume_inputs(workspace,str(path.relative_to(workspace)))
+    if ref!=latest:raise ValueError('resume latest pointer changed')
+    manifest,runtime_path=_resolve_manifest(stage,workspace,receipts)
+    base=confined(workspace,manifest).parent;study=_read(confined(workspace,manifest));runtime=_read(confined(workspace,runtime_path))
+    prepared=json.loads(verify_artifact(base,runtime['prepared']['training']))
+    recipe=json.loads(verify_artifact(base,runtime['recipe']))
+    config=learner_config(study,runtime,recipe,arm,study['seed'],prepared=prepared)
+    data=digest(dict(prepared=prepared['identity'],arm=arm,batch_size=config['batch_size']))
+    expected=digest(dict(config=config,data=data,**bind_compatibility('cuda',{})))
+    state=json.loads(verify_artifact(parent,ref))
+    if state['contract']!=expected:raise ValueError('failed learner full state is incompatible; no automatic fresh restart')
+    return str(path.relative_to(workspace))
+
+
+def bootstrap_failure(args,exc,*,workspace=ROOT):
+    """Even preflight/build failure gets an independently verified negative archive."""
+    from oeis_learn.experiments.source_snapshot import collect_snapshot
+    output=confined(workspace,str(Path(args.output)/'bootstrap-failure'),exists=False)
+    if output.exists():raise ValueError('preserve previous bootstrap failure; choose a fresh output')
+    output.mkdir(parents=True)
+    arms=['A','B','C'] if args.fresh_control else ['B','C']
+    if args.bandit_only:arms.append('D')
+    stages=[dict(name=n,operation='prepare',manifest='UNAVAILABLE',seconds=3600,extra=[],requires=[] if not i else [order[i-1]])
+            for order in [stage_order(research=args.research,arms=arms)] for i,n in enumerate(order)]
+    plan=prepare_plan(workspace,engine=args.engine,stages=stages,inputs=[],source=digest(collect_snapshot(workspace)),
+        images=[digest('UNAVAILABLE qualification image'),digest('UNAVAILABLE GPU image')],research=args.research,arms=arms)
+    plan['stages'][0]['extra']=['UNAVAILABLE',str(args.seed)];plan=seal(plan)
+    write(output/'plan.json',plan)
+    workflow=dict(version='pac-workflow/v1',plan=plan['identity'],status='INTERRUPTED' if isinstance(exc,KeyboardInterrupt) else 'BLOCKED',
+        receipts=[],errors=[dict(stage='bootstrap',kind=type(exc).__name__,status='FAIL')])
+    _persist(output/'workflow.json',workflow)
+    print('Preflight/build blocked: '+str(exc),file=sys.stderr,flush=True)
+    try:
+        import shutil
+        archive=recover(output,output/'public-report');shutil.copyfile(archive,output/'report.zip')
+        print('Verified failure report: '+str(output/'report.zip'),flush=True)
+    except Exception as secondary:
+        workflow['errors'].append(dict(stage='export',kind=type(secondary).__name__,status='FAIL'))
+        _persist(output/'workflow.json',workflow)
+        print('Last-resort evidence: '+str(output/'workflow.json'),flush=True)
+    return 130 if isinstance(exc,KeyboardInterrupt) else 1
 
 
 def main(argv=None):
@@ -416,7 +480,8 @@ def main(argv=None):
         else:
             import copy
             inputs=copy.copy(args);inputs.output=str(Path(args.output)/'inputs/plan.json')
-            _,plan=build_plan(inputs)
+            try:_,plan=build_plan(inputs)
+            except (Exception,KeyboardInterrupt) as exc:return bootstrap_failure(args,exc)
         result=execute_plan(plan,confined(ROOT,str(Path(args.output)/'campaign'),exists=False))
     return 0 if result['status']=='PASS' else 130 if result['status']=='INTERRUPTED' else 1
 

@@ -40,7 +40,7 @@ def main(args,workspace,host_factory):
         from .generalization_qualification_io import consume_original
         if job['qualification'] is None:raise ValueError('original qualification required before GPU work')
         qualified=consume_original(host,workspace,confined(workspace,job['qualification']),output/'qualification',
-            required_suites=['bigint-cpu','bigint-gpu'],required_capabilities=['weight-load','finite-update','native-exact'])
+            required_suites=['bigint-cpu','bigint-gpu'],required_capabilities=['weight-load','finite-update','native-exact'],pac_seconds=1800)
         if qualified['authority']['images']!=job['images']:raise ValueError('qualification image mismatch')
     result=project_and_invoke(host,job['images'][1 if gpu else 0],workspace,role,job['artifacts'],source_roots=job['source_roots'],
         output=str((output/'execution').relative_to(workspace)),operation=job['operation'],settings=job['settings'],

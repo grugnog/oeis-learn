@@ -454,3 +454,28 @@ fraction, optional C–D attribution and all token/example/update/time totals fr
 real verified archive. Missing history remains null, and single-seed results never
 select a winner or turn task resampling into seed uncertainty. Actual device or
 positive scientific results are not inferred from these fixture exports.
+
+
+## T062 — Delivery portability and boundary review
+
+`PYTHONPATH=src .venv-cpu/bin/python -m pytest -q tests/contract/test_generalization_roles.py tests/unit/test_generalization_host.py tests/integration/test_generalization_registration.py tests/integration/test_generalization_pac_evaluation.py specs/012-parameterized-adaptive-curriculum/validation/test_run.py --tb=short`: **88 passed**.
+
+Every new delivery role has Docker/Podman argv checks for exact read-only channels,
+no socket/network, explicit accelerator mode, pinned image and full finite envelope.
+Both helper and canonical PAC help execute with `python -S`. A new counterexample
+found the temporary analysis/delivery helpers missing from qualification source
+closure; they and the imported 011 helper code are now bound and included in sdists.
+Mutable outcome reports/ledgers do not enter the source hash.
+
+Review also corrected native score outcomes into boolean/censored metric inputs,
+preserved the retained A reference label when fresh A is declared, enclosed the full
+control-generation and nested qualification paths, and raised PAC-only inspection
+allowances while leaving legacy limits intact. A failed compatible learner resumes
+only its verified full model state with exact configuration identity; an incompatible
+checkpoint blocks instead of silently restarting. Preflight/build failures get a
+verified negative archive with image unavailability explicitly labeled. Bounded
+loss/trend/cost history survives model-bound resume; a prior final-save timing tail
+that is absent from the snapshot is explicitly unavailable, never fabricated.
+
+No Docker/Podman process or HIP/native measurement ran. Those command-construction
+checks establish software wiring, not actual hardware qualification.

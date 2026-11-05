@@ -121,3 +121,16 @@ def test_pac_source_closure_checks_installed_bytes_before_preparation(tmp_path):
     exp,runtime=bind_pac(seal(exp),runtime)
     with pytest.raises(ValueError,match='actual installed source'):
         validate_pac_execution(tmp_path,exp,runtime)
+
+
+def test_all_pac_handlers_and_delivery_helpers_are_source_bound():
+    from oeis_learn.pipeline_validation.generalization_role import HANDLERS
+    from oeis_learn.generalization.role_contracts import Role
+    expected={('preparation','pac-assemble'),('learner','pac-calibrate'),('learner','pac-campaign-acceptance'),
+              ('preparation','pac-publish-evaluation'),('generator','pac-evaluate'),('selection','pac-score')}
+    assert {(Role(role),operation) for role,operation in expected}<=set(HANDLERS)
+    snapshot=collect_snapshot(Path(__file__).resolve().parents[2])
+    for path in ['specs/012-parameterized-adaptive-curriculum/validation/run.py',
+                 'specs/012-parameterized-adaptive-curriculum/validation/analysis.py',
+                 *['src/oeis_learn/pipeline_validation/generalization_pac_'+name+'.py' for name in ['commands','setup','evaluation','calibration','export']]]:
+        assert path in snapshot
