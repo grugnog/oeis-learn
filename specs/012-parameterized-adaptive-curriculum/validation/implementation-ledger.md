@@ -1,8 +1,10 @@
 # 012 implementation ledger
 
-Scope: phases A, B and C. Installed CPU integration is implemented and tested;
-operator delivery (D), actual native/container/HIP evidence and optional research
-(E) remain pending. No HIP was run and CI was not awaited.
+Scope: phases A–D complete (T001–T066), including installed CPU integration and
+operator delivery. Final local validation: 640 tests and 2 subtests passed; two
+marked hardware tests excluded. All eight E tasks remain pending for actual
+original-data/native/container/HIP evidence and optional authorized research. No
+HIP or engine operation was run and CI was not awaited.
 
 ## T001 — Authority and reuse
 
@@ -627,3 +629,22 @@ resume/recover actions and rejected engine/plan mismatch. It is included in the
 640-test passing final selection. The command is a verified handoff for E, not a
 claim that workstation/HIP execution has occurred. The same block is shared in the
 completion response, rather than requiring the operator to find it in a file.
+
+
+## T066 — Locally validated handoff and stop
+
+Phases A/B/C/D now account for **66 checked tasks**; E retains **8 unchecked tasks**.
+The plan, tasks, quickstart and complete requirement/reliability matrices distinguish
+local CPU/fixture/command evidence from actual workstation qualification. Original
+private roots, usable explicit engine, current pinned images, AMD/ROCm device access,
+sufficient disk, full native quotas and measured calibration remain E prerequisites.
+The default E command is software acceptance; research and optional fresh A/D require
+their own predeclared scope. No additional seed, research or HIP work was launched.
+
+Committed incrementally with a dedicated commit for every task and additional fixes
+in their owning groups. Published to the existing PR 63 branch against main; no CI
+wait or merge. Final prerequisites and `git diff --check` pass. The quality checklist
+remains read-only (16 checked, zero unchecked). The required post-execution hook
+check found no `.specify/extensions.yml`, so no hooks were registered. Historical
+011 T174 and T177–T181 are unchanged; the 007 current implementation fingerprint
+changed without altering its 68 dispositions or `full_007_complete=false`.

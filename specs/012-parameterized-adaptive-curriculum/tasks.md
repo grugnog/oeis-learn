@@ -1,7 +1,7 @@
 # Tasks: Parameterized Targets and Adaptive Curriculum
 
 **Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
-**Status**: Phases A/B/C complete (T001–T042), including installed CPU lifecycle and failure checks. Phase D is in progress (T043–T044 complete); delivery and actual native/container/HIP evidence remain pending.
+**Status**: Phases A–D complete (T001–T066), with 640 local tests and 2 subtests passing. Phase E (T067–T074) remains unchecked: actual original-data/native/container/HIP evidence and optional authorized research are pending. No HIP or CI wait occurred.
 **Authority**: [spec](spec.md), [plan](plan.md), [research](research.md),
 [data model](data-model.md), [experiment](contracts/experiment.md),
 [curriculum](contracts/curriculum.md), [execution](contracts/execution.md),
@@ -183,7 +183,7 @@ inputs/native capacity/device evidence or optional research remain outstanding.
 - [X] T063 Run the relevant combined non-HIP unit/contract/integration and 012 helper suites in the pinned environment after changes stabilize; record exact commands/results and skipped dependency reasons in `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md`, fix failures in their owning groups and rerun only affected checks plus necessary closure. Do not run HIP or claim hardware proof from CPU results.
 - [X] T064 Reconcile every task/FR/NFR/SC and all 18 reliability rows against concrete passing local checks and explicit E-only evidence in `specs/012-parameterized-adaptive-curriculum/reliability-review.md` and `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md`; stop handoff for unexplained gaps in contracts, quotas, transactions, packaging or nested limits.
 - [X] T065 Publish and verify against actual help/fixture invocation one copy-pastable operator block in `specs/012-parameterized-adaptive-curriculum/quickstart.md`, with explicit existing branch/engine/original roots/output and plan identity, scientific purpose/data/arms/25M limits, measured ETA versus generous ceiling, resume/recover variants and conditional research behavior; share the block directly with the user at handoff, not only a document link.
-- [ ] T066 Update `specs/012-parameterized-adaptive-curriculum/plan.md`, `specs/012-parameterized-adaptive-curriculum/tasks.md` and `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md` to mark only evidenced local work complete, list actual workstation/HIP prerequisites and optional research separately, and commit/push the locally validated handoff without waiting for CI.
+- [X] T066 Update `specs/012-parameterized-adaptive-curriculum/plan.md`, `specs/012-parameterized-adaptive-curriculum/tasks.md` and `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md` to mark only evidenced local work complete, list actual workstation/HIP prerequisites and optional research separately, and commit/push the locally validated handoff without waiting for CI.
 
 ## Phase E — One consolidated operator session and evidence reconciliation
 
@@ -325,8 +325,8 @@ must link actual check results, not merely cite this table.
 ## Completion accounting
 
 74 tasks: A 6, B 21, C 15, D 24, E 8. Story totals: US1 10, US2 8,
-US3 14, US4 22, US5 7; shared 13. Implementation completed A/B/C and D T043–T044 (44 tasks);
-remaining D/E tasks stay unchecked (30 tasks). Every implementation task has an incremental
+US3 14, US4 22, US5 7; shared 13. Implementation completed A/B/C/D T001–T066 (66 tasks);
+all eight E tasks T067–T074 stay unchecked. Every implementation task has an incremental
 implementation or counterexample commit; local evidence is recorded in the ledger.
 T073 is conditional research analysis and may remain explicitly deferred at
 software closeout. Failed/missing admission or device proof is a real blocker to

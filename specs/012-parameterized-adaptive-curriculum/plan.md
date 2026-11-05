@@ -3,7 +3,7 @@
 **Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
 **Spec**: [spec.md](spec.md)
 **Input**: `specs/012-parameterized-adaptive-curriculum/spec.md`
-**Status**: Phases A/B/C implemented and locally validated, including installed CPU lifecycle and recovery. Phase D is in progress: T043–T044 input/control assembly is implemented, and a structural-truth provenance regression reopened and repaired C preparation. T045 onward, operator delivery, actual native/container/HIP evidence and optional research remain pending.
+**Status**: Phases A–D complete and locally validated (T001–T066), including installed CPU learning/recovery, scoped evaluation, serial delivery, calibration/evidence handlers and the verified operator guide. The final local selection passed 640 tests and 2 subtests. All eight Phase E tasks remain unchecked: actual original-data/native/container/HIP evidence and optional authorized research have not run.
 
 ## Summary
 
@@ -72,7 +72,7 @@ remains outstanding. No constitutional amendment or exception is requested.
 - `spec.md`, `plan.md`, `research.md`, `data-model.md`, `quickstart.md`
 - `contracts/experiment.md`, `contracts/curriculum.md`, `contracts/execution.md`
 - `reliability-review.md`, `checklists/requirements.md`
-- `tasks.md`: 74 dependency-ordered tasks across A–E; all implementation and hardware checkboxes remain open.
+- `tasks.md`: 74 dependency-ordered tasks across A–E; 66 local implementation tasks complete, eight actual operator/evidence tasks pending.
 - `validation/` for the later temporary wrapper, frozen handoff and actual evidence.
 
 ### Source Code (repository root)
@@ -232,3 +232,21 @@ fault. Spec prerequisites, local links, 31 FR / 8 NFR / 10 SC numbering, templat
 checks and whitespace checks passed. The two focused design reviews found and
 resolved observation-count and missing resume-state ambiguities. No HIP or runtime
 code was executed/changed and no CI wait was performed.
+
+
+## Phase D completion and stop boundary
+
+The temporary prepare/run/resume/recover helper composes canonical installed roles;
+source/helper identities remain separate. Structural admission gates research,
+qualification/calibration/actual HIP acceptance precede optional learners, and all
+normal, failed, interrupted and incomplete scopes have independent archive checks.
+The public report carries quota/representation/allocation/cost/case evidence with
+private state and truth omitted. The ledger reconciles every FR/NFR/SC and all 18
+reliability rows against the final 640-test/2-subtest CPU/contract selection.
+
+No HIP or engine operation was executed in A–D and CI was not awaited. Phase E
+requires the original private roots, a usable explicit engine and current pinned
+images, compatible actual AMD/ROCm device access, sufficient peak disk capacity,
+full original native quotas and representative calibration. The quickstart's single
+operator invocation is ready for that session; research, fresh A/D and any later
+seeds remain separate frozen choices. Historical 011 failures/tasks are unchanged.
