@@ -32,6 +32,37 @@ weights, optimizer/RNG state or protected exclusion inputs. Missing originals ar
 specific preflight failure; the helper neither invents provenance nor silently
 substitutes new draws. Use a fresh output name if the chosen output already exists.
 
+## Repair after the original admission failure
+
+The original `pac-012-acceptance` directory remains failed and immutable. The
+operator-authorized [scope amendment](validation/structural-amendment.md) freezes
+new quotas under `pac-structural-scope/v2`, using the identical 2,288 draws and all
+sixteen original exclusions. The current 128-task population has 23 families,
+including 68 certified tasks across 15 families. It is a disclosed feasible subset,
+not a completed result for the old 27/18-family scope. Training data and learner
+policies are unchanged. The printed/sealed plan identifies the new scope.
+
+Pull the repair and run with the fresh `-002` output below. Do not resume the failed
+old plan into the new scientific population. Current images rebuild automatically
+with cached layers where compatible; old weights/data stay untouched. A capacity
+proof from the uploaded counters is implemented and tested, but actual new native
+agreement and workstation/HIP acceptance still must run.
+
+To recover richer diagnostics from the original failed directory without device
+work or mutation, after pulling the repair run:
+
+```sh
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py recover \
+  --previous run-state/generalization/pac-012-acceptance/campaign \
+  --output run-state/generalization/pac-012-admission-recovered-001
+```
+
+This uses original role/control files whose hashes match the original inventory.
+The report preserves the innermost known cause, exact opaque quota deficits where
+originally recorded, and wrapper/cleanup/export errors. Known cause messages are
+safe fixed vocabulary; arbitrary raw exception text and host paths remain private.
+Missing or unverified detail is explicitly omitted. Recovery does not rerun admission.
+
 ## One operator block
 
 This is the Phase-E invocation, provided for handoff; it was **not run on HIP**
@@ -47,7 +78,7 @@ python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py run \
   --prepared run-state/generalization/fresh-p1-v2-20261103T035534Z \
   --pilot run-state/generalization/fresh-p1-hourly-20261104T093555Z \
   --seed 20261016 \
-  --output run-state/generalization/pac-012-acceptance
+  --output run-state/generalization/pac-012-acceptance-002
 ```
 
 The helper audits originals and capacity, builds the pinned qualification/GPU
@@ -61,14 +92,14 @@ weights cannot initialize research. Failures suppress dependent work and still
 produce a verified normal or minimal archive.
 
 The initial plan is
-`run-state/generalization/pac-012-acceptance/inputs/plan.json`; its `identity`,
+`run-state/generalization/pac-012-acceptance-002/inputs/plan.json`; its `identity`,
 scientific scope, source/images, helper hash and finite stage graph are printed
 before admission. Calibration may raise and separately seal **operational** limits
 before research. It cannot change scientific choices, add arms or extend a running
 research allowance. The revision is `campaign/operational-freeze.json`.
 
 The normal shareable result is
-`run-state/generalization/pac-012-acceptance/campaign/report.zip`. A failure during
+`run-state/generalization/pac-012-acceptance-002/campaign/report.zip`. A failure during
 input inspection or image building instead writes `bootstrap-failure/report.zip`
 under the selected output. If rich proof collection fails, the verified minimal
 archive retains the original failure plus the export error and names omissions.
@@ -92,8 +123,8 @@ Optional `--fresh-control` adds a matched fresh literal A; `--bandit-only` adds 
 for allocation without review. Choose these only with the research scope **before**
 freezing; they add their full learner/evaluation/storage reservations. There is no
 automatic extra seed, ablation, winner adoption or assessment execution. The
-parameter endpoint stays DEFERRED. Structural evaluation preserves 128 tasks/27
-families (68 certified/18 families primary, 26 ambiguous, 34 unresolved), all original
+parameter endpoint stays DEFERRED. Structural evaluation preserves 128 tasks/23
+families (68 certified/15 families primary, 26 ambiguous/3 families, 34 unresolved/5 families), all original
 exclusions, 20 visible/100 scoring terms, eight attempts/60-second portfolios and
 seven controls. Interpretation needs at least 65/68 certified completions per
 compared arm; a single seed remains exploratory.
@@ -109,8 +140,8 @@ An incompatible full checkpoint blocks instead of silently restarting a learner.
 
 ```sh
 python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py resume \
-  --plan run-state/generalization/pac-012-acceptance/inputs/plan.json \
-  --previous run-state/generalization/pac-012-acceptance/campaign \
+  --plan run-state/generalization/pac-012-acceptance-002/inputs/plan.json \
+  --previous run-state/generalization/pac-012-acceptance-002/campaign \
   --output run-state/generalization/pac-012-resumed-001
 ```
 
@@ -124,7 +155,7 @@ does not rewrite the old outcome:
 
 ```sh
 python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py recover \
-  --previous run-state/generalization/pac-012-acceptance/campaign \
+  --previous run-state/generalization/pac-012-acceptance-002/campaign \
   --output run-state/generalization/pac-012-recovered-001
 ```
 

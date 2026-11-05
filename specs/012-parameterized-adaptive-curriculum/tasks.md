@@ -1,7 +1,7 @@
 # Tasks: Parameterized Targets and Adaptive Curriculum
 
 **Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
-**Status**: Phases A–D complete (T001–T066), with 640 local tests and 2 subtests passing. Phase E (T067–T074) remains unchecked: actual original-data/native/container/HIP evidence and optional authorized research are pending. No HIP or CI wait occurred.
+**Status**: Original phases A–D (T001–T066) and all six operator-failure repairs F001–F006 complete. Latest local validation: 654 tests and 2 subtests passed. The original operator attempt failed admission; current amended-scope native/container/HIP acceptance and research remain pending in T067–T074. No HIP or CI wait was performed during these repairs.
 **Authority**: [spec](spec.md), [plan](plan.md), [research](research.md),
 [data model](data-model.md), [experiment](contracts/experiment.md),
 [curriculum](contracts/curriculum.md), [execution](contracts/execution.md),
@@ -345,4 +345,4 @@ frozen before any model outcomes; training, exclusions and draw law stay unchang
 - [X] F003 Bind the new scope through admission, scoring, metrics, analysis and offline archives; require exact new population identity and preserve historical denominator guards.
 - [X] F004 Add nested-role/first-cause/cleanup/export failure counterexamples; preserve bounded safe cause types and quota details without private paths, truth or tensors.
 - [X] F005 Implement bounded nested failure capture and verified public export/recovery for new and existing failed runs, keeping original records immutable.
-- [ ] F006 Run affected and combined non-HIP regression closure, update fingerprint and operator instructions, commit/push repairs and stop without HIP or CI wait.
+- [X] F006 Run affected and combined non-HIP regression closure, update fingerprint and operator instructions, commit/push repairs and stop without HIP or CI wait.

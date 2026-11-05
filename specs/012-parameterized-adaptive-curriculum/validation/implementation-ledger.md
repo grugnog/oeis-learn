@@ -693,3 +693,48 @@ Real nonzero subprocess, original-byte tampering, private-directory exclusion,
 cleanup, packaging and minimal-export counterexamples are covered. Focused failures,
 wrapper, archive, scoring and registration selection: **49 passed**. New policy JSON
 is explicitly included in package data; actual engine/native/HIP work remains pending.
+
+
+## F006 — Combined repair closure and fresh operator handoff
+
+After source changes stabilized, ran:
+
+```sh
+PYTHONPATH=src .venv-cpu/bin/python -m pytest -q \
+  tests/unit/test_generalization*.py \
+  tests/contract/test_generalization*.py \
+  tests/integration/test_generalization*.py \
+  specs/012-parameterized-adaptive-curriculum/validation/test_*.py \
+  tests/unit/test_pipeline_contracts.py \
+  tests/unit/test_pipeline_disk.py \
+  tests/unit/test_pipeline_supervision.py \
+  tests/unit/test_container_runtime.py \
+  -m 'not gpu and not docker' --tb=short
+```
+
+**654 passed, 2 subtests passed, 2 deselected, 19 existing PyTorch warnings in
+228.49s.** Runtime: the same Python 3.12.14 / Dockerfile torch 2.9.1+cpu / locked
+non-torch dependency environment; this is not represented as the pinned container.
+No new engine, native or HIP acceptance operation was run by the implementer and
+CI was not awaited. Original actual counters come only from the operator's uploaded
+negative archive; new native agreement and full current device proof are pending.
+
+A real `setup.py build_py` build includes the new policy JSON and failure module;
+the built package's complete installed source inventory and amended population
+verify under `python -S`. Actual `run --help` and `recover --help`, prerequisites
+and `git diff --check` pass. The current implementation fingerprint was refreshed
+with the actual canonical serializer; its 68 dispositions and full_007_complete=false
+remain unchanged. Original 011 tasks and the failed original scope were not relabeled.
+
+All six F follow-ups are complete in dedicated incremental commits. The quickstart
+uses a fresh `pac-012-acceptance-002` root and explicitly rejects resuming the old
+scientific plan into v2. Image rebuilding is automatic with compatible cached layers;
+training examples/parameters and original private artifacts are unchanged. It also
+provides read-only old-run recovery to obtain nested causes from original producer
+files. Public cause messages use fixed safe vocabulary, with arbitrary private error
+text omitted and bound by digest. Actual new native/HIP/research work is not launched.
+
+The post-execution hook check again found no `.specify/extensions.yml`. The existing
+requirements checklist remains read-only, with 16 checked and zero unchecked items.
+The six repair tasks supplement, rather than retroactively complete, the original
+74-task plan; T067–T074 remain pending for the amended current scope.

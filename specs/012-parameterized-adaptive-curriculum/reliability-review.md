@@ -152,3 +152,21 @@ matched historical A, measured workstation performance or HIP qualification. The
 are explicit E gates: a real deficit or failed device proof blocks dependent work
 and exports the measured negative result. Optional research stays separately frozen.
 Historical 011 T174 and T177–T181 remain unchanged.
+
+
+## Operator admission failure repair (2026-11-05)
+
+The uploaded original availability confirms structural quota infeasibility; it is
+not a timeout. The explicitly authorized v2 population keeps all 2,288 draws and
+all sixteen exclusions, freezes revised category-preserving quotas before model
+outcomes and reports its 23/15-family denominators. Worst-duplicate survivor
+counterexamples prove conservative capacity, while actual native agreement remains
+an operator gate. The old v1 population and failed run remain unchanged.
+
+Nested cause loss was a software defect: a canonical nonzero exit raised before
+the wrapper read its sealed negative terminal. The fixed path transports that
+terminal, writes safe structured causes, verifies bounded original role/control
+metadata on recovery, and retains first-cause plus wrapper/cleanup/export failures
+in normal and minimal archives. Regression coverage includes a real nonzero Python
+subprocess, protected-text rejection, tampered producer files, discovery bounds,
+legacy failure recovery and an exporter failure after the original quota error.

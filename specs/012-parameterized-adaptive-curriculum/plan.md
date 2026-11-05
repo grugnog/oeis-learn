@@ -3,7 +3,7 @@
 **Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
 **Spec**: [spec.md](spec.md)
 **Input**: `specs/012-parameterized-adaptive-curriculum/spec.md`
-**Status**: Phases A–D complete and locally validated (T001–T066), including installed CPU learning/recovery, scoped evaluation, serial delivery, calibration/evidence handlers and the verified operator guide. The final local selection passed 640 tests and 2 subtests. All eight Phase E tasks remain unchecked: actual original-data/native/container/HIP evidence and optional authorized research have not run.
+**Status**: Phases A–D and F001–F006 operator-failure repairs implemented and locally validated (654 tests and 2 subtests passed). The original actual admission remains failed; the explicitly amended 128-task/23-family scope requires fresh original-input/native and device qualification. All eight Phase E tasks remain unchecked for that current scope.
 
 ## Summary
 
@@ -45,7 +45,7 @@ preparation floor; full rules are in execution contract.
 resource graph; installed full-state resume; historical contracts unchanged; no
 HIP work in this design pass; no arbitrary inherited global time ceiling.
 **Scale/Scope**: 32 training families/32,768 gradient rows, bounded 256-example
-probe panel, 128 structural tasks/27 families, 128 review anchors, bounded 4,096-value reward
+probe panel, 128 structural tasks/23 families under the explicit v2 amendment (historical v1: 27 families), 128 review anchors, bounded 4,096-value reward
 reservoir and two new arms by default. Optional fresh literal control or bandit-only
 D only if frozen before execution. No online generation,
 extra seeds, support expansion, RL/replay teaching or assessment adoption.
@@ -261,3 +261,15 @@ before model outcomes, preserving all 2,288 draws and every original exclusion.
 Historical 27/18-family scope stays readable and failed; training, numeric law,
 inference budgets and the 65/68 threshold remain unchanged. No actual new native/HIP
 acceptance or research success is claimed by this implementation.
+
+
+### Repair validation boundary
+
+The first operator attempt supplied actual original-input availability and failed
+admission before qualification/calibration/HIP acceptance. Its evidence remains
+failed. Six post-D follow-ups freeze the revised population, retain every exclusion,
+bind its identity through all reports, preserve nested causes across negative CLI
+exits, and test old-run read-only recovery. The capacity proof covers worst-case
+candidate-source duplication for the reported counts; new native/device proof is
+still required. Pull the repair and use the fresh `-002` quickstart output, without
+resuming the old scientific plan. No HIP or research run is launched by these fixes.
