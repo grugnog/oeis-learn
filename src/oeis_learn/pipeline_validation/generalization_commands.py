@@ -172,6 +172,8 @@ def preparation_seconds(purpose,seconds):
 def _execute(args,workspace,host_factory):
     workspace=Path(workspace)
     base,study,runtime=load(workspace,args.manifest,getattr(args,'runtime',None))
+    if study.get('version')=='PAC-screen/v1':
+        return execute_pac(args,workspace,base,study,runtime,host_factory)
     output=confined(workspace,args.output,exists=False)
     if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh command output required')
     if args.image is not None and args.image!=runtime['images'][0]:raise ValueError('global image differs from frozen qualification image')
@@ -255,6 +257,8 @@ def main(args,workspace,host_factory):
     if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh command output required')
     from .generalization_lifecycle import scope
     base,_,limits=load(workspace,args.manifest,getattr(args,'runtime',None))
+    if limits.get('version')=='pac-runtime/v1':
+        return _execute(args,workspace,host_factory)
     try:
         with scope(base,limits['storage'],extra_roots=(output,)):return _execute(args,workspace,host_factory)
     except (Exception,KeyboardInterrupt) as exc:
@@ -262,3 +266,63 @@ def main(args,workspace,host_factory):
         from .generalization_lifecycle import invocation
         base,study,runtime=load(workspace,args.manifest,getattr(args,'runtime',None))
         return _finish(output,study,args.operation,dict(status='INTERRUPTED' if isinstance(exc,KeyboardInterrupt) else 'FAIL',reason=type(exc).__name__,error=str(exc)),runtime,effective=invocation(args,study,runtime))
+
+
+def execute_pac(args,workspace,base,study,runtime,host_factory):
+    """Canonical PAC dispatch, with admission before any model-role construction."""
+    from .generalization_execution import verify_pac_runtime,require_pac_admission
+    verify_pac_runtime(study,runtime)
+    if args.engine!=runtime['engine']:raise ValueError('PAC engine identity mismatch')
+    if args.operation in {'train','evaluate','replay'}:require_pac_admission(study,runtime,args.operation)
+    return _execute_pac_plan(args,workspace,base,study,runtime,None,host_factory)
+
+
+def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
+    from .generalization_execution import require_pac_admission
+    from oeis_learn.generalization.role_contracts import pac_training_refs
+    output=confined(workspace,args.output,exists=False)
+    if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh PAC output required')
+    host=host_factory(args);output.mkdir(parents=True)
+    def finish(value):return _finish(output,study,args.operation,value,runtime)
+    try:
+        plan=_validate(host,workspace,output,base,study,runtime,seconds=runtime['envelope']['validation']['outer'])
+        if args.operation=='preflight':return finish(dict(status='PASS',plan=plan))
+        if args.operation=='prepare':
+            refs=execution_refs(base,study,runtime,preparation=True)
+            value=project_and_invoke(host,runtime['images'][0],workspace,'preparation',
+                {'mechanical_sources':refs,'isolation_truth':[]},source_roots={'mechanical_sources':base,'isolation_truth':base},
+                output=str((output/'preparation').relative_to(workspace)),operation='pac-prepare',
+                settings=dict(study=study,runtime=runtime),seconds=runtime['envelope']['preparation']['outer'])
+            return finish(value)
+        require_pac_admission(study,runtime,args.operation)
+        if not args.qualification:raise ValueError('original compatible PAC qualification required')
+        from .generalization_qualification_io import consume_original
+        producer=confined(workspace,args.qualification)
+        qualification=consume_original(host,workspace,producer,output/'qualification',
+            required_suites=['bigint-cpu','bigint-gpu'],required_capabilities=['weight-load','finite-update','native-exact'],
+            research=runtime['purpose']=='research',feature_receipt=runtime['feature'])
+        if qualification['authority']['images']!=runtime['images'] or _document(producer,qualification['authority']['source_closure'])!=_document(base,runtime['source']):
+            raise ValueError('PAC qualification image/source mismatch')
+        if args.operation!='train':raise ValueError('PAC evaluation requires the scoped structural delivery adapter')
+        if not args.arms or not args.seeds or len(set(args.arms))!=len(args.arms) or len(set(args.seeds))!=len(args.seeds):raise ValueError('explicit unique PAC arm/seed selection')
+        configs=[learner_config(study,runtime,plan['recipe'],a,s) for a in args.arms for s in args.seeds]
+        if args.resume and len(configs)!=1:raise ValueError('PAC resume selects one arm')
+        results=[]
+        prepared=plan['training']
+        for config in configs:
+            refs=[];sources={};pointer=None
+            if args.resume:
+                prior,pointer,refs=_resume_inputs(workspace,args.resume)
+                sources={r['path']:(prior,r) for r in refs}
+            folder=output/('training-'+config['arm'])
+            value=project_and_invoke(host,runtime['images'][1],workspace,'learner',
+                {'training_targets':pac_training_refs(prepared,config['arm']),'verified_training_replay':refs},
+                source_roots={'training_targets':base,'verified_training_replay':workspace},
+                artifact_sources={'verified_training_replay':sources},output=str(folder.relative_to(workspace)),
+                operation='train',settings=dict(config=config,resume=pointer,initializer=None),
+                seconds=runtime['envelope']['learner']['outer'],gpu=True)
+            results.append(dict(arm=config['arm'],result=value))
+            if value['status']!='PASS':return finish(dict(status=value['status'],runs=results))
+        return finish(dict(status='PASS',runs=results))
+    except (Exception,KeyboardInterrupt) as exc:
+        return finish(dict(status='INTERRUPTED' if isinstance(exc,KeyboardInterrupt) else 'FAIL',reason=type(exc).__name__,error=str(exc)))

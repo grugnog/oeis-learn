@@ -17,6 +17,10 @@ def load(root,manifest,runtime=None):
     sidecar=confined(root,runtime) if runtime else path.parent/'runtime.json'
     if sidecar.stat().st_size>1<<20:raise ValueError('runtime document cap')
     record=json.loads(sidecar.read_text())
+    if record.get('version')=='pac-runtime/v1':
+        from .generalization_execution import verify_pac_runtime
+        verify_pac_runtime(study,record)
+        return path.parent,study,record
     validate(record,{'version','study','purpose','recipe','images','preparation','training','evaluation','replay','assessment','feature','storage'},'generalization-runtime/v2')
     from oeis_learn.generalization.execution import verify_binding,validate_policy
     verify_binding(study,record);validate_policy(study,record)
@@ -38,6 +42,9 @@ def validate_execution(root,study,runtime):
     """Custodian-only schema and role verification before a learner is launched."""
     from oeis_learn.generalization.contracts import validate as authority,shape
     from oeis_learn.generalization.initializers import verify_initializer
+    if study.get('version')=='PAC-screen/v1':
+        from .generalization_execution import validate_pac_execution
+        return validate_pac_execution(root,study,runtime)
     study=authority('study',study).record()
     if study['version']=='generalization-study/v3':
         from oeis_learn.generalization.execution import verify_binding,validate_policy
@@ -272,6 +279,13 @@ def initializer_refs(root,initialization):
 def execution_refs(root,study,runtime,*,preparation=False):
     """Exact custodian projection; never mount an entire operator output tree."""
     from oeis_learn.generalization.contracts import artifact_refs
+    if runtime.get('version')=='pac-runtime/v1':
+        refs=list(artifact_refs(runtime))
+        if runtime['prepared']:
+            bundle=json.loads(verify_artifact(root,runtime['prepared']['training']))
+            refs.extend(artifact_refs(bundle))
+        for ref in refs:verify_artifact(root,ref)
+        return list({r['path']:r for r in refs}.values())
     refs=[runtime['recipe'],study['source_closure'],*initializer_refs(root,study['model']['initialization'])]
     if preparation:
         if runtime['preparation'] is None:raise ValueError('preparation authority required')

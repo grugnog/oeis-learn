@@ -31,6 +31,7 @@ def collect_snapshot(root):
         "specs/008-bigint-constant-synthesis/contracts",
         "specs/009-pipeline-throughput/contracts",
         "specs/011-controlled-generalization/contracts",
+        "specs/012-parameterized-adaptive-curriculum/contracts",
     ):
         files.update(
             p

@@ -190,3 +190,18 @@ passed; the read-only requirements checklist remains 16/16; task accounting is
 27 checked and 47 unchecked; no extension hooks are configured. Whitespace checks
 passed. CI was not awaited. This closeout makes no training-performance claim and
 does not complete 011 T174 or T177–T181.
+
+
+## Phase C entry and C1 — T028–T029
+
+Read the complete 012 spec, plan, tasks, research, data model, three contracts,
+quickstart, reliability review, constitution and implementation instructions before
+editing. Checklist remains 16/16; no extension hooks. PAC now has a separate sealed
+canonical runtime binding, canonical assembly/dispatch and a closed training-only
+projection. Old P3 remains unchanged. Model operations reject missing admission
+before constructing a host. Preparation, installed observations and resource
+propagation are completed by the following C groups.
+
+Local CPU dependencies use Dockerfile's torch 2.9.1+cpu and the committed non-torch
+lock export under Python 3.12.14. Docker/Podman and native/HIP remain unavailable;
+this environment is not represented as the pinned container image.
