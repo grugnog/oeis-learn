@@ -609,3 +609,21 @@ entries. T062 covers every new role/CLI/help path; T063 is combined local regres
 T064 is this reconciliation; T065 verifies the exact operator block; T066 records
 truthful local completion. T067–T074 remain unchecked. No unexplained local contract,
 quota-counterexample, transaction, archive or nested-limit gap is handed to E.
+
+## T065 — Verified operator command and recovery variants
+
+The quickstart now provides one exact acceptance block on the existing branch,
+with Podman, original prepared/pilot roots, seed, fresh output, generated plan
+location/identity and automatic export. Research remains opt-in before freezing;
+fresh A/D are predeclared separately with complete reservations. Data/arms/25M
+limits, reference-only A, DEFERRED parameter endpoint, measured sample forecasts
+versus ceilings and all eight E obligations remain explicit.
+
+Actual stdlib-only help passed for `run.py run --help`, `resume --help`,
+`recover --help` and canonical `foundation_run.py generalization pac-stage --help`.
+`test_documented_operator_block_routes_once_and_resume_recover_are_separate`
+verifies the same default command arguments and exact output/plan routing, distinct
+resume/recover actions and rejected engine/plan mismatch. It is included in the
+640-test passing final selection. The command is a verified handoff for E, not a
+claim that workstation/HIP execution has occurred. The same block is shared in the
+completion response, rather than requiring the operator to find it in a file.

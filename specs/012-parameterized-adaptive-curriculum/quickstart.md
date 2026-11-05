@@ -1,112 +1,165 @@
-# Validation guide and later operator handoff
+# 012 operator handoff
 
-Status: phases A/B/C are implemented with local CPU evidence recorded in the
-[implementation ledger](validation/implementation-ledger.md). The phase-D PAC
-operator wrapper and campaign assembly are not implemented; read-only original-input
-inventory and control-audit adapters are implemented (T043–T044). Do not reuse the old failed 256-task prospective command as a 012 run.
-No HIP command is ready in this document; phase D will publish and validate it.
+Phases A–D are implemented and locally validated. Actual original-data/native,
+container and HIP evidence remains Phase E. Do not reuse the failed 011 256-task
+prospective command as a 012 run. The temporary helper composes canonical installed
+operations; the default command below performs software acceptance and exports its
+evidence. It does not start research training or expose assessment truth.
 
-## Checks available now (no engine or HIP work)
+## Required workstation inputs
 
-From the repository root:
+Run from the existing repository on the normal workstation, with Python 3's standard
+library, a usable **Podman** connection, the established AMD/ROCm device access and
+enough free disk for the complete live graph (initially at least 128 GiB for B/C;
+64 GiB more for each additional fresh A or D). Dependencies and native code are
+built through the pinned Dockerfile/locks. No host package/driver/service change is
+required. Docker is also supported by choosing `--engine docker` before freezing.
 
-```sh
-SPECIFY_FEATURE_DIRECTORY=specs/012-parameterized-adaptive-curriculum \
-  bash .specify/scripts/bash/check-prerequisites.sh --json --require-spec --require-tasks --include-tasks
-python3 -S scripts/foundation_run.py --help
-python3 -S scripts/generalization_inputs.py --help
-git diff --check
-```
-
-Expected: the 012 spec/plan and design artifacts resolve; both existing host entrypoints
-show help without third-party host dependencies. These checks validate planning
-and entrypoints, not hardware readiness. A/B/C account for 42 completed tasks;
-D/E retain 30 unchecked tasks. Actual operator validation remains phase E.
-
-## Required original workstation inputs
-
-Use explicit roots or a bounded inventory rather than broad automatic search:
+Keep these original roots and all files referenced by their sealed inventories:
 
 - `run-state/generalization/fresh-p1-v2-20261103T035534Z`: original prepared corpus,
-  inventories and all protected exclusion inputs.
-- `run-state/generalization/fresh-p1-hourly-20261104T093555Z`: original full pilot
-  receipts, initializer/checkpoint state and results.
-- `run-state/generalization/observable-eval-20261104T193226Z/acceptance/report/qualified`:
-  historical producer authority, reusable only if the required closure still matches.
-- `run-state/generalization/uniform-import`: provenance/recipe inputs while the
-  original chain references them.
+  all sixteen exclusion inputs and original producer receipt.
+- `run-state/generalization/fresh-p1-hourly-20261104T093555Z`: original full pilot,
+  recipe/descriptors, retained checkpoints, weights and producer lineage.
+- Referenced `run-state/generalization/uniform-import` provenance and the original
+  qualification lineage where the pilot references them.
 
-Keep referenced immutable images and critical public reports. A public ZIP cannot
-replace private weights/optimizer/RNG or protected exclusion data. Input inspection
-must name exactly what is missing; do not ask the operator to relist every run.
-No new prior chat/file upload is required for task planning.
+The historical qualified root
+`run-state/generalization/observable-eval-20261104T193226Z/acceptance/report/qualified`
+is context, not current qualification for changed production code. The helper builds
+and qualifies the current immutable image pair. A public ZIP cannot replace private
+weights, optimizer/RNG state or protected exclusion inputs. Missing originals are a
+specific preflight failure; the helper neither invents provenance nor silently
+substitutes new draws. Use a fresh output name if the chosen output already exists.
 
-## Local implementation validation before hardware
+## One operator block
 
-The implementation must add tests alongside the existing related suites, then run
-the affected non-HIP unit/contract/integration selection in the pinned environment.
-Do not prescribe a nonexistent test file as a runnable command today. Record the
-actual validated command and outcomes here during phase D. Required scenarios:
+This is the Phase-E invocation, provided for handoff; it was **not run on HIP**
+during implementation. Its syntax and routing were checked with actual `--help`,
+`python -S` and the fixture campaign.
 
-1. Reject changed structural draw IDs, missing original exclusions, a single quota
-   deficit, unknown PAC fields and an old P3 disguised as adaptive. No GPU launches.
-2. Ground paired targets with independent expectations, preserve control fallback
-   and exact original rows; reject probe/gradient or held-out-role leakage.
-3. Exercise the hand-calculated Graves kernel examples (including negative/zero
-   versus missing rewards), historical quantile/reservoir restore, stale selection
-   probabilities and cross-family credit rejection. Enumerate all 32 cycle offsets
-   for 128 simultaneous anchors, initial acquisition, incidental exposure, queue
-   promotion/demotion and actual token-charged review.
-4. Run installed real-tensor CPU fresh/pause/resume paths and inject failure before
-   and after debit, update, pre/block/post reward, review grade and atomic snapshot
-   publication. Include pause after gradients but before the kernel/scaler update.
-   Preserve exact clean replay and separately debit discarded crash work.
-5. Construct Docker and Podman commands for every new role; verify the shared
-   environment, read-only inputs, no socket, private disk scratch and bound source.
-6. Validate the entire nested deadline/storage graph with delayed cold start,
-   production-sized metadata, save/copy/hash/exit/cleanup and reporting. A larger
-   outer timeout must not hide a smaller inner/schema maximum.
-7. Use the real archive packer/verifier for success, failure, interruption, missing
-   nested evidence, stale PASS and export failure; preserve first and later errors.
-8. Resume a fixture campaign and demonstrate that compatible completed stages are
-   not repeated while incompatible/unverified outputs cannot be reused.
+```sh
+git fetch origin
+git switch 012-parameterized-adaptive-curriculum
+git pull --ff-only origin 012-parameterized-adaptive-curriculum
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py run \
+  --engine podman \
+  --prepared run-state/generalization/fresh-p1-v2-20261103T035534Z \
+  --pilot run-state/generalization/fresh-p1-hourly-20261104T093555Z \
+  --seed 20261016 \
+  --output run-state/generalization/pac-012-acceptance
+```
 
-## One later operator invocation
+The helper audits originals and capacity, builds the pinned qualification/GPU
+images, writes and prints the sealed plan and its identity, then serially executes
+full CPU/native structural and training-probe admission, current qualification,
+representative production-shape calibration and small installed HIP acceptance.
+Acceptance reaches actual changed finite parameters, supported/fallback targets,
+nondegenerate feedback, acquired then graded review, both complete-state resume
+boundaries and a freshly loaded final-checkpoint forward evaluation. Diagnostic
+weights cannot initialize research. Failures suppress dependent work and still
+produce a verified normal or minimal archive.
 
-The implemented handoff must provide one copy-pastable block with explicit branch,
-engine, original roots, output and frozen plan identity. It composes:
+The initial plan is
+`run-state/generalization/pac-012-acceptance/inputs/plan.json`; its `identity`,
+scientific scope, source/images, helper hash and finite stage graph are printed
+before admission. Calibration may raise and separately seal **operational** limits
+before research. It cannot change scientific choices, add arms or extend a running
+research allowance. The revision is `campaign/operational-freeze.json`.
 
-1. Read-only input/control audit and full CPU/native post-exclusion quota admission.
-2. Required compatible qualification and representative cold/warm production-size
-   update/save/load calibration, under relaxed finite limits.
-3. Tiny installed HIP parameterized/adaptive/review and full-state resume acceptance.
-4. Retained structural baselines and new B/C training/evaluation only when the sealed
-   plan already authorizes that research scope; optional fresh A or bandit-only D
-   only if predeclared with complete additional reservations. D is off by default.
-5. Deterministic case analysis, independent final verification and shareable evidence.
+The normal shareable result is
+`run-state/generalization/pac-012-acceptance/campaign/report.zip`. A failure during
+input inspection or image building instead writes `bootstrap-failure/report.zip`
+under the selected output. If rich proof collection fails, the verified minimal
+archive retains the original failure plus the export error and names omissions.
+If even minimal export fails, the helper prints the last-resort `workflow.json`.
+Private originals and prior failure records remain unchanged.
 
-The wrapper must package failures automatically and name the minimal retry boundary.
-A compatible resume reuses completed work. Read-only `recover` never launches a
-learner. Planned subcommands are in [execution.md](contracts/execution.md); their
-actual syntax must be verified against installed help before replacing this guide
-with a run command.
+## Scientific scope and optional research
 
-## Runtime expectations
+Acceptance performs full feasibility admission but no 25M-token research learner.
+For an explicitly authorized research campaign, choose a **new output root** and
+add `--research` to the same command before plan creation. The frozen screen then
+runs retained structural baselines and serial fresh B/C learners, each capped at
+**25,000,000 non-padding target tokens**, followed by final structural scoring and
+case analysis. B uses fixed allocation with parameterized targets; C adds the
+published family bandit and charged per-example review over the identical finite
+32-family/32,768-row concrete pool and training-only probes. Retained A is labeled
+REFERENCE_ONLY unless complete compatibility proof exists; no causal B–A claim is
+made from a missing historical match. C–B measures allocation plus review.
 
-Original literal training took 147.4/159.5 minutes per 25M-token arm, as recorded in
-the [011 closeout](../011-controlled-generalization/validation/merge-closeout.md).
-These are context, not parameterized/adaptive throughput measurements. B/C may
-change examples per token, update count and diagnostic overhead. Calibrate paired
-reward probes every bandit block, review grades and common monitoring together;
-none is free. Optional D adds a full learner and evaluation, even in one invocation. Give measured ETA
-ranges after calibration and retain substantial timeout headroom. Initial planning
-floors are 12 hours per learner and 24 hours for preparation; larger projections
-raise them. The full campaign ceiling sums its selected stages plus cleanup and
-at least one hour of finalization; it is not restricted by an inherited six-hour
-or fixed global ceiling. Scientific per-task attempts/time remain unchanged.
+Optional `--fresh-control` adds a matched fresh literal A; `--bandit-only` adds D
+for allocation without review. Choose these only with the research scope **before**
+freezing; they add their full learner/evaluation/storage reservations. There is no
+automatic extra seed, ablation, winner adoption or assessment execution. The
+parameter endpoint stays DEFERRED. Structural evaluation preserves 128 tasks/27
+families (68 certified/18 families primary, 26 ambiguous, 34 unresolved), all original
+exclusions, 20 visible/100 scoring terms, eight attempts/60-second portfolios and
+seven controls. Interpretation needs at least 65/68 certified completions per
+compared arm; a single seed remains exploratory.
 
-Expected final output separates software PASS/FAIL, scientific interpretability,
-matched/unmatched A, parameter endpoint DEFERRED, completed/remaining work, costs,
-censoring, cases, archive hash and original producer references. A negative learning
-result can accompany software PASS. No automatic extra seed/ablation or winner selection. Without D, C–B measures
-the combined bandit/review package and does not establish the isolated review gain.
+## Compatible resume and read-only recovery
+
+For an interrupted campaign with unchanged scientific source/images/plan, use a
+fresh sibling output. The helper verifies original artifact bytes, process and
+cleanup receipts, reuses compatible successful stages and resumes a failed learner
+only from complete compatible model/optimizer/RNG/data/adaptive state. It never
+restores a newer policy journal onto older weights or refunds discarded work.
+An incompatible full checkpoint blocks instead of silently restarting a learner.
+
+```sh
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py resume \
+  --plan run-state/generalization/pac-012-acceptance/inputs/plan.json \
+  --previous run-state/generalization/pac-012-acceptance/campaign \
+  --output run-state/generalization/pac-012-resumed-001
+```
+
+A production-source/image/backend change requires a newly frozen plan and affected
+qualification. A temporary helper-only change has its own requested/observed hash
+and does not invalidate an otherwise identical learner producer. Never edit the
+old sealed plan or clear failed outputs to obtain a PASS.
+
+Recovery alone packages existing evidence; it runs no training or device work and
+does not rewrite the old outcome:
+
+```sh
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py recover \
+  --previous run-state/generalization/pac-012-acceptance/campaign \
+  --output run-state/generalization/pac-012-recovered-001
+```
+
+It prints the exact verified archive path, including a `-minimal.zip` suffix if
+only minimal evidence could be verified.
+
+## Measured forecasts versus generous ceilings
+
+There is no measured 012 workstation ETA yet. Historical literal runs took about
+147–160 minutes per 25M-token arm; that is context, not an adaptive forecast.
+Calibration records actual short/long-family updates, cold/warm native execution,
+early/later row access, production-size save/load and full reward/grade/common-panel
+costs, with sample counts and uncertainty. Inspect the exported
+`calibration/calibration.json`: `update_forecast_seconds` plus
+`diagnostics.forecast_seconds` is the sample-based work estimate for each arm;
+`learner.seconds` is the larger, margined **ceiling**, not its ETA. Raw samples and
+worst observations disclose the finite measured range; they are not a worst-case
+guarantee. Preparation, qualification, generation, startup and export are additional
+stages, with actual elapsed costs recorded separately.
+
+Initial floors are 24 hours for preparation and 12 hours per new learner, raised
+when the complete forecast requires. The seven-control generation graph has its
+own generous ceiling; the campaign sums every selected stage plus at least one
+hour of final reporting/recovery. Missing measurements do not mean zero. The
+helper prints explicit unavailable progress initially and bounded supervision
+signals during work; elapsed heartbeats are never called completed work. Scientific
+60-second portfolios and five-second semantic probes retain their meaning.
+
+## Local verification boundary
+
+The implementation ledger records the exact combined CPU/contract/integration
+command and outcomes. It includes real CPU tensors/clean and crash recovery,
+Docker/Podman argv/mount/deadline checks, stdlib-only successful public verification,
+checkpoint reads and analysis, and real success/negative/minimal archive fixtures.
+Synthetic device labels exercise archive wiring only. Actual engine/native/HIP
+execution, original full quotas and production performance remain T067–T074;
+historical 011 T174 and T177–T181 remain unchanged. No CI wait is needed for this
+handoff.
