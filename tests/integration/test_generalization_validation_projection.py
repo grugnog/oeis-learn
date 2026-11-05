@@ -60,7 +60,7 @@ def test_canonical_validate_reads_structural_truth_after_real_projection(tmp_pat
 def test_missing_and_tampered_structural_input_reject_before_role_launch(tmp_path,monkeypatch):
     from oeis_learn.pipeline_validation import generalization_commands as commands,generalization_roles as roles
     runtime,_,_=inputs(tmp_path/'prepared','pac-admission/v3')
-    path=tmp_path/'prepared/private/structural-targets.json';original=path.read_bytes()
+    path=tmp_path/'prepared/private/structural-targets.json'
     monkeypatch.setattr(roles,'invoke',lambda *a,**k:pytest.fail('role launched despite broken truth reference'))
     path.write_text('[]')
     with pytest.raises(ValueError):commands._validate(None,tmp_path,tmp_path/'changed',tmp_path/'prepared',{},runtime,seconds=900)

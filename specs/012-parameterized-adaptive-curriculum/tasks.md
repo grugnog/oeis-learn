@@ -356,5 +356,5 @@ referenced by the admission receipt. Neither this repair nor the earlier admissi
 receipt completes E for a changed source/image closure.
 
 - [X] F007 Reproduce missing structural truth through the real custodian projection for historical/current admission versions, plus rejection and safe-error reporting counterexamples.
-- [ ] F008 Include verified structural truth only in the custodian validation closure; render exact known safe errors and recover their historical hashes without exposing private text or changing producer records.
+- [X] F008 Include verified structural truth only in the custodian validation closure; render exact known safe errors and recover their historical hashes without exposing private text or changing producer records.
 - [ ] F009 Run affected and combined non-HIP checks, refresh the implementation fingerprint, document the new-plan rerun, commit/push and stop without CI wait.

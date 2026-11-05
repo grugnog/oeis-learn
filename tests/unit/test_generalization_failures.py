@@ -92,3 +92,18 @@ def test_reported_safe_literal_errors_are_readable_and_old_hashes_upgrade(tmp_pa
     recovered=stage_failures(tmp_path)
     assert recovered['failures'][0]['detail']['code']=='missing_artifact'
     assert (tmp_path/'role/result.json').read_bytes()==immutable
+
+
+@pytest.mark.parametrize('raw,truncated',[
+    ('/private/host/teacher-source',False),
+    ('missing artifact',True),
+])
+def test_old_unknown_or_truncated_detail_stays_private(tmp_path,raw,truncated):
+    from oeis_learn.pipeline_validation.generalization_failures import public_failure,stage_failures
+    old=seal(dict(public_failure(ValueError(raw)),code='private_exception_detail',
+        message='Private exception detail omitted; inspect the original producer result.',
+        private_detail_truncated=truncated))
+    write(tmp_path/'role/result.json',seal(dict(status='FAIL',failure=old)))
+    result=stage_failures(tmp_path)
+    assert result['failures'][0]['detail']==old
+    assert '/private/host' not in json.dumps(result)

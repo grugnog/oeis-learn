@@ -7,6 +7,8 @@ from .identity import seal,digest,file_hash,confined
 from oeis_learn.generalization.contracts import verify_artifact
 
 _MESSAGES={
+    'missing artifact':('missing_artifact','A required verified artifact is missing.'),
+    'invalid frozen execution: missing artifact':('missing_artifact','A required verified artifact is missing.'),
     'completed post-exclusion quota deficit; no timeout/reseed retry':('structural_quota_deficit','Frozen post-exclusion structural quotas are incomplete.'),
     'PAC structural native execution incomplete':('structural_native_incomplete','Structural native execution did not complete.'),
     'native/reference disagreement':('native_reference_disagreement','Native and independent reference outputs disagree.'),
@@ -42,6 +44,12 @@ def _application(value):
         # Known messages are fixed public vocabulary; unknown raw text never crosses.
         allowed=set(_MESSAGES.values())|set(_KIND_CODES.values())|{('private_exception_detail','Private exception detail omitted; inspect the original producer result.')}
         if (prior['code'],prior['message']) not in allowed or type(prior['private_detail_truncated']) is not bool or not re.fullmatch(r'sha256:[0-9a-f]{64}',prior['private_detail_sha256']):raise ValueError('unsafe public failure fields')
+        if prior['code']=='private_exception_detail' and not prior['private_detail_truncated']:
+            # Exact hashes of fixed source literals can safely upgrade old
+            # reports. Never infer or publish arbitrary private exception text.
+            known={digest(raw):detail for raw,detail in _MESSAGES.items()}
+            detail=known.get(prior['private_detail_sha256'])
+            if detail is not None:return seal(dict(prior,code=detail[0],message=detail[1]))
         return prior
     return public_failure(kind=value.get('reason','ApplicationFailure'),message=value.get('error'))
 

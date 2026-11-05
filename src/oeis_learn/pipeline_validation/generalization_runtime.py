@@ -284,6 +284,10 @@ def execution_refs(root,study,runtime,*,preparation=False):
         if runtime['prepared']:
             bundle=json.loads(verify_artifact(root,runtime['prepared']['training']))
             refs.extend(artifact_refs(bundle))
+            admission=json.loads(verify_artifact(root,runtime['prepared']['admission'],max_bytes=16<<20))
+            # The custodian validates this protected population. Historical
+            # original-cell refs belong to other roots and are not inputs here.
+            if admission['structural'] is not None:refs.append(admission['structural'])
         for ref in refs:verify_artifact(root,ref)
         return list({r['path']:r for r in refs}.values())
     refs=[runtime['recipe'],study['source_closure'],*initializer_refs(root,study['model']['initialization'])]

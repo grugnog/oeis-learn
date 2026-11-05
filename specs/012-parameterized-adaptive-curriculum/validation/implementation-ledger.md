@@ -738,3 +738,31 @@ The post-execution hook check again found no `.specify/extensions.yml`. The exis
 requirements checklist remains read-only, with 16 checked and zero unchecked items.
 The six repair tasks supplement, rather than retroactively complete, the original
 74-task plan; T067–T074 remain pending for the amended current scope.
+
+
+## F007–F008 — Qualification after successful workstation admission
+
+The second operator archive verifies under `python -S`: integrity PASS, software
+FAIL, science UNMEASURED, evidence
+`sha256:e682cc5de2991057357a37061287aaa573f88c938c3f3f4d4c02700dfb6f48a0`.
+Admission completed with exit 0 and acknowledged cleanup in 1,155.706 seconds.
+Qualification failed after 3.169 seconds before its tests. The two public private-
+detail hashes match the exact source literals `missing artifact` and
+`invalid frozen execution: missing artifact`; no private text was inferred.
+
+Counterexamples failed first through the actual `project_and_invoke` filesystem
+projection. The PAC validation closure copied admission/training but omitted the
+structural target dependency read by `verify_pac_structural`. The repair verifies
+and projects that one admission reference into the custodian only. It does not
+recursively chase historical original-cell references rooted elsewhere. Learner
+views still exclude structural truth. Both v2/v3 receipts, 128-row structural
+verification, disposable input cleanup, and missing/tampered references are covered.
+
+Exact known safe messages now produce `missing_artifact`. Read-only recovery can
+recognize their exact historical hashes, while unknown/truncated detail stays
+private and original producer bytes remain immutable. Five new counterexamples
+failed before the fix; the expanded focused selection passes **12 tests**. Related
+runtime/preparation/roles/evaluation closure passes **100 tests** (8 existing
+PyTorch warnings, 30.94 seconds). Real container invocation is substituted at the
+invoke boundary; filesystem projection and custodian structural verification are
+real. This does not establish current native/HIP acceptance or complete E.
