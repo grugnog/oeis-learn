@@ -1,7 +1,7 @@
 # Tasks: Parameterized Targets and Adaptive Curriculum
 
 **Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
-**Status**: Task generation complete; implementation and actual HIP evidence pending.
+**Status**: Phases A and B complete (T001–T027); stopped before phase C. Installed integration, delivery and actual HIP evidence remain pending.
 **Authority**: [spec](spec.md), [plan](plan.md), [research](research.md),
 [data model](data-model.md), [experiment](contracts/experiment.md),
 [curriculum](contracts/curriculum.md), [execution](contracts/execution.md),
@@ -9,7 +9,7 @@
 
 ## Execution rules
 
-These 74 unchecked tasks implement the accepted design, not a new research choice.
+These 74 tasks implement the accepted design, not a new research choice.
 Use phases A–E from the plan rather than introducing one critical phase per story:
 the operator explicitly requires **exactly two dedicated critical phases, B and C**.
 Story subgroups and labels preserve independently testable slices. A contains
@@ -325,7 +325,9 @@ must link actual check results, not merely cite this table.
 ## Completion accounting
 
 74 tasks: A 6, B 21, C 15, D 24, E 8. Story totals: US1 10, US2 8,
-US3 14, US4 22, US5 7; shared 13. No tasks are checked by generation.
+US3 14, US4 22, US5 7; shared 13. Implementation completed A/B (27 tasks);
+C–E remain unchecked (47 tasks). Each A/B task has its own implementation or
+counterexample commit; local evidence is recorded in the implementation ledger.
 T073 is conditional research analysis and may remain explicitly deferred at
 software closeout. Failed/missing admission or device proof is a real blocker to
 its dependent claims; no favorable scientific result is required for software PASS.

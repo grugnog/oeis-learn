@@ -3,7 +3,7 @@
 **Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
 **Spec**: [spec.md](spec.md)
 **Input**: `specs/012-parameterized-adaptive-curriculum/spec.md`
-**Status**: Design and [tasks](tasks.md) complete; implementation and actual HIP evidence pending.
+**Status**: Design and [tasks](tasks.md) complete; phases A/B implemented and locally validated. Stopped before phase C; installed integration and actual HIP evidence pending.
 
 ## Summary
 

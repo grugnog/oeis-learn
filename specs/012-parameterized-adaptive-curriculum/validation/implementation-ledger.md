@@ -138,3 +138,55 @@ matched/fresh-control path; C–B measures the package; optional D comparisons r
 predeclared D. Missing arms/history stay explicit, single-seed uncertainty is not
 inferred from tasks, and no winner/positive-gain gate is added. Token costs reconcile
 useful/reserved/discarded/unspent allowance without claiming matched wall time.
+
+## A/B closeout — 2026-11-05
+
+T001–T027 are complete, with at least one separate commit per task. Execution
+stops before T028/phase C as requested; all 47 C–E tasks remain unchecked.
+
+Final review added regressions for transplanting a matched-control receipt onto
+changed model/optimizer/order/backend/exposure/diagnostic identities, noncanonical
+or private public-receipt paths, open RNG payloads and target fallback bounds.
+Control receipts now retain the exact expected hashes; literal A and parameterized
+B/C/D targets are independently bound. The complete inventory authority hash is
+kept separately from the internal row/probe/anchor layout hash, so restore accepts
+a custodian inventory while still rejecting a changed layout. The existing 007
+implementation fingerprint was refreshed using its actual package serializer;
+none of its 68 historical dispositions or incomplete status changed.
+
+Combined regression command (Python 3.12, pinned pytest 9.1.1/jsonschema 4.26.0):
+
+```sh
+PYTHONPATH=src .venv-policy/bin/python -m pytest -q \
+  tests/unit/test_generalization_contracts.py \
+  tests/unit/test_generalization_legacy.py \
+  tests/unit/test_generalization_execution.py \
+  tests/unit/test_generalization_cohorts.py \
+  tests/unit/test_generalization_refresh_targets.py \
+  tests/unit/test_generalization_curriculum.py \
+  tests/unit/test_generalization_review.py \
+  tests/unit/test_generalization_diagnostics.py \
+  tests/unit/test_generalization_curriculum_state.py \
+  tests/unit/test_generalization_persistence.py \
+  tests/unit/test_generalization_operational_budgets.py \
+  tests/unit/test_generalization_budgets.py \
+  tests/unit/test_generalization_metrics.py \
+  tests/unit/test_generalization_reconciliation.py \
+  specs/012-parameterized-adaptive-curriculum/validation/test_structural_policy.py \
+  tests/unit/test_pipeline_contracts.py \
+  -k 'not startup_environment'
+```
+
+Result: **141 passed, 1 deselected in 47.31s**. The deselected existing test is
+`test_startup_environment_is_detached_and_policy_verification_fails_closed`;
+it imports PyTorch, which is unavailable here. This is an explicit evidence gap,
+not a passing installed-backend check. Docker/Podman, native execution and HIP
+were unavailable/not run; real tensor restore, canonical command wiring,
+filesystem transaction publication and workstation acceptance remain C/E work.
+No policy fixtures or pure state traces are represented as device/native proof.
+
+Both portable host help commands passed under `python3 -S`; Spec Kit prerequisites
+passed; the read-only requirements checklist remains 16/16; task accounting is
+27 checked and 47 unchecked; no extension hooks are configured. Whitespace checks
+passed. CI was not awaited. This closeout makes no training-performance claim and
+does not complete 011 T174 or T177–T181.
