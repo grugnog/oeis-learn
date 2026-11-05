@@ -1,5 +1,10 @@
 # 012 operator handoff
 
+Current B/C/D campaign choices and the proposed short rehearsal are recorded in
+[the research plan](validation/research-plan.md). The rehearsal is a pending
+preparation step; the historical command below does not include it. Post-conformance
+code requires current-source qualification before research.
+
 The operator's `pac-012-acceptance-004` run passed admission, CPU/HIP qualification,
 production calibration and reduced HIP acceptance. Independent archive verification
 reproduces software PASS and scientific UNMEASURED. **No acceptance rerun is needed.**
