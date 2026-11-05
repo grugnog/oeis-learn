@@ -436,7 +436,10 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     result['timing']=dict(timing_record(),publication_seconds=time.monotonic()-published,publication_reserve_seconds=reserve)
     write(output/'timing.json',result['timing'])
     if controller is not None:result['pac']=dict(channels=controller.channels,observations=controller.observations,valid_rewards=controller.policy.kernel.valid_updates if controller.policy else 0,pauses=controller.policy.pauses if controller.policy else [],monitoring=controller.observer.snapshot())
-    if pac:result['initial_weights']=initial_hash
+    if pac:
+        from .generalization_diagnostics import pac_training_projection
+        result['initial_weights']=initial_hash
+        result['allocation']=pac_training_projection(controller.snapshot(),saved_ledger.snapshot(),discarded=discarded_tokens,timing=result['timing'])
     if execution_policy is not None:result['execution_policy']=execution_policy
     write(output/'training.json',result)
     progress('complete')

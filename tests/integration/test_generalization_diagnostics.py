@@ -463,7 +463,7 @@ def test_all_canonical_control_boundaries_are_captured_and_projected(tmp_path,mo
 
 def test_pac_allocation_projection_reconciles_whole_run_and_missing_history():
     from oeis_learn.pipeline_validation.generalization_diagnostics import pac_training_projection
-    ledger=dict(cap=1000,consumed=700,updates=40,pending=['batch',50],debited=True)
+    ledger=dict(version='generalization-ledger/v1',cap=1000,consumed=700,updates=40,pending=['batch',50],debited=True)
     controller=dict(channels={'bandit':32,'review':6,'fallback':2},observations=20,observed_seconds=12,
         observer=dict(allocation={'f':{'bandit':dict(updates=32,tokens=500,examples=64),'review':dict(updates=6,tokens=100,examples=12),'fallback':dict(updates=2,tokens=50,examples=4)}},
             review_counts=dict(acquisitions=4,grades=3,successes=2,censored=1,incidental=9),reward_counts=dict(valid=4,censored=1),recent=[]),

@@ -271,6 +271,8 @@ class PacObservers:
         self.state=dict(version='pac-acceptance-observers/v1' if acceptance else 'pac-observers/v1',arm=arm,seed=seed,inventory=batches.inventory['identity'],
             last_before=-1,last_common=-1,pending_shadow=None,shadow_blocks=0,shadow_grades=0,
             loss_panels=0,semantic_attempts=0,semantic_completed=0,semantic_success=0,
+            allocation={f:{c:dict(updates=0,tokens=0,examples=0) for c in ('fixed','bandit','review','fallback')} for f in self.families},
+            review_counts=dict(acquisitions=0,grades=0,successes=0,censored=0,incidental=0),reward_counts=dict(valid=0,censored=0),
             rotation={},missing_rotations={f:0 for f in self.families},retention_incomplete=[],recent=[])
         if snapshot is not None:
             if set(snapshot)!=set(self.state) or any(snapshot[k]!=self.state[k] for k in ('version','arm','seed','inventory')):raise ValueError('PAC observer restore identity')
@@ -340,4 +342,53 @@ class PacObservers:
             self.state['pending_shadow']=None
         self.common(update)
 
+    def committed(self,batch,*,channel,anchor=None,grade=None,before=None):
+        from oeis_learn.generalization.budgets import charge_tokens
+        for row in batch:
+            value=self.state['allocation'][row['family']][channel]
+            value['tokens']+=charge_tokens([row['tokens']],bos=1,pad=0);value['examples']+=1
+        # Adaptive batches are single-family; fixed batches may cross families.
+        from fractions import Fraction
+        for family in {r['family'] for r in batch}:
+            value=self.state['allocation'][family][channel]
+            value['updates']=str(Fraction(value['updates'])+Fraction(sum(r['family']==family for r in batch),len(batch)))
+        if before is not None:
+            counts=self.state['review_counts']
+            for row in batch:
+                a=before.get(row['id'])
+                if a is not None:
+                    counts['acquisitions']+=not a['acquired']
+                    counts['incidental']+=row['id']!=anchor
+            if anchor and before[anchor]['acquired']:
+                counts['grades']+=grade is not None;counts['successes']+=grade is not None and grade['recall']
+                counts['censored']+=grade is None
+
+    def feedback(self,event,selection):
+        self.state['reward_counts']['censored' if event['status']=='censored' else 'valid']+=1
+        self.event(dict(kind='policy_reward',selection=dict(selection),**event))
+
     def snapshot(self):return copy.deepcopy(self.state)
+
+
+def pac_training_projection(controller,ledger,*,discarded=0,timing=None):
+    """Bounded public measurements, never a source of resumed policy authority."""
+    if controller is None or ledger is None:return dict(status='UNAVAILABLE',reason='original_measurements_missing')
+    from oeis_learn.generalization.budgets import Ledger
+    account=Ledger.restore(ledger,cap=ledger['cap'])
+    reserved=account.pending[1] if account.debited else 0
+    tokens=dict(allowed=account.cap,useful=account.consumed-reserved,reserved=reserved,discarded=discarded,
+                unspent=account.cap-account.consumed-discarded)
+    if min(tokens.values())<0:raise ValueError('unreconciled PAC exposure')
+    observer=controller['observer'];policy=controller.get('policy')
+    allocation=observer.get('allocation',{})
+    if allocation:
+        if sum(v['tokens'] for f in allocation.values() for v in f.values())!=tokens['useful']:raise ValueError('allocation does not reconcile useful tokens')
+        if sum(__import__('fractions').Fraction(v['updates']) for f in allocation.values() for v in f.values())!=account.updates:raise ValueError('allocation does not reconcile committed updates')
+    return dict(status='RECORDED',tokens=tokens,updates=account.updates,channels=dict(controller['channels']),allocation=allocation,
+        review=observer.get('review_counts'),rewards=observer.get('reward_counts'),
+        clocks=dict(actions=policy['kernel']['action_count'],valid_rewards=policy['kernel']['valid_updates']) if policy else None,
+        pending_anchors=sum(a['due_update']<=account.updates for a in policy['review']['anchors'].values()) if policy else None,
+        pending_block=policy.get('block') if policy else None,last_reward=policy.get('last_observation') if policy else None,
+        pauses=policy.get('pauses') if policy else [],observations=controller['observations'],observation_seconds=controller['observed_seconds'],
+        costs={k:(timing or {}).get(k) for k in ('preparation_seconds','checkpoint_seconds','update_seconds','publication_seconds','invocation_seconds')},
+        monitoring=observer,recent_observations_omitted=max(0,observer.get('loss_panels',0)+observer.get('shadow_blocks',0)-len(observer['recent'])))

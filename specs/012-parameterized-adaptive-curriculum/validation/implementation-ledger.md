@@ -357,3 +357,15 @@ checkpoints matching the exact learner compatibility identity. New PAC generatio
 uses finite registered reservations above the old 21,600-second cap. The temporary
 helper composes explicit canonical commands and orders admission before inference.
 Four focused publication/command fixtures pass; native/device execution remains E.
+
+## T046–T049 — Representation and whole-run allocation
+
+Paired reports retain family eligibility/fallback denominators and actual encoded
+corpus token counts. Fitter/execution bindings must match across compared arms.
+Installed controllers now retain committed per-family/channel examples, exact
+fractional update shares, tokens, acquisition/incidental/grade counts and all-time
+valid/censored reward counts with bounded recent detail. Raw/scaled rewards and
+selected probabilities stay distinct; missing historical measurements remain null.
+The public projection reconciles useful/reserved/discarded/unspent exposure against
+the authoritative ledger and preserves separate observation/checkpoint costs.
+Focused report fixtures and real contiguous/fixed/D clock fixtures pass.

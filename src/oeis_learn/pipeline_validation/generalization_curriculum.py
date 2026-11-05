@@ -81,7 +81,9 @@ class PacController:
             # Complete pending feedback before even considering a fresh gradient.
             if p.block and p.block['phase']=='post':p.record_post(self.panel())
             if p.block and p.block['phase']=='feedback':
-                self.last_event=p.finish_feedback(budget_exhausted=self.observed_seconds>=self.allowance);persist()
+                selection=copy.deepcopy(p.block['selection'])
+                self.last_event=p.finish_feedback(budget_exhausted=self.observed_seconds>=self.allowance)
+                self.observer.feedback(self.last_event,selection);persist()
                 if p.pauses:break
             if max_updates is not None and p.updates>=max_updates:break
             self.observer.before(p.updates)
@@ -108,7 +110,9 @@ class PacController:
             if self.device=='cuda':
                 import torch
                 torch.cuda.synchronize()
+            before=copy.deepcopy(p.review.anchors)
             p.commit(pending['event_id'],success=True)
+            self.observer.committed(batch,channel=pending['channel'],anchor=pending['anchor'],grade=pending['grade'],before=before)
             ledger=ledger.commit(key);state['data']=dict(cursor=p.updates,pending_batch=None)
             self.channels[pending['channel']]+=1;self.observer.after(p.updates);persist()
         if p.terminal:self.observer.common(p.updates,final=True)
@@ -150,7 +154,8 @@ class PacFixedController:
         def actual(batch):
             nonlocal updates
             self.observer.before(updates)
-            value=update(batch);updates+=1;self.channels['fixed']+=1;self.observer.after(updates)
+            value=update(batch);updates+=1;self.channels['fixed']+=1
+            self.observer.committed(batch,channel='fixed');self.observer.after(updates)
             return value
         def persist(s,l):
             s['scheduler']['pac']=self.snapshot();save(s,l)

@@ -265,6 +265,8 @@ def prepare_pac_training(rows,probes,*,output,execute,final_exclusions,seed,batc
             families.append(dict(id=f,rows=ids,anchors=sorted(ids)[:4],probes=panel,missing_strata=[]))
         inventory=seal(dict(version='pac-acceptance-inventory/v1',role='training',families=families,rows=metadata,
             sidecar=digest(metadata),probe_seed=seed,shared_training_windows=shared))
+    from .generalization_reporting import pac_representation_report
+    representation=pac_representation_report(inventory,literal,parameterized,{})
     wanted={x for f in inventory['families'] for x in f['probes']}
     output=Path(output)
     if output.exists():raise ValueError('fresh PAC prepared output required')
@@ -276,6 +278,7 @@ def prepare_pac_training(rows,probes,*,output,execute,final_exclusions,seed,batc
     write(output/'prepared.json',bundle)
     write(output/'coverage.json',seal(dict(version='pac-coverage/v1',rows=len(rows),probes=len(wanted),
         families=len(counts),dispositions=dict(Counter(p['disposition'] for p in pairs)),purpose=purpose)))
+    write(output/'representation.json',representation)
     return bundle
 
 
