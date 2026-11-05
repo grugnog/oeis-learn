@@ -427,3 +427,15 @@ original workflow bytes. A primary failure followed by exporter failure retains
 both ordered error types and prints the exact last-resort workflow location.
 Raw host command/disk-control records stay private in newly issued producer file
 inventories. Workflow/real-archive checks: 19 passed.
+
+## T057 — Complete fixture campaign, interruption and minimal retry
+
+Serial fixtures cover all acceptance stages, explicit application/process/cleanup
+outcomes, immutable ordered errors and real independent archive verification. An
+actual injected KeyboardInterrupt after qualification preserves that original run;
+resume executes only calibration/acceptance. Changed source invalidates affected
+bindings; changed admission bytes alone are rebuilt, permitting compatible child
+reuse if the original producer identity is reproduced. Fixtures explicitly report
+measured progress unavailable; production subprocess supervision emits 30-second
+heartbeats without calling elapsed time completed work. The archive remains
+PARTIAL when the fixture intentionally lacks real device/native proof closure.
