@@ -31,16 +31,27 @@ def canonical_command(engine,operation,manifest,output,*,qualification=None,extr
     return argv+list(extra)
 
 
+def launch_terminal(argv,supervision,terminal,*,seconds):
+    """Transport a valid negative terminal even when its canonical CLI exits nonzero."""
+    from oeis_learn.pipeline_validation.supervision import launch
+    error=None
+    try:launch(argv,supervision,seconds=seconds,cleanup_seconds=30,stream_cap=1<<20)
+    except Exception as exc:error=exc
+    try:value=_read(Path(terminal))
+    except Exception:
+        if error is not None:raise error
+        raise
+    return value
+
+
 def invoke(engine,operation,manifest,output,*,workspace=ROOT,qualification=None,extra=(),seconds,runner=None):
     from oeis_learn.pipeline_validation.supervision import launch
     argv=canonical_command(engine,operation,manifest,output,qualification=qualification,extra=extra)
     if runner is not None:return runner(argv,seconds=seconds)
     # Existing supervisor owns timeout, process-group cancellation and bounded logs.
     target=confined(workspace,output,exists=False)
-    launch(argv,target.parent/(target.name+'-supervision'),seconds=seconds,cleanup_seconds=30,stream_cap=1<<20)
     path=target/'result.json'
-    if not path.is_file() or path.stat().st_size>16<<20:raise ValueError('canonical terminal receipt missing')
-    result=json.loads(path.read_text())
+    result=launch_terminal(argv,target.parent/(target.name+'-supervision'),path,seconds=seconds)
     if seal(result)!=result or result.get('stage')!=operation:raise ValueError('canonical producer binding changed')
     return result
 
@@ -198,6 +209,17 @@ def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
             write(output/'operational-freeze.json',revision)
             record['operational_freeze']=revision['identity']
             print('Frozen calibrated operational ceiling: '+str(effective_seconds)+' seconds; scientific scope unchanged',flush=True)
+        if entry['status']!='PASS':
+            from oeis_learn.pipeline_validation.generalization_failures import stage_failures
+            from oeis_learn.pipeline_validation.generalization_preparation import reference
+            details=stage_failures(target,refs=entry.get('artifacts',[]))
+            write(target/'failure-details.json',details)
+            entry['artifacts'].append(reference(target/'failure-details.json',target))
+            nested=[dict(stage=name,kind=f['detail']['kind'],status='FAIL') for f in details['failures']]
+            record['errors']=list({(e['stage'],e['kind'],e['status']):e for e in [*nested,*record['errors']]}.values())
+            if details['failures']:
+                first=details['failures'][0]['detail']
+                print(name+': '+first['kind']+': '+first['message'],flush=True)
         receipts[name]=entry;record['receipts'].append(entry)
         if entry['status']!='PASS':
             record['status']=entry['status']
@@ -258,8 +280,8 @@ def _role_job(plan,operation,settings,artifacts,source_roots,target,workspace,qu
     write(target/'job.json',job)
     argv=[sys.executable,'scripts/foundation_run.py','--engine',plan['engine'],'generalization','pac-stage','--job',str((target/'job.json').relative_to(workspace)),
         '--output',str((target/'execution').relative_to(workspace))]
-    launch(argv,target/'supervision',seconds=limits['outer']+9000,cleanup_seconds=30,stream_cap=1<<20)
-    value=_read(target/'execution/result.json');process=_read(target/'supervision/process.json')
+    value=launch_terminal(argv,target/'supervision',target/'execution/result.json',seconds=limits['outer']+9000)
+    process=_read(target/'supervision/process.json')
     if value['job']!=job['identity'] or value['source']!=plan['source'] or seal(value)!=value:raise ValueError('canonical job producer mismatch')
     result=dict(status=value['status'],producer=value['identity'],process=process,
         cleanup=dict(acknowledged=process.get('cleanup_failure') is None,within_bound=process.get('cleanup_failure') is None),

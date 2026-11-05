@@ -34,3 +34,42 @@ def test_bounded_verified_discovery_orders_application_before_process_and_cleanu
     changed=stage_failures(tmp_path,refs=refs)
     assert not any(f['detail']['kind']=='QuotaDeficit' for f in changed['failures'])
     assert changed['omissions']
+
+
+def test_scanner_never_reads_private_payloads_and_reports_discovery_bound(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_failures import stage_failures,public_failure
+    from oeis_learn.generalization.structural import QuotaDeficit
+    record=seal(dict(status='FAIL',failure=public_failure(QuotaDeficit({digest('f'):3}))))
+    write(tmp_path/'role/result.json',record)
+    write(tmp_path/'private/role/result.json',seal(dict(status='FAIL',reason='PrivateTeacher',error='secret')))
+    details=stage_failures(tmp_path)
+    assert len(details['failures'])==1 and details['failures'][0]['detail']['deficits']=={digest('f'):3}
+    assert stage_failures(tmp_path,max_entries=1)['omissions']
+
+
+def test_canonical_negative_transport_preserves_work_cause_before_packaging(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_failures import stage_failures
+    work=dict(status='FAIL',reason='QuotaDeficit',error='completed post-exclusion quota deficit; no timeout/reseed retry')
+    record=seal(dict(version='generalization-command-result/v2',status='FAIL',result=dict(status='FAIL',reason='PACKAGE_FAILED',error='/private/export',work_result=work)))
+    write(tmp_path/'result.json',record)
+    details=stage_failures(tmp_path)
+    assert [r['detail']['kind'] for r in details['failures']]==['QuotaDeficit','PACKAGE_FAILED']
+    assert '/private/export' not in json.dumps(details)
+
+
+def test_canonical_job_writes_negative_terminal_for_host_side_failure(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import generalization_pac_commands as command
+    from oeis_learn.experiments import source_snapshot
+    from oeis_learn.pipeline_validation.generalization_failures import stage_failures
+    monkeypatch.setattr(source_snapshot,'collect_snapshot',lambda root:{})
+    job=seal(dict(version='pac-role-job/v1',operation='pac-assemble',engine='podman',images=[digest('cpu'),digest('gpu')],
+        source=digest({}),artifacts={},source_roots={},settings={},envelope={'outer':3600},qualification=None,native_admission=None))
+    write(tmp_path/'job.json',job)
+    monkeypatch.setattr(command,'project_and_invoke',lambda *a,**kw:(_ for _ in ()).throw(ValueError('/private/native detail')))
+    host=SimpleNamespace(engine=SimpleNamespace(name='podman',image=lambda image:image))
+    assert command.main(SimpleNamespace(job='job.json',output='execution',engine='podman'),tmp_path,lambda args:host)==1
+    value=json.loads((tmp_path/'execution/result.json').read_text())
+    assert value['job']==job['identity'] and value['result']['failure']['kind']=='ValueError'
+    details=stage_failures(tmp_path)
+    assert details['failures'][0]['detail']['kind']=='ValueError' and '/private/native' not in json.dumps(details)

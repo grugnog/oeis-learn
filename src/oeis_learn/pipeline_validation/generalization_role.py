@@ -312,7 +312,8 @@ def main(argv=None):
                 allowance=remaining_seconds(began+allowance)
             result=handler(inputs,output,runtime['settings'],seconds=allowance)
     except (KeyError,ValueError,OSError,RuntimeError,TimeoutError) as exc:
-        result=dict(status='FAIL',reason=type(exc).__name__,error=str(exc))
+        from .generalization_failures import public_failure
+        result=dict(status='FAIL',reason=type(exc).__name__,error=str(exc),failure=public_failure(exc))
     write(output/'result.json',seal(result))
     if result.get('status')!='PASS':
         from .generalization_diagnostics import terminal_fields

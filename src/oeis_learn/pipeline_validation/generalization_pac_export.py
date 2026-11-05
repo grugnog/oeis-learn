@@ -106,6 +106,14 @@ def collect(original,staging):
                     lines=[line[:2048] for line in tail.splitlines() if line.startswith(('learner: ','calibration: ')) and '/' not in line and '\\' not in line]
                     put('logs/'+row['stage']+'/'+folder+'-'+stream+'.json',dict(original_bytes=size,original_sha256=file_hash(path) if size<=1<<20 else None,
                         projection='recognized phase/time lines only; raw logs remain private',lines=lines[-64:]))
+    from .generalization_failures import stage_failures
+    nested_errors=[]
+    for row in workflow['receipts']:
+        if row['status']=='PASS':continue
+        details=stage_failures(original/row.get('directory',row['stage']),refs=row.get('artifacts',[]))
+        put('failures/'+row['stage']+'.json',details)
+        nested_errors.extend(dict(stage=row['stage'],kind=f['detail']['kind'],status='FAIL') for f in details['failures'])
+    errors=list({(e['stage'],e['kind'],e['status']):e for e in [*nested_errors,*workflow['errors']]}.values())
     status=workflow['status']
     if status=='PASS' and not all((qualification,acceptance,native,calibration)):
         status='PARTIAL';omissions.append('complete original qualification/native/acceptance/calibration closure unavailable')
@@ -114,7 +122,7 @@ def collect(original,staging):
     return seal(dict(version='pac-public-evidence/v1',plan=plan['identity'],source=plan['source'],images=plan['images'],
         backend=__import__('oeis_learn.pipeline_validation.generalization_execution',fromlist=['POLICY_ID']).POLICY_ID,
         helper=dict(requested=plan['helper'],observed=helper_identity(Path(__file__).resolve().parents[3])),
-        scope=scope,required=[s['name'] for s in plan['stages']],stages=stages,software_status=status,scientific_status=scientific,errors=workflow['errors'],
+        scope=scope,required=[s['name'] for s in plan['stages']],stages=stages,software_status=status,scientific_status=scientific,errors=errors,
         omissions=omissions+['private tensors, protected truth, raw commands and original host paths omitted'],inventory=refs,
         qualification=qualification,acceptance=acceptance,native_admission=native,calibration=calibration))
 
@@ -132,11 +140,20 @@ def export(original,output):
         plan=json.loads((original/'plan.json').read_text());workflow=json.loads((original/'workflow.json').read_text())
         if seal(plan)!=plan or seal(workflow)!=workflow:raise ValueError('original plan/workflow integrity unavailable') from exc
         seed=int(plan['stages'][0]['extra'][1]) if len(plan['stages'][0]['extra'])==2 else 0
+        from .generalization_failures import stage_failures
+        minimal_payload=output.with_name(output.name+'-minimal-payloads');minimal_payload.mkdir(parents=True,exist_ok=False)
+        minimal_refs=[];nested_errors=[]
+        for row in workflow['receipts']:
+            if row['status']=='PASS':continue
+            details=stage_failures(confined(original,row.get('directory',row['stage'])),refs=row.get('artifacts',[]))
+            path=minimal_payload/'failures'/(row['stage']+'.json');write(path,details);minimal_refs.append(reference(path,minimal_payload))
+            nested_errors.extend(dict(stage=row['stage'],kind=f['detail']['kind'],status='FAIL') for f in details['failures'])
+        errors=list({(e['stage'],e['kind'],e['status']):e for e in [*nested_errors,*workflow['errors'],dict(stage='export',kind=type(exc).__name__,status='FAIL')]}.values())
         record=seal(dict(version='pac-public-evidence/v1',plan=plan['identity'],source=plan['source'],images=plan['images'],
             backend=__import__('oeis_learn.pipeline_validation.generalization_execution',fromlist=['POLICY_ID']).POLICY_ID,
             helper=dict(requested=plan['helper'],observed=helper_identity(Path(__file__).resolve().parents[3])),
             scope=dict(research=plan['research'],arms=plan['arms'],seed=seed,target_tokens=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED'),
             required=[s['name'] for s in plan['stages']],stages=[],software_status='INTERRUPTED' if workflow['status']=='INTERRUPTED' else 'FAIL',
-            scientific_status='INCOMPLETE' if plan['research'] else 'UNMEASURED',errors=workflow['errors']+[dict(stage='export',kind=type(exc).__name__,status='FAIL')],
-            omissions=['rich proof closure unavailable; original failure and export directories retained'],inventory=[],qualification=None,acceptance=None,native_admission=None,calibration=None))
-        return publish_pac(record,output.with_name(output.name+'-minimal'))
+            scientific_status='INCOMPLETE' if plan['research'] else 'UNMEASURED',errors=errors,
+            omissions=['rich proof closure unavailable; original failure and export directories retained'],inventory=minimal_refs,qualification=None,acceptance=None,native_admission=None,calibration=None))
+        return publish_pac(record,output.with_name(output.name+'-minimal'),payload_root=minimal_payload)

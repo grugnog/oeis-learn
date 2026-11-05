@@ -344,5 +344,5 @@ frozen before any model outcomes; training, exclusions and draw law stay unchang
 - [X] F002 Freeze and implement a new 128-task/23-family structural scope (68 certified/15 families), preserving all 2,288 draws, all 16 exclusions and historical v1 readers; publish exact changed quotas and removed families.
 - [X] F003 Bind the new scope through admission, scoring, metrics, analysis and offline archives; require exact new population identity and preserve historical denominator guards.
 - [X] F004 Add nested-role/first-cause/cleanup/export failure counterexamples; preserve bounded safe cause types and quota details without private paths, truth or tensors.
-- [ ] F005 Implement bounded nested failure capture and verified public export/recovery for new and existing failed runs, keeping original records immutable.
+- [X] F005 Implement bounded nested failure capture and verified public export/recovery for new and existing failed runs, keeping original records immutable.
 - [ ] F006 Run affected and combined non-HIP regression closure, update fingerprint and operator instructions, commit/push repairs and stop without HIP or CI wait.

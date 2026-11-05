@@ -674,3 +674,22 @@ Both old and amended complete synthetic proof closures verify under `python -S`;
 new-scope scoring and analysis retain the 65/68 completion floor. Focused routing,
 archive, scope, analysis and wrapper closure: **47 passed**. Actual new native/HIP
 execution remains pending, not inferred from synthetic archive labels.
+
+
+## F004–F005 — Preserve the actual nested failure
+
+New counterexamples reproduced the lost inner QuotaDeficit behind a nonzero wrapper
+exit. Canonical negative terminals now travel through that exit instead of being
+replaced by RuntimeError; host-side canonical job failures also write sealed terminals.
+Installed roles attach a closed safe failure record with stable cause code/message,
+opaque exact quota deficits and a digest of private detail. Unknown raw exception
+text, source/term payloads and host paths stay private.
+
+Bounded discovery checks original producer hashes, orders application causes before
+process/cleanup metadata and explicitly reports unavailable/truncated discovery.
+Normal and minimal exports retain these cause records and ordered errors; read-only
+recovery also reads original legacy role results without rewriting the old workflow.
+Real nonzero subprocess, original-byte tampering, private-directory exclusion,
+cleanup, packaging and minimal-export counterexamples are covered. Focused failures,
+wrapper, archive, scoring and registration selection: **49 passed**. New policy JSON
+is explicitly included in package data; actual engine/native/HIP work remains pending.

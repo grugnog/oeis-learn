@@ -225,3 +225,27 @@ def test_nested_quota_cause_and_wrapper_error_both_survive_read_only_recovery(tm
         detail=json.loads(z.read('failures/admission.json'))
         assert detail['failures'][0]['detail']['code']=='structural_quota_deficit'
         assert all(b'private teacher' not in z.read(n) and b'/home/private' not in z.read(n) for n in z.namelist())
+
+
+def test_minimal_export_after_rich_failure_retains_old_nested_cause(tmp_path,monkeypatch):
+    import json,zipfile
+    from oeis_learn.pipeline_validation.identity import seal,write,digest
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.pipeline_validation import generalization_pac_export as export
+    h=helper();order=h.stage_order()
+    stages=[dict(name=n,operation='prepare',manifest='unavailable',seconds=3600,extra=[],requires=[] if i==0 else [order[i-1]]) for i,n in enumerate(order)]
+    plan=h.prepare_plan(tmp_path,engine='podman',stages=stages,inputs=[],source=digest('source'),images=[digest('cpu'),digest('gpu')])
+    old=tmp_path/'old';path=old/'admission/execution/execution/role/result.json'
+    write(path,seal(dict(status='FAIL',reason='QuotaDeficit',error='completed post-exclusion quota deficit; no timeout/reseed retry')))
+    write(old/'plan.json',plan)
+    write(old/'workflow.json',seal(dict(plan=plan['identity'],status='FAIL',errors=[dict(stage='admission',kind='RuntimeError',status='FAIL')],
+        receipts=[dict(stage='admission',status='FAIL',directory='admission',artifacts=[reference(path,old/'admission')])])))
+    original=(old/'workflow.json').read_bytes()
+    monkeypatch.setattr(export,'collect',lambda *a:(_ for _ in ()).throw(ValueError('bad rich closure /private/path')))
+    archive=export.export(old,tmp_path/'recovered')
+    assert archive.name=='recovered-minimal.zip' and (old/'workflow.json').read_bytes()==original
+    with zipfile.ZipFile(archive) as z:
+        errors=json.loads(z.read('evidence.json'))['errors']
+        assert [e['kind'] for e in errors]==['QuotaDeficit','RuntimeError','ValueError']
+        assert 'failures/admission.json' in z.namelist()
+        assert all(b'/private/path' not in z.read(n) for n in z.namelist())
