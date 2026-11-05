@@ -81,8 +81,8 @@ def pac_boundary(state,ledger):
     if record['version']=='pac-fixed-controller/v1':
         if record['channels']['fixed']!=ledger.updates:raise ValueError('fixed PAC model/observer clock mismatch')
         return
-    from oeis_learn.generalization.curriculum_state import CurriculumState
-    p=CurriculumState.restore(record['policy'],inventory=record['policy']['inventory'])
+    from oeis_learn.generalization.curriculum_state import restore_policy
+    p=restore_policy(record['policy'],inventory=record['policy']['inventory'])
     if p.pending and p.pending['phase']=='failed':raise ValueError('failed optimizer cannot publish PAC tensors')
     discarded=state['scheduler'].get('discarded_tokens',0)
     if p.updates!=ledger.updates or p.updates!=state['data']['cursor'] or p.charged_tokens!=ledger.consumed+discarded:
@@ -96,9 +96,9 @@ def pac_crash_recovery(state,ledger,*,unclean,discarded_tokens):
     """Keep saved weights/policy; later journal advances only costs and segment IDs."""
     record=state['scheduler'].get('pac')
     if record is None or record['version']=='pac-fixed-controller/v1':return ledger
-    from oeis_learn.generalization.curriculum_state import CurriculumState
+    from oeis_learn.generalization.curriculum_state import restore_policy
     from dataclasses import replace
-    p=CurriculumState.restore(record['policy'],inventory=record['policy']['inventory'])
+    p=restore_policy(record['policy'],inventory=record['policy']['inventory'])
     if not unclean and discarded_tokens==p.discarded_tokens:return ledger
     # Reservation may have executed before the crash. Its old debit is discarded;
     # recomputing it must reserve again under a fresh event ID.

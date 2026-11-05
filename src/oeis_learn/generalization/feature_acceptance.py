@@ -115,3 +115,24 @@ def assemble_feature(cases,*,qualification,root):
     feature=seal(dict(version='generalization-feature-acceptance/v2',status='PASS',qualification=qualification,cases=cases))
     verify_feature(feature,qualification=qualification,root=root)
     return feature
+
+
+def verify_pac_acceptance(record,*,root,source,environment,device='hip'):
+    """Require original tensor/policy comparisons and independently verified export."""
+    from oeis_learn.pipeline_validation.bundle import verify
+    fields={'version','identity','status','source','environment','device','research_eligible','cadence','updates',
+            'valid_rewards','graded_anchors','resume_boundaries','encoded_token_minimum','proofs','failure_archive'}
+    if set(record)!=fields or record['version']!='pac-feature-acceptance/v1' or seal(record)!=record or record['status']!='PASS':raise ValueError('closed original PAC acceptance required')
+    if (record['source'],record['environment'],record['device'])!=(source,environment,device):raise ValueError('PAC acceptance source/environment/device mismatch')
+    if record['research_eligible']!=(device=='hip'):raise ValueError('CPU acceptance cannot qualify research')
+    if record['cadence']!=dict(block_updates=2,cycle_updates=8,review_interval=1,common_updates=8) or record['updates']!=16 or record['valid_rewards']<6 or record['graded_anchors']<1 or record['resume_boundaries']!=[1,2]:raise ValueError('PAC acceptance boundary evidence incomplete')
+    if set(record['proofs'])!={'1','2'}:raise ValueError('both full-state pause proofs required')
+    for ref in record['proofs'].values():
+        proof=json.loads(verify_artifact(root,ref,max_bytes=1<<20))
+        if seal(proof)!=proof or proof.get('status')!='PASS' or proof.get('resume_equal') is not True or proof.get('pac_equal') is not True or len(proof.get('runs',[]))!=2:
+            raise ValueError('actual model/optimizer/RNG/data/policy equality required')
+        if any(r['updates']!=16 or not r['finite'] or not r['changed'] for r in proof['runs']):raise ValueError('actual finite changed weights required')
+    verify_artifact(root,record['failure_archive'],max_bytes=CAP)
+    checked=verify(confined(root,record['failure_archive']['path']))
+    if checked['summary_state']!='FAIL':raise ValueError('original negative recovery export required')
+    return record['identity']

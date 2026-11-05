@@ -303,9 +303,16 @@ def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
         if not args.qualification:raise ValueError('original compatible PAC qualification required')
         from .generalization_qualification_io import consume_original
         producer=confined(workspace,args.qualification)
+        feature=runtime['feature']
+        if runtime['purpose']=='research':
+            if not isinstance(feature,dict) or set(feature)!={'qualification','pac'}:raise ValueError('original PAC and legacy feature acceptance required')
+            from oeis_learn.generalization.feature_acceptance import verify_pac_acceptance
+            record=_document(base,feature['pac'])
+            verify_pac_acceptance(record,root=confined(base,feature['pac']['path']).parent,source=study['source'],
+                environment=digest(dict(images=runtime['images'],engine=runtime['engine'],backend=study['backend'])),device='hip')
         qualification=consume_original(host,workspace,producer,output/'qualification',
             required_suites=['bigint-cpu','bigint-gpu'],required_capabilities=['weight-load','finite-update','native-exact'],
-            research=runtime['purpose']=='research',feature_receipt=runtime['feature'])
+            research=runtime['purpose']=='research',feature_receipt=feature['qualification'] if runtime['purpose']=='research' else feature)
         if qualification['authority']['images']!=runtime['images'] or _document(producer,qualification['authority']['source_closure'])!=_document(base,runtime['source']):
             raise ValueError('PAC qualification image/source mismatch')
         if args.operation!='train':raise ValueError('PAC evaluation requires the scoped structural delivery adapter')

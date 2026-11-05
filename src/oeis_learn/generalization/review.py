@@ -10,6 +10,7 @@ def review_slot(completed_updates):
 
 class ReviewQueue:
     VERSION='pac-leitner-queue/v1'
+    INTERVAL=512
     def __init__(self,anchors):
         if not 1<=len(anchors)<=128 or any(not isinstance(k,str) or not k or not isinstance(v,str) or not v for k,v in anchors.items()):
             raise ValueError('bounded distinct anchor inventory required')
@@ -39,7 +40,7 @@ class ReviewQueue:
             a=changed[key]
             if not a['acquired']:a['acquired']=True;a['queue']=0
             elif key==designated and grade is not None:a['queue']=min(4,a['queue']+1) if grade else 0
-            a['last_exposure']=update;a['due_update']=update+512*2**a['queue']
+            a['last_exposure']=update;a['due_update']=update+self.INTERVAL*2**a['queue']
             a['last_event']=event_id
             if key==designated:a['last_grade']=grade
         self.anchors=changed;self.last_update=update
@@ -64,7 +65,7 @@ class ReviewQueue:
             if a['last_grade'] is not None and type(a['last_grade']) is not bool:raise ValueError('review grade')
             if a['acquired']:
                 integer(a['last_exposure'],1)
-                if a['last_exposure']>state['last_update'] or a['due_update']!=a['last_exposure']+512*2**a['queue'] or not isinstance(a['last_event'],str):raise ValueError('committed anchor exposure')
+                if a['last_exposure']>state['last_update'] or a['due_update']!=a['last_exposure']+cls.INTERVAL*2**a['queue'] or not isinstance(a['last_event'],str):raise ValueError('committed anchor exposure')
             elif a!=result.anchors[key]:raise ValueError('unacquired anchor has invented history')
         result.anchors=copy.deepcopy(state['anchors']);result.last_update=state['last_update'];result.services=state['services'];result.terminal=state['terminal'];return result
 
@@ -77,3 +78,13 @@ def review_choice(queue,*,completed_updates,families,rng):
     anchor=queue.choose(completed_updates+1)
     if anchor is None:return dict(channel='fallback',anchor=None,family=families[rng.randrange(len(families))])
     return dict(channel='review',anchor=anchor,family=queue.anchors[anchor]['family'])
+
+
+class AcceptanceReviewQueue(ReviewQueue):
+    """Mechanical acceptance only; no production service-bound claims."""
+    VERSION='pac-acceptance-review/v1'
+    INTERVAL=1
+    def pending(self):
+        return dict(anchors=len(self.anchors),unacquired=sum(not a['acquired'] for a in self.anchors.values()),
+                    due=sum(a['due_update']<=self.last_update for a in self.anchors.values()),bound_applies=False,
+                    due_delay_bound=None,exposure_bound=None)

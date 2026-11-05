@@ -34,27 +34,28 @@ def observe_targets(encoder,decoder,rows,*,device):
 
 
 class PacController:
-    def __init__(self,batches,encoder,decoder,*,device,seed,arm,cap,observation_seconds,snapshot=None):
-        from oeis_learn.generalization.curriculum_state import CurriculumState
+    def __init__(self,batches,encoder,decoder,*,device,seed,arm,cap,observation_seconds,snapshot=None,acceptance=False):
+        from oeis_learn.generalization.curriculum_state import CurriculumState,AcceptanceCurriculumState
+        Policy=AcceptanceCurriculumState if acceptance else CurriculumState
         self.batches=batches;self.encoder=encoder;self.decoder=decoder;self.device=device
         self.allowance=observation_seconds;self.observed_seconds=0.;self.observations=0
         self.channels=dict(bandit=0,review=0,fallback=0);self.last_event=None
-        self.policy=CurriculumState(batches.families,batches.probes,batches.anchors,seed=seed,arm=arm,
+        self.policy=Policy(batches.families,batches.probes,batches.anchors,seed=seed,arm=arm,
             token_cap=cap,inventory=batches.inventory['identity'],segment='initial')
         if snapshot is not None:
             if set(snapshot)!={'version','policy','observed_seconds','observations','channels','last_event','observer'} or snapshot['version']!='pac-installed-controller/v1':raise ValueError('complete PAC installed observer state required')
-            self.policy=CurriculumState.restore(snapshot['policy'],inventory=batches.inventory['identity'])
+            self.policy=Policy.restore(snapshot['policy'],inventory=batches.inventory['identity'])
             if self.policy.cap!=cap or self.policy.arm!=arm or self.policy.seed!=seed:raise ValueError('PAC installed policy identity mismatch')
             self.observed_seconds=snapshot['observed_seconds'];self.observations=snapshot['observations'];self.channels=copy.deepcopy(snapshot['channels']);self.last_event=snapshot['last_event']
         from .generalization_diagnostics import PacObservers
-        self.observer=PacObservers(batches,arm=arm,seed=seed,observe=self.observe,snapshot=snapshot['observer'] if snapshot else None)
+        self.observer=PacObservers(batches,arm=arm,seed=seed,observe=self.observe,snapshot=snapshot['observer'] if snapshot else None,acceptance=acceptance)
 
     def snapshot(self):
         return dict(version='pac-installed-controller/v1',policy=self.policy.snapshot(),observed_seconds=self.observed_seconds,
             observations=self.observations,channels=dict(self.channels),last_event=copy.deepcopy(self.last_event),observer=self.observer.snapshot())
 
     def observe(self,rows):
-        if self.observed_seconds>=self.allowance:return None
+        if self.observed_seconds>=self.allowance or time.monotonic()>=getattr(self,'deadline',float('inf')):return None
         started=time.monotonic()
         try:
             result=observe_targets(self.encoder,self.decoder,rows,device=self.device)
@@ -72,7 +73,7 @@ class PacController:
     def run(self,state,ledger,*,update,save,seconds,max_updates=None):
         from oeis_learn.generalization.budgets import charge_tokens
         from oeis_learn.generalization.review import review_slot
-        deadline=time.monotonic()+seconds;p=self.policy
+        deadline=time.monotonic()+seconds;self.deadline=deadline;p=self.policy
         def persist():
             state['scheduler']['pac']=self.snapshot();save(state,ledger)
         while time.monotonic()<deadline and not p.terminal and not p.pauses:
@@ -83,7 +84,7 @@ class PacController:
                 if p.pauses:break
             if max_updates is not None and p.updates>=max_updates:break
             self.observer.before(p.updates)
-            if not p.block and (p.arm=='D' or not review_slot(p.updates)):p.start_block()
+            if not p.block and (p.arm=='D' or not p.review_slot(p.updates)):p.start_block()
             if p.block and p.block['phase']=='pre':p.record_pre(self.panel())
             if p.pending is None:p.plan_batch(self.batches.batch_size)
             pending=p.pending;batch=[self.batches.rows[i] for i in pending['rows']]
@@ -128,7 +129,7 @@ def initial_weights_identity(encoder,decoder):
 class PacFixedController:
     """Use the existing fixed batch loop; shadow observations cannot select rows."""
     observe=PacController.observe
-    def __init__(self,batches,encoder,decoder,*,device,seed,arm,cap,observation_seconds,snapshot=None):
+    def __init__(self,batches,encoder,decoder,*,device,seed,arm,cap,observation_seconds,snapshot=None,acceptance=False):
         from .generalization_diagnostics import PacObservers
         self.batches=batches;self.encoder=encoder;self.decoder=decoder;self.device=device
         self.allowance=observation_seconds;self.observed_seconds=0.;self.observations=0;self.policy=None
@@ -136,12 +137,13 @@ class PacFixedController:
         if snapshot:
             if set(snapshot)!={'version','observed_seconds','observations','channels','observer'} or snapshot['version']!='pac-fixed-controller/v1':raise ValueError('closed PAC fixed observer state')
             self.observed_seconds=snapshot['observed_seconds'];self.observations=snapshot['observations'];self.channels=copy.deepcopy(snapshot['channels'])
-        self.observer=PacObservers(batches,arm=arm,seed=seed,observe=self.observe,snapshot=snapshot['observer'] if snapshot else None)
+        self.observer=PacObservers(batches,arm=arm,seed=seed,observe=self.observe,snapshot=snapshot['observer'] if snapshot else None,acceptance=acceptance)
     def snapshot(self):
         return dict(version='pac-fixed-controller/v1',observed_seconds=self.observed_seconds,observations=self.observations,
             channels=dict(self.channels),observer=self.observer.snapshot())
     def run(self,state,ledger,*,update,save,seconds,max_updates=None):
         from .generalization_training import train_updates
+        self.deadline=time.monotonic()+seconds
         updates=ledger.updates
         def actual(batch):
             nonlocal updates
@@ -195,11 +197,12 @@ def semantic_probe(encoder,decoder,row,truth,*,device,seed,recipe,cache_root,sec
 
 def attach_semantic(controller,recipe,output,*,seed):
     def semantic(row,truth,seconds):
-        if controller.observed_seconds>=controller.allowance:return None
+        if controller.observed_seconds>=controller.allowance or time.monotonic()>=getattr(controller,'deadline',float('inf')):return None
         started=time.monotonic()
         try:
-            return semantic_probe(controller.encoder,controller.decoder,row,truth,device=controller.device,
+            result=semantic_probe(controller.encoder,controller.decoder,row,truth,device=controller.device,
                 seed=int(digest([seed,row['id'],controller.observer.state['semantic_attempts']])[7:15],16),
-                recipe=recipe,cache_root=output/'private/pac-semantic',seconds=min(seconds,controller.allowance-controller.observed_seconds))
+                recipe=recipe,cache_root=output/'private/pac-semantic',seconds=min(seconds,controller.allowance-controller.observed_seconds,getattr(controller,'deadline',float('inf'))-time.monotonic()))
         finally:controller.observed_seconds+=time.monotonic()-started
+        return result if controller.observed_seconds<=controller.allowance else None
     controller.observer.semantic=semantic

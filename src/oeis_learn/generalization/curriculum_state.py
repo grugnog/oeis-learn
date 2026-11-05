@@ -15,6 +15,12 @@ from oeis_learn.pipeline_validation.identity import digest
 class CurriculumState:
     VERSION='pac-model-bound-state/v1'
     POLICY='pac-exp3s-leitner/v1'
+    BLOCK=8
+    CYCLE=32
+    BANDIT=24
+    Queue=ReviewQueue
+
+    def review_slot(self,update):return update%self.CYCLE>=self.BANDIT
     def __init__(self,families,probes,anchors,*,seed,arm,token_cap,inventory,segment):
         integer(token_cap,1);integer(seed)
         if arm not in {'C','D'} or not isinstance(segment,str) or not segment:raise ValueError('adaptive arm/segment required')
@@ -30,7 +36,7 @@ class CurriculumState:
         self.scaler=RewardScaler(seed=seed)
         self.streams={f:FamilyStream(f,rows,seed=seed) for f,rows in families.items()}
         self.probes={f:ProbeRotation(rows) for f,rows in probes.items()}
-        self.review=ReviewQueue(anchors);self.coverage=FeedbackCoverage(sorted(families))
+        self.review=self.Queue(anchors);self.coverage=FeedbackCoverage(sorted(families))
         self.fallback_rng=random.Random(stream_seed(seed,'review-fallback'))
         self.updates=0;self.charged_tokens=0;self.useful_tokens=0;self.discarded_tokens=0;self.charged_seconds=0.
         self.reservations=0;self.block=None;self.pending=None;self.pauses=[];self.terminal=False
@@ -41,7 +47,7 @@ class CurriculumState:
 
     def start_block(self):
         self._active()
-        if self.block or self.pending or self.updates%8 or self.arm=='C' and review_slot(self.updates):
+        if self.block or self.pending or self.updates%self.BLOCK or self.arm=='C' and self.review_slot(self.updates):
             raise ValueError('one contiguous bandit block at its cycle boundary')
         selection=self.kernel.choose();family=selection['family']
         self.block=dict(id=f'{self.segment}:block:{selection["action"]}',selection=selection,family=family,
@@ -68,11 +74,14 @@ class CurriculumState:
         self._active();integer(batch_size,1)
         if self.pending:raise ValueError('at most one pending learner update')
         if self.block:
-            if self.block['phase']!='updates' or self.block['completed']>=8:raise ValueError('complete pending observation before gradients')
+            if self.block['phase']!='updates' or self.block['completed']>=self.BLOCK:raise ValueError('complete pending observation before gradients')
             choice=dict(family=self.block['family'],anchor=None,channel='bandit')
         else:
             if self.arm!='C':raise ValueError('start bandit block first')
-            choice=review_choice(self.review,completed_updates=self.updates,families=sorted(self.families),rng=self.fallback_rng)
+            if not self.review_slot(self.updates):raise ValueError('active review slot required')
+            anchor=self.review.choose(self.updates+1)
+            choice=dict(channel='review' if anchor else 'fallback',anchor=anchor,
+                family=self.anchor_ids[anchor] if anchor else sorted(self.families)[self.fallback_rng.randrange(len(self.families))])
         family=choice['family'];anchor=choice['anchor']
         if batch_size>len(self.families[family]):raise ValueError('distinct batch capacity')
         rows=([anchor]+self.streams[family].take(batch_size-1,exclude={anchor}) if batch_size>1 else [anchor]) if anchor else self.streams[family].take(batch_size)
@@ -106,7 +115,7 @@ class CurriculumState:
         if not success:
             self.charged_seconds+=elapsed_seconds;p['phase']='failed'
             self.pauses.append('optimizer_failure_requires_restore');return
-        new_review=ReviewQueue.restore(self.review.snapshot(),anchors=self.anchor_ids)
+        new_review=self.Queue.restore(self.review.snapshot(),anchors=self.anchor_ids)
         acquired=bool(p['anchor'] and self.review.anchors[p['anchor']]['acquired'])
         new_review.commit(update=self.updates+1,event_id=event_id,designated=p['anchor'],
                           grade=p['grade']['recall'] if p['grade'] else None,
@@ -114,10 +123,10 @@ class CurriculumState:
         self.updates+=1;self.useful_tokens+=p['tokens'];self.charged_seconds+=elapsed_seconds;self.review=new_review
         if self.block:
             self.block['completed']+=1;self.block['tokens']+=p['tokens']
-            if self.block['completed']==8:self.block['phase']='post'
+            if self.block['completed']==self.BLOCK:self.block['phase']='post'
         else:
             self.review_eligible+=acquired;self.review_valid+=p['grade'] is not None
-            if self.updates%32==0:
+            if self.updates%self.CYCLE==0:
                 self.coverage.review_block(eligible=self.review_eligible,valid=self.review_valid)
                 self.review_eligible=self.review_valid=0;self.pauses=list(self.coverage.pauses)
         self.pending=None
@@ -172,7 +181,7 @@ class CurriculumState:
         if set(state['row_streams'])!=set(s.families) or set(state['probe_streams'])!=set(s.families):raise ValueError('complete family streams required')
         s.streams={f:FamilyStream.restore(state['row_streams'][f],family=f,rows=rows) for f,rows in s.families.items()}
         s.probes={f:ProbeRotation.restore(state['probe_streams'][f],probes=rows) for f,rows in s.probe_ids.items()}
-        s.review=ReviewQueue.restore(state['review'],anchors=s.anchor_ids);s.coverage=FeedbackCoverage.restore(state['coverage'],families=sorted(s.families))
+        s.review=s.Queue.restore(state['review'],anchors=s.anchor_ids);s.coverage=FeedbackCoverage.restore(state['coverage'],families=sorted(s.families))
         s.fallback_rng=rng_restore(state['fallback_rng'])
         if not 1<=len(state['segments'])<=4096 or len(set(state['segments']))!=len(state['segments']) or state['segment'] not in state['segments'] or any(not isinstance(x,str) or not x for x in state['segments']):raise ValueError('recovery segment history')
         s.segments=list(state['segments'])
@@ -185,14 +194,14 @@ class CurriculumState:
             if set(b)!={'id','selection','family','start_update','probe_ids','pre','post','completed','tokens','phase'} or b['selection']!=s.kernel.pending or b['family']!=b['selection']['family']:
                 raise ValueError('pending block identity')
             for key in ('start_update','completed','tokens'):integer(b[key])
-            if b['completed']>8 or b['start_update']+b['completed']!=s.updates or b['phase'] not in {'pre','updates','post','feedback'}:raise ValueError('pending block update/phase mismatch')
+            if b['completed']>s.BLOCK or b['start_update']+b['completed']!=s.updates or b['phase'] not in {'pre','updates','post','feedback'}:raise ValueError('pending block update/phase mismatch')
             if b['probe_ids'] not in [s.probe_ids[b['family']][i:i+2] for i in (0,2,4,6)]:raise ValueError('pending probe panel')
             if b['tokens']>s.useful_tokens or (b['completed']==0 and b['tokens']!=0) or b['tokens']<b['completed']:raise ValueError('block token debit mismatch')
-            if b['start_update']%8 or s.arm=='C' and b['start_update']%32 not in (0,8,16):raise ValueError('block cycle boundary')
-            if b['phase']=='pre' and (b['pre'] is not None or b['post'] is not None) or b['phase']!='feedback' and b['post'] is not None or b['phase']=='updates' and b['completed']>=8:raise ValueError('block observation phase')
+            if b['start_update']%s.BLOCK or s.arm=='C' and s.review_slot(b['start_update']):raise ValueError('block cycle boundary')
+            if b['phase']=='pre' and (b['pre'] is not None or b['post'] is not None) or b['phase']!='feedback' and b['post'] is not None or b['phase']=='updates' and b['completed']>=s.BLOCK:raise ValueError('block observation phase')
             if b['pre'] is not None:s._panel(b['pre'],b['start_update'])
             if b['post'] is not None:s._panel(b['post'],s.updates)
-            if b['phase'] in {'post','feedback'} and b['completed']!=8 or b['phase']=='pre' and b['completed']!=0:raise ValueError('pending phase/cursor')
+            if b['phase'] in {'post','feedback'} and b['completed']!=s.BLOCK or b['phase']=='pre' and b['completed']!=0:raise ValueError('pending phase/cursor')
         if s.pending:
             p=s.pending
             if set(p)!={'event_id','family','rows','anchor','channel','model_before','tokens','grade','phase'} or p['model_before']!=s.updates or p['phase'] not in {'planned','reserved','failed'} or p['family'] not in s.families:raise ValueError('pending learner update')
@@ -203,7 +212,7 @@ class CurriculumState:
             if s.block and (p['channel']!='bandit' or p['family']!=s.block['family'] or s.block['phase']!='updates'):raise ValueError('intervening gradient')
             if s.block and p['anchor'] is not None:raise ValueError('bandit update cannot carry review anchor')
             if not s.block:
-                if s.arm!='C' or not review_slot(s.updates) or p['channel']=='bandit':raise ValueError('review cycle mismatch')
+                if s.arm!='C' or not s.review_slot(s.updates) or p['channel']=='bandit':raise ValueError('review cycle mismatch')
                 due=s.review.choose(s.updates+1)
                 if p['anchor']!=due or (due is None)!=(p['channel']=='fallback'):raise ValueError('review obligation mismatch')
             if p['grade'] is not None:
@@ -212,7 +221,22 @@ class CurriculumState:
             if p['phase']=='failed' and 'optimizer_failure_requires_restore' not in s.pauses:raise ValueError('failed optimizer without pause')
         reserved=s.pending['tokens'] if s.pending and s.pending['phase'] in {'reserved','failed'} else 0
         if s.charged_tokens!=s.useful_tokens+s.discarded_tokens+reserved:raise ValueError('unreconciled token ledger')
-        completed=s.updates//8 if s.arm=='D' else s.updates//32*3+min(3,s.updates%32//8)
-        actions=completed+int(s.block is not None and s.block['completed']<8)
+        completed=s.updates//s.BLOCK if s.arm=='D' else s.updates//s.CYCLE*3+min(3,s.updates%s.CYCLE//s.BLOCK)
+        actions=completed+int(s.block is not None and s.block['completed']<s.BLOCK)
         if s.kernel.action_count!=actions or s.kernel.valid_updates>s.kernel.action_count-int(s.block is not None):raise ValueError('model/kernel action clock mismatch')
         return s
+
+
+class AcceptanceCurriculumState(CurriculumState):
+    """Same transactions/kernel, explicitly reduced mechanical acceptance clocks."""
+    from .review import AcceptanceReviewQueue as Queue
+    VERSION='pac-acceptance-model-state/v1'
+    POLICY='pac-acceptance/v1'
+    BLOCK=2
+    CYCLE=8
+    BANDIT=6
+
+
+def restore_policy(state,*,inventory):
+    cls=AcceptanceCurriculumState if state.get('version')==AcceptanceCurriculumState.VERSION else CurriculumState
+    return cls.restore(state,inventory=inventory)

@@ -264,7 +264,9 @@ def publish_initializer(inputs,output,settings,*,seconds):
     return publish_role(inputs,output,settings,seconds=seconds)
 
 
-HANDLERS={(Role.PREPARATION,'pac-prepare'):pac_preparation,(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
+from .generalization_acceptance import pac_acceptance
+
+HANDLERS={(Role.LEARNER,'pac-acceptance'):pac_acceptance,(Role.PREPARATION,'pac-prepare'):pac_preparation,(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
           (Role.SELECTION,'select-checkpoints'):checkpoint_selection,
           (Role.ASSESSMENT,'score'):assessment,
           (Role.LEARNER,'replay-audit'):replay_audit,(Role.GENERATOR,'replay-propose'):replay_propose,

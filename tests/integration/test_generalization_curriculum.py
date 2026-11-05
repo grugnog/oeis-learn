@@ -136,3 +136,26 @@ def test_production_clock_counts_and_pending_choice_restore(tmp_path):
     assert c.channels==dict(bandit=32,review=0,fallback=0)
     assert c.policy.kernel.action_count==c.policy.kernel.valid_updates==4
     assert c.observer.state['shadow_grades']==0
+
+
+def test_acceptance_due_grade_is_not_committed_on_actual_optimizer_failure(tmp_path):
+    import torch
+    from oeis_learn.pipeline_validation.generalization_curriculum import PacController
+    from oeis_learn.pipeline_validation.generalization_training import torch_update
+    from oeis_learn.generalization.budgets import Ledger
+    from tests.integration.test_generalization_training import states
+    batches,_=prepared(tmp_path);encoder,decoder=models()
+    optimizer=torch.optim.AdamW([*encoder.parameters(),*decoder.parameters()],lr=.001)
+    controller=PacController(batches,encoder,decoder,device='cpu',seed=7,arm='C',cap=100000,observation_seconds=300,acceptance=True)
+    state=states();step=torch_update(encoder,decoder,optimizer,device='cpu')
+    result=controller.run(state,Ledger(100000),update=step,save=lambda *a:None,seconds=300,max_updates=14)
+    anchor=controller.policy.review.choose(15)
+    assert controller.policy.review.anchors[anchor]['acquired']
+    before=controller.policy.review.snapshot()
+    def fail(batch):
+        step(batch)
+        raise RuntimeError('after real review gradient')
+    with pytest.raises(RuntimeError,match='review gradient'):
+        controller.run(state,result['ledger'],update=fail,save=lambda *a:None,seconds=300,max_updates=15)
+    assert controller.policy.pending['grade']['anchor']==anchor
+    assert controller.policy.review.snapshot()==before and controller.policy.updates==14

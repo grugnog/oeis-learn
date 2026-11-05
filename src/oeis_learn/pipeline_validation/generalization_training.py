@@ -174,9 +174,14 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     from .identity import number
     number(config['seconds'],positive=True)
     if pac is not None:
-        if set(pac)!={'bundle','purpose','source','environment','initializer','observation_seconds','publication_seconds'} or pac['purpose'] not in {'acceptance','research'}:
+        if set(pac)-{'cadence'}!={'bundle','purpose','source','environment','initializer','observation_seconds','publication_seconds'} or pac['purpose'] not in {'acceptance','research'}:
             raise ValueError('closed PAC learner metadata required')
+        if pac.get('cadence','pac-exp3s-leitner/v1') not in {'pac-exp3s-leitner/v1','pac-acceptance/v1'} or pac['purpose']=='research' and pac.get('cadence','pac-exp3s-leitner/v1')!='pac-exp3s-leitner/v1':
+            raise ValueError('acceptance cadence cannot authorize research')
         number(pac['observation_seconds'],positive=True);number(pac['publication_seconds'],positive=True)
+        if pac['purpose']=='research':
+            from oeis_learn.experiments.source_snapshot import source_snapshot
+            if pac['source']!=digest(source_snapshot()):raise ValueError('PAC learner installed source differs')
         if pac['publication_seconds']>=config['seconds'] or pac['observation_seconds']>config['seconds']-pac['publication_seconds']:
             raise ValueError('PAC observations/publication exceed frozen allowance')
     if set(config)-{'checkpoint_policy','pac'}!=required:raise ValueError('closed learner execution projection required')
@@ -272,7 +277,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         from .generalization_curriculum import PacController,PacFixedController
         Controller=PacController if config['arm'] in {'C','D'} else PacFixedController
         controller=Controller(batches,encoder,decoder,device=config['device'],seed=config['seed'],arm=config['arm'],cap=cap,
-            observation_seconds=pac['observation_seconds'],snapshot=state['scheduler'].get('pac'))
+            observation_seconds=pac['observation_seconds'],snapshot=state['scheduler'].get('pac'),acceptance=pac.get('cadence')=='pac-acceptance/v1')
         from .generalization_curriculum import attach_semantic
         attach_semantic(controller,recipe,output,seed=config['seed'])
         state['scheduler']['pac']=controller.snapshot()
