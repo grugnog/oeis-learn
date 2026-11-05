@@ -506,3 +506,38 @@ tracebacks remain private. Temporary helper code has a separate complete hash
 learner qualification, while changed scientific code still does. The 007 current
 fingerprint was refreshed with its actual serializer; all 68 dispositions and
 `full_007_complete=false` remain unchanged.
+
+## T063 — Final combined local regression
+
+After the owning C/D review fixes stabilized, ran:
+
+```sh
+PYTHONPATH=src .venv-cpu/bin/python -m pytest -q \
+  tests/unit/test_generalization*.py \
+  tests/contract/test_generalization*.py \
+  tests/integration/test_generalization*.py \
+  specs/012-parameterized-adaptive-curriculum/validation/test_*.py \
+  tests/unit/test_pipeline_contracts.py \
+  tests/unit/test_pipeline_disk.py \
+  tests/unit/test_pipeline_supervision.py \
+  tests/unit/test_container_runtime.py \
+  -m 'not gpu and not docker' --tb=short
+```
+
+**640 passed, 2 subtests passed, 2 deselected, 19 warnings in 289.55s.** The two
+marked hardware tests were excluded; no HIP or Docker/Podman engine operation ran.
+Warnings are the existing PyTorch nested-tensor/attention-mask advisories. The
+runtime is Python 3.12.14 with Dockerfile's torch 2.9.1+cpu and committed non-torch
+lock dependencies; it is not represented as the pinned qualification/GPU container.
+Native preparation callbacks in CPU fixtures use the independent reference evaluator,
+not native-extension qualification. Actual native/container/HIP evidence remains E.
+
+The final selection includes real CPU adaptive/review tensors, both complete-state
+resume boundaries, discarded-crash debit, atomic publication failure, legacy
+compatibility, all role/deadline/storage boundaries, actual packer/verifier success
+and negative/minimal recovery, bounded diagnostics, source closure, closed schemas
+and reconstruction of exported aggregates/costs. Success archive verification,
+retained checkpoint reads and analysis execute under `python -S`; full schema
+validation remains in the installed canonical consumer, while host reconciliation
+uses narrower sealed public checks and the same comparison invariants. Host help,
+prerequisites and `git diff --check` pass. No CI results were awaited.
