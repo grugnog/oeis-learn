@@ -448,7 +448,7 @@ Commit and push each subgroup; preserve all existing completed task text.
 
 ### Temporary runner and evidence
 
-- [ ] T081 Extend `specs/012-parameterized-adaptive-curriculum/validation/run.py` with explicit rehearsal and stop-after-rehearsal options; freeze B/C/D R1 before outcomes, reuse exact compatible completed stages on resume, and retain generous bottom-up limits. Add versioned public diagnostic evidence and independent success/failure/recovery archive checks through existing canonical exporter/verifier, per FR-022–026 and NFR-002/004/006.
+- [X] T081 Extend `specs/012-parameterized-adaptive-curriculum/validation/run.py` with explicit rehearsal and stop-after-rehearsal options; freeze B/C/D R1 before outcomes, reuse exact compatible completed stages on resume, and retain generous bottom-up limits. Add versioned public diagnostic evidence and independent success/failure/recovery archive checks through existing canonical exporter/verifier, per FR-022–026 and NFR-002/004/006.
 
 ### Local closure and operator handoff
 
@@ -461,3 +461,5 @@ Commit and push each subgroup; preserve all existing completed task text.
 T079: twenty independent pre-implementation counterexamples fail as expected (missing diagnostic verifier and rehearsal runner options). Requirements checklist 16/16; existing ignore files already cover Python/build/private run-state artifacts. No HIP executed.
 
 T080: installed composition and closed proof checks pass 20 local tests, including real CPU B/C/D 256-update traces plus C pause129/resume256 against uninterrupted C. CPU test explicitly adapts production data/device boundaries and is not HIP/performance evidence. Production request requires full admitted 32-family/32,768-row pool, batch32, fresh initializer identity and current HIP environment. Sixteen additional snapshot generations are measured/reserved for diagnostic retention; all five child invocations and four tensor proofs are enclosed without shortening their allowances.
+
+T081: versioned rehearsal plans/reports and explicit stop-before-research are implemented. A single frozen plan reuses the five compatible completed gates on R1 resume. The real collector/packer/stdlb verifier round-trip R0 PARTIAL plus diagnostic PASS; resealed false proof and failed-stage/read-only recovery paths fail truthfully. Calibrated R0 child budgets propagate through the canonical job, and combined peak storage includes diagnostic snapshots. Focused wrapper/archive checks pass; broad non-HIP selection passed 690 tests with three actual-HIP tests deselected. No HIP or research executed.

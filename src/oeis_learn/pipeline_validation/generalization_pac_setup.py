@@ -6,7 +6,7 @@ from .generalization_preparation import reference
 from oeis_learn.generalization.contracts import verify_artifact
 
 
-def envelope(*,purpose,arms):
+def envelope(*,purpose,arms,rehearsal=False):
     """Conservative initial operational reservations; calibration may only raise."""
     from .generalization_execution import POLICY_ID,PAC_STAGES
     from oeis_learn.generalization.budgets import pac_work_allowance
@@ -22,7 +22,7 @@ def envelope(*,purpose,arms):
     total=sum(s['outer'] for s in stages.values())+(len(arms)-1)*sum(stages[k]['outer'] for k in ('learner','generation','resume','proof','export'))+3600
     return dict(version='pac-envelope/v1',**stages,campaign=total,diagnostics_seconds=7200 if purpose=='research' else 1200,
         batch_size=32 if purpose=='research' else 2,acceptance_tokens=1000000,backend=POLICY_ID,
-        storage=dict(data_bytes=16<<30,data_copies=3,scratch_bytes=8<<30,logs_bytes=2<<30,package_bytes=512<<20,reserved_bytes=(128+64*max(0,len(arms)-2))<<30))
+        storage=dict(data_bytes=16<<30,data_copies=3,scratch_bytes=8<<30,logs_bytes=2<<30,package_bytes=512<<20,reserved_bytes=(128+64*(max(0,len(arms)-2)+int(rehearsal)))<<30))
 
 
 def assemble(inputs,output,settings,*,seconds):
@@ -36,7 +36,7 @@ def assemble(inputs,output,settings,*,seconds):
     from .generalization_curriculum import initial_weights_identity
     from .generalization_execution import POLICY_ID,bind_pac,pac_budget_projection
     from .generalization_preparation import prepare_pac_training,prepare_pac
-    if set(settings)!={'context','images','engine','research','arms','seed','source'}:raise ValueError('closed PAC assembly request')
+    if set(settings)-{'rehearsal'}!={'context','images','engine','research','arms','seed','source'} or type(settings.get('rehearsal',False)) is not bool:raise ValueError('closed PAC assembly request')
     context=settings['context'];root=inputs['mechanical_sources'];output=Path(output)
     if settings['source']!=digest(source_snapshot()):raise ValueError('installed assembly source mismatch')
     originals=context['originals']
@@ -63,7 +63,7 @@ def assemble(inputs,output,settings,*,seconds):
     output.mkdir(parents=True,exist_ok=False)
     write(output/'recipe.json',recipe);write(output/'source.json',source_snapshot())
     write(output/'rows.json',rows);write(output/'probes.json',probes)
-    limits=envelope(purpose='research',arms=settings['arms'])
+    limits=envelope(purpose='research',arms=settings['arms'],rehearsal=settings.get('rehearsal',False))
     deadline=time.monotonic()+seconds
     with SynthesisClient(digest(['pac-native-admission',settings['source']]),cache_root=output/'private/native') as native:
         def execute(source,indices):return native.execute(source,indices,deadline=min(deadline,time.monotonic()+4))

@@ -82,7 +82,9 @@ def verify_pac_evidence(record,*,root,finalized=True):
     from oeis_learn.pipeline_validation.identity import digest
     fields={'version','plan','source','images','backend','helper','scope','required','stages','software_status','scientific_status',
             'errors','omissions','inventory','qualification','acceptance','native_admission','calibration'}
-    validate(record,fields,'pac-public-evidence/v1')
+    rehearsal_scope=record.get('version')=='pac-public-evidence/v2'
+    if rehearsal_scope:fields=fields|{'rehearsal'}
+    validate(record,fields,'pac-public-evidence/v2' if rehearsal_scope else 'pac-public-evidence/v1')
     if record['scientific_status'] not in {'UNMEASURED','INCOMPLETE','EXPLORATORY_SINGLE_SEED'}:raise ValueError('scoped scientific status')
     import re
     identities=[record[k] for k in ('plan','source','backend')]+record['images']+[record['helper'][k] for k in ('requested','observed')]
@@ -94,6 +96,9 @@ def verify_pac_evidence(record,*,root,finalized=True):
     if type(scope['seed']) is not int or not 0<=scope['seed']<2**32:raise ValueError('frozen seed required')
     if len(set(scope['arms']))!=len(scope['arms']) or not {'B','C'}<=set(scope['arms'])<=set('ABCD'):raise ValueError('predeclared complete arms')
     required=['admission','qualification','calibration','acceptance']
+    if rehearsal_scope:
+        if scope['arms']!=['B','C','D']:raise ValueError('R0 frozen BCD scope differs')
+        required.append('rehearsal')
     if scope['research']:
         required+=['baseline']
         for arm in scope['arms']:required+=['train-'+arm,'evaluate-'+arm]
@@ -135,9 +140,21 @@ def verify_pac_evidence(record,*,root,finalized=True):
         native=read(record['native_admission'])
         scientific=verify_research_authority(record,report,research_inputs,authority,native)
     if record['scientific_status']!=scientific:raise ValueError('scientific status differs from verified research scope/outcomes')
+    diagnostic=None
+    if rehearsal_scope:
+        stage=next((r for r in record['stages'] if r['stage']=='rehearsal'),None)
+        if stage is not None and stage['status']=='PASS':
+            diagnostic=read(record['rehearsal'])
+            from oeis_learn.pipeline_validation.generalization_pac_rehearsal import verify_rehearsal
+            q=read(record['qualification'])
+            environment=digest(dict(images=record['images'],engine=q['engine_security']['engine'],backend=record['backend']))
+            verify_rehearsal(diagnostic,source=record['source'],environment=environment)
+            if diagnostic['seed']!=scope['seed']:raise ValueError('R0 seed differs from frozen campaign')
+        elif record['rehearsal'] is not None:raise ValueError('diagnostic proof lacks a passed rehearsal producer')
     qualified=False
-    if status=='PASS':
-        if seen!=required or statuses!={'PASS'} or record['errors']:raise ValueError('incomplete campaign cannot PASS')
+    if status=='PASS' or diagnostic is not None:
+        if status=='PASS' and (seen!=required or statuses!={'PASS'} or record['errors']):raise ValueError('incomplete campaign cannot PASS')
+        if diagnostic is not None and any(s['status']!='PASS' for s in record['stages'][:5]):raise ValueError('R0 prerequisites incomplete')
         native=read(record['native_admission'])
         if seal(native)!=native or native.get('status')!='PASS' or native.get('source')!=record['source'] or native.get('images')!=record['images']:raise ValueError('native admission source/image mismatch')
         if sorted(native['originals'],key=lambda r:r['name'])!=sorted(original_cells(),key=lambda r:r['name']):raise ValueError('all original exclusion cells required')
@@ -153,9 +170,9 @@ def verify_pac_evidence(record,*,root,finalized=True):
         calibration=read(record['calibration'])
         from oeis_learn.pipeline_validation.generalization_pac_calibration import verify_calibration
         verify_calibration(calibration,source=record['source'],environment=environment,arms=scope['arms'])
-        qualified=True
+        qualified=status=='PASS'
     elif status not in {'FAIL','INTERRUPTED','BLOCKED','INCONCLUSIVE','PARTIAL'}:raise ValueError('negative scope required')
-    result=seal(dict(integrity='PASS',software_status=status,scientific_status=record['scientific_status'],feature_qualified=qualified,evidence=record['identity']))
+    result=seal(dict(integrity='PASS',software_status=status,scientific_status=record['scientific_status'],feature_qualified=qualified,evidence=record['identity'],**(dict(rehearsal_status='PASS' if diagnostic is not None else None) if rehearsal_scope else {})))
     if finalized:
         terminal=json.loads(confined(root,'terminal.json').read_text())
         verification=json.loads(confined(root,'verification.json').read_text())

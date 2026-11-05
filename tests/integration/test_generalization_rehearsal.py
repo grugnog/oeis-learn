@@ -62,3 +62,27 @@ def test_rehearsal_encloses_all_children_and_keeps_generous_limits():
     e=envelope(purpose='research',arms=['B','C','D']);r=rehearsal_envelope(e)
     assert r['work']>=5*e['learner']['outer']+4*e['proof']['outer']
     assert r['outer']>=r['work']+r['startup']+r['publication']+r['projection']+r['cleanup']
+
+
+def test_combined_measured_storage_counts_rehearsal_snapshots(tmp_path,monkeypatch):
+    from tests.integration.test_generalization_curriculum import models
+    from oeis_learn.fresh import bigint_worker
+    from oeis_learn.pipeline_validation.generalization_pac_setup import envelope
+    from oeis_learn.pipeline_validation.generalization_training import storage_preflight
+    monkeypatch.setattr(bigint_worker,'models',lambda *a:(*models(),{}))
+    e=envelope(purpose='research',arms=['B','C','D'],rehearsal=True)
+    runtime=dict(version='pac-runtime/v1',purpose='research',envelope=e);study=dict(arms=['B','C','D'])
+    before=storage_preflight({},study,runtime)
+    after=storage_preflight({},study,runtime,extra_generations=16)
+    assert after['required_bytes']>before['required_bytes'] and after['rehearsal_generations']==16
+    e['storage']['reserved_bytes']=before['required_bytes']
+    with pytest.raises(ValueError,match='combined'):storage_preflight({},study,runtime,extra_generations=16)
+
+
+def test_actual_cpu_cannot_satisfy_live_rehearsal_gate(monkeypatch):
+    import torch
+    from oeis_learn.pipeline_validation import generalization_execution as execution
+    from oeis_learn.pipeline_validation.generalization_pac_rehearsal import require_hip
+    monkeypatch.setattr(execution,'verify_execution',lambda:None)
+    monkeypatch.setattr(torch.version,'hip',None)
+    with pytest.raises(RuntimeError,match='actual HIP'):require_hip()

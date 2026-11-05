@@ -107,7 +107,7 @@ def recompute(inputs):
         if v is not None:identity(v)
     stages=inputs['stages']
     for name,row in stages.items():
-        if name not in {'admission','qualification','calibration','acceptance','baseline','analysis',*('train-'+a for a in exp['arms']),*('evaluate-'+a for a in exp['arms'])}:raise ValueError('frozen stage costs')
+        if name not in {'admission','qualification','calibration','acceptance','rehearsal','baseline','analysis',*('train-'+a for a in exp['arms']),*('evaluate-'+a for a in exp['arms'])}:raise ValueError('frozen stage costs')
         fields(row,('producer','binding','elapsed_seconds'),'measured stage cost')
         identity(row['producer']);identity(row['binding']);number(row['elapsed_seconds'],nullable=True)
     result=pac_comparison_report(inputs['roster'],outcomes,experiment=exp,control=inputs['control'],profiles=inputs['profiles'],costs=costs,portable=True,structural_scope=inputs['structural_scope'])

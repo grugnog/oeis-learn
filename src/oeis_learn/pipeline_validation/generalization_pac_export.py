@@ -48,6 +48,10 @@ def collect(original,staging,*,workspace=None):
         if not destination.exists():destination.write_bytes(payload);refs.append(dict(ref,path=path))
         return dict(ref,path=path)
     qualification=acceptance=native=calibration=None
+    rehearsal=None
+    rroot=original/'rehearsal/execution/execution/role'
+    if plan.get('rehearsal') and (rroot/'rehearsal.json').is_file():
+        rehearsal=copy(rroot,reference(rroot/'rehearsal.json',rroot),'rehearsal')
     qroot=original/'qualification/execution/qualification'
     if (qroot/'qualification.json').is_file():
         q=json.loads((qroot/'qualification.json').read_text())
@@ -143,7 +147,7 @@ def collect(original,staging,*,workspace=None):
         status='PARTIAL';omissions.append('complete original qualification/native/acceptance/calibration closure unavailable')
     seed=int(plan['stages'][0]['extra'][1]) if len(plan['stages'][0]['extra'])==2 else 0
     scope=dict(research=plan['research'],arms=plan['arms'],seed=seed,target_tokens=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED')
-    return seal(dict(version='pac-public-evidence/v1',plan=plan['identity'],source=plan['source'],images=plan['images'],
+    return seal(dict(**(dict(rehearsal=rehearsal) if plan.get('rehearsal') else {}),version='pac-public-evidence/v2' if plan.get('rehearsal') else 'pac-public-evidence/v1',plan=plan['identity'],source=plan['source'],images=plan['images'],
         backend=__import__('oeis_learn.pipeline_validation.generalization_execution',fromlist=['POLICY_ID']).POLICY_ID,
         helper=dict(requested=plan['helper'],observed=helper_identity(Path(__file__).resolve().parents[3])),
         scope=scope,required=[s['name'] for s in plan['stages']],stages=stages,software_status=status,scientific_status=scientific,errors=errors,
@@ -173,7 +177,7 @@ def export(original,output):
             path=minimal_payload/'failures'/(row['stage']+'.json');write(path,details);minimal_refs.append(reference(path,minimal_payload))
             nested_errors.extend(dict(stage=row['stage'],kind=f['detail']['kind'],status='FAIL') for f in details['failures'])
         errors=list({(e['stage'],e['kind'],e['status']):e for e in [*nested_errors,*workflow['errors'],dict(stage='export',kind=type(exc).__name__,status='FAIL')]}.values())
-        record=seal(dict(version='pac-public-evidence/v1',plan=plan['identity'],source=plan['source'],images=plan['images'],
+        record=seal(dict(**(dict(rehearsal=None) if plan.get('rehearsal') else {}),version='pac-public-evidence/v2' if plan.get('rehearsal') else 'pac-public-evidence/v1',plan=plan['identity'],source=plan['source'],images=plan['images'],
             backend=__import__('oeis_learn.pipeline_validation.generalization_execution',fromlist=['POLICY_ID']).POLICY_ID,
             helper=dict(requested=plan['helper'],observed=helper_identity(Path(__file__).resolve().parents[3])),
             scope=dict(research=plan['research'],arms=plan['arms'],seed=seed,target_tokens=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED'),

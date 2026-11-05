@@ -10,9 +10,11 @@ sys.path.insert(0,str(ROOT/'src'))
 from oeis_learn.pipeline_validation.identity import seal,digest,write,confined,file_hash
 
 
-def stage_order(*,research=False,arms=('B','C')):
+def stage_order(*,research=False,arms=('B','C'),rehearsal=False):
     if len(set(arms))!=len(arms) or not {'B','C'}<=set(arms)<=set('ABCD'):raise ValueError('predeclared complete arms required')
+    if type(rehearsal) is not bool or rehearsal and list(arms)!=['B','C','D']:raise ValueError('R0 requires exactly B/C/D')
     stages=['admission','qualification','calibration','acceptance']
+    if rehearsal:stages.append('rehearsal')
     if research:
         stages+=['baseline']
         for arm in arms:stages+=['train-'+arm,'evaluate-'+arm]
@@ -56,11 +58,11 @@ def invoke(engine,operation,manifest,output,*,workspace=ROOT,qualification=None,
     return result
 
 
-def prepare_plan(workspace,*,engine,stages,inputs,source,images,research=False,arms=('B','C'),structural_scope=None):
+def prepare_plan(workspace,*,engine,stages,inputs,source,images,research=False,arms=('B','C'),structural_scope=None,rehearsal=False):
     from oeis_learn.generalization.contracts import verify_artifact
     from oeis_learn.pipeline_validation.identity import number
     if engine not in {'docker','podman'}:raise ValueError('explicit engine required')
-    expected=stage_order(research=research,arms=arms)
+    expected=stage_order(research=research,arms=arms,rehearsal=rehearsal)
     if [s['name'] for s in stages]!=expected:raise ValueError('complete ordered campaign required')
     seen=set()
     for stage in stages:
@@ -75,7 +77,7 @@ def prepare_plan(workspace,*,engine,stages,inputs,source,images,research=False,a
     if structural_scope is not None:
         from oeis_learn.generalization.structural import scope_protocol
         scope_protocol(structural_scope)
-    return seal(dict(version='pac-serial-plan/v1',engine=engine,research=research,arms=list(arms),source=source,images=images,
+    return seal(dict(**(dict(rehearsal=True) if rehearsal else {}),version='pac-serial-plan/v2' if rehearsal else 'pac-serial-plan/v1',engine=engine,research=research,arms=list(arms),source=source,images=images,
         inputs=inputs,stages=stages,seconds=sum(s['seconds'] for s in stages)+3600,finalization_seconds=3600,
         helper=helper_identity(ROOT),scientific=dict(**({'structural_scope':structural_scope} if structural_scope else {}),target_tokens=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED',automatic_winner=False)))
 
@@ -108,11 +110,13 @@ def recover(original,output):
     return export(original,output)
 
 
-def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
+def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None,stop_after_rehearsal=False):
     import time
     from oeis_learn.generalization.contracts import verify_artifact
-    if seal(plan)!=plan or plan.get('version')!='pac-serial-plan/v1':raise ValueError('intact frozen plan required')
-    checked=prepare_plan(workspace,engine=plan['engine'],stages=plan['stages'],inputs=plan['inputs'],source=plan['source'],images=plan['images'],research=plan['research'],arms=plan['arms'],structural_scope=plan['scientific'].get('structural_scope'))
+    if seal(plan)!=plan or plan.get('version') not in {'pac-serial-plan/v1','pac-serial-plan/v2'}:raise ValueError('intact frozen plan required')
+    if (plan['version']=='pac-serial-plan/v2')!=(plan.get('rehearsal') is True):raise ValueError('plan/rehearsal version mismatch')
+    if stop_after_rehearsal and not plan.get('rehearsal'):raise ValueError('no frozen rehearsal to stop after')
+    checked=prepare_plan(workspace,engine=plan['engine'],stages=plan['stages'],inputs=plan['inputs'],source=plan['source'],images=plan['images'],research=plan['research'],arms=plan['arms'],structural_scope=plan['scientific'].get('structural_scope'),rehearsal=plan.get('rehearsal',False))
     if any(checked[k]!=plan[k] for k in checked if k not in {'identity','helper'}):raise ValueError('plan fields changed')
     if runner is None:
         from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -202,7 +206,10 @@ def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
         if name=='calibration' and entry['status']=='PASS' and entry.get('operational_envelope'):
             e=entry['operational_envelope']
             for future in effective_stages:
-                if future['name'].startswith('train-'):future['seconds']=max(future['seconds'],e['learner']['outer']+e['validation']['outer']+4*1800+7200)
+                if future['name']=='rehearsal':
+                    from oeis_learn.pipeline_validation.generalization_pac_rehearsal import rehearsal_envelope
+                    future['seconds']=max(future['seconds'],rehearsal_envelope(e)['outer']+e['validation']['outer']+4*1800+7200)
+                elif future['name'].startswith('train-'):future['seconds']=max(future['seconds'],e['learner']['outer']+e['validation']['outer']+4*1800+7200)
                 elif future['name']=='baseline' or future['name'].startswith('evaluate-'):future['seconds']=max(future['seconds'],e['generation']['outer']+e['proof']['outer']+2*e['validation']['outer']+4*1800+7200)
             effective_seconds=max(effective_seconds,sum(s['seconds'] for s in effective_stages)+3600)
             revision=seal(dict(version='pac-operational-freeze/v1',original_plan=plan['identity'],calibration=entry['producer'],stages=effective_stages,seconds=effective_seconds,finalization_seconds=3600))
@@ -226,6 +233,8 @@ def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
             if not record['errors']:record['errors'].append(dict(stage=name,kind='CanonicalStage',status=entry['status']))
             _persist(output/'workflow.json',record);break
         _persist(output/'workflow.json',record)
+        if name=='rehearsal' and stop_after_rehearsal and len(record['receipts'])<len(effective_stages):
+            record['status']='PARTIAL';record['stop_reason']='REHEARSAL_COMPLETE_RESEARCH_PENDING';break
     else:record['status']='PASS'
     _persist(output/'workflow.json',record)
     try:
@@ -235,6 +244,9 @@ def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
         from oeis_learn.pipeline_validation.generalization_archive import verify_archive
         exported=verify_archive(output/'report.zip')
         record['export_status']=exported['software_status']
+        if plan.get('rehearsal'):record['rehearsal_status']=exported.get('rehearsal_status')
+        if record.get('stop_reason')=='REHEARSAL_COMPLETE_RESEARCH_PENDING' and exported.get('rehearsal_status')!='PASS':
+            record['status']='FAIL';record['errors'].append(dict(stage='export',kind='MissingRehearsalProof',status='FAIL'))
         if record['status']=='PASS' and exported['software_status']!='PASS':record['status']=exported['software_status']
         _persist(output/'workflow.json',record)
     except Exception as exc:
@@ -273,8 +285,11 @@ def _role_job(plan,operation,settings,artifacts,source_roots,target,workspace,qu
     from oeis_learn.pipeline_validation.generalization_pac_setup import envelope
     from oeis_learn.pipeline_validation.supervision import launch
     from oeis_learn.pipeline_validation.generalization_preparation import reference
-    kind={'pac-assemble':'preparation','pac-campaign-acceptance':'acceptance','pac-calibrate':'calibration'}[operation]
-    limits=envelope(purpose='research',arms=plan['arms'])[kind]
+    kind={'pac-assemble':'preparation','pac-campaign-acceptance':'acceptance','pac-calibrate':'calibration','pac-rehearse':'rehearsal'}[operation]
+    if kind=='rehearsal':
+        from oeis_learn.pipeline_validation.generalization_pac_rehearsal import rehearsal_envelope
+        limits=rehearsal_envelope(settings['runtime']['envelope'])
+    else:limits=envelope(purpose='research',arms=plan['arms'],rehearsal=plan.get('rehearsal',False))[kind]
     job=seal(dict(version='pac-role-job/v1',operation=operation,engine=plan['engine'],images=plan['images'],source=plan['source'],
         artifacts=artifacts,source_roots={k:str(Path(v).relative_to(workspace)) for k,v in source_roots.items()},settings=settings,envelope=limits,qualification=qualification,native_admission=native_admission))
     write(target/'job.json',job)
@@ -299,6 +314,9 @@ def build_plan(args,workspace=ROOT):
     from oeis_learn.pipeline_validation.generalization_pac_setup import envelope
     from inputs import original_chain
     workspace=Path(workspace)
+    rehearsal=getattr(args,'rehearsal',False)
+    if rehearsal and (not args.bandit_only or args.fresh_control):raise ValueError('R0 needs --bandit-only and no fresh A')
+    if getattr(args,'stop_after_rehearsal',False) and not rehearsal:raise ValueError('--stop-after-rehearsal requires --rehearsal')
     context=original_chain(workspace,prepared=args.prepared,pilot=args.pilot,protocol=amended_design(prior_protocol()))
     path=confined(workspace,args.output,exists=False)
     if path.exists():raise ValueError('fresh plan file required')
@@ -309,7 +327,7 @@ def build_plan(args,workspace=ROOT):
     host=Host(parser().parse_args(['--engine',args.engine,'status','--run','run-state/unused']))
     images=Images(cap=86400)
     import shutil
-    required=(128+64*(int(args.fresh_control)+int(args.bandit_only)))<<30
+    required=(128+64*(int(args.fresh_control)+int(args.bandit_only)+int(rehearsal)))<<30
     if shutil.disk_usage(workspace).free<required:raise ValueError('insufficient free disk for complete selected-arm live graph: '+str(required)+' bytes required')
     pair=[images.ensure(host,target,folder/'build'/target,seconds=43200) for target in ('qualification','gpu')]
     base=confined(workspace,args.pilot)/'execution/private/prepared'
@@ -319,16 +337,19 @@ def build_plan(args,workspace=ROOT):
     write(folder/'original-context.json',context)
     arms=['A','B','C'] if args.fresh_control else ['B','C']
     if args.bandit_only:arms.append('D')
-    limits=envelope(purpose='research',arms=arms)
+    limits=envelope(purpose='research',arms=arms,rehearsal=rehearsal)
     stages=[]
-    for i,name in enumerate(stage_order(research=args.research,arms=arms)):
+    for i,name in enumerate(stage_order(research=args.research,arms=arms,rehearsal=rehearsal)):
         operation={'admission':'assemble','qualification':'qualify','calibration':'calibrate','acceptance':'acceptance','baseline':'evaluate','analysis':'analysis'}.get(name,'train' if name.startswith('train-') else 'evaluate')
         category={'admission':'preparation','qualification':'validation','calibration':'calibration','acceptance':'acceptance','baseline':'generation','analysis':'export'}.get(name,'learner' if name.startswith('train-') else 'generation')
         overhead=limits['validation']['outer']+4*1800+7200
         seconds=limits[category]['outer']+overhead+(limits['proof']['outer']+limits['validation']['outer'] if operation=='evaluate' else 0)+(86400 if name=='qualification' else 0)
+        if name=='rehearsal':
+            from oeis_learn.pipeline_validation.generalization_pac_rehearsal import rehearsal_envelope
+            operation='rehearsal';seconds=rehearsal_envelope(limits)['outer']+overhead
         stages.append(dict(name=name,operation=operation,manifest='@admission',seconds=seconds,extra=[],requires=[] if not i else [stages[-1]['name']]))
     plan=prepare_plan(workspace,engine=args.engine,stages=stages,inputs=refs+[reference(folder/'original-context.json',workspace)],
-        source=digest(collect_snapshot(workspace)),images=pair,research=args.research,arms=arms,structural_scope=scope(amended_design(prior_protocol())))
+        source=digest(collect_snapshot(workspace)),images=pair,research=args.research,arms=arms,structural_scope=scope(amended_design(prior_protocol())),rehearsal=rehearsal)
     # Context and requested seed are immutable stage configuration, not outcomes.
     plan['stages'][0]['extra']=[str((folder/'original-context.json').relative_to(workspace)),str(args.seed)]
     plan=seal(plan);write(path,plan)
@@ -360,7 +381,7 @@ def _canonical_stage(plan,stage,target,workspace,receipts,*,resume_path=None):
     workspace=Path(workspace)
     if stage['name']=='admission':
         context=_read(confined(workspace,stage['extra'][0]));seed=int(stage['extra'][1])
-        settings=dict(context=context,images=plan['images'],engine=plan['engine'],research=plan['research'],arms=plan['arms'],seed=seed,source=plan['source'])
+        settings=dict(context=context,images=plan['images'],engine=plan['engine'],research=plan['research'],arms=plan['arms'],seed=seed,source=plan['source'],**(dict(rehearsal=True) if plan.get('rehearsal') else {}))
         result=_role_job(plan,'pac-assemble',settings,{'mechanical_sources':plan['inputs'],'isolation_truth':[]},
             {'mechanical_sources':workspace},target,workspace)
         if result['status']!='PASS':return result
@@ -372,16 +393,17 @@ def _canonical_stage(plan,stage,target,workspace,receipts,*,resume_path=None):
     study=_read(confined(workspace,manifest));base=confined(workspace,manifest).parent
     runtime=_read(confined(workspace,runtime_path)) if runtime_path else _read(base/'runtime.json')
     qualification=str((target.parent/'qualification/execution/qualification').relative_to(workspace))
-    if stage['name'] in {'calibration','acceptance'}:
+    if stage['name'] in {'calibration','acceptance','rehearsal'}:
         settings=dict(recipe=json.loads(verify_artifact(base,runtime['recipe'])),source=plan['source'],
             environment=digest(dict(images=plan['images'],engine=plan['engine'],backend=study['backend'])))
         artifacts={'training_targets':[],'verified_training_replay':[]};roots={}
-        operation='pac-campaign-acceptance' if stage['name']=='acceptance' else 'pac-calibrate'
-        if operation=='pac-calibrate':
+        operation={'acceptance':'pac-campaign-acceptance','calibration':'pac-calibrate','rehearsal':'pac-rehearse'}[stage['name']]
+        if operation in {'pac-calibrate','pac-rehearse'}:
             bundle=json.loads(verify_artifact(base,runtime['prepared']['training']))
             from oeis_learn.generalization.role_contracts import pac_training_refs
             settings.update(bundle=bundle,study=study)
             artifacts['training_targets']=[*pac_training_refs(bundle,'C'),*pac_training_refs(bundle,'A')];roots['training_targets']=base
+            if operation=='pac-rehearse':settings['runtime']=runtime
         original=receipts['admission']
         native_root=target.parent/'admission/execution'
         native_admission=dict(root=str(native_root.relative_to(workspace)),producer=reference(native_root/'result.json',native_root),admission=reference(base/'admission.json',native_root))
@@ -476,10 +498,11 @@ def bootstrap_failure(args,exc,*,workspace=ROOT):
     output.mkdir(parents=True)
     arms=['A','B','C'] if args.fresh_control else ['B','C']
     if args.bandit_only:arms.append('D')
+    rehearsal=getattr(args,'rehearsal',False) and arms==['B','C','D']
     stages=[dict(name=n,operation='prepare',manifest='UNAVAILABLE',seconds=3600,extra=[],requires=[] if not i else [order[i-1]])
-            for order in [stage_order(research=args.research,arms=arms)] for i,n in enumerate(order)]
+            for order in [stage_order(research=args.research,arms=arms,rehearsal=rehearsal)] for i,n in enumerate(order)]
     plan=prepare_plan(workspace,engine=args.engine,stages=stages,inputs=[],source=digest(collect_snapshot(workspace)),
-        images=[digest('UNAVAILABLE qualification image'),digest('UNAVAILABLE GPU image')],research=args.research,arms=arms)
+        images=[digest('UNAVAILABLE qualification image'),digest('UNAVAILABLE GPU image')],research=args.research,arms=arms,rehearsal=rehearsal)
     plan['stages'][0]['extra']=['UNAVAILABLE',str(args.seed)];plan=seal(plan)
     write(output/'plan.json',plan)
     workflow=dict(version='pac-workflow/v1',plan=plan['identity'],status='INTERRUPTED' if isinstance(exc,KeyboardInterrupt) else 'BLOCKED',
@@ -508,16 +531,18 @@ def main(argv=None):
         command.add_argument('--output',required=True)
         command.add_argument('--plan')
         command.add_argument('--research',action='store_true')
+        command.add_argument('--rehearsal',action='store_true')
+        command.add_argument('--stop-after-rehearsal',action='store_true')
         command.add_argument('--fresh-control',action='store_true');command.add_argument('--bandit-only',action='store_true')
         command.add_argument('--seed',type=int,default=20261016)
-    resume=sub.add_parser('resume');resume.add_argument('--plan',required=True);resume.add_argument('--previous',required=True);resume.add_argument('--output',required=True)
+    resume=sub.add_parser('resume');resume.add_argument('--plan',required=True);resume.add_argument('--previous',required=True);resume.add_argument('--output',required=True);resume.add_argument('--stop-after-rehearsal',action='store_true')
     recovery=sub.add_parser('recover');recovery.add_argument('--previous',required=True);recovery.add_argument('--output',required=True)
     args=parser.parse_args(argv)
     if args.action=='recover':
         archive=recover(confined(ROOT,args.previous),confined(ROOT,args.output,exists=False))
         print('Verified recovered report: '+str(archive),flush=True);return 0
     if args.action=='resume':
-        plan=_read(confined(ROOT,args.plan));result=execute_plan(plan,confined(ROOT,args.output,exists=False),previous=confined(ROOT,args.previous))
+        plan=_read(confined(ROOT,args.plan));result=execute_plan(plan,confined(ROOT,args.output,exists=False),previous=confined(ROOT,args.previous),stop_after_rehearsal=args.stop_after_rehearsal)
     elif args.action=='prepare':build_plan(args);return 0
     else:
         if args.plan:
@@ -528,8 +553,9 @@ def main(argv=None):
             inputs=copy.copy(args);inputs.output=str(Path(args.output)/'inputs/plan.json')
             try:_,plan=build_plan(inputs)
             except (Exception,KeyboardInterrupt) as exc:return bootstrap_failure(args,exc)
-        result=execute_plan(plan,confined(ROOT,str(Path(args.output)/'campaign'),exists=False))
-    return 0 if result['status']=='PASS' else 130 if result['status']=='INTERRUPTED' else 1
+        result=execute_plan(plan,confined(ROOT,str(Path(args.output)/'campaign'),exists=False),stop_after_rehearsal=args.stop_after_rehearsal)
+    print(json.dumps({k:result.get(k) for k in ('status','stop_reason','rehearsal_status','export_status')},sort_keys=True),flush=True)
+    return 0 if result['status']=='PASS' or result['status']=='PARTIAL' and result.get('stop_reason')=='REHEARSAL_COMPLETE_RESEARCH_PENDING' and result.get('rehearsal_status')=='PASS' else 130 if result['status']=='INTERRUPTED' else 1
 
 
 if __name__=='__main__':raise SystemExit(main())
