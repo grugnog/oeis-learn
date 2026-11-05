@@ -383,5 +383,5 @@ publication. The original -004 archive and T072's pending status remain unchange
 until an actual HIP proof is supplied.
 
 - [X] F013 Add actual subprocess-death/recovery CPU wiring and rejection/parser counterexamples for the focused HIP proof; commit before runner changes.
-- [ ] F014 Register one serial HIP-only validation suite, require bounded source-bound crash-debit evidence, and provide a stdlib helper that prints the small result without ZIP upload.
+- [X] F014 Register one serial HIP-only validation suite, require bounded source-bound crash-debit evidence, and provide a stdlib helper that prints the small result without ZIP upload.
 - [ ] F015 Validate local wiring/host rejection and affected regression closure, refresh current identity, publish per-task commits and give the focused workstation command; keep T072 unchecked pending its actual result.

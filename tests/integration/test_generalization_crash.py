@@ -144,6 +144,8 @@ def test_real_cpu_subprocess_death_and_discarded_recovery(tmp_path):
         r=evaluate(source,indices);return dict(outcome=r.outcome,values=list(r.values))
     result=crash_probe(tmp_path/'cpu',device='cpu',scale='tiny',execute=execute)
     assert result['status']=='PASS' and result['device']=='cpu' and result['diagnostic_only']
+    from oeis_learn.pipeline_validation.generalization_crash_proof import verify
+    assert verify(result,source=result['source'],device='cpu')==result
 
 
 @pytest.mark.gpu

@@ -919,3 +919,36 @@ The existing 664-test/2-subtest local selection and exact original workstation
 qualification remain their original evidence. No HIP/research run, merge or CI
 wait was performed during this closeout. Public task records and bounded results
 are published to PR 63 against main.
+
+
+## F013–F014 — Focused actual-process T072 proof preparation
+
+The operator requested the missing HIP crash test and explicitly permits omitting
+ZIP publication. Added a dedicated `pac-crash-hip` container validation suite and
+stdlib serial helper `validation/t072.py`. No admission/full acceptance/research
+stage is repeated by this diagnostic. It builds the current pinned GPU image,
+checks HIP/native availability and no-Lt startup, holds the ordinary GPU lock and
+executes exactly the one selected crash test under a finite 7,200-second stage cap.
+
+The new subprocess fixture calls the real installed learner/update/controller/
+checkpoint path, synchronizes device work, writes a bounded marker and exits with
+`os._exit(86)` after nineteen optimizer calls, bypassing Python finalization. The
+saved generation is still the initial one, while newer reward/scaler/graded review
+state exists in the dead process. A separate recovery process restores old tensors
+and old policy, charges the original unclosed journal's tokens plus measured
+crashed-process time, uses a new recovery segment and performs sixteen real updates.
+Sparse semantic generation alone is disabled for this crash-accounting fixture;
+actual loss/reward/grade observations, optimizer work and persistence remain real.
+CPU wiring explicitly uses tiny real tensors; HIP uses the standard resolved
+bootstrap recipe and actual native fixture preparation. Both use reduced acceptance
+cadence, never research initialization. Abrupt process death is not machine-power-
+loss or a production-size throughput guarantee.
+
+The small closed receipt is validated against source, device/RNG/no-Lt policy,
+crash/restore counters, positive lost work, exact charged-token accounting and
+preserved time. The host verifies original JUnit/receipt/proof hashes and emits
+`t072-summary.json`; no ZIP is produced or uploaded. Missing/CPU/modified evidence
+cannot pass. Parser/proof counterexamples failed before implementation. Focused
+real CPU subprocess, validator, helper, route and existing validation checks:
+**26 passed, one actual-HIP test deselected in 9.11s**. Actual `python -S` helper/
+portable suite help passes. No HIP execution is claimed locally; T072 stays unchecked.

@@ -402,7 +402,7 @@ def parser():
     validation = commands.add_parser("validate")
     validation.add_argument(
         "--suite",
-        choices=["cpu", "gpu", "bigint-cpu", "bigint-gpu", "bigint-retirement", "pipeline"],
+        choices=["cpu", "gpu", "bigint-cpu", "bigint-gpu", "bigint-retirement", "pac-crash-hip", "pipeline"],
         default="gpu",
     )
     validation.add_argument("--output", default="tmp-validation")
