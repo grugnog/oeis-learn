@@ -859,3 +859,63 @@ without calling it completed PAC acceptance. All eight original E tasks remain
 unchecked for the changed current closure. Research was not authorized/launched.
 F010–F012 have dedicated incremental commits published to PR 63 against main;
 no merge or CI wait was performed.
+
+## Phase E — T067–T074 actual evidence closeout (2026-11-05)
+
+Read the full spec, plan, research, data model, contracts, task list, quickstart,
+reliability review, amendment and constitution before evidence implementation.
+Prerequisites pass; quality checklist remains read-only, 16/16 checked. The
+operator's original `report(10).zip` verifies PASS and its source inventory matches
+this checkout. It records the already-executed acceptance-only -004 run, not a new
+research authorization. No compatible engine/HIP workstation or original private
+checkpoints are available in the implementation session.
+
+T067/T068 record the frozen scope, all original cell identities/counts, finite
+outer budget graph, original plan/source/images/helper and all four actual
+application/process/cleanup outcomes. T069 reconciles actual amended v2 native
+admission: 2,288 draws, 1,394 surviving/native-completed, 894 unique exclusions,
+128 tasks across 23 families (68/15 certified, 26/3 ambiguous, 34/5 unresolved),
+zero deficits and reference-only historical control. T070 verifies finite changed
+HIP weights, exact initial/final identities, paired target coverage and loaded
+forward, with unperformed research inference explicitly absent. T071 records the
+actual six valid rewards/two graded anchors, source-bound pre/block/post/commit
+attestations, derived first-six fixture probabilities 1/2, reduced versus production
+clocks, all measured calibration categories and forecast/ceiling limitations.
+
+T072 is partially verified but remains unchecked: both clean HIP pause proofs and
+success/negative archive integrity pass; qualified CPU crash-debit tests cannot
+establish an absent actual unsaved-segment HIP crash/recovery receipt. T073 remains
+unchecked/DEFERRED as explicitly required when research has not run. Its exact
+missing histories/scores/cases and separate future scope are documented. T074
+completes reconciliation of all eighteen reliability rows and all available work,
+with **six E tasks checked, one actual-HIP blocker and one optional deferral**.
+No historical 011 task or failure was relabeled; original A–D and twelve repairs
+remain complete. There is no claim of full Phase E or scientific completion.
+
+Raw ZIP publication was rejected by automatic approval review for potential
+sensitive logs/source metadata. Before publication the two local task commits
+were reconstructed to omit the ZIP entirely. The accepted safer alternative
+publishes only bounded derived findings and content hashes; no archive blob,
+logs, full source inventory, private tensors/truth or host paths were pushed.
+The input archive remains unchanged with the operator. Each task has its own
+incremental evidence/disposition commit; E1/E2 groups were pushed before closeout.
+
+The repeatable standard-library audit is stored in `phase-e-audit.md`; its exact
+invocation executes the transparent Python block against the original archive.
+It verifies original hash/size/verdict, unchanged runtime source/helper, all
+sixteen cells, category/family/draw/target counters, both full-state proofs,
+loaded checkpoint, XML totals (1,499 CPU, 27 HIP; zero errors/failures/skips),
+measured samples/forecasts, stage graph and final task markers. It independently
+checks the synthetic negative ZIP and rejects altered member bytes, missing
+terminal and corrupted nested negative ZIP. It also checks new document links,
+read-only checklist and absent hooks, and independently derives zero-reward
+uniform sharing. All three audit PASS lines were reproduced from the committed
+Markdown form, not an unavailable local-only program.
+
+`git diff --check`, prerequisites and post-execution hook inspection pass; no
+`.specify/extensions.yml` is registered. No runtime/test/contract/helper Python
+changed, so no broad learner test rerun, rebuild or new 007 fingerprint is needed.
+The existing 664-test/2-subtest local selection and exact original workstation
+qualification remain their original evidence. No HIP/research run, merge or CI
+wait was performed during this closeout. Public task records and bounded results
+are published to PR 63 against main.

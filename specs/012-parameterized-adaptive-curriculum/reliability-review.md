@@ -170,3 +170,41 @@ metadata on recovery, and retains first-cause plus wrapper/cleanup/export failur
 in normal and minimal archives. Regression coverage includes a real nonzero Python
 subprocess, protected-text rejection, tampered producer files, discovery bounds,
 legacy failure recovery and an exporter failure after the original quota error.
+
+## Phase E actual evidence reconciliation (2026-11-05, T074)
+
+The [closeout](validation/closeout.md), [device review](validation/hip-acceptance.md)
+and [structural review](validation/structural-admission.md) supersede earlier
+pending-device status only for the exact supplied -004 producer. Historical failure
+claims remain unchanged. The archive/source/helper hashes and omissions are in
+`validation/evidence/acceptance-004-record.json`; the original ZIP/logs/private
+state are not published. CPU regression attestations remain distinct from HIP
+measurements, even when both occur in one qualified source closure.
+
+| Reliability row | Actual -004 evidence | Limit / remaining recovery requirement |
+| --- | --- | --- |
+| Engine/qualification mismatch | Podman 5.8.6, immutable CPU/HIP images, source inventory and execution policy independently bound | Different source/image/backend requires affected qualification |
+| Fresh-directory/host dependency | Successful recorded helper invocation; all sixteen original cells attested | Private root bytes stay operator-side; ZIP is not resumable state |
+| Cold startup/overlay | Actual native cold/warm samples, complete save/load and stage elapsed costs | Two selected families and short samples are not an all-family worst-case bound |
+| Nested timeout | Requested/effective four-stage ceilings match; every process exits 0; cleanup within bound | No deadline exhaustion observed; preserve independent qualified CPU boundary tests |
+| Repeated preparation cost | Full original native admission, 1,394 surviving draws; production training preparation completes | Early/later cached row lookups are warm, not initial corpus-loading throughput |
+| Finite quota deficit | Frozen v2 128/23, 68/15+26/3+34/5; all 2,288 draws and sixteen cells; zero deficits | Old v1 27/18-family failure remains failed; no reseed/denominator relabel |
+| Smoke misses real boundary | Actual changed finite HIP weights, supported/fallback exposure, six valid rewards, two grades, loaded forward | Reduced 2/8/1 acceptance clocks differ from production 8/32/512 |
+| Disk/tmpfs/copy exhaustion | Finite plan and role resource limits; successful actual publication/cleanup | Detailed peak/free disk measurements not exported; no physical HIP ENOSPC injection claimed |
+| Excess snapshots/progress truncation | Production-shaped save 2.834s/load 2.041s maxima; hourly implementation qualified | No multi-hour research trajectory; no claimed long-run save rate |
+| Backend numerical divergence | Exact clean HIP full-state/PAC equality at two pause boundaries; no-Lt policy | Only that source/image/backend; not proof for a later ROCm upgrade |
+| Diagnostic/watchdog interference | All stage cleanup acknowledged; measured observation costs and qualified mode/RNG tests | Raw mode/signal logs omitted; long-run interference not measured |
+| Cross-image/newer-journal restore | Clean device RNG/model/optimizer/data/PAC equality; CPU crash-debit counterexample passes | **Actual unsaved-segment HIP crash debit absent: T072 BLOCKED** |
+| Missing outcome/COMPLETE/primary cause | Original terminal and verifier/member bindings checked; ordered error list empty; negative ZIP verified | Negative ZIP is synthetic packaging after actual updates, not a crashed device process |
+| Packer/helper paths/stale producer | Original source inventory matches checkout; requested/observed helper match; private members excluded | Raw ZIP GitHub upload rejected; bounded findings/hashes published instead |
+| Wrong EXP3 variant/probability | Six valid source-bound kernel/scaler updates; initial six fixture probabilities derived as 1/2 | Raw gain/reward trace omitted; production K=32 concentration not empirically established |
+| Cross-family/double reward | Producer enforces paired pre/block/post; full PAC state equals uninterrupted at both boundaries | No private per-event trace re-read; no final research curve to reconcile |
+| Wrong anchor grade/service bound | Acquired both target strata; two actual acquired-anchor grades and committed HIP updates | Target recall is not semantic mastery; 128-anchor service bound has qualified CPU proof |
+| Observation cost/short timeout | All fifteen calibration sample types, 64 production updates, six valid rewards; explicit forecasts/margins | One/two samples per type; generation/preparation forecast gaps remain; no automatic research extension |
+
+All available E reviews are complete. T072 cannot be checked from clean resumes,
+a CPU crash test or the `feature_qualified` flag; actual compatible HIP crash/recovery
+and discarded-work receipt is required. T073 is explicitly deferred for the frozen
+acceptance-only scope. T074 may close with these honest dispositions, per its
+stated dependency rule. No research, new seed/arm, assessment execution, historical
+011 completion, merge or automatic rerun is authorized by this closeout.

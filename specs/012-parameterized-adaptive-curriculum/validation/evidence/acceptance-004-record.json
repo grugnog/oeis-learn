@@ -142,6 +142,7 @@
     "observed": "sha256:430aa7c09551926fbcacab0fe1bc0c6b0e3ee4ffa4a113fc9bc547ff081418bd",
     "requested": "sha256:430aa7c09551926fbcacab0fe1bc0c6b0e3ee4ffa4a113fc9bc547ff081418bd"
   },
+  "helper_changed": false,
   "images": [
     "sha256:8c5814b6da8ff9edb4b9f8b01d653b937f92941e1051cbdacab713be20a84c4e",
     "sha256:abfd06f7cafe415cc26bba28ac06f903d7e1a77013d868523fcb6a1c6520cdd4"
@@ -244,8 +245,16 @@
       "role": "training"
     }
   ],
+  "phase_e_complete": false,
   "plan": "sha256:7f0cd8e86a10e450998eaf26fab1b0704cee882d7fa0001ce5858e14bcf351c8",
   "qualification": "sha256:164f508c704d028d1581b0e3bfd24b15ddf99ba81d45c30bfd4056c11087d7a4",
+  "qualification_review": {
+    "cpu_tests": 1499,
+    "errors": 0,
+    "failures": 0,
+    "hip_tests": 27,
+    "skipped": 0
+  },
   "recovery_review": {
     "clean_hip_pause_boundaries": [
       1,
@@ -299,6 +308,7 @@
     "status": "DEFERRED",
     "task": "T073 DEFERRED"
   },
+  "runtime_source_changed": false,
   "scope": {
     "arms": [
       "B",
@@ -334,6 +344,16 @@
     "historical_scope": "NOT_SATISFIED",
     "surviving_native": 1394,
     "tasks": 128
+  },
+  "task_dispositions": {
+    "T067": "COMPLETE",
+    "T068": "COMPLETE",
+    "T069": "COMPLETE",
+    "T070": "COMPLETE",
+    "T071": "COMPLETE",
+    "T072": "BLOCKED_ACTUAL_HIP_CRASH_DEBIT",
+    "T073": "DEFERRED_RESEARCH_NOT_EXECUTED",
+    "T074": "COMPLETE"
   },
   "verification": {
     "evidence": "sha256:e4bd639c232543a9269de47e89f6ab7f6b2af073f312fbb954af87642d096d0f",

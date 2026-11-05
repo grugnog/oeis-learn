@@ -3,7 +3,7 @@
 **Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
 **Spec**: [spec.md](spec.md)
 **Input**: `specs/012-parameterized-adaptive-curriculum/spec.md`
-**Status**: Phases A–D and F001–F012 operator-failure repairs implemented and locally validated (664 tests and 2 subtests passed). The operator's `-003` run passed original-input/native admission and CPU/HIP qualification, then failed calibration; its verified evidence remains tied to its original source/images. The repaired current source requires a fresh plan and workstation acceptance. All eight Phase E tasks remain unchecked for the complete current closure.
+**Status**: A–D and F001–F012 implemented and validated. Phase E closes all available evidence work: six tasks complete, T072 blocked by absent actual HIP crash-debit proof, T073 optional research deferred. Operator -004 independently verifies admission/qualification/calibration/HIP acceptance PASS and science UNMEASURED. Runtime source/helper identities remain unchanged; see [closeout](validation/closeout.md).
 
 ## Summary
 
@@ -72,7 +72,7 @@ remains outstanding. No constitutional amendment or exception is requested.
 - `spec.md`, `plan.md`, `research.md`, `data-model.md`, `quickstart.md`
 - `contracts/experiment.md`, `contracts/curriculum.md`, `contracts/execution.md`
 - `reliability-review.md`, `checklists/requirements.md`
-- `tasks.md`: 74 dependency-ordered tasks across A–E; 66 local implementation tasks complete, eight actual operator/evidence tasks pending.
+- `tasks.md`: 74 dependency-ordered tasks across A–E; 66 local implementation tasks and six E evidence tasks complete; T072 hardware-blocked and T073 research-deferred.
 - `validation/` for the later temporary wrapper, frozen handoff and actual evidence.
 
 ### Source Code (repository root)

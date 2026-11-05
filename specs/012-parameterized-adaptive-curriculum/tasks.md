@@ -1,7 +1,7 @@
 # Tasks: Parameterized Targets and Adaptive Curriculum
 
 **Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
-**Status**: Original phases A–D (T001–T066) and all six operator-failure repairs F001–F006 complete. Latest local validation: 654 tests and 2 subtests passed. The original operator attempt failed admission; current amended-scope native/container/HIP acceptance and research remain pending in T067–T074. No HIP or CI wait was performed during these repairs.
+**Status**: A–D T001–T066 and all twelve F001–F012 repairs complete. Phase E evidence closeout: T067–T071/T074 complete (6/8); T072 blocked by missing actual HIP crash/discard proof; T073 optional research DEFERRED. The supplied -004 archive independently verifies software PASS/feature qualified and science UNMEASURED. Latest unchanged-code local selection: 664 tests and 2 subtests; original workstation qualification: 1,499 CPU and 27 HIP tests. No CI wait.
 **Authority**: [spec](spec.md), [plan](plan.md), [research](research.md),
 [data model](data-model.md), [experiment](contracts/experiment.md),
 [curriculum](contracts/curriculum.md), [execution](contracts/execution.md),
@@ -211,7 +211,7 @@ the reason. Keep hardware tasks unchecked until actual evidence is supplied.
 
 ### E3 — Close out with truthful completion
 
-- [ ] T074 Reconcile actual evidence, software readiness, scientific interpretability, deferred optional research and all failure/retry boundaries in `specs/012-parameterized-adaptive-curriculum/validation/closeout.md` (new), `specs/012-parameterized-adaptive-curriculum/tasks.md` and `specs/012-parameterized-adaptive-curriculum/reliability-review.md`; commit/push public evidence references and bounded reports only, preserve private artifacts and historical failures, and do not auto-launch seeds/ablations or select a winner.
+- [X] T074 Reconcile actual evidence, software readiness, scientific interpretability, deferred optional research and all failure/retry boundaries in `specs/012-parameterized-adaptive-curriculum/validation/closeout.md` (new), `specs/012-parameterized-adaptive-curriculum/tasks.md` and `specs/012-parameterized-adaptive-curriculum/reliability-review.md`; commit/push public evidence references and bounded reports only, preserve private artifacts and historical failures, and do not auto-launch seeds/ablations or select a winner.
 
 ## Dependencies and incremental delivery
 
@@ -330,7 +330,8 @@ must link actual check results, not merely cite this table.
 
 74 tasks: A 6, B 21, C 15, D 24, E 8. Story totals: US1 10, US2 8,
 US3 14, US4 22, US5 7; shared 13. Implementation completed A/B/C/D T001–T066 (66 tasks);
-all eight E tasks T067–T074 stay unchecked. Every implementation task has an incremental
+six E tasks T067–T071/T074 are checked; T072 remains hardware-blocked and T073
+research-deferred. See `validation/closeout.md`. Every implementation task has an incremental
 implementation or counterexample commit; local evidence is recorded in the ledger.
 T073 is conditional research analysis and may remain explicitly deferred at
 software closeout. Failed/missing admission or device proof is a real blocker to

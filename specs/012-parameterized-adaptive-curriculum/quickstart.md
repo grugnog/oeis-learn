@@ -1,10 +1,19 @@
 # 012 operator handoff
 
-Phases A–D are implemented and locally validated. Actual original-data/native,
-container and HIP evidence remains Phase E. Do not reuse the failed 011 256-task
-prospective command as a 012 run. The temporary helper composes canonical installed
-operations; the default command below performs software acceptance and exports its
-evidence. It does not start research training or expose assessment truth.
+The operator's `pac-012-acceptance-004` run passed admission, CPU/HIP qualification,
+production calibration and reduced HIP acceptance. Independent archive verification
+reproduces software PASS and scientific UNMEASURED. **No acceptance rerun is needed.**
+
+[Phase E closeout](validation/closeout.md) records six completed evidence tasks,
+T072's missing actual HIP crash-debit proof and T073's deferred optional research.
+[Actual device evidence](validation/hip-acceptance.md) and the bounded
+[machine record](validation/evidence/acceptance-004-record.json) retain exact original
+source/image/plan identities. The complete uploaded ZIP is not published to GitHub.
+No runtime or orchestration-helper byte changed during this documentation closeout.
+
+The original 011 failed 256-task prospective command remains superseded, not a
+012 run. The helper's default scope is acceptance; research requires its own
+explicit frozen choice after all applicable foundation proof is complete.
 
 ## Required workstation inputs
 
@@ -32,7 +41,9 @@ weights, optimizer/RNG state or protected exclusion inputs. Missing originals ar
 specific preflight failure; the helper neither invents provenance nor silently
 substitutes new draws. Use a fresh output name if the chosen output already exists.
 
-## Repair after the original admission failure
+## Historical repair notes (preceding the successful -004 run)
+
+### Original admission failure
 
 The original `pac-012-acceptance` directory remains failed and immutable. The
 operator-authorized [scope amendment](validation/structural-amendment.md) freezes
@@ -64,7 +75,7 @@ originally recorded, and wrapper/cleanup/export errors. Known cause messages are
 safe fixed vocabulary; arbitrary raw exception text and host paths remain private.
 Missing or unverified detail is explicitly omitted. Recovery does not rerun admission.
 
-## Repair after the second run's qualification failure
+### Second run's qualification failure
 
 The `pac-012-acceptance-002` archive records admission PASS (1,155.7 seconds),
 followed by qualification FAIL before its tests. The isolated validator omitted
@@ -85,7 +96,7 @@ python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py recover
   --output run-state/generalization/pac-012-qualification-recovered-001
 ```
 
-## Repair after the third run's calibration failure
+### Third run's calibration failure
 
 The `pac-012-acceptance-003` archive records admission PASS (1,065.0 seconds) and
 CPU/HIP qualification PASS (715.4 seconds; 1,496 CPU and 27 HIP tests). Calibration
@@ -107,11 +118,12 @@ python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py recover
   --output run-state/generalization/pac-012-calibration-recovered-001
 ```
 
-## One operator block
+## Recorded successful operator block
 
-This is the Phase-E invocation, provided for handoff; it was **not run on HIP**
-during implementation. Its syntax and routing were checked with actual `--help`,
-`python -S` and the fixture campaign.
+The operator executed this acceptance-only invocation and supplied its verified
+report. It is retained for provenance, not an instruction to overwrite or repeat
+`-004`. Any separately authorized new scope must use a fresh output path. The
+implementer performed read-only verification, not another device run.
 
 ```sh
 git fetch origin
@@ -208,8 +220,12 @@ only minimal evidence could be verified.
 
 ## Measured forecasts versus generous ceilings
 
-There is no measured 012 workstation ETA yet. Historical literal runs took about
-147–160 minutes per 25M-token arm; that is context, not an adaptive forecast.
+The actual production-shape calibration now projects 6.72 hours of updates plus
+4.92 hours of diagnostics per B/C arm (11.64 hours total), with a 66.47-hour learner
+ceiling. These limited-sample planning figures exclude preparation and structural
+evaluation, and are not measured completed-arm times or worst-case guarantees.
+Historical literal runs took about 147–160 minutes per 25M-token arm; that is
+context, not this adaptive experiment's ETA.
 Calibration records actual short/long-family updates, cold/warm native execution,
 early/later row access, production-size save/load and full reward/grade/common-panel
 costs, with sample counts and uncertainty. Inspect the exported
@@ -234,7 +250,8 @@ The implementation ledger records the exact combined CPU/contract/integration
 command and outcomes. It includes real CPU tensors/clean and crash recovery,
 Docker/Podman argv/mount/deadline checks, stdlib-only successful public verification,
 checkpoint reads and analysis, and real success/negative/minimal archive fixtures.
-Synthetic device labels exercise archive wiring only. Actual engine/native/HIP
-execution, original full quotas and production performance remain T067–T074;
-historical 011 T174 and T177–T181 remain unchanged. No CI wait is needed for this
-handoff.
+Synthetic device labels exercise archive wiring only. The supplied -004 archive
+now provides actual engine/native/quota/HIP acceptance and short production
+calibration evidence. T072 still lacks actual HIP crash-debit proof; T073 research
+is deferred. Longer-run performance and scientific outcomes remain unmeasured.
+Historical 011 T174 and T177–T181 remain unchanged; CI was not awaited.
