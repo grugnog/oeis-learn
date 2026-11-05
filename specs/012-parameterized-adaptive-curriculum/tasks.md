@@ -467,3 +467,16 @@ T081: versioned rehearsal plans/reports and explicit stop-before-research are im
 R0 deterministic-proof refinement: new counterexamples precede the explicit `r0-unmeasured/v1` semantic setting. R0 omits wall-timed semantic generation while retaining production update/review clocks and real loss/recall probes; research and reduced acceptance reject that setting. Production calibration/R1 keep their semantic path. The public diagnostic proof labels semantic retention UNMEASURED. Final affected runtime/archive/research selection: 96 passed; an additional 68-test closure confirms a semantic backend call would fail the real CPU rehearsal fixture. No HIP claimed.
 
 T082: all authorized non-HIP R0 work is complete. Broad local suite: 690 passed, three actual-HIP tests deselected. After the explicit semantic-proof refinement, 96 affected runtime/archive/research tests and 68 focused closure tests passed; final CLI/governance/handoff checks passed 43 tests. Stdlib host help, all six handoff shell-block syntax checks, links, prerequisites, whitespace, current implementation disposition and unchanged 16/16 checklist pass. New CPU adapter tests are not pinned-image/HIP or performance evidence. Exact R0/R1/resume/read-only recovery commands and the extra C comparison work are documented in `validation/r0-implementation.md`; T083 and conditional T073 remain unchecked. No hooks are registered; no HIP execution or CI wait occurred.
+
+
+### R0 canonical output ownership repair (2026-11-05)
+
+Append-only follow-up to the operator's verified negative R0 report; T083 stays
+open. Preserve the frozen research configuration, generous limits and current-source
+qualification. No HIP execution or CI wait is authorized here.
+
+- [X] T084 Reproduce the precreated canonical output-mount failure through the installed role entry point using real CPU tensors; add fresh/stale private directory, file and symlink ownership counterexamples before implementation.
+- [ ] T085 Accept the launcher-owned R0 mount root while exclusively claiming fresh diagnostic work, preserving launcher scratch and refusing stale or partial output; audit sibling PAC handler boundaries and run affected non-HIP checks.
+- [ ] T086 Record verified operator failure evidence, refresh implementation identity, publish exact current-source retry/resume commands and validation outcomes; commit and push each coherent subgroup. Keep T083 pending actual successful HIP evidence.
+
+T084: six counterexamples fail before the repair: installed dispatch reproduces the exact FileExistsError before any learner invocation, and five fresh/stale ownership cases require the missing claim boundary. Both supplied archives independently verify integrity PASS with negative software/scientific dispositions; no successful rehearsal is claimed.

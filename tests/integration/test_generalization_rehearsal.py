@@ -3,6 +3,8 @@
 This exercises the complete handler, not HIP or production data/performance proof.
 """
 import copy
+import json
+from types import SimpleNamespace
 import pytest
 
 
@@ -49,13 +51,54 @@ def test_installed_rehearsal_all_three_real_learners_and_in_block_resume(tmp_pat
     monkeypatch.setattr(curriculum,'observe_targets',lambda *a,**kw:observe(*a,**dict(kw,device='cpu')))
     runtime=dict(version='pac-runtime/v1',purpose='research',envelope=envelope(purpose='research',arms=['B','C','D']),images=[digest('cpu'),digest('gpu')],engine='podman',prepared=dict(training=None,admission=None))
     environment=digest(dict(images=runtime['images'],engine=runtime['engine'],backend=study['backend']))
-    result=r0.rehearse({'training_targets':tmp_path/'data'},tmp_path/'rehearsal',
-        dict(recipe=recipe,source=source,environment=environment,study=study,bundle=bundle,runtime=runtime),seconds=r0.rehearsal_envelope(runtime['envelope'])['outer'])
+    # The canonical launcher owns the mount root and runtime scratch before dispatch.
+    # Calling rehearse directly with a nonexistent root missed the live R0 failure.
+    from oeis_learn.generalization.role_contracts import Role
+    output=tmp_path/'rehearsal';output.mkdir()
+    scratch=output/'.runtime';scratch.mkdir();(scratch/'launcher.txt').write_text('owned by launcher')
+    monkeypatch.setattr(role,'ROLE_OUTPUTS',{Role.LEARNER:SimpleNamespace(destination=str(output))})
+    monkeypatch.setattr(role,'ROLE_INPUTS',{Role.LEARNER:[SimpleNamespace(channel='training_targets',destination=str(tmp_path/'data'))]})
+    request=dict(operation='pac-rehearse',device='cuda',seconds=r0.rehearsal_envelope(runtime['envelope'])['outer'],
+        settings=dict(recipe=recipe,source=source,environment=environment,study=study,bundle=bundle,runtime=runtime))
+    assert role.main(['learner',json.dumps(request)])==0
+    result=json.loads((output/'result.json').read_text())
+    assert result['status']=='PASS',result
     assert calls==[('B',256,False),('C',256,False),('C',129,False),('C',256,True),('D',256,False)]
     assert result['resume']['equal'] and result['resume']['pac_equal']
     assert result['runs']['C']['channels']['bandit']==192 and result['runs']['D']['valid_rewards']==31
     assert result['production_retention_validated'] is False
     assert all(v['training_status']=='PARTIAL' and v['changed'] and v['finite'] for v in result['runs'].values())
+    saved=(output/'rehearsal.json').read_bytes()
+    # A duplicate dispatch must not merge or overwrite a prior diagnostic run.
+    assert role.main(['learner',json.dumps(request)])==0
+    duplicate=json.loads((output/'result.json').read_text())
+    assert duplicate['status']=='FAIL' and duplicate['reason']=='FileExistsError'
+    assert (output/'rehearsal.json').read_bytes()==saved
+    assert (scratch/'launcher.txt').read_text()=='owned by launcher'
+    assert len(calls)==5
+
+
+@pytest.mark.parametrize('existing',['absent','launcher','private-directory','private-file','private-symlink'])
+def test_rehearsal_claims_only_fresh_private_work(tmp_path,existing):
+    from oeis_learn.pipeline_validation.generalization_pac_rehearsal import claim_output
+    output=tmp_path/'output'
+    if existing!='absent':
+        output.mkdir();(output/'.runtime').mkdir()
+    if existing=='private-directory':
+        (output/'private').mkdir();(output/'private/retained').write_bytes(b'keep')
+    elif existing=='private-file':(output/'private').write_bytes(b'keep')
+    elif existing=='private-symlink':(output/'private').symlink_to(tmp_path,target_is_directory=True)
+    if existing.startswith('private-'):
+        before=sorted(tmp_path.rglob('*'))
+        with pytest.raises(FileExistsError):claim_output(output)
+        assert sorted(tmp_path.rglob('*'))==before
+        if existing=='private-directory':assert (output/'private/retained').read_bytes()==b'keep'
+        elif existing=='private-file':assert (output/'private').read_bytes()==b'keep'
+        else:assert (output/'private').is_symlink()
+    else:
+        assert claim_output(output)==output
+        assert (output/'private').is_dir()
+        if existing=='launcher':assert (output/'.runtime').is_dir()
 
 
 def test_rehearsal_encloses_all_children_and_keeps_generous_limits():
