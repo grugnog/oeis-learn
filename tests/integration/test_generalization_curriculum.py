@@ -73,3 +73,40 @@ def test_real_contiguous_blocks_nonwarmup_scaler_and_failed_update(tmp_path):
     with pytest.raises(RuntimeError,match='injected'):
         controller.run(state,result['ledger'],update=fail,save=save,seconds=300,max_updates=65)
     assert controller.policy.review.snapshot()==queue
+
+
+def test_fixed_shadow_observers_cannot_change_row_order_or_weights(tmp_path):
+    import torch
+    from oeis_learn.pipeline_validation.generalization_curriculum import PacFixedController
+    from oeis_learn.pipeline_validation.generalization_training import torch_update,train_updates
+    from oeis_learn.generalization.budgets import Ledger,charge_tokens
+    from tests.integration.test_generalization_training import states
+    batches,_=prepared(tmp_path,'B')
+    cap=sum(charge_tokens([r['tokens'] for r in batches[i]],bos=1,pad=0) for i in range(32))
+    results=[]
+    for shadow in (False,True):
+        encoder,decoder=models();optimizer=torch.optim.AdamW([*encoder.parameters(),*decoder.parameters()],lr=.001)
+        state=states();update=torch_update(encoder,decoder,optimizer,device='cpu');order=[]
+        def actual(batch):order.extend(r['id'] for r in batch);return update(batch)
+        controller=PacFixedController(batches,encoder,decoder,device='cpu',seed=7,arm='B',cap=cap,observation_seconds=300)
+        if shadow:
+            result=controller.run(state,Ledger(cap),update=actual,save=lambda *a:None,seconds=300)
+            assert controller.observer.state['shadow_blocks']==3 and controller.observer.state['shadow_grades']==8
+            assert controller.observer.state['loss_panels']==2
+        else:result=train_updates(state,Ledger(cap),batches,update=actual,save=lambda *a:None,seconds=300)
+        results.append((order,[p.detach().clone() for p in decoder.parameters()],result['ledger']))
+    assert results[0][0]==results[1][0] and results[0][2]==results[1][2]
+    assert all(torch.equal(a,b) for a,b in zip(results[0][1],results[1][1]))
+
+
+def test_missing_required_feedback_pauses_after_two_blocks(tmp_path):
+    import torch
+    from oeis_learn.pipeline_validation.generalization_curriculum import PacController
+    from oeis_learn.pipeline_validation.generalization_training import torch_update
+    from oeis_learn.generalization.budgets import Ledger
+    from tests.integration.test_generalization_training import states
+    batches,_=prepared(tmp_path);encoder,decoder=models();optimizer=torch.optim.AdamW([*encoder.parameters(),*decoder.parameters()],lr=.001)
+    controller=PacController(batches,encoder,decoder,device='cpu',seed=7,arm='C',cap=100000,observation_seconds=0)
+    result=controller.run(states(),Ledger(100000),update=torch_update(encoder,decoder,optimizer,device='cpu'),save=lambda *a:None,seconds=30)
+    assert result['ledger'].updates==8 and result['ledger'].consumed>0
+    assert controller.policy.kernel.valid_updates==0 and 'required_reward_budget' in controller.policy.pauses

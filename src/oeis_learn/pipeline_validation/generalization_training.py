@@ -47,14 +47,14 @@ class TrainingTiming:
         return True
 
 
-def train_updates(state,ledger,batches,*,update,save,seconds=21600,discarded_tokens=0):
+def train_updates(state,ledger,batches,*,update,save,seconds=21600,discarded_tokens=0,pac=False):
     """Persist pre-update state/debit, then publish complete update state atomically.
 
     `update` owns model/optimizer/scheduler mutation and refreshes `state`'s tensor
     and RNG entries. On failure the caller reloads the last saved generation.
     Batches are immutable prepared rows; data cursor indexes their frozen order.
     """
-    if type(seconds) not in (int,float) or not 0<seconds<=21600:raise ValueError('bounded learner seconds required')
+    if type(seconds) not in (int,float) or not 0<seconds or (not pac and seconds>21600):raise ValueError('bounded learner seconds required')
     if type(discarded_tokens) is not int or not 0<=discarded_tokens<=ledger.cap-ledger.consumed:raise ValueError('invalid discarded exposure')
     deadline=time.monotonic()+seconds
     while time.monotonic()<deadline:
@@ -257,10 +257,13 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     discarded_tokens=state['scheduler'].get('discarded_tokens',0)
     permanent=dict(state['pins']);milestone_keys={int(k):v for k,v in state['history']['milestones'].items()}
     controller=None
-    if pac and config['arm'] in {'C','D'}:
-        from .generalization_curriculum import PacController
-        controller=PacController(batches,encoder,decoder,device=config['device'],seed=config['seed'],arm=config['arm'],cap=cap,
+    if pac:
+        from .generalization_curriculum import PacController,PacFixedController
+        Controller=PacController if config['arm'] in {'C','D'} else PacFixedController
+        controller=Controller(batches,encoder,decoder,device=config['device'],seed=config['seed'],arm=config['arm'],cap=cap,
             observation_seconds=pac['observation_seconds'],snapshot=state['scheduler'].get('pac'))
+        from .generalization_curriculum import attach_semantic
+        attach_semantic(controller,recipe,output,seed=config['seed'])
         state['scheduler']['pac']=controller.snapshot()
     update_tensors=torch_update(encoder,decoder,optimizer,device=config['device'])
     def update(batch):
@@ -410,7 +413,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         retained=roster['identity'])
     result['timing']=dict(timing_record(),publication_seconds=time.monotonic()-published,publication_reserve_seconds=reserve)
     write(output/'timing.json',result['timing'])
-    if controller is not None:result['pac']=dict(channels=controller.channels,observations=controller.observations,valid_rewards=controller.policy.kernel.valid_updates,pauses=controller.policy.pauses)
+    if controller is not None:result['pac']=dict(channels=controller.channels,observations=controller.observations,valid_rewards=controller.policy.kernel.valid_updates if controller.policy else 0,pauses=controller.policy.pauses if controller.policy else [],monitoring=controller.observer.snapshot())
     if pac:result['initial_weights']=initial_hash
     if execution_policy is not None:result['execution_policy']=execution_policy
     write(output/'training.json',result)
@@ -467,10 +470,11 @@ class PacPreparedBatches(PreparedBatches):
             row['family']=self.row_families[row['id']];self.rows[row['id']]=row
         if len(self.rows)!=len(self.row_families):raise ValueError('PAC family inventory/row count mismatch')
         probe_families={r:f for f,ids in self.probes.items() for r in ids}
-        self.probe_rows={}
+        self.probe_rows={};self.probe_truth={}
         for row in json.loads(verify_artifact(root,bundle['probes'],max_bytes=8<<30)):
             shape('training-target',row)
             if row['id'] not in probe_families or row['tokens']!=encode_body(row['source']) or row['id'] in self.probe_rows or row['id'] in self.rows:raise ValueError('PAC disjoint encoded training probes required')
+            self.probe_truth[row['id']]=dict(indices=row['indices'],values=row['values'])
             self.probe_rows[row['id']]=dict(id=row['id'],family=probe_families[row['id']],values=row['values'][:20],indices=row['indices'][:20],tokens=row['tokens'])
         if set(self.probe_rows)!=set(probe_families) or any(len(p)!=8 for p in self.probes.values()):raise ValueError('complete PAC probe quota required')
         self.identity=digest(dict(prepared=bundle['identity'],arm=arm,batch_size=batch_size))

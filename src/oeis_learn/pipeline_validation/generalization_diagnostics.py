@@ -1,4 +1,5 @@
 """Bounded public control copies, with metadata-only discovery of nested roles."""
+import copy
 import hashlib
 import json
 import os
@@ -259,3 +260,75 @@ def main(argv=None):
 
 
 if __name__=='__main__':raise SystemExit(main())
+
+
+class PacObservers:
+    """Model-bound monitoring and B shadow opportunities, never policy credit."""
+    def __init__(self,batches,*,arm,seed,observe,semantic=None,snapshot=None):
+        self.batches=batches;self.arm=arm;self.seed=seed;self.observe=observe;self.semantic=semantic
+        self.families=sorted(batches.families);self.anchors=sorted(batches.anchors)
+        self.state=dict(version='pac-observers/v1',arm=arm,seed=seed,inventory=batches.inventory['identity'],
+            last_before=-1,last_common=-1,pending_shadow=None,shadow_blocks=0,shadow_grades=0,
+            loss_panels=0,semantic_attempts=0,semantic_completed=0,semantic_success=0,
+            rotation={},missing_rotations={f:0 for f in self.families},retention_incomplete=[],recent=[])
+        if snapshot is not None:
+            if set(snapshot)!=set(self.state) or any(snapshot[k]!=self.state[k] for k in ('version','arm','seed','inventory')):raise ValueError('PAC observer restore identity')
+            self.state=copy.deepcopy(snapshot)
+
+    def event(self,value):
+        self.state['recent'].append(value);self.state['recent']=self.state['recent'][-64:]
+
+    def common(self,update,*,final=False):
+        if self.state['last_common']==update or (update%256 and not final):return
+        sums=0.;tokens=0;complete=True
+        for f in self.families:
+            result=self.observe([self.batches.probe_rows[i] for i in self.batches.probes[f]])
+            if result is None:complete=False
+            else:sums+=result['loss_sum'];tokens+=result['tokens']
+        self.state['loss_panels']+=1
+        self.event(dict(kind='common_loss',update=update,loss_sum=sums,tokens=tokens,complete=complete,kernel_credit=False))
+        start=((update+255)//256*4)%len(self.families)
+        selected=[self.families[(start+i)%len(self.families)] for i in range(min(4,len(self.families)))]
+        for f in selected:
+            completed=False
+            for key in self.batches.probes[f]:
+                self.state['semantic_attempts']+=1
+                result=self.semantic(self.batches.probe_rows[key],self.batches.probe_truth[key],seconds=5) if self.semantic else None
+                if result is not None:
+                    completed=True;self.state['semantic_completed']+=1;self.state['semantic_success']+=bool(result)
+            self.state['rotation'][f]=completed
+        if len(self.state['rotation'])==len(self.families):
+            for f,complete in self.state['rotation'].items():
+                self.state['missing_rotations'][f]=0 if complete else self.state['missing_rotations'][f]+1
+                if self.state['missing_rotations'][f]>=2 and f not in self.state['retention_incomplete']:self.state['retention_incomplete'].append(f)
+            self.state['rotation']={}
+        self.state['last_common']=update
+
+    def before(self,update):
+        if self.state['last_before']==update:return
+        self.common(update)
+        if self.arm=='B':
+            import random
+            from oeis_learn.generalization.curriculum import stream_seed
+            cycle,pos=divmod(update,32)
+            if pos in (0,8,16):
+                number=cycle*3+pos//8
+                f=self.families[random.Random(stream_seed(self.seed,'shadow-uniform-family',str(number))).randrange(len(self.families))]
+                ids=self.batches.probes[f][(number%4)*2:(number%4)*2+2]
+                self.state['pending_shadow']=dict(start=update,ids=ids,pre=self.observe([self.batches.probe_rows[i] for i in ids]))
+            elif pos>=24:
+                anchor=self.anchors[(cycle*8+pos-24)%len(self.anchors)]
+                result=self.observe([self.batches.rows[anchor]]);self.state['shadow_grades']+=1
+                self.event(dict(kind='shadow_recall',anchor=anchor,update=update,recall=None if result is None else result['recall'][0],anchor_promotion=False))
+        self.state['last_before']=update
+
+    def after(self,update):
+        pending=self.state['pending_shadow']
+        if pending and update==pending['start']+8:
+            post=self.observe([self.batches.probe_rows[i] for i in pending['ids']])
+            pre=pending['pre'];self.state['shadow_blocks']+=1
+            self.event(dict(kind='shadow_reward',update=update,raw_gain=None if pre is None or post is None else pre['loss_sum']/pre['tokens']-post['loss_sum']/post['tokens'],kernel_credit=False))
+            self.state['pending_shadow']=None
+        self.common(update)
+
+    def snapshot(self):return copy.deepcopy(self.state)
