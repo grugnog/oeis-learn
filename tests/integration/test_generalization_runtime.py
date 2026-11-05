@@ -225,7 +225,9 @@ def pac_config(tmp_path,arm='C'):
 
 def assert_tensor_tree(a,b):
     import torch
-    if isinstance(a,torch.Tensor):assert torch.equal(a,b)
+    import numpy as np
+    if isinstance(a,np.ndarray):assert np.array_equal(a,b)
+    elif isinstance(a,torch.Tensor):assert torch.equal(a,b)
     elif isinstance(a,dict):
         assert set(a)==set(b)
         for k in a:assert_tensor_tree(a[k],b[k])
@@ -274,3 +276,34 @@ def test_pac_publication_failure_keeps_previous_real_generation(tmp_path,monkeyp
     with pytest.raises(OSError):store.save(old['states'],old['ledger'],encode=full_disk)
     assert json.loads((store.root/'generalization-latest.json').read_text())==part['checkpoint']
     assert_tensor_tree(store.load(part['checkpoint'])['states']['weights'],old['states']['weights'])
+
+
+def test_pac_real_crash_discards_unsaved_work_without_policy_replay(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_training as training
+    from oeis_learn.pipeline_validation import generalization_curriculum as module
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    monkeypatch.setattr(module,'semantic_probe',lambda *a,**kw:None)
+    config=pac_config(tmp_path);original=training.torch_update
+    def injected(*args,**kwargs):
+        update=original(*args,**kwargs);count=0
+        def step(batch):
+            nonlocal count
+            result=update(batch);count+=1
+            if count==3:raise RuntimeError('crash after actual optimizer update')
+            return result
+        return step
+    monkeypatch.setattr(training,'torch_update',injected)
+    with pytest.raises(RuntimeError,match='crash'):
+        training.run_torch(tmp_path/'data',tmp_path/'crashed',config)
+    root=tmp_path/'crashed/checkpoints';pointer=json.loads((root/'generalization-latest.json').read_text())
+    manifest=json.loads((root/pointer['path']).read_text())
+    old=GeneralizationCheckpointStore(root,manifest['contract'],config['target_tokens']).load(pointer)
+    assert old['ledger'].updates==0
+    monkeypatch.setattr(training,'torch_update',original)
+    result=training.run_torch(tmp_path/'data',tmp_path/'recovered',config,resume=(root,pointer),resume_elapsed=30)
+    assert result['discarded_tokens']>0 and result['charged_tokens']<=config['target_tokens']
+    assert result['reason']=='RECOVERED_WITH_DISCARDED_EXPOSURE'
+    restored=GeneralizationCheckpointStore(tmp_path/'recovered/checkpoints',result['compatibility'],config['target_tokens']).load(result['checkpoint'])
+    policy=restored['states']['scheduler']['pac']['policy']
+    assert policy['discarded_tokens']==result['discarded_tokens']
+    assert policy['segment']=='recovery-1' and policy['kernel']['valid_updates']==0

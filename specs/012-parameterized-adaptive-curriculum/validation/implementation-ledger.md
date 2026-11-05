@@ -221,3 +221,7 @@ stream/token boundary test: 1 passed, 24 deselected. Initial schema checks expos
 a misplaced protocol resource and an incorrect schema reference; both were fixed
 before the passing run. Native callbacks in these tests are independent reference
 fixtures, not actual native-extension proof. Real tensor integration follows C3.
+
+### C4 full-state recovery (T037–T038)
+
+Installed `run_torch` CPU proof: `PYTHONPATH=src .venv-cpu/bin/python -m pytest -q tests/integration/test_generalization_runtime.py -k pac` — 4 passed. Both update-3 and post-gradient/update-8 pauses restore exactly equal tensors, optimizer, RNG, encoded pending data, adaptive policy and observer choices. Full snapshots validate model/policy/debit boundaries and deduplicate unchanged final publication. An injected actual optimizer crash restores the earlier complete generation, charges unsaved tokens/time, and starts a new segment without importing newer policy state. Injected ENOSPC leaves the previous verified generation loadable. This is CPU evidence; native semantic measurement is explicitly unavailable in these fixtures, not represented as success.

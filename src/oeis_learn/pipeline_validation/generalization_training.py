@@ -162,7 +162,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     from .generalization_persistence import policy,INTERVAL,journal,recover
     checkpoint_policy=policy(config);periodic=checkpoint_policy=='hourly/v1'
     progress_count=0;timing=TrainingTiming();tensors_dirty=True
-    journal_writes=0;last_full_time=None;last_full_ledger=None
+    journal_writes=0;last_full_time=None;last_full_ledger=None;last_full_policy=None
     def progress(phase):
         nonlocal progress_count
         # Public phase/timestamp only; bounded even for long research learners.
@@ -252,6 +252,9 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
                 discarded_tokens=state['scheduler'].get('discarded_tokens',0),learner_seconds=state['scheduler']['learner_seconds'],
                 seconds_cap=config['seconds'],supervised_seconds=resume_elapsed)
             state['scheduler'].update({k:v for k,v in restored_accounting.items() if k!='rolled_back'})
+            if pac:
+                from .generalization_persistence import pac_crash_recovery
+                ledger=pac_crash_recovery(state,ledger,unclean=not json.loads(progress_path.read_text())['closed'],discarded_tokens=state['scheduler']['discarded_tokens'])
     # Conservatively debit reduced enclosing allowance (I/O and cleanup reserve).
     previous_seconds=state['scheduler']['learner_seconds']+config['seconds']-seconds;saved_ledger=ledger
     discarded_tokens=state['scheduler'].get('discarded_tokens',0)
@@ -309,7 +312,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
                 recoverable_updates=last_full_ledger.updates,checkpoint=latest))
 
     def full_save(current,account):
-        nonlocal latest,initial,history,tensors_dirty,last_full_time,last_full_ledger
+        nonlocal latest,initial,history,tensors_dirty,last_full_time,last_full_ledger,last_full_policy
         started=time.monotonic()
         progress('checkpoint-save')
         effective=account.consumed-(account.pending[1] if account.debited else 0)
@@ -324,7 +327,12 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         current['pins']=dict(permanent)
         current['history']['milestones']={str(k):v for k,v in milestone_keys.items()}
         unchanged=latest if latest is not None and not tensors_dirty and account.pending is not None else None
+        if pac:
+            from .generalization_persistence import pac_boundary
+            pac_boundary(current,account)
+            if config['device']=='cuda':torch.cuda.synchronize()
         latest=store.save(current,account,scheduler=scheduler,unchanged_tensors=unchanged)
+        last_full_policy=copy.deepcopy(current['scheduler'].get('pac'))
         key=latest['sha256'];history[key]=latest;current['history']['exposures'][key]=effective
         if initial is None:initial=key;permanent[key]=latest
         crossed=milestone_decision(effective,account.pending[1],milestones) if account.pending else ()
@@ -375,7 +383,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     if periodic:
         # Publish live state once at the orderly terminal boundary, before any
         # descriptor or successful result can refer to it.
-        if latest is None or last_full_ledger!=saved_ledger or controller is not None:full_save(state,saved_ledger)
+        if latest is None or last_full_ledger!=saved_ledger or controller is not None and state['scheduler'].get('pac')!=last_full_policy:full_save(state,saved_ledger)
 
     # These references are private full-state descriptors. Evaluation projects
     # only each descriptor's weights, never its optimizer/RNG or training data.
