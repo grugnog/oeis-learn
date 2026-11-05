@@ -339,3 +339,11 @@ native/container/HIP checks remain unavailable. T045 and subsequent D tasks rema
 unchecked; the scoped evaluator, complete serial wrapper, calibration, diagnostics,
 case analysis and final operator handoff are still outstanding. No phase-D
 completion or runnable hardware command is claimed.
+
+Final focused validation after the provenance repair and implementation fingerprint
+refresh: **39 passed** using `tests/unit/test_pipeline_contracts.py`,
+`tests/integration/test_pac_structural_publication.py`,
+`tests/integration/test_generalization_preparation.py`,
+`tests/integration/test_generalization_registration.py` and the new
+`validation/test_inputs.py`. Portable host help also passed under `python3 -S`.
+No extension hooks are configured; no CI wait or HIP execution occurred.
