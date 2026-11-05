@@ -170,17 +170,21 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
             print(f'learner: {phase} unix={time.time():.6f}',file=sys.stderr,flush=True)
             progress_count+=1
     required={'study','arm','seed','recipe','shards','data_mode','batch_size','target_tokens','milestones','seconds','device'}
-    if set(config)-{'checkpoint_policy'}!=required:raise ValueError('closed learner execution projection required')
-    if config['device'] not in {'cpu','cuda'} or not 0<config['seconds']<=21600:raise ValueError('explicit bounded learner device/time required')
+    pac=config.get('pac')
+    if set(config)-{'checkpoint_policy','pac'}!=required:raise ValueError('closed learner execution projection required')
+    if config['device'] not in {'cpu','cuda'} or not 0<config['seconds'] or (pac is None and config['seconds']>21600):raise ValueError('explicit bounded learner device/time required')
     from .generalization_execution import verify_execution,bind_compatibility
     execution_policy=verify_execution() if config['device']=='cuda' else None
     seconds=config['seconds'] if seconds is None else seconds
     if not 0<seconds<=config['seconds']:raise ValueError('learner allowance exceeds frozen budget')
-    reserve=publication_reserve(seconds)
+    reserve=pac['publication_seconds'] if pac else publication_reserve(seconds)
+    if pac and (initializer is not None or replay is not None):raise ValueError('PAC requires fresh random initialization and no replay')
     milestones=config['milestones'];cap=config['target_tokens']
     if milestones!=sorted(set(milestones)) or any(type(m) is not int or not 0<m<=cap for m in milestones):raise ValueError('bounded increasing milestones required')
     progress('batch-inputs')
-    batches=PreparedBatches(root,config['shards'],batch_size=config['batch_size'],mode=config['data_mode'],updates=cap)
+    batches=(PacPreparedBatches(root,pac['bundle'],arm=config['arm'],batch_size=config['batch_size'],updates=cap) if pac else
+        PreparedBatches(root,config['shards'],batch_size=config['batch_size'],mode=config['data_mode'],updates=cap))
+    if pac and pac['purpose']=='research' and batches.inventory['version']!='pac-inventory/v1':raise ValueError('acceptance inventory cannot initialize research')
     if config['data_mode']=='refresh' and batches.target_tokens<cap:raise ValueError('insufficient prepared refresh target-token capacity')
     data_identity=batches.identity
     extension={}
@@ -213,6 +217,10 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         weights=torch.load(io.BytesIO(verify_artifact(initializer_root or root,initializer)),map_location='cpu',weights_only=True)
         if set(weights)!={'encoder','decoder'}:raise ValueError('weights-only initializer required')
         encoder.load_state_dict(weights['encoder'],strict=True);decoder.load_state_dict(weights['decoder'],strict=True)
+    if pac:
+        from .generalization_curriculum import initial_weights_identity
+        initial_hash=initial_weights_identity(encoder,decoder)
+        if pac['purpose']=='research' and initial_hash!=pac['initializer']:raise ValueError('PAC random initial weights differ from frozen initializer')
     parameters=list(encoder.parameters())+list(decoder.parameters())
     optimizer=torch.optim.AdamW(parameters,lr=recipe['learning']['learning_rate'])
     store=GeneralizationCheckpointStore(output/'checkpoints',compatibility,cap)
@@ -248,6 +256,12 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     previous_seconds=state['scheduler']['learner_seconds']+config['seconds']-seconds;saved_ledger=ledger
     discarded_tokens=state['scheduler'].get('discarded_tokens',0)
     permanent=dict(state['pins']);milestone_keys={int(k):v for k,v in state['history']['milestones'].items()}
+    controller=None
+    if pac and config['arm'] in {'C','D'}:
+        from .generalization_curriculum import PacController
+        controller=PacController(batches,encoder,decoder,device=config['device'],seed=config['seed'],arm=config['arm'],cap=cap,
+            observation_seconds=pac['observation_seconds'],snapshot=state['scheduler'].get('pac'))
+        state['scheduler']['pac']=controller.snapshot()
     update_tensors=torch_update(encoder,decoder,optimizer,device=config['device'])
     def update(batch):
         nonlocal tensors_dirty
@@ -351,13 +365,14 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     try:
         save(state,ledger)
         remaining=config['seconds']-previous_seconds-(time.monotonic()-began)-reserve
-        result=train_updates(state,ledger,batches,update=update,save=save,seconds=remaining,discarded_tokens=discarded_tokens) if remaining>0 else dict(status='PARTIAL')
+        if controller and remaining>0:result=controller.run(state,ledger,update=update,save=save,seconds=remaining)
+        else:result=train_updates(state,ledger,batches,update=update,save=save,seconds=remaining,discarded_tokens=discarded_tokens) if remaining>0 else dict(status='PARTIAL')
         status=result['status']
     except StopAtBoundary:status='PARTIAL'
     if periodic:
         # Publish live state once at the orderly terminal boundary, before any
         # descriptor or successful result can refer to it.
-        if latest is None or last_full_ledger!=saved_ledger:full_save(state,saved_ledger)
+        if latest is None or last_full_ledger!=saved_ledger or controller is not None:full_save(state,saved_ledger)
 
     # These references are private full-state descriptors. Evaluation projects
     # only each descriptor's weights, never its optimizer/RNG or training data.
@@ -395,6 +410,8 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         retained=roster['identity'])
     result['timing']=dict(timing_record(),publication_seconds=time.monotonic()-published,publication_reserve_seconds=reserve)
     write(output/'timing.json',result['timing'])
+    if controller is not None:result['pac']=dict(channels=controller.channels,observations=controller.observations,valid_rewards=controller.policy.kernel.valid_updates,pauses=controller.policy.pauses)
+    if pac:result['initial_weights']=initial_hash
     if execution_policy is not None:result['execution_policy']=execution_policy
     write(output/'training.json',result)
     progress('complete')
