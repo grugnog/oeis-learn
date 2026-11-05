@@ -58,3 +58,9 @@ def test_reported_survivors_guarantee_new_quotas_even_under_worst_source_duplica
     changed=json.loads(json.dumps(new));changed['cells'][0]['count']+=1
     from oeis_learn.pipeline_validation.identity import seal
     with pytest.raises(ValueError):structural.verify(seal(changed))
+
+
+def amended_roster():
+    protocol=structural.amended_design(structural.prior_protocol())
+    return {f"{c['family']}/{i}":dict(family=c['family'],category=protocol['families'][c['family']]['category'],stratum='structural')
+            for c in protocol['cells'] for i in range(c['count'])}

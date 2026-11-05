@@ -63,8 +63,9 @@ def collect(original,staging):
     if (nroot/'admission.json').is_file():
         a=json.loads(original_file(nroot/'admission.json'))
         if seal(a)!=a or a['status']!='PASS':raise ValueError('native admission failed/changed')
+        if plan.get('scientific',{}).get('structural_scope')!=a.get('structural_scope') and plan.get('scientific',{}).get('structural_scope') is not None:raise ValueError('native scope differs from frozen plan')
         producer=next((r['producer'] for r in workflow['receipts'] if r['stage']=='admission'),None)
-        native=put('native-admission.json',seal(dict(version='pac-native-public/v1',status=a['status'],source=a['source'],images=a['images'],
+        native=put('native-admission.json',seal(dict(**({'structural_scope':a['structural_scope']} if a.get('structural_scope') else {}),version='pac-native-public/v2' if a.get('structural_scope') else 'pac-native-public/v1',status=a['status'],source=a['source'],images=a['images'],
             originals=[{k:v for k,v in x.items() if k!='ref'} for x in a['originals']],roster=a['roster'],
             admission_identity=a['identity'],producer=producer,protected_artifacts='OMITTED')))
     # These builder-produced summaries contain hashes/counts, never protected terms.
@@ -87,7 +88,7 @@ def collect(original,staging):
             elapsed_seconds=row.get('elapsed_seconds',0),reused=row.get('reused',False)))
     operational=original/'operational-freeze.json'
     limits=json.loads(operational.read_text()) if operational.is_file() else None
-    put('campaign-controls.json',seal(dict(version='pac-campaign-controls/v1',
+    put('campaign-controls.json',seal(dict(version='pac-campaign-controls/v1',structural_scope=plan.get('scientific',{}).get('structural_scope'),
         requested=[dict(stage=s['name'],seconds=s.get('seconds')) for s in plan['stages']],
         effective=[dict(stage=s['name'],seconds=s['seconds']) for s in limits['stages']] if limits else None,
         campaign_seconds=limits['seconds'] if limits else plan.get('seconds'),finalization_seconds=plan.get('finalization_seconds'),

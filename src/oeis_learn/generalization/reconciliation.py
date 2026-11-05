@@ -96,7 +96,7 @@ def pac_costs(costs):
                 matched_wall_time=False,interpretation='equal allowance does not establish equal examples, updates or compute')
 
 
-def pac_comparison_report(roster,outcomes,*,experiment,control,profiles,costs=None,portable=False):
+def pac_comparison_report(roster,outcomes,*,experiment,control,profiles,costs=None,portable=False,structural_scope=None):
     from .execution import validate_pac_policy
     from .metrics import pac_structural_metrics,pac_paired_counts,paired_difference
     if portable:
@@ -105,9 +105,9 @@ def pac_comparison_report(roster,outcomes,*,experiment,control,profiles,costs=No
     else:exp=validate_pac_policy(experiment,control,profiles)
     allowed=set(exp['arms'])|{'A'}
     if not set(outcomes)<=allowed:raise ValueError('unfrozen arm outcome')
-    metrics={arm:pac_structural_metrics(roster,values) for arm,values in outcomes.items()}
+    metrics={arm:pac_structural_metrics(roster,values,scope=structural_scope) for arm,values in outcomes.items()}
     # Validate the full denominator even when no arm has any observations.
-    pac_structural_metrics(roster,{})
+    pac_structural_metrics(roster,{},scope=structural_scope)
     pairs=[('C','B','allocation_plus_review')]
     if exp['control_mode'] in {'matched','fresh-control'}:pairs.insert(0,('B','A','representation'))
     if 'D' in exp['arms']:pairs.extend([('D','B','allocation'),('C','D','review_substitution')])
@@ -118,14 +118,14 @@ def pac_comparison_report(roster,outcomes,*,experiment,control,profiles,costs=No
         if present:
             a,b=outcomes[baseline],outcomes[treatment]
             bounds=paired_difference(certified,{k:a[k] for k in certified if k in a},{k:b[k] for k in certified if k in b},macro=True)
-            counts=pac_paired_counts(roster,a,b)
+            counts=pac_paired_counts(roster,a,b,scope=structural_scope)
         else:bounds=None;counts=None
         comparisons[treatment+'-'+baseline]=dict(attribution=attribution,interpretable=eligible,
             status='EXPLORATORY_SINGLE_SEED' if eligible else 'INCOMPLETE',paired=counts,
             family_macro_difference_bounds=[str(x) for x in bounds] if bounds is not None else None,
             uncertainty_unit='paired_tasks_descriptive_not_training_seeds')
     required=set(exp['arms'])|({'A'} if exp['control_mode']=='matched' else set())
-    return dict(version='pac-structural-comparison/v1',experiment=exp['identity'],arms=metrics,
+    return dict(**({'structural_scope':structural_scope} if structural_scope else {}),version='pac-structural-comparison/v2' if structural_scope else 'pac-structural-comparison/v1',experiment=exp['identity'],arms=metrics,
                 comparisons=comparisons,missing_arms=sorted(required-set(outcomes)),
                 reference_only_A=exp['control_mode']=='reference-only',historical_measurements=control['historical_measurements'],
                 parameter_endpoint='DEFERRED',assessment='NOT_EXECUTED',automatic_winner=False,

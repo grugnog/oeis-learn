@@ -34,8 +34,11 @@ def main(args,workspace,host_factory):
         producer=json.loads(verify_artifact(native_root,native['producer']))
         admission=json.loads(verify_artifact(native_root,native['admission']))
         if (seal(producer)!=producer or producer['status']!='PASS' or producer['source']!=job['source'] or producer['images']!=job['images'] or native['admission'] not in producer['inventory']
-            or seal(admission)!=admission or admission['version']!='pac-admission/v2' or admission['status']!='PASS' or admission['source']!=job['source'] or admission['images']!=job['images']):raise ValueError('incompatible native admission producer')
+            or seal(admission)!=admission or admission['version'] not in {'pac-admission/v2','pac-admission/v3'} or admission['status']!='PASS' or admission['source']!=job['source'] or admission['images']!=job['images']):raise ValueError('incompatible native admission producer')
         if sorted(({k:v for k,v in x.items() if k!='ref'} for x in admission['originals']),key=lambda x:x['name'])!=sorted(original_cells(),key=lambda x:x['name']):raise ValueError('all original exclusions required')
+        from oeis_learn.generalization.metrics import _pac_roster
+        if (admission['version']=='pac-admission/v3')!=('structural_scope' in admission):raise ValueError('native admission scope version mismatch')
+        _pac_roster(admission['roster'],scope=admission.get('structural_scope'))
         if job['operation']=='pac-calibrate' and admission['training']!=job['settings']['bundle']['identity']:raise ValueError('calibration bundle differs from native admission')
         from .generalization_qualification_io import consume_original
         if job['qualification'] is None:raise ValueError('original qualification required before GPU work')

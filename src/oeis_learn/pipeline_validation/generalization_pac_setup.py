@@ -90,7 +90,7 @@ def assemble(inputs,output,settings,*,seconds):
             control=control['identity'],control_mode=mode,frozen=True,outcomes_seen=False,target_tokens=25000000,
             model=expected['model'],optimizer=expected['optimizer'],backend=POLICY_ID,order=expected['order'],source=settings['source'],exposure=expected['exposure'],diagnostics=expected['diagnostics'])
         plan=dict(version='pac-preparation/v1',originals=originals,rows=reference(output/'rows.json',output),probes=reference(output/'probes.json',output),
-            protocol=structural.design(structural.prior_protocol()),seed=seed,batch_size=32)
+            protocol=structural.amended_design(structural.prior_protocol()),seed=seed,batch_size=32)
         # Supply original references from their projected immutable roots.
         import shutil
         for item in originals:

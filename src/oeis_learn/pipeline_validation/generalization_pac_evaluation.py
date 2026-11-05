@@ -19,7 +19,10 @@ def publish_views(inputs,output,settings,*,seconds):
         prompts.append(visible);targets.append(truth)
     output=Path(output)
     write(output/'visible/prompts.json',prompts);write(output/'private/targets.json',targets)
-    write(output/'roster.json',admission['roster'])
+    roster=admission['roster']
+    if admission.get('structural_scope'):
+        roster=dict(version='pac-evaluation-roster/v2',structural_scope=admission['structural_scope'],tasks=roster)
+    write(output/'roster.json',roster)
     return dict(status='PASS',prompts=reference(output/'visible/prompts.json',output),
         targets=reference(output/'private/targets.json',output),roster=reference(output/'roster.json',output),admission=admission['identity'])
 
@@ -71,6 +74,10 @@ def score_views(inputs,output,settings,*,seconds):
     if set(settings)!={'targets','candidates','roster','study'}:raise ValueError('closed PAC score request')
     truth=json.loads(verify_artifact(inputs['selection_supervision'],settings['targets']))
     roster=json.loads(verify_artifact(inputs['selection_supervision'],settings['roster']))
+    structural_scope=None
+    if isinstance(roster,dict) and roster.get('version')=='pac-evaluation-roster/v2':
+        if set(roster)!={'version','structural_scope','tasks'}:raise ValueError('closed scoped roster required')
+        structural_scope=roster['structural_scope'];roster=roster['tasks']
     for row in truth:
         shape('scorer-target',row)
         if row['role']!='selection' or row['stratum']!='structural':raise ValueError('PAC structural selection only')
@@ -80,8 +87,8 @@ def score_views(inputs,output,settings,*,seconds):
         scores=score_frozen(candidates,{r['id']:r for r in truth},client,deadline=time.monotonic()+seconds)
     controls={control:{key:(values[control]['success'] if values[control]['complete'] else None) for key,values in scores['outcomes'].items() if control in values}
               for control in {c for values in scores['outcomes'].values() for c in values}}
-    result=seal(dict(version='pac-structural-scoring/v1',status='PASS',study=settings['study'],
-        controls={c:pac_structural_metrics(roster,v) for c,v in controls.items()},outcomes=controls,scored_cases=scores['outcomes'],roster=roster,
+    result=seal(dict(**({'structural_scope':structural_scope} if structural_scope else {}),version='pac-structural-scoring/v2' if structural_scope else 'pac-structural-scoring/v1',status='PASS',study=settings['study'],
+        controls={c:pac_structural_metrics(roster,v,scope=structural_scope) for c,v in controls.items()},outcomes=controls,scored_cases=scores['outcomes'],roster=roster,
         parameter='DEFERRED',assessment='NOT_EXECUTED'))
     write(Path(output)/'scoring.json',result);return result
 

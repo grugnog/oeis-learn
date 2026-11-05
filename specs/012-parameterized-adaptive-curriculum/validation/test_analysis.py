@@ -41,3 +41,18 @@ def test_generated_source_projection_excludes_hidden_fields_and_names_limitation
     assert 'secret' not in str(result) and 'private teacher' not in str(result)
     markdown=h.case_markdown(result)
     assert markdown.count('## ')>=12 and 'solver limitation unresolved' in markdown
+
+
+
+def test_amended_population_reports_its_own_denominators_and_keeps_65_threshold():
+    from tests.unit.test_generalization_structural_amendment import amended_roster
+    from oeis_learn.generalization import structural
+    h=helper();exp,control,profiles,_=pac_setup();roster=amended_roster()
+    values=dict.fromkeys(roster,False);scope=structural.scope(structural.amended_design(structural.prior_protocol()))
+    result=h.analyze(roster,{'B':values,'C':values},experiment=exp,control=control,profiles=profiles,structural_scope=scope)
+    assert result['arms']['B']['certified']['families']==15 and result['structural_scope']==scope
+    assert result['comparisons']['C-B']['interpretable']
+    ids=[k for k,r in roster.items() if r['category']=='certified']
+    for k in ids[:4]:values[k]=None
+    assert not h.analyze(roster,{'B':values,'C':values},experiment=exp,control=control,profiles=profiles,structural_scope=scope)['comparisons']['C-B']['interpretable']
+    with pytest.raises(ValueError):h.analyze(roster,{},experiment=exp,control=control,profiles=profiles)

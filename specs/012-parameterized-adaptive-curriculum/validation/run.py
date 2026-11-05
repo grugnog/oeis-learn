@@ -45,7 +45,7 @@ def invoke(engine,operation,manifest,output,*,workspace=ROOT,qualification=None,
     return result
 
 
-def prepare_plan(workspace,*,engine,stages,inputs,source,images,research=False,arms=('B','C')):
+def prepare_plan(workspace,*,engine,stages,inputs,source,images,research=False,arms=('B','C'),structural_scope=None):
     from oeis_learn.generalization.contracts import verify_artifact
     from oeis_learn.pipeline_validation.identity import number
     if engine not in {'docker','podman'}:raise ValueError('explicit engine required')
@@ -61,9 +61,12 @@ def prepare_plan(workspace,*,engine,stages,inputs,source,images,research=False,a
     for ref in inputs:verify_artifact(workspace,ref,max_bytes=32<<30)
     if len(images)!=2 or any(not isinstance(v,str) or len(v)!=71 or not v.startswith('sha256:') for v in images):raise ValueError('immutable image pair required')
     from oeis_learn.pipeline_validation.generalization_pac_export import helper_identity
+    if structural_scope is not None:
+        from oeis_learn.generalization.structural import scope_protocol
+        scope_protocol(structural_scope)
     return seal(dict(version='pac-serial-plan/v1',engine=engine,research=research,arms=list(arms),source=source,images=images,
         inputs=inputs,stages=stages,seconds=sum(s['seconds'] for s in stages)+3600,finalization_seconds=3600,
-        helper=helper_identity(ROOT),scientific=dict(target_tokens=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED',automatic_winner=False)))
+        helper=helper_identity(ROOT),scientific=dict(**({'structural_scope':structural_scope} if structural_scope else {}),target_tokens=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED',automatic_winner=False)))
 
 
 def _read(path,cap=16<<20):
@@ -98,7 +101,7 @@ def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
     import time
     from oeis_learn.generalization.contracts import verify_artifact
     if seal(plan)!=plan or plan.get('version')!='pac-serial-plan/v1':raise ValueError('intact frozen plan required')
-    checked=prepare_plan(workspace,engine=plan['engine'],stages=plan['stages'],inputs=plan['inputs'],source=plan['source'],images=plan['images'],research=plan['research'],arms=plan['arms'])
+    checked=prepare_plan(workspace,engine=plan['engine'],stages=plan['stages'],inputs=plan['inputs'],source=plan['source'],images=plan['images'],research=plan['research'],arms=plan['arms'],structural_scope=plan['scientific'].get('structural_scope'))
     if any(checked[k]!=plan[k] for k in checked if k not in {'identity','helper'}):raise ValueError('plan fields changed')
     if runner is None:
         from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -268,13 +271,13 @@ def build_plan(args,workspace=ROOT):
     """Read-only original audit, explicit builds, then freeze one serial campaign."""
     import importlib.util
     from oeis_learn.experiments.source_snapshot import collect_snapshot
-    from oeis_learn.generalization.structural import design,prior_protocol
+    from oeis_learn.generalization.structural import amended_design,prior_protocol,scope
     from oeis_learn.pipeline_validation.generalization_preparation import reference
     from oeis_learn.pipeline_validation.engines import Images
     from oeis_learn.pipeline_validation.generalization_pac_setup import envelope
     from inputs import original_chain
     workspace=Path(workspace)
-    context=original_chain(workspace,prepared=args.prepared,pilot=args.pilot,protocol=design(prior_protocol()))
+    context=original_chain(workspace,prepared=args.prepared,pilot=args.pilot,protocol=amended_design(prior_protocol()))
     path=confined(workspace,args.output,exists=False)
     if path.exists():raise ValueError('fresh plan file required')
     folder=path.parent
@@ -303,7 +306,7 @@ def build_plan(args,workspace=ROOT):
         seconds=limits[category]['outer']+overhead+(limits['proof']['outer']+limits['validation']['outer'] if operation=='evaluate' else 0)+(86400 if name=='qualification' else 0)
         stages.append(dict(name=name,operation=operation,manifest='@admission',seconds=seconds,extra=[],requires=[] if not i else [stages[-1]['name']]))
     plan=prepare_plan(workspace,engine=args.engine,stages=stages,inputs=refs+[reference(folder/'original-context.json',workspace)],
-        source=digest(collect_snapshot(workspace)),images=pair,research=args.research,arms=arms)
+        source=digest(collect_snapshot(workspace)),images=pair,research=args.research,arms=arms,structural_scope=scope(amended_design(prior_protocol())))
     # Context and requested seed are immutable stage configuration, not outcomes.
     plan['stages'][0]['extra']=[str((folder/'original-context.json').relative_to(workspace)),str(args.seed)]
     plan=seal(plan);write(path,plan)

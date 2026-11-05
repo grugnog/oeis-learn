@@ -123,7 +123,9 @@ def verify_pac_evidence(record,*,root,finalized=True):
         native=read(record['native_admission'])
         if seal(native)!=native or native.get('status')!='PASS' or native.get('source')!=record['source'] or native.get('images')!=record['images']:raise ValueError('native admission source/image mismatch')
         if sorted(native['originals'],key=lambda r:r['name'])!=sorted(original_cells(),key=lambda r:r['name']):raise ValueError('all original exclusion cells required')
-        _pac_roster(native['roster'])
+        if native.get('version') not in {'pac-native-public/v1','pac-native-public/v2'}:raise ValueError('known native population version required')
+        if (native['version']=='pac-native-public/v2')!=('structural_scope' in native):raise ValueError('native structural scope version mismatch')
+        _pac_roster(native['roster'],scope=native.get('structural_scope'))
         q=read(record['qualification']);qroot=confined(root,record['qualification']['path']).parent
         consume_public(q,{k:q[k] for k in FACTS},root=qroot,required_suites=['bigint-cpu','bigint-gpu'],required_capabilities=['weight-load','finite-update','native-exact'])
         if q['images']!=record['images'] or q['runtime'].get('execution_policy')!=record['backend'] or digest(json.loads(verify_artifact(qroot,q['source_closure'])))!=record['source']:raise ValueError('qualification closure differs')

@@ -92,7 +92,8 @@ def test_pac_stale_pass_missing_quota_or_failed_process_cannot_qualify(tmp_path)
     with pytest.raises(ValueError):verify_pac_evidence(seal(dict(record,stages=stages)),root=tmp_path,finalized=False)
 
 
-def test_pac_complete_synthetic_proof_closure_roundtrips_real_collector_and_verifier(tmp_path):
+@pytest.mark.parametrize('amended',[False,True])
+def test_pac_complete_synthetic_proof_closure_roundtrips_real_collector_and_verifier(tmp_path,amended):
     """Synthetic device labels test archive wiring; no hardware evidence is produced."""
     from copy import deepcopy
     from pathlib import Path
@@ -145,7 +146,10 @@ def test_pac_complete_synthetic_proof_closure_roundtrips_real_collector_and_veri
         production_recipe=digest('synthetic model'),updates=64,tokens=100,valid_rewards=6,forecast_updates=10000,weights_are_research_initializers=False,
         samples=samples,forecasts={a:forecast(samples,updates=10000,arm=a,existing={}) for a in 'BC'})))
     nroot=root/'admission/execution/execution/role/private/assembly/resolved';nroot.mkdir(parents=True)
-    write(nroot/'admission.json',seal(dict(status='PASS',source=source_id,images=images,originals=original_cells(),roster=pac_roster())))
+    from tests.unit.test_generalization_structural_amendment import amended_roster
+    from oeis_learn.generalization import structural
+    write(nroot/'admission.json',seal(dict(**(dict(structural_scope=structural.scope(structural.amended_design(structural.prior_protocol()))) if amended else {}),
+        status='PASS',source=source_id,images=images,originals=original_cells(),roster=amended_roster() if amended else pac_roster())))
     names=['admission','qualification','calibration','acceptance']
     plan=seal(dict(source=source_id,images=images,helper=digest('synthetic helper'),research=False,arms=['B','C'],stages=[dict(name=n,extra=['synthetic context','7'] if n=='admission' else []) for n in names]))
     write(root/'plan.json',plan)

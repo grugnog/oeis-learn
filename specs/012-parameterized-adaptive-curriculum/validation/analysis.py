@@ -14,8 +14,8 @@ def prior():
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
 
 
-def analyze(roster,outcomes,*,experiment,control,profiles,costs=None,records=None,scored=None):
-    result=pac_comparison_report(roster,outcomes,experiment=experiment,control=control,profiles=profiles,costs=costs,portable=True)
+def analyze(roster,outcomes,*,experiment,control,profiles,costs=None,records=None,scored=None,structural_scope=None):
+    result=pac_comparison_report(roster,outcomes,experiment=experiment,control=control,profiles=profiles,costs=costs,portable=True,structural_scope=structural_scope)
     old=prior();scores={}
     for arm,values in sorted(outcomes.items()):
         scores[arm]={key:dict(equal_budget=dict(success=values.get(key) is True,complete=values.get(key) is not None,reason='recorded' if key in values else 'missing')) for key in roster}
@@ -45,7 +45,7 @@ def analyze(roster,outcomes,*,experiment,control,profiles,costs=None,records=Non
             if len(chosen)>=12:break
             if (case['arm'],case['task'],case['category']) not in seen:chosen.append(case);seen.add((case['arm'],case['task'],case['category']))
     for case in chosen:enrich_case(case,(records or {}).get(case['arm'],{}).get(case['task']),old)
-    result.update(reconstruction=dict(roster=roster,outcomes=outcomes,costs=costs),version='pac-analysis/v1',cases=chosen,missing_case_categories=[c for c in CATEGORIES if not buckets[c]],
+    result.update(reconstruction=dict(roster=roster,outcomes=outcomes,costs=costs,structural_scope=structural_scope),version='pac-analysis/v1',cases=chosen,missing_case_categories=[c for c in CATEGORIES if not buckets[c]],
         case_scope='generated candidate sources only; protected teacher/hidden values omitted',
         uncertainty='task-paired descriptive bounds; no inference across training seeds')
     return result
@@ -69,7 +69,9 @@ def analyze_campaign(root,*,output):
     study=read(manifest);runtime=read(runtime_file)
     from oeis_learn.pipeline_validation.generalization_execution import verify_pac_runtime
     verify_pac_runtime(study,runtime)
-    outcomes={};records={};scored={};roster=None;costs={}
+    admission=json.loads(verify_artifact(manifest.parent,runtime['prepared']['admission']))
+    expected_scope=admission.get('structural_scope')
+    outcomes={};records={};scored={};roster=None;structural_scope=None;costs={}
     def verified(name,path):
         entry=entries[name];base=root/entry['directory'];relative=str(path.relative_to(base))
         ref=next((r for r in entry['artifacts'] if r['path']==relative),None)
@@ -80,8 +82,10 @@ def analyze_campaign(root,*,output):
         arm='A' if name=='baseline' else name.split('-')[1]
         folder=root/name/'execution/evaluation'/('A-reference' if name=='baseline' and study['control_mode']=='fresh-control' else arm)
         scoring=verified(name,folder/'scoring/role/scoring.json')
+        if scoring.get('structural_scope')!=expected_scope:raise ValueError('scoring population differs from admitted scope')
         if scoring['study']!=study['identity'] or seal(scoring)!=scoring:raise ValueError('scorer study/seal mismatch')
-        if roster is None:roster=scoring['roster']
+        if roster is None:roster=scoring['roster'];structural_scope=scoring.get('structural_scope')
+        if scoring.get('structural_scope')!=structural_scope:raise ValueError('paired structural scope changed')
         if roster!=scoring['roster']:raise ValueError('paired structural population changed')
         outcomes[arm]=scoring['outcomes']['equal_budget'];scored[arm]=scoring['scored_cases']
         records[arm]=verified(name,folder/'generation/role/generation/selections.json')
@@ -93,7 +97,7 @@ def analyze_campaign(root,*,output):
         costs[arm]=dict(allowed_tokens=tokens['allowed'],useful_tokens=tokens['useful'],reserved_tokens=tokens['reserved'],discarded_tokens=tokens['discarded'],unspent_tokens=tokens['unspent'],
             examples=sum(v['examples'] for f in allocation['allocation'].values() for v in f.values()),updates=result['updates'],seconds=result['learner_seconds'])
     if roster is None:raise ValueError('no completed structural scoring available')
-    result=analyze(roster,outcomes,experiment=study,control=runtime['control'],profiles=runtime['profiles'],costs=costs,records=records,scored=scored)
+    result=analyze(roster,outcomes,experiment=study,control=runtime['control'],profiles=runtime['profiles'],costs=costs,records=records,scored=scored,structural_scope=structural_scope)
     write(output/'analysis.json',seal(result));(output/'cases.md').write_text(case_markdown(result));return result
 
 
@@ -117,6 +121,7 @@ def enrich_case(case,record,old):
 
 def case_markdown(result):
     lines=['# Scoped structural case review','',
+        'Population: '+str(result.get('structural_scope') or 'historical 27-family scope')+'.',
         'Single-seed exploratory finite agreement. Missing categories: '+', '.join(result['missing_case_categories'])+'.','']
     for i,c in enumerate(result['cases'],1):
         lines += [f"## {i}. {c['arm']} / {c['category']}",'',f"Task `{c['task']}`; finite outcome `{c['success']}`; reason `{c['reason']}`.",'',c['limitation'],'']

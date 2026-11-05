@@ -660,3 +660,17 @@ population with unchanged 128 and 68/26/34 task totals. Worst-source-multiplicit
 bounds make the fixed revised quotas feasible for every survivor subset with the
 reported counts; actual source/native admission remains mandatory. Historical v1
 is unchanged. Amendment, original structural and metric checks: **11 passed**.
+
+
+## F003 — End-to-end population identity
+
+The new builder freezes v2 in the plan and installed custodian; `pac-admission/v3`
+binds its exact scope identity and quotas. Scoped roster/scoring/native-public
+versions carry it to metrics, case analysis and the offline verifier. Public report
+collection checks admission against the frozen plan. Every compared arm must match
+the admitted scope; legacy metric readers still reject the 23-family roster without
+an explicit v2 identity. The generator receives only the unchanged visible payload.
+Both old and amended complete synthetic proof closures verify under `python -S`;
+new-scope scoring and analysis retain the 65/68 completion floor. Focused routing,
+archive, scope, analysis and wrapper closure: **47 passed**. Actual new native/HIP
+execution remains pending, not inferred from synthetic archive labels.
