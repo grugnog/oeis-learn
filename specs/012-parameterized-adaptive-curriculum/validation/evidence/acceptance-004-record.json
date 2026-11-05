@@ -1,0 +1,186 @@
+{
+  "archive": {
+    "bytes": 453255,
+    "publication": "NOT_PUBLISHED",
+    "sha256": "sha256:ff468438aafc28c086b3a835953d4968c68b682c7a03c11e771baac4a05f40c1",
+    "uploaded_name": "report(10).zip"
+  },
+  "backend": "sha256:7e8b6150696841d883936a6599c05d80b7055cb6d8c518846c29bc0897f5d71d",
+  "controls": {
+    "campaign_seconds": 367440,
+    "effective": [
+      {
+        "seconds": 118860,
+        "stage": "admission"
+      },
+      {
+        "seconds": 126060,
+        "stage": "qualification"
+      },
+      {
+        "seconds": 50460,
+        "stage": "calibration"
+      },
+      {
+        "seconds": 68460,
+        "stage": "acceptance"
+      }
+    ],
+    "finalization_seconds": 3600,
+    "identity": "sha256:5cc525b51eddf9482080e7510507e79d709dfd548718471b1f42fab2573d9ec3",
+    "progress": "stage elapsed/terminal status; see bounded projected logs; heartbeat is not completed work",
+    "requested": [
+      {
+        "seconds": 118860,
+        "stage": "admission"
+      },
+      {
+        "seconds": 126060,
+        "stage": "qualification"
+      },
+      {
+        "seconds": 50460,
+        "stage": "calibration"
+      },
+      {
+        "seconds": 68460,
+        "stage": "acceptance"
+      }
+    ],
+    "structural_scope": {
+      "design": "sha256:11779350eaf229ec7f37aab492a750342b484f091d4cdf3a2ae6eed06930d4cc",
+      "version": "pac-structural-scope/v2"
+    },
+    "version": "pac-campaign-controls/v1"
+  },
+  "evidence": "sha256:e4bd639c232543a9269de47e89f6ab7f6b2af073f312fbb954af87642d096d0f",
+  "helper": {
+    "observed": "sha256:430aa7c09551926fbcacab0fe1bc0c6b0e3ee4ffa4a113fc9bc547ff081418bd",
+    "requested": "sha256:430aa7c09551926fbcacab0fe1bc0c6b0e3ee4ffa4a113fc9bc547ff081418bd"
+  },
+  "images": [
+    "sha256:8c5814b6da8ff9edb4b9f8b01d653b937f92941e1051cbdacab713be20a84c4e",
+    "sha256:abfd06f7cafe415cc26bba28ac06f903d7e1a77013d868523fcb6a1c6520cdd4"
+  ],
+  "originals": [
+    {
+      "count": 128,
+      "holdout": "parameter",
+      "name": "selection-parameter",
+      "role": "selection"
+    },
+    {
+      "count": 128,
+      "holdout": "structural",
+      "name": "selection-structural",
+      "role": "selection"
+    },
+    {
+      "count": 128,
+      "holdout": "parameter",
+      "name": "assessment-parameter",
+      "role": "assessment"
+    },
+    {
+      "count": 128,
+      "holdout": "structural",
+      "name": "assessment-structural",
+      "role": "assessment"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "static",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-01",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-02",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-03",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-04",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-05",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-06",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-07",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-08",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-09",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-10",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-11",
+      "role": "training"
+    }
+  ],
+  "plan": "sha256:7f0cd8e86a10e450998eaf26fab1b0704cee882d7fa0001ce5858e14bcf351c8",
+  "qualification": "sha256:164f508c704d028d1581b0e3bfd24b15ddf99ba81d45c30bfd4056c11087d7a4",
+  "scope": {
+    "arms": [
+      "B",
+      "C"
+    ],
+    "assessment": "NOT_EXECUTED",
+    "parameter": "DEFERRED",
+    "research": false,
+    "seed": 20261016,
+    "target_tokens": 25000000
+  },
+  "source": "sha256:a5140e5d2be137411d6ae82bf6b6e28ec37ad27a8d71d3a283a4ce1ed814ac5c",
+  "verification": {
+    "evidence": "sha256:e4bd639c232543a9269de47e89f6ab7f6b2af073f312fbb954af87642d096d0f",
+    "feature_qualified": true,
+    "identity": "sha256:8284f63d02825d50ca0de6d8ca3039b8711f5a60cec9b61c8298c09597aad3e1",
+    "integrity": "PASS",
+    "scientific_status": "UNMEASURED",
+    "software_status": "PASS"
+  },
+  "version": "pac-phase-e-record/v1"
+}
