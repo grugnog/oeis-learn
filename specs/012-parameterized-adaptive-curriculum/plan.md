@@ -3,7 +3,7 @@
 **Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
 **Spec**: [spec.md](spec.md)
 **Input**: `specs/012-parameterized-adaptive-curriculum/spec.md`
-**Status**: Phases A/B/C implemented and locally validated, including installed CPU lifecycle and recovery. Stopped before phase D; operator delivery, actual native/container/HIP evidence and optional research remain pending.
+**Status**: Phases A/B/C implemented and locally validated, including installed CPU lifecycle and recovery. Phase D is in progress: T043–T044 input/control assembly is implemented, and a structural-truth provenance regression reopened and repaired C preparation. T045 onward, operator delivery, actual native/container/HIP evidence and optional research remain pending.
 
 ## Summary
 

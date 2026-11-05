@@ -325,8 +325,8 @@ must link actual check results, not merely cite this table.
 ## Completion accounting
 
 74 tasks: A 6, B 21, C 15, D 24, E 8. Story totals: US1 10, US2 8,
-US3 14, US4 22, US5 7; shared 13. Implementation completed A/B/C (42 tasks);
-D/E remain unchecked (32 tasks). Every implementation task has an incremental
+US3 14, US4 22, US5 7; shared 13. Implementation completed A/B/C and D T043–T044 (44 tasks);
+remaining D/E tasks stay unchecked (30 tasks). Every implementation task has an incremental
 implementation or counterexample commit; local evidence is recorded in the ledger.
 T073 is conditional research analysis and may remain explicitly deferred at
 software closeout. Failed/missing admission or device proof is a real blocker to
