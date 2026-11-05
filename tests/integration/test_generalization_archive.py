@@ -67,10 +67,10 @@ def test_final_controller_ledger_is_verified_without_rewriting_payloads(tmp_path
 def pac_record(status='FAIL'):
     from oeis_learn.pipeline_validation.identity import seal,digest
     return seal(dict(version='pac-public-evidence/v1',plan=digest('plan'),source=digest('source'),images=[digest('cpu'),digest('gpu')],
-        backend=digest('backend'),scope=dict(research=False,arms=['B','C'],target_tokens=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED'),
+        backend=digest('backend'),helper=dict(requested=digest('helper'),observed=digest('helper')),scope=dict(research=False,arms=['B','C'],seed=7,target_tokens=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED'),
         required=['admission','qualification','calibration','acceptance'],stages=[],software_status=status,scientific_status='UNMEASURED',
         errors=[dict(stage='admission',kind='Injected',status=status)] if status!='PASS' else [],omissions=['native admission unavailable'],
-        inventory=[],qualification=None,acceptance=None,native_admission=None))
+        inventory=[],qualification=None,acceptance=None,native_admission=None,calibration=None))
 
 
 @pytest.mark.parametrize('status',['FAIL','PARTIAL','INTERRUPTED','BLOCKED','INCONCLUSIVE'])

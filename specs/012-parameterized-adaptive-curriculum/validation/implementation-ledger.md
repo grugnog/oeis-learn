@@ -403,3 +403,16 @@ The actual HIP measurement handler is implemented, not executed here.
 ## T053 — Existing containment/worker regression closure
 
 `tests/integration/test_generalization_preparation.py tests/unit/test_pipeline_disk.py tests/unit/test_pipeline_supervision.py tests/unit/test_container_runtime.py`: **51 passed, 2 subtests passed**. These exercise existing ordered single/parallel preparation, failure/cancellation, symlink/path confinement, disk limits, watchdog lifecycle and Docker/Podman command construction. No native extension or engine was launched; actual warm/cold worker timing remains the E calibration handler's responsibility.
+
+## T054–T055 — Canonical PAC evidence and terminal archive
+
+PAC public evidence has a closed versioned envelope with frozen scope, original
+producer/process/cleanup identities, source/images/helper bindings, quota/native
+summary, qualification, actual PAC acceptance and measured calibration references.
+PASS requires complete compatible original proof closure; negative or incomplete
+scope remains negative/incomplete. Independent verification checks original report
+bytes, verifier identity and terminal COMPLETE before accepting the archive. The
+companion completion record binds the actual archive hash after verified creation.
+Known qualification build paths and the independently verified nested failure
+archive are permitted; arbitrary private paths and payloads remain excluded.
+Real packer/verifier negative-scope and stale-PASS fixtures pass.

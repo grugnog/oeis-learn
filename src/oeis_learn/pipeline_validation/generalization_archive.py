@@ -40,7 +40,10 @@ def verify_archive(archive,*,cap=512<<20):
                 raise ValueError('noncanonical evidence payload root')
             record=json.loads(verify_artifact(root,record['evidence']))
             root=confined(root,'payloads')
-        if record.get('version')=='generalization-acceptance-archive/v1':
+        if record.get('version')=='pac-public-evidence/v1':
+            from oeis_learn.generalization.acceptance_archive import verify_pac_evidence
+            result=verify_pac_evidence(record,root=root)
+        elif record.get('version')=='generalization-acceptance-archive/v1':
             from oeis_learn.generalization.acceptance_archive import verify_acceptance
             result=verify_acceptance(record,root=root)
         else:
