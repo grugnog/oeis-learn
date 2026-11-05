@@ -49,6 +49,8 @@ def check_training(inputs,output,settings,*,seconds):
         if not all('pac' in state['states']['scheduler'] for state in states):raise ValueError('mixed PAC/legacy proof')
         if settings['compare']:
             a,b=(state['states']['scheduler']['pac'] for state in states)
+            from oeis_learn.generalization.retention import deterministic_observer
+            a=dict(a,observer=deterministic_observer(a['observer']));b=dict(b,observer=deterministic_observer(b['observer']))
             keys=set(a)-{'observed_seconds'}
             if keys!=set(b)-{'observed_seconds'} or any(not same(a[k],b[k]) for k in keys):raise ValueError('resumed PAC policy/observer differs')
             extra['pac_equal']=True

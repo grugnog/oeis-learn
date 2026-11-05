@@ -74,7 +74,9 @@ class PacController:
     def run(self,state,ledger,*,update,save,seconds,max_updates=None):
         from oeis_learn.generalization.budgets import charge_tokens
         from oeis_learn.generalization.review import review_slot
-        deadline=time.monotonic()+seconds;self.deadline=deadline;p=self.policy
+        started=time.monotonic();base=state['scheduler'].get('learner_seconds',0.)
+        self.observer.coordinate_clock=lambda:base+time.monotonic()-started
+        deadline=started+seconds;self.deadline=deadline;p=self.policy
         def persist():
             state['scheduler']['pac']=self.snapshot();save(state,ledger)
         while time.monotonic()<deadline and not p.terminal and not p.pauses:
@@ -149,7 +151,9 @@ class PacFixedController:
             channels=dict(self.channels),observer=self.observer.snapshot())
     def run(self,state,ledger,*,update,save,seconds,max_updates=None):
         from .generalization_training import train_updates
-        self.deadline=time.monotonic()+seconds
+        started=time.monotonic();base=state['scheduler'].get('learner_seconds',0.)
+        self.observer.coordinate_clock=lambda:base+time.monotonic()-started
+        self.deadline=started+seconds
         updates=ledger.updates
         def actual(batch):
             nonlocal updates

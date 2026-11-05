@@ -254,7 +254,8 @@ def test_pac_real_installed_pause_resume_tensor_policy_equality(tmp_path,monkeyp
     assert a['ledger']==b['ledger']
     for key in ('weights','optimizer','rng','data'):assert_tensor_tree(a['states'][key],b['states'][key])
     assert a['states']['scheduler']['pac']['policy']==b['states']['scheduler']['pac']['policy']
-    assert a['states']['scheduler']['pac']['observer']==b['states']['scheduler']['pac']['observer']
+    from oeis_learn.generalization.retention import deterministic_observer
+    assert deterministic_observer(a['states']['scheduler']['pac']['observer'])==deterministic_observer(b['states']['scheduler']['pac']['observer'])
     assert full['initial_weights']==resumed['initial_weights']
     assert full['timing']['checkpoint_calls']<=3
     changed=dict(config,pac=dict(config['pac'],environment=digest('changed')))

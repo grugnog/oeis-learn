@@ -264,17 +264,23 @@ if __name__=='__main__':raise SystemExit(main())
 
 class PacObservers:
     """Model-bound monitoring and B shadow opportunities, never policy credit."""
-    def __init__(self,batches,*,arm,seed,observe,semantic=None,snapshot=None,acceptance=False):
+    def __init__(self,batches,*,arm,seed,observe,semantic=None,snapshot=None,acceptance=False,coordinate_clock=None):
         self.batches=batches;self.arm=arm;self.seed=seed;self.observe=observe;self.semantic=semantic
+        self.coordinate_clock=coordinate_clock
+        from oeis_learn.generalization.retention import empty_history,validate_history,append_panel
         self.block=2 if acceptance else 8;self.cycle=4*self.block;self.common_period=8 if acceptance else 256
         self.families=sorted(batches.families);self.anchors=sorted(batches.anchors)
-        self.state=dict(version='pac-acceptance-observers/v1' if acceptance else 'pac-observers/v1',arm=arm,seed=seed,inventory=batches.inventory['identity'],
+        self.state=dict(version='pac-acceptance-observers/v2' if acceptance else 'pac-observers/v2',arm=arm,seed=seed,inventory=batches.inventory['identity'],
             last_before=-1,last_common=-1,pending_shadow=None,shadow_blocks=0,shadow_grades=0,
             loss_panels=0,semantic_attempts=0,semantic_completed=0,semantic_success=0,
             allocation={f:{c:dict(updates=0,tokens=0,examples=0) for c in ('fixed','bandit','review','fallback')} for f in self.families},
             review_counts=dict(acquisitions=0,grades=0,successes=0,censored=0,incidental=0),reward_counts=dict(valid=0,censored=0),
-            rotation={},missing_rotations={f:0 for f in self.families},retention_incomplete=[],recent=[])
+            rotation={},missing_rotations={f:0 for f in self.families},retention_incomplete=[],recent=[],history=empty_history())
         if snapshot is not None:
+            snapshot=copy.deepcopy(snapshot)
+            if snapshot.get('version')==self.state['version'].replace('/v2','/v1'):
+                snapshot['version']=self.state['version'];snapshot['history']=empty_history(legacy_panels=snapshot['loss_panels'])
+            validate_history(snapshot.get('history',{}),self.families,snapshot['loss_panels'])
             if set(snapshot)!=set(self.state) or any(snapshot[k]!=self.state[k] for k in ('version','arm','seed','inventory')):raise ValueError('PAC observer restore identity')
             from oeis_learn.generalization.budgets import integer
             for key in ('shadow_blocks','shadow_grades','loss_panels','semantic_attempts','semantic_completed','semantic_success'):integer(snapshot[key])
@@ -300,19 +306,25 @@ class PacObservers:
         self.event(dict(kind='common_loss',update=update,loss_sum=sums,tokens=tokens,complete=complete,families=families,kernel_credit=False))
         start=((update+self.common_period-1)//self.common_period*4)%len(self.families)
         selected=[self.families[(start+i)%len(self.families)] for i in range(min(4,len(self.families)))]
+        semantic={f:dict(semantic_attempts=0,semantic_completed=0,semantic_success=0) for f in self.families}
         for f in selected:
             completed=False
             for key in self.batches.probes[f]:
-                self.state['semantic_attempts']+=1
+                self.state['semantic_attempts']+=1;semantic[f]['semantic_attempts']+=1
                 result=self.semantic(self.batches.probe_rows[key],self.batches.probe_truth[key],seconds=5) if self.semantic else None
                 if result is not None:
                     completed=True;self.state['semantic_completed']+=1;self.state['semantic_success']+=bool(result)
+                    semantic[f]['semantic_completed']+=1;semantic[f]['semantic_success']+=int(bool(result))
             self.state['rotation'][f]=completed
         if len(self.state['rotation'])==len(self.families):
             for f,complete in self.state['rotation'].items():
                 self.state['missing_rotations'][f]=0 if complete else self.state['missing_rotations'][f]+1
                 if self.state['missing_rotations'][f]>=2 and f not in self.state['retention_incomplete']:self.state['retention_incomplete'].append(f)
             self.state['rotation']={}
+        from oeis_learn.generalization.retention import append_panel
+        allocation=[v for f in self.state['allocation'].values() for v in f.values()]
+        coordinates=dict(update=update,tokens=sum(v['tokens'] for v in allocation),examples=sum(v['examples'] for v in allocation),seconds=self.coordinate_clock() if self.coordinate_clock else None)
+        append_panel(self.state['history'],coordinates,{f:dict(loss=families[f],semantic=semantic[f]) for f in self.families})
         self.state['last_common']=update
 
     def before(self,update):
