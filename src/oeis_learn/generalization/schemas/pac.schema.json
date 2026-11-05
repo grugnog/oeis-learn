@@ -704,7 +704,7 @@
           "pattern": "^sha256:[0-9a-f]{64}$"
         },
         "execution": {
-          "$ref": "#/$defs/hash"
+          "$ref": "#/$defs/identity"
         }
       },
       "required": [
@@ -734,7 +734,8 @@
         "source",
         "exposure",
         "diagnostics",
-        "literal_targets"
+        "literal_targets",
+        "execution"
       ],
       "additionalProperties": false
     },

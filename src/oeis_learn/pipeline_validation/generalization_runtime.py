@@ -307,7 +307,18 @@ def execution_refs(root,study,runtime,*,preparation=False):
     return list(unique.values())
 
 
-def learner_config(study,runtime,recipe,arm,seed):
+def learner_config(study,runtime,recipe,arm,seed,*,prepared=None):
+    if study.get("version")=="PAC-screen/v1":
+        from .generalization_execution import require_pac_admission
+        require_pac_admission(study,runtime,"train")
+        if arm not in study["arms"] or seed!=study["seed"] or prepared is None:raise ValueError("declared PAC arm/seed and prepared view required")
+        limits=runtime["envelope"]["learner"]
+        cap=study["target_tokens"] if runtime["purpose"]=="research" else runtime["envelope"]["acceptance_tokens"]
+        return dict(study=study["identity"],arm=arm,seed=seed,recipe=recipe,shards=prepared["literal" if arm=="A" else "parameterized"],
+            data_mode="static",batch_size=runtime["envelope"]["batch_size"],target_tokens=cap,
+            milestones=[m for m in (4_000_000,8_000_000,16_000_000,25_000_000) if m<=cap],seconds=limits["work"],device="cuda",checkpoint_policy="hourly/v1",
+            pac=dict(bundle=prepared,purpose=runtime["purpose"],source=study["source"],environment=digest(dict(images=runtime["images"],engine=runtime["engine"],backend=study["backend"])),
+                initializer=study["initializer"],publication_seconds=limits["publication"],observation_seconds=runtime["envelope"]["diagnostics_seconds"]))
     from oeis_learn.generalization.bootstrap import is_pending
     if is_pending(study['model']['initialization']):raise ValueError('unresolved acceptance initializer')
     if arm not in study['arms'] or seed not in study['seeds'] or arm not in runtime['training']:

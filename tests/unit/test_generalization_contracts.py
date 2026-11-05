@@ -55,7 +55,7 @@ def test_p4_cannot_freeze_random_initialization_without_common_retained_authorit
 def pac_shell():
     from oeis_learn.pipeline_validation.identity import digest
     h=digest('fixture')
-    return dict(version='PAC-screen/v1',arms=['B','C'],comparison_factors=['allocation_and_review'],seed=20261016,
+    return dict(version='PAC-screen/v1',execution=h,arms=['B','C'],comparison_factors=['allocation_and_review'],seed=20261016,
                 initializer=h,initializer_kind='random',pool=h,probes=h,targets=h,inventory=h,
                 policy='pac-exp3s-leitner/v1',budget_graph=[],metrics=['certified_family_macro'],
                 control=h,control_mode='reference-only',frozen=True,outcomes_seen=False,

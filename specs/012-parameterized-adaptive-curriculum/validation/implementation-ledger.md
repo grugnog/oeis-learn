@@ -205,3 +205,19 @@ propagation are completed by the following C groups.
 Local CPU dependencies use Dockerfile's torch 2.9.1+cpu and the committed non-torch
 lock export under Python 3.12.14. Docker/Podman and native/HIP remain unavailable;
 this environment is not represented as the pinned container image.
+
+## C2 — T030–T032
+
+Prepared data now retains original row/family identities and exact target tokens,
+with separately hashed probe and anchor inventories. Paired views retain the same
+concrete row order. Custodian preparation executes native/reference comparisons,
+requires all 16 original cells for research, and rejects quota shortages before
+publishing learner inputs. The reviewed structural draw code is shared with the
+installed package; historical draw behavior remains covered. Acceptance inventories
+are distinctly versioned and cannot qualify as research inventories.
+
+Focused preparation/schema/structural checks: 22 passed, 22 deselected. Exact fixed
+stream/token boundary test: 1 passed, 24 deselected. Initial schema checks exposed
+a misplaced protocol resource and an incorrect schema reference; both were fixed
+before the passing run. Native callbacks in these tests are independent reference
+fixtures, not actual native-extension proof. Real tensor integration follows C3.

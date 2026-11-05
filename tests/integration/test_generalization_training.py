@@ -413,3 +413,22 @@ def test_worker_terminal_pending_tokens_match_checkpoint_weights(tmp_path,monkey
     expired=m.run_torch(tmp_path,tmp_path/'expired',config,resume=(store.root,pointer))
     assert expired['status']=='PARTIAL' and expired['learner_seconds']>=30
     assert expired['tokens']==0 and expired['charged_tokens']==result['charged_tokens'] and expired['updates']==0
+
+
+def test_pac_batches_keep_fixed_order_and_exact_token_charge(tmp_path):
+    from tests.integration.test_generalization_preparation import pac_rows
+    from oeis_learn.pipeline_validation.generalization_preparation import prepare_pac_training
+    from oeis_learn.pipeline_validation.generalization_training import PacPreparedBatches
+    from oeis_learn.synthesis.reference import evaluate
+    from oeis_learn.generalization.budgets import charge_tokens
+    rows,probes=pac_rows()
+    def native(s,i):
+        r=evaluate(s,i);return dict(outcome=r.outcome,values=list(r.values))
+    bundle=prepare_pac_training(rows,probes,output=tmp_path/'data',execute=native,final_exclusions=[],seed=7,batch_size=2,purpose='acceptance')
+    stream=PacPreparedBatches(tmp_path/'data',bundle,arm='B',batch_size=2,updates=100)
+    assert [r['id'] for i in range(4) for r in stream[i]]==[r['id'] for r in rows]
+    assert stream[0]==stream[4]
+    s=states();seen=[];saved=[]
+    cost=charge_tokens([r['tokens'] for r in stream[0]],bos=1,pad=0)
+    result=train_updates(s,Ledger(cost-1),stream,update=seen.append,save=lambda state,ledger:saved.append(ledger))
+    assert not seen and result['ledger'].consumed==0 and result['ledger'].pending[1]==cost

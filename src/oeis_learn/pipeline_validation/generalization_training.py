@@ -424,3 +424,39 @@ def storage_preflight(recipe,study,runtime):
     reserve_storage(graph['required_checkpoint_bytes'],1,min(32<<30,runtime['storage']['checkpoint_bytes']))
     return dict(parameter_bytes=parameter_bytes,buffer_bytes=buffer_bytes,snapshot_reservation_bytes=snapshot_bytes,
         **graph,device='cpu',kind='measured_tensors_with_serial_peak_reservation')
+
+
+class PacPreparedBatches(PreparedBatches):
+    """Indexed paired targets with a verified family sidecar and separate probes."""
+    def __init__(self,root,bundle,*,arm,batch_size,updates):
+        import json
+        from oeis_learn.generalization.contracts import verify_artifact,shape
+        from oeis_learn.generalization.role_contracts import pac_training_refs
+        from oeis_learn.pipeline_validation.identity import seal
+        from oeis_learn.decoder.bigint_codec import encode_body
+        pac_training_refs(bundle,arm)
+        if seal(bundle)!=bundle:raise ValueError('PAC prepared bundle identity')
+        super().__init__(root,bundle['literal' if arm=='A' else 'parameterized'],batch_size=batch_size,mode='static',updates=updates)
+        self.inventory=json.loads(verify_artifact(root,bundle['inventory']))
+        if seal(self.inventory)!=self.inventory or self.inventory['role']!='training':raise ValueError('PAC training inventory integrity')
+        self.families={f['id']:f['rows'] for f in self.inventory['families']}
+        self.probes={f['id']:f['probes'] for f in self.inventory['families']}
+        self.anchors={a:f['id'] for f in self.inventory['families'] for a in f['anchors']}
+        self.row_families={r:f for f,ids in self.families.items() for r in ids}
+        self.rows={}
+        for i in range(self.count):
+            row=super()._row(i)
+            if row['id'] not in self.row_families:raise ValueError('prepared row absent from PAC family sidecar')
+            row['family']=self.row_families[row['id']];self.rows[row['id']]=row
+        if len(self.rows)!=len(self.row_families):raise ValueError('PAC family inventory/row count mismatch')
+        probe_families={r:f for f,ids in self.probes.items() for r in ids}
+        self.probe_rows={}
+        for row in json.loads(verify_artifact(root,bundle['probes'],max_bytes=8<<30)):
+            shape('training-target',row)
+            if row['id'] not in probe_families or row['tokens']!=encode_body(row['source']) or row['id'] in self.probe_rows or row['id'] in self.rows:raise ValueError('PAC disjoint encoded training probes required')
+            self.probe_rows[row['id']]=dict(id=row['id'],family=probe_families[row['id']],values=row['values'][:20],indices=row['indices'][:20],tokens=row['tokens'])
+        if set(self.probe_rows)!=set(probe_families) or any(len(p)!=8 for p in self.probes.values()):raise ValueError('complete PAC probe quota required')
+        self.identity=digest(dict(prepared=bundle['identity'],arm=arm,batch_size=batch_size))
+
+    def _row(self,index):
+        row=super()._row(index);row['family']=self.row_families[row['id']];return row

@@ -116,7 +116,7 @@ No broad reporting/wrapper work belongs here.
 
 - [X] T030 [US2] Add real prepared-input/target-sidecar/role isolation integration cases in `tests/integration/test_generalization_preparation.py` and `tests/integration/test_generalization_training.py`; include corrupted family hashes, missing probe quota, protected feedback injection, control fallback, identical concrete rows and fixed B order with actual encoded batches.
 - [X] T031 [US2] Bind original corpus, hash-bound family sidecar, finite probes/anchors and paired target proofs through `src/oeis_learn/pipeline_validation/generalization_preparation.py` and `src/oeis_learn/generalization/preparation.py`; execute native/reference admission before research, keep exact data/probe role boundaries and emit private proof plus safe coverage/deficit summaries.
-- [ ] T032 [US2] Extend `src/oeis_learn/pipeline_validation/generalization_training.py` to retain family/row IDs through real prepared batches, reuse existing learning target/fitter support and identical fresh B/C initialization, and charge exact canonical target tokens without clipping batches to fake 25M equality; fixed B remains fixed and acceptance tensors cannot become research initialization.
+- [X] T032 [US2] Extend `src/oeis_learn/pipeline_validation/generalization_training.py` to retain family/row IDs through real prepared batches, reuse existing learning target/fitter support and identical fresh B/C initialization, and charge exact canonical target tokens without clipping batches to fake 25M equality; fixed B remains fixed and acceptance tensors cannot become research initialization.
 
 ### C3 — US3: Actual contiguous feedback and review updates (P1)
 

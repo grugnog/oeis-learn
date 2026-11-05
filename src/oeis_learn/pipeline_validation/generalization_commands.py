@@ -305,7 +305,7 @@ def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
             raise ValueError('PAC qualification image/source mismatch')
         if args.operation!='train':raise ValueError('PAC evaluation requires the scoped structural delivery adapter')
         if not args.arms or not args.seeds or len(set(args.arms))!=len(args.arms) or len(set(args.seeds))!=len(args.seeds):raise ValueError('explicit unique PAC arm/seed selection')
-        configs=[learner_config(study,runtime,plan['recipe'],a,s) for a in args.arms for s in args.seeds]
+        configs=[learner_config(study,runtime,plan['recipe'],a,s,prepared=plan['training']) for a in args.arms for s in args.seeds]
         if args.resume and len(configs)!=1:raise ValueError('PAC resume selects one arm')
         results=[]
         prepared=plan['training']
