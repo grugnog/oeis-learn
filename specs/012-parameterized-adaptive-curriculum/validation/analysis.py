@@ -44,6 +44,7 @@ def analyze(roster,outcomes,*,experiment,control,profiles,costs=None,records=Non
         for case in buckets[category]:
             if len(chosen)>=12:break
             if (case['arm'],case['task'],case['category']) not in seen:chosen.append(case);seen.add((case['arm'],case['task'],case['category']))
+    for case in chosen:enrich_case(case,(records or {}).get(case['arm'],{}).get(case['task']),old)
     result.update(version='pac-analysis/v1',cases=chosen,missing_case_categories=[c for c in CATEGORIES if not buckets[c]],
         case_scope='generated candidate sources only; protected teacher/hidden values omitted',
         uncertainty='task-paired descriptive bounds; no inference across training seeds')
@@ -87,4 +88,33 @@ def analyze_campaign(root,*,output):
             examples=sum(v['examples'] for f in allocation['allocation'].values() for v in f.values()),updates=result['updates'],seconds=result['learner_seconds'])
     if roster is None:raise ValueError('no completed structural scoring available')
     result=analyze(roster,outcomes,experiment=study,control=runtime['control'],profiles=runtime['profiles'],costs=costs,records=records,scored=scored)
-    write(output/'analysis.json',seal(result));return result
+    write(output/'analysis.json',seal(result));(output/'cases.md').write_text(case_markdown(result));return result
+
+
+def enrich_case(case,record,old):
+    if record is None:return
+    selected=record.get('selections',{}).get('equal_budget')
+    if selected:
+        old.check_envelope(selected)
+        case.update(original_source=selected['original_source'],parameterized_source=selected['transformed_source'],
+            fitted_source=selected['selected']['source'],assignment=dict(selected['assignment']),
+            limitation='visible20 fit with independently recorded100-term outcome; not a unique generating law')
+    else:
+        attempts=record.get('details',{}).get('correct',{}).get('details',[])
+        if attempts and isinstance(attempts[0].get('source'),str):case['original_source']=attempts[0]['source'][:65536]
+        case['limitation']=('censored decoding/fitting/execution; structural correctness unmeasured' if case['category']=='decode_timeout'
+            else 'no admitted visible fit; wrong structure versus solver limitation unresolved')
+    if case['category']=='simple_control_win':
+        control=record.get('selections',{}).get('template')
+        if control:old.check_envelope(control);case['simple_control_source']=control['selected']['source']
+
+
+def case_markdown(result):
+    lines=['# Scoped structural case review','',
+        'Single-seed exploratory finite agreement. Missing categories: '+', '.join(result['missing_case_categories'])+'.','']
+    for i,c in enumerate(result['cases'],1):
+        lines += [f"## {i}. {c['arm']} / {c['category']}",'',f"Task `{c['task']}`; finite outcome `{c['success']}`; reason `{c['reason']}`.",'',c['limitation'],'']
+        for key in ('original_source','parameterized_source','fitted_source','simple_control_source'):
+            lines += [key.replace('_',' ').capitalize()+':','```text',c.get(key) or 'Unavailable','```','']
+        lines += ['Fitted assignment: `'+json.dumps(c.get('assignment'),sort_keys=True)+'`.','']
+    return '\n'.join(lines)+'\n'

@@ -31,3 +31,13 @@ def test_unknown_scope_and_private_source_case_rejected_or_omitted():
     h=helper();exp,control,profiles,_=pac_setup();roster=pac_roster()
     with pytest.raises(ValueError):h.analyze(dict(list(roster.items())[:-1]),{},experiment=exp,control=control,profiles=profiles)
     with pytest.raises(ValueError):h.analyze(roster,{'D':{}},experiment=exp,control=control,profiles=profiles)
+
+
+def test_generated_source_projection_excludes_hidden_fields_and_names_limitations():
+    h=helper();roster=pac_roster();exp,control,profiles,_=pac_setup();outcomes={'B':dict.fromkeys(roster,False),'C':dict.fromkeys(roster,False)}
+    records={a:{k:dict(selections={},details={'correct':{'details':[{'source':'(program (return (int 0)))'}]}},hidden_values=['secret'],target_source='private teacher') for k in roster} for a in outcomes}
+    result=h.analyze(roster,outcomes,experiment=exp,control=control,profiles=profiles,records=records)
+    assert len(result['cases'])>=12 and all(c['original_source'] for c in result['cases'])
+    assert 'secret' not in str(result) and 'private teacher' not in str(result)
+    markdown=h.case_markdown(result)
+    assert markdown.count('## ')>=12 and 'solver limitation unresolved' in markdown
