@@ -120,3 +120,80 @@ parameters, and final-source validation. Paired-target/solver/role parity is cov
 by the source-bound qualification tests. No full B/C structural inference occurred;
 empirical raw/fitted success, continuation and wall-time comparisons remain absent,
 not fabricated as parity results. Tiny acceptance tensors remain diagnostic only.
+
+## T071: Actual reward/review path and measured cost
+
+The original acceptance receipt reports **six valid rewards** and **two graded
+anchors**. The source-bound producer loads actual final controller/policy state,
+requires its last observation to be neither warmup, degenerate nor censored, and
+requires acquired/exposed anchors from both target strata. The installed controller
+records the same pre/post panel around one contiguous family block, completes the
+kernel/scaler transaction before its next decision, and commits anchor grades only
+after successful optimizer work. These are checked producer attestations, not
+fabricated observation rows or a claim that private state was re-read locally.
+
+The full-state proof additionally compares the entire PAC policy and observer,
+including block/selection probability, kernel, scaler reservoir/RNG, row/probe
+streams and anchor states, excluding elapsed observer seconds. Numeric raw gains,
+six scaled rewards and individual anchor grades are not separately exported;
+no positive learning gain, semantic mastery or family retention is inferred.
+
+The acceptance fixture has two families, initially uniform. The first five valid
+scaler observations are warmup zeros. Graves sharing with observed zero preserves
+uniform weights, so **each of its first six block selections has probability 1/2**,
+including the first non-warmup opportunity. This probability is independently
+*derived* from the source-bound fixture/kernel and recorded valid clock, not an
+exported raw selection trace. The six valid updates advance the scaler seen clock
+to six, and the sixth kernel update uses alpha=1/7. Source checks reject duplicate
+feedback and retain the probability recorded at selection. Production has 32
+families and its distinct exploration bounds 1/128 and 97/128; acceptance does not
+empirically establish production family exposure or 128-anchor service coverage.
+
+| Clock | Reduced HIP acceptance | Production policy |
+| --- | ---: | ---: |
+| Family block updates | 2 | 8 |
+| Bandit/review cycle updates | 8 | 32 |
+| Review interval base updates | 1 | 512 |
+| Common-panel cadence updates | 8 | 256 |
+
+Actual HIP acceptance reaches 16 committed updates and both pause boundaries, with
+an encoded-token minimum of 1,024; actual consumed tokens are 752. The minimum is
+a conservative cap allowing all boundaries, not a claim that all of it was spent.
+Production 8/32 clocks, missing-feedback pauses and all review-cycle offsets have
+independent installed CPU/qualified regression coverage. They are distinct from
+the reduced device proof.
+
+Production-shape calibration separately performs 64 updates, six valid rewards
+and a real complete-state save/load. All fifteen required sample categories are
+present; one or two samples per category are a limited calibration, not a robust
+worst-case performance survey.
+
+| Sample | Count | Largest observed seconds |
+| --- | ---: | ---: |
+| Short update | 2 | 0.616624449 |
+| Long update | 2 | 0.897658407 |
+| Cold native | 2 | 0.188891724 |
+| Warm native | 2 | 0.006493950 |
+| Reward probe | 2 | 0.029068204 |
+| Anchor grade | 2 | 0.015180335 |
+| Common panel | 1 | 1.938198486 |
+| Semantic attempt | 2 | 0.368159817 |
+| Complete checkpoint save | 1 | 2.834473869 |
+| Complete checkpoint load | 1 | 2.041430625 |
+
+The remaining early/later shard, RNG restore, publication and cleanup samples are
+present in the original calibration record. These timings are measurements of
+those individual callbacks, not all-inclusive startup or cold-shard throughput;
+the already-loaded one-shard row lookup is warm. Do not interpret its microseconds
+as initial corpus loading speed.
+
+Both B/C forecasts use a conservative 26,940-update bound: update work
+24,182.917491 seconds plus diagnostics 17,724.305655 seconds, or **11.640895 hours
+per arm**. The diagnostic projection charges the full five-second semantic budget
+even though the two sampled attempts finished sooner. It reserves 53,176.793361
+diagnostic seconds, with a 239,284.008460-second (**66.467780-hour**) learner ceiling.
+The projection is a planning bound from short samples and scientific budgets;
+the ceiling is not an ETA. Preparation/generation forecasts remain explicit gaps.
+No wall limit or scientific budget was silently enlarged during research; no
+research arm ran. The observed production calibration and reduced correctness
+acceptance serve separate purposes.

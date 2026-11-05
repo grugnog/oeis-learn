@@ -53,6 +53,90 @@
     },
     "version": "pac-campaign-controls/v1"
   },
+  "curriculum_review": {
+    "acceptance_cadence": {
+      "block_updates": 2,
+      "common_updates": 8,
+      "cycle_updates": 8,
+      "review_interval": 1
+    },
+    "acceptance_rewards": 6,
+    "calibration": "sha256:783486b2bbb3d470cf064df249dd7e3c801dad73ec75f821fc897cf944cb24e7",
+    "calibration_tokens": 122464,
+    "calibration_updates": 64,
+    "calibration_valid_rewards": 6,
+    "forecasts": {
+      "B": {
+        "diagnostic_forecast_seconds": 17724.30565477442,
+        "guaranteed_worst_case": false,
+        "learner_ceiling_seconds": 239284.0084601026,
+        "update_seconds": 24182.9174905736
+      },
+      "C": {
+        "diagnostic_forecast_seconds": 17724.30565477442,
+        "guaranteed_worst_case": false,
+        "learner_ceiling_seconds": 239284.0084601026,
+        "update_seconds": 24182.9174905736
+      }
+    },
+    "graded_anchors": 2,
+    "raw_observations": "NOT_EXPORTED",
+    "samples": {
+      "cleanup": [
+        0.0008558100089430809
+      ],
+      "cold_native": [
+        0.1888917237520218,
+        0.005930914077907801
+      ],
+      "common_panel": [
+        1.9381984863430262
+      ],
+      "early_shard": [
+        2.0448118448257446e-05
+      ],
+      "grade": [
+        0.013266195077449083,
+        0.01518033491447568
+      ],
+      "later_shard": [
+        9.027309715747833e-06
+      ],
+      "load": [
+        2.0414306251332164
+      ],
+      "long_update": [
+        0.8976584072224796,
+        0.556114012375474
+      ],
+      "publication": [
+        0.007322951219975948
+      ],
+      "restore": [
+        1.9575003534555435e-05
+      ],
+      "reward_probe": [
+        0.029068203642964363,
+        0.023615953978151083
+      ],
+      "save": [
+        2.834473868831992
+      ],
+      "semantic": [
+        0.3681598170660436,
+        0.3517002980224788
+      ],
+      "short_update": [
+        0.6166244489140809,
+        0.4222449087537825
+      ],
+      "warm_native": [
+        0.006493949797004461,
+        0.00574468495324254
+      ]
+    },
+    "selected_probability": "1/2 (derived for first six fixture blocks, not an exported trace)"
+  },
   "evidence": "sha256:e4bd639c232543a9269de47e89f6ab7f6b2af073f312fbb954af87642d096d0f",
   "helper": {
     "observed": "sha256:430aa7c09551926fbcacab0fe1bc0c6b0e3ee4ffa4a113fc9bc547ff081418bd",
