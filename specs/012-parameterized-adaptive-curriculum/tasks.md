@@ -425,3 +425,37 @@ T077 remediation: producer-inventoried campaign scoring now projects all seven c
 T078 remediation: independent counterexamples first reproduced 12 failing scientific-authority cases. The verifier now derives scope/status from reconstructed outcomes plus a separately bound accepted research authority, native population and terminal producers; acceptance-only stays UNMEASURED, missing data stays INCOMPLETE, and each compared arm needs >=65/68 certified completion. Sealed report aggregates are compared canonically (including boolean/integer distinctions); nested public authority shapes fail closed. Targeted closure selection: 77 passed, then the added reference-only completion check passed in the 25-test research selection. Historical recipes/evidence are unchanged. See `validation/convergence.md` for versions, limits and reproduction.
 
 Conformance final check: T075–T078 are checked. Broad local regression: 598 passed, 3 actual-HIP tests deselected, after repairing an older fixture missing its protocol version. The final optional fresh-A/D reporting counterexample now preserves A-reference separately; affected analysis/export/policy/spec selection: 93 passed. Whitespace, compilation, prerequisites and unchanged 16/16 checklist pass; no hooks are registered. T073 remains deferred. Current runtime/helper changes require their own affected image/source qualification before a live campaign; historical HIP attestations remain scoped to their original sources.
+
+## Phase 7: R0 diagnostic rehearsal
+
+Operator request 2026-11-05: implement the short rehearsal in
+`validation/research-plan.md`, reusing completed work. These tasks do not reopen
+completed research decisions or authorize executing HIP here. Reuse the existing
+learner, stop boundaries, complete-state proofs, role isolation and archive packer.
+The new diagnostic stage must not qualify its intentionally PARTIAL learners as
+completed research or become a research initializer. Existing B/C/D research stays
+one seed 20261016 and 25M tokens/arm. Critical correctness fixes, if necessary,
+remain owned by the existing B/C phases; this is routine diagnostic delivery.
+Commit and push each subgroup; preserve all existing completed task text.
+
+### R0 counterexamples
+
+- [X] T079 Add independent diagnostic-scope/count/status/source tampering and serial stop/resume/export counterexamples in `tests/unit/test_generalization_rehearsal.py` and `specs/012-parameterized-adaptive-curriculum/validation/test_rehearsal.py`; reproduce missing behavior before implementation, per FR-019/020/025/030 and research-plan R0.
+
+### Installed diagnostic composition
+
+- [ ] T080 Implement a minimal installed composition of existing learner/proof/evaluation handlers in `src/oeis_learn/pipeline_validation/generalization_pac_rehearsal.py`; exercise B/C/D production model/data/batch32/cadence for 256 committed updates, compare C uninterrupted versus pause129/resume256, verify finite changed weights/identical initial tensors/charged channels and loaded final forward, and preserve PARTIAL learner dispositions and UNMEASURED science. Register it only behind native admission/current qualification in existing PAC role/job dispatch; add real CPU tensor adapter coverage before closing, per FR-030 and research-plan R0.
+
+### Temporary runner and evidence
+
+- [ ] T081 Extend `specs/012-parameterized-adaptive-curriculum/validation/run.py` with explicit rehearsal and stop-after-rehearsal options; freeze B/C/D R1 before outcomes, reuse exact compatible completed stages on resume, and retain generous bottom-up limits. Add versioned public diagnostic evidence and independent success/failure/recovery archive checks through existing canonical exporter/verifier, per FR-022–026 and NFR-002/004/006.
+
+### Local closure and operator handoff
+
+- [ ] T082 Run relevant non-HIP regressions, verify stdlib host help and source fingerprint, update `validation/research-plan.md`, `quickstart.md` and `validation/r0-implementation.md` with exact R0/R1/resume/recovery commands, runtime expectations and proof limitations; commit/push each coherent group without waiting for CI, per NFR-003/007 and research-plan handoff.
+
+### Workstation evidence (not executable in this implementation turn)
+
+- [ ] T083 Execute the published current-source R0 command on actual HIP, inspect its independently verified diagnostic report and record actual B/C/D/update/resume results in `validation/r0-implementation.md`; only then continue the frozen R1 campaign. Keep this task open until operator evidence exists; no full research or positive result is required to implement T079–T082.
+
+T079: twenty independent pre-implementation counterexamples fail as expected (missing diagnostic verifier and rehearsal runner options). Requirements checklist 16/16; existing ignore files already cover Python/build/private run-state artifacts. No HIP executed.
