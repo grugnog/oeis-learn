@@ -471,7 +471,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     return result
 
 
-def storage_preflight(recipe,study,runtime):
+def storage_preflight(recipe,study,runtime,*,extra_generations=0):
     """Measure actual CPU model tensors and reserve optimizer/pinned snapshots."""
     pac=runtime.get('version')=='pac-runtime/v1'
     if not pac and not runtime['training']:
@@ -489,8 +489,12 @@ def storage_preflight(recipe,study,runtime):
     if pac:
         from oeis_learn.generalization.resources import pac_peak_storage
         storage=dict(runtime['envelope']['storage']);available=storage.pop('reserved_bytes')
-        return pac_peak_storage(arms=study['arms'],snapshot_bytes=snapshot_bytes,weights_bytes=parameter_bytes+buffer_bytes,
+        graph=pac_peak_storage(arms=study['arms'],snapshot_bytes=snapshot_bytes,weights_bytes=parameter_bytes+buffer_bytes,
             milestones=4 if runtime['purpose']=='research' else 0,available_bytes=available,scratch_kind='disk',**storage)
+        if type(extra_generations) is not int or extra_generations<0:raise ValueError('bounded diagnostic generation count')
+        required=graph['required_bytes']+extra_generations*snapshot_bytes
+        if required>available:raise ValueError('insufficient combined rehearsal/research snapshot storage')
+        return dict(graph,required_bytes=required,rehearsal_generations=extra_generations) if extra_generations else graph
     if runtime['replay'] is not None:snapshot_bytes+=128<<20
     from oeis_learn.generalization.resources import checkpoint_reservation
     graph=checkpoint_reservation(snapshot_bytes=snapshot_bytes,weights_bytes=parameter_bytes+buffer_bytes,

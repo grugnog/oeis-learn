@@ -5,7 +5,7 @@ from .identity import seal,confined,write,digest
 from .generalization_preparation import reference
 from .generalization_roles import project_and_invoke
 
-OPERATIONS={'pac-assemble':('preparation',False),'pac-campaign-acceptance':('learner',True),'pac-calibrate':('learner',True)}
+OPERATIONS={'pac-assemble':('preparation',False),'pac-campaign-acceptance':('learner',True),'pac-calibrate':('learner',True),'pac-rehearse':('learner',True)}
 
 
 def main(args,workspace,host_factory):
@@ -40,7 +40,7 @@ def main(args,workspace,host_factory):
             from oeis_learn.generalization.metrics import _pac_roster
             if (admission['version']=='pac-admission/v3')!=('structural_scope' in admission):raise ValueError('native admission scope version mismatch')
             _pac_roster(admission['roster'],scope=admission.get('structural_scope'))
-            if job['operation']=='pac-calibrate' and admission['training']!=job['settings']['bundle']['identity']:raise ValueError('calibration bundle differs from native admission')
+            if job['operation'] in {'pac-calibrate','pac-rehearse'} and admission['training']!=job['settings']['bundle']['identity']:raise ValueError('calibration bundle differs from native admission')
             from .generalization_qualification_io import consume_original
             if job['qualification'] is None:raise ValueError('original qualification required before GPU work')
             qualified=consume_original(host,workspace,confined(workspace,job['qualification']),output/'qualification',

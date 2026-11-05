@@ -444,7 +444,7 @@ Commit and push each subgroup; preserve all existing completed task text.
 
 ### Installed diagnostic composition
 
-- [ ] T080 Implement a minimal installed composition of existing learner/proof/evaluation handlers in `src/oeis_learn/pipeline_validation/generalization_pac_rehearsal.py`; exercise B/C/D production model/data/batch32/cadence for 256 committed updates, compare C uninterrupted versus pause129/resume256, verify finite changed weights/identical initial tensors/charged channels and loaded final forward, and preserve PARTIAL learner dispositions and UNMEASURED science. Register it only behind native admission/current qualification in existing PAC role/job dispatch; add real CPU tensor adapter coverage before closing, per FR-030 and research-plan R0.
+- [X] T080 Implement a minimal installed composition of existing learner/proof/evaluation handlers in `src/oeis_learn/pipeline_validation/generalization_pac_rehearsal.py`; exercise B/C/D production model/data/batch32/cadence for 256 committed updates, compare C uninterrupted versus pause129/resume256, verify finite changed weights/identical initial tensors/charged channels and loaded final forward, and preserve PARTIAL learner dispositions and UNMEASURED science. Register it only behind native admission/current qualification in existing PAC role/job dispatch; add real CPU tensor adapter coverage before closing, per FR-030 and research-plan R0.
 
 ### Temporary runner and evidence
 
@@ -459,3 +459,5 @@ Commit and push each subgroup; preserve all existing completed task text.
 - [ ] T083 Execute the published current-source R0 command on actual HIP, inspect its independently verified diagnostic report and record actual B/C/D/update/resume results in `validation/r0-implementation.md`; only then continue the frozen R1 campaign. Keep this task open until operator evidence exists; no full research or positive result is required to implement T079–T082.
 
 T079: twenty independent pre-implementation counterexamples fail as expected (missing diagnostic verifier and rehearsal runner options). Requirements checklist 16/16; existing ignore files already cover Python/build/private run-state artifacts. No HIP executed.
+
+T080: installed composition and closed proof checks pass 20 local tests, including real CPU B/C/D 256-update traces plus C pause129/resume256 against uninterrupted C. CPU test explicitly adapts production data/device boundaries and is not HIP/performance evidence. Production request requires full admitted 32-family/32,768-row pool, batch32, fresh initializer identity and current HIP environment. Sixteen additional snapshot generations are measured/reserved for diagnostic retention; all five child invocations and four tensor proofs are enclosed without shortening their allowances.

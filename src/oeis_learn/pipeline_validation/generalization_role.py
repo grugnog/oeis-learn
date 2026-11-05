@@ -267,6 +267,7 @@ def publish_initializer(inputs,output,settings,*,seconds):
 from .generalization_acceptance import pac_acceptance
 from .generalization_pac_evaluation import publish_views,score_views
 from .generalization_pac_calibration import calibrate as pac_calibrate
+from .generalization_pac_rehearsal import rehearse as pac_rehearse
 from .generalization_pac_setup import assemble as _pac_assemble,acceptance as pac_campaign_acceptance
 
 def pac_assemble(inputs,output,settings,*,seconds):
@@ -276,7 +277,7 @@ def pac_assemble(inputs,output,settings,*,seconds):
 def pac_generator(inputs,output,settings,*,seconds):
     return generator(inputs,output,settings,seconds=seconds,pac=True)
 
-HANDLERS={(Role.LEARNER,'pac-calibrate'):pac_calibrate,(Role.PREPARATION,'pac-assemble'):pac_assemble,(Role.LEARNER,'pac-campaign-acceptance'):pac_campaign_acceptance,(Role.PREPARATION,'pac-publish-evaluation'):publish_views,(Role.GENERATOR,'pac-evaluate'):pac_generator,(Role.SELECTION,'pac-score'):score_views,(Role.LEARNER,'pac-acceptance'):pac_acceptance,(Role.PREPARATION,'pac-prepare'):pac_preparation,(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
+HANDLERS={(Role.LEARNER,'pac-rehearse'):pac_rehearse,(Role.LEARNER,'pac-calibrate'):pac_calibrate,(Role.PREPARATION,'pac-assemble'):pac_assemble,(Role.LEARNER,'pac-campaign-acceptance'):pac_campaign_acceptance,(Role.PREPARATION,'pac-publish-evaluation'):publish_views,(Role.GENERATOR,'pac-evaluate'):pac_generator,(Role.SELECTION,'pac-score'):score_views,(Role.LEARNER,'pac-acceptance'):pac_acceptance,(Role.PREPARATION,'pac-prepare'):pac_preparation,(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
           (Role.SELECTION,'select-checkpoints'):checkpoint_selection,
           (Role.ASSESSMENT,'score'):assessment,
           (Role.LEARNER,'replay-audit'):replay_audit,(Role.GENERATOR,'replay-propose'):replay_propose,
