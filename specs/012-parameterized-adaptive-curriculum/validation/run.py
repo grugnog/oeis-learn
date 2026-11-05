@@ -175,6 +175,16 @@ def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None):
                 entry=dict(stage=name,status='INTERRUPTED' if isinstance(exc,KeyboardInterrupt) else 'FAIL',binding=binding,directory=name,reused=False,
                     producer=digest([name,type(exc).__name__]),artifacts=[],elapsed_seconds=time.monotonic()-began)
                 record['errors'].append(dict(stage=name,kind=type(exc).__name__,status=entry['status']))
+                # Capture bounded failed-stage evidence without qualifying it for reuse.
+                try:
+                    from oeis_learn.pipeline_validation.generalization_lifecycle import inventory
+                    entry['artifacts']=inventory(target)
+                    for supervision in ('supervision','execution-supervision'):
+                        path=target/supervision/'process.json'
+                        if path.is_file():entry['process']=_read(path,cap=64<<10);break
+                    entry['cleanup']=dict(acknowledged=False,within_bound=False)
+                except Exception as capture:
+                    record['errors'].append(dict(stage=name,kind=type(capture).__name__,status='FAIL'))
         if name=='calibration' and entry['status']=='PASS' and entry.get('operational_envelope'):
             e=entry['operational_envelope']
             for future in effective_stages:
@@ -297,6 +307,11 @@ def build_plan(args,workspace=ROOT):
     # Context and requested seed are immutable stage configuration, not outcomes.
     plan['stages'][0]['extra']=[str((folder/'original-context.json').relative_to(workspace)),str(args.seed)]
     plan=seal(plan);write(path,plan)
+    print('Frozen plan: '+str(path)+' identity='+plan['identity'],flush=True)
+    print(json.dumps(dict(scope='research' if plan['research'] else 'software acceptance only',arms=arms,
+        target_tokens_per_research_arm=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED',
+        source=plan['source'],images=pair,engine=args.engine,initial_ceiling_seconds=plan['seconds'],
+        measured_ETA='unavailable before representative calibration'),sort_keys=True),flush=True)
     return path,plan
 
 
@@ -323,6 +338,7 @@ def _canonical_stage(plan,stage,target,workspace,receipts,*,resume_path=None):
         settings=dict(context=context,images=plan['images'],engine=plan['engine'],research=plan['research'],arms=plan['arms'],seed=seed,source=plan['source'])
         result=_role_job(plan,'pac-assemble',settings,{'mechanical_sources':plan['inputs'],'isolation_truth':[]},
             {'mechanical_sources':workspace},target,workspace)
+        if result['status']!='PASS':return result
         role=target/'execution/execution/role'
         result['resolved_manifest']=str((role/result['result']['manifest']).relative_to(workspace))
         result['resolved_runtime']=str((role/result['result']['runtime']).relative_to(workspace))
@@ -472,12 +488,16 @@ def main(argv=None):
     resume=sub.add_parser('resume');resume.add_argument('--plan',required=True);resume.add_argument('--previous',required=True);resume.add_argument('--output',required=True)
     recovery=sub.add_parser('recover');recovery.add_argument('--previous',required=True);recovery.add_argument('--output',required=True)
     args=parser.parse_args(argv)
-    if args.action=='recover':recover(confined(ROOT,args.previous),confined(ROOT,args.output,exists=False));return 0
+    if args.action=='recover':
+        archive=recover(confined(ROOT,args.previous),confined(ROOT,args.output,exists=False))
+        print('Verified recovered report: '+str(archive),flush=True);return 0
     if args.action=='resume':
         plan=_read(confined(ROOT,args.plan));result=execute_plan(plan,confined(ROOT,args.output,exists=False),previous=confined(ROOT,args.previous))
     elif args.action=='prepare':build_plan(args);return 0
     else:
-        if args.plan:plan=_read(confined(ROOT,args.plan))
+        if args.plan:
+            plan=_read(confined(ROOT,args.plan))
+            if args.engine!=plan['engine']:raise ValueError('requested engine differs from frozen plan')
         else:
             import copy
             inputs=copy.copy(args);inputs.output=str(Path(args.output)/'inputs/plan.json')

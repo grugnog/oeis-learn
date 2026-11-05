@@ -155,4 +155,5 @@ def test_pac_complete_synthetic_proof_closure_roundtrips_real_collector_and_veri
     result=verify_archive(export(root,tmp_path/'public'))
     assert result['software_status']=='PASS' and result['feature_qualified']
     (aroot/'proof-1/training-proof.json').write_text('{}')
-    with pytest.raises(ValueError):export(root,tmp_path/'tampered')
+    minimal=verify_archive(export(root,tmp_path/'tampered'))
+    assert minimal['software_status']=='FAIL' and not minimal['feature_qualified']

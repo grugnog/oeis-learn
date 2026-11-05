@@ -150,3 +150,44 @@ def test_failed_train_resume_requires_verified_full_state_and_exact_config(tmp_p
     assert result==str(path.relative_to(tmp_path)) and calls==[result]
     write(path,dict(contract=digest('wrong')),exclusive=False)
     with pytest.raises(ValueError):h._model_resume({},stage,old,tmp_path,receipts)
+
+
+def test_failed_admission_exports_original_quota_ledger_without_qualifying_it(tmp_path):
+    import json,zipfile
+    from oeis_learn.pipeline_validation.identity import digest,write
+    from oeis_learn.pipeline_validation.generalization_archive import verify_archive
+    h=helper();order=h.stage_order()
+    stages=[dict(name=n,operation='prepare',manifest='unavailable',seconds=3600,extra=[],requires=[] if i==0 else [order[i-1]]) for i,n in enumerate(order)]
+    plan=h.prepare_plan(tmp_path,engine='podman',stages=stages,inputs=[],source=digest('src'),images=[digest('cpu'),digest('gpu')])
+    quota=dict(families=[dict(family=digest('family'),draws=4,before_exclusion=3,available=1,required=2,deficit=1)],native_completed=1,native_seconds=.1)
+    def failed(stage,target):
+        write(target/'execution/execution/role/private/assembly/resolved/availability.json',quota)
+        raise ValueError('scientific quota deficit')
+    result=h.execute_plan(plan,tmp_path/'failed',workspace=tmp_path,runner=failed)
+    assert result['status']=='FAIL' and result['receipts'][0]['artifacts']
+    assert verify_archive(tmp_path/'failed/report.zip')['software_status']=='FAIL'
+    with zipfile.ZipFile(tmp_path/'failed/report.zip') as archive:
+        assert json.loads(archive.read('admission/availability.json'))==quota
+
+
+def test_documented_operator_block_routes_once_and_resume_recover_are_separate(tmp_path,monkeypatch,capsys):
+    h=helper();monkeypatch.setattr(h,'ROOT',tmp_path);calls=[]
+    from oeis_learn.pipeline_validation.identity import seal,write
+    def build(args):
+        calls.append(('prepare',args.engine,args.prepared,args.pilot,args.output,args.research))
+        return tmp_path/args.output,dict(identity='fixture-plan',engine='podman')
+    def execute(plan,output,**kw):
+        calls.append(('execute',plan['identity'],str(output.relative_to(tmp_path)),str(kw.get('previous'))))
+        return dict(status='PASS')
+    monkeypatch.setattr(h,'build_plan',build);monkeypatch.setattr(h,'execute_plan',execute)
+    monkeypatch.setattr(h,'recover',lambda previous,output:calls.append(('recover',str(previous),str(output))) or output.with_suffix('.zip'))
+    original=['--prepared','run-state/generalization/fresh-p1-v2-20261103T035534Z','--pilot','run-state/generalization/fresh-p1-hourly-20261104T093555Z']
+    assert h.main(['run','--engine','podman',*original,'--output','run-state/generalization/pac-012-acceptance'])==0
+    assert calls[0]==('prepare','podman',original[1],original[3],'run-state/generalization/pac-012-acceptance/inputs/plan.json',False)
+    assert calls[1][0:3]==('execute','fixture-plan','run-state/generalization/pac-012-acceptance/campaign')
+    write(tmp_path/'plan.json',dict(identity='fixture-plan',engine='podman'));(tmp_path/'previous').mkdir()
+    assert h.main(['resume','--plan','plan.json','--previous','previous','--output','resumed'])==0
+    assert calls[-1][2]=='resumed'
+    assert h.main(['recover','--previous','previous','--output','recovered'])==0
+    assert calls[-1][0]=='recover' and 'Verified recovered report' in capsys.readouterr().out
+    with pytest.raises(ValueError):h.main(['run','--engine','docker','--plan','plan.json','--output','wrong'])

@@ -320,22 +320,27 @@ def prepare_pac(root,experiment,runtime,*,output,execute,seconds):
         rows=json.loads(verify_artifact(root,item['ref'],max_bytes=2<<30));originals.append((item,rows))
         if item['role']!='training':final.append(rows)
     if runtime['purpose']=='research':
-        draws=structural.draw(plan['protocol']);exact=[];results={};by_id={r['id']:r for r in draws}
+        draws=structural.draw(plan['protocol']);exact=[];results={};by_id={r['id']:r for r in draws};started=time.monotonic();rejections=Counter()
         for row in draws:
             value,error=reference_candidate(row)
-            if error:continue
+            if error:rejections[error]+=1;continue
             materialized,_=value;exact.append(dict(materialized,role='selection',holdout='structural'))
         index=CandidateExclusions(exact)
         for item,rows in originals:index.observe(rows,role=item['role'],holdout=item['holdout'],deadline=deadline)
         bad=index.rejected();available=Counter(r['family'] for r in exact if r['id'] not in bad)
-        write(output/'availability.json',seal(dict(version='pac-structural-availability/v1',
-            families=[dict(family=c['family'],available=available[c['family']],required=c['count'],deficit=max(0,c['count']-available[c['family']])) for c in plan['protocol']['cells']],
-            exclusion_reasons=dict(Counter(reason for reasons in bad.values() for reason in reasons)))))
+        before=Counter(r['family'] for r in exact);raw=Counter(r['family'] for r in draws)
+        availability=dict(version='pac-structural-availability/v1',
+            families=[dict(family=c['family'],draws=raw[c['family']],before_exclusion=before[c['family']],available=available[c['family']],required=c['count'],deficit=max(0,c['count']-available[c['family']])) for c in plan['protocol']['cells']],
+            reference_rejections=dict(rejections),exclusion_reasons=dict(Counter(reason for reasons in bad.values() for reason in reasons)),
+            reference_and_exclusion_seconds=time.monotonic()-started,native_completed=0,native_seconds=0.)
+        write(output/'availability.json',seal(availability));native_started=time.monotonic()
         for row in exact:
             if row['id'] in bad:continue
             native=bounded(row['source'],row['indices'])
             if native.get('outcome')!='ok':raise ValueError('PAC structural native execution incomplete')
             results[row['id']]=dict(reference=row['values'],native=native['values'])
+        availability.update(native_completed=len(results),native_seconds=time.monotonic()-native_started)
+        write(output/'availability.json',seal(availability),exclusive=False)
         roster=structural.admit(plan['protocol'],draws,[by_id[r['id']] for r in exact],results,
             exclusion_cells=[{k:v for k,v in i.items() if k!='ref'} for i,_ in originals],rejected_ids=set(bad))
         # Original full protected records remain custodian-only.

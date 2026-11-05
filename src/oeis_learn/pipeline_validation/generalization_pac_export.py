@@ -122,5 +122,20 @@ def export(original,output):
     from .generalization_finalization import publish_pac
     original=Path(original);output=Path(output)
     staging=output.parent/(output.name+'-payloads')
-    record=collect(original,staging)
-    return publish_pac(record,output,payload_root=staging)
+    try:
+        record=collect(original,staging)
+        return publish_pac(record,output,payload_root=staging)
+    except (OSError,ValueError,KeyError) as exc:
+        # Broken rich closure cannot suppress a truthful, independently verified
+        # minimal export. Preserve the original run and failed export directory.
+        plan=json.loads((original/'plan.json').read_text());workflow=json.loads((original/'workflow.json').read_text())
+        if seal(plan)!=plan or seal(workflow)!=workflow:raise ValueError('original plan/workflow integrity unavailable') from exc
+        seed=int(plan['stages'][0]['extra'][1]) if len(plan['stages'][0]['extra'])==2 else 0
+        record=seal(dict(version='pac-public-evidence/v1',plan=plan['identity'],source=plan['source'],images=plan['images'],
+            backend=__import__('oeis_learn.pipeline_validation.generalization_execution',fromlist=['POLICY_ID']).POLICY_ID,
+            helper=dict(requested=plan['helper'],observed=helper_identity(Path(__file__).resolve().parents[3])),
+            scope=dict(research=plan['research'],arms=plan['arms'],seed=seed,target_tokens=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED'),
+            required=[s['name'] for s in plan['stages']],stages=[],software_status='INTERRUPTED' if workflow['status']=='INTERRUPTED' else 'FAIL',
+            scientific_status='INCOMPLETE' if plan['research'] else 'UNMEASURED',errors=workflow['errors']+[dict(stage='export',kind=type(exc).__name__,status='FAIL')],
+            omissions=['rich proof closure unavailable; original failure and export directories retained'],inventory=[],qualification=None,acceptance=None,native_admission=None,calibration=None))
+        return publish_pac(record,output.with_name(output.name+'-minimal'))
