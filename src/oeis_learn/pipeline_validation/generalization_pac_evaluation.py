@@ -67,10 +67,10 @@ def score_views(inputs,output,settings,*,seconds):
     candidates=json.loads(verify_artifact(inputs['selection_candidates'],settings['candidates']))
     with SynthesisClient(settings['study'],cache_root=Path(output)/'private/native') as client:
         scores=score_frozen(candidates,{r['id']:r for r in truth},client,deadline=time.monotonic()+seconds)
-    controls={control:{key:values.get(control) for key,values in scores['outcomes'].items()}
+    controls={control:{key:(values[control]['success'] if values[control]['complete'] else None) for key,values in scores['outcomes'].items() if control in values}
               for control in {c for values in scores['outcomes'].values() for c in values}}
     result=seal(dict(version='pac-structural-scoring/v1',status='PASS',study=settings['study'],
-        controls={c:pac_structural_metrics(roster,v) for c,v in controls.items()},outcomes=controls,roster=roster,
+        controls={c:pac_structural_metrics(roster,v) for c,v in controls.items()},outcomes=controls,scored_cases=scores['outcomes'],roster=roster,
         parameter='DEFERRED',assessment='NOT_EXECUTED'))
     write(Path(output)/'scoring.json',result);return result
 
@@ -79,7 +79,8 @@ def evaluate(host,workspace,output,base,study,runtime,plan,*,checkpoints,bank=No
     from .generalization_roles import project_and_invoke
     admission_ref=runtime['prepared']['admission'];admission=json.loads(verify_artifact(base,admission_ref))
     if runtime['purpose']!='research':raise ValueError('structural evaluation requires original research admission')
-    if bank is not None and bank!=digest(list(range(20261101,20261109))):raise ValueError('frozen bank seeds required')
+    if bank is None:bank=digest(list(range(20261101,20261109)))
+    if bank!=digest(list(range(20261101,20261109))):raise ValueError('frozen bank seeds required')
     available=[checkpoint_request(workspace,c,study,runtime,plan['recipe'],plan['training']) for c in checkpoints]
     if not available or len({a for a,_,_ in available})!=len(available):raise ValueError('explicit unique arm checkpoints required')
     output=Path(output)
