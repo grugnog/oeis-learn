@@ -162,6 +162,32 @@
   ],
   "plan": "sha256:7f0cd8e86a10e450998eaf26fab1b0704cee882d7fa0001ce5858e14bcf351c8",
   "qualification": "sha256:164f508c704d028d1581b0e3bfd24b15ddf99ba81d45c30bfd4056c11087d7a4",
+  "representation_review": {
+    "acceptance_updates": 16,
+    "corpus_tokens": {
+      "literal": 2543653,
+      "parameterized": 2064384
+    },
+    "fallback": 0,
+    "families": 32,
+    "final_weights": "sha256:923796ae278ef95fe4842c9925671872836e3ee2fd7c3258f1f2d63d71f83520",
+    "forward_loss_sum": 81.84005737304688,
+    "forward_recall": [
+      false,
+      false
+    ],
+    "forward_rows": 2,
+    "forward_tokens": 47,
+    "loaded_checkpoint": "sha256:2c2638b18991f2c1d0f99fe73bf104ccba5cfd17d045238cdc6c56cbe9112f8c",
+    "research_exposure": {
+      "examples": null,
+      "seconds": null,
+      "tokens": null,
+      "updates": null
+    },
+    "rows": 32768,
+    "supported": 32768
+  },
   "scope": {
     "arms": [
       "B",

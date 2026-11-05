@@ -69,3 +69,54 @@ closeout does not pretend those archives were newly re-uploaded or rerun.
 The current PASS requires no repair/retry. Compatible unchanged interruptions may
 use the existing `resume`; report-only recovery uses `recover` and never launches
 training. Missing proof is a gap, not a reason to repeat every successful stage.
+
+## T070: Finite HIP updates, paired targets and loaded checkpoint
+
+The two original training proofs each contain uninterrupted and resumed runs with
+16 actual updates, 752 charged target tokens, changed finite weights, and identical
+initial-weight identity:
+`sha256:94c08692e84ea85dacf272a1ee09a52675bc5e7faf862e05320c84257b0fcee8`.
+All final weights are
+`sha256:923796ae278ef95fe4842c9925671872836e3ee2fd7c3258f1f2d63d71f83520`.
+The uninterrupted final checkpoint is
+`sha256:2c2638b18991f2c1d0f99fe73bf104ccba5cfd17d045238cdc6c56cbe9112f8c`.
+Proof identity/byte hashes bind the original reports, rather than regenerated
+CPU measurements. The handler requires actual device RNG and checks finite changed
+parameters through the installed checkpoint reader; qualification additionally
+records finite forward/backward and changed parameters on HIP.
+
+A fresh load of that exact final checkpoint passes HIP forward evaluation on two
+training probes: 47 tokens, finite loss sum 81.84005737304688, target recall
+`[false,false]`. This confirms real checkpoint evaluation, not model accuracy,
+semantic success or structural generalization. Failure to recall these probes is
+not a software acceptance failure after this tiny diagnostic run.
+
+Production admission retains all 32,768 concrete rows, 32 families and 1,024 rows
+per family. Every family reports 1,024 supported paired targets and zero whole-row
+fallbacks: 32,768 supported / 0 fallback in the original production pool. This does
+not prove every supported row contains a free parameter; parameter-count detail
+is not exported. Native/independent grounding occurs before the admission receipt.
+The reduced mechanical acceptance deliberately includes both supported and fallback
+strata, and its source-bound PASS checks both received committed exposure. Thus the
+fallback path was exercised even though production's reported fallback count is zero.
+
+| Complete corpus encoding | Target tokens |
+| --- | ---: |
+| Literal | 2,543,653 |
+| Parameterized | 2,064,384 |
+| Reduction | 479,269 (18.84%) |
+
+These are corpus token totals, not learner exposure or speedup. The report's
+production exposure fields remain null because no 25M-token B/C arm ran. Calibration
+is separately labeled: 64 actual production-shape updates, 122,464 charged tokens,
+six valid rewards; its weights cannot initialize research. The assembly uses one
+fresh random initializer/recipe/order/pool identity for the declared B/C profiles,
+and the production calibration checks that frozen initializer. Actual completed
+B-versus-C learner equality is not asserted from an acceptance-only report.
+
+The unchanged inference contract gives compared arms identical eight attempts,
+60-second portfolio, twenty visible/100 scoring terms, at most eight fitted
+parameters, and final-source validation. Paired-target/solver/role parity is covered
+by the source-bound qualification tests. No full B/C structural inference occurred;
+empirical raw/fitted success, continuation and wall-time comparisons remain absent,
+not fabricated as parity results. Tiny acceptance tensors remain diagnostic only.
