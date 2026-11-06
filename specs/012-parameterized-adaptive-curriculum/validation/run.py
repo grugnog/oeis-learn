@@ -272,6 +272,9 @@ def _canonical_stage(plan,stage,target,workspace,receipts):
     supervision=target/(Path(relative).name+'-supervision')
     process=_read(supervision/'process.json');cleanup=process.get('cleanup_failure') is None
     refs=[reference(target/'execution/result.json',target)]
+    for name in ('process.json','cleanup.json','stdout.log','stderr.log'):
+        path=supervision/name
+        if path.is_file() and not path.is_symlink():refs.append(reference(path,target))
     for ref in value['inventory']:
         refs.append(dict(ref,path='execution/'+ref['path']))
     result=dict(status=value['status'],producer=value['identity'],process=process,

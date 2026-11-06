@@ -129,9 +129,15 @@ def collect(original,staging,*,workspace=None):
                     # Keep only public control/progress lines. Tracebacks, paths,
                     # source/term payloads and arbitrary role errors stay private.
                     size=path.stat().st_size
-                    with path.open('rb') as handle:
-                        handle.seek(max(0,size-(64<<10)));tail=handle.read(64<<10).decode('utf8',errors='replace')
-                    lines=[line[:2048] for line in tail.splitlines() if line.startswith(('learner: ','calibration: ')) and '/' not in line and '\\' not in line]
+                    if size>1<<20:
+                        omissions.append('oversized stage supervision log omitted: '+row['stage']+'/'+folder+'/'+stream)
+                        continue
+                    try:payload=original_file(path)
+                    except (ValueError,OSError):
+                        omissions.append('unverified stage supervision log omitted: '+row['stage']+'/'+folder+'/'+stream)
+                        continue
+                    from .generalization_qualification_failures import progress_lines
+                    lines=progress_lines(payload[-(64<<10):].decode('utf8',errors='replace'))
                     put('logs/'+row['stage']+'/'+folder+'-'+stream+'.json',dict(original_bytes=size,original_sha256=file_hash(path) if size<=1<<20 else None,
                         projection='recognized phase/time lines only; raw logs remain private',lines=lines[-64:]))
     from .generalization_failures import stage_failures

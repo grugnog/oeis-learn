@@ -492,3 +492,21 @@ their mount ownership does not need the R0 repair. Affected rehearsal selection:
 29 passed using PyTorch 2.9.1+cpu and Wasmtime 48.0.0. This is local CPU adapter
 evidence, not installed-container/native/HIP qualification; T083 remains open.
 
+### Qualification reporting follow-up (operator requested)
+
+- [X] T087 Reproduce missing pipeline receipts/JUnit causes, misleading empty private detail, integrity/privacy/discovery limits and negative archive recovery before changing the collector; use dependency-free regressions in `tests/unit/test_generalization_qualification_failures.py`.
+- [X] T088 Project verified qualification substage outcomes, bounded test identifiers/counts and fixed safe diagnoses through normal/minimal/read-only reports; bind outer supervisor controls/logs and retain suite totals separately from enumerated XML cases.
+- [ ] T089 Validate affected reporting/ownership/host paths, refresh the implementation fingerprint, record supplied failure evidence and exact recovery/fresh-plan commands, and commit/push without waiting for CI. Keep current-source HIP/R0 proof pending.
+
+T087–T088: seven dependency-free counterexamples failed before the collector/claim
+repairs. `pac-stage-failures/v2` now projects original sealed pipeline receipts
+and inventory-bound JUnit files before wrapper/process errors. It retains bounded
+source-verified test names, opaque parameter-case IDs, exception categories and
+fixed diagnoses for the two observed R0 failures. Unknown names, raw exceptions,
+tracebacks, terms and host paths are not exported. Original suite totals and
+enumerated testcase counts are separately retained; truncation and unavailable,
+unbound, tampered, oversized or unsafe XML are explicit. New wrappers bind outer
+supervision files; recognized QUALIFICATION lines retain stage/status without raw
+reasons. Normal and forced-minimal archive tests preserve all original bytes and
+the failed disposition. Reporting/archive/wrapper selection: 80 passed and five
+subtests passed; dependency-free selection: 11 passed. No HIP or CI wait.

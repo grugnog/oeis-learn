@@ -16,6 +16,10 @@ _MESSAGES={
     'protected finalization reserve':('finalization_reserve','The protected finalization reserve was reached.'),
 }
 _KIND_CODES={
+    'QUALIFICATION_FAILED':('qualification_failed','Qualification failed; inspect the verified substage and test diagnostics.'),
+    'QualificationStageFailure':('qualification_stage_failed','A qualification substage failed; original private logs remain at the producer.'),
+    'QualificationBlocked':('qualification_blocked','Qualification was blocked by an unsuccessful prerequisite.'),
+    'QualificationTestFailure':('qualification_tests_failed','Qualification tests failed; see the bounded test diagnostics.'),
     'QuotaDeficit':('structural_quota_deficit','Frozen post-exclusion structural quotas are incomplete.'),
     'CleanupFailure':('cleanup_failure','Cleanup was not acknowledged within its bound.'),
     'ProcessFailure':('process_failure','The supervised process failed.'),
@@ -63,7 +67,10 @@ def stage_failures(root,*,refs=None,max_entries=8192,max_bytes=4<<20):
     directories. A cap or missing proof becomes an explicit omission.
     """
     root=Path(root);index={r['path']:r for r in refs} if refs is not None else None
+    from .generalization_qualification_failures import RECEIPT,TESTS,test_summary
+    import xml.etree.ElementTree as ET
     pending=[Path('.')];failures=[];omissions=[];entries=used=0;seen=set()
+    qualification=dict(stages=[],tests=[])
     skip={'private','.runtime','input','inputs','checkpoints','native','native-cache','cache','caches','build'}
     while pending:
         folder=pending.pop()
@@ -85,18 +92,36 @@ def stage_failures(root,*,refs=None,max_entries=8192,max_bytes=4<<20):
                 continue
             application=path.name=='result.json'
             control=path.name in {'process.json','cleanup.json'} and path.parent.name.endswith('supervision')
-            if not (application or control):continue
+            receipt=RECEIPT.fullmatch(name);tests=TESTS.fullmatch(name)
+            if not (application or control or receipt or tests):continue
             if any(not re.fullmatch(r'[A-Za-z0-9_.-]{1,128}',p) for p in relative.parts):omissions.append(dict(kind='UNSAFE_PATH'));continue
             try:
                 path=confined(root,name);size=path.stat().st_size
-                if size>1<<20 or used+size>max_bytes:raise ValueError('metadata size cap')
+                cap=4<<20 if tests else 1<<20
+                if size>cap or used+size>max_bytes:raise ValueError('metadata size cap')
                 if index is not None:
                     ref=index.get(name)
                     if ref is None:raise ValueError('original metadata unbound')
-                    payload=verify_artifact(root,ref,max_bytes=1<<20);sha=ref['sha256']
+                    payload=verify_artifact(root,ref,max_bytes=cap);sha=ref['sha256']
                 else:payload=path.read_bytes();sha=file_hash(path)
-                used+=len(payload);value=json.loads(payload)
+                used+=len(payload)
+                if tests:
+                    summary=test_summary(payload,origin=name,sha256=sha)
+                    qualification['tests'].append(summary)
+                    if summary['counts']['failures'] or summary['counts']['errors']:
+                        failures.append((-1,-len(relative.parts),dict(origin=name,producer_sha256=sha,
+                            detail=public_failure(kind='QualificationTestFailure'))))
+                    continue
+                value=json.loads(payload)
                 if not isinstance(value,dict):raise ValueError('metadata object required')
+                if receipt:
+                    if (seal(value)!=value or value.get('version')!='pipeline-stage/v1' or value.get('stage')!=receipt[1]
+                        or value.get('state') not in {'PASS','FAIL','PARTIAL','BLOCKED','UNAVAILABLE'}):raise ValueError('original qualification receipt required')
+                    qualification['stages'].append(dict(stage=receipt[1],state=value['state'],origin=name,producer_sha256=sha))
+                    if value['state']!='PASS':
+                        kind='QualificationBlocked' if value['state']=='BLOCKED' else 'QualificationStageFailure'
+                        failures.append((0,-len(relative.parts),dict(origin=name,producer_sha256=sha,detail=public_failure(kind=kind))))
+                    continue
                 detail=None;priority=0 if application else 2 if path.name=='cleanup.json' else 1
                 if application and value.get('status') in {'FAIL','BLOCKED','INTERRUPTED'}:
                     if path.parent.name=='role' or value.get('version') in {'pac-job-result/v1','generalization-command-result/v2'}:
@@ -115,11 +140,12 @@ def stage_failures(root,*,refs=None,max_entries=8192,max_bytes=4<<20):
                     detail=public_failure(kind='CleanupFailure')
                 if detail is not None:
                     failures.append((priority,-len(relative.parts),dict(origin=name,producer_sha256=sha,detail=detail)))
-            except (ValueError,OSError,TypeError,KeyError):omissions.append(dict(origin=name,kind='UNVERIFIED_OR_UNAVAILABLE'))
+            except (ValueError,OSError,TypeError,KeyError,UnicodeError,ET.ParseError):omissions.append(dict(origin=name,kind='UNVERIFIED_OR_UNAVAILABLE'))
     failures.sort(key=lambda x:(x[0],x[1],x[2]['origin']))
     unique=[]
     for _,_,record in failures:
         if record['detail']['identity'] not in seen:
             seen.add(record['detail']['identity']);unique.append(record)
-    return seal(dict(version='pac-stage-failures/v1',failures=unique,omissions=omissions,
+    qualification['stages'].sort(key=lambda r:r['stage']);qualification['tests'].sort(key=lambda r:r['origin'])
+    return seal(dict(version='pac-stage-failures/v2',failures=unique,omissions=omissions,qualification=qualification,
         examined_entries=entries,metadata_bytes=used,private_payloads='OMITTED'))
