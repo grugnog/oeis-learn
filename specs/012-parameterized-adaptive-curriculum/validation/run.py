@@ -104,10 +104,76 @@ def _reusable(previous,entry,binding,*,workspace=None):
     return True
 
 
+def _helper_failure(stage,exc):
+    """Public source location and bounded cause; original exception stays private."""
+    from oeis_learn.pipeline_validation.generalization_failures import public_failure
+    from oeis_learn.pipeline_validation.generalization_pac_export import helper_identity
+    location=None;trace=exc.__traceback__
+    while trace is not None:
+        if Path(trace.tb_frame.f_code.co_filename).resolve()==Path(__file__).resolve():
+            location=dict(function=trace.tb_frame.f_code.co_name,line=trace.tb_lineno)
+        trace=trace.tb_next
+    return seal(dict(version='pac-helper-failure/v1',stage=stage,
+        status='INTERRUPTED' if isinstance(exc,KeyboardInterrupt) else 'FAIL',helper=helper_identity(ROOT),
+        failure=public_failure(exc),location=location,
+        message='Temporary campaign helper exception; see the bound source location.'))
+
+
 def recover(original,output):
-    """Read-only canonical evidence collection and independent archive verification."""
+    """Use canonical export/publish, adding only verified helper diagnostics."""
+    import re,zipfile
     from oeis_learn.pipeline_validation.generalization_pac_export import export
-    return export(original,output)
+    from oeis_learn.pipeline_validation.generalization_finalization import publish_pac
+    from oeis_learn.pipeline_validation.generalization_archive import verify_archive
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.generalization.contracts import verify_artifact
+    from oeis_learn.pipeline_validation.generalization_failures import _application
+    original=Path(original);output=Path(output);workflow=_read(original/'workflow.json')
+    if seal(workflow)!=workflow or len(workflow['receipts'])>32:raise ValueError('bounded original workflow required')
+    additions={};omissions=[]
+    allowed=set(stage_order(research=True,arms=['A','B','C','D']))|{'rehearsal'}
+    functions={v.__code__.co_name for v in globals().values() if callable(v) and hasattr(v,'__code__')
+               and Path(v.__code__.co_filename).resolve()==Path(__file__).resolve()}
+    for row in workflow['receipts']:
+        stage=row['stage']
+        if stage not in allowed:raise ValueError('known helper stage required')
+        root=confined(original,row.get('directory',stage))
+        refs=[r for r in row.get('artifacts',[]) if r['path']=='helper-failure.json']
+        if not refs and not (root/'helper-failure.json').exists():continue
+        try:
+            if len(refs)!=1:raise ValueError('original helper diagnostic reference required')
+            payload=verify_artifact(root,refs[0],max_bytes=64<<10);value=json.loads(payload)
+            if (set(value)!={'version','identity','stage','status','helper','failure','location','message'} or seal(value)!=value
+                or value['version']!='pac-helper-failure/v1' or value['stage']!=stage or value['status'] not in {'FAIL','INTERRUPTED'}
+                or value['status']!=row['status']
+                or value['message']!='Temporary campaign helper exception; see the bound source location.'
+                or not isinstance(value['failure'],dict) or not isinstance(value['failure'].get('kind'),str)
+                or not re.fullmatch(r'[A-Za-z_]{1,64}',value['failure']['kind'])
+                or not isinstance(value['helper'],str) or not re.fullmatch(r'sha256:[0-9a-f]{64}',value['helper'])):
+                raise ValueError('closed helper diagnostic required')
+            _application(dict(failure=value['failure']))  # canonical public-vocabulary validation
+            location=value['location']
+            if location is not None and (not isinstance(location,dict) or set(location)!={'function','line'} or location['function'] not in functions
+                or type(location['line']) is not int or not 1<=location['line']<=100000):raise ValueError('public helper source location required')
+            additions['failures/helper-'+stage+'.json']=payload
+        except (OSError,ValueError,KeyError,TypeError):
+            omissions.append('unverified temporary helper diagnostic omitted: '+stage)
+    if not additions and not omissions:return export(original,output)
+    # Preserve the canonical rich/minimal result and all its original payloads.
+    # Supplementary helper data is diagnostic only, never a new PASS authority.
+    archive=export(original,output.with_name(output.name+'-canonical'))
+    verify_archive(archive)
+    staging=output.with_name(output.name+'-helper-payloads');staging.mkdir(parents=True,exist_ok=False)
+    with zipfile.ZipFile(archive) as z:
+        record=json.loads(z.read('evidence.json'))
+        for ref in record['inventory']:
+            target=confined(staging,ref['path'],exists=False);target.parent.mkdir(parents=True,exist_ok=True)
+            target.write_bytes(z.read(ref['path']));verify_artifact(staging,ref,max_bytes=512<<20)
+    for name,payload in additions.items():
+        target=confined(staging,name,exists=False);target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(payload)
+        record['inventory'].append(reference(target,staging))
+    record['omissions'].extend(omissions)
+    return publish_pac(seal(record),output,payload_root=staging)
 
 
 def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None,stop_after_rehearsal=False):
@@ -196,6 +262,12 @@ def execute_plan(plan,output,*,workspace=ROOT,runner=None,previous=None,stop_aft
                 # Capture bounded failed-stage evidence without qualifying it for reuse.
                 try:
                     from oeis_learn.pipeline_validation.generalization_lifecycle import inventory
+                    diagnostic=_helper_failure(name,exc)
+                    write(target/'helper-failure.json',diagnostic)
+                    location=diagnostic['location']
+                    if location is not None:
+                        print(name+': '+diagnostic['failure']['kind']+' in temporary helper '+location['function']+':'+str(location['line']),flush=True)
+                    write(target/'private/helper-exception.json',dict(kind=type(exc).__name__,error=str(exc)[:65536],truncated=len(str(exc))>65536))
                     entry['artifacts']=inventory(target)
                     for supervision in ('supervision','execution-supervision'):
                         path=target/supervision/'process.json'
@@ -455,8 +527,10 @@ def _canonical_stage(plan,stage,target,workspace,receipts,*,resume_path=None):
             import shutil
             c=context['checkpoints']['static'];root=confined(workspace,c['weights_root'])
             owned=target/'private/retained';weights=c['checkpoint']['weights']
+            owned.mkdir(parents=True,exist_ok=False)
+            payload=verify_artifact(root,weights,max_bytes=32<<30)
             destination=confined(owned,weights['path'],exists=False);destination.parent.mkdir(parents=True,exist_ok=True)
-            shutil.copyfile(confined(root,weights['path']),destination)
+            destination.write_bytes(payload)
             write(owned/'checkpoint.json',c['checkpoint'])
             extra+=['--checkpoints',('A-reference=' if study['control_mode']=='fresh-control' else 'A=')+str((owned/'checkpoint.json').relative_to(workspace))]
         else:

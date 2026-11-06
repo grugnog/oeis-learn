@@ -577,3 +577,30 @@ exact R1 resume with all five compatible gates reused. This closeout changes onl
 documentation/data, preserving installed source and helper identities. Historical
 pending notes above refer to earlier runs; T073 remains deferred until actual R1
 analysis. No new device work, raw ZIP publication or CI wait occurred in review.
+
+### R1 retained-baseline helper repair (2026-11-06)
+
+The supplied first R1 report independently verifies integrity PASS/rehearsal PASS
+and preserves all five successful gates as REUSED. Baseline raises FileNotFoundError
+before any process/role launch; no research learner started. The accepted plan
+identity is unchanged despite the spelling difference in the pasted plan path.
+Its original exception text was discarded, so the ZIP cannot identify the missing
+filename. A real helper-branch counterexample independently proves that the
+retained checkpoint output root was confined before creation.
+
+- [X] T093 Reproduce baseline's missing-owned-root failure for both reference-only/fresh-control labels, and missing helper-level public/private diagnostics through actual normal/minimal publication before implementation. Four tests failed initially; rehashed unsafe failure strings also failed before the validation fix.
+- [X] T094 Repair only the temporary baseline projection: exclusively create its owned root, verify original retained bytes before copy, preserve descriptor identity and reject stale/tampered inputs. Record temporary-helper exceptions with a source-bound public location and bounded private original detail; do not alter qualified installed code or the scientific plan.
+- [X] T095 Add verified supplementary helper diagnostics using the existing canonical exporter and publisher, preserving their rich/minimal payload bytes and negative status. Reject unknown/unbound/tampered/unsafe records with explicit omissions; keep private text out of all shared reports and read-only recovery immutable.
+- [ ] T096 Validate affected wrapper/archive/privacy paths and helper-only source preservation, publish the exact resume from the failed R1 root into a fresh sibling, and commit/push coherent groups without HIP execution or CI wait. Preserve T083 completion and defer T073 until actual research analysis.
+
+T093–T095: the baseline fixture reaches the installed checkpoint-request consumer
+with the original descriptor/verified bytes, checks both A/A-reference labels and
+rejects repeated output or changed originals. Real packer/offline verifier tests
+retain helper diagnostics in normal and forced-minimal reports, preserve original
+workflow bytes on recovery, and omit hash/shape/vocabulary failures including a
+resealed arbitrary private string. The affected selection passes 80 tests plus
+five subtests. This is CPU/host construction and archive evidence, not completed
+structural inference. Only `validation/run.py` and its adjacent tests changed;
+the installed source remains `sha256:b0951861c976252013a86718762666c6f9d0ae6eed017383650edf57f9715e41`.
+The new helper hash is reported separately and does not invalidate the five
+unchanged successful gate producers.
