@@ -3,8 +3,12 @@
 The R0 rehearsal is implemented. Use the exact current-source commands in
 [the R0/R1 handoff](validation/r0-implementation.md): first the 256-update B/C/D
 rehearsal and report, then resume the same frozen plan into the long campaign.
-Actual R0 HIP evidence remains pending. Current code requires rebuilt qualified
-images; historical acceptance commands below are retained for provenance.
+Actual HIP R0 now verifies PASS for the exact source/images in the operator's
+`pac-012-bcd-r0-00` directory. T083 is complete. Use the
+[exact R1 resume command](validation/r0-implementation.md#verified-actual-hip-r0-and-exact-r1-resume-2026-11-06)
+with that existing spelling and unchanged runtime/helpers/images to reuse all five
+completed gates. No rebuild or repeated R0 is needed for that compatible plan.
+Historical acceptance/repair commands below are retained for provenance.
 
 The operator's `pac-012-acceptance-004` run passed admission, CPU/HIP qualification,
 production calibration and reduced HIP acceptance. Independent archive verification

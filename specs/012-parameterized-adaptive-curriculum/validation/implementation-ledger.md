@@ -1151,3 +1151,45 @@ and both real archive paths. The actual implementation serializer refreshes the
 007 fingerprint without changing its 68 dispositions or full-completion flag.
 No scientific setting or reservation was changed, no originals were pruned, and no
 HIP, research or CI wait occurred. T083/T073 remain pending/deferred.
+
+## 2026-11-06: T083 actual HIP R0 verified
+
+The operator supplied `report(20261106-104553).zip`, SHA256
+`693839065d7d05bcf4473fc433b7e4f6ec9aa3fb9280cd1c211acc845354697d`.
+The real dependency-free archive verifier checks all member/producer/qualification/
+acceptance/calibration/rehearsal closures and returns integrity PASS, diagnostic
+PASS, overall PARTIAL and scientific INCOMPLETE. There are no errors. All five
+prerequisite stages passed; the report contains no baseline or research learners.
+The bounded `evidence/r0-hip-summary.json` retains the exact proof identities and
+measured counts, not private tensors, raw host logs or the ZIP itself.
+
+The supplied source `sha256:b0951861c976252013a86718762666c6f9d0ae6eed017383650edf57f9715e41`
+matches the actual checkout snapshot, and requested/observed helper
+`sha256:4f76bd91cac8283f3b35171aa5f492c5dbdb5e2cc93392ae803d2e23f09ef84b`
+matches the current orchestration/analysis bytes. Actual qualification includes
+1,586 reported CPU executions (1,504 XML testcase elements) and 27 HIP tests with
+zero failures/errors/skips. Reduced HIP acceptance covers six rewards, two graded
+anchors, both clean resume boundaries, loaded final forward and negative export.
+
+Production-cadence B/C/D each completed 256 updates: B fixed256/515,456 tokens;
+C bandit192+review64/518,688 tokens/24 rewards; D bandit256/536,576 tokens/31 rewards
+and the declared pending last observation. All have identical fresh tensor-content
+initialization, finite changed parameters, zero discarded tokens and no pauses.
+The extra C129+127 trace equals uninterrupted C tensors and complete policy/observer
+at256. Total actual optimizer calls: 1,024. Actual rehearsal wall time: 1,098.76s.
+Timed semantic retention remains UNMEASURED, and this length does not establish
+production spaced retention; reduced acceptance separately covers due grading.
+Diagnostic learners remain PARTIAL and cannot initialize the 25M-token R1 arms.
+
+The successful directory is operator-confirmed
+`run-state/generalization/pac-012-bcd-r0-00`, with the trailing `4` omitted. Public
+archive paths do not reveal this original host root; no path was guessed or
+renamed. The handoff gives the exact compatible R1 resume using this existing
+root and fresh `pac-012-bcd-r1-001` output. Latest calibration estimates about
+37.2 learner hours for B/C/D combined, plus evaluation/reporting, distinct from
+roughly 68.6-hour per-learner ceilings. R1/T073 research remains unexecuted/deferred.
+
+T083 is checked only for this exact supplied source/image/plan scope. The review
+changes documentation and bounded data only, preserving source/helper identities
+and the read-only 16/16 checklist. No new hardware run, CI wait or raw archive
+publication was performed.

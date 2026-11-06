@@ -1,8 +1,80 @@
 # R0 implementation and workstation handoff
 
-Implemented 2026-11-05. Local CPU/contract checks are software evidence only.
-Actual HIP R0 task T083 remains open. No device or full research run was executed
-by the implementer. Existing -004/T072 evidence retains its historical scope.
+Implemented 2026-11-05. The operator's actual HIP R0 report was independently
+verified on 2026-11-06; **T083 is complete** for the bound source/images below.
+The implementer reviewed the supplied report without launching device work.
+R1 research has not started. Existing -004/T072 evidence retains its historical scope.
+
+## Verified actual HIP R0 and exact R1 resume (2026-11-06)
+
+The operator confirms the successful output directory is exactly
+`run-state/generalization/pac-012-bcd-r0-00`: the intended trailing `4` was omitted.
+Keep that existing spelling; the sealed plan and resolved paths reference it.
+The archive omits original host paths, so the spelling is operator-supplied rather
+than inferred from the ZIP. The bounded [review record](evidence/r0-hip-summary.json)
+retains proof identities/counts; private state and the raw ZIP are not published.
+
+Independent stdlib verification of `report(20261106-104553).zip` returns integrity
+PASS, rehearsal PASS, overall PARTIAL and scientific INCOMPLETE, with no errors.
+The latter two statuses are expected: all five prerequisite stages passed and the
+campaign stopped before the retained baseline/new research learners. The overall
+`feature_qualified=false` flag is not a failed R0 proof or completed-research claim.
+
+| Gate | Actual result | Elapsed seconds |
+| --- | --- | ---: |
+| Original-input/native admission | PASS | 1,139.26 |
+| Current-source qualification | PASS; CPU suite reports 1,586 executions (1,504 explicit XML cases), HIP 27; zero failures/errors/skips | 765.88 |
+| Production calibration | PASS; 64 updates, six valid rewards | 351.44 |
+| Reduced HIP acceptance | PASS; both resume boundaries, six rewards, two graded anchors, loaded forward and negative export | 349.88 |
+| Production-cadence R0 | PASS; all three arms and C pause129/resume256 | 1,098.76 |
+
+| R0 arm | Committed updates | Channels | Charged/useful tokens | Completed rewards |
+| --- | ---: | --- | ---: | ---: |
+| B | 256 | 256 fixed | 515,456 | 0 |
+| C | 256 | 192 bandit, 64 review opportunities, zero fallback | 518,688 | 24 |
+| D | 256 | 256 bandit | 536,576 | 31 |
+
+All arms have finite changed weights, the same verified fresh initialization,
+zero discarded tokens and no pauses. C's complete tensor and policy/observer
+resume proofs equal uninterrupted C at 256 updates. Its paused/resumed trace adds
+256 optimizer calls, so the diagnostic performed 1,024 calls in total. Each
+intentionally stopped learner remains PARTIAL; its weights/state cannot initialize
+research. R0 semantic retention is UNMEASURED and production spaced retention is
+not established by 256 updates; reduced acceptance separately covers graded due
+review. No generalization or curriculum-superiority claim follows.
+
+The supplied source snapshot and requested/observed helper exactly match the
+reviewed checkout. Source: `sha256:b0951861c976252013a86718762666c6f9d0ae6eed017383650edf57f9715e41`.
+Helper: `sha256:4f76bd91cac8283f3b35171aa5f492c5dbdb5e2cc93392ae803d2e23f09ef84b`.
+Plan: `sha256:f7f830ceff7a8d33a06092df676ebe4030875fefaf90c1107b108106720cc67c`.
+The review record retains the exact immutable qualification/GPU image pair and
+archive/verifier/producer/proof hashes. This closeout changes documentation/data
+only; installed source, build inputs and orchestration helper bytes are unchanged.
+
+Continue the same frozen B/C/D, seed20261016, 25M-tokens-per-arm R1 scope with the
+existing checkout/images and a fresh output. This verifies/reuses admission,
+qualification, calibration, acceptance and R0; no rebuild or repeated R0 is needed.
+
+```sh
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py resume \
+  --plan run-state/generalization/pac-012-bcd-r0-00/inputs/plan.json \
+  --previous run-state/generalization/pac-012-bcd-r0-00/campaign \
+  --output run-state/generalization/pac-012-bcd-r1-001
+```
+
+Use a fresh sibling output if `pac-012-bcd-r1-001` already exists. Keep runtime
+source/images and the sealed plan unchanged. The result is
+`run-state/generalization/pac-012-bcd-r1-001/report.zip`, with no extra `campaign/`
+component for resume outputs. Latest finite-sample calibration forecasts about
+12.40 hours of learner work per B/C arm and 12.39 for D (about 37.2 hours total),
+plus retained-reference/final evaluation and reporting. The roughly 68.6-hour
+per-learner operational ceilings are margins, not ETAs. Preserve the frozen
+scientific choices; this is one exploratory seed, not an automatic winner or
+authorization for extra arms/seeds/assessment.
+
+Historical repair and pending-evidence statements below describe earlier runs.
+This verified result supersedes their T083-pending status only for the exact
+successful scope above; failed runs remain failed and T073 research stays deferred.
 
 ## Disk reservation stop after the repair (2026-11-06)
 

@@ -4,8 +4,11 @@ Recorded 2026-11-05 against PR #63 implementation `e2279dda55ed88997c54da43ea4ae
 The operator selected **B/C/D and one paired seed** during planning. The operator also permits adding a short rehearsal
 before expensive learners; its concrete diagnostic configuration is proposed below. No device work, research or new qualification
 has been performed by this planning/implementation pass. R0 software is now implemented; see [the current handoff](r0-implementation.md).
-Actual R0 HIP evidence remains pending. This document is a planning record, not
-a sealed execution manifest or a claim of current-source hardware readiness.
+Actual R0 HIP evidence is now independently verified PASS for the operator's
+`pac-012-bcd-r0-00` directory (the trailing `4` was omitted). See the
+[verified result and exact R1 resume](r0-implementation.md#verified-actual-hip-r0-and-exact-r1-resume-2026-11-06).
+This document remains a planning record; the original sealed plan is execution
+authority. R1 research is still unexecuted and T073 remains deferred.
 
 The actual `pac-012-bcd-r0-002` attempt failed CPU qualification on six T084
 ownership regressions before HIP qualification/R0. The implementation and bounded
@@ -13,9 +16,9 @@ failure-reporting repairs, read-only recovery command and fresh `-003` retry are
 documented in [the current repair handoff](r0-implementation.md#current-repair-and-retry-2026-11-06).
 The failed scope stays failed; a new source-bound qualification is required.
 
-The subsequent repaired-source report stops at the 256-GiB free-space gate before
+An earlier repaired-source report stopped at the 256-GiB free-space gate before
 qualification tests. See the [disk-stop diagnosis and read-only measurement](r0-implementation.md#disk-reservation-stop-after-the-repair-2026-11-06)
-before any further retry. Available space at that historical failure was omitted;
+for the historical failure diagnosis. Available space at that failure was omitted;
 the report is not evidence that the required capacity was available.
 
 ## Questions and comparisons

@@ -456,7 +456,7 @@ Commit and push each subgroup; preserve all existing completed task text.
 
 ### Workstation evidence (not executable in this implementation turn)
 
-- [ ] T083 Execute the published current-source R0 command on actual HIP, inspect its independently verified diagnostic report and record actual B/C/D/update/resume results in `validation/r0-implementation.md`; only then continue the frozen R1 campaign. Keep this task open until operator evidence exists; no full research or positive result is required to implement T079–T082.
+- [X] T083 Execute the published current-source R0 command on actual HIP, inspect its independently verified diagnostic report and record actual B/C/D/update/resume results in `validation/r0-implementation.md`; only then continue the frozen R1 campaign. Keep this task open until operator evidence exists; no full research or positive result is required to implement T079–T082.
 
 T079: twenty independent pre-implementation counterexamples fail as expected (missing diagnostic verifier and rehearsal runner options). Requirements checklist 16/16; existing ignore files already cover Python/build/private run-state artifacts. No HIP executed.
 
@@ -554,3 +554,26 @@ passes 38 with three actual-native checks explicitly skipped. Sixteen dependency
 free cases are included in the 98. Source fingerprint, 68 unchanged historical
 dispositions, prerequisites and the read-only 16/16 checklist reconcile. No hooks,
 reservation relaxation, original cleanup, HIP work or CI wait occurred.
+
+### Actual HIP R0 verification (2026-11-06)
+
+T083 is now COMPLETE for the supplied `report(20261106-104553).zip` scope.
+Independent stdlib verification yields integrity PASS, rehearsal PASS, overall
+PARTIAL and scientific INCOMPLETE with no errors; the campaign stopped before
+research. Admission, current-source CPU/HIP qualification, production calibration,
+reduced HIP acceptance and R0 all PASS with successful process/cleanup outcomes.
+The CPU JUnit suite reports 1,586 executions (1,504 explicit XML cases); HIP reports
+27, all without failures/errors/skips. B/C/D each commit 256 production-cadence
+updates with finite changed weights and no discarded tokens or pauses. C's
+pause129/resume256 tensor and complete policy/observer proofs equal uninterrupted
+C. R0 performs 1,024 actual optimizer calls including the extra C trace.
+
+The operator confirms the exact output is `run-state/generalization/pac-012-bcd-r0-00`
+(the intended trailing `4` was omitted); preserve that spelling for reuse. The
+review record `validation/evidence/r0-hip-summary.json` binds archive/verifier,
+source/helper/images/plan, actual counts and limitations. Source/helper exactly
+match the reviewed checkout. Updated handoff/quickstart/research-plan record the
+exact R1 resume with all five compatible gates reused. This closeout changes only
+documentation/data, preserving installed source and helper identities. Historical
+pending notes above refer to earlier runs; T073 remains deferred until actual R1
+analysis. No new device work, raw ZIP publication or CI wait occurred in review.
