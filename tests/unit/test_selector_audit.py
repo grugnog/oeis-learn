@@ -185,3 +185,12 @@ def test_expected_bundle_digest_checked_before_report_verification(tmp_path):
     with pytest.raises(ValueError, match='expected original bytes'):
         run(tmp_path/'absent', details, tmp_path/'output', expected_details_sha256='sha256:'+'0'*64)
     assert not (tmp_path/'output').exists()
+
+
+def test_summary_keeps_original_censoring_distinct_from_recovered_failure():
+    from oeis_learn.generalization.selector_audit import summarize
+    row = dict(category='certified', original_controls={'equal_budget': {'success': None}, 'rescue': {'success': False}},
+               alternative_outcome={'success': True}, changed=True, observation_complete=True, eligible_candidates=2)
+    s = summarize({'task':row})['certified']
+    assert s['changed_known_recoveries'] == 0
+    assert s['changed_known_original_censored'] == 1

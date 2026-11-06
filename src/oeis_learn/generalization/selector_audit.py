@@ -215,6 +215,7 @@ def summarize(tasks):
             counts['changed_unscored'] += row['changed'] and after is None
             counts['changed_known_same_success'] += row['changed'] and before is True and after is True
             counts['changed_known_same_failure'] += row['changed'] and before is False and after is False
+            counts['changed_known_original_censored'] += row['changed'] and before is None and after is not None
         result[category] = dict(counts)
     return result
 
