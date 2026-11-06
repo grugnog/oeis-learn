@@ -591,7 +591,7 @@ retained checkpoint output root was confined before creation.
 - [X] T093 Reproduce baseline's missing-owned-root failure for both reference-only/fresh-control labels, and missing helper-level public/private diagnostics through actual normal/minimal publication before implementation. Four tests failed initially; rehashed unsafe failure strings also failed before the validation fix.
 - [X] T094 Repair only the temporary baseline projection: exclusively create its owned root, verify original retained bytes before copy, preserve descriptor identity and reject stale/tampered inputs. Record temporary-helper exceptions with a source-bound public location and bounded private original detail; do not alter qualified installed code or the scientific plan.
 - [X] T095 Add verified supplementary helper diagnostics using the existing canonical exporter and publisher, preserving their rich/minimal payload bytes and negative status. Reject unknown/unbound/tampered/unsafe records with explicit omissions; keep private text out of all shared reports and read-only recovery immutable.
-- [ ] T096 Validate affected wrapper/archive/privacy paths and helper-only source preservation, publish the exact resume from the failed R1 root into a fresh sibling, and commit/push coherent groups without HIP execution or CI wait. Preserve T083 completion and defer T073 until actual research analysis.
+- [X] T096 Validate affected wrapper/archive/privacy paths and helper-only source preservation, publish the exact resume from the failed R1 root into a fresh sibling, and commit/push coherent groups without HIP execution or CI wait. Preserve T083 completion and defer T073 until actual research analysis.
 
 T093–T095: the baseline fixture reaches the installed checkpoint-request consumer
 with the original descriptor/verified bytes, checks both A/A-reference labels and
@@ -604,3 +604,13 @@ structural inference. Only `validation/run.py` and its adjacent tests changed;
 the installed source remains `sha256:b0951861c976252013a86718762666c6f9d0ae6eed017383650edf57f9715e41`.
 The new helper hash is reported separately and does not invalidate the five
 unchanged successful gate producers.
+
+T096: repair `80978d3` is committed/pushed. The final affected selection passes
+80 tests plus five subtests. Independent `python3 -S` verification preserves the
+supplied R1 archive's integrity PASS/rehearsal PASS/software FAIL, and the installed
+snapshot is exactly unchanged. All 17 shell blocks across the handoff/quickstart,
+embedded Python snippets, dependency-free helper help, prerequisites, whitespace
+and the read-only 16/16 checklist pass; no extension hooks are registered. The
+handoff resumes from the failed R1 root's copied plan into fresh `pac-012-bcd-r1-002`,
+without rebuilding images or repeating the five successful gates. No HIP,
+structural inference or CI wait was performed.

@@ -5,9 +5,10 @@ The R0 rehearsal is implemented. Use the exact current-source commands in
 rehearsal and report, then resume the same frozen plan into the long campaign.
 Actual HIP R0 now verifies PASS for the exact source/images in the operator's
 `pac-012-bcd-r0-00` directory. T083 is complete. Use the
-[exact R1 resume command](validation/r0-implementation.md#verified-actual-hip-r0-and-exact-r1-resume-2026-11-06)
-with that existing spelling and unchanged runtime/helpers/images to reuse all five
-completed gates. No rebuild or repeated R0 is needed for that compatible plan.
+[current R1 retry command](validation/r0-implementation.md#r1-baseline-helper-repair-and-compatible-retry-2026-11-06)
+from the failed `pac-012-bcd-r1-001` root after pulling the baseline helper repair.
+All five completed gates remain reusable with unchanged runtime source/images and
+the same sealed plan. No rebuild or repeated R0 is needed for that compatible plan.
 Historical acceptance/repair commands below are retained for provenance.
 
 The operator's `pac-012-acceptance-004` run passed admission, CPU/HIP qualification,
@@ -21,7 +22,8 @@ conditional T073 research analysis remains deferred.
 [Actual device evidence](validation/hip-acceptance.md) and the bounded
 [machine record](validation/evidence/acceptance-004-record.json) retain exact original
 source/image/plan identities. The complete uploaded ZIP is not published to GitHub.
-No runtime or orchestration-helper byte changed during this documentation closeout.
+That historical acceptance closeout changed no runtime or helper bytes; the latest
+R1 repair changes only the separately bound validation helper and adjacent tests.
 
 The original 011 failed 256-task prospective command remains superseded, not a
 012 run. The helper's default scope is acceptance; research requires its own

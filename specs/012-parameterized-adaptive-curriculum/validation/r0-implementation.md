@@ -5,6 +5,60 @@ verified on 2026-11-06; **T083 is complete** for the bound source/images below.
 The implementer reviewed the supplied report without launching device work.
 R1 research has not started. Existing -004/T072 evidence retains its historical scope.
 
+## R1 baseline helper repair and compatible retry (2026-11-06)
+
+The next supplied report, `report(20261106-121409).zip`, independently verifies
+integrity PASS, rehearsal PASS, software FAIL and scientific INCOMPLETE. All five
+successful R0 prerequisites are **REUSED**. Its sealed plan, installed source,
+images and original helper match the successful R0 scope below. The pasted plan
+path's spelling difference did not change the accepted plan identity.
+
+Baseline stopped with `FileNotFoundError` after about 0.001 seconds, before any
+process/role launch or research learner. The old helper discarded the exception
+text, so the ZIP cannot identify the original missing filename. A regression
+through the real baseline branch reproduces the defect: path confinement resolves
+the retained-checkpoint output root strictly before that root has been created.
+
+The helper now creates that owned root exclusively, verifies the original retained
+weight bytes before copying, and preserves the checkpoint descriptor and reference
+label. Repeated output and changed original weights are rejected. Helper exceptions
+now retain bounded original text privately and publish a bound exception kind and
+helper function/line. Normal and minimal reports carry verified helper diagnostics;
+unsafe, unbound or tampered records become explicit omissions. This does not
+recover exception text already discarded by the old run.
+
+Only the temporary validation helper and adjacent tests changed in repair
+`80978d3`; the installed source remains
+`sha256:b0951861c976252013a86718762666c6f9d0ae6eed017383650edf57f9715e41`.
+The new observed helper identity is recorded separately from the original requested
+helper. The existing source/image-bound gate receipts remain compatible: no image
+rebuild, new scientific plan or repeated R0 is required.
+
+Pull the repair, then resume from the failed R1 root into a fresh sibling. Use its
+copied `plan.json` to avoid the earlier R0 path-spelling ambiguity:
+
+```sh
+git pull --ff-only origin 012-parameterized-adaptive-curriculum
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py resume \
+  --plan run-state/generalization/pac-012-bcd-r1-001/plan.json \
+  --previous run-state/generalization/pac-012-bcd-r1-001 \
+  --output run-state/generalization/pac-012-bcd-r1-002
+```
+
+The result is `run-state/generalization/pac-012-bcd-r1-002/report.zip` (no extra
+`campaign/` component). Keep the original R0 directory spelling
+`pac-012-bcd-r0-00` and all previous state intact. Choose another fresh sibling if
+`pac-012-bcd-r1-002` already exists. Resume reuses the five compatible completed
+gates and retries baseline before proceeding through the unchanged frozen scope.
+
+Local validation: **80 tests plus five subtests pass**, including both baseline
+labels through the installed checkpoint-request consumer, tampered/stale input
+rejection, normal/minimal canonical archive publication, immutable recovery and
+private-string omission. These CPU/host checks cover helper construction and
+reporting, not completed structural inference. No HIP was launched and CI was
+not awaited. T083 remains complete for the verified scope; T073 awaits actual
+research results. Earlier resume commands below are historical handoffs.
+
 ## Verified actual HIP R0 and exact R1 resume (2026-11-06)
 
 The operator confirms the successful output directory is exactly

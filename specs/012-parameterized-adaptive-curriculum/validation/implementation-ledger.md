@@ -1193,3 +1193,54 @@ T083 is checked only for this exact supplied source/image/plan scope. The review
 changes documentation and bounded data only, preserving source/helper identities
 and the read-only 16/16 checklist. No new hardware run, CI wait or raw archive
 publication was performed.
+
+## 2026-11-06: T093–T096 R1 baseline helper repair
+
+The operator supplied `report(20261106-121409).zip`, SHA256
+`a20e95c24c436a564c5b15e4d734788ef064b7e53ced2b6ae03acc3193003805`.
+Independent dependency-free verification returns integrity PASS, rehearsal PASS,
+software FAIL and scientific INCOMPLETE. All five prerequisites are REUSED/PASS;
+the original sealed plan, qualified source and images match the successful R0.
+The accepted plan identity confirms the pasted path spelling did not invalidate
+the plan. Baseline fails with FileNotFoundError before any process/role launch.
+The old helper omitted original exception text, so the archive cannot recover
+the missing filename.
+
+Four new counterexamples reproduce the actual helper branch failure and missing
+normal/minimal helper diagnostics before implementation. `confined` strictly
+resolves its root, but the retained baseline root did not yet exist. Repair
+`80978d3` exclusively creates that root, verifies original retained weights before
+copying, and preserves descriptor identity and A/A-reference labels. The tests
+reach the installed checkpoint-request consumer through the real helper branch;
+downstream role invocation is adapted, so this is not completed inference proof.
+Repeated projection and changed originals fail without invoking the role.
+
+Temporary-helper failures now write a sealed, bound public exception kind and
+source function/line plus bounded private original text. Recovery validates the
+helper diagnostic's inventory hash, closed schema, seal, stage/status, canonical
+failure vocabulary and helper-function location. It supplements the existing
+canonical export through the original publisher; normal and minimal payloads and
+negative status remain authoritative. Unknown, tampered or unsafe records are
+omitted explicitly. Tests verify immutable original workflow bytes, private-path
+exclusion and resealed arbitrary private-string exclusion. The old run's discarded
+exception text remains unavailable.
+
+Final affected selection: **80 passed plus five subtests** using
+`validation/test_run.py`, `validation/test_rehearsal.py`,
+`tests/unit/test_generalization_failures.py`,
+`tests/unit/test_generalization_qualification_failures.py`,
+`tests/integration/test_generalization_archive.py` and
+`tests/integration/test_generalization_evidence.py` with `-m 'not gpu and not docker'`
+and `PYTHONPATH=src`. The installed snapshot remains exactly
+`sha256:b0951861c976252013a86718762666c6f9d0ae6eed017383650edf57f9715e41`.
+Only spec validation helper/tests and documentation change; no installed code,
+root tests, lock or image build input changes. The separately reported helper
+identity changes intentionally and does not invalidate compatible gate receipts.
+
+Final stdlib archive verification, helper help, prerequisites, all 17 handoff/
+quickstart shell blocks and embedded Python syntax, whitespace and the read-only
+16/16 checklist pass. No extension hooks are registered. The current handoff
+resumes using `pac-012-bcd-r1-001/plan.json` and that failed root into a fresh
+`pac-012-bcd-r1-002`, preserving the operator's successful R0 spelling and all
+previous state. No actual HIP or structural inference was executed, and CI was
+not awaited. T083 stays complete for its verified scope; T073 remains deferred.

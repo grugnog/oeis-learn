@@ -6,7 +6,10 @@ before expensive learners; its concrete diagnostic configuration is proposed bel
 has been performed by this planning/implementation pass. R0 software is now implemented; see [the current handoff](r0-implementation.md).
 Actual R0 HIP evidence is now independently verified PASS for the operator's
 `pac-012-bcd-r0-00` directory (the trailing `4` was omitted). See the
-[verified result and exact R1 resume](r0-implementation.md#verified-actual-hip-r0-and-exact-r1-resume-2026-11-06).
+[verified R0 result](r0-implementation.md#verified-actual-hip-r0-and-exact-r1-resume-2026-11-06).
+The first R1 attempt reused all five gates, then stopped in the baseline helper
+before launching a process. The helper-only repair preserves qualified runtime
+source/images; use the [current retry from the failed R1 root](r0-implementation.md#r1-baseline-helper-repair-and-compatible-retry-2026-11-06).
 This document remains a planning record; the original sealed plan is execution
 authority. R1 research is still unexecuted and T073 remains deferred.
 
