@@ -10,6 +10,20 @@ UPDATES=256
 BOUNDARY=129
 
 
+def claim_output(output):
+    """Use the launcher's mount, exclusively claiming this diagnostic's work."""
+    output=Path(output)
+    if output.is_symlink():raise FileExistsError('R0 output must be a regular directory')
+    output.mkdir(parents=True,exist_ok=True)
+    for name in ('result.json','rehearsal.json'):
+        if (output/name).exists() or (output/name).is_symlink():
+            raise FileExistsError('R0 output already contains a terminal record')
+    # mkdir is exclusive for existing directories, files and dangling symlinks.
+    # Do not replace the mount or touch launcher-owned .runtime/supervision.
+    (output/'private').mkdir(exist_ok=False)
+    return output
+
+
 def verify_rehearsal(record,*,source=None,environment=None):
     """Stdlib-only reconciliation of the public diagnostic disposition/counts."""
     fields={'version','identity','status','scientific_status','purpose','device','source','environment','study','inventory','initializer',
@@ -103,10 +117,11 @@ def rehearse(inputs,output,settings,*,seconds):
     if settings['environment']!=digest(dict(images=settings['runtime']['images'],engine=settings['runtime']['engine'],backend=study['backend'])):raise ValueError('R0 environment changed')
     minimum=5*(settings['runtime']['envelope']['learner']['work']+settings['runtime']['envelope']['learner']['publication'])+4*settings['runtime']['envelope']['proof']['work']
     if seconds<minimum:raise ValueError('rehearsal parent clips cumulative child budgets')
+    output=claim_output(output)
     require_hip()
     from .generalization_training import storage_preflight
     storage_preflight(recipe,study,settings['runtime'],extra_generations=16)
-    root=inputs['training_targets'];output=Path(output);output.mkdir(parents=True,exist_ok=False)
+    root=inputs['training_targets']
     deadline=time.monotonic()+seconds;runs={};proofs={};resume_proof=None
     def proof_run(folder,value):
         return dict(directory=str(folder.relative_to(output)),compatibility=value['compatibility'],cap=25000000,

@@ -476,7 +476,19 @@ open. Preserve the frozen research configuration, generous limits and current-so
 qualification. No HIP execution or CI wait is authorized here.
 
 - [X] T084 Reproduce the precreated canonical output-mount failure through the installed role entry point using real CPU tensors; add fresh/stale private directory, file and symlink ownership counterexamples before implementation.
-- [ ] T085 Accept the launcher-owned R0 mount root while exclusively claiming fresh diagnostic work, preserving launcher scratch and refusing stale or partial output; audit sibling PAC handler boundaries and run affected non-HIP checks.
+- [X] T085 Accept the launcher-owned R0 mount root while exclusively claiming fresh diagnostic work, preserving launcher scratch and refusing stale or partial output; audit sibling PAC handler boundaries and run affected non-HIP checks.
 - [ ] T086 Record verified operator failure evidence, refresh implementation identity, publish exact current-source retry/resume commands and validation outcomes; commit and push each coherent subgroup. Keep T083 pending actual successful HIP evidence.
 
 T084: six counterexamples fail before the repair: installed dispatch reproduces the exact FileExistsError before any learner invocation, and five fresh/stale ownership cases require the missing claim boundary. Both supplied archives independently verify integrity PASS with negative software/scientific dispositions; no successful rehearsal is claimed.
+
+T085: `claim_output` accepts the launcher-created mount and exclusively creates
+`private`, retaining `.runtime`/supervision and refusing existing private work,
+symlinks or terminal records. The installed CPU dispatcher completes all five real
+learner calls and the full in-block tensor/policy/observer equality proof. Duplicate
+dispatch raises rather than overwriting the immutable original terminal; the
+regression checks its bytes as well as the rehearsal and scratch. Campaign sibling
+assembly/acceptance use fresh child roots, while calibration uses the existing mount;
+their mount ownership does not need the R0 repair. Affected rehearsal selection:
+29 passed using PyTorch 2.9.1+cpu and Wasmtime 48.0.0. This is local CPU adapter
+evidence, not installed-container/native/HIP qualification; T083 remains open.
+

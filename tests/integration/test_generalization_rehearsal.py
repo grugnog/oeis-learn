@@ -69,10 +69,10 @@ def test_installed_rehearsal_all_three_real_learners_and_in_block_resume(tmp_pat
     assert result['production_retention_validated'] is False
     assert all(v['training_status']=='PARTIAL' and v['changed'] and v['finite'] for v in result['runs'].values())
     saved=(output/'rehearsal.json').read_bytes()
+    terminal=(output/'result.json').read_bytes()
     # A duplicate dispatch must not merge or overwrite a prior diagnostic run.
-    assert role.main(['learner',json.dumps(request)])==0
-    duplicate=json.loads((output/'result.json').read_text())
-    assert duplicate['status']=='FAIL' and duplicate['reason']=='FileExistsError'
+    with pytest.raises(FileExistsError):role.main(['learner',json.dumps(request)])
+    assert (output/'result.json').read_bytes()==terminal
     assert (output/'rehearsal.json').read_bytes()==saved
     assert (scratch/'launcher.txt').read_text()=='owned by launcher'
     assert len(calls)==5
