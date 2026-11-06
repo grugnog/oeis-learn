@@ -1,5 +1,9 @@
 # First B/C/D research campaign
 
+The [separate installed follow-up integration](installed-followups.md) moves the
+remaining baseline/report fixes into installed modules. It is a future source
+scope; the operator's already-started R1 retry retains its original #63 scope.
+
 Recorded 2026-11-05 against PR #63 implementation `e2279dda55ed88997c54da43ea4ae6314648d2ad`.
 The operator selected **B/C/D and one paired seed** during planning. The operator also permits adding a short rehearsal
 before expensive learners; its concrete diagnostic configuration is proposed below. No device work, research or new qualification

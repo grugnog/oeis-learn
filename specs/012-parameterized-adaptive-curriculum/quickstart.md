@@ -1,5 +1,9 @@
 # 012 operator handoff
 
+The separate [installed follow-up integration](validation/installed-followups.md)
+is a new source scope stacked on #63. The already-started R1 campaign continues
+on its original #63 source/images; this integration does not request a restart.
+
 The R0 rehearsal is implemented. Use the exact current-source commands in
 [the R0/R1 handoff](validation/r0-implementation.md): first the 256-update B/C/D
 rehearsal and report, then resume the same frozen plan into the long campaign.

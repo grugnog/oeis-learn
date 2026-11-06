@@ -1244,3 +1244,42 @@ resumes using `pac-012-bcd-r1-001/plan.json` and that failed root into a fresh
 `pac-012-bcd-r1-002`, preserving the operator's successful R0 spelling and all
 previous state. No actual HIP or structural inference was executed, and CI was
 not awaited. T083 stays complete for its verified scope; T073 remains deferred.
+
+## 2026-11-06: T097–T100 separate installed follow-up stack
+
+The operator confirmed R1 started on #63 and requested a separate stacked PR.
+Work is isolated on `012-pac-followup-integration` at base `bbeacb4`; that source
+branch remains unchanged. R0 ownership, measured storage checks and qualification
+causes were already installed. The remaining retained-baseline projection and
+helper exception capture/validation are now installed too. Canonical rich/minimal
+export retains helper diagnostics directly; the runner delegates recovery instead
+of unpacking, supplementing and repacking an archive. No new workflow, learner,
+scientific authority or frozen campaign setting is introduced.
+
+Red-first commit `ee2d348` has four failures/two passes: the installed projection API
+is absent and direct canonical rich/minimal exports lose helper diagnostics.
+Implementation `ba64a33` installs projection in `generalization_pac_evaluation`,
+public/private capture and validation in `generalization_helper_failures`, and
+shared failure payload collection in `generalization_pac_export`. It preserves
+original inventory/seal/status/public-vocabulary/source-function checks, private
+original detail, bounded original records and immutable read-only recovery. The
+four operator regressions move into normal integration coverage; additional unit
+tests directly check both reference labels, stale/tampered/wrong-control inputs,
+path escape, private truncation, interruption and unsafe rehashed diagnostics.
+
+Final affected evaluation/archive/governance selection: **175 passed, three actual-
+native qualification checks skipped, five subtests passed**. The prior contract/
+privacy selection passes 161 tests/five subtests. `validation/installed-followups.md`
+records the exact final selection and ownership. Stdlib CLI help, prerequisites,
+shell syntax, whitespace and the unchanged 16/16 checklist pass; no extension hooks
+are registered. The package serializer refreshes only the 007 implementation
+identity; all 68 dispositions and its incomplete status are preserved.
+
+Installed integration snapshot:
+`sha256:54de7bd6984b61b809f96865e8393c5299f228f0dc606dd3ab4359d612c8b3b6`.
+The active #63 checkout still hashes to the qualified
+`sha256:b0951861c976252013a86718762666c6f9d0ae6eed017383650edf57f9715e41`.
+The new source requires its own future build/qualification and cannot inherit old
+R0 device proof. The current R1 plan/images/state are not changed or restarted.
+No HIP, structural inference, new scientific experiment or CI wait was performed.
+T083 keeps its verified historical scope; T073 remains deferred.
