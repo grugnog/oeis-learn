@@ -24,6 +24,8 @@ def dispatch(request: CommandRequest) -> CommandResult:
 def register(commands):
     group=commands.add_parser('generalization',help='controlled generalization evidence operations')
     operations=group.add_subparsers(dest='operation',required=True)
+    job=operations.add_parser('pac-stage',help='execute a closed source-bound PAC role job')
+    job.add_argument('--job',required=True);job.add_argument('--output',required=True)
     verify=operations.add_parser('verify-bundle',help='verify safe archive and independently reconcile evidence')
     verify.add_argument('--archive',required=True)
     verify.add_argument('--output',required=True)
@@ -47,7 +49,7 @@ def register(commands):
             command.add_argument('--checkpoints',nargs='+',required=True)
             command.add_argument('--proposal-bank')
         if name=='acceptance':
-            command.add_argument('--case',required=True,choices=('retained-eval','refresh','parameter-targets','replay-resume','failure-packaging'))
+            command.add_argument('--case',required=True,choices=('pac-curriculum','retained-eval','refresh','parameter-targets','replay-resume','failure-packaging'))
             command.add_argument('--inputs',required=True)
 
 
@@ -128,6 +130,9 @@ def report_main(args,root,host_factory):
 
 
 def main(args,root,host_factory):
+    if args.operation=='pac-stage':
+        from .generalization_pac_commands import main as job
+        return job(args,root,host_factory)
     if hasattr(args,'manifest'):
         import json
         from .identity import confined
@@ -136,7 +141,7 @@ def main(args,root,host_factory):
         if json.loads(path.read_text()).get('version') in {'generalization-acceptance-session/v1','generalization-acceptance-session/v2'}:
             from .generalization_session import main as session
             return session(args,root,host_factory)
-        if args.operation=='acceptance':raise ValueError('acceptance requires a frozen multi-case session manifest')
+        if args.operation=='acceptance' and json.loads(path.read_text()).get('version')!='PAC-screen/v1':raise ValueError('acceptance requires a frozen multi-case session manifest')
     if args.operation=='report':return report_main(args,root,host_factory)
     if args.operation=='verify-bundle':return verify_main(args,root,host_factory)
     from .generalization_commands import main as execute

@@ -104,3 +104,16 @@ def test_fixture_inventory_and_independent_mechanical_expectations():
     assert Fraction(expected["metrics"]["macro_lower"]) == (Fraction(1)+Fraction(1, 3))/2
     assert expected["replay"]["target_values"][:20] == expected["replay"]["candidate_values"][:20]
     assert expected["replay"]["target_values"][20:] != expected["replay"]["candidate_values"][20:]
+
+
+def test_pac_learner_projection_never_includes_custodian_truth():
+    from oeis_learn.generalization.role_contracts import pac_training_refs
+    import pytest
+    ref=lambda p:dict(path=p,sha256='sha256:'+'a'*64,bytes=2)
+    prepared=dict(version='pac-prepared/v1',role='training',literal=[ref('private/literal.json')],
+        parameterized=[ref('private/parameterized.json')],probes=ref('private/probes.json'),
+        inventory=ref('private/inventory.json'),pairs=ref('private/pairs.json'),identity='sha256:'+'b'*64)
+    assert pac_training_refs(prepared,'B')==[prepared['parameterized'][0],prepared['probes'],prepared['inventory']]
+    assert pac_training_refs(prepared,'A')[0]==prepared['literal'][0]
+    for field in ('assessment','selection','hidden_values'):
+        with pytest.raises(ValueError):pac_training_refs(dict(prepared,**{field:ref('truth.json')}),'C')

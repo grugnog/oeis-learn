@@ -56,3 +56,12 @@ ROLE_INPUTS = MappingProxyType({
 ROLE_OUTPUTS = MappingProxyType({
     role: MountDeclaration("role_output", f"/output/{role.value}", False) for role in Role
 })
+
+
+def pac_training_refs(prepared,arm):
+    """Only training payloads cross into the learner; pair proofs stay custodian-side."""
+    fields={'version','role','literal','parameterized','probes','inventory','pairs','identity'}
+    if (set(prepared)!=fields or prepared['version']!='pac-prepared/v1'
+        or prepared['role']!='training' or arm not in {'A','B','C','D'}):
+        raise ValueError('closed training-only PAC projection required')
+    return [*prepared['literal' if arm=='A' else 'parameterized'],prepared['probes'],prepared['inventory']]

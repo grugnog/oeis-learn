@@ -65,3 +65,13 @@ def assemble_acceptance(workspace,*,imported,images,output):
         imported=roster['identity'],initializer='DEFERRED_TO_NEW_RETAINED_SELECTION',native_admission='NOT_RUN',qualification='NOT_RUN',scientific_status='UNMEASURED'))
     write(target/'setup.json',result)
     return result
+
+
+def assemble_pac(workspace,experiment,runtime,output):
+    """Freeze explicit PAC inputs through the canonical assembly boundary."""
+    from .generalization_execution import bind_pac
+    target=_fresh(Path(workspace),output)
+    experiment,runtime=bind_pac(experiment,runtime)
+    target.mkdir(parents=True)
+    write(target/'study.json',experiment);write(target/'runtime.json',runtime)
+    return dict(manifest=str((target/'study.json').relative_to(workspace)),identity=experiment['identity'])

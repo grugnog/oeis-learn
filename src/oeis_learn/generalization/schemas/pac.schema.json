@@ -1,0 +1,2210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oeis-learn.invalid/generalization/pac.schema.json",
+  "$comment": "Closed phase A records. Policy validation and installed authority are separate gates; private records must never be generically exported.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/experiment"
+    },
+    {
+      "$ref": "#/$defs/control"
+    },
+    {
+      "$ref": "#/$defs/inventory"
+    },
+    {
+      "$ref": "#/$defs/target_pair"
+    },
+    {
+      "$ref": "#/$defs/observation"
+    },
+    {
+      "$ref": "#/$defs/review"
+    },
+    {
+      "$ref": "#/$defs/adaptive"
+    },
+    {
+      "$ref": "#/$defs/transaction"
+    },
+    {
+      "$ref": "#/$defs/checkpoint"
+    },
+    {
+      "$ref": "#/$defs/progress"
+    },
+    {
+      "$ref": "#/$defs/receipt"
+    },
+    {
+      "$ref": "#/$defs/envelope"
+    }
+  ],
+  "$defs": {
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "bytes"
+      ],
+      "additionalProperties": false
+    },
+    "row": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "family": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "output_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "target_stratum": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "length_stratum": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "id",
+        "family",
+        "offset",
+        "source_hash",
+        "output_hash",
+        "target_stratum",
+        "length_stratum"
+      ],
+      "additionalProperties": false
+    },
+    "family": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "probes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 8,
+          "maxItems": 8
+        },
+        "anchors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "missing_strata": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        }
+      },
+      "required": [
+        "id",
+        "rows",
+        "probes",
+        "anchors",
+        "missing_strata"
+      ],
+      "additionalProperties": false
+    },
+    "loss": {
+      "type": "object",
+      "properties": {
+        "panel_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "probe_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "model_update": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "loss_sum": {
+          "type": "number"
+        },
+        "tokens": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "panel_id",
+        "probe_ids",
+        "model_update",
+        "loss_sum",
+        "tokens"
+      ],
+      "additionalProperties": false
+    },
+    "anchor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "family": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "acquired": {
+          "type": "boolean"
+        },
+        "queue": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "last_exposure": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "due_update": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_grade": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_event": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "family",
+        "acquired",
+        "queue",
+        "last_exposure",
+        "due_update",
+        "last_grade",
+        "last_event"
+      ],
+      "additionalProperties": false
+    },
+    "row_stream": {
+      "type": "object",
+      "properties": {
+        "family": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "row_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "permutation": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cursor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rng": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": 3
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              "minItems": 625,
+              "maxItems": 625
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "family",
+        "row_ids",
+        "permutation",
+        "epoch",
+        "cursor",
+        "rng"
+      ],
+      "additionalProperties": false
+    },
+    "pending_update": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "row_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "model_before": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "grade": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "anchor": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "success": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "anchor",
+                "success"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "channel": {
+          "enum": [
+            "bandit",
+            "review",
+            "fallback"
+          ]
+        }
+      },
+      "required": [
+        "event_id",
+        "row_ids",
+        "tokens",
+        "model_before",
+        "grade",
+        "channel"
+      ],
+      "additionalProperties": false
+    },
+    "pending_block": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "family": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "probability": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "probe_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "pre": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/loss"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "post": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/loss"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "planned_updates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completed_updates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "charged_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "phase": {
+          "enum": [
+            "pre",
+            "updates",
+            "post",
+            "feedback",
+            "terminal"
+          ]
+        },
+        "pending_update": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/pending_update"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "family",
+        "probability",
+        "probe_ids",
+        "pre",
+        "post",
+        "planned_updates",
+        "completed_updates",
+        "charged_tokens",
+        "phase",
+        "pending_update"
+      ],
+      "additionalProperties": false
+    },
+    "budget_node": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "mode": {
+          "enum": [
+            "serial",
+            "parallel"
+          ]
+        },
+        "overhead_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cleanup_seconds": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "id",
+        "seconds",
+        "children",
+        "mode",
+        "overhead_seconds",
+        "cleanup_seconds"
+      ],
+      "additionalProperties": false
+    },
+    "experiment": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "PAC-screen/v1"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "arms": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          "minItems": 2,
+          "maxItems": 4
+        },
+        "comparison_factors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "initializer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "initializer_kind": {
+          "enum": [
+            "random"
+          ]
+        },
+        "pool": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "probes": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "targets": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "inventory": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy": {
+          "const": "pac-exp3s-leitner/v1"
+        },
+        "budget_graph": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/budget_node"
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "control": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "control_mode": {
+          "enum": [
+            "matched",
+            "reference-only",
+            "fresh-control"
+          ]
+        },
+        "frozen": {
+          "type": "boolean"
+        },
+        "outcomes_seen": {
+          "type": "boolean"
+        },
+        "target_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "model": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "optimizer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "backend": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "order": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "exposure": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "diagnostics": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "literal_targets": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "execution": {
+          "$ref": "#/$defs/identity"
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "arms",
+        "comparison_factors",
+        "seed",
+        "initializer",
+        "initializer_kind",
+        "pool",
+        "probes",
+        "targets",
+        "inventory",
+        "policy",
+        "budget_graph",
+        "metrics",
+        "control",
+        "control_mode",
+        "frozen",
+        "outcomes_seen",
+        "target_tokens",
+        "model",
+        "optimizer",
+        "backend",
+        "order",
+        "source",
+        "exposure",
+        "diagnostics",
+        "literal_targets",
+        "execution"
+      ],
+      "additionalProperties": false
+    },
+    "control": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "pac-control/v1"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "original_study": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "image": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "checkpoint": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "initializer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "checks": {
+          "type": "object",
+          "properties": {
+            "initializer": {
+              "type": "boolean"
+            },
+            "order": {
+              "type": "boolean"
+            },
+            "model": {
+              "type": "boolean"
+            },
+            "optimizer": {
+              "type": "boolean"
+            },
+            "exposure": {
+              "type": "boolean"
+            },
+            "diagnostics": {
+              "type": "boolean"
+            },
+            "backend": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "initializer",
+            "order",
+            "model",
+            "optimizer",
+            "exposure",
+            "diagnostics",
+            "backend"
+          ],
+          "additionalProperties": false
+        },
+        "disposition": {
+          "enum": [
+            "MATCHED",
+            "REFERENCE_ONLY"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "initializer",
+              "order",
+              "model",
+              "optimizer",
+              "exposure",
+              "diagnostics",
+              "backend"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "historical_measurements": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected": {
+          "type": "object",
+          "properties": {
+            "initializer": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "order": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "model": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "optimizer": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "exposure": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "diagnostics": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "backend": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "initializer",
+            "order",
+            "model",
+            "optimizer",
+            "exposure",
+            "diagnostics",
+            "backend"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "original_study",
+        "source",
+        "image",
+        "checkpoint",
+        "initializer",
+        "checks",
+        "disposition",
+        "reasons",
+        "historical_measurements",
+        "expected"
+      ],
+      "additionalProperties": false
+    },
+    "inventory": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "pac-inventory/v1"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "role": {
+          "const": "training"
+        },
+        "families": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/family"
+          },
+          "minItems": 32,
+          "maxItems": 32
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/row"
+          },
+          "minItems": 32768,
+          "maxItems": 32768
+        },
+        "sidecar": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "probe_seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "probe_draws": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "family": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "draws": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "family",
+              "draws"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 32,
+          "maxItems": 32
+        },
+        "source_dispositions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "reason",
+              "count"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "exclusion_dispositions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "reason",
+              "count"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "shared_training_windows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exclusions": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "role",
+        "families",
+        "rows",
+        "sidecar",
+        "probe_seed",
+        "probe_draws",
+        "source_dispositions",
+        "exclusion_dispositions",
+        "shared_training_windows",
+        "exclusions"
+      ],
+      "additionalProperties": false
+    },
+    "target_pair": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "pac-target-pair/v1"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "role": {
+          "const": "training"
+        },
+        "concrete_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "literal_source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "parameter_source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "literal_tokens": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "parameter_tokens": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "minItems": 0,
+              "maxItems": 32768
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "assignment": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "parameter": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              }
+            },
+            "required": [
+              "parameter",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 1024
+        },
+        "sharing": {
+          "enum": [
+            "explicit",
+            "distinct-occurrences"
+          ]
+        },
+        "protected_parameters": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "disposition": {
+          "enum": [
+            "supported",
+            "unsupported_control_dependency",
+            "unsupported_parameter_count"
+          ]
+        },
+        "verification": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "role",
+        "concrete_id",
+        "literal_source",
+        "parameter_source",
+        "literal_tokens",
+        "parameter_tokens",
+        "assignment",
+        "sharing",
+        "protected_parameters",
+        "disposition",
+        "verification"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "disposition": {
+                "const": "unsupported_parameter_count"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "assignment": {
+                "minItems": 9
+              },
+              "parameter_tokens": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "assignment": {
+                "maxItems": 8
+              },
+              "parameter_tokens": {
+                "type": "array"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "pac-observation/v1"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "role": {
+          "const": "training"
+        },
+        "run": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "arm": {
+          "enum": [
+            "B",
+            "C",
+            "D"
+          ]
+        },
+        "segment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "block": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "panel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "pre": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/loss"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "post": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/loss"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "raw_gain": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "charged_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "probability": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "work_gain": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "q20": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "q80": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reward": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scaler_status": {
+          "enum": [
+            "warmup",
+            "degenerate",
+            "scaled",
+            "censored",
+            "terminal"
+          ]
+        },
+        "censored_reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "role",
+        "run",
+        "arm",
+        "segment",
+        "block",
+        "panel",
+        "pre",
+        "post",
+        "raw_gain",
+        "charged_tokens",
+        "probability",
+        "work_gain",
+        "q20",
+        "q80",
+        "reward",
+        "scaler_status",
+        "censored_reason"
+      ],
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "pac-review/v1"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "anchors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/anchor"
+          },
+          "minItems": 128,
+          "maxItems": 128
+        },
+        "services": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_update": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "terminal": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "anchors",
+        "services",
+        "last_update",
+        "terminal"
+      ],
+      "additionalProperties": false
+    },
+    "adaptive": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "pac-exp3s-leitner/v1"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "inventory": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "family_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 2,
+          "maxItems": 32
+        },
+        "logweights": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 32
+        },
+        "epsilon": {
+          "const": 0.25
+        },
+        "eta": {
+          "const": 0.001
+        },
+        "beta": {
+          "const": 0
+        },
+        "action_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_updates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "selection_probability": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bandit_rng": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": 3
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              "minItems": 625,
+              "maxItems": 625
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "scaler_rng": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": 3
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              "minItems": 625,
+              "maxItems": 625
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "reservoir": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 0,
+          "maxItems": 4096
+        },
+        "reservoir_seen": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quantile_rule": {
+          "const": "linear-past-20-80/v1"
+        },
+        "cycle_cursor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "block_cursor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "row_streams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/row_stream"
+          },
+          "minItems": 2,
+          "maxItems": 32
+        },
+        "probe_rotations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "family": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "cursor": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "family",
+              "cursor"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 2,
+          "maxItems": 32
+        },
+        "censored_rewards": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalid_review_blocks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pending_pause": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "terminal_disposition": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "inventory",
+        "family_ids",
+        "logweights",
+        "epsilon",
+        "eta",
+        "beta",
+        "action_count",
+        "valid_updates",
+        "selection_probability",
+        "bandit_rng",
+        "scaler_rng",
+        "reservoir",
+        "reservoir_seen",
+        "quantile_rule",
+        "cycle_cursor",
+        "block_cursor",
+        "row_streams",
+        "probe_rotations",
+        "censored_rewards",
+        "invalid_review_blocks",
+        "pending_pause",
+        "terminal_disposition"
+      ],
+      "additionalProperties": false
+    },
+    "transaction": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "pac-transaction/v1"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy": {
+          "const": "pac-exp3s-leitner/v1"
+        },
+        "inventory": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "arm": {
+          "enum": [
+            "C",
+            "D"
+          ]
+        },
+        "segment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "model_update": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "action_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_updates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "review_services": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "charged_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discarded_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "charged_seconds": {
+          "type": "number"
+        },
+        "pending_block": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/pending_block"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pending_review": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/pending_update"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "completed_event_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "pause_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "terminal": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "policy",
+        "inventory",
+        "run",
+        "arm",
+        "segment",
+        "model_update",
+        "action_count",
+        "valid_updates",
+        "review_services",
+        "charged_tokens",
+        "discarded_tokens",
+        "charged_seconds",
+        "pending_block",
+        "pending_review",
+        "completed_event_ids",
+        "pause_reasons",
+        "terminal"
+      ],
+      "additionalProperties": false
+    },
+    "checkpoint": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "pac-checkpoint/v1"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "kind": {
+          "const": "full_state"
+        },
+        "contract": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "inventory": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy": {
+          "const": "pac-exp3s-leitner/v1"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "environment": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "generation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "model_update": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "components": {
+          "type": "object",
+          "properties": {
+            "weights": {
+              "$ref": "#/$defs/artifact"
+            },
+            "optimizer": {
+              "$ref": "#/$defs/artifact"
+            },
+            "scheduler": {
+              "$ref": "#/$defs/artifact"
+            },
+            "rng": {
+              "$ref": "#/$defs/artifact"
+            },
+            "data": {
+              "$ref": "#/$defs/artifact"
+            },
+            "adaptive": {
+              "$ref": "#/$defs/artifact"
+            },
+            "review": {
+              "$ref": "#/$defs/artifact"
+            },
+            "probes": {
+              "$ref": "#/$defs/artifact"
+            },
+            "transaction": {
+              "$ref": "#/$defs/artifact"
+            },
+            "ledger": {
+              "$ref": "#/$defs/artifact"
+            }
+          },
+          "required": [
+            "weights",
+            "optimizer",
+            "scheduler",
+            "rng",
+            "data",
+            "adaptive",
+            "review",
+            "probes",
+            "transaction",
+            "ledger"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "kind",
+        "contract",
+        "inventory",
+        "policy",
+        "source",
+        "environment",
+        "generation",
+        "model_update",
+        "components"
+      ],
+      "additionalProperties": false
+    },
+    "progress": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "pac-progress/v1"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "segment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "completed_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reserved_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discarded_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "updates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "elapsed_seconds": {
+          "type": "number"
+        },
+        "checkpoint_seconds": {
+          "type": "number"
+        },
+        "status": {
+          "enum": [
+            "RUNNING",
+            "PAUSED",
+            "COMPLETE",
+            "FAIL",
+            "UNAVAILABLE",
+            "STALLED"
+          ]
+        },
+        "resources": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "sequence",
+        "segment",
+        "completed_tokens",
+        "reserved_tokens",
+        "discarded_tokens",
+        "updates",
+        "elapsed_seconds",
+        "checkpoint_seconds",
+        "status",
+        "resources"
+      ],
+      "additionalProperties": false
+    },
+    "receipt": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "pac-stage-receipt/v1"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "image": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "helper": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "command": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "application": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCOMPLETE",
+            "UNAVAILABLE"
+          ]
+        },
+        "process": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNAVAILABLE"
+          ]
+        },
+        "cleanup": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNAVAILABLE"
+          ]
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact"
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "omissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "stage": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              }
+            },
+            "required": [
+              "stage",
+              "reason"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 32768
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "input",
+        "source",
+        "image",
+        "policy",
+        "helper",
+        "parents",
+        "command",
+        "application",
+        "process",
+        "cleanup",
+        "artifacts",
+        "omissions",
+        "errors"
+      ],
+      "additionalProperties": false
+    },
+    "role_envelope": {
+      "type": "object",
+      "properties": {
+        "work": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "startup": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "publication": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "projection": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "cleanup": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "outer": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "work",
+        "startup",
+        "publication",
+        "projection",
+        "cleanup",
+        "outer"
+      ],
+      "additionalProperties": false
+    },
+    "envelope": {
+      "type": "object",
+      "properties": {
+        "validation": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "preparation": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "learner": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "generation": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "acceptance": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "calibration": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "resume": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "proof": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "export": {
+          "$ref": "#/$defs/role_envelope"
+        },
+        "version": {
+          "const": "pac-envelope/v1"
+        },
+        "identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "backend": {
+          "$ref": "#/$defs/identity"
+        },
+        "campaign": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "diagnostics_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "batch_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128
+        },
+        "acceptance_tokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "storage": {
+          "type": "object",
+          "properties": {
+            "data_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "data_copies": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "scratch_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "logs_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "package_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "reserved_bytes": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "data_bytes",
+            "data_copies",
+            "scratch_bytes",
+            "logs_bytes",
+            "package_bytes",
+            "reserved_bytes"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "validation",
+        "preparation",
+        "learner",
+        "generation",
+        "acceptance",
+        "calibration",
+        "resume",
+        "proof",
+        "export",
+        "version",
+        "identity",
+        "backend",
+        "campaign",
+        "diagnostics_seconds",
+        "batch_size",
+        "acceptance_tokens",
+        "storage"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

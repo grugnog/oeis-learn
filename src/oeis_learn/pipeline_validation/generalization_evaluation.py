@@ -60,7 +60,7 @@ def build_bank(decoder,checkpoint,seeds,*,deadline):
     return make_bank(checkpoint,seeds,lambda _model,seed,_mode:sources[seed],elapsed_seconds=elapsed)
 
 
-def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,study,source,seconds=21600,bank_seeds=None):
+def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,study,source,seconds=21600,bank_seeds=None,pac=False):
     """Existing matched/drained production portfolios, plus the shared bank control."""
     import time
     deadline=time.monotonic()+seconds
@@ -72,7 +72,9 @@ def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,stud
     from oeis_learn.generalization.proposals import apply_bank,bank_cost
     from .pilot_clocks import DRAIN,FullClockEvidence,attempts
     from .identity import write
-    if not 0<seconds<=21600:raise ValueError('bounded evaluation required')
+    from .identity import number
+    number(seconds,positive=True)
+    if not pac and seconds>21600:raise ValueError('bounded evaluation required')
     output=Path(output)
     if output.exists():raise ValueError('fresh evaluation output required')
     output.mkdir(parents=True,exist_ok=False)

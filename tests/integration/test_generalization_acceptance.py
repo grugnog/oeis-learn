@@ -401,3 +401,24 @@ def test_training_proof_reserves_persistence_headroom_for_every_case(tmp_path,mo
     result=dict(checkpoint=pointer,compatibility='contract')
     assert cases.training_proof(None,tmp_path,tmp_path/'proof',dict(replay=replay,images=['cpu']),
         dict(budgets={'target_tokens':512}),[(tmp_path/'run',result)])['status']=='PASS'
+
+
+def test_pac_real_acceptance_handlers_reach_review_and_both_resumes(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation.generalization_acceptance import pac_acceptance_fixture,pac_acceptance
+    from oeis_learn.pipeline_validation import generalization_curriculum as curriculum
+    from oeis_learn.generalization.feature_acceptance import verify_pac_acceptance
+    from oeis_learn.synthesis.reference import evaluate
+    def execute(source,indices):
+        r=evaluate(source,indices);return dict(outcome=r.outcome,values=list(r.values))
+    monkeypatch.setattr(curriculum,'semantic_probe',lambda *a,**kw:None) # native measurement unavailable, not success
+    config=pac_acceptance_fixture(tmp_path/'inputs',execute=execute,device='cpu')
+    result=pac_acceptance({'training_targets':tmp_path/'inputs'},tmp_path/'run',dict(config=config),seconds=900)
+    assert result['status']=='PASS' and result['device']=='cpu'
+    assert result['updates']==16 and result['valid_rewards']==6 and result['graded_anchors']>0
+    evaluation=json.loads((tmp_path/'run'/result['checkpoint_evaluation']['path']).read_text())
+    assert evaluation['tokens']>0 and evaluation['rows']==2 and evaluation['device']=='cpu'
+    assert result['cadence']==dict(block_updates=2,cycle_updates=8,review_interval=1,common_updates=8)
+    assert result['resume_boundaries']==[1,2] and result['research_eligible'] is False
+    verify_pac_acceptance(result,root=tmp_path/'run',source=config['pac']['source'],environment=config['pac']['environment'],device='cpu')
+    with pytest.raises(ValueError,match='device'):
+        verify_pac_acceptance(result,root=tmp_path/'run',source=config['pac']['source'],environment=config['pac']['environment'],device='hip')

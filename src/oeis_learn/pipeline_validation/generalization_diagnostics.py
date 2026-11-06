@@ -1,4 +1,5 @@
 """Bounded public control copies, with metadata-only discovery of nested roles."""
+import copy
 import hashlib
 import json
 import os
@@ -259,3 +260,147 @@ def main(argv=None):
 
 
 if __name__=='__main__':raise SystemExit(main())
+
+
+class PacObservers:
+    """Model-bound monitoring and B shadow opportunities, never policy credit."""
+    def __init__(self,batches,*,arm,seed,observe,semantic=None,snapshot=None,acceptance=False,coordinate_clock=None):
+        self.batches=batches;self.arm=arm;self.seed=seed;self.observe=observe;self.semantic=semantic
+        self.coordinate_clock=coordinate_clock
+        from oeis_learn.generalization.retention import empty_history,validate_history,append_panel
+        self.block=2 if acceptance else 8;self.cycle=4*self.block;self.common_period=8 if acceptance else 256
+        self.families=sorted(batches.families);self.anchors=sorted(batches.anchors)
+        self.state=dict(version='pac-acceptance-observers/v2' if acceptance else 'pac-observers/v2',arm=arm,seed=seed,inventory=batches.inventory['identity'],
+            last_before=-1,last_common=-1,pending_shadow=None,shadow_blocks=0,shadow_grades=0,
+            loss_panels=0,semantic_attempts=0,semantic_completed=0,semantic_success=0,
+            allocation={f:{c:dict(updates=0,tokens=0,examples=0) for c in ('fixed','bandit','review','fallback')} for f in self.families},
+            review_counts=dict(acquisitions=0,grades=0,successes=0,censored=0,incidental=0),reward_counts=dict(valid=0,censored=0),
+            rotation={},missing_rotations={f:0 for f in self.families},retention_incomplete=[],recent=[],history=empty_history())
+        if snapshot is not None:
+            snapshot=copy.deepcopy(snapshot)
+            if snapshot.get('version')==self.state['version'].replace('/v2','/v1'):
+                snapshot['version']=self.state['version'];snapshot['history']=empty_history(legacy_panels=snapshot['loss_panels'])
+            validate_history(snapshot.get('history',{}),self.families,snapshot['loss_panels'])
+            if set(snapshot)!=set(self.state) or any(snapshot[k]!=self.state[k] for k in ('version','arm','seed','inventory')):raise ValueError('PAC observer restore identity')
+            from oeis_learn.generalization.budgets import integer
+            for key in ('shadow_blocks','shadow_grades','loss_panels','semantic_attempts','semantic_completed','semantic_success'):integer(snapshot[key])
+            if not snapshot['semantic_success']<=snapshot['semantic_completed']<=snapshot['semantic_attempts']:raise ValueError('PAC observer semantic counters')
+            if any(type(snapshot[k]) is not int or snapshot[k]<-1 for k in ('last_before','last_common')) or len(snapshot['recent'])>64:raise ValueError('PAC observer clock/history bounds')
+            if set(snapshot['missing_rotations'])!=set(self.families) or not set(snapshot['rotation'])<=set(self.families) or not set(snapshot['retention_incomplete'])<=set(self.families):raise ValueError('PAC observer family coverage')
+            for value in snapshot['missing_rotations'].values():integer(value)
+            if any(type(v) is not bool for v in snapshot['rotation'].values()):raise ValueError('PAC observer rotation disposition')
+            self.state=copy.deepcopy(snapshot)
+
+    def event(self,value):
+        self.state['recent'].append(value);self.state['recent']=self.state['recent'][-64:]
+
+    def common(self,update,*,final=False):
+        if self.state['last_common']==update or (update%self.common_period and not final):return
+        sums=0.;tokens=0;complete=True;families={}
+        for f in self.families:
+            result=self.observe([self.batches.probe_rows[i] for i in self.batches.probes[f]])
+            families[f]=None if result is None else dict(loss_sum=result['loss_sum'],tokens=result['tokens'])
+            if result is None:complete=False
+            else:sums+=result['loss_sum'];tokens+=result['tokens']
+        self.state['loss_panels']+=1
+        self.event(dict(kind='common_loss',update=update,loss_sum=sums,tokens=tokens,complete=complete,families=families,kernel_credit=False))
+        start=((update+self.common_period-1)//self.common_period*4)%len(self.families)
+        selected=[self.families[(start+i)%len(self.families)] for i in range(min(4,len(self.families)))]
+        semantic={f:dict(semantic_attempts=0,semantic_completed=0,semantic_success=0) for f in self.families}
+        for f in selected:
+            completed=False
+            for key in self.batches.probes[f]:
+                self.state['semantic_attempts']+=1;semantic[f]['semantic_attempts']+=1
+                result=self.semantic(self.batches.probe_rows[key],self.batches.probe_truth[key],seconds=5) if self.semantic else None
+                if result is not None:
+                    completed=True;self.state['semantic_completed']+=1;self.state['semantic_success']+=bool(result)
+                    semantic[f]['semantic_completed']+=1;semantic[f]['semantic_success']+=int(bool(result))
+            self.state['rotation'][f]=completed
+        if len(self.state['rotation'])==len(self.families):
+            for f,complete in self.state['rotation'].items():
+                self.state['missing_rotations'][f]=0 if complete else self.state['missing_rotations'][f]+1
+                if self.state['missing_rotations'][f]>=2 and f not in self.state['retention_incomplete']:self.state['retention_incomplete'].append(f)
+            self.state['rotation']={}
+        from oeis_learn.generalization.retention import append_panel
+        allocation=[v for f in self.state['allocation'].values() for v in f.values()]
+        coordinates=dict(update=update,tokens=sum(v['tokens'] for v in allocation),examples=sum(v['examples'] for v in allocation),seconds=self.coordinate_clock() if self.coordinate_clock else None)
+        append_panel(self.state['history'],coordinates,{f:dict(loss=families[f],semantic=semantic[f]) for f in self.families})
+        self.state['last_common']=update
+
+    def before(self,update):
+        if self.state['last_before']==update:return
+        self.common(update)
+        if self.arm=='B':
+            import random
+            from oeis_learn.generalization.curriculum import stream_seed
+            cycle,pos=divmod(update,self.cycle)
+            if pos in (0,self.block,2*self.block):
+                number=cycle*3+pos//self.block
+                f=self.families[random.Random(stream_seed(self.seed,'shadow-uniform-family',str(number))).randrange(len(self.families))]
+                ids=self.batches.probes[f][(number%4)*2:(number%4)*2+2]
+                self.state['pending_shadow']=dict(start=update,ids=ids,pre=self.observe([self.batches.probe_rows[i] for i in ids]))
+            elif pos>=3*self.block:
+                anchor=self.anchors[(cycle*self.block+pos-3*self.block)%len(self.anchors)]
+                result=self.observe([self.batches.rows[anchor]]);self.state['shadow_grades']+=1
+                self.event(dict(kind='shadow_recall',anchor=anchor,update=update,recall=None if result is None else result['recall'][0],anchor_promotion=False))
+        self.state['last_before']=update
+
+    def after(self,update):
+        pending=self.state['pending_shadow']
+        if pending and update==pending['start']+self.block:
+            post=self.observe([self.batches.probe_rows[i] for i in pending['ids']])
+            pre=pending['pre'];self.state['shadow_blocks']+=1
+            self.event(dict(kind='shadow_reward',update=update,raw_gain=None if pre is None or post is None else pre['loss_sum']/pre['tokens']-post['loss_sum']/post['tokens'],kernel_credit=False))
+            self.state['pending_shadow']=None
+        self.common(update)
+
+    def committed(self,batch,*,channel,anchor=None,grade=None,before=None):
+        from oeis_learn.generalization.budgets import charge_tokens
+        for row in batch:
+            value=self.state['allocation'][row['family']][channel]
+            value['tokens']+=charge_tokens([row['tokens']],bos=1,pad=0);value['examples']+=1
+        # Adaptive batches are single-family; fixed batches may cross families.
+        from fractions import Fraction
+        for family in {r['family'] for r in batch}:
+            value=self.state['allocation'][family][channel]
+            value['updates']=str(Fraction(value['updates'])+Fraction(sum(r['family']==family for r in batch),len(batch)))
+        if before is not None:
+            counts=self.state['review_counts']
+            for row in batch:
+                a=before.get(row['id'])
+                if a is not None:
+                    counts['acquisitions']+=not a['acquired']
+                    counts['incidental']+=row['id']!=anchor
+            if anchor and before[anchor]['acquired']:
+                counts['grades']+=grade is not None;counts['successes']+=grade is not None and grade['recall']
+                counts['censored']+=grade is None
+
+    def feedback(self,event,selection):
+        self.state['reward_counts']['censored' if event['status']=='censored' else 'valid']+=1
+        self.event(dict(kind='policy_reward',selection=dict(selection),**event))
+
+    def snapshot(self):return copy.deepcopy(self.state)
+
+
+def pac_training_projection(controller,ledger,*,discarded=0,timing=None):
+    """Bounded public measurements, never a source of resumed policy authority."""
+    if controller is None or ledger is None:return dict(status='UNAVAILABLE',reason='original_measurements_missing')
+    from oeis_learn.generalization.budgets import Ledger
+    account=Ledger.restore(ledger,cap=ledger['cap'])
+    reserved=account.pending[1] if account.debited else 0
+    tokens=dict(allowed=account.cap,useful=account.consumed-reserved,reserved=reserved,discarded=discarded,
+                unspent=account.cap-account.consumed-discarded)
+    if min(tokens.values())<0:raise ValueError('unreconciled PAC exposure')
+    observer=controller['observer'];policy=controller.get('policy')
+    allocation=observer.get('allocation',{})
+    if allocation:
+        if sum(v['tokens'] for f in allocation.values() for v in f.values())!=tokens['useful']:raise ValueError('allocation does not reconcile useful tokens')
+        if sum(__import__('fractions').Fraction(v['updates']) for f in allocation.values() for v in f.values())!=account.updates:raise ValueError('allocation does not reconcile committed updates')
+    return dict(status='RECORDED',tokens=tokens,updates=account.updates,channels=dict(controller['channels']),allocation=allocation,
+        review=observer.get('review_counts'),rewards=observer.get('reward_counts'),
+        clocks=dict(actions=policy['kernel']['action_count'],valid_rewards=policy['kernel']['valid_updates']) if policy else None,
+        pending_anchors=sum(a['due_update']<=account.updates for a in policy['review']['anchors'].values()) if policy else None,
+        pending_block=policy.get('block') if policy else None,last_reward=policy.get('last_observation') if policy else None,
+        pauses=policy.get('pauses') if policy else [],observations=controller['observations'],observation_seconds=controller['observed_seconds'],
+        costs={k:(timing or {}).get(k) for k in ('preparation_seconds','checkpoint_seconds','update_seconds','publication_seconds','invocation_seconds')},
+        monitoring=observer,recent_observations_omitted=max(0,observer.get('loss_panels',0)+observer.get('shadow_blocks',0)-len(observer['recent'])))

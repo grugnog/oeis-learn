@@ -1,0 +1,239 @@
+{
+  "archive_sha256": "sha256:df351d22447a500681aaef83a3a3923b4ab339e74bb51ecccc12cf6eed8122fa",
+  "availability": {
+    "exclusion_reasons": {
+      "finite_window": 894,
+      "group": 2,
+      "numeric_variant": 2,
+      "source": 2
+    },
+    "families": [
+      {
+        "available": 64,
+        "before_exclusion": 64,
+        "deficit": 0,
+        "draws": 64,
+        "family": "sha256:023c94524b41f4c4280555bb753f48583c66c9caf94e42d5f9f825914806e070",
+        "required": 4
+      },
+      {
+        "available": 62,
+        "before_exclusion": 64,
+        "deficit": 0,
+        "draws": 64,
+        "family": "sha256:04986e9882b83d5fc316c726ce8f5e30c4ce0f74f9469d95182e450d245da8c9",
+        "required": 2
+      },
+      {
+        "available": 0,
+        "before_exclusion": 64,
+        "deficit": 2,
+        "draws": 64,
+        "family": "sha256:0aa27908fe64f01c71b56dfbf3bc42d62e1c387847a7a3dde53a7238f8761d30",
+        "required": 2
+      },
+      {
+        "available": 63,
+        "before_exclusion": 64,
+        "deficit": 0,
+        "draws": 64,
+        "family": "sha256:174a9a2071d50c75a9e79aab848bde5e4637e8a872fb5dd6d4fda5c68b8be0d3",
+        "required": 4
+      },
+      {
+        "available": 95,
+        "before_exclusion": 96,
+        "deficit": 0,
+        "draws": 96,
+        "family": "sha256:286588d220a644bc3c35da1c82ed204c89c7dca448470deef4aaab503b77ae6e",
+        "required": 6
+      },
+      {
+        "available": 0,
+        "before_exclusion": 96,
+        "deficit": 6,
+        "draws": 96,
+        "family": "sha256:322d33b6b9854f982d87856c46c38e5dc68e74c4714270158f2f59ba1d354996",
+        "required": 6
+      },
+      {
+        "available": 0,
+        "before_exclusion": 112,
+        "deficit": 7,
+        "draws": 112,
+        "family": "sha256:34063c9150430d60b5239da622a4528d9711a5e22d3a43b919666ab992be0742",
+        "required": 7
+      },
+      {
+        "available": 4,
+        "before_exclusion": 64,
+        "deficit": 0,
+        "draws": 64,
+        "family": "sha256:3f7f434b8e623c14859607b7cf926d902c978ac4c54bb9783e0584976437e26e",
+        "required": 2
+      },
+      {
+        "available": 37,
+        "before_exclusion": 64,
+        "deficit": 0,
+        "draws": 64,
+        "family": "sha256:589833f0edcdab5b63558844fdd9a67bf83e9fc9cca20378d69eca2cfab6c617",
+        "required": 4
+      },
+      {
+        "available": 1,
+        "before_exclusion": 64,
+        "deficit": 3,
+        "draws": 64,
+        "family": "sha256:5c475cecf9dadb676ffb072321748ece543b969ad83a57af14806a841fdce7b7",
+        "required": 4
+      },
+      {
+        "available": 60,
+        "before_exclusion": 64,
+        "deficit": 0,
+        "draws": 64,
+        "family": "sha256:7d3c681969ef3849fe45f55c154485f27a87ca6804722a8fe3063f86f4c8412f",
+        "required": 4
+      },
+      {
+        "available": 7,
+        "before_exclusion": 64,
+        "deficit": 0,
+        "draws": 64,
+        "family": "sha256:814c9514aa68b7de93b7e2bb44cf52f667d89828329599a9c30ddd6c2f42062f",
+        "required": 1
+      },
+      {
+        "available": 2,
+        "before_exclusion": 64,
+        "deficit": 2,
+        "draws": 64,
+        "family": "sha256:83a8423db5b0e343b25868f51be36d371c5610bdd951f4b786a58adf16ee7887",
+        "required": 4
+      },
+      {
+        "available": 22,
+        "before_exclusion": 96,
+        "deficit": 0,
+        "draws": 96,
+        "family": "sha256:988a472f489306cddc24c6bf715401735cf11e1e61bbc0565aa86740dec66afb",
+        "required": 6
+      },
+      {
+        "available": 74,
+        "before_exclusion": 80,
+        "deficit": 0,
+        "draws": 80,
+        "family": "sha256:ae2291fc1dea8920148bdf1c2536ca674e52569d9e2db8a62402e69f99e4ac9e",
+        "required": 5
+      },
+      {
+        "available": 6,
+        "before_exclusion": 64,
+        "deficit": 0,
+        "draws": 64,
+        "family": "sha256:cf0cf185ed7e62edc6fbb4ef53a41e86f3ec327641812603c272d02cb3de672f",
+        "required": 2
+      },
+      {
+        "available": 64,
+        "before_exclusion": 64,
+        "deficit": 0,
+        "draws": 64,
+        "family": "sha256:d2a0230d8ec5fc32a97d1e0172096a3d0b49998c4552176a51ec5dc69786570a",
+        "required": 4
+      },
+      {
+        "available": 155,
+        "before_exclusion": 160,
+        "deficit": 0,
+        "draws": 160,
+        "family": "sha256:d5849ec7e32b28de8797e626752274fb40441eeed7f55cf616049eb58efc405f",
+        "required": 10
+      },
+      {
+        "available": 160,
+        "before_exclusion": 160,
+        "deficit": 0,
+        "draws": 160,
+        "family": "sha256:daaacba51cb13e1ab72f29c40c6cedec28fcb66c22c1a923cd6c1b8de7d3e9c6",
+        "required": 10
+      },
+      {
+        "available": 176,
+        "before_exclusion": 176,
+        "deficit": 0,
+        "draws": 176,
+        "family": "sha256:dbeda6df0cf503abe0e488f443f0d709f46f8151c9afc4f64abc43ceac189dd1",
+        "required": 11
+      },
+      {
+        "available": 131,
+        "before_exclusion": 144,
+        "deficit": 0,
+        "draws": 144,
+        "family": "sha256:df92fd60c4a58c0c250ff87607106318cf3c51996d26239bf4e4634898fa7279",
+        "required": 9
+      },
+      {
+        "available": 64,
+        "before_exclusion": 64,
+        "deficit": 0,
+        "draws": 64,
+        "family": "sha256:e0ba7e3a2bfec4edadd4021b0e0aacc008a2a800f59e8f8dcf3131220c93a8a1",
+        "required": 3
+      },
+      {
+        "available": 9,
+        "before_exclusion": 64,
+        "deficit": 0,
+        "draws": 64,
+        "family": "sha256:eb82f1176d0d405d132bfd7842a1a9e16140a0f7b84205b16a4f78f55de6869f",
+        "required": 3
+      },
+      {
+        "available": 2,
+        "before_exclusion": 64,
+        "deficit": 2,
+        "draws": 64,
+        "family": "sha256:ee89096d39c3cd28548d23323560ae136722b8d44999397d79dc6323e3dae86e",
+        "required": 4
+      },
+      {
+        "available": 0,
+        "before_exclusion": 64,
+        "deficit": 2,
+        "draws": 64,
+        "family": "sha256:f16e6cc78e4e0a20e2723c55a5ae3083be3cbd52447f58761a0b9c57ccab0c61",
+        "required": 2
+      },
+      {
+        "available": 76,
+        "before_exclusion": 80,
+        "deficit": 0,
+        "draws": 80,
+        "family": "sha256:f6bb7c89134702420513b97f1fb6879ee5c7330cf49ca33e9ff26301ef9d13be",
+        "required": 5
+      },
+      {
+        "available": 60,
+        "before_exclusion": 64,
+        "deficit": 0,
+        "draws": 64,
+        "family": "sha256:fe4b4781a7b4da84db42eb1dc9570802ae030d06c43b62df669f7781e2c8f423",
+        "required": 4
+      }
+    ],
+    "identity": "sha256:520fa8b8b5fce79548a0ebdad1b754f7225723cbdbe44db30d3deadda7526ba0",
+    "native_completed": 1394,
+    "native_seconds": 8.295118470676243,
+    "reference_and_exclusion_seconds": 17.989756423048675,
+    "reference_rejections": {},
+    "version": "pac-structural-availability/v1"
+  },
+  "evidence": "sha256:706654474f1312994877a4d897ad30c14f8d82f4242168e4c3a90250c27d4d1a",
+  "note": "Original public counters only. No original protected rows or native agreement proof is reconstructed.",
+  "source": "sha256:f5a2cf97777de3ab2facd058a90bb1d67629913f78d714fa4a365c816b480049",
+  "version": "pac-failed-admission-fixture/v1"
+}

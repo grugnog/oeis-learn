@@ -43,3 +43,36 @@ def test_protected_projections_match_their_declared_role_schema():
     for role,kind in [('training','training-target'),('selection','scorer-target'),('assessment','scorer-target')]:
         _,protected=project(dict(common,role=role))
         shape(kind,protected)
+
+
+def pac_inventory_fixture():
+    rows=[];probes=[]
+    for f in range(32):
+        for i in range(1024):
+            key=f'{f}/{i}'
+            rows.append(dict(id=key,family=f'f{f:02}',offset=len(rows),source_hash=digest(['s',key]),output_hash=digest(['o',key]),
+                             window_hash=digest(['w',key]),target_stratum='supported' if i%2 else 'fallback',length_stratum='short' if i%4<2 else 'long',role='training'))
+        for i in range(8):
+            key=f'p{f}/{i}';out=digest(['o',key])
+            probes.append(dict(id=key,family=f'f{f:02}',draw_index=i,source_hash=digest(['s',key]),output_hash=out,
+                               window_hash=rows[-1]['window_hash'],native_hash=out,role='training'))
+    return rows,probes
+
+
+def test_pac_finite_inventory_and_distinct_anchors():
+    from oeis_learn.generalization.cohorts import pac_inventory
+    rows,probes=pac_inventory_fixture()
+    args=dict(pool_identity=digest(rows),draw_identity=digest(probes),seed=1,batch_size=16,final_collision_ids=set(),exclusions=digest('custodian'))
+    result=pac_inventory(rows,probes,**args)
+    assert len(result['rows'])==32768 and len(result['families'])==32
+    assert sum(len(f['anchors']) for f in result['families'])==128
+    assert all(len(set(f['anchors']))==4 and len(f['probes'])==8 for f in result['families'])
+    assert result['shared_training_windows']==256
+    for changed_rows,changed_probes,extra in [(rows[:-1],probes,{}),(rows,probes[:-1],{}),
+            (rows,probes,{'batch_size':1025}),(rows,probes,{'final_collision_ids':{probes[0]['id']}})]:
+        with pytest.raises(ValueError):pac_inventory(changed_rows,changed_probes,**dict(args,**extra))
+    import copy
+    for field,value in [('source_hash',rows[0]['source_hash']),('output_hash',rows[0]['output_hash']),('role','assessment'),('native_hash',digest('wrong')),('draw_index',256)]:
+        bad=copy.deepcopy(probes);bad[0][field]=value
+        with pytest.raises(ValueError):pac_inventory(rows,bad,**dict(args,draw_identity=digest(bad)))
+    with pytest.raises(ValueError):pac_inventory(rows,probes,**dict(args,draw_identity=digest('reseeded')))

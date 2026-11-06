@@ -17,6 +17,10 @@ def load(root,manifest,runtime=None):
     sidecar=confined(root,runtime) if runtime else path.parent/'runtime.json'
     if sidecar.stat().st_size>1<<20:raise ValueError('runtime document cap')
     record=json.loads(sidecar.read_text())
+    if record.get('version')=='pac-runtime/v1':
+        from .generalization_execution import verify_pac_runtime
+        verify_pac_runtime(study,record)
+        return path.parent,study,record
     validate(record,{'version','study','purpose','recipe','images','preparation','training','evaluation','replay','assessment','feature','storage'},'generalization-runtime/v2')
     from oeis_learn.generalization.execution import verify_binding,validate_policy
     verify_binding(study,record);validate_policy(study,record)
@@ -38,6 +42,9 @@ def validate_execution(root,study,runtime):
     """Custodian-only schema and role verification before a learner is launched."""
     from oeis_learn.generalization.contracts import validate as authority,shape
     from oeis_learn.generalization.initializers import verify_initializer
+    if study.get('version')=='PAC-screen/v1':
+        from .generalization_execution import validate_pac_execution
+        return validate_pac_execution(root,study,runtime)
     study=authority('study',study).record()
     if study['version']=='generalization-study/v3':
         from oeis_learn.generalization.execution import verify_binding,validate_policy
@@ -272,6 +279,17 @@ def initializer_refs(root,initialization):
 def execution_refs(root,study,runtime,*,preparation=False):
     """Exact custodian projection; never mount an entire operator output tree."""
     from oeis_learn.generalization.contracts import artifact_refs
+    if runtime.get('version')=='pac-runtime/v1':
+        refs=list(artifact_refs(runtime))
+        if runtime['prepared']:
+            bundle=json.loads(verify_artifact(root,runtime['prepared']['training']))
+            refs.extend(artifact_refs(bundle))
+            admission=json.loads(verify_artifact(root,runtime['prepared']['admission'],max_bytes=16<<20))
+            # The custodian validates this protected population. Historical
+            # original-cell refs belong to other roots and are not inputs here.
+            if admission['structural'] is not None:refs.append(admission['structural'])
+        for ref in refs:verify_artifact(root,ref)
+        return list({r['path']:r for r in refs}.values())
     refs=[runtime['recipe'],study['source_closure'],*initializer_refs(root,study['model']['initialization'])]
     if preparation:
         if runtime['preparation'] is None:raise ValueError('preparation authority required')
@@ -293,7 +311,18 @@ def execution_refs(root,study,runtime,*,preparation=False):
     return list(unique.values())
 
 
-def learner_config(study,runtime,recipe,arm,seed):
+def learner_config(study,runtime,recipe,arm,seed,*,prepared=None):
+    if study.get("version")=="PAC-screen/v1":
+        from .generalization_execution import require_pac_admission
+        require_pac_admission(study,runtime,"train")
+        if arm not in study["arms"] or seed!=study["seed"] or prepared is None:raise ValueError("declared PAC arm/seed and prepared view required")
+        limits=runtime["envelope"]["learner"]
+        cap=study["target_tokens"] if runtime["purpose"]=="research" else runtime["envelope"]["acceptance_tokens"]
+        return dict(study=study["identity"],arm=arm,seed=seed,recipe=recipe,shards=prepared["literal" if arm=="A" else "parameterized"],
+            data_mode="static",batch_size=runtime["envelope"]["batch_size"],target_tokens=cap,
+            milestones=[m for m in (4_000_000,8_000_000,16_000_000,25_000_000) if m<=cap],seconds=limits["work"]+limits["publication"],device="cuda",checkpoint_policy="hourly/v1",
+            pac=dict(bundle=prepared,purpose=runtime["purpose"],source=study["source"],environment=digest(dict(images=runtime["images"],engine=runtime["engine"],backend=study["backend"])),
+                initializer=study["initializer"],publication_seconds=limits["publication"],observation_seconds=runtime["envelope"]["diagnostics_seconds"]))
     from oeis_learn.generalization.bootstrap import is_pending
     if is_pending(study['model']['initialization']):raise ValueError('unresolved acceptance initializer')
     if arm not in study['arms'] or seed not in study['seeds'] or arm not in runtime['training']:

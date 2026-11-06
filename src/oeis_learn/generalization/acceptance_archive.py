@@ -71,3 +71,112 @@ def verify_acceptance(record,*,root):
     elif record['feature'] is not None:raise ValueError('partial acceptance cannot qualify research')
     return dict(integrity='PASS',software_status=actual,scientific_status='UNMEASURED',scope='software acceptance only',
         cases=statuses,missing=missing,feature_qualified=actual=='PASS')
+
+
+def verify_pac_evidence(record,*,root,finalized=True):
+    """Reconcile original public proof closure and all terminal boundaries."""
+    from oeis_learn.generalization.metrics import _pac_roster
+    from oeis_learn.generalization.structural import original_cells
+    from oeis_learn.generalization.feature_acceptance import verify_pac_acceptance
+    from oeis_learn.generalization.qualification import consume_public,FACTS
+    from oeis_learn.pipeline_validation.identity import digest
+    fields={'version','plan','source','images','backend','helper','scope','required','stages','software_status','scientific_status',
+            'errors','omissions','inventory','qualification','acceptance','native_admission','calibration'}
+    rehearsal_scope=record.get('version')=='pac-public-evidence/v2'
+    if rehearsal_scope:fields=fields|{'rehearsal'}
+    validate(record,fields,'pac-public-evidence/v2' if rehearsal_scope else 'pac-public-evidence/v1')
+    if record['scientific_status'] not in {'UNMEASURED','INCOMPLETE','EXPLORATORY_SINGLE_SEED'}:raise ValueError('scoped scientific status')
+    import re
+    identities=[record[k] for k in ('plan','source','backend')]+record['images']+[record['helper'][k] for k in ('requested','observed')]
+    if len(record['images'])!=2 or set(record['helper'])!={'requested','observed'} or any(not isinstance(v,str) or not re.fullmatch(r'sha256:[0-9a-f]{64}',v) for v in identities):raise ValueError('complete source/image/helper identities required')
+    for error in record['errors']:
+        if set(error)!={'stage','kind','status'} or not isinstance(error['kind'],str) or not re.fullmatch(r'[A-Za-z_]{1,64}',error['kind']):raise ValueError('bounded ordered public error types required')
+    scope=record['scope']
+    if set(scope)!={'research','arms','seed','target_tokens','parameter','assessment'} or type(scope['research']) is not bool or scope['target_tokens']!=25000000 or scope['parameter']!='DEFERRED' or scope['assessment']!='NOT_EXECUTED':raise ValueError('frozen PAC scientific scope required')
+    if type(scope['seed']) is not int or not 0<=scope['seed']<2**32:raise ValueError('frozen seed required')
+    if len(set(scope['arms']))!=len(scope['arms']) or not {'B','C'}<=set(scope['arms'])<=set('ABCD'):raise ValueError('predeclared complete arms')
+    required=['admission','qualification','calibration','acceptance']
+    if rehearsal_scope:
+        if scope['arms']!=['B','C','D']:raise ValueError('R0 frozen BCD scope differs')
+        required.append('rehearsal')
+    if scope['research']:
+        required+=['baseline']
+        for arm in scope['arms']:required+=['train-'+arm,'evaluate-'+arm]
+        required+=['analysis']
+    if record['required']!=required:raise ValueError('complete frozen campaign stages required')
+    inventory=record['inventory'];indexed={r['path']:r for r in inventory}
+    if len(indexed)!=len(inventory) or len(inventory)>9990 or sum(r['bytes'] for r in inventory)>512<<20:raise ValueError('PAC evidence inventory bounds')
+    for ref in inventory:
+        if not public(Path(ref['path'])):raise ValueError('private PAC payload')
+        verify_artifact(root,ref,max_bytes=512<<20)
+    def read(ref):
+        if ref is None or indexed.get(ref['path'])!=ref:raise ValueError('mandatory original proof missing from inventory')
+        return json.loads(verify_artifact(root,ref,max_bytes=16<<20))
+    report=research_inputs=None
+    analysis_ref=indexed.get('analysis/analysis.json')
+    if analysis_ref is not None:
+        report=read(analysis_ref)
+        if report.get('version')=='pac-analysis/v2':
+            from .pac_analysis import verify_analysis
+            if report['inputs']['path']!='research-inputs.json':raise ValueError('fixed public research input path required')
+            input_ref=dict(report['inputs'],path='analysis/research-inputs.json')
+            research_inputs=read(input_ref)
+            verify_analysis(report,research_inputs)
+    seen=[]
+    for stage in record['stages']:
+        if set(stage)!={'stage','status','producer','binding','process','cleanup','elapsed_seconds','reused'}:raise ValueError('closed public stage receipt')
+        if stage['stage'] not in required or stage['stage'] in seen:raise ValueError('stage order/identity')
+        seen.append(stage['stage'])
+        if stage['status']=='PASS' and (stage['process'].get('outcome')!='COMPLETE' or stage['process'].get('returncode')!=0 or stage['process'].get('cleanup_failure_type') or not all(stage['cleanup'].get(k) is True for k in ('within_bound','acknowledged'))):raise ValueError('application PASS has failed process/cleanup')
+    if seen!=required[:len(seen)]:raise ValueError('dependent stages ran out of order')
+    status=record['software_status'];statuses={s['status'] for s in record['stages']}
+    allowed={'PASS','FAIL','BLOCKED','PARTIAL','INCONCLUSIVE','INTERRUPTED'}
+    if status not in allowed or not statuses<=allowed:raise ValueError('known terminal outcomes')
+    scientific='INCOMPLETE' if scope['research'] else 'UNMEASURED'
+    if research_inputs is not None and not scope['research']:raise ValueError('research payload in acceptance-only scientific scope')
+    if scope['research'] and research_inputs is not None:
+        from .pac_analysis import verify_research_authority
+        authority=read(indexed.get('research-authority.json'))
+        native=read(record['native_admission'])
+        scientific=verify_research_authority(record,report,research_inputs,authority,native)
+    if record['scientific_status']!=scientific:raise ValueError('scientific status differs from verified research scope/outcomes')
+    diagnostic=None
+    if rehearsal_scope:
+        stage=next((r for r in record['stages'] if r['stage']=='rehearsal'),None)
+        if stage is not None and stage['status']=='PASS':
+            diagnostic=read(record['rehearsal'])
+            from oeis_learn.pipeline_validation.generalization_pac_rehearsal import verify_rehearsal
+            q=read(record['qualification'])
+            environment=digest(dict(images=record['images'],engine=q['engine_security']['engine'],backend=record['backend']))
+            verify_rehearsal(diagnostic,source=record['source'],environment=environment)
+            if diagnostic['seed']!=scope['seed']:raise ValueError('R0 seed differs from frozen campaign')
+        elif record['rehearsal'] is not None:raise ValueError('diagnostic proof lacks a passed rehearsal producer')
+    qualified=False
+    if status=='PASS' or diagnostic is not None:
+        if status=='PASS' and (seen!=required or statuses!={'PASS'} or record['errors']):raise ValueError('incomplete campaign cannot PASS')
+        if diagnostic is not None and any(s['status']!='PASS' for s in record['stages'][:5]):raise ValueError('R0 prerequisites incomplete')
+        native=read(record['native_admission'])
+        if seal(native)!=native or native.get('status')!='PASS' or native.get('source')!=record['source'] or native.get('images')!=record['images']:raise ValueError('native admission source/image mismatch')
+        if sorted(native['originals'],key=lambda r:r['name'])!=sorted(original_cells(),key=lambda r:r['name']):raise ValueError('all original exclusion cells required')
+        if native.get('version') not in {'pac-native-public/v1','pac-native-public/v2'}:raise ValueError('known native population version required')
+        if (native['version']=='pac-native-public/v2')!=('structural_scope' in native):raise ValueError('native structural scope version mismatch')
+        _pac_roster(native['roster'],scope=native.get('structural_scope'))
+        q=read(record['qualification']);qroot=confined(root,record['qualification']['path']).parent
+        consume_public(q,{k:q[k] for k in FACTS},root=qroot,required_suites=['bigint-cpu','bigint-gpu'],required_capabilities=['weight-load','finite-update','native-exact'])
+        if q['images']!=record['images'] or q['runtime'].get('execution_policy')!=record['backend'] or digest(json.loads(verify_artifact(qroot,q['source_closure'])))!=record['source']:raise ValueError('qualification closure differs')
+        feature=read(record['acceptance']);froot=confined(root,record['acceptance']['path']).parent
+        environment=digest(dict(images=record['images'],engine=q['engine_security']['engine'],backend=record['backend']))
+        verify_pac_acceptance(feature,root=froot,source=record['source'],environment=environment,device='hip')
+        calibration=read(record['calibration'])
+        from oeis_learn.pipeline_validation.generalization_pac_calibration import verify_calibration
+        verify_calibration(calibration,source=record['source'],environment=environment,arms=scope['arms'])
+        qualified=status=='PASS'
+    elif status not in {'FAIL','INTERRUPTED','BLOCKED','INCONCLUSIVE','PARTIAL'}:raise ValueError('negative scope required')
+    result=seal(dict(integrity='PASS',software_status=status,scientific_status=record['scientific_status'],feature_qualified=qualified,evidence=record['identity'],**(dict(rehearsal_status='PASS' if diagnostic is not None else None) if rehearsal_scope else {})))
+    if finalized:
+        terminal=json.loads(confined(root,'terminal.json').read_text())
+        verification=json.loads(confined(root,'verification.json').read_text())
+        from oeis_learn.pipeline_validation.generalization_preparation import reference
+        if seal(terminal)!=terminal or terminal.get('status')!='COMPLETE' or terminal.get('evidence')!=reference(confined(root,'evidence.json'),Path(root)) or terminal.get('verification')!=reference(confined(root,'verification.json'),Path(root)) or verification!=result:
+            raise ValueError('missing/stale terminal COMPLETE or verifier binding')
+    return result

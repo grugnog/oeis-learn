@@ -93,3 +93,38 @@ def pair(concrete,parameterized,assignment,*,indices,sharing,limits=ResourceProf
                 literal_tokens=literal_tokens,parameter_tokens=parameter_tokens,parameter_count=len(assignment),sharing=sharing,
                 protected_parameters=sorted(_control_taint(p)),fit_class='nonlinear_bounded_smt' if nonlinear or p.statements else 'affine_or_bounded_smt',
                 verification=dict(indices=list(indices),values=list(a.values),scope='finite exact agreement'))
+
+
+def paired_learning_view(concrete,parameterized,assignment,*,indices,sharing,limits=ResourceProfile()):
+    """PAC retains unsupported *whole rows*; malformed pair evidence still fails.
+
+    An over-cap proposal is grounded only to audit its original literal. It is
+    never encoded as a parameter target or submitted to the at-most-eight fitter.
+    Existing pair()/ground() and all historical callers keep their strict limits.
+    """
+    if sharing not in {'explicit','distinct-occurrences'}:raise ValueError('registered sharing policy required')
+    if len(assignment)<=8:
+        proof=pair(concrete,parameterized,assignment,indices=indices,sharing=sharing,limits=limits)
+        source,tokens=learning_target(proof)
+        return dict(proof,target_source=source,target_tokens=tokens)
+    import re
+    if not isinstance(parameterized,str) or len(parameterized.encode())>limits.source_bytes:
+        raise ValueError('source limit')
+    counts={}
+    def replace(match):
+        name=match.group(1);counts[name]=counts.get(name,0)+1
+        if name not in assignment:raise ValueError('missing grounding')
+        canonical_integer(assignment[name]);return '(int '+assignment[name]+')'
+    grounded=re.sub(r'\(\s*param\.get\s+(p(?:0|[1-9][0-9]*))\s*\)',replace,parameterized,flags=re.ASCII)
+    if set(counts)!=set(assignment) or sharing=='distinct-occurrences' and any(n>1 for n in counts.values()):
+        raise ValueError('assignment/parameter sharing mismatch')
+    if parse(grounded,limits)!=parse(concrete,limits):raise ValueError('grounding is not paired concrete program')
+    result=evaluate(concrete,indices,limits)
+    if result.outcome!='ok':raise ValueError('literal fallback execution failed')
+    tokens=encode_body(concrete)
+    if parse(decode_body(tokens),limits)!=parse(concrete,limits):raise ValueError('literal codec roundtrip mismatch')
+    return dict(disposition='unsupported_parameter_count',literal_source=concrete,parameter_source=parameterized,
+                final_source=concrete,assignment=dict(assignment),sharing=sharing,parameter_count=len(assignment),
+                literal_tokens=tokens,parameter_tokens=None,target_source=concrete,target_tokens=tokens,
+                protected_parameters=[],fit_class='literal_fallback',
+                verification=dict(indices=list(indices),values=list(result.values),scope='finite exact agreement'))

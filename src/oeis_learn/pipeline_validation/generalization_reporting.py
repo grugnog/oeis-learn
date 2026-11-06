@@ -87,3 +87,22 @@ def _package_verified(root,record,verdict,*,output):
         archive.unlink(missing_ok=True)
         raise
     return archive
+
+
+def pac_representation_report(inventory,literal,parameterized,run):
+    """Paired concrete-row denominators; bounded safe coverage and measured costs."""
+    from collections import Counter,defaultdict
+    from fractions import Fraction
+    from oeis_learn.generalization.budgets import charge_tokens
+    def concrete(rows):return [(r['id'],r['indices'],r['values']) for r in rows]
+    if concrete(literal)!=concrete(parameterized) or len({r['id'] for r in literal})!=len(literal):raise ValueError('paired concrete rows/order required')
+    if {r['id'] for r in inventory['rows']}!={r['id'] for r in literal}:raise ValueError('complete family metadata required')
+    groups=defaultdict(Counter)
+    for row in inventory['rows']:
+        if row['target_stratum'] not in {'supported','fallback'}:raise ValueError('unknown target disposition')
+        groups[row['family']][row['target_stratum']]+=1
+    families={f:dict(rows=sum(c.values()),supported=c['supported'],fallback=c['fallback'],supported_fraction=str(Fraction(c['supported'],sum(c.values())))) for f,c in sorted(groups.items())}
+    return dict(version='pac-representation-report/v1',rows=len(literal),families=families,
+        corpus_tokens=dict(literal=charge_tokens([r['tokens'] for r in literal],bos=1,pad=0),parameterized=charge_tokens([r['tokens'] for r in parameterized],bos=1,pad=0)),
+        exposure={k:run.get(v) for k,v in dict(tokens='tokens',examples='examples',updates='updates',seconds='learner_seconds').items()},
+        interpretation='equal target-token allowance does not establish equal examples, updates or time')

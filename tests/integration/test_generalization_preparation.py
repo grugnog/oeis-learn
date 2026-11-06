@@ -259,3 +259,54 @@ def test_learner_publication_has_separate_process_exit_and_cleanup_headroom(tmp_
     invoke(host,'image',tmp_path,'learner',{'training_targets':'training','verified_training_replay':'replay'},
         output='out',operation='train',settings={},seconds=120,launcher=launch)
     assert 0<captured['runtime']['seconds']<captured['outer']-10<120
+
+
+def pac_rows():
+    from oeis_learn.data.bigint_programs import canonical_family
+    rows=[];probes=[]
+    for f,pattern in enumerate(('(program (return (add $index (param.get p0))))',
+                               '(program (return (mul $index (param.get p0))))')):
+        family=canonical_family(pattern)
+        for i in range(12):
+            value=str(i+2)
+            row=dict(id=f'{f}-{i}',role='training',family=family,parameter_source=pattern,
+                source=pattern.replace('(param.get p0)',f'(int {value})'),assignment={'p0':value},
+                indices=list(map(str,range(100))))
+            (rows if i<4 else probes).append(row)
+    return rows,probes
+
+
+def test_pac_preparation_binds_family_targets_probes_and_native_agreement(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_preparation import prepare_pac_training
+    from oeis_learn.pipeline_validation.generalization_training import PacPreparedBatches
+    from oeis_learn.synthesis.reference import evaluate
+    rows,probes=pac_rows()
+    def native(src,indices):
+        r=evaluate(src,indices);return dict(outcome=r.outcome,values=list(r.values))
+    bundle=prepare_pac_training(rows,probes,output=tmp_path/'good',execute=native,
+        final_exclusions=[],seed=7,batch_size=2,purpose='acceptance')
+    a=PacPreparedBatches(tmp_path/'good',bundle,arm='A',batch_size=2,updates=100)
+    b=PacPreparedBatches(tmp_path/'good',bundle,arm='B',batch_size=2,updates=100)
+    assert [r['id'] for r in a[0]]==[r['id'] for r in b[0]]
+    assert a[0][0]['tokens']!=b[0][0]['tokens']
+    assert all('family' in r for r in b[0])
+    assert set(b.probe_rows).isdisjoint(b.rows)
+    with pytest.raises(ValueError,match='quota'):
+        prepare_pac_training(rows,probes[:-1],output=tmp_path/'short',execute=native,
+            final_exclusions=[],seed=7,batch_size=2,purpose='acceptance')
+    with pytest.raises(ValueError,match='native'):
+        prepare_pac_training(rows,probes,output=tmp_path/'disagree',execute=lambda *a:dict(outcome='ok',values=['99']*100),
+            final_exclusions=[],seed=7,batch_size=2,purpose='acceptance')
+    path=tmp_path/'good'/bundle['inventory']['path'];value=json.loads(path.read_text())
+    value['families'][0]['rows'][0]='other';path.write_text(json.dumps(value))
+    with pytest.raises(ValueError):PacPreparedBatches(tmp_path/'good',bundle,arm='C',batch_size=2,updates=100)
+
+
+def test_pac_rejects_protected_feedback_and_research_fixture(tmp_path):
+    from oeis_learn.pipeline_validation.generalization_preparation import prepare_pac_training
+    rows,probes=pac_rows();probes[0]['role']='assessment'
+    with pytest.raises(ValueError,match='training'):
+        prepare_pac_training(rows,probes,output=tmp_path/'out',execute=execute,final_exclusions=[],seed=7,batch_size=2,purpose='acceptance')
+    rows,probes=pac_rows()
+    with pytest.raises(ValueError,match='original|32'):
+        prepare_pac_training(rows,probes,output=tmp_path/'research',execute=execute,final_exclusions=[],seed=7,batch_size=2,purpose='research')

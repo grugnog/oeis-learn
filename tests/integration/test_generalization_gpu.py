@@ -79,3 +79,23 @@ def resume_probe(root,recipe,device):
     proof=check_training({'verified_training_replay':root},root/'proof',dict(runs=records,compare=True),seconds=60)
     assert proof['resume_equal'] is True and all(r['finite'] and r['changed'] for r in proof['runs'])
     return dict(resume_equal=True,resume_checkpoint=resumed['checkpoint']['sha256'],updates=resumed['updates'])
+
+
+def test_pac_actual_hip_acceptance_and_full_state_boundaries(tmp_path):
+    """Implemented for the consolidated E session; never substitute CPU evidence."""
+    import torch,time
+    if not torch.version.hip or not torch.cuda.is_available():
+        if os.environ.get('OEIS_REQUIRE_BIGINT_GPU')=='1':pytest.fail('actual HIP required')
+        pytest.skip('actual HIP required')
+    from oeis_learn.pipeline_validation.generalization_execution import verify_execution
+    from oeis_learn.pipeline_validation.generalization_acceptance import pac_acceptance_fixture,pac_acceptance
+    from oeis_learn.pipeline_validation.identity import digest,write
+    from oeis_learn.synthesis.client import SynthesisClient
+    verify_execution()
+    with SynthesisClient(digest('pac-native-acceptance'),cache_root=tmp_path/'native') as native:
+        config=pac_acceptance_fixture(tmp_path/'inputs',device='cuda',
+            execute=lambda s,i:native.execute(s,i,deadline=time.monotonic()+4))
+    result=pac_acceptance({'training_targets':tmp_path/'inputs'},tmp_path/'actual',dict(config=config),seconds=5400)
+    assert result['device']=='hip' and result['research_eligible'] and result['status']=='PASS'
+    if os.environ.get('OEIS_PAC_DEVICE_EVIDENCE'):
+        write(Path(os.environ['OEIS_PAC_DEVICE_EVIDENCE']),result)

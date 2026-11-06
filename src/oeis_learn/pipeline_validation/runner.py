@@ -151,6 +151,7 @@ def public_files(root):
     files={}
     for path in root.rglob('*'):
         if (path.is_file() and not path.is_symlink() and public(path.relative_to(root))
+                and path.name not in {'command.json','disk.json'}
                 and path.suffix in {'.json','.xml','.jsonl'} and not (path.parent==root and path.name in {'receipt.json','transitions.jsonl'})):
             try:files[str(path.relative_to(root))]=file_hash(path)
             except OSError:

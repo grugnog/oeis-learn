@@ -32,7 +32,7 @@ def mounts(root,role,channels,*,output):
     return tuple(result)
 
 
-def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu=False,launcher=None):
+def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu=False,launcher=None,envelope=None):
     """Launch one installed role with exact read-only channels and bounded cleanup.
 
     Settings are public execution metadata only; data and tensor payloads travel
@@ -43,10 +43,15 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
     from .supervision import launch,reclaim
     from oeis_learn.generalization.resources import PREPARATION_SECONDS
     role=Role(role)
-    ceiling=PREPARATION_SECONDS if role==Role.PREPARATION and operation=='prepare' else 21600
-    if not 0<seconds<=ceiling:raise ValueError('bounded role duration required')
+    ceiling=PREPARATION_SECONDS if role==Role.PREPARATION and operation in {'prepare','pac-prepare'} else 21600
+    if envelope is not None:
+        from .generalization_execution import pac_role_envelope
+        pac_role_envelope(envelope)
+        minimum=sum(envelope[k] for k in ('work','startup','publication','cleanup'))
+        if not minimum<=seconds<=envelope['outer']:raise ValueError('PAC projection exhausted protected role reservations')
+    elif not 0<seconds<=ceiling:raise ValueError('bounded role duration required')
     deadline=time.monotonic()+seconds
-    cleanup_seconds=min(30,seconds/5)
+    cleanup_seconds=envelope['cleanup'] if envelope else min(30,seconds/5)
     role=Role(role)
     if gpu and role not in {Role.LEARNER,Role.GENERATOR}:raise ValueError('GPU forbidden for this role')
     declared=mounts(root,role,channels,output=output)
@@ -57,13 +62,18 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
     target=Path(declared[-1]['source']);target.mkdir(parents=True,exist_ok=False)
     name='generalization-'+uuid.uuid4().hex
     computation_seconds=remaining_seconds(deadline)-cleanup_seconds
-    if (role,operation) in {(Role.GENERATOR,'evaluate'),(Role.PREPARATION,'prepare'),(Role.LEARNER,'train')}:
+    if envelope is None and (role,operation) in {(Role.GENERATOR,'evaluate'),(Role.PREPARATION,'prepare'),(Role.LEARNER,'train')}:
         # The process deadline includes interpreter startup and exit. Leave those
         # inside work, separate from the protected container cleanup allowance.
         computation_seconds-=min(30,computation_seconds/5)
+    if envelope is not None:computation_seconds=envelope['work']+envelope['publication']
+    if envelope and operation=='train' and settings.get('config',{}).get('pac'):
+        frozen=settings['config']['seconds']
+        if computation_seconds<frozen:raise ValueError('PAC enclosing role clips cumulative learner budget')
+        computation_seconds=frozen
     if computation_seconds<=0:raise TimeoutError('role setup exhausted computation allowance')
     runtime=dict(settings=settings,operation=operation,seconds=computation_seconds,device='cuda' if gpu else 'cpu')
-    diagnostic=('preparation' if role==Role.PREPARATION and operation=='prepare' else
+    diagnostic=('preparation' if role==Role.PREPARATION and operation in {'prepare','pac-prepare'} else
                 'validation' if role==Role.PREPARATION and operation=='validate-runtime' else
                 role.value if role in {Role.LEARNER,Role.GENERATOR} else None)
     argv=(['python','-u','-c',diagnostic_program(ROLE_PROGRAM,diagnostic)] if diagnostic else
@@ -90,13 +100,22 @@ def invoke(host,image,root,role,channels,*,output,operation,settings,seconds,gpu
             (launcher or launch)(command,target/'supervision',seconds=work_seconds,stream_cap=1<<20,cleanup_seconds=cleanup_seconds,cleanup_state=cleanup)
     finally:
         reclaim(host.engine,name,target/'supervision',cleanup)
+    for name in ('process','cleanup'):
+        receipt=target/'supervision'/(name+'.json')
+        if envelope is not None and launcher is None and not receipt.exists():raise ValueError('PAC missing '+name+' outcome')
+        if receipt.exists():
+            record=json.loads(receipt.read_text())
+            if name=='process' and (record.get('outcome')!='COMPLETE' or record.get('returncode')!=0 or record.get('cleanup_failure') is not None):
+                raise ValueError('role process failed despite application result')
+            if name=='cleanup' and (record.get('within_bound') is not True or record.get('acknowledged') is not True):
+                raise ValueError('role cleanup incomplete despite application result')
     result=json.loads((target/'result.json').read_text())
     if result.get('status') not in {'PASS','FAIL','BLOCKED','PARTIAL','INCONCLUSIVE','INTERRUPTED'}:
         raise ValueError('role omitted terminal status')
     return result
 
 
-def project_and_invoke(host,image,root,role,artifacts,*,output,operation,settings,seconds,gpu=False,source_roots=None,artifact_sources=None):
+def project_and_invoke(host,image,root,role,artifacts,*,output,operation,settings,seconds,gpu=False,source_roots=None,artifact_sources=None,envelope=None):
     """Copy the declared verified files into disjoint, read-only channel views."""
     from oeis_learn.generalization.contracts import verify_artifact
     from .identity import confined
@@ -127,7 +146,7 @@ def project_and_invoke(host,image,root,role,artifacts,*,output,operation,setting
                 with path.open('xb') as stream:stream.write(payload)
             channels[channel]=str(folder.relative_to(root))
         return invoke(host,image,root,role,channels,output=str((output/'role').relative_to(root)),
-            operation=operation,settings=settings,seconds=remaining_seconds(deadline),gpu=gpu)
+            operation=operation,settings=settings,seconds=remaining_seconds(deadline),gpu=gpu,**({'envelope':envelope} if envelope is not None else {}))
     finally:
         # Keep operator originals and role outputs; delete only disposable views.
         shutil.rmtree(output/'private/input',ignore_errors=True)

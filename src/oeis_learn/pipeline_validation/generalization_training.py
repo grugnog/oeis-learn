@@ -11,11 +11,26 @@ def publication_reserve(seconds):
 
 class TrainingTiming:
     """Bounded diagnostic windows; never alter optimization/accounting decisions."""
-    def __init__(self):
+    def __init__(self,snapshot=None):
         from collections import deque
         self.windows=deque(maxlen=64);self.start=None;self.anchor=None
         self.checkpoint_seconds=0.;self.update_seconds=0.;self.checkpoint_calls=0;self.max_checkpoint_seconds=0.
         self.trend=[];self.loss_sum=0.;self.loss_count=0;self.last_loss=None;self.last_gradient_norm=None
+        self.total_loss_sum=0.;self.total_loss_observations=0
+        if snapshot is not None:
+            import math
+            if set(snapshot)!=set(self.snapshot()) or snapshot['version']!='pac-timing-history/v1':raise ValueError('closed timing history required')
+            for key in ('checkpoint_seconds','update_seconds','checkpoint_calls','max_checkpoint_seconds','total_loss_observations'):
+                value=snapshot[key]
+                if type(value) not in (int,float) or not math.isfinite(value) or value<0:raise ValueError('finite nonnegative timing history required')
+            if len(snapshot['windows'])>64 or len(snapshot['trend'])>128:raise ValueError('bounded timing history required')
+            for key,value in snapshot.items():
+                if key=='windows':self.windows.extend(value)
+                elif key!='version':setattr(self,key,value)
+
+    def snapshot(self):
+        return dict(version='pac-timing-history/v1',**{k:getattr(self,k) for k in ('checkpoint_seconds','update_seconds','checkpoint_calls','max_checkpoint_seconds',
+            'total_loss_sum','total_loss_observations','last_loss','last_gradient_norm')},windows=list(self.windows),trend=list(self.trend))
 
     def record_update(self,result):
         import math
@@ -25,7 +40,9 @@ class TrainingTiming:
             if value is not None:
                 if type(value) not in (int,float) or not math.isfinite(value):raise ValueError('finite observed training metric required')
                 setattr(self,attr,value)
-        if result.get('loss') is not None:self.loss_sum+=result['loss'];self.loss_count+=1
+        if result.get('loss') is not None:
+            self.loss_sum+=result['loss'];self.loss_count+=1
+            self.total_loss_sum+=result['loss'];self.total_loss_observations+=1
 
     def observe(self,updates,tokens,now):
         if self.start is None:self.start=updates
@@ -47,14 +64,14 @@ class TrainingTiming:
         return True
 
 
-def train_updates(state,ledger,batches,*,update,save,seconds=21600,discarded_tokens=0):
+def train_updates(state,ledger,batches,*,update,save,seconds=21600,discarded_tokens=0,pac=False):
     """Persist pre-update state/debit, then publish complete update state atomically.
 
     `update` owns model/optimizer/scheduler mutation and refreshes `state`'s tensor
     and RNG entries. On failure the caller reloads the last saved generation.
     Batches are immutable prepared rows; data cursor indexes their frozen order.
     """
-    if type(seconds) not in (int,float) or not 0<seconds<=21600:raise ValueError('bounded learner seconds required')
+    if type(seconds) not in (int,float) or not 0<seconds or (not pac and seconds>21600):raise ValueError('bounded learner seconds required')
     if type(discarded_tokens) is not int or not 0<=discarded_tokens<=ledger.cap-ledger.consumed:raise ValueError('invalid discarded exposure')
     deadline=time.monotonic()+seconds
     while time.monotonic()<deadline:
@@ -162,7 +179,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     from .generalization_persistence import policy,INTERVAL,journal,recover
     checkpoint_policy=policy(config);periodic=checkpoint_policy=='hourly/v1'
     progress_count=0;timing=TrainingTiming();tensors_dirty=True
-    journal_writes=0;last_full_time=None;last_full_ledger=None
+    journal_writes=0;last_full_time=None;last_full_ledger=None;last_full_policy=None
     def progress(phase):
         nonlocal progress_count
         # Public phase/timestamp only; bounded even for long research learners.
@@ -170,17 +187,37 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
             print(f'learner: {phase} unix={time.time():.6f}',file=sys.stderr,flush=True)
             progress_count+=1
     required={'study','arm','seed','recipe','shards','data_mode','batch_size','target_tokens','milestones','seconds','device'}
-    if set(config)-{'checkpoint_policy'}!=required:raise ValueError('closed learner execution projection required')
-    if config['device'] not in {'cpu','cuda'} or not 0<config['seconds']<=21600:raise ValueError('explicit bounded learner device/time required')
+    pac=config.get('pac')
+    from .identity import number
+    number(config['seconds'],positive=True)
+    if pac is not None:
+        if set(pac)-{'cadence','semantic'}!={'bundle','purpose','source','environment','initializer','observation_seconds','publication_seconds'} or pac['purpose'] not in {'acceptance','research'}:
+            raise ValueError('closed PAC learner metadata required')
+        if pac.get('cadence','pac-exp3s-leitner/v1') not in {'pac-exp3s-leitner/v1','pac-acceptance/v1'} or pac['purpose']=='research' and pac.get('cadence','pac-exp3s-leitner/v1')!='pac-exp3s-leitner/v1':
+            raise ValueError('acceptance cadence cannot authorize research')
+        if pac.get('semantic','production') not in {'production','r0-unmeasured/v1'} or pac.get('semantic')=='r0-unmeasured/v1' and (pac['purpose']!='acceptance' or pac.get('cadence','pac-exp3s-leitner/v1')!='pac-exp3s-leitner/v1'):
+            raise ValueError('R0 unmeasured semantic policy cannot authorize research or reduced acceptance')
+        number(pac['observation_seconds'],positive=True);number(pac['publication_seconds'],positive=True)
+        if pac['purpose']=='research':
+            from oeis_learn.experiments.source_snapshot import source_snapshot
+            if pac['source']!=digest(source_snapshot()):raise ValueError('PAC learner installed source differs')
+        if pac['publication_seconds']>=config['seconds'] or pac['observation_seconds']>config['seconds']-pac['publication_seconds']:
+            raise ValueError('PAC observations/publication exceed frozen allowance')
+    if set(config)-{'checkpoint_policy','pac'}!=required:raise ValueError('closed learner execution projection required')
+    if config['device'] not in {'cpu','cuda'} or not 0<config['seconds'] or (pac is None and config['seconds']>21600):raise ValueError('explicit bounded learner device/time required')
     from .generalization_execution import verify_execution,bind_compatibility
+    if pac and config['device']=='cuda' and (not torch.version.hip or not torch.cuda.is_available()):raise RuntimeError('actual HIP required for PAC device work')
     execution_policy=verify_execution() if config['device']=='cuda' else None
     seconds=config['seconds'] if seconds is None else seconds
     if not 0<seconds<=config['seconds']:raise ValueError('learner allowance exceeds frozen budget')
-    reserve=publication_reserve(seconds)
+    reserve=pac['publication_seconds'] if pac else publication_reserve(seconds)
+    if pac and (initializer is not None or replay is not None):raise ValueError('PAC requires fresh random initialization and no replay')
     milestones=config['milestones'];cap=config['target_tokens']
     if milestones!=sorted(set(milestones)) or any(type(m) is not int or not 0<m<=cap for m in milestones):raise ValueError('bounded increasing milestones required')
     progress('batch-inputs')
-    batches=PreparedBatches(root,config['shards'],batch_size=config['batch_size'],mode=config['data_mode'],updates=cap)
+    batches=(PacPreparedBatches(root,pac['bundle'],arm=config['arm'],batch_size=config['batch_size'],updates=cap) if pac else
+        PreparedBatches(root,config['shards'],batch_size=config['batch_size'],mode=config['data_mode'],updates=cap))
+    if pac and pac['purpose']=='research' and batches.inventory['version']!='pac-inventory/v1':raise ValueError('acceptance inventory cannot initialize research')
     if config['data_mode']=='refresh' and batches.target_tokens<cap:raise ValueError('insufficient prepared refresh target-token capacity')
     data_identity=batches.identity
     extension={}
@@ -213,6 +250,10 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         weights=torch.load(io.BytesIO(verify_artifact(initializer_root or root,initializer)),map_location='cpu',weights_only=True)
         if set(weights)!={'encoder','decoder'}:raise ValueError('weights-only initializer required')
         encoder.load_state_dict(weights['encoder'],strict=True);decoder.load_state_dict(weights['decoder'],strict=True)
+    if pac:
+        from .generalization_curriculum import initial_weights_identity
+        initial_hash=initial_weights_identity(encoder,decoder)
+        if pac['purpose']=='research' and initial_hash!=pac['initializer']:raise ValueError('PAC random initial weights differ from frozen initializer')
     parameters=list(encoder.parameters())+list(decoder.parameters())
     optimizer=torch.optim.AdamW(parameters,lr=recipe['learning']['learning_rate'])
     store=GeneralizationCheckpointStore(output/'checkpoints',compatibility,cap)
@@ -244,10 +285,24 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
                 discarded_tokens=state['scheduler'].get('discarded_tokens',0),learner_seconds=state['scheduler']['learner_seconds'],
                 seconds_cap=config['seconds'],supervised_seconds=resume_elapsed)
             state['scheduler'].update({k:v for k,v in restored_accounting.items() if k!='rolled_back'})
+            if pac:
+                from .generalization_persistence import pac_crash_recovery
+                ledger=pac_crash_recovery(state,ledger,unclean=not json.loads(progress_path.read_text())['closed'],discarded_tokens=state['scheduler']['discarded_tokens'])
+    if pac and resume is not None and state['scheduler'].get('timing'):
+        timing=TrainingTiming(state['scheduler']['timing'])
     # Conservatively debit reduced enclosing allowance (I/O and cleanup reserve).
     previous_seconds=state['scheduler']['learner_seconds']+config['seconds']-seconds;saved_ledger=ledger
     discarded_tokens=state['scheduler'].get('discarded_tokens',0)
     permanent=dict(state['pins']);milestone_keys={int(k):v for k,v in state['history']['milestones'].items()}
+    controller=None
+    if pac:
+        from .generalization_curriculum import PacController,PacFixedController
+        Controller=PacController if config['arm'] in {'C','D'} else PacFixedController
+        controller=Controller(batches,encoder,decoder,device=config['device'],seed=config['seed'],arm=config['arm'],cap=cap,
+            observation_seconds=pac['observation_seconds'],snapshot=state['scheduler'].get('pac'),acceptance=pac.get('cadence')=='pac-acceptance/v1')
+        from .generalization_curriculum import attach_semantic
+        if pac.get('semantic','production')=='production':attach_semantic(controller,recipe,output,seed=config['seed'])
+        state['scheduler']['pac']=controller.snapshot()
     update_tensors=torch_update(encoder,decoder,optimizer,device=config['device'])
     def update(batch):
         nonlocal tensors_dirty
@@ -285,6 +340,8 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
             checkpoint_io=dict(store.io_stats),checkpoint_policy=checkpoint_policy,journal_writes=journal_writes,
             max_checkpoint_seconds=timing.max_checkpoint_seconds,trend=list(timing.trend),
             last_loss=timing.last_loss,last_gradient_norm=timing.last_gradient_norm,
+            total_loss_sum=timing.total_loss_sum,total_loss_observations=timing.total_loss_observations,
+            history_coverage='verified model snapshots plus current invocation; prior final save tail unavailable' if pac and resume else 'current invocation',
             invocation_seconds=time.monotonic()-began,
             progress=dict(tokens=saved_ledger.consumed-(saved_ledger.pending[1] if saved_ledger.debited else 0),
                 charged_tokens=saved_ledger.consumed+discarded_tokens,discarded_tokens=discarded_tokens,updates=saved_ledger.updates,
@@ -292,7 +349,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
                 recoverable_updates=last_full_ledger.updates,checkpoint=latest))
 
     def full_save(current,account):
-        nonlocal latest,initial,history,tensors_dirty,last_full_time,last_full_ledger
+        nonlocal latest,initial,history,tensors_dirty,last_full_time,last_full_ledger,last_full_policy
         started=time.monotonic()
         progress('checkpoint-save')
         effective=account.consumed-(account.pending[1] if account.debited else 0)
@@ -303,11 +360,17 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
                             device=torch.cuda.get_rng_state_all() if config['device']=='cuda' else [])
         def scheduler():
             current['scheduler']['learner_seconds']=previous_seconds+time.monotonic()-began
+            if pac:current['scheduler']['timing']=timing.snapshot()
             return current['scheduler']
         current['pins']=dict(permanent)
         current['history']['milestones']={str(k):v for k,v in milestone_keys.items()}
         unchanged=latest if latest is not None and not tensors_dirty and account.pending is not None else None
+        if pac:
+            from .generalization_persistence import pac_boundary
+            pac_boundary(current,account)
+            if config['device']=='cuda':torch.cuda.synchronize()
         latest=store.save(current,account,scheduler=scheduler,unchanged_tensors=unchanged)
+        last_full_policy=copy.deepcopy(current['scheduler'].get('pac'))
         key=latest['sha256'];history[key]=latest;current['history']['exposures'][key]=effective
         if initial is None:initial=key;permanent[key]=latest
         crossed=milestone_decision(effective,account.pending[1],milestones) if account.pending else ()
@@ -351,13 +414,14 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     try:
         save(state,ledger)
         remaining=config['seconds']-previous_seconds-(time.monotonic()-began)-reserve
-        result=train_updates(state,ledger,batches,update=update,save=save,seconds=remaining,discarded_tokens=discarded_tokens) if remaining>0 else dict(status='PARTIAL')
+        if controller and remaining>0:result=controller.run(state,ledger,update=update,save=save,seconds=remaining)
+        else:result=train_updates(state,ledger,batches,update=update,save=save,seconds=remaining,discarded_tokens=discarded_tokens) if remaining>0 else dict(status='PARTIAL')
         status=result['status']
     except StopAtBoundary:status='PARTIAL'
     if periodic:
         # Publish live state once at the orderly terminal boundary, before any
         # descriptor or successful result can refer to it.
-        if latest is None or last_full_ledger!=saved_ledger:full_save(state,saved_ledger)
+        if latest is None or last_full_ledger!=saved_ledger or controller is not None and state['scheduler'].get('pac')!=last_full_policy:full_save(state,saved_ledger)
 
     # These references are private full-state descriptors. Evaluation projects
     # only each descriptor's weights, never its optimizer/RNG or training data.
@@ -385,8 +449,11 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
             discarded_tokens=discarded_tokens,elapsed_seconds=previous_seconds+time.monotonic()-began,
             invocation_base_seconds=previous_seconds,closed=True))
         journal_writes+=1
-    if status=='COMPLETE' and discarded_tokens:status='RECOVERED_WITH_DISCARDED_EXPOSURE'
-    result=dict(status='PASS' if status=='COMPLETE' else 'PARTIAL',reason=status,compatibility=compatibility,
+    budget_complete=status=='COMPLETE'
+    if budget_complete and discarded_tokens:status='RECOVERED_WITH_DISCARDED_EXPOSURE'
+    # PAC finishes its charged allowance even when a crash reduced useful work.
+    # Keep the historical non-PAC disposition and all genuine pause/partial gates.
+    result=dict(status='PASS' if status=='COMPLETE' or pac is not None and budget_complete else 'PARTIAL',reason=status,compatibility=compatibility,
         checkpoint=latest,tokens=saved_ledger.consumed-(saved_ledger.pending[1] if saved_ledger.debited else 0),
         charged_tokens=saved_ledger.consumed+discarded_tokens,discarded_tokens=discarded_tokens,checkpoint_policy=checkpoint_policy,pending_tokens=saved_ledger.pending[1] if saved_ledger.pending else 0,
         updates=saved_ledger.updates,undershoot=saved_ledger.cap-saved_ledger.consumed-discarded_tokens,
@@ -395,15 +462,21 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         retained=roster['identity'])
     result['timing']=dict(timing_record(),publication_seconds=time.monotonic()-published,publication_reserve_seconds=reserve)
     write(output/'timing.json',result['timing'])
+    if controller is not None:result['pac']=dict(channels=controller.channels,observations=controller.observations,valid_rewards=controller.policy.kernel.valid_updates if controller.policy else 0,pauses=controller.policy.pauses if controller.policy else [],monitoring=controller.observer.snapshot())
+    if pac:
+        from .generalization_diagnostics import pac_training_projection
+        result['initial_weights']=initial_hash
+        result['allocation']=pac_training_projection(controller.snapshot(),saved_ledger.snapshot(),discarded=discarded_tokens,timing=result['timing'])
     if execution_policy is not None:result['execution_policy']=execution_policy
     write(output/'training.json',result)
     progress('complete')
     return result
 
 
-def storage_preflight(recipe,study,runtime):
+def storage_preflight(recipe,study,runtime,*,extra_generations=0):
     """Measure actual CPU model tensors and reserve optimizer/pinned snapshots."""
-    if not runtime['training']:
+    pac=runtime.get('version')=='pac-runtime/v1'
+    if not pac and not runtime['training']:
         return dict(required_checkpoint_bytes=0,pinned_generations_reserved=0,kind='evaluation_only_no_learner_snapshots')
     from oeis_learn.fresh.bigint_worker import models
     from oeis_learn.generalization.budgets import reserve_storage
@@ -415,6 +488,15 @@ def storage_preflight(recipe,study,runtime):
     # FP32 AdamW has two parameter-sized moments. Reserve serialization metadata,
     # RNG/history, and a bounded full replay snapshot separately from tensor bytes.
     snapshot_bytes=3*parameter_bytes+buffer_bytes+4096*(len(parameters)+len(buffers))+(1<<20)
+    if pac:
+        from oeis_learn.generalization.resources import pac_peak_storage
+        storage=dict(runtime['envelope']['storage']);available=storage.pop('reserved_bytes')
+        graph=pac_peak_storage(arms=study['arms'],snapshot_bytes=snapshot_bytes,weights_bytes=parameter_bytes+buffer_bytes,
+            milestones=4 if runtime['purpose']=='research' else 0,available_bytes=available,scratch_kind='disk',**storage)
+        if type(extra_generations) is not int or extra_generations<0:raise ValueError('bounded diagnostic generation count')
+        required=graph['required_bytes']+extra_generations*snapshot_bytes
+        if required>available:raise ValueError('insufficient combined rehearsal/research snapshot storage')
+        return dict(graph,required_bytes=required,rehearsal_generations=extra_generations) if extra_generations else graph
     if runtime['replay'] is not None:snapshot_bytes+=128<<20
     from oeis_learn.generalization.resources import checkpoint_reservation
     graph=checkpoint_reservation(snapshot_bytes=snapshot_bytes,weights_bytes=parameter_bytes+buffer_bytes,
@@ -424,3 +506,40 @@ def storage_preflight(recipe,study,runtime):
     reserve_storage(graph['required_checkpoint_bytes'],1,min(32<<30,runtime['storage']['checkpoint_bytes']))
     return dict(parameter_bytes=parameter_bytes,buffer_bytes=buffer_bytes,snapshot_reservation_bytes=snapshot_bytes,
         **graph,device='cpu',kind='measured_tensors_with_serial_peak_reservation')
+
+
+class PacPreparedBatches(PreparedBatches):
+    """Indexed paired targets with a verified family sidecar and separate probes."""
+    def __init__(self,root,bundle,*,arm,batch_size,updates):
+        import json
+        from oeis_learn.generalization.contracts import verify_artifact,shape
+        from oeis_learn.generalization.role_contracts import pac_training_refs
+        from oeis_learn.pipeline_validation.identity import seal
+        from oeis_learn.decoder.bigint_codec import encode_body
+        pac_training_refs(bundle,arm)
+        if seal(bundle)!=bundle:raise ValueError('PAC prepared bundle identity')
+        super().__init__(root,bundle['literal' if arm=='A' else 'parameterized'],batch_size=batch_size,mode='static',updates=updates)
+        self.inventory=json.loads(verify_artifact(root,bundle['inventory']))
+        if seal(self.inventory)!=self.inventory or self.inventory['role']!='training':raise ValueError('PAC training inventory integrity')
+        self.families={f['id']:f['rows'] for f in self.inventory['families']}
+        self.probes={f['id']:f['probes'] for f in self.inventory['families']}
+        self.anchors={a:f['id'] for f in self.inventory['families'] for a in f['anchors']}
+        self.row_families={r:f for f,ids in self.families.items() for r in ids}
+        self.rows={}
+        for i in range(self.count):
+            row=super()._row(i)
+            if row['id'] not in self.row_families:raise ValueError('prepared row absent from PAC family sidecar')
+            row['family']=self.row_families[row['id']];self.rows[row['id']]=row
+        if len(self.rows)!=len(self.row_families):raise ValueError('PAC family inventory/row count mismatch')
+        probe_families={r:f for f,ids in self.probes.items() for r in ids}
+        self.probe_rows={};self.probe_truth={}
+        for row in json.loads(verify_artifact(root,bundle['probes'],max_bytes=8<<30)):
+            shape('training-target',row)
+            if row['id'] not in probe_families or row['tokens']!=encode_body(row['source']) or row['id'] in self.probe_rows or row['id'] in self.rows:raise ValueError('PAC disjoint encoded training probes required')
+            self.probe_truth[row['id']]=dict(indices=row['indices'],values=row['values'])
+            self.probe_rows[row['id']]=dict(id=row['id'],family=probe_families[row['id']],values=row['values'][:20],indices=row['indices'][:20],tokens=row['tokens'])
+        if set(self.probe_rows)!=set(probe_families) or any(len(p)!=8 for p in self.probes.values()):raise ValueError('complete PAC probe quota required')
+        self.identity=digest(dict(prepared=bundle['identity'],arm=arm,batch_size=batch_size))
+
+    def _row(self,index):
+        row=super()._row(index);row['family']=self.row_families[row['id']];return row
