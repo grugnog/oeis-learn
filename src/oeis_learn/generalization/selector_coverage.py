@@ -4,13 +4,12 @@ This is not registered as a production selection policy. All execution is delega
 to the existing independent bounded reference interpreter.
 """
 from dataclasses import asdict, replace
-import time
 
 from oeis_learn.pipeline_validation.identity import seal
 from oeis_learn.synthesis.admission import VisiblePrompt, source_identity
 from oeis_learn.synthesis.contracts import ResourceProfile, canonical_integer
 from oeis_learn.synthesis.reference import evaluate
-from oeis_learn.synthesis.reference_parser import parse, SourceError
+from oeis_learn.synthesis.reference_parser import parse
 
 LIMITS = replace(ResourceProfile(), evaluation_seconds=2.0, term_seconds=0.25,
                  reference_steps=10000, aggregate_reference_steps=100000)

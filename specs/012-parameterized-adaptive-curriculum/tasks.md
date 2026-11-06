@@ -662,7 +662,7 @@ new fitting, training, hidden-term execution or automatic policy adoption.
 
 - [X] T101 Specify the audit/visible-only ranking boundary and add independent branch-coverage, leakage, provenance, unknown-outcome and immutable-output counterexamples before implementation.
 - [X] T102 Implement bounded branch-site observation and the experimental ranking API, preserving reference arithmetic and existing observer/selection semantics.
-- [ ] T103 Implement the stdlib CLI over verified report/detail ZIPs, reconstruct original eligible candidate pools, reproduce original choices, join only previously scored exact sources after ranking, and export bounded diagnostic evidence.
+- [X] T103 Implement the stdlib CLI over verified report/detail ZIPs, reconstruct original eligible candidate pools, reproduce original choices, join only previously scored exact sources after ranking, and export bounded diagnostic evidence.
 - [ ] T104 Run affected CPU/stdlib regressions and the supplied R1 bundle, record outcomes and limitations, refresh source disposition, commit/push periodically and open a separate stacked PR without waiting for CI.
 
 Training-only probe calibration, freezing a research selector and fresh structural
@@ -678,3 +678,11 @@ observation without changing arithmetic or legacy observer events. The closed
 experimental ranker accepts only generated source identities and a 20-term visible
 prompt. Seven independent selector tests pass; original reference/diagnostic
 regressions are included in the local validation. No production selector is changed.
+
+T103: the stdlib CLI verifies report/producer bindings, recovers retained and
+omitted eligible sources, reproduces every original choice and ranks without
+scores. Nineteen focused cases pass, including a red-first private-reason canary.
+The first original-bundle replay reproduces 384/384 choices and all 3,851 eligible
+candidates in 4.63 local CPU seconds; no hidden execution or hardware claim. The
+generation inventory is bound to the supplied detail ZIP, not falsely advertised
+as present in the public report; an optional externally recorded ZIP hash pins it.
