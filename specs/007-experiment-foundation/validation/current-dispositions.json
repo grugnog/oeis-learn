@@ -991,7 +991,7 @@
     },
     {
       "id": "A18",
-      "title": "25k–50k fuel thresholds",
+      "title": "25k\u201350k fuel thresholds",
       "design_disposition": "corrected",
       "rationale": "Insufficient thresholds rejected; bounded100k/250k/1M tiers and aggregate accounting.",
       "task_states": {
@@ -1122,7 +1122,7 @@
     },
     {
       "id": "P04",
-      "title": "3–5x cache speedup",
+      "title": "3\u20135x cache speedup",
       "design_disposition": "corrected",
       "rationale": "Unverified projection rejected; use measured practical-effect rule.",
       "task_states": {
@@ -1216,7 +1216,7 @@
     },
     {
       "id": "P08",
-      "title": "1.5–2x grammar gain",
+      "title": "1.5\u20132x grammar gain",
       "design_disposition": "corrected",
       "rationale": "Measure end-to-end and phase costs without multiplying speculative gains.",
       "task_states": {
@@ -1630,7 +1630,7 @@
       "id": "D08",
       "title": "Minimal language comparison",
       "design_disposition": "deferred_loda",
-      "rationale": "008 specifies native LODA versus WAT at roughly1–3 days each, token/primitive/runtime attribution and effect/stopping rules.",
+      "rationale": "008 specifies native LODA versus WAT at roughly1\u20133 days each, token/primitive/runtime attribution and effect/stopping rules.",
       "task_states": {},
       "implementation_disposition": "deferred_loda",
       "phase10_acceptance_refs": [],

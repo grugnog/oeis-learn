@@ -627,7 +627,7 @@ to their existing installed boundaries, leaving serial orchestration temporary.
 - [X] T097 Move the follow-up regression cases into the normal integration suite; add direct installed projection and canonical normal/minimal exporter counterexamples before implementation.
 - [X] T098 Install exclusive verified retained-baseline projection and helper failure capture/validation; wire the temporary runner to those APIs without adding a second workflow or changing scientific authority.
 - [X] T099 Collect verified helper diagnostics directly through canonical rich/minimal export and read-only recovery, removing helper archive supplementation; retain tamper/privacy/status guards.
-- [ ] T100 Validate affected installed/operator/archive paths and stdlib entrypoints, refresh the implementation disposition identity, document changed source/qualification scope, commit periodically and open the stacked PR against #63 without waiting for CI. Do not change the active campaign or claim actual HIP proof of the new source.
+- [X] T100 Validate affected installed/operator/archive paths and stdlib entrypoints, refresh the implementation disposition identity, document changed source/qualification scope, commit periodically and open the stacked PR against #63 without waiting for CI. Do not change the active campaign or claim actual HIP proof of the new source.
 
 T097 red baseline: four failed, two passed. Direct installed projection imports
 fail in both control modes, and direct canonical rich/minimal exports lack the
@@ -645,3 +645,9 @@ three actual-native qualification checks skipped, five subtests passed. A separa
 CI wait occurred. The 007 implementation identity is refreshed without altering its
 68 dispositions or completion flag; the new installed source requires its own
 future source/image qualification and does not replace the active R1 scope.
+
+T100: affected tests, installed-source identity, stdlib entrypoints, prerequisite,
+local-link/shell syntax, whitespace and read-only checklist checks pass. The
+installed integration handoff records the unchanged active R1 scope and separate
+future qualification obligation. Red-first and implementation groups are pushed;
+the final documentation group and separate PR target #63's branch, with no CI wait.
