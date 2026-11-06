@@ -301,9 +301,13 @@ def _role_job(plan,operation,settings,artifacts,source_roots,target,workspace,qu
     value=launch_terminal(argv,target/'supervision',target/'execution/result.json',seconds=limits['outer']+9000)
     process=_read(target/'supervision/process.json')
     if value['job']!=job['identity'] or value['source']!=plan['source'] or seal(value)!=value:raise ValueError('canonical job producer mismatch')
+    refs=[reference(target/'execution/result.json',target),*[dict(r,path='execution/'+r['path']) for r in value['inventory']]]
+    for name in ('process.json','cleanup.json','stdout.log','stderr.log'):
+        path=target/'supervision'/name
+        if path.is_file() and not path.is_symlink():refs.append(reference(path,target))
     result=dict(status=value['status'],producer=value['identity'],process=process,
         cleanup=dict(acknowledged=process.get('cleanup_failure') is None,within_bound=process.get('cleanup_failure') is None),
-        artifacts=[reference(target/'execution/result.json',target),*[dict(r,path='execution/'+r['path']) for r in value['inventory']]])
+        artifacts=refs)
     result['result']=value['result'];return result
 
 

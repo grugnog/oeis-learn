@@ -85,6 +85,56 @@ class QualificationFailures(unittest.TestCase):
         self.assertEqual(progress_lines(line),['qualification: cpu.semantic FAIL'])
         self.assertEqual(progress_lines('QUALIFICATION '+json.dumps(dict(stage='private.teacher',status='FAIL'))),[])
 
+    def test_verified_early_disk_error_survives_without_application_result(self):
+        from oeis_learn.pipeline_validation.generalization_qualification_failures import progress_lines
+        path=self.root/'execution-supervision/stderr.log';path.parent.mkdir()
+        path.write_text('ERROR: insufficient PAC reserved disk storage\n')
+        self.assertEqual(file_hash(path),'sha256:7c78449a36258309757cf1203463947ba2ad9fb126bfe625a2190e38f7ca825a')
+        details=stage_failures(self.root,refs=self.references())
+        self.assertEqual(details['failures'][0]['detail']['code'],'insufficient_disk_storage')
+        self.assertEqual(progress_lines(path.read_text()),['storage: available free disk is below the frozen PAC reservation'])
+        self.assertFalse(stage_failures(self.root,refs=[])['failures'])
+        path.write_text('ERROR: private host details\n')
+        self.assertFalse(stage_failures(self.root,refs=self.references())['failures'])
+
+    def test_storage_boundary_is_measured_and_stays_enforced(self):
+        from oeis_learn.generalization.resources import pac_free_storage
+        for free,status in ((15,'BLOCKED'),(16,'PASS'),(17,'PASS')):
+            result=pac_free_storage(required_bytes=16,available_bytes=free)
+            self.assertEqual(result['status'],status)
+            self.assertEqual(result['shortfall_bytes'],max(0,16-free))
+            self.assertEqual(result,seal(result))
+        with self.assertRaises(ValueError):pac_free_storage(required_bytes=16,available_bytes=True)
+
+    def test_canonical_disk_failure_writes_terminal_and_measured_check(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from oeis_learn.pipeline_validation import generalization_commands as commands
+        args=SimpleNamespace(output='execution',operation='qualify',engine='podman')
+        runtime=dict(identity=digest('runtime'),engine='podman',envelope=dict(storage=dict(reserved_bytes=16)))
+        host=SimpleNamespace(engine=SimpleNamespace(name='podman'))
+        with patch.object(commands.shutil,'disk_usage',return_value=SimpleNamespace(free=15)), \
+             patch.object(commands,'_validate',side_effect=AssertionError('model/engine work started')):
+            code=commands._execute_pac_plan(args,self.root,self.root,dict(identity=digest('study')),runtime,None,lambda args:host)
+        self.assertEqual(code,3)
+        record=json.loads((self.root/'execution/result.json').read_text())
+        self.assertEqual(record['status'],'BLOCKED')
+        check=json.loads((self.root/'execution/storage-check.json').read_text())
+        self.assertEqual(check['available_bytes'],15)
+        self.assertEqual(check['required_bytes'],16)
+        details=stage_failures(self.root,refs=self.references())
+        self.assertEqual(details['failures'][0]['detail']['code'],'insufficient_disk_storage')
+        self.assertEqual(details['storage'][0]['check'],check)
+
+    def test_storage_check_requires_original_hash_and_closed_canonical_bytes(self):
+        from oeis_learn.generalization.resources import pac_free_storage
+        path=self.root/'execution/storage-check.json';value=pac_free_storage(required_bytes=16,available_bytes=15)
+        write(path,value);refs=self.references();value['shortfall_bytes']=True;write(path,value,exclusive=False)
+        self.assertFalse(stage_failures(self.root,refs=refs)['storage'])
+        self.assertFalse(stage_failures(self.root,refs=self.references())['storage'])
+        write(path,seal(value),exclusive=False)
+        self.assertFalse(stage_failures(self.root,refs=self.references())['storage'])
+
     def test_failure_tail_is_bounded_and_counts_remain_complete(self):
         path=self.fixture()
         path.write_text('<testsuite>'+''.join('<testcase name="secret"><failure message="AssertionError: secret"/></testcase>' for _ in range(100))+'</testsuite>')
@@ -112,6 +162,25 @@ class QualificationFailures(unittest.TestCase):
         self.assertIn('execution-supervision/process.json',paths)
         self.assertIn('execution-supervision/stdout.log',paths)
 
+    def test_role_job_binds_admission_supervision_logs_too(self):
+        import importlib.util
+        from unittest.mock import patch
+        path=Path(__file__).resolve().parents[2]/'specs/012-parameterized-adaptive-curriculum/validation/run.py'
+        spec=importlib.util.spec_from_file_location('pac_job_diagnostics',path)
+        wrapper=importlib.util.module_from_spec(spec);spec.loader.exec_module(wrapper)
+        target=self.root/'admission';target.mkdir()
+        plan=dict(engine='podman',source=digest('source'),images=[digest('cpu'),digest('gpu')],arms=['B','C','D'])
+        def launch(argv,supervision,terminal,**kwargs):
+            job=json.loads((target/'job.json').read_text())
+            value=seal(dict(job=job['identity'],source=plan['source'],status='PASS',result={},inventory=[]))
+            write(terminal,value);write(supervision/'process.json',dict(outcome='COMPLETE',returncode=0))
+            (supervision/'stdout.log').write_text('public phase')
+            return value
+        with patch.object(wrapper,'launch_terminal',side_effect=launch):
+            value=wrapper._role_job(plan,'pac-assemble',{}, {}, {},target,self.root)
+        self.assertIn('supervision/process.json',{r['path'] for r in value['artifacts']})
+        self.assertIn('supervision/stdout.log',{r['path'] for r in value['artifacts']})
+
     def test_rich_and_minimal_archive_recovery_keep_original_test_causes(self):
         import shutil,zipfile
         from unittest.mock import patch
@@ -119,6 +188,8 @@ class QualificationFailures(unittest.TestCase):
         from oeis_learn.pipeline_validation.generalization_archive import verify_archive
         self.fixture();original=self.root/'campaign';stage=original/'qualification'
         shutil.copytree(self.root/'execution',stage/'execution')
+        from oeis_learn.generalization.resources import pac_free_storage
+        write(stage/'execution/storage-check.json',pac_free_storage(required_bytes=16,available_bytes=16))
         (original/'admission').mkdir()
         order=['admission','qualification','calibration','acceptance']
         plan=seal(dict(version='pac-serial-plan/v1',engine='podman',research=False,arms=['B','C'],source=digest('source'),
@@ -140,6 +211,7 @@ class QualificationFailures(unittest.TestCase):
                 details=json.loads(z.read('failures/qualification.json'))
                 self.assertEqual(details['qualification']['tests'][0]['counts']['tests'],3)
                 self.assertEqual(details['failures'][0]['detail']['code'],'qualification_tests_failed')
+                self.assertEqual(details['storage'][0]['check']['available_bytes'],16)
                 for name in z.namelist():
                     self.assertNotIn(b'teacher-source',z.read(name))
                     self.assertNotIn(b'private traceback',z.read(name))

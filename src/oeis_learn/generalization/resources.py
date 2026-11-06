@@ -2,6 +2,17 @@
 from .budgets import integer
 
 GIB=1024**3
+
+
+def pac_free_storage(*,required_bytes,available_bytes):
+    """Measure the existing free-space gate; never relax a frozen reservation."""
+    from oeis_learn.pipeline_validation.identity import seal
+    integer(required_bytes,1);integer(available_bytes)
+    if max(required_bytes,available_bytes)>=1<<63:raise ValueError('bounded storage bytes required')
+    return seal(dict(version='pac-free-storage/v1',required_bytes=required_bytes,available_bytes=available_bytes,
+        shortfall_bytes=max(0,required_bytes-available_bytes),status='PASS' if available_bytes>=required_bytes else 'BLOCKED'))
+
+
 PREPARATION_SECONDS=24*3600  #operational work; separate from scientific learner exposure
 CAPS=dict(study_bytes=64*GIB,checkpoint_bytes=32*GIB,shard_bytes=8*GIB,raw_bytes=4*GIB,sharing_bytes=512*1024**2)
 # Acceptance-013 completed paired learning but exhausted post-training evaluation.

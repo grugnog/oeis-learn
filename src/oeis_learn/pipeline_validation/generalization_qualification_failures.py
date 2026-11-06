@@ -84,7 +84,9 @@ def progress_lines(text):
     import json
     result=[]
     for line in text.splitlines():
-        if line.startswith('QUALIFICATION '):
+        if line=='ERROR: insufficient PAC reserved disk storage':
+            result.append('storage: available free disk is below the frozen PAC reservation')
+        elif line.startswith('QUALIFICATION '):
             try:value=json.loads(line[len('QUALIFICATION '):])
             except ValueError:continue
             if (isinstance(value,dict) and isinstance(value.get('stage'),str) and isinstance(value.get('status'),str)

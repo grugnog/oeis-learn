@@ -521,3 +521,27 @@ Ownership and reporting were committed/pushed separately; the evidence/handoff
 follow-up closes local delivery only. T083 stays open pending actual repaired HIP
 R0, and T073 research remains deferred. No hooks were registered, HIP work launched
 or CI jobs awaited.
+
+### Early disk gate evidence follow-up (2026-11-06)
+
+The next supplied report stops before qualification creates an application result.
+Its 46-byte stderr hash exactly matches the fixed source literal `ERROR:
+insufficient PAC reserved disk storage`. Source matches `6d6153e`; admission
+passed, and qualification tests/HIP/R0 did not start. Free space at failure was not
+recorded, so no historical shortfall or physical peak-capacity conclusion is inferred.
+
+- [X] T090 Add counterexamples for the exact verified early disk diagnostic, unknown/unbound stderr privacy, required/free equality boundaries, measured negative canonical terminal, and sealed storage-check integrity. Three new tests failed before implementation.
+- [X] T091 Preserve a canonical BLOCKED terminal and measured required/available/shortfall bytes for the existing PAC free-space gate; include verified storage checks and exact known early stderr in normal/minimal/recovery reports, and bind outer admission role-job logs. Do not lower reservations, prune originals or fabricate historical measurements.
+- [ ] T092 Run affected resource/reporting/registration/host tests, refresh the implementation fingerprint, document the actual new failure and a read-only current-space check, and commit/push without HIP execution or CI wait. Keep T083 and research pending.
+
+T090/T091: the canonical storage gate now writes its sealed check and BLOCKED
+terminal before any validation/model work. `pac-stage-failures/v3` retains verified
+required/available/shortfall bytes, and both rich/minimal exporters share this
+projection. Exact known host stderr recovers the old cause without arbitrary raw
+log disclosure; missing old measurements remain absent. Admission role-job outer
+controls/logs are now bound too. Sixteen dependency-free regressions pass, including
+unknown/unbound stderr, canonical negative exit3, exact storage boundary,
+rehashed boolean-counter tampering, original-byte preservation and both archive
+paths. The affected resources/reporting/registration/wrapper selection passes
+98 tests and five subtests. No reservation, scientific policy or original data
+was changed; T083 remains open.

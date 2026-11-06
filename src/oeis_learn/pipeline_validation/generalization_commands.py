@@ -289,12 +289,16 @@ def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
     host=host_factory(args)
     if host.engine.name!=runtime['engine']:raise ValueError('actual PAC engine differs from requested engine')
     import shutil
-    if shutil.disk_usage(workspace).free<runtime['envelope']['storage']['reserved_bytes']:raise ValueError('insufficient PAC reserved disk storage')
     output.mkdir(parents=True)
     def finish(value):
         from .generalization_lifecycle import invocation
         return _finish(output,study,args.operation,value,runtime,effective=invocation(args,study,runtime))
     try:
+        from oeis_learn.generalization.resources import pac_free_storage
+        storage=pac_free_storage(required_bytes=runtime['envelope']['storage']['reserved_bytes'],available_bytes=shutil.disk_usage(workspace).free)
+        write(output/'storage-check.json',storage)
+        if storage['status']=='BLOCKED':
+            return finish(dict(status='BLOCKED',reason='StorageReservation',error='insufficient PAC reserved disk storage'))
         plan=_validate(host,workspace,output,base,study,runtime,seconds=runtime['envelope']['validation']['outer'])
         if args.operation=='preflight':return finish(dict(status='PASS',plan=plan))
         if args.operation=='prepare':

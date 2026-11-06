@@ -7,6 +7,7 @@ from .identity import seal,digest,file_hash,confined
 from oeis_learn.generalization.contracts import verify_artifact
 
 _MESSAGES={
+    'insufficient PAC reserved disk storage':('insufficient_disk_storage','Available free disk is below the frozen PAC reservation.'),
     "'source'":('missing_source_field','A required source field is missing.'),
     'missing artifact':('missing_artifact','A required verified artifact is missing.'),
     'invalid frozen execution: missing artifact':('missing_artifact','A required verified artifact is missing.'),
@@ -16,6 +17,7 @@ _MESSAGES={
     'protected finalization reserve':('finalization_reserve','The protected finalization reserve was reached.'),
 }
 _KIND_CODES={
+    'StorageReservation':('insufficient_disk_storage','Available free disk is below the frozen PAC reservation.'),
     'QUALIFICATION_FAILED':('qualification_failed','Qualification failed; inspect the verified substage and test diagnostics.'),
     'QualificationStageFailure':('qualification_stage_failed','A qualification substage failed; original private logs remain at the producer.'),
     'QualificationBlocked':('qualification_blocked','Qualification was blocked by an unsuccessful prerequisite.'),
@@ -70,7 +72,7 @@ def stage_failures(root,*,refs=None,max_entries=8192,max_bytes=4<<20):
     from .generalization_qualification_failures import RECEIPT,TESTS,test_summary
     import xml.etree.ElementTree as ET
     pending=[Path('.')];failures=[];omissions=[];entries=used=0;seen=set()
-    qualification=dict(stages=[],tests=[])
+    qualification=dict(stages=[],tests=[]);storage=[]
     skip={'private','.runtime','input','inputs','checkpoints','native','native-cache','cache','caches','build'}
     while pending:
         folder=pending.pop()
@@ -93,7 +95,9 @@ def stage_failures(root,*,refs=None,max_entries=8192,max_bytes=4<<20):
             application=path.name=='result.json'
             control=path.name in {'process.json','cleanup.json'} and path.parent.name.endswith('supervision')
             receipt=RECEIPT.fullmatch(name);tests=TESTS.fullmatch(name)
-            if not (application or control or receipt or tests):continue
+            stderr=name in {'supervision/stderr.log','execution-supervision/stderr.log'}
+            storage_check=name=='execution/storage-check.json'
+            if not (application or control or receipt or tests or stderr or storage_check):continue
             if any(not re.fullmatch(r'[A-Za-z0-9_.-]{1,128}',p) for p in relative.parts):omissions.append(dict(kind='UNSAFE_PATH'));continue
             try:
                 path=confined(root,name);size=path.stat().st_size
@@ -105,6 +109,13 @@ def stage_failures(root,*,refs=None,max_entries=8192,max_bytes=4<<20):
                     payload=verify_artifact(root,ref,max_bytes=cap);sha=ref['sha256']
                 else:payload=path.read_bytes();sha=file_hash(path)
                 used+=len(payload)
+                if stderr:
+                    # Only an exact fixed public CLI diagnostic is recognized.
+                    # Arbitrary stderr and private exception text never cross.
+                    if payload.rstrip(b'\r\n')==b'ERROR: insufficient PAC reserved disk storage':
+                        failures.append((-2,-len(relative.parts),dict(origin=name,producer_sha256=sha,
+                            detail=public_failure(kind='StorageReservation',message='insufficient PAC reserved disk storage'))))
+                    continue
                 if tests:
                     summary=test_summary(payload,origin=name,sha256=sha)
                     qualification['tests'].append(summary)
@@ -114,6 +125,15 @@ def stage_failures(root,*,refs=None,max_entries=8192,max_bytes=4<<20):
                     continue
                 value=json.loads(payload)
                 if not isinstance(value,dict):raise ValueError('metadata object required')
+                if storage_check:
+                    from oeis_learn.generalization.resources import pac_free_storage
+                    expected=pac_free_storage(required_bytes=value['required_bytes'],available_bytes=value['available_bytes'])
+                    if seal(value)!=value or value!=expected:raise ValueError('original closed storage check required')
+                    storage.append(dict(origin=name,producer_sha256=sha,check=value))
+                    if value['status']=='BLOCKED':
+                        failures.append((-2,-len(relative.parts),dict(origin=name,producer_sha256=sha,
+                            detail=public_failure(kind='StorageReservation',message='insufficient PAC reserved disk storage'))))
+                    continue
                 if receipt:
                     if (seal(value)!=value or value.get('version')!='pipeline-stage/v1' or value.get('stage')!=receipt[1]
                         or value.get('state') not in {'PASS','FAIL','PARTIAL','BLOCKED','UNAVAILABLE'}):raise ValueError('original qualification receipt required')
@@ -147,5 +167,5 @@ def stage_failures(root,*,refs=None,max_entries=8192,max_bytes=4<<20):
         if record['detail']['identity'] not in seen:
             seen.add(record['detail']['identity']);unique.append(record)
     qualification['stages'].sort(key=lambda r:r['stage']);qualification['tests'].sort(key=lambda r:r['origin'])
-    return seal(dict(version='pac-stage-failures/v2',failures=unique,omissions=omissions,qualification=qualification,
+    return seal(dict(version='pac-stage-failures/v3',failures=unique,omissions=omissions,qualification=qualification,storage=storage,
         examined_entries=entries,metadata_bytes=used,private_payloads='OMITTED'))
