@@ -4,6 +4,64 @@ Implemented 2026-11-05. Local CPU/contract checks are software evidence only.
 Actual HIP R0 task T083 remains open. No device or full research run was executed
 by the implementer. Existing -004/T072 evidence retains its historical scope.
 
+## Disk reservation stop after the repair (2026-11-06)
+
+The next supplied report (`report(20261106-040037).zip`) independently verifies
+integrity PASS, software FAIL and scientific INCOMPLETE. Its source is exactly
+the repaired `6d6153e` scope, `sha256:74820dd420936bf1c3cdd9c817440d7d675821d59ceb4aaa092a9052f6d3f20b`.
+Admission passed in 1,082.34 seconds; qualification stopped after 0.306 seconds,
+before validation/tests/HIP/R0. Its stdout is empty. The 46-byte stderr hash
+`sha256:7c78449a36258309757cf1203463947ba2ad9fb126bfe625a2190e38f7ca825a`
+exactly matches the fixed source line `ERROR: insufficient PAC reserved disk storage`.
+This identifies the original cause without guessing private exception text.
+
+For this frozen B/C/D+R0 scope the gate requires **256 GiB currently free** on the
+workspace filesystem. The initial check was before image builds/admission; a
+successful initial check does not establish that the later check still passes.
+The old report recorded no available-byte measurement, so its historical shortfall
+and actual physical peak-capacity needs cannot be reconstructed from this ZIP.
+No reservation is lowered and no original files, images or checkpoints are pruned.
+
+Check current space from the workstation repository root before another run:
+
+```sh
+python3 -S - <<'PY'
+import shutil
+gib = 1 << 30
+required = 256 * gib
+available = shutil.disk_usage('.').free
+print(f'Available: {available} bytes ({available / gib:.2f} GiB)')
+print(f'Frozen gate: {required / gib:.2f} GiB')
+shortfall = max(0, required - available)
+print(f'Current shortfall: {shortfall} bytes ({shortfall / gib:.2f} GiB)')
+PY
+```
+
+This command reads the current filesystem only; it does not launch containers or
+change any run. Do not rerun admission merely to obtain this measurement.
+
+The follow-up now writes `execution/storage-check.json` and a canonical BLOCKED
+terminal before validation when the unchanged gate fails. Its closed sealed
+`pac-free-storage/v1` record contains required, available and shortfall bytes.
+`pac-stage-failures/v3` includes verified storage checks in normal/minimal/recovery
+reports. Exact known early stderr is recognized even when the historical run has
+no application result; arbitrary raw stderr remains private. The old FAIL and
+missing historical measurement are preserved. New admission role jobs also bind
+their outer supervisor controls/logs; old unbound logs remain explicit omissions.
+
+To enrich the old failure after pulling, use the read-only recovery command below
+with the actual failed campaign root (for the previously published `-003` command,
+substitute `-003` for `-002` and choose a fresh diagnostics output). Rebuilding is
+not required for recovery. A future device run needs sufficient current space and
+a fresh source-bound plan because this reporting/terminal repair changes installed
+code. No new run is requested until the current space check is resolved. T083 and
+research remain pending; the prior `-003` launch block is not a blind retry request.
+
+Local validation: 98 affected tests plus five subtests, 38 conformance/governance
+tests and 16 dependency-free tests pass (the 16 are included in the 98). Three
+native qualification checks remain explicitly skipped. No actual HIP or research
+was executed and CI was not awaited.
+
 ## Current repair and retry (2026-11-06)
 
 The supplied `pac-012-bcd-r0-002` report independently verifies integrity PASS,

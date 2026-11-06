@@ -532,7 +532,7 @@ recorded, so no historical shortfall or physical peak-capacity conclusion is inf
 
 - [X] T090 Add counterexamples for the exact verified early disk diagnostic, unknown/unbound stderr privacy, required/free equality boundaries, measured negative canonical terminal, and sealed storage-check integrity. Three new tests failed before implementation.
 - [X] T091 Preserve a canonical BLOCKED terminal and measured required/available/shortfall bytes for the existing PAC free-space gate; include verified storage checks and exact known early stderr in normal/minimal/recovery reports, and bind outer admission role-job logs. Do not lower reservations, prune originals or fabricate historical measurements.
-- [ ] T092 Run affected resource/reporting/registration/host tests, refresh the implementation fingerprint, document the actual new failure and a read-only current-space check, and commit/push without HIP execution or CI wait. Keep T083 and research pending.
+- [X] T092 Run affected resource/reporting/registration/host tests, refresh the implementation fingerprint, document the actual new failure and a read-only current-space check, and commit/push without HIP execution or CI wait. Keep T083 and research pending.
 
 T090/T091: the canonical storage gate now writes its sealed check and BLOCKED
 terminal before any validation/model work. `pac-stage-failures/v3` retains verified
@@ -545,3 +545,12 @@ rehashed boolean-counter tampering, original-byte preservation and both archive
 paths. The affected resources/reporting/registration/wrapper selection passes
 98 tests and five subtests. No reservation, scientific policy or original data
 was changed; T083 remains open.
+
+T092: recorded the independently verified new negative report, exact known stderr
+hash/source match and missing historical free-space measurement. Published a
+stdlib read-only current-space command before any further hardware retry. The
+affected selection passes 98 tests plus five subtests; conformance/governance
+passes 38 with three actual-native checks explicitly skipped. Sixteen dependency-
+free cases are included in the 98. Source fingerprint, 68 unchanged historical
+dispositions, prerequisites and the read-only 16/16 checklist reconcile. No hooks,
+reservation relaxation, original cleanup, HIP work or CI wait occurred.

@@ -1115,3 +1115,39 @@ dispositions and `full_007_complete=false` remain unchanged. Spec prerequisites,
 read-only 16/16 checklist, stdlib host help and whitespace checks pass. Exact
 read-only recovery and fresh-source -003 commands are in `r0-implementation.md`.
 T083/T073 remain pending/deferred. No HIP, research or CI wait was performed.
+
+## 2026-11-06: early free-disk qualification stop
+
+The next uploaded archive independently verifies integrity PASS/software FAIL/
+scientific INCOMPLETE, with no rehearsal or qualification authority. Its source
+fingerprint exactly matches `6d6153e`: `sha256:74820dd420936bf1c3cdd9c817440d7d675821d59ceb4aaa092a9052f6d3f20b`.
+Admission passed (1,082.34s); qualification stopped in 0.306s. Exact comparison of
+the 46-byte stderr hash with fixed source literals identifies `ERROR: insufficient
+PAC reserved disk storage`. No inference from arbitrary private text was used.
+The declared B/C/D+R0 threshold is 256 GiB free. The archive contains no actual
+free-byte reading; no historical shortfall or safe reduction of the reservation
+can be inferred. The handoff now asks for a read-only current-space measurement,
+not another costly admission or deletion of originals.
+
+T090 added three failing counterexamples before implementation. T091 preserves
+the existing free-space gate but moves its check inside the canonical terminal
+boundary, writing a sealed `pac-free-storage/v1` record and BLOCKED exit3 before
+validation/model work. The v3 failure collector verifies its exact shape/seal and
+original inventory bytes, carries measured required/available/shortfall bytes in
+both rich and minimal archives and recognizes only the exact fixed known early
+stderr line. Unknown/unbound stderr remains private. Historical results remain
+FAIL and missing historical measurements remain missing. Admission role-job
+supervisor controls/logs now have original inventory bindings too.
+
+T091 was committed/pushed as `b4f822f`. The affected test command was the previous
+reporting selection plus `tests/unit/test_generalization_operational_budgets.py`
+and `tests/integration/test_generalization_registration.py`: **98 passed plus five
+subtests**. The conformance/governance command above passed **38**, with **three
+actual-native checks explicitly skipped**. The dependency-free `python3 -S`
+unittest selection passed **16** (included in the 98), including exact-equality
+storage boundaries, wrong hashes/seals and boolean counters, canonical negative
+terminal, known versus private stderr, source immutability, outer role-job bindings
+and both real archive paths. The actual implementation serializer refreshes the
+007 fingerprint without changing its 68 dispositions or full-completion flag.
+No scientific setting or reservation was changed, no originals were pruned, and no
+HIP, research or CI wait occurred. T083/T073 remain pending/deferred.

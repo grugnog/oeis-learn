@@ -13,6 +13,11 @@ failure-reporting repairs, read-only recovery command and fresh `-003` retry are
 documented in [the current repair handoff](r0-implementation.md#current-repair-and-retry-2026-11-06).
 The failed scope stays failed; a new source-bound qualification is required.
 
+The subsequent repaired-source report stops at the 256-GiB free-space gate before
+qualification tests. See the [disk-stop diagnosis and read-only measurement](r0-implementation.md#disk-reservation-stop-after-the-repair-2026-11-06)
+before any further retry. Available space at that historical failure was omitted;
+the report is not evidence that the required capacity was available.
+
 ## Questions and comparisons
 
 | Arm | Targets | Practice | Purpose |
