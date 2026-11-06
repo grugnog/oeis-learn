@@ -661,7 +661,7 @@ existing independent bounded reference interpreter; no second arithmetic engine,
 new fitting, training, hidden-term execution or automatic policy adoption.
 
 - [X] T101 Specify the audit/visible-only ranking boundary and add independent branch-coverage, leakage, provenance, unknown-outcome and immutable-output counterexamples before implementation.
-- [ ] T102 Implement bounded branch-site observation and the experimental ranking API, preserving reference arithmetic and existing observer/selection semantics.
+- [X] T102 Implement bounded branch-site observation and the experimental ranking API, preserving reference arithmetic and existing observer/selection semantics.
 - [ ] T103 Implement the stdlib CLI over verified report/detail ZIPs, reconstruct original eligible candidate pools, reproduce original choices, join only previously scored exact sources after ranking, and export bounded diagnostic evidence.
 - [ ] T104 Run affected CPU/stdlib regressions and the supplied R1 bundle, record outcomes and limitations, refresh source disposition, commit/push periodically and open a separate stacked PR without waiting for CI.
 
@@ -672,3 +672,9 @@ execution plan. They are not claimed by this offline audit or launched here.
 T101: fifteen independent counterexamples fail before implementation (missing
 branch observer/ranking/audit boundaries). Checklist remains 16/16; no hooks are
 registered. Existing ignore files cover private run-state and Python artifacts.
+
+T102: the bounded reference interpreter now offers optional stable if/select site
+observation without changing arithmetic or legacy observer events. The closed
+experimental ranker accepts only generated source identities and a 20-term visible
+prompt. Seven independent selector tests pass; original reference/diagnostic
+regressions are included in the local validation. No production selector is changed.

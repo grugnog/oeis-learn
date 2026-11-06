@@ -47,7 +47,7 @@ def test_equal_syntax_at_different_sites_stays_distinct_and_select_is_eager():
     source = '(program (local $b0 bigint) (if (lt $index (int 10)) (then) (else)) (if (lt $index (int 10)) (then) (else)) (return $index))'
     assert observe(source, PROMPT)['branch_sites'] == 2
     eager = '(program (return (select (true) $index (mul (int 255) (int 255)))))'
-    limits = replace(ResourceProfile(), intermediate_bits=8)
+    limits = replace(ResourceProfile(), input_bits=8, literal_bits=8, intermediate_bits=8)
     result = observe(eager, PROMPT, limits=limits)
     assert result['complete'] is False
     assert result['reason'] == 'integer_limit'
