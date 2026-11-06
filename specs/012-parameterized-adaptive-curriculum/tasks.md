@@ -477,7 +477,7 @@ qualification. No HIP execution or CI wait is authorized here.
 
 - [X] T084 Reproduce the precreated canonical output-mount failure through the installed role entry point using real CPU tensors; add fresh/stale private directory, file and symlink ownership counterexamples before implementation.
 - [X] T085 Accept the launcher-owned R0 mount root while exclusively claiming fresh diagnostic work, preserving launcher scratch and refusing stale or partial output; audit sibling PAC handler boundaries and run affected non-HIP checks.
-- [ ] T086 Record verified operator failure evidence, refresh implementation identity, publish exact current-source retry/resume commands and validation outcomes; commit and push each coherent subgroup. Keep T083 pending actual successful HIP evidence.
+- [X] T086 Record verified operator failure evidence, refresh implementation identity, publish exact current-source retry/resume commands and validation outcomes; commit and push each coherent subgroup. Keep T083 pending actual successful HIP evidence.
 
 T084: six counterexamples fail before the repair: installed dispatch reproduces the exact FileExistsError before any learner invocation, and five fresh/stale ownership cases require the missing claim boundary. Both supplied archives independently verify integrity PASS with negative software/scientific dispositions; no successful rehearsal is claimed.
 
@@ -496,7 +496,7 @@ evidence, not installed-container/native/HIP qualification; T083 remains open.
 
 - [X] T087 Reproduce missing pipeline receipts/JUnit causes, misleading empty private detail, integrity/privacy/discovery limits and negative archive recovery before changing the collector; use dependency-free regressions in `tests/unit/test_generalization_qualification_failures.py`.
 - [X] T088 Project verified qualification substage outcomes, bounded test identifiers/counts and fixed safe diagnoses through normal/minimal/read-only reports; bind outer supervisor controls/logs and retain suite totals separately from enumerated XML cases.
-- [ ] T089 Validate affected reporting/ownership/host paths, refresh the implementation fingerprint, record supplied failure evidence and exact recovery/fresh-plan commands, and commit/push without waiting for CI. Keep current-source HIP/R0 proof pending.
+- [X] T089 Validate affected reporting/ownership/host paths, refresh the implementation fingerprint, record supplied failure evidence and exact recovery/fresh-plan commands, and commit/push without waiting for CI. Keep current-source HIP/R0 proof pending.
 
 T087–T088: seven dependency-free counterexamples failed before the collector/claim
 repairs. `pac-stage-failures/v2` now projects original sealed pipeline receipts
@@ -510,3 +510,14 @@ supervision files; recognized QUALIFICATION lines retain stage/status without ra
 reasons. Normal and forced-minimal archive tests preserve all original bytes and
 the failed disposition. Reporting/archive/wrapper selection: 80 passed and five
 subtests passed; dependency-free selection: 11 passed. No HIP or CI wait.
+
+T086/T089: published the exact six-failure diagnosis and source match, read-only
+old-run recovery and fresh-source `pac-012-bcd-r0-003` handoff. Three distinct local
+selections passed 147 tests plus five subtests in total; three actual-native
+qualification checks were explicitly skipped, not relabeled PASS. Source identity
+and all 68 historical dispositions reconcile. All eight handoff shell blocks,
+stdlib host help, prerequisites, whitespace and read-only 16/16 checklist pass.
+Ownership and reporting were committed/pushed separately; the evidence/handoff
+follow-up closes local delivery only. T083 stays open pending actual repaired HIP
+R0, and T073 research remains deferred. No hooks were registered, HIP work launched
+or CI jobs awaited.

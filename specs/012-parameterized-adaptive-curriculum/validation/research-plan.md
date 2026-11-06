@@ -7,6 +7,12 @@ has been performed by this planning/implementation pass. R0 software is now impl
 Actual R0 HIP evidence remains pending. This document is a planning record, not
 a sealed execution manifest or a claim of current-source hardware readiness.
 
+The actual `pac-012-bcd-r0-002` attempt failed CPU qualification on six T084
+ownership regressions before HIP qualification/R0. The implementation and bounded
+failure-reporting repairs, read-only recovery command and fresh `-003` retry are
+documented in [the current repair handoff](r0-implementation.md#current-repair-and-retry-2026-11-06).
+The failed scope stays failed; a new source-bound qualification is required.
+
 ## Questions and comparisons
 
 | Arm | Targets | Practice | Purpose |

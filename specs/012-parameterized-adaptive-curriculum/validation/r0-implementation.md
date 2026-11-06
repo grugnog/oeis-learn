@@ -4,6 +4,83 @@ Implemented 2026-11-05. Local CPU/contract checks are software evidence only.
 Actual HIP R0 task T083 remains open. No device or full research run was executed
 by the implementer. Existing -004/T072 evidence retains its historical scope.
 
+## Current repair and retry (2026-11-06)
+
+The supplied `pac-012-bcd-r0-002` report independently verifies integrity PASS,
+software FAIL and scientific INCOMPLETE. Its source fingerprint exactly matches
+commit `512256b054b7dfe4c9dc1f1244f2fe876f6dc619`:
+`sha256:1b0898b312070c85ff284291c5122b84498c8f9c7478bd4cf872e65aa2dcf8a1`.
+Admission passed. CPU qualification then failed six R0 ownership regressions;
+HIP qualification was BLOCKED, and calibration/acceptance/R0 did not start.
+Both image inspections passed. This was not deadline exhaustion or a failed HIP
+learner. The JUnit suite reports 1,565 executions, while its XML has 1,488 explicit
+testcase elements; both scopes are preserved rather than conflated.
+
+One failure reproduced `FileExistsError`: the canonical launcher creates the
+output mount before dispatch, but R0 tried to create it exclusively again. Five
+others imported the not-yet-implemented `claim_output` helper. T084 had published
+the red counterexamples; T085 now implements the repair. R0 accepts the existing
+mount, claims fresh private work exclusively, preserves launcher scratch and
+rejects stale work or terminal records. Duplicate dispatch cannot overwrite an
+original result. All five real CPU learner invocations and the complete in-block
+resume proof now pass; this is not current-source HIP qualification.
+
+The misleading public failure was a reporting defect too: `QUALIFICATION_FAILED`
+had no exception text, and its private-detail hash was the hash of an empty JSON
+string. The collector skipped pipeline receipts and JUnit files, and the log
+projector discarded QUALIFICATION lines. `pac-stage-failures/v2` now carries
+verified substage outcomes, suite and explicit-case counts, up to 64 failed-case
+diagnostics and explicit truncation/omissions. Test names are checked against
+public source; parameter IDs and unknown names are opaque hashes. Fixed messages
+identify the missing R0 claim and existing output, while arbitrary exception text,
+raw traces, protected payloads and original host paths remain private. Normal,
+minimal and read-only recovery exports share the same collector. New wrapper
+receipts bind outer supervisor controls/logs; unbound historical logs are explicitly
+omitted rather than treated as original proof. The original nested receipts/XML
+remain usable if they match the failed command's inventory.
+
+After pulling the fixes, repackage the existing failure without running an engine,
+changing original results or rebuilding anything:
+
+```sh
+git switch 012-parameterized-adaptive-curriculum
+git pull --ff-only origin 012-parameterized-adaptive-curriculum
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py recover \
+  --previous run-state/generalization/pac-012-bcd-r0-002/campaign \
+  --output run-state/generalization/pac-012-bcd-r0-002-diagnostics-001
+```
+
+To execute repaired R0, use a fresh plan/output. Production source changed, so the
+old failed plan cannot be resumed onto the repair; admission, image/source
+qualification and subsequent gates must bind the new closure. Preserve all old
+outputs. The original frozen scientific choices and generous limits are unchanged.
+
+```sh
+python3 -S specs/012-parameterized-adaptive-curriculum/validation/run.py run \
+  --engine podman \
+  --prepared run-state/generalization/fresh-p1-v2-20261103T035534Z \
+  --pilot run-state/generalization/fresh-p1-hourly-20261104T093555Z \
+  --research --bandit-only --rehearsal --stop-after-rehearsal \
+  --seed 20261016 \
+  --output run-state/generalization/pac-012-bcd-r0-003
+```
+
+Use a fresh sibling name if either proposed output already exists. The expected
+successful R0 stop and independent verifier below are unchanged; substitute
+`pac-012-bcd-r0-003` for `-001`. Actual T083 HIP evidence and R1 remain pending.
+Do not continue R1 until repaired R0 has a verified diagnostic PASS.
+
+Repair validation: 29 rehearsal tests; 80 reporting/archive/wrapper tests plus
+five subtests; 38 conformance/governance tests passed. Three actual-native
+qualification checks were explicitly skipped because their native build/original
+G7/G8/G9 evidence is unavailable here. Eleven dependency-free reporting/ownership
+tests also pass under `python3 -S` (included in the 80 above). Local development
+used Python 3.12.14, PyTorch 2.9.1+cpu, pytest 9.1.1, Wasmtime 48.0.0 and NumPy 2.3.5;
+this is not a pinned-image/native/HIP qualification claim. The original uploaded
+archive remains independently verifiable with its original negative result.
+The implementation fingerprint was refreshed without changing the 68 historical
+dispositions. No actual HIP run, research run or CI wait was performed.
+
 ## Implemented scope
 
 The temporary `validation/run.py` composes the canonical `pac-stage` operation

@@ -1054,3 +1054,64 @@ implementation hooks are registered and no CI wait was performed.
 reproduction and hardware limitations. T073 remains deferred. Original acceptance
 and T072 source/image/helper evidence is unchanged; these runtime/helper repairs
 are new source scopes requiring affected requalification before a live campaign.
+
+## 2026-11-06: R0 ownership and qualification diagnostic repair
+
+The supplied -002 archive independently verifies integrity PASS, software FAIL,
+scientific INCOMPLETE and no rehearsal proof. A pristine checkout of `512256b`
+reproduces its exact source fingerprint `sha256:1b0898b312070c85ff284291c5122b84498c8f9c7478bd4cf872e65aa2dcf8a1`.
+Original qualification stdout and JUnit identify CPU semantic qualification FAIL:
+one precreated output-mount collision and five missing `claim_output` imports.
+HIP preflight is BLOCKED; both image inspections pass. Suite totals are 1,565
+reported executions/6 failures/0 errors/0 skips; XML enumerates 1,488 testcase
+elements. No changed scientific setting or longer timeout resolves this defect.
+
+T085 accepts the launcher-owned root and exclusively claims diagnostic private
+work. Existing files/directories/symlinks and terminal records remain rejected.
+The installed-entry CPU regression now completes B256/C256/C129+127/D256, preserves
+scratch, verifies exact tensor/policy/observer resume and proves duplicate dispatch
+cannot overwrite its original terminal. The campaign's assembly/acceptance child
+roots and calibration mount usage were inspected separately.
+
+T087 began with seven failing dependency-free counterexamples. T088 adds bounded,
+inventory-verified pipeline/JUnit projection before generic wrapper errors, fixed
+safe diagnoses, separate suite/element counts, explicit failure-tail truncation
+and integrity/size/XML/discovery omissions. Raw messages, parameter IDs, tracebacks
+and host paths stay private; unknown tests stay opaque. Outer supervisor files are
+now inventoried. Recognized QUALIFICATION stage/status lines are projected only
+from verified logs. Both rich and forced-minimal recovery archive tests retain
+original bytes, all diagnostics and the original FAIL disposition.
+
+Executed locally from the repository root with `PYTHONPATH=src` and an isolated
+CPU development Python (3.12.14, torch 2.9.1+cpu, pytest 9.1.1, Wasmtime 48.0.0,
+NumPy 2.3.5):
+
+```sh
+python3 -m pytest -q tests/integration/test_generalization_rehearsal.py \
+  tests/unit/test_generalization_rehearsal.py -m 'not gpu and not docker'
+python3 -m pytest -q tests/unit/test_generalization_failures.py \
+  tests/unit/test_generalization_qualification_failures.py \
+  tests/unit/test_generalization_qualification.py \
+  tests/integration/test_generalization_archive.py \
+  tests/integration/test_generalization_evidence.py \
+  specs/012-parameterized-adaptive-curriculum/validation/test_run.py \
+  specs/012-parameterized-adaptive-curriculum/validation/test_rehearsal.py \
+  -m 'not gpu and not docker'
+python3 -m pytest -q tests/unit/test_generalization_convergence.py \
+  tests/integration/test_generalization_convergence.py \
+  tests/unit/test_foundation_handoff.py tests/contract/test_foundation_qualified_cli.py \
+  -m 'not gpu and not docker'
+python3 -S -m unittest tests.unit.test_generalization_qualification_failures -q
+```
+
+Results: **29 passed**, **80 passed + 5 subtests**, **38 passed + 3 explicitly
+skipped actual-native gates**, and **11 passed**, respectively. The final 11 are
+included in the 80 and are not additional unique tests. An initial real-tensor
+attempt lacked the Wasmtime Python dependency; after supplying the committed
+48.0.0 pin it passed all 29 cases. No production dependency or lock was changed.
+These tests do not establish pinned-container/native/HIP readiness. The 007
+implementation fingerprint was refreshed using its actual serializer; its 68
+dispositions and `full_007_complete=false` remain unchanged. Spec prerequisites,
+read-only 16/16 checklist, stdlib host help and whitespace checks pass. Exact
+read-only recovery and fresh-source -003 commands are in `r0-implementation.md`.
+T083/T073 remain pending/deferred. No HIP, research or CI wait was performed.
