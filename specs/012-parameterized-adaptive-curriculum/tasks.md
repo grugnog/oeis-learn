@@ -614,3 +614,21 @@ and the read-only 16/16 checklist pass; no extension hooks are registered. The
 handoff resumes from the failed R1 root's copied plan into fresh `pac-012-bcd-r1-002`,
 without rebuilding images or repeating the five successful gates. No HIP,
 structural inference or CI wait was performed.
+
+### Stacked installed follow-up integration (2026-11-06)
+
+The operator started the compatible R1 retry and requested a separate stacked PR
+for permanent integration. Work is isolated on `012-pac-followup-integration`,
+based on #63 at `bbeacb4`; the running branch and original evidence remain intact.
+R0 ownership, storage checks and qualification diagnostics already live in installed
+modules. The remaining helper-only baseline projection and exception reporting move
+to their existing installed boundaries, leaving serial orchestration temporary.
+
+- [X] T097 Move the follow-up regression cases into the normal integration suite; add direct installed projection and canonical normal/minimal exporter counterexamples before implementation.
+- [ ] T098 Install exclusive verified retained-baseline projection and helper failure capture/validation; wire the temporary runner to those APIs without adding a second workflow or changing scientific authority.
+- [ ] T099 Collect verified helper diagnostics directly through canonical rich/minimal export and read-only recovery, removing helper archive supplementation; retain tamper/privacy/status guards.
+- [ ] T100 Validate affected installed/operator/archive paths and stdlib entrypoints, refresh the implementation disposition identity, document changed source/qualification scope, commit periodically and open the stacked PR against #63 without waiting for CI. Do not change the active campaign or claim actual HIP proof of the new source.
+
+T097 red baseline: four failed, two passed. Direct installed projection imports
+fail in both control modes, and direct canonical rich/minimal exports lack the
+bound helper diagnostic. Existing real helper-baseline branch tests still pass.
