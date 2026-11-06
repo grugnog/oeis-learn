@@ -16,14 +16,47 @@ def helper_identity(root):
     return digest({str(p.relative_to(root)):file_hash(p) for p in files})
 
 
+def _original_records(original):
+    from .generalization_helper_failures import STAGES
+    records=[]
+    for name in ('plan.json','workflow.json'):
+        path=confined(original,name)
+        if not path.is_file() or path.stat().st_size>16<<20:raise ValueError('bounded original record required')
+        value=json.loads(path.read_text())
+        if seal(value)!=value:raise ValueError('original record seal changed')
+        records.append(value)
+    plan,workflow=records
+    if (workflow['plan']!=plan['identity'] or len(workflow['receipts'])>32
+        or any(row['stage'] not in STAGES for row in workflow['receipts'])):
+        raise ValueError('bounded original workflow/plan binding required')
+    return plan,workflow
+
+
+def _failure_payloads(original,workflow,staging):
+    """One installed failure projection for both rich and minimal exports."""
+    from .generalization_failures import stage_failures
+    from .generalization_helper_failures import helper_diagnostic
+    if len(workflow['receipts'])>32:raise ValueError('bounded original workflow required')
+    refs=[];errors=[];omissions=[]
+    for row in workflow['receipts']:
+        stage=row['stage'];root=confined(original,row.get('directory',stage))
+        if row['status']!='PASS':
+            details=stage_failures(root,refs=row.get('artifacts',[]))
+            path=staging/'failures'/(stage+'.json');write(path,details);refs.append(reference(path,staging))
+            errors.extend(dict(stage=stage,kind=f['detail']['kind'],status='FAIL') for f in details['failures'])
+        diagnostic,omission=helper_diagnostic(root,row)
+        if diagnostic is not None:
+            path=staging/'failures'/('helper-'+stage+'.json');write(path,diagnostic);refs.append(reference(path,staging))
+        if omission:omissions.append(omission)
+    return refs,errors,omissions
+
+
 def collect(original,staging,*,workspace=None):
     from .bundle import public
     from .generalization_qualification_io import public_closure
     workspace=Path(workspace) if workspace is not None else Path(__file__).resolve().parents[3]
     original=Path(original);staging=Path(staging);staging.mkdir(parents=True,exist_ok=False)
-    workflow=json.loads((original/'workflow.json').read_text())
-    plan=json.loads((original/'plan.json').read_text())
-    if seal(workflow)!=workflow or seal(plan)!=plan or workflow['plan']!=plan['identity']:raise ValueError('original workflow/plan binding mismatch')
+    plan,workflow=_original_records(original)
     refs=[];used=0;omissions=[]
     entries={row['stage']:row for row in workflow['receipts']}
     def original_file(path):
@@ -140,13 +173,8 @@ def collect(original,staging,*,workspace=None):
                     lines=progress_lines(payload[-(64<<10):].decode('utf8',errors='replace'))
                     put('logs/'+row['stage']+'/'+folder+'-'+stream+'.json',dict(original_bytes=size,original_sha256=file_hash(path) if size<=1<<20 else None,
                         projection='recognized phase/time lines only; raw logs remain private',lines=lines[-64:]))
-    from .generalization_failures import stage_failures
-    nested_errors=[]
-    for row in workflow['receipts']:
-        if row['status']=='PASS':continue
-        details=stage_failures(original/row.get('directory',row['stage']),refs=row.get('artifacts',[]))
-        put('failures/'+row['stage']+'.json',details)
-        nested_errors.extend(dict(stage=row['stage'],kind=f['detail']['kind'],status='FAIL') for f in details['failures'])
+    failure_refs,nested_errors,failure_omissions=_failure_payloads(original,workflow,staging)
+    refs.extend(failure_refs);omissions.extend(failure_omissions)
     errors=list({(e['stage'],e['kind'],e['status']):e for e in [*nested_errors,*workflow['errors']]}.values())
     status=workflow['status']
     if status=='PASS' and not all((qualification,acceptance,native,calibration)):
@@ -171,17 +199,10 @@ def export(original,output):
     except (OSError,ValueError,KeyError) as exc:
         # Broken rich closure cannot suppress a truthful, independently verified
         # minimal export. Preserve the original run and failed export directory.
-        plan=json.loads((original/'plan.json').read_text());workflow=json.loads((original/'workflow.json').read_text())
-        if seal(plan)!=plan or seal(workflow)!=workflow:raise ValueError('original plan/workflow integrity unavailable') from exc
+        plan,workflow=_original_records(original)
         seed=int(plan['stages'][0]['extra'][1]) if len(plan['stages'][0]['extra'])==2 else 0
-        from .generalization_failures import stage_failures
         minimal_payload=output.with_name(output.name+'-minimal-payloads');minimal_payload.mkdir(parents=True,exist_ok=False)
-        minimal_refs=[];nested_errors=[]
-        for row in workflow['receipts']:
-            if row['status']=='PASS':continue
-            details=stage_failures(confined(original,row.get('directory',row['stage'])),refs=row.get('artifacts',[]))
-            path=minimal_payload/'failures'/(row['stage']+'.json');write(path,details);minimal_refs.append(reference(path,minimal_payload))
-            nested_errors.extend(dict(stage=row['stage'],kind=f['detail']['kind'],status='FAIL') for f in details['failures'])
+        minimal_refs,nested_errors,failure_omissions=_failure_payloads(original,workflow,minimal_payload)
         errors=list({(e['stage'],e['kind'],e['status']):e for e in [*nested_errors,*workflow['errors'],dict(stage='export',kind=type(exc).__name__,status='FAIL')]}.values())
         record=seal(dict(**(dict(rehearsal=None) if plan.get('rehearsal') else {}),version='pac-public-evidence/v2' if plan.get('rehearsal') else 'pac-public-evidence/v1',plan=plan['identity'],source=plan['source'],images=plan['images'],
             backend=__import__('oeis_learn.pipeline_validation.generalization_execution',fromlist=['POLICY_ID']).POLICY_ID,
@@ -189,5 +210,5 @@ def export(original,output):
             scope=dict(research=plan['research'],arms=plan['arms'],seed=seed,target_tokens=25000000,parameter='DEFERRED',assessment='NOT_EXECUTED'),
             required=[s['name'] for s in plan['stages']],stages=[],software_status='INTERRUPTED' if workflow['status']=='INTERRUPTED' else 'FAIL',
             scientific_status='INCOMPLETE' if plan['research'] else 'UNMEASURED',errors=errors,
-            omissions=['rich proof closure unavailable; original failure and export directories retained'],inventory=minimal_refs,qualification=None,acceptance=None,native_admission=None,calibration=None))
+            omissions=['rich proof closure unavailable; original failure and export directories retained',*failure_omissions],inventory=minimal_refs,qualification=None,acceptance=None,native_admission=None,calibration=None))
         return publish_pac(record,output.with_name(output.name+'-minimal'),payload_root=minimal_payload)

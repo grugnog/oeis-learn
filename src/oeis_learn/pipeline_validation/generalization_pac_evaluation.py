@@ -6,6 +6,24 @@ from .generalization_preparation import reference,verify_pac_structural
 from oeis_learn.generalization.contracts import verify_artifact,shape
 
 
+def project_retained_checkpoint(workspace,retained,output,study,runtime):
+    """Claim an owned evaluation copy, preserving the frozen retained identity."""
+    workspace=Path(workspace)
+    root=confined(workspace,retained['weights_root'])
+    output=confined(workspace,output,exists=False)
+    output.mkdir(parents=True,exist_ok=False)
+    descriptor=retained['checkpoint'];weights=descriptor['weights']
+    payload=verify_artifact(root,weights,max_bytes=32<<30)
+    destination=confined(output,weights['path'],exists=False)
+    destination.parent.mkdir(parents=True,exist_ok=True);destination.write_bytes(payload)
+    write(output/'checkpoint.json',descriptor)
+    arm='A-reference' if study['control_mode']=='fresh-control' else 'A'
+    request=arm+'='+str((output/'checkpoint.json').relative_to(workspace))
+    # Use the same frozen identity/descriptor/weight checks as actual evaluation.
+    checkpoint_request(workspace,request,study,runtime,{}, {})
+    return request
+
+
 def publish_views(inputs,output,settings,*,seconds):
     if set(settings)!={'admission'}:raise ValueError('closed PAC publication request')
     root=inputs['mechanical_sources']

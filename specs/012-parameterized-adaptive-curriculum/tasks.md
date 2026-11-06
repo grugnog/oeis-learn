@@ -625,10 +625,23 @@ modules. The remaining helper-only baseline projection and exception reporting m
 to their existing installed boundaries, leaving serial orchestration temporary.
 
 - [X] T097 Move the follow-up regression cases into the normal integration suite; add direct installed projection and canonical normal/minimal exporter counterexamples before implementation.
-- [ ] T098 Install exclusive verified retained-baseline projection and helper failure capture/validation; wire the temporary runner to those APIs without adding a second workflow or changing scientific authority.
-- [ ] T099 Collect verified helper diagnostics directly through canonical rich/minimal export and read-only recovery, removing helper archive supplementation; retain tamper/privacy/status guards.
+- [X] T098 Install exclusive verified retained-baseline projection and helper failure capture/validation; wire the temporary runner to those APIs without adding a second workflow or changing scientific authority.
+- [X] T099 Collect verified helper diagnostics directly through canonical rich/minimal export and read-only recovery, removing helper archive supplementation; retain tamper/privacy/status guards.
 - [ ] T100 Validate affected installed/operator/archive paths and stdlib entrypoints, refresh the implementation disposition identity, document changed source/qualification scope, commit periodically and open the stacked PR against #63 without waiting for CI. Do not change the active campaign or claim actual HIP proof of the new source.
 
 T097 red baseline: four failed, two passed. Direct installed projection imports
 fail in both control modes, and direct canonical rich/minimal exports lack the
 bound helper diagnostic. Existing real helper-baseline branch tests still pass.
+
+T098–T099: installed `project_retained_checkpoint` owns exclusive creation, original
+weight verification and frozen descriptor/label checks through `checkpoint_request`.
+`generalization_helper_failures` owns bounded private/public capture and strict
+inventory/schema/status/vocabulary/source-location validation. The canonical PAC
+exporter shares failure projection across rich/minimal output; the wrapper's archive
+supplementation is removed and recovery delegates directly. Four red integration
+gaps now pass. Final affected/evaluation/archive/governance selection: 175 passed,
+three actual-native qualification checks skipped, five subtests passed. A separate
+161-test contract/privacy selection also passed. Stdlib CLI help passes. No HIP or
+CI wait occurred. The 007 implementation identity is refreshed without altering its
+68 dispositions or completion flag; the new installed source requires its own
+future source/image qualification and does not replace the active R1 scope.

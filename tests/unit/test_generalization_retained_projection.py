@@ -20,6 +20,9 @@ def test_projection_is_consumable_and_rejects_stale_or_changed_originals(tmp_pat
     assert root==output and actual==descriptor
     assert (output/'weights.pt').read_bytes()==b'verified original'
     with pytest.raises(FileExistsError):project_retained_checkpoint(tmp_path,retained,output,study,runtime)
+    with pytest.raises(ValueError):
+        project_retained_checkpoint(tmp_path,retained,tmp_path/'wrong-control',study,dict(control=dict(checkpoint=digest('other'))))
+    with pytest.raises(ValueError):project_retained_checkpoint(tmp_path,retained,'../escape',study,runtime)
     (source/'weights.pt').write_bytes(b'tampered')
     with pytest.raises(ValueError):project_retained_checkpoint(tmp_path,retained,tmp_path/'other',study,runtime)
     assert (output/'weights.pt').read_bytes()==b'verified original'
