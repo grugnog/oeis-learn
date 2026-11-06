@@ -651,3 +651,24 @@ local-link/shell syntax, whitespace and read-only checklist checks pass. The
 installed integration handoff records the unchanged active R1 scope and separate
 future qualification obligation. Red-first and implementation groups are pushed;
 the final documentation group and separate PR target #63's branch, with no CI wait.
+
+### Operator-authorized selector diagnosis (2026-11-06)
+
+Separate stack above #64; the completed R1 experiment and production selector stay
+frozen. Implement a read-only, explicitly exploratory audit, not a new campaign.
+The follow-up contract is `validation/selector-audit.md`. These tasks reuse the
+existing independent bounded reference interpreter; no second arithmetic engine,
+new fitting, training, hidden-term execution or automatic policy adoption.
+
+- [X] T101 Specify the audit/visible-only ranking boundary and add independent branch-coverage, leakage, provenance, unknown-outcome and immutable-output counterexamples before implementation.
+- [ ] T102 Implement bounded branch-site observation and the experimental ranking API, preserving reference arithmetic and existing observer/selection semantics.
+- [ ] T103 Implement the stdlib CLI over verified report/detail ZIPs, reconstruct original eligible candidate pools, reproduce original choices, join only previously scored exact sources after ranking, and export bounded diagnostic evidence.
+- [ ] T104 Run affected CPU/stdlib regressions and the supplied R1 bundle, record outcomes and limitations, refresh source disposition, commit/push periodically and open a separate stacked PR without waiting for CI.
+
+Training-only probe calibration, freezing a research selector and fresh structural
+confirmation require workstation checkpoint/probe originals and a separately frozen
+execution plan. They are not claimed by this offline audit or launched here.
+
+T101: fifteen independent counterexamples fail before implementation (missing
+branch observer/ranking/audit boundaries). Checklist remains 16/16; no hooks are
+registered. Existing ignore files cover private run-state and Python artifacts.
