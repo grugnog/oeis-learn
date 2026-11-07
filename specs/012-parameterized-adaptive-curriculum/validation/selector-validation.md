@@ -119,3 +119,11 @@ selection seals, canonical 100-term scoring with synthetic execution, training
 role rejection, original inventory/weight tampering, freeze gates and unchanged
 historical draws. Host CLI help works with `python3 -S`. These checks do not
 constitute workstation HIP execution or new scientific results.
+
+
+## Incomplete fitting cases
+
+The completed first probe run stopped at D 235/256. The separate
+[fixed-candidate fitting diagnostic](fit-diagnostics.md) replays its nine solver
+timeout cases and benchmarks CPU quotas without changing the probe result or
+structural freeze gate.
