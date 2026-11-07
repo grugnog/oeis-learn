@@ -787,3 +787,23 @@ warmup; individual native test transcripts were not supplied. Historical probe
 completion remains 235/256 and structural advancement remains pending a fresh
 full probe run. Detailed evidence and limitations are recorded in
 `validation/native-fit-fastpaths.md`.
+
+## Installed wheel and qualification failure repair (2026-11-07)
+
+- [X] T118 Reproduce the uploaded GPU image inspection failure with an actual wheel outside the checkout; retain rejection of modified policy bytes.
+- [X] T119 Include all generalization policy JSON resources in wheel/sdist, return failed qualification stage references/reasons, and capture bounded original qualification evidence in selector failure ZIPs without exporting private payloads.
+- [X] T120 Run affected packaging/diagnostic/source-binding checks, record the verified pipeline diagnosis and fresh `-003` retry command, commit and publish a separate stacked repair without waiting for CI.
+
+The uploaded original qualification archive verifies FAIL: CPU/native reports
+1,547 tests with no failures/skips; GPU installed-wheel inspection rejects the
+omitted fit amendment before HIP. The new wheel regression reproduces that exact
+failure before the fix. Three diagnostic scenarios also fail before repair:
+stage details absent from producer result, qualification logs missing from the
+failure ZIP, and capture errors omitted. Existing scientific gates remain intact.
+
+T118–T120: 127 affected checks pass, one installed-native-image check skips;
+final wheel/tamper and implementation-binding checks pass 2/2. Only the current
+implementation binding changes among the 68 historical dispositions. Stdlib
+probe help and whitespace checks pass; read-only checklist remains 16/16 and
+there are no extension hooks. Actual GPU qualification/probe outcomes remain
+workstation-only and pending. The separate repair stack targets #68; no CI wait.
