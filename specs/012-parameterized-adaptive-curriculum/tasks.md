@@ -836,3 +836,22 @@ ignored run-state without changing the qualified checkout. No scientific policy
 or installed package code changes; no implementation-binding change is needed.
 The workstation support census remains pending. See
 `validation/fresh-admission-review.md` for proof scope, limits and command.
+
+- [X] T125 Verify uploaded v1 support totals/code binding and retain all four conclusions as inconclusive; implement an opt-in exact all-81-window inverse census with independent-reference, boundary, shifted-window, set-union and copied-stdlib CLI counterexamples, then document the separately scoped workstation command.
+
+T125: v1 completes in 15.716 seconds, leaving 430/53/1,449/1,197 uncovered
+witness classes. These are not eligible-task counts. Full-window projection
+handles linear intervals, quadratic rows/columns and exact mixed-branch points,
+including one-term boundary cases and sum multiplicity. No scientific law,
+quota, seed, exclusion or installed package code changes. The extended census
+remains diagnostic-only and exports counts/identities. Workstation v2 results
+remain pending; v1 is not rewritten. Tests and publication are recorded below.
+
+T125 validation: 29 affected checks pass, including 14 focused support cases.
+Every true window in independent-reference boundary/extreme cases is recognized;
+inverse membership agrees with brute-force equality on an independent grid.
+Shift, overlap, sum multiplicity, optimized reader, zero/full support fixtures
+and actual copied stdlib CLI checks pass. Stdlib help, whitespace, prerequisites
+and unchanged 16/16 read-only checklist pass; no hooks. The qualified checkout
+is preserved by fetching the helper to ignored run-state. Committed and published
+to the existing support-audit stack without waiting for CI.

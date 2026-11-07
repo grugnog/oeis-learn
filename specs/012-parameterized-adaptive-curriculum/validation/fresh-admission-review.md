@@ -118,3 +118,94 @@ helper runs with `python -S` and binds its actual script bytes. The related
 selector unit/integration run passed 21 checks before the final deadline test.
 No workstation support census result is available yet. No GPU or training work
 was executed by this implementation.
+
+## Verified first support result and all-window follow-up
+
+The subsequently uploaded v1 result verifies its canonical seal, original plan
+identity/byte reference and exact published helper digest. Result identity:
+`sha256:6068d06b65b8722a17007ce98951fab56c178efc3f8c7dee884e905f3fa9c5bd`;
+helper digest:
+`sha256:63aecae1829a7473a89bb906ef30bb6c8ed4f77726c02735566ee201dab3f5e3`.
+The audit completes in 15.716 seconds. All 18 cell records are present, and
+their incremental coverage counts sum to the reported totals.
+
+| Family prefix | Covered witness classes | Uncovered witness classes | Full-law conclusion |
+|---|---:|---:|---|
+| `3f7f434b8e62` | 1,619/2,049 | 430 | inconclusive |
+| `5c475cecf9da` | 1,996/2,049 | 53 | inconclusive |
+| `83a8423db5b0` | 600/2,049 | 1,449 | inconclusive |
+| `ee89096d39c3` | 2,900/4,097 | 1,197 | inconclusive |
+
+These uncovered counts are not numbers of eligible tasks, nor proof of remaining
+support. V1 tests one guaranteed window per coefficient class. The same target
+assignment may match an old sequence at another window position. For instance,
+the window 10,9,...,-9 occurs in the p0=90 member of the first family at offset
+80, even if its initial p0=90 window is uncovered. Branch-dependent targets have
+analogous extra windows and mixed windows at their branch boundary.
+
+Coverage first encountered at each group of inputs is:
+
+| Input group, recorded scan order | `3f7f...` | `5c47...` | `83a8...` | `ee89...` |
+|---|---:|---:|---:|---:|
+| Four original selection/assessment cells | 558 | 17 | 9 | 1,234 |
+| Static training plus eleven refresh cells | 954 | 1,978 | 582 | 1,504 |
+| Observed PAC structural cohort | 107 | 1 | 8 | 162 |
+| Training probes | 0 | 0 | 1 | 0 |
+
+This incremental attribution depends on scan order; the groups can overlap.
+It is not the coverage that would disappear if one input group were removed.
+The v1 report remains DIAGNOSTIC_ONLY and does not establish whether increasing
+the draw budget can restore the original quotas.
+
+### Exact all-window audit
+
+The helper's optional `--all-windows` mode produces
+`pac-fresh-support-audit/v2`. It checks every candidate position 0..80 under the
+same family definitions and numeric law, using inverse arithmetic constraints
+rather than generating millions of programs:
+
+- A matching linear window blocks an interval of allowed p0 values or sums.
+- A matching pure quadratic branch blocks a parameter row or column.
+- A window crossing a branch boundary fixes a parameter pair. Third differences
+  locate possible joins; the exact 20-value equations validate each pair.
+- Globally quadratic crossing windows receive explicit treatment when a branch
+  contributes only one term, or both branches have identical coefficients.
+
+The union of rows, columns and individual pairs counts the complete 2,049 by
+2,049 grids with sparse byte rows, bounded by about 8.4 MB of point flags total.
+For n-(p0+p1), assignment counts use the triangular multiplicity of each sum;
+the report separately retains the number of distinct output classes. No original
+windows or parameter assignments are exported. The original byte/time caps,
+input hashes and diagnostic-only authority remain unchanged.
+
+A zero window-free assignment count proves no numeric assignment in that family
+can survive the current window exclusion rule. A positive count establishes only
+window support: candidates still require all frozen admission checks, including
+native/reference agreement. It does not authorize reseeding, a larger reservoir,
+quota changes, or model evaluation. A scientific amendment remains separate.
+
+Run the extended diagnostic from the same qualified checkout, without switching
+branches or rebuilding an image:
+
+```bash
+cd /home/owen/workspace/oies-learn &&
+git fetch origin 012-pac-support-audit &&
+git show FETCH_HEAD:scripts/pac_fresh_support_audit.py > run-state/pac_fresh_support_audit.py &&
+python3 -S run-state/pac_fresh_support_audit.py --all-windows \
+  --plan run-state/generalization/pac-selector-fresh-001/execution/plan.json \
+  --expected-plan-sha256 sha256:6a572f57d16a10f0ebe18d7dbe0c55a4f0fe5be205f6da7cdd0f2837a5f48de5 \
+  --output run-state/generalization/pac-selector-support-002
+```
+
+Share `run-state/generalization/pac-selector-support-002/report.zip`. The all-window
+workstation result is pending; the observed v1 counts are not reclassified.
+
+Validation of the extension: 29 affected checks pass, including 14 focused support
+cases. The independent exact reference supplies every window of extreme/zero
+and one-term-boundary assignments; inverse projection recognizes each one.
+Projected membership is also compared with brute-force window equality on an
+independent coefficient grid, including extra quadratic/nonquadratic negatives.
+Tests cover row/column/point overlap, shifted linear matches, triangular sum
+multiplicity, the optimized row reader versus individual-window projection, both
+complete/incomplete synthetic censuses and copied `python -S --all-windows`
+execution. No workstation v2 support result or speedup is claimed.
