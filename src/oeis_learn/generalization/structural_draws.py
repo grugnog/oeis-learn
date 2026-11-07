@@ -29,10 +29,12 @@ def design(prior):
         assessment='SEALED; custodian exclusion-only access',training_tokens=0))
 
 
-def draw(protocol):
+def draw(protocol, *, seed=None):
     from oeis_learn.data.bigint_programs import BigintSampler
     from oeis_learn.generalization.refresh import RefreshPlan
     if seal(protocol)!=protocol:raise ValueError('frozen design required')
+    seed=SEED if seed is None else seed
+    if type(seed) is not int or not 0<=seed<2**32:raise ValueError('bounded explicit draw seed required')
     sampler=BigintSampler(20261016);catalog={}
     for i in range(4096):
         d=sampler.descriptor(i)
@@ -42,7 +44,7 @@ def draw(protocol):
     for cell in protocol['cells']:
         d=catalog[cell['family']]
         if d['parameter_source']!=protocol['families'][d['family']]['parameter_source']:raise ValueError('family changed')
-        plan=RefreshPlan([d],seed=SEED+(cell['stratum']=='structural'),capacity=8192)
+        plan=RefreshPlan([d],seed=seed+(cell['stratum']=='structural'),capacity=8192)
         batch,_=plan.take(0,cell['draws'])
         rows.extend(dict(r,role='selection',holdout=cell['stratum']) for r in batch)
     return rows

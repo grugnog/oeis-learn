@@ -168,7 +168,7 @@ def pin_selection(inputs,output,settings,*,seconds):
     return dict(status='PASS',checkpoint=pointer,root='private/selected',decision=decision['decision'])
 
 
-def generator(inputs,output,settings,*,seconds,pac=False):
+def generator(inputs,output,settings,*,seconds,pac=False,compare_selectors=False):
     deadline=time.monotonic()+seconds
     from oeis_learn.generalization.budgets import remaining_seconds
     from oeis_learn.generalization.contracts import verify_artifact
@@ -183,7 +183,8 @@ def generator(inputs,output,settings,*,seconds,pac=False):
     prompts=json.loads(verify_artifact(inputs['visible_prompts'],settings['prompts']))
     with execution_context(),client(dict(recipe=settings['recipe'],contract_sha256=settings['study']),output/'private') as native:
         return evaluate_retained(inputs['frozen_weights'],settings['checkpoint'],prompts,settings['recipe'],output/'generation',
-            client=native,device=settings['device'],study=settings['study'],source=settings['source'],seconds=remaining_seconds(deadline),bank_seeds=settings['bank_seeds'],pac=pac)
+            client=native,device=settings['device'],study=settings['study'],source=settings['source'],seconds=remaining_seconds(deadline),bank_seeds=settings['bank_seeds'],pac=pac,
+            **(dict(compare_selectors=True) if compare_selectors else {}))
 
 
 def selection(inputs,output,settings,*,seconds):
@@ -287,6 +288,13 @@ HANDLERS={(Role.LEARNER,'pac-rehearse'):pac_rehearse,(Role.LEARNER,'pac-calibrat
           (Role.PREPARATION,'publish-initializer'):publish_initializer,
           (Role.REPORT,'qualification-consume'):qualification_consume,
           (Role.LEARNER,'train'):learner,(Role.GENERATOR,'evaluate'):generator}
+
+
+from . import selector_validation_roles as selector_validation
+HANDLERS.update({(Role.PREPARATION,'selector-probes'):selector_validation.publish_probes,
+                 (Role.PREPARATION,'selector-structural'):selector_validation.publish_structural,
+                 (Role.GENERATOR,'selector-generate'):selector_validation.generate,
+                 (Role.SELECTION,'selector-score'):selector_validation.score})
 
 
 def main(argv=None):

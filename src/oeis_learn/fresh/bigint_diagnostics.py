@@ -151,6 +151,15 @@ def _template_candidate(position):
     return decode_body(tokens), tokens
 
 
+def selector_candidates(items, prompt, **kwargs):
+    """Retain every distinct eligible envelope for a separately budgeted selector comparison."""
+    groups = {}
+    for item in items:
+        groups.setdefault(item['source_sha256'], []).append(item)
+    if len(groups)>64:raise ValueError('eight-attempt admitted source cap exceeded')
+    return [_seal(groups[key], prompt, **kwargs) for key in sorted(groups)]
+
+
 def _portfolio(
     decoder,
     memory,
@@ -168,6 +177,7 @@ def _portfolio(
     portfolio_seconds=60,
     evidence=None,
     evaluation_policy=None,
+    retain_selector_candidates=False,
 ):
     if evaluation_policy is not None:
         from oeis_learn.pipeline_validation.pilot_clocks import validate_portfolio
@@ -408,6 +418,10 @@ def _portfolio(
         else dict(retained=[], omitted=[])
     )
     return dict(
+        **(dict(selector_candidates={key:selector_candidates(items, prompt, cost=cost,
+            selection=selection, snapshot=snapshot, policies=pipeline)
+            for key,items in [('raw',raw),('rescue',rescued),('equal_budget',fitted)]})
+            if retain_selector_candidates else {}),
         raw=_seal(raw, prompt, cost=cost, selection=selection, snapshot=snapshot, policies=pipeline),
         rescue=_seal(rescued, prompt, cost=cost, selection=selection, snapshot=snapshot, policies=pipeline),
         equal_budget=_seal(fitted, prompt, cost=cost, selection=selection, snapshot=snapshot, policies=pipeline),
@@ -493,6 +507,7 @@ def generate(
     portfolio_seconds=60,
     evidence=None,
     evaluation_policy=None,
+    retain_selector_candidates=False,
 ):
     import torch
 
@@ -577,6 +592,7 @@ def generate(
                     **(dict(evidence=evidence) if evidence else {}),
                     **(dict(evaluation_policy=evaluation_policy) if evaluation_policy else {}),
                     **(dict(portfolio_seconds=portfolio_seconds) if portfolio_seconds != 60 else {}),
+                    **(dict(retain_selector_candidates=True) if retain_selector_candidates else {}),
                 )
                 for i, row in enumerate(group, offset)
             ]
@@ -603,6 +619,9 @@ def generate(
                 boundaries.append(boundary)
             for row, result in zip(group, outcomes):
                 record = records[row["id"]]
+                if retain_selector_candidates:
+                    pools=result.pop('selector_candidates')
+                    record.setdefault('selector_candidates',{}).update(pools if mode=='correct' else {mode:pools['equal_budget']})
                 record["complete"] &= result["complete"]
                 if mode == "correct":
                     record["selections"].update(

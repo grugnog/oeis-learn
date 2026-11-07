@@ -704,3 +704,14 @@ CLI help, prerequisites, links, whitespace and the unchanged 16/16 checklist pas
 no hooks are registered. The 007 implementation identity is refreshed with its 68
 historical dispositions unchanged. No HIP, training, fresh scoring, assessment,
 production selector adoption or CI wait occurred. Separate stack targets #64.
+
+## Selector validation follow-up (2026-11-07)
+
+The operator requested a workstation workflow using existing checkpoints/probes,
+followed by a separately frozen fresh structural comparison. This is a new
+prospective experiment; it does not overwrite R1 or adopt a production selector.
+
+- [X] T105 Add red-first selector comparison contracts: identical eligible pools, visible-only ranking, provenance seals, incomplete-trace censoring, unchanged historical draw, and separately versioned fresh draw in `tests/unit/test_selector_validation.py`.
+- [X] T106 Connect optional complete admitted-envelope retention to existing generation, preserve all seven controls including bank, and use the existing independent scorer through installed least-privilege roles in `selector_validation_roles.py`; exercise a synthetic shared-generation/two-selector/full-horizon path.
+- [ ] T107 Finish the stdlib portable workstation command with inventory-bound final B/D checkpoints, training-only probe publication, source/image requalification, explicit post-probe freeze, one-use fresh execution, original/observed/probe exclusions and fail-closed quota diagnostics.
+- [ ] T108 Validate affected host/generation/scoring/structural contracts, publish an operator handoff and frozen experimental design, refresh the implementation binding, commit and push the separate stack without waiting for CI. Actual workstation HIP/probe/fresh results remain operator execution evidence, not local test claims.

@@ -291,6 +291,8 @@ def parser():
     commands = p.add_subparsers(dest="command", required=True)
     from oeis_learn.pipeline_validation.generalization_cli import register
     register(commands)
+    from oeis_learn.pipeline_validation.selector_validation_commands import register as register_selector_validation
+    register_selector_validation(commands)
     commands.add_parser("image").add_argument("operation", choices=["ensure"])
     data = commands.add_parser("data")
     data.add_argument("operation", choices=["fetch"])
@@ -424,6 +426,9 @@ def main(argv=None):
     args = parser().parse_args(argv)
     args.explicit_options = {v.split("=", 1)[0] for v in argv if v.startswith("--")}
     try:
+        if args.command == "pac-selector-validation":
+            from oeis_learn.pipeline_validation.selector_validation_commands import main as selector_validation_main
+            return selector_validation_main(args, ROOT, Host)
         if args.command == "generalization":
             from oeis_learn.pipeline_validation.generalization_cli import main as generalization_main
             return generalization_main(args, ROOT, Host)

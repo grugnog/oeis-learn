@@ -60,7 +60,7 @@ def build_bank(decoder,checkpoint,seeds,*,deadline):
     return make_bank(checkpoint,seeds,lambda _model,seed,_mode:sources[seed],elapsed_seconds=elapsed)
 
 
-def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,study,source,seconds=21600,bank_seeds=None,pac=False):
+def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,study,source,seconds=21600,bank_seeds=None,pac=False,compare_selectors=False):
     """Existing matched/drained production portfolios, plus the shared bank control."""
     import time
     deadline=time.monotonic()+seconds
@@ -90,7 +90,8 @@ def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,stud
     evidence=FullClockEvidence(output/'attempts',prompts,source=source,work=study,policy=DRAIN)
     try:
         result=generate(encoder,decoder,prompts,recipe,client,deadline=deadline,
-                        diagnostic_attempts=attempts(DRAIN),evaluation_policy=DRAIN,evidence=evidence)
+                        diagnostic_attempts=attempts(DRAIN),evaluation_policy=DRAIN,evidence=evidence,
+                        **(dict(retain_selector_candidates=True) if compare_selectors else {}))
     finally:evidence.finish()
     if bank is not None:
         write(output/'proposal-bank.json',bank)
@@ -119,8 +120,27 @@ def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,stud
             admitted=[item for value in fitted if value is not None for item in value.get('admitted',[])]
             record=result['records'][prompt['id']]
             record['selections']['bank']=_seal(admitted,visible,cost=sum(d['elapsed_seconds'] for d in details))
+            if compare_selectors:
+                from oeis_learn.fresh.bigint_diagnostics import selector_candidates
+                record['selector_candidates']['bank']=selector_candidates(admitted,visible,cost=sum(d['elapsed_seconds'] for d in details))
             record['arm_evidence']['bank']=dict(complete=all(v is not None and v.get('complete') is True for v in fitted),
                 reason='bank_application',expected=8,charged_attempts=8,details=details,**bank_cost(bank,len(prompts)))
+    if compare_selectors:
+        import copy
+        from oeis_learn.generalization.selector_validation import CONTROLS,rerank
+        alternatives={};observations={}
+        for prompt in prompts:
+            record=result['records'][prompt['id']];pools=record.pop('selector_candidates')
+            if set(pools)!=set(CONTROLS):raise ValueError('all seven selector comparison controls required')
+            alternative=dict(selections={},arm_evidence=copy.deepcopy(record['arm_evidence']))
+            visible=VisiblePrompt(tuple(prompt['indices']),tuple(prompt['values']));observations[prompt['id']]={}
+            for control in CONTROLS:
+                chosen,observation=rerank(pools[control],record['selections'][control],visible,deadline=deadline)
+                alternative['selections'][control]=chosen
+                observations[prompt['id']][control]=observation
+            alternatives[prompt['id']]=alternative
+        write(output/'alternative-selections.json',alternatives)
+        write(output/'selector-observations.json',observations)
     # Scorer input contains generated candidates and visible verification only.
     write(output/'selections.json',result['records'])
     report=seal(dict(status='PASS' if evidence.clock_summary['cost_complete'] else 'PARTIAL',availability='available',
