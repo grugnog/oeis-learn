@@ -25,11 +25,12 @@ def test_preparation_keeps_full_training_truth_out_of_fitter_channels(tmp_path,m
     assert not (output/'private/targets.json').exists()
 
 
-def test_host_matrix_is_cpu_only_and_original_probe_is_not_rewritten(tmp_path,monkeypatch):
+@pytest.mark.parametrize('engineering',[False,True])
+def test_host_matrix_is_cpu_only_and_original_probe_is_not_rewritten(tmp_path,monkeypatch,engineering):
     from oeis_learn.pipeline_validation import selector_fit_replay_commands as host,generalization_roles,engines
     from oeis_learn import container_validation
     write(tmp_path/'original.json',seal(dict(status='PASS',freeze_eligible=False)));before=(tmp_path/'original.json').read_bytes()
-    monkeypatch.setattr(host,'inputs',lambda *a:dict(targets={'case':['x']*8},generation={},probes={},inventory={},recipe={}))
+    monkeypatch.setattr(host,'inputs',lambda *a,**kw:dict(targets={'case':['x']*8},generation={},probes={},inventory={},recipe={}))
     monkeypatch.setattr(host,'source',lambda *a:'current-source')
     monkeypatch.setattr(engines.Images,'ensure',lambda *a,**kw:'image')
     monkeypatch.setattr(container_validation,'inspect_current_image',lambda *a,**kw:None)
@@ -42,18 +43,28 @@ def test_host_matrix_is_cpu_only_and_original_probe_is_not_rewritten(tmp_path,mo
         launches.append((host.cpus,role,artifacts,kw))
         assert not kw.get('gpu',False)
         assert kw['envelope']['work']>=7200
-        if role=='preparation':return dict(status='PASS',packet='packet',cases=1,attempts=8,prompts={},candidates={})
+        if role=='preparation':return dict(status='PASS',packet='packet',cases=1,attempts=8,prompts={},candidates={},visible_cases=[dict(id='case',indices=['0'],values=['0'])],timeout_templates=[])
         assert role=='fitter' and set(artifacts)=={'visible_prompts','generated_candidates'}
         assert kw['settings']['recipe']=={}
         return dict(status='PASS',packet='packet',runs=[dict(wall_seconds=1,attempts=[dict(complete=True)]*8,
             cases={'case':dict(fit_search_complete=True)})])
     monkeypatch.setattr(generalization_roles,'project_and_invoke',invoke)
-    args=SimpleNamespace(probes='original',output='diagnostics',compare_cpus=8,repetitions=3)
+    args=SimpleNamespace(probes='original',output='diagnostics',compare_cpus=8,repetitions=3,
+        core_policy='native-fit-fastpaths/v1' if engineering else None,baseline='baseline' if engineering else None)
+    if engineering:
+        monkeypatch.setattr(host,'core_amendment',lambda _:dict(registered=True))
+        monkeypatch.setattr(host,'load_baseline',lambda *a:dict(report={},plan={},result=dict(packet='packet',runs=[dict(wall_seconds=2,attempts=[dict(complete=False)]*8,cases={'case':dict(fit_search_complete=False)})])))
     assert host.main(args,tmp_path,factory)==0
-    assert [h.cpus for h in hosts]==[4,8] and all(h.memory==16 for h in hosts)
-    assert [(cpu,role) for cpu,role,*_ in launches]==[(4,'preparation'),(4,'fitter'),(4,'fitter'),(8,'fitter')]
+    assert [h.cpus for h in hosts]==([4] if engineering else [4,8]) and all(h.memory==16 for h in hosts)
+    assert [(cpu,role) for cpu,role,*_ in launches]==([(4,'preparation'),(4,'fitter')] if engineering else [(4,'preparation'),(4,'fitter'),(4,'fitter'),(8,'fitter')])
     result=json.loads((tmp_path/'diagnostics/result.json').read_text())
     assert result['freeze_eligible'] is False and result['scientific_status']=='DIAGNOSTIC_ONLY'
+    if engineering:
+        assert result['core_comparison']['original_completed']==[0]
+        assert result['core_comparison']['new_completed']==[8]
+        assert result['version']=='pac-fit-diagnostic-report/v2'
+        assert len(result['visible_cases'])==1
+        assert 'Recorded original-core baseline' in (tmp_path/'diagnostics/summary.md').read_text()
     assert (tmp_path/'original.json').read_bytes()==before and (tmp_path/'diagnostics/report.zip').exists()
 
 

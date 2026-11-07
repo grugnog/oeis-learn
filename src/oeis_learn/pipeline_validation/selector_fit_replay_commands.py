@@ -145,6 +145,11 @@ def main(args,workspace,host_factory):
         'Diagnostic only. Original probe result and structural freeze gate remain unchanged.','',
         '| Configuration | CPUs | Concurrent fits | Median fit workload seconds | Completed fits per repeat | Fully completed case searches per repeat |',
         '|---|---:|---:|---:|---|---|']
+    if previous:
+        old=previous['result']['runs']
+        lines.append('| Recorded original-core baseline | 4 | 4 | '+str(round(statistics.median(r['wall_seconds'] for r in old),3))+' | '+
+            ', '.join(str(sum(a['complete'] for a in r['attempts'])) for r in old)+' | '+
+            ', '.join(str(sum(c['fit_search_complete'] for c in r['cases'].values())) for r in old)+' |')
     for item in runs:
         config=item['config'];r=item['result']['runs']
         lines.append('| '+config['name']+' | '+str(config['cpus'])+' | '+str(config['concurrency'])+' | '+

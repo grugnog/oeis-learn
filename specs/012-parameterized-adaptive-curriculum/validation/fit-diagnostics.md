@@ -107,3 +107,13 @@ A supervised subprocess fixture exercises the real worker transport with the
 observer; synthetic clients exercise unchanged limits/seeds and concurrent replay.
 Actual Z3/native candidate results and workstation resource measurements remain
 pending operator execution.
+
+
+## Explicit implementation comparison
+
+The completed baseline reproduced all 11 timeouts and showed no benefit from
+eight versus four CPU quota. The separately registered
+[native fit fast paths](native-fit-fastpaths.md) benchmark runtime reuse and
+modular contradiction proofs against that recorded baseline. The original
+same-core command remains strict; the engineering comparison requires its
+explicit amendment flag and the original baseline directory.
