@@ -735,7 +735,17 @@ The completed training probe gate stopped at D 235/256 complete. Operator-approv
 follow-up replays the nine no-selection timeout cases (72 original fits), then
 compares resource configurations separately. It cannot update the probe gate.
 
-- [ ] T109 Add red-first contracts for exact timeout-case extraction, original seeds/service allowances, visible-only fitter mounts, same-core-source binding and immutable diagnostic scope.
-- [ ] T110 Add installed preparation/fitter adapters using the existing native client, native transport timing, queue/RSS/restart statistics and repeated fixed-work serial/concurrent comparisons.
-- [ ] T111 Add portable CPU-only workstation command, original artifact verification, current image/native checks, frozen resource matrix, complete diagnostic exports and failure evidence.
-- [ ] T112 Run affected checks, document the exact command and limitations, refresh the implementation binding, commit/publish a separate stack without CI wait. Workstation replay evidence remains pending.
+- [X] T109 Add red-first contracts for exact timeout-case extraction, original seeds/service allowances, visible-only fitter mounts, same-core-source binding and immutable diagnostic scope.
+- [X] T110 Add installed preparation/fitter adapters using the existing native client, native transport timing, queue/RSS/restart statistics and repeated fixed-work serial/concurrent comparisons.
+- [X] T111 Add portable CPU-only workstation command, original artifact verification, current image/native checks, frozen resource matrix, complete diagnostic exports and failure evidence.
+- [X] T112 Run affected checks, document the exact command and limitations, refresh the implementation binding, commit/publish a separate stack without CI wait. Workstation replay evidence remains pending.
+
+T109–T112: original uploaded scoring data selects exactly nine D cases / 72
+fits (11 timeouts, 61 completed controls). Initial red-first contracts plus
+additional tampering and verification-failure counterexamples pass. Affected
+local selection passes 101 checks with five existing native-binary-dependent
+checks skipped; no actual Z3/HIP/workstation performance claim follows. Current
+container CPU/native checks include the new owning tests and are required by the
+operator command. Stdlib help, prerequisites, whitespace and unchanged 16/16
+checklist pass; no extension hooks. Original 68 dispositions are preserved while
+refreshing the implementation binding. Separate stack targets #66; no CI wait.

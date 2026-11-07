@@ -95,6 +95,8 @@ def replay(packet,recipe,output,*,concurrency,repetitions,client_factory=None):
                 return dict(case=row['case'],position=row['position'],seed=row['seed'],source_sha256=row['source_sha256'],
                     original_outcome=row['original_outcome'],service_seconds=row['service_seconds'],wall_seconds=elapsed,
                     complete=result.get('complete',False),outcome=result['outcome'],reason=result.get('reason'),
+                    control_disagreement=bool(result.get('complete') and row['original_outcome']!='resource_exhausted'
+                        and result['outcome']!=row['original_outcome']),
                     admitted=[r['source_sha256'] for r in result.get('admitted',[])],
                     native={k:n.get(k) for k in ('outcome','reason','phase','elapsed_seconds','timing','searches','completed_bounds')},
                     transport=native.worker.local.calls)
@@ -111,7 +113,8 @@ def replay(packet,recipe,output,*,concurrency,repetitions,client_factory=None):
                      worker_stats=copy.deepcopy(native.worker.stats),runtime=runtime,reference=reference_id,
                      resources_before=resources_before,resources_after=resources_after)
             write(output/('repeat-'+str(repeat)+'.json'),seal(run));runs.append(run)
-    result=seal(dict(version='pac-fit-replay-result/v1',status='PASS',scientific_status='DIAGNOSTIC_ONLY',
+    integrity=sum(a['outcome']=='verification_failure' or a['control_disagreement'] for r in runs for a in r['attempts'])
+    result=seal(dict(version='pac-fit-replay-result/v1',status='FAIL' if integrity else 'PASS',integrity_failures=integrity,scientific_status='DIAGNOSTIC_ONLY',
         freeze_eligible=False,packet=packet['identity'],concurrency=concurrency,repetitions=repetitions,runs=runs,
         assessment='NOT_EXECUTED',training_tokens=0,scope='fit-only replay; no GPU generation, scoring, or replacement of original outcomes'))
     write(output/'replay.json',result);return result

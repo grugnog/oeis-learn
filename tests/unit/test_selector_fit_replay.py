@@ -123,3 +123,24 @@ def test_replay_rejects_hidden_values_and_changed_source_before_native_work(tmp_
     with pytest.raises(ValueError):replay(packet,{},tmp_path,concurrency=1,repetitions=1,client_factory=lambda *a:pytest.fail('invalid prompt reached native'))
     packet=extract(records,[PROMPT],targets);packet['attempts'][0]['source']='changed';packet=seal(packet)
     with pytest.raises(ValueError):replay(packet,{},tmp_path,concurrency=1,repetitions=1,client_factory=lambda *a:pytest.fail('changed source reached native'))
+
+
+def test_native_verification_failure_cannot_pass_as_diagnostic_success(tmp_path):
+    from oeis_learn.generalization.selector_fit_replay import extract
+    from oeis_learn.pipeline_validation.selector_fit_replay_role import replay
+    records,targets=fixture();packet=extract(records,[PROMPT],targets)
+    class Worker:
+        stats={}
+        @contextmanager
+        def affinity(self,n):yield
+    class Client:
+        reference_sha256=digest('reference')
+        def __init__(self,*a):self.worker=Worker()
+        def __enter__(self):return self
+        def __exit__(self,*a):pass
+        def runtime_identity(self,*a):return digest('runtime')
+        def execute(self,*a,**k):return dict(outcome='ok')
+        def fit(self,*a,**k):return dict(outcome='verification_failure',complete=False,admitted=[],reason='independent disagreement')
+    result=replay(packet,{},tmp_path,concurrency=1,repetitions=1,client_factory=Client)
+    assert result['status']=='FAIL' and result['integrity_failures']==8
+    assert result['runs'][0]['attempts'][0]['reason']=='independent disagreement'
