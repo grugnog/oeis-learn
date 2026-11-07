@@ -749,3 +749,14 @@ container CPU/native checks include the new owning tests and are required by the
 operator command. Stdlib help, prerequisites, whitespace and unchanged 16/16
 checklist pass; no extension hooks. Original 68 dispositions are preserved while
 refreshing the implementation binding. Separate stack targets #66; no CI wait.
+
+## Native fitting fast paths (2026-11-07)
+
+Follow-up diagnostic reproduced all 11 timeouts with negligible queue/throttling
+and ~150 ms outside native fit timing. Inspection found a fresh WASM engine/guest
+compile before every fit. Operator authorized continuing with sound improvements.
+
+- [ ] T113 Add bounded residue contradiction proof tests, runtime reuse/fresh-state counterexamples and explicit engineering-comparison compatibility tests before implementation.
+- [ ] T114 Reuse immutable installed runtime/guest identities, expose dispatch phase timing, add bounded modular UNSAT precheck and independently replayable evidence without relaxing numeric/search limits.
+- [ ] T115 Freeze an explicit core amendment and benchmark against the prior diagnostic report using identical packets/resources; export the five timeout templates and visible inputs for inspection.
+- [ ] T116 Run available affected checks, require native Rust/build qualification on workstation, refresh implementation binding, document commands and limitations, commit/publish the separate stack without waiting for CI.

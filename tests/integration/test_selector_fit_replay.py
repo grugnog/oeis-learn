@@ -70,3 +70,39 @@ def test_observer_records_real_supervised_worker_transport(tmp_path):
         timing=observer.local.calls[0]
         assert timing['complete'] and timing['wall_seconds']>0 and timing['queue_wait_seconds']>=0
         assert timing['metrics']['batches']==1
+
+
+def test_actual_native_modular_certificate_and_runtime_reuse(tmp_path):
+    import time
+    from oeis_learn.synthesis.client import SynthesisClient
+    from oeis_learn.synthesis.admission import VisiblePrompt
+    if not Path('/opt/oeis-build-info/synthesis-worker').is_file():pytest.skip('requires qualification image')
+    source='(program (return (mul (param.get p0) (param.get p0))))'
+    with SynthesisClient(digest('native-fit-fastpaths-test'),cache_root=tmp_path/'cache') as native:
+        warm=native.execute('(program (return (int 0)))',['0'],deadline=time.monotonic()+4)
+        assert warm['outcome']=='ok'
+        result=native.fit(source,VisiblePrompt(('0',),('-1',)),deadline=time.monotonic()+4)
+        assert result['complete'] and result['outcome']=='unsat_in_scope' and not result['admitted']
+        assert result['native']['phase']=='modular'
+        assert result['native']['dispatch_timing']['runtime_reused'] is True
+        evidence=result['native']['evidence']
+        assert evidence['solver']=='residue-exhaustion/v1/mod-3'
+        replay=native.request('replay_unsat',[dict(candidate_id='proof',source=source,evidence=evidence)],
+            ['0'],['-1'],deadline=time.monotonic()+4)
+        assert replay['results'][0]['outcome']=='replayed_unsat'
+        valid=native.fit(source,VisiblePrompt(('0',),('4',)),deadline=time.monotonic()+4)
+        assert valid['complete'] and valid['outcome']=='verified_solution' and valid['admitted']
+        assert all(row['verification']['values']==['4'] for row in valid['admitted'])
+
+
+def test_engineering_baseline_requires_same_original_inputs(tmp_path):
+    from oeis_learn.pipeline_validation.selector_fit_replay_commands import load_baseline
+    data={k:{'binding':k} for k in ('original_plan','original_result','original_scoring','generation','recipe_ref','targets')}
+    native=seal(dict(status='PASS',integrity_failures=0,concurrency=4,runs=[dict(wall_seconds=1)],packet='packet'))
+    plan=seal(dict(version='pac-fit-diagnostic-plan/v1',inputs=data,repetitions=1,memory_bytes=16<<30,workers=4,native_threads=1))
+    report=seal(dict(version='pac-fit-diagnostic-report/v1',status='PASS',plan=plan['identity'],runs=[dict(config=dict(cpus=4,concurrency=4),result=native)]))
+    write(tmp_path/'baseline/plan.json',plan);write(tmp_path/'baseline/result.json',report)
+    baseline=load_baseline(tmp_path,'baseline',data,1)
+    assert baseline['result']['packet']=='packet'
+    with pytest.raises(ValueError):load_baseline(tmp_path,'baseline',dict(data,generation={'different':'payload'}),1)
+    with pytest.raises(ValueError):load_baseline(tmp_path,'baseline',data,2)

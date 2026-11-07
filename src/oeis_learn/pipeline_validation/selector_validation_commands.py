@@ -30,6 +30,8 @@ def register(commands):
     replay.add_argument('--output',required=True)
     replay.add_argument('--compare-cpus',type=int,default=8)
     replay.add_argument('--repetitions',type=int,default=3)
+    replay.add_argument('--core-policy',choices=['native-fit-fastpaths/v1'])
+    replay.add_argument('--baseline',help='original fixed-candidate diagnostic directory; required with --core-policy')
 
 
 def read(path, *, sealed=False, cap=64<<20):

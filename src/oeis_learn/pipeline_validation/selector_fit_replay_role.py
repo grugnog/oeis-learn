@@ -55,7 +55,13 @@ def prepare(inputs,output,settings,*,seconds):
     write(output/'visible/prompts.json',packet['prompts'])
     candidates=seal(dict(version=packet['version'],attempts=packet['attempts']))
     write(output/'candidates/attempts.json',candidates)
+    templates={}
+    for row in packet['attempts']:
+        if row['original_outcome']!='resource_exhausted':continue
+        value=templates.setdefault(row['source_sha256'],dict(source_sha256=row['source_sha256'],source=row['source'],attempts=[]))
+        value['attempts'].append({k:row[k] for k in ('case','position','seed')})
     return dict(status='PASS',packet=packet['identity'],cases=len(packet['prompts']),attempts=len(packet['attempts']),
+        visible_cases=packet['prompts'],timeout_templates=list(templates.values()),
         prompts=reference(output/'visible/prompts.json',output),candidates=reference(output/'candidates/attempts.json',output))
 
 
@@ -98,7 +104,7 @@ def replay(packet,recipe,output,*,concurrency,repetitions,client_factory=None):
                     control_disagreement=bool(result.get('complete') and row['original_outcome']!='resource_exhausted'
                         and result['outcome']!=row['original_outcome']),
                     admitted=[r['source_sha256'] for r in result.get('admitted',[])],
-                    native={k:n.get(k) for k in ('outcome','reason','phase','elapsed_seconds','timing','searches','completed_bounds')},
+                    native={k:n.get(k) for k in ('outcome','reason','phase','elapsed_seconds','timing','searches','completed_bounds','dispatch_timing','evidence')},
                     transport=native.worker.local.calls)
             resources_before=resource_snapshot();began=time.monotonic();rows=[]
             with ThreadPoolExecutor(max_workers=concurrency) as executor:
