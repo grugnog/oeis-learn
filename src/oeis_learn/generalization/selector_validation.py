@@ -69,9 +69,16 @@ def probe_views(rows, inventory, *, research=True):
 def fresh_design():
     from .structural import amended_design, prior_protocol
     parent = amended_design(prior_protocol())
-    return seal(dict(parent, version='pac-selector-structural/v1', parent_scope=parent['identity'],
+    result=dict(parent, version='pac-selector-structural/v1', parent_scope=parent['identity'],
         seed=SEED, exclusion='all-16-original-cells-plus-observed-PAC-cohort-and-training-probes/v1',
-        retry='no-reseed-no-quota-relaxation', selector=POLICY['identity'], arms=list(ARMS)))
+        retry='no-reseed-no-quota-relaxation', selector=POLICY['identity'], arms=list(ARMS),
+        decision=dict(primary='paired selector and B-to-D certified structural family-macro success',
+            completion_floor=.95,scope='single-seed prospective selection; no automatic adoption'),
+        budget_authority='enclosing selector plan budgets',checkpoint_authority='enclosing selector plan inputs.checkpoints')
+    # Historical checkpoint names and operational timers are not this experiment's
+    # authority; preserve only the original scientific draw/inference allocation.
+    for key in ('checkpoints','role_seconds','scoring_role_seconds'):result.pop(key,None)
+    return seal(result)
 
 
 def fresh_draw(protocol):
@@ -87,14 +94,15 @@ def paired_metrics(roster, original, alternative):
     families = sorted({r['family'] for r in roster.values()})
     def measured(outcomes):
         counts = Counter(tasks=len(roster), complete=0, success=0)
-        bounds = []
+        bounds = [];by_family={}
         for family in families:
             rows = [outcomes[k] for k,r in roster.items() if r['family']==family]
             complete = sum(r['complete'] for r in rows)
             success = sum(r['complete'] and r['success'] for r in rows)
             counts.update(complete=complete, success=success)
             bounds.append((success/len(rows), (success+len(rows)-complete)/len(rows)))
-        return dict(counts, family_macro_bounds=[sum(x[i] for x in bounds)/len(bounds) for i in (0,1)])
+            by_family[family]=dict(tasks=len(rows),complete=complete,success=success,censored=len(rows)-complete)
+        return dict(counts, families=by_family,family_macro_bounds=[sum(x[i] for x in bounds)/len(bounds) for i in (0,1)])
     old, new = measured(original), measured(alternative)
     joint = Counter(count=0, recoveries=0, regressions=0, both_success=0, both_failure=0)
     for k in roster:

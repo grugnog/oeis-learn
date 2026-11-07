@@ -170,6 +170,10 @@ def report(workspace,plan,output,results,generation):
         metrics={a:results[a]['metrics'] for a in ARMS},changed={a:results[a]['changed'] for a in ARMS},
         trace_incomplete={a:results[a]['trace_incomplete'] for a in ARMS},B_to_D=cross,
         selector_seconds={a:results[a]['selector_seconds'] for a in ARMS},
+        B_to_D_labels=dict(original='B',alternative='D'),roster=roster,
+        task_outcomes={a:{v:{k:{c:{field:case[field] for field in ('success','complete','candidate_sha256')}
+            for c,case in cases.items()} for k,cases in results[a]['outcomes'][v].items()}
+            for v in ('original','alternative')} for a in ARMS},
         scoring={a:reference(output/a/'scoring/role/scoring.json',workspace) for a in ARMS},generation=generation))
     write(output/'result.json',result)
     lines=['# PAC selector '+plan['phase']+' validation','',result['scientific_status'],

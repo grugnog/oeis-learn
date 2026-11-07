@@ -43,6 +43,10 @@ def test_one_generation_pool_produces_two_selections_then_independent_scoring(tm
     original=json.loads((root/'selections.json').read_text())
     alternative=json.loads((root/'alternative-selections.json').read_text())
     assert 'selector_candidates' not in original['p']
+    pools=json.loads((root/'selector-candidates.json').read_text())
+    assert set(pools['p'])==set(CONTROLS) and len(pools['p']['bank'])==2
+    generation=json.loads((root/'evaluation.json').read_text())
+    assert generation['selector_comparison']['artifacts']['selector-candidates.json']==reference(root/'selector-candidates.json',root)
     assert all(original['p']['selections'][c]['selected']['source']==BAD for c in CONTROLS)
     assert all(alternative['p']['selections'][c]['selected']['source']==GOOD for c in CONTROLS)
     supervision=tmp_path/'supervision'
@@ -87,7 +91,12 @@ def fixture_campaign(root):
     """Minimal producer-bound local chain; tensor payload stays opaque to the host."""
     campaign=root/'campaign';base=campaign/'admission/execution/execution/role/private/assembly/resolved'
     write(base/'private/structural.json',[])
-    admission=seal(dict(status='PASS',purpose='research',source='old-source',originals=[],
+    from oeis_learn.generalization.structural import original_cells
+    originals=[]
+    for cell in original_cells():
+        path=root/'cells'/(cell['name']+'.json');write(path,[])
+        originals.append(dict(cell,ref=reference(path,root)))
+    admission=seal(dict(status='PASS',purpose='research',source='old-source',originals=originals,
         structural=reference(base/'private/structural.json',base),experiment='old-study'))
     write(base/'admission.json',admission)
     write(base/'recipe.json',{})
@@ -105,7 +114,7 @@ def fixture_campaign(root):
                          result=dict(runs=[dict(arm=arm,result=dict(retained=roster['identity']))])))
         write(folder/'result.json',result)
         entries.append(dict(stage='train-'+arm,artifacts=[reference(folder/'result.json',folder.parent)]))
-    plan=seal(dict(research=True,arms=['B','C','D'],source='old-source',inputs=[]))
+    plan=seal(dict(research=True,arms=['B','C','D'],source='old-source',inputs=[r['ref'] for r in originals]))
     write(campaign/'plan.json',plan);write(campaign/'workflow.json',seal(dict(plan=plan['identity'],receipts=entries)))
     return campaign
 
@@ -147,3 +156,46 @@ def test_freeze_requires_completed_probe_and_rejects_changed_source(tmp_path,mon
     assert frozen['phase']=='structural' and frozen['protocol']['seed']==20261108
     assert frozen['probe_result']==reference(probe/'result.json',tmp_path)
     with pytest.raises(ValueError,match='Fresh freeze'):host.freeze(args,tmp_path)
+
+
+def test_fresh_custodian_excludes_observed_cohort_and_stops_before_native(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import selector_validation_roles as roles
+    from oeis_learn.generalization import structural,preparation
+    from oeis_learn.synthesis import client
+    cells=[dict(c,count=1) for c in structural.original_cells()]
+    monkeypatch.setattr(structural,'original_cells',lambda:cells)
+    protocol=seal(dict(cells=[dict(family='fresh',count=1)]))
+    monkeypatch.setattr(roles,'fresh_design',lambda:protocol)
+    row=dict(id='new',family='fresh',source=GOOD,group='g',variant='v',values=list(map(str,range(100))),indices=list(map(str,range(100))))
+    unrelated=dict(row,id='other',family='other',source='other',group='other',variant='other',values=['-1']*100)
+    monkeypatch.setattr(roles,'fresh_draw',lambda _: [row])
+    monkeypatch.setattr(preparation,'reference_candidate',lambda r:((r,None),None))
+    reads=[]
+    def read(root,ref,cap=None):
+        reads.append(ref['path'])
+        return [row]*128 if ref['path']=='observed' else [] if ref['path']=='probes' else [unrelated]
+    monkeypatch.setattr(roles,'_read',read)
+    monkeypatch.setattr(client,'SynthesisClient',lambda *a,**kw:pytest.fail('quota deficit reached native'))
+    result=roles.publish_structural(dict(isolation_truth=tmp_path),tmp_path/'out',
+        dict(protocol=protocol,originals=[dict(c,ref=dict(path=c['name'])) for c in cells],
+             observed=dict(path='observed'),probes=dict(path='probes'),study='study'),seconds=30)
+    assert result['status']=='BLOCKED' and result['deficits']=={'fresh':1}
+    assert len(reads)==18
+    availability=json.loads((tmp_path/'out/availability.json').read_text())
+    assert availability['exclusion_reasons']['finite_window']==1
+
+
+def test_failure_bundle_keeps_actual_exception_without_engine(tmp_path,monkeypatch,capsys):
+    from oeis_learn.pipeline_validation import selector_validation_commands as host
+    def failed(args,workspace,host_factory):
+        args._selector_output=workspace/'new';args._selector_output.mkdir()
+        raise FileNotFoundError('missing exact checkpoint: /workstation/weights.pt')
+    monkeypatch.setattr(host,'probes',failed)
+    args=SimpleNamespace(selector_phase='probes')
+    assert host.main(args,tmp_path,lambda _:None)==1
+    error=host.read(tmp_path/'new/failure.json',sealed=True)
+    assert '/workstation/weights.pt' in error['message']
+    import zipfile
+    with zipfile.ZipFile(tmp_path/'new/failure.zip') as z:
+        assert 'FileNotFoundError' in z.read('traceback.txt').decode()
+    assert 'missing exact checkpoint' in capsys.readouterr().out

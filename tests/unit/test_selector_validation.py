@@ -8,7 +8,7 @@ from oeis_learn.pipeline_validation.identity import seal
 from oeis_learn.synthesis.admission import VisiblePrompt, source_identity
 from oeis_learn.synthesis.contracts import identity
 
-GOOD = '(program (return (add $index (int 0))))'
+GOOD = '(program (return (add (add (add $index (int 0)) (int 0)) (int 0))))'
 BAD = '(program (return (select (eq $index (int 46)) (int 0) $index)))'
 PROMPT = VisiblePrompt(tuple(map(str, range(20))), tuple(map(str, range(20))))
 
@@ -97,3 +97,26 @@ def test_summary_keeps_censoring_and_trace_failures_visible():
     assert result['original']['complete'] == 2 and result['alternative']['success'] == 2
     assert result['joint']['recoveries'] == 1 and result['joint']['count'] == 2
     assert result['delta_bounds_pp'] == pytest.approx([100/3, 200/3])
+
+
+def test_retention_keeps_omitted_candidates_and_canonical_v2_provenance():
+    from oeis_learn.fresh.bigint_diagnostics import selector_candidates,_seal
+    from oeis_learn.generalization.selector_validation import rerank
+    from oeis_learn.pipeline_validation.identity import digest
+    from oeis_learn.fresh.synthesis_policy import validate_selection_envelope
+    def admitted(source,ordinal):
+        return dict(source=source,source_sha256=source_identity(source),transformed_source=source,
+            original_source_sha256=source_identity(source),assignment={},_attempt_ordinal=ordinal,
+            _job_id=digest(ordinal),verification=dict(indices=list(PROMPT.indices),values=list(PROMPT.values),
+            prompt_sha256=PROMPT.sha256))
+    items=[admitted(BAD,2),admitted(GOOD,1),admitted(BAD,0)]
+    kwargs=dict(cost=1,selection='visible-only/v2',snapshot=digest('model'),policies={})
+    assert len(BAD)<len(GOOD)
+    original=_seal(items,PROMPT,**kwargs)
+    pool=selector_candidates(items,PROMPT,**kwargs)
+    assert len(pool)==2 and original['selected']['source']==BAD
+    assert original['selected']['attempt_ordinal']==0
+    chosen,observation=rerank(pool,original,PROMPT,deadline=time.monotonic()+10)
+    assert observation['eligible']==2 and chosen['selected']['source']==GOOD
+    assert validate_selection_envelope(chosen)['provenance']['snapshot']==digest('model')
+    assert selector_candidates([],PROMPT,**kwargs)==[]

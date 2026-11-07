@@ -128,23 +128,36 @@ def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,stud
     if compare_selectors:
         import copy
         from oeis_learn.generalization.selector_validation import CONTROLS,rerank
-        alternatives={};observations={}
+        alternatives={};observations={};pool_records={}
         for prompt in prompts:
             record=result['records'][prompt['id']];pools=record.pop('selector_candidates')
+            pool_records[prompt['id']]=pools
             if set(pools)!=set(CONTROLS):raise ValueError('all seven selector comparison controls required')
             alternative=dict(selections={},arm_evidence=copy.deepcopy(record['arm_evidence']))
             visible=VisiblePrompt(tuple(prompt['indices']),tuple(prompt['values']));observations[prompt['id']]={}
             for control in CONTROLS:
+                began=time.monotonic()
                 chosen,observation=rerank(pools[control],record['selections'][control],visible,deadline=deadline)
+                observation['elapsed_seconds']=time.monotonic()-began
                 alternative['selections'][control]=chosen
                 observations[prompt['id']][control]=observation
             alternatives[prompt['id']]=alternative
         write(output/'alternative-selections.json',alternatives)
         write(output/'selector-observations.json',observations)
+        write(output/'selector-candidates.json',pool_records)
     # Scorer input contains generated candidates and visible verification only.
     write(output/'selections.json',result['records'])
+    comparison={}
+    if compare_selectors:
+        from .generalization_preparation import reference
+        from oeis_learn.generalization.selector_coverage import POLICY
+        comparison=dict(selector_comparison=dict(policy=POLICY['identity'],
+            artifacts={name:reference(output/name,output) for name in ('selections.json',
+                'alternative-selections.json','selector-observations.json','selector-candidates.json')},
+            observation_seconds=sum(v['elapsed_seconds'] for row in observations.values() for v in row.values()),
+            cost='additional selector observation after shared generation'))
     report=seal(dict(status='PASS' if evidence.clock_summary['cost_complete'] else 'PARTIAL',availability='available',
         checkpoint=checkpoint['sha256'],study=study,source=source,counts=counts,policy=DRAIN,
         primary_attempts=attempts(DRAIN),raw_rescue_attempts=1,bank=bank['identity'] if bank else None,
-        scientific_status='UNMEASURED',clock=evidence.clock_summary['identity']))
+        scientific_status='UNMEASURED',clock=evidence.clock_summary['identity'],**comparison))
     write(output/'evaluation.json',report);return report

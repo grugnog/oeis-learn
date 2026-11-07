@@ -713,5 +713,18 @@ prospective experiment; it does not overwrite R1 or adopt a production selector.
 
 - [X] T105 Add red-first selector comparison contracts: identical eligible pools, visible-only ranking, provenance seals, incomplete-trace censoring, unchanged historical draw, and separately versioned fresh draw in `tests/unit/test_selector_validation.py`.
 - [X] T106 Connect optional complete admitted-envelope retention to existing generation, preserve all seven controls including bank, and use the existing independent scorer through installed least-privilege roles in `selector_validation_roles.py`; exercise a synthetic shared-generation/two-selector/full-horizon path.
-- [ ] T107 Finish the stdlib portable workstation command with inventory-bound final B/D checkpoints, training-only probe publication, source/image requalification, explicit post-probe freeze, one-use fresh execution, original/observed/probe exclusions and fail-closed quota diagnostics.
-- [ ] T108 Validate affected host/generation/scoring/structural contracts, publish an operator handoff and frozen experimental design, refresh the implementation binding, commit and push the separate stack without waiting for CI. Actual workstation HIP/probe/fresh results remain operator execution evidence, not local test claims.
+- [X] T107 Finish the stdlib portable workstation command with inventory-bound final B/D checkpoints, training-only probe publication, source/image requalification, explicit post-probe freeze, one-use fresh execution, original/observed/probe exclusions and fail-closed quota diagnostics.
+- [X] T108 Validate affected host/generation/scoring/structural contracts, publish an operator handoff and frozen experimental design, refresh the implementation binding, commit and push the separate stack without waiting for CI. Actual workstation HIP/probe/fresh results remain operator execution evidence, not local test claims.
+
+T105–T108 validation: 184 affected local CPU/contract/integration checks pass
+(183 together plus the corrected implementation-binding check); one intentional
+duplicate-ZIP fixture warning. Fourteen new cases cover comparison seals, complete
+shared pools, synthetic canonical scoring, assessment rejection, observed-cohort
+exclusion, exact checkpoint inventory/tampering, freeze/source gates and visible
+failure bundles. Stdlib help for all three phases, prerequisites, whitespace and
+the unchanged 16/16 requirements checklist pass. No extension hooks are present.
+The historical 68 disposition records are unchanged; only their implementation
+binding is refreshed. Podman is confirmed from the supplied original plan. Current
+source builds and actual-HIP qualification are part of the workstation command.
+No real weights/probes/HIP or fresh scientific outcomes are claimed locally; no
+CI wait. The new stack builds on the offline audit branch/PR #65.

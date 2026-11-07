@@ -128,10 +128,11 @@ def score(inputs, output, settings, *, seconds):
     with SynthesisClient(settings['study'],cache_root=output/'private/native') as client:
         for key in ('original','alternative'):
             scores[key]=score_frozen(selections[key],{r['id']:r for r in rows},client,deadline=deadline)['outcomes']
-    incomplete=0;changed=Counter()
+    incomplete=0;changed=Counter();selector_seconds=Counter()
     for key,values in observations.items():
         for control,value in values.items():
             changed[control]+=value['changed']
+            selector_seconds[control]+=value['elapsed_seconds']
             if not value['complete']:
                 incomplete+=1
                 case=scores['alternative'][key][control]
@@ -145,6 +146,7 @@ def score(inputs, output, settings, *, seconds):
             {k:scores['alternative'][k][control] for k in subset}) for control in CONTROLS}
     result=seal(dict(version='pac-selector-scoring/v1',status='PASS',phase=phase,study=settings['study'],
         roster=roster,metrics=metrics,outcomes=scores,changed=dict(changed),trace_incomplete=incomplete,
+        selector_seconds=dict(selector_seconds),
         assessment='NOT_EXECUTED',training_tokens=0))
     write(output/'scoring.json',result)
     return result

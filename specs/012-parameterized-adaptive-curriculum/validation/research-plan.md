@@ -235,3 +235,14 @@ resetting clocks/caps or restoring newer policy journals onto old model weights.
 4. Run the frozen serial campaign and independently verify normal/recovery exports.
    Complete conditional T073 only from actual research results and review the cases
    and limitations before choosing any next experiment.
+
+
+## Separate post-R1 selector experiment
+
+The original frozen campaign above remains historical. The operator-requested
+[selector validation workflow](selector-validation.md) reuses B/D final
+checkpoints and training-only probes, then explicitly freezes a separate fresh
+structural screen. It shares candidate generation across selectors, preserves
+all seven controls, adds observed-cohort exclusions, and does not execute
+assessment or start hyperparameter optimization. Workstation results remain
+pending; local implementation tests are not scientific outcomes.
