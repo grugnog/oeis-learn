@@ -221,6 +221,24 @@ def probes(args,workspace,host_factory):
     return 0
 
 
+def structural_plan(probe, probe_result, probe_plan, execution):
+    """Derive the only permitted post-probe change; weights/recipe/policy stay fixed."""
+    if probe.get('phase')!='probes':raise ValueError('Training probe plan required')
+    return seal(dict(probe,phase='structural',protocol=fresh_design(),budgets=budgets(128),
+        probe_result=probe_result,probe_plan=probe_plan,execution=execution,
+        decision='certified family-macro; >=65/68 complete per compared arm/selector; all seven controls; single-seed descriptive; no automatic adoption'))
+
+
+def verify_structural_plan(workspace, path, plan):
+    probe=read(check_ref(workspace,plan['probe_plan']),sealed=True)
+    result=read(check_ref(workspace,plan['probe_result']),sealed=True)
+    expected=structural_plan(probe,plan['probe_result'],plan['probe_plan'],
+                             str((path.parent/'execution').relative_to(workspace)))
+    if (plan!=expected or result['plan']!=probe['identity'] or result['phase']!='probes'
+            or result['status']!='PASS' or result['freeze_eligible'] is not True):
+        raise ValueError('Structural plan differs from completed probe experiment or fixed execution directory')
+
+
 def freeze(args,workspace):
     prior=confined(workspace,args.probes);result=read(prior/'result.json',sealed=True)
     probe=read(prior/'plan.json',sealed=True)
@@ -235,10 +253,8 @@ def freeze(args,workspace):
             raise ValueError('Probe scoring has incomplete selector/primary validation')
     output=confined(workspace,args.output,exists=False)
     if output.exists():raise ValueError('Fresh freeze directory required')
-    plan=seal(dict(probe,phase='structural',protocol=fresh_design(),budgets=budgets(128),
-        probe_result=reference(prior/'result.json',workspace),probe_plan=reference(prior/'plan.json',workspace),
-        execution=str((output/'execution').relative_to(workspace)),
-        decision='certified family-macro; >=65/68 complete per compared arm/selector; all seven controls; single-seed descriptive; no automatic adoption'))
+    plan=structural_plan(probe,reference(prior/'result.json',workspace),reference(prior/'plan.json',workspace),
+                         str((output/'execution').relative_to(workspace)))
     output.mkdir(parents=True);write(output/'plan.json',plan)
     args._selector_output=output
     print(json.dumps(dict(status='FROZEN',plan=str(output/'plan.json'),identity=plan['identity'],seed=plan['protocol']['seed'])))
@@ -250,7 +266,7 @@ def structural(args,workspace,host_factory):
     if (plan['phase']!='structural' or plan['protocol']!=fresh_design() or plan['selector']!=POLICY
             or plan['source']!=source(workspace) or plan['budgets']!=budgets(128)):
         raise ValueError('Unchanged separately frozen structural plan required')
-    check_ref(workspace,plan['probe_result']);check_ref(workspace,plan['probe_plan'])
+    verify_structural_plan(workspace,path,plan)
     inputs=plan['inputs']
     for ref in [inputs['recipe'],inputs['probes'],inputs['observed'],*[x['ref'] for x in inputs['originals']]]:check_ref(workspace,ref)
     for selected in inputs['checkpoints'].values():check_ref(confined(workspace,selected['root']),selected['descriptor']['weights'])

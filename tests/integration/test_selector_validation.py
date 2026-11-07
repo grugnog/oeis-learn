@@ -155,6 +155,12 @@ def test_freeze_requires_completed_probe_and_rejects_changed_source(tmp_path,mon
     frozen=host.read(tmp_path/'fresh/plan.json',sealed=True)
     assert frozen['phase']=='structural' and frozen['protocol']['seed']==20261108
     assert frozen['probe_result']==reference(probe/'result.json',tmp_path)
+    host.verify_structural_plan(tmp_path,tmp_path/'fresh/plan.json',frozen)
+    changed=seal(dict(frozen,inputs=dict(checkpoints='different frozen weights')))
+    with pytest.raises(ValueError,match='differs from completed probe'):
+        host.verify_structural_plan(tmp_path,tmp_path/'fresh/plan.json',changed)
+    with pytest.raises(ValueError,match='differs from completed probe'):
+        host.verify_structural_plan(tmp_path,tmp_path/'other/plan.json',frozen)
     with pytest.raises(ValueError,match='Fresh freeze'):host.freeze(args,tmp_path)
 
 
