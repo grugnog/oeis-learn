@@ -728,3 +728,14 @@ binding is refreshed. Podman is confirmed from the supplied original plan. Curre
 source builds and actual-HIP qualification are part of the workstation command.
 No real weights/probes/HIP or fresh scientific outcomes are claimed locally; no
 CI wait. The new stack builds on the offline audit branch/PR #65.
+
+## Fixed-candidate fitting diagnostics (2026-11-07)
+
+The completed training probe gate stopped at D 235/256 complete. Operator-approved
+follow-up replays the nine no-selection timeout cases (72 original fits), then
+compares resource configurations separately. It cannot update the probe gate.
+
+- [ ] T109 Add red-first contracts for exact timeout-case extraction, original seeds/service allowances, visible-only fitter mounts, same-core-source binding and immutable diagnostic scope.
+- [ ] T110 Add installed preparation/fitter adapters using the existing native client, native transport timing, queue/RSS/restart statistics and repeated fixed-work serial/concurrent comparisons.
+- [ ] T111 Add portable CPU-only workstation command, original artifact verification, current image/native checks, frozen resource matrix, complete diagnostic exports and failure evidence.
+- [ ] T112 Run affected checks, document the exact command and limitations, refresh the implementation binding, commit/publish a separate stack without CI wait. Workstation replay evidence remains pending.

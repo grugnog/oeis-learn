@@ -25,6 +25,11 @@ def register(commands):
     freeze.add_argument('--output',required=True)
     structural=phases.add_parser('structural',help='execute one frozen fresh structural comparison')
     structural.add_argument('--plan',required=True)
+    replay=phases.add_parser('fit-diagnostics',help='replay original D timeout cases; compare CPU resources without changing probe results')
+    replay.add_argument('--probes',default='run-state/generalization/pac-selector-probes-001')
+    replay.add_argument('--output',required=True)
+    replay.add_argument('--compare-cpus',type=int,default=8)
+    replay.add_argument('--repetitions',type=int,default=3)
 
 
 def read(path, *, sealed=False, cap=64<<20):
@@ -290,6 +295,9 @@ def structural(args,workspace,host_factory):
 def main(args,workspace,host_factory):
     workspace=Path(workspace)
     try:
+        if args.selector_phase=='fit-diagnostics':
+            from .selector_fit_replay_commands import main as fit_diagnostics
+            return fit_diagnostics(args,workspace,host_factory)
         if args.selector_phase=='probes':return probes(args,workspace,host_factory)
         if args.selector_phase=='freeze':return freeze(args,workspace)
         return structural(args,workspace,host_factory)
