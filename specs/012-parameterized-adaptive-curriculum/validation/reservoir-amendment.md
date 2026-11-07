@@ -1,5 +1,11 @@
 # Adopted 7,664-draw structural reservoir amendment
 
+The workstation execution is now reviewed in
+[fresh-002-review.md](fresh-002-review.md). Admission succeeds at 1.298 GiB peak
+preparation RSS; the scientific result remains INCOMPLETE because D completes
+64/68 against the unchanged 65/68 floor. Preserve the execution and inspect its
+existing score-producer evidence before considering another run.
+
 The operator authorized implementation on 2026-11-07 after reviewing the
 [all-window support result and concrete proposal](fresh-reservoir-proposal.md).
 The earlier `pac-selector-fresh-001` plan and BLOCKED execution remain immutable.
