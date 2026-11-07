@@ -807,3 +807,14 @@ implementation binding changes among the 68 historical dispositions. Stdlib
 probe help and whitespace checks pass; read-only checklist remains 16/16 and
 there are no extension hooks. Actual GPU qualification/probe outcomes remain
 workstation-only and pending. The separate repair stack targets #68; no CI wait.
+
+- [X] T121 Review the repaired `probes-003` report: verify seals/source/input bindings, independently recompute all selector/control and B/D summaries, match the nine completed D cases to the fit replay, record remaining censoring and the separate structural freeze/execution commands in `validation/probe-003-review.md`.
+
+T121: PASS / COMPLETE_DESCRIPTIVE, B 255/256 and D 244/256 complete for both
+selectors, zero incomplete traces. B remains 182 successes; D remains 83 original
+and 84 coverage successes. All nine newly completed cases are observed failures.
+The technical gate permits the existing fresh structural screen; no selector or
+arm adoption follows. Report/plan and generation seals, reviewed checkout source,
+unchanged original inputs/roster and every exported paired summary verify. The
+public ZIP lacks qualification transcripts and full utilization traces; those
+claims remain bounded accordingly. Documentation-only follow-up; no CI wait.
