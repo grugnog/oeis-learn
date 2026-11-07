@@ -309,8 +309,18 @@ def main(args,workspace,host_factory):
             target=args._selector_output
             write(target/'failure.json',failure)
             (target/'traceback.txt').write_text(traceback.format_exc())
+            members=['failure.json','traceback.txt']
+            from .generalization_diagnostics import collect,EXPORTED
+            try:
+                diagnostics=collect(target,target/'diagnostics')
+                members.append('diagnostics/index.json')
+                members.extend('diagnostics/'+row['export_path'] for row in diagnostics['files'] if row['status'] in EXPORTED)
+            except (OSError,ValueError,RecursionError) as capture_error:
+                # Diagnostic capture must never replace the primary exception.
+                (target/'diagnostics-error.txt').write_text(type(capture_error).__name__+': '+str(capture_error)[:2048]+'\n')
+                members.append('diagnostics-error.txt')
             with zipfile.ZipFile(target/'failure.zip','x',zipfile.ZIP_DEFLATED) as archive:
-                for name in ('failure.json','traceback.txt'):archive.write(target/name,name)
+                for name in members:archive.write(target/name,name)
             print('Failure details: '+str(target/'failure.zip'),flush=True)
         print(json.dumps(failure),flush=True)
         traceback.print_exc()

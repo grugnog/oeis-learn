@@ -205,3 +205,47 @@ def test_failure_bundle_keeps_actual_exception_without_engine(tmp_path,monkeypat
     with zipfile.ZipFile(tmp_path/'new/failure.zip') as z:
         assert 'FileNotFoundError' in z.read('traceback.txt').decode()
     assert 'missing exact checkpoint' in capsys.readouterr().out
+
+
+def test_qualification_failure_bundle_keeps_original_gpu_evidence(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import selector_validation_commands as host
+    from oeis_learn.pipeline_validation.generalization_diagnostics import LOG_CAP
+    import zipfile
+    def failed(args,workspace,host_factory):
+        args._selector_output=workspace/'new';args._selector_output.mkdir()
+        stage=args._selector_output/'qualification/pipeline/stages/image.gpu'
+        write(stage/'receipt.json',seal(dict(state='FAIL',reason='installed package/source mismatch')))
+        logs=stage/'inspection/logs';logs.mkdir(parents=True)
+        (logs/'stderr.log').write_bytes(b'opening\n'+b'x'*(LOG_CAP+100)+b'\noriginal source mismatch traceback')
+        write(logs/'process.json',dict(returncode=1,outcome='FAIL',command=['PRIVATE_COMMAND']))
+        private=args._selector_output/'qualification/private';private.mkdir()
+        (private/'weights.pt').write_bytes(b'PRIVATE_WEIGHTS')
+        (private/'target.json').write_bytes(b'PRIVATE_TARGET')
+        raise ValueError('New source qualification failed')
+    monkeypatch.setattr(host,'probes',failed)
+    assert host.main(SimpleNamespace(selector_phase='probes'),tmp_path,lambda _:None)==1
+    with zipfile.ZipFile(tmp_path/'new/failure.zip') as z:
+        path='qualification/pipeline/stages/image.gpu/'
+        assert json.loads(z.read('diagnostics/'+path+'receipt.json'))['reason']=='installed package/source mismatch'
+        log=z.read('diagnostics/'+path+'inspection/logs/stderr.log')
+        assert len(log)<=LOG_CAP and log.startswith(b'opening') and log.endswith(b'original source mismatch traceback')
+        index=json.loads(z.read('diagnostics/index.json'))
+        assert not index['qualification_evidence']
+        assert next(r for r in index['files'] if r['source']==path+'inspection/logs/stderr.log')['status']=='TRUNCATED'
+        content=b''.join(z.read(n) for n in z.namelist())
+        assert not any(p in content for p in (b'PRIVATE_COMMAND',b'PRIVATE_WEIGHTS',b'PRIVATE_TARGET'))
+
+
+def test_diagnostic_capture_failure_preserves_primary_exception(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import selector_validation_commands as host,generalization_diagnostics as diagnostics
+    import zipfile
+    def failed(args,workspace,host_factory):
+        args._selector_output=workspace/'new';args._selector_output.mkdir()
+        raise ValueError('primary qualification failure')
+    def no_space(*args,**kw):raise OSError('diagnostic capture unavailable')
+    monkeypatch.setattr(host,'probes',failed)
+    monkeypatch.setattr(diagnostics,'collect',no_space)
+    assert host.main(SimpleNamespace(selector_phase='probes'),tmp_path,lambda _:None)==1
+    with zipfile.ZipFile(tmp_path/'new/failure.zip') as z:
+        assert json.loads(z.read('failure.json'))['message']=='primary qualification failure'
+        assert 'diagnostic capture unavailable' in z.read('diagnostics-error.txt').decode()
