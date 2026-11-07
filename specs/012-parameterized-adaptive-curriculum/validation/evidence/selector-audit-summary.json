@@ -1,0 +1,175 @@
+{
+  "arms": {
+    "B": {
+      "ambiguous": {
+        "changed": 4,
+        "changed_known_original_censored": 0,
+        "changed_known_recoveries": 0,
+        "changed_known_regressions": 0,
+        "changed_known_same_failure": 0,
+        "changed_known_same_success": 0,
+        "changed_unscored": 4,
+        "eligible_candidates": 406,
+        "first_fit_success_lost_by_original": 0,
+        "observation_incomplete": 0,
+        "original_completed": 24,
+        "original_successes": 0,
+        "tasks": 26
+      },
+      "certified": {
+        "changed": 23,
+        "changed_known_original_censored": 0,
+        "changed_known_recoveries": 0,
+        "changed_known_regressions": 0,
+        "changed_known_same_failure": 2,
+        "changed_known_same_success": 1,
+        "changed_unscored": 20,
+        "eligible_candidates": 1345,
+        "first_fit_success_lost_by_original": 0,
+        "observation_incomplete": 0,
+        "original_completed": 65,
+        "original_successes": 35,
+        "tasks": 68
+      },
+      "unresolved": {
+        "changed": 0,
+        "changed_known_original_censored": 0,
+        "changed_known_recoveries": 0,
+        "changed_known_regressions": 0,
+        "changed_known_same_failure": 0,
+        "changed_known_same_success": 0,
+        "changed_unscored": 0,
+        "eligible_candidates": 5,
+        "first_fit_success_lost_by_original": 0,
+        "observation_incomplete": 0,
+        "original_completed": 23,
+        "original_successes": 5,
+        "tasks": 34
+      }
+    },
+    "C": {
+      "ambiguous": {
+        "changed": 8,
+        "changed_known_original_censored": 0,
+        "changed_known_recoveries": 0,
+        "changed_known_regressions": 0,
+        "changed_known_same_failure": 0,
+        "changed_known_same_success": 0,
+        "changed_unscored": 8,
+        "eligible_candidates": 238,
+        "first_fit_success_lost_by_original": 0,
+        "observation_incomplete": 0,
+        "original_completed": 22,
+        "original_successes": 0,
+        "tasks": 26
+      },
+      "certified": {
+        "changed": 20,
+        "changed_known_original_censored": 0,
+        "changed_known_recoveries": 10,
+        "changed_known_regressions": 0,
+        "changed_known_same_failure": 0,
+        "changed_known_same_success": 0,
+        "changed_unscored": 10,
+        "eligible_candidates": 539,
+        "first_fit_success_lost_by_original": 11,
+        "observation_incomplete": 0,
+        "original_completed": 53,
+        "original_successes": 27,
+        "tasks": 68
+      },
+      "unresolved": {
+        "changed": 0,
+        "changed_known_original_censored": 0,
+        "changed_known_recoveries": 0,
+        "changed_known_regressions": 0,
+        "changed_known_same_failure": 0,
+        "changed_known_same_success": 0,
+        "changed_unscored": 0,
+        "eligible_candidates": 4,
+        "first_fit_success_lost_by_original": 0,
+        "observation_incomplete": 0,
+        "original_completed": 21,
+        "original_successes": 4,
+        "tasks": 34
+      }
+    },
+    "D": {
+      "ambiguous": {
+        "changed": 7,
+        "changed_known_original_censored": 0,
+        "changed_known_recoveries": 0,
+        "changed_known_regressions": 0,
+        "changed_known_same_failure": 0,
+        "changed_known_same_success": 0,
+        "changed_unscored": 7,
+        "eligible_candidates": 336,
+        "first_fit_success_lost_by_original": 0,
+        "observation_incomplete": 0,
+        "original_completed": 19,
+        "original_successes": 0,
+        "tasks": 26
+      },
+      "certified": {
+        "changed": 27,
+        "changed_known_original_censored": 0,
+        "changed_known_recoveries": 0,
+        "changed_known_regressions": 0,
+        "changed_known_same_failure": 0,
+        "changed_known_same_success": 0,
+        "changed_unscored": 27,
+        "eligible_candidates": 978,
+        "first_fit_success_lost_by_original": 4,
+        "observation_incomplete": 0,
+        "original_completed": 58,
+        "original_successes": 42,
+        "tasks": 68
+      },
+      "unresolved": {
+        "changed": 0,
+        "changed_known_original_censored": 0,
+        "changed_known_recoveries": 0,
+        "changed_known_regressions": 0,
+        "changed_known_same_failure": 0,
+        "changed_known_same_success": 0,
+        "changed_unscored": 0,
+        "eligible_candidates": 0,
+        "first_fit_success_lost_by_original": 0,
+        "observation_incomplete": 0,
+        "original_completed": 28,
+        "original_successes": 0,
+        "tasks": 34
+      }
+    }
+  },
+  "audit": "sha256:54b2b0c9e749fcff504fc6addec5ac3d555e5a46ea51ad55d552829feb7b723e",
+  "diagnostic_seconds": 4.397661793000225,
+  "generation_provenance": "operator-supplied detail ZIP and its workflow inventory; generation digests are absent from public report",
+  "identity": "sha256:18661585fcbc33452544cb275e8795650438b8406764ab7b9ea0b33b7f7947c1",
+  "inputs": {
+    "details": "sha256:6d9df7a28ddbbc63fe241c4143645ae5e39050ad87bfc11ab2c254b32dbda022",
+    "plan": "sha256:f7f830ceff7a8d33a06092df676ebe4030875fefaf90c1107b108106720cc67c",
+    "report": "sha256:7599fc280cbe2a057ffc40e9f3664eb533936c0bb2a550546e1e689a3281129f",
+    "research_inputs": "sha256:66ac3516a36b4165e89fe8a5930a141748886eb6526898111ca313be52ab93f6",
+    "workflow": "sha256:2e08604a2bd041951ef3d7bd8ad8baf85fec03dd2b16c50fc226bdb61c148730"
+  },
+  "limitations": [
+    "Exploratory rule informed by this selection cohort; no fresh confirmation.",
+    "Only previously recorded complete same-task exact-source outcomes are joined.",
+    "No training, fitting, new generation, hidden-term execution or HIP work.",
+    "Diagnostic CPU observation cost is outside the original scientific portfolio budget.",
+    "No automatic winner or production selector change."
+  ],
+  "original_verification": {
+    "evidence": "sha256:d1398b3686da6bd7cf58dccbf016b48e8e304f2cd15abaa05efe8ba9b1ef60c7",
+    "feature_qualified": true,
+    "identity": "sha256:42109b5a542eb8b74cb69dadf5285267c444a5f9d12097346785c5e0dfa5c775",
+    "integrity": "PASS",
+    "rehearsal_status": "PASS",
+    "scientific_status": "INCOMPLETE",
+    "software_status": "PASS"
+  },
+  "policy": "sha256:6911f8e59fb6f1f1e99b5e895cd69ac41bba436be4dc8e6c8dafcafa91c86df3",
+  "scope": "correct-input original eligible pools; original controls retained; no new inference or hidden-term execution",
+  "version": "pac-selector-audit-summary/v1"
+}

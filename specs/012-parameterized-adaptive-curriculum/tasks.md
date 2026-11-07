@@ -205,7 +205,7 @@ the reason. Keep hardware tasks unchecked until actual evidence is supplied.
 - [X] T072 [US4] Verify actual fresh/resumed device/model/optimizer/RNG/data/adaptive/scaler/review equality at both pause boundaries, discarded-crash debit, no-Lt environment/source closure and independently checked success/failure archives from T068 in `specs/012-parameterized-adaptive-curriculum/validation/hip-acceptance.md`; keep any unavailable device/failure proof pending rather than inferring it from old 011 evidence.
 
   **T072 evidence status**: COMPLETE. Original -004 clean HIP resume/export evidence plus the verified supplemental actual HIP crash/debit summary are reconciled in `validation/t072-result.md`. No CPU substitution or ZIP upload was used.
-- [ ] T073 [US5] If authorized research completed in T068, run the scoped analysis over its final reports, examine passing/failing before/after cases and reconcile costs/denominators/attribution into `specs/012-parameterized-adaptive-curriculum/validation/research-results.md` (new); otherwise record research DEFERRED with exact missing evidence. Only check this task complete for actual research analysis; explicit deferral does not block software acceptance and does not authorize another campaign.
+- [X] T073 [US5] If authorized research completed in T068, run the scoped analysis over its final reports, examine passing/failing before/after cases and reconcile costs/denominators/attribution into `specs/012-parameterized-adaptive-curriculum/validation/research-results.md` (new); otherwise record research DEFERRED with exact missing evidence. Only check this task complete for actual research analysis; explicit deferral does not block software acceptance and does not authorize another campaign.
 
   **T073 evidence status**: DEFERRED under the uploaded `research=false` scope; missing actual research outputs are enumerated in `validation/research-results.md`. This remains unchecked and does not authorize a new campaign.
 
@@ -651,3 +651,56 @@ local-link/shell syntax, whitespace and read-only checklist checks pass. The
 installed integration handoff records the unchanged active R1 scope and separate
 future qualification obligation. Red-first and implementation groups are pushed;
 the final documentation group and separate PR target #63's branch, with no CI wait.
+
+### Operator-authorized selector diagnosis (2026-11-06)
+
+Separate stack above #64; the completed R1 experiment and production selector stay
+frozen. Implement a read-only, explicitly exploratory audit, not a new campaign.
+The follow-up contract is `validation/selector-audit.md`. These tasks reuse the
+existing independent bounded reference interpreter; no second arithmetic engine,
+new fitting, training, hidden-term execution or automatic policy adoption.
+
+- [X] T101 Specify the audit/visible-only ranking boundary and add independent branch-coverage, leakage, provenance, unknown-outcome and immutable-output counterexamples before implementation.
+- [X] T102 Implement bounded branch-site observation and the experimental ranking API, preserving reference arithmetic and existing observer/selection semantics.
+- [X] T103 Implement the stdlib CLI over verified report/detail ZIPs, reconstruct original eligible candidate pools, reproduce original choices, join only previously scored exact sources after ranking, and export bounded diagnostic evidence.
+- [X] T104 Run affected CPU/stdlib regressions and the supplied R1 bundle, record outcomes and limitations, refresh source disposition, commit/push periodically and open a separate stacked PR without waiting for CI.
+
+Training-only probe calibration, freezing a research selector and fresh structural
+confirmation require workstation checkpoint/probe originals and a separately frozen
+execution plan. They are not claimed by this offline audit or launched here.
+
+T101: fifteen independent counterexamples fail before implementation (missing
+branch observer/ranking/audit boundaries). Checklist remains 16/16; no hooks are
+registered. Existing ignore files cover private run-state and Python artifacts.
+
+T102: the bounded reference interpreter now offers optional stable if/select site
+observation without changing arithmetic or legacy observer events. The closed
+experimental ranker accepts only generated source identities and a 20-term visible
+prompt. Seven independent selector tests pass; original reference/diagnostic
+regressions are included in the local validation. No production selector is changed.
+
+T103: the stdlib CLI verifies report/producer bindings, recovers retained and
+omitted eligible sources, reproduces every original choice and ranks without
+scores. Nineteen focused cases pass, including a red-first private-reason canary.
+The first original-bundle replay reproduces 384/384 choices and all 3,851 eligible
+candidates in 4.63 local CPU seconds; no hidden execution or hardware claim. The
+generation inventory is bound to the supplied detail ZIP, not falsely advertised
+as present in the public report; an optional externally recorded ZIP hash pins it.
+
+T073 (2026-11-06 update): completed actual R1 analysis is now recorded in
+`validation/research-results.md`, superseding the earlier acceptance-only deferral.
+Original full research outputs and detail ZIP were verified and all task cases
+audited; scientific comparisons remain INCOMPLETE under the unchanged 65/68 gate.
+No new campaign, policy adoption or assessment execution follows from completion.
+
+T104: final affected reference/admission/diagnostic/archive/scoring/privacy selection
+passes 108 tests (one intentional duplicate-ZIP fixture warning). Twenty selector
+and audit tests include an additional red-first original-censoring accounting case.
+The final stdlib replay reproduces 384 choices and observes all 3,851 eligible
+sources with no unavailable observations. Certified changed/known-recovered/unscored
+counts are B 23/0/20, C 20/10/10 and D 27/0/27; no new accuracy estimate is inferred.
+The bounded summary and research review record exact original and audit identities.
+CLI help, prerequisites, links, whitespace and the unchanged 16/16 checklist pass;
+no hooks are registered. The 007 implementation identity is refreshed with its 68
+historical dispositions unchanged. No HIP, training, fresh scoring, assessment,
+production selector adoption or CI wait occurred. Separate stack targets #64.
