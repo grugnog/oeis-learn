@@ -109,3 +109,100 @@ def test_expired_census_cannot_publish_a_conclusion(tmp_path):
     with pytest.raises(TimeoutError,match='deadline'):
         audit.run(tmp_path,'plan.json','expired',expected)
     assert not (tmp_path/'expired/report.zip').exists()
+
+
+def reference_values(protocol,family,p0,p1=0):
+    from oeis_learn.generalization.targets import ground
+    from oeis_learn.synthesis.reference import evaluate
+    source=protocol['families'][family]['parameter_source']
+    assignment={'p0':str(p0)}
+    if '(param.get p1)' in source:assignment['p1']=str(p1)
+    value=evaluate(ground(source,assignment),list(map(str,range(100))))
+    assert value.outcome=='ok'
+    return tuple(map(int,value.values))
+
+
+def test_all_positions_recognize_every_true_window_including_boundaries():
+    from oeis_learn.generalization.selector_validation import fresh_design
+    audit=module();protocol=fresh_design();families=tuple(audit.witnesses(protocol))
+    for family in families:
+        # Equal-coefficient, zero, one-term crossing and extreme-law cases.
+        cases=[(-1024,-512),(1024,512),(0,0),(2,1),(5,-2),(-41,0),(41,1),(-42,0),(42,1)]
+        for p0,p1 in cases:
+            values=reference_values(protocol,family,p0,p1)
+            for start in range(81):
+                census=audit.AllWindows(families)
+                census.project(values[start:start+20])
+                assert census.blocked(family,p0,p1),(family,p0,p1,start)
+
+
+def test_projection_has_no_false_blocks_against_independent_small_grid():
+    from oeis_learn.generalization.selector_validation import fresh_design
+    audit=module();protocol=fresh_design();families=tuple(audit.witnesses(protocol))
+    pool={(f,p0,p1):reference_values(protocol,f,p0,p1) for f in families
+          for p0 in (-1024,-42,-41,-2,0,2,41,42,1024) for p1 in (-1024,-2,0,1,2,1024)}
+    windows=[]
+    for f in families:
+        v=reference_values(protocol,f,2,-1)
+        windows.extend(v[k:k+20] for k in (0,1,12,13,22,23,24,40,41,42,80))
+    windows.extend([tuple(range(20)),tuple(-n for n in range(20)),(7,)*20,tuple(n**3 for n in range(20))])
+    windows.extend(tuple(a*j*j+b*j+c for j in range(20)) for a,b,c in [(1,47,552),(2,164,3362),(1,-43,0),(3,3,1),(-2,4,10)])
+    for window in windows:
+        census=audit.AllWindows(families);census.project(window)
+        for (f,p0,p1),values in pool.items():
+            expected=any(values[k:k+20]==window for k in range(81))
+            assert census.blocked(f,p0,p1)==expected,(f,p0,p1,window)
+
+
+def test_shifted_windows_can_block_assignments_with_uncovered_initial_window():
+    from oeis_learn.generalization.selector_validation import fresh_design
+    audit=module();families=tuple(audit.witnesses(fresh_design()))
+    family=next(f for f in families if f.startswith('sha256:3f7f'))
+    census=audit.AllWindows(families)
+    window=tuple(10-n for n in range(20));census.project(window)
+    assert census.blocked(family,90,0)  # Matches at candidate offset 80.
+    assert not census.blocked(family,91,0)
+    assert census.summary()[family]['window_free_assignments']==2049-81
+
+
+@pytest.mark.parametrize('covered',[False,True])
+def test_all_window_reader_and_copied_stdlib_cli(tmp_path,covered):
+    audit,expected=fixture(tmp_path,covered=covered)
+    result=audit.run(tmp_path,'plan.json','full',expected,all_windows=True)
+    assert result['version']=='pac-fresh-support-audit/v2' and not result['freeze_eligible']
+    assert all((v['window_free_assignments']==0) is covered for v in result['families'].values())
+    copied=tmp_path/'run-state/audit.py';copied.parent.mkdir();copied.write_bytes(Path(audit.__file__).read_bytes())
+    done=subprocess.run([sys.executable,'-S',str(copied),'--workspace',str(tmp_path),
+        '--plan','plan.json','--expected-plan-sha256',expected,'--output','full-cli','--all-windows'],
+        capture_output=True,text=True,timeout=30)
+    assert done.returncode==0,done.stderr
+    other=json.loads((tmp_path/'full-cli/result.json').read_text())
+    assert other['families']==result['families']
+
+
+def test_full_row_accelerator_agrees_with_individual_window_projection():
+    from oeis_learn.generalization.selector_validation import fresh_design
+    audit=module();protocol=fresh_design();families=tuple(audit.witnesses(protocol))
+    rows=[reference_values(protocol,f,41,1) for f in families]
+    rows.append(tuple(10**30 if j%23==0 else j*j-42*j for j in range(100)))
+    for values in rows:
+        fast=audit.AllWindows(families);slow=audit.AllWindows(families)
+        fast.observe(list(map(str,values)))
+        for j in range(81):slow.project(values[j:j+20])
+        assert fast.summary()==slow.summary()
+
+
+def test_assignment_counts_handle_overlaps_and_nonuniform_sum_multiplicity():
+    from oeis_learn.generalization.selector_validation import fresh_design
+    audit=module();protocol=fresh_design();families=tuple(audit.witnesses(protocol))
+    branch=next(f for f in families if f.startswith('sha256:5c47'))
+    sums=next(f for f in families if f.startswith('sha256:ee89'))
+    census=audit.AllWindows(families)
+    values=reference_values(protocol,branch,2,1)
+    census.project(values[:20])  # Equal-coefficient mixed window blocks one point.
+    assert census.summary()[branch]['window_blocked_assignments']==1
+    census.project(values[13:33])  # Entire p1 column subsumes that point.
+    assert census.summary()[branch]['window_blocked_assignments']==2049
+    census.project(tuple(range(20)))  # Sums 0..80, with triangular multiplicity.
+    assert census.summary()[sums]['window_blocked_assignments']==sum(2049-s for s in range(81))
+    assert census.summary()[sums]['window_free_output_classes']==4097-81
