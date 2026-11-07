@@ -1,7 +1,9 @@
 # Verified all-window support and proposed reservoir amendment
 
-Status: **proposal only**. No scientific protocol, frozen plan or execution
-authority is changed by this document. `pac-selector-fresh-001` remains BLOCKED.
+Status: **adopted for implementation by the operator on 2026-11-07**.
+The evidence and proposal below remain the decision record.
+`pac-selector-fresh-001` remains BLOCKED. The separately versioned implementation,
+qualification gates and exact commands are in [the amendment handoff](reservoir-amendment.md).
 
 ## Verified diagnostic result
 
@@ -110,6 +112,7 @@ existing checks must not be bypassed by editing the old source hash or plan.
 New preparation resource measurements must confirm the enlarged index remains
 within the existing memory/work envelopes before model evaluation.
 
-**Approval/implementation boundary:** this document does not activate the
-amendment or provide a command that mutates/reruns the old frozen plan. The
-next decision is whether to implement this specific larger-reservoir design.
+**Implementation boundary:** operator approval authorizes this specific larger
+reservoir, not mutation or rerun of the old plan. Activation still requires the
+new source-bound amendment command and fresh qualification documented in the
+handoff; no new cohort/model outcome follows from approval alone.

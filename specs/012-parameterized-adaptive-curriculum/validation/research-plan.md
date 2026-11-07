@@ -1,5 +1,12 @@
 # First B/C/D research campaign
 
+The operator has authorized the separate [7,664-draw fresh structural reservoir
+amendment](reservoir-amendment.md) after reviewing the blocked prospective
+admission and exact support census. It preserves seed, law, exclusions, quotas,
+checkpoints and scoring; the original failed plan remains immutable. New image
+qualification and prospective model outcomes remain pending workstation execution.
+The campaign history below retains its original scope.
+
 The [separate installed follow-up integration](installed-followups.md) moves the
 remaining baseline/report fixes into installed modules. It is a future source
 scope; the operator's already-started R1 retry retains its original #63 scope.
