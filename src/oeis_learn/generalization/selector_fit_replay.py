@@ -60,7 +60,9 @@ def check_core(original,current):
                      'src/oeis_learn/decoder/bigint_codec.py'})
     old={k:v for k,v in original.items() if relevant(k)}
     new={k:v for k,v in current.items() if relevant(k)}
-    if not old or old!=new:raise ValueError('fitter/core/build source differs from original probe run')
+    if not old or old!=new:
+        changed=[k for k in sorted(set(old)|set(new)) if old.get(k)!=new.get(k)]
+        raise ValueError('fitter/core/build source differs from original probe run: '+', '.join(changed))
 
 
 def validate_packet(packet):
