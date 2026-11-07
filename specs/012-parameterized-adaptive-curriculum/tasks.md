@@ -855,3 +855,16 @@ and actual copied stdlib CLI checks pass. Stdlib help, whitespace, prerequisites
 and unchanged 16/16 read-only checklist pass; no hooks. The qualified checkout
 is preserved by fetching the helper to ignored run-state. Committed and published
 to the existing support-audit stack without waiting for CI.
+
+- [X] T126 Review and verify the uploaded v2 all-window census, reconcile assignment counts and cell increments, and record a concrete proposed draw-only amendment with unchanged scientific controls and explicit planning assumptions in `validation/fresh-reservoir-proposal.md`.
+
+T126: PASS / DIAGNOSTIC_ONLY in 35.837 seconds. All four families have positive
+window support: 6, 98,334, 63,406 and 82,537 assignments respectively. Source
+digest and result seal verify; all 18 scan increments and final counts reconcile.
+The original 64-draw reservoir is particularly inadequate for the six-assignment
+family. Proposed caps 4,096/512/512/512 produce 7,664 total draws within 8,192,
+without changing quotas, seed, law, exclusions, weights or scoring. Random-model
+quota probabilities are explicitly optimistic and do not certify the actual
+prefix or full admission. This is documentation only: no amendment is active,
+no frozen plan changes and no new model/qualification execution is authorized
+by the census. Implementation remains a separate prospective decision.
