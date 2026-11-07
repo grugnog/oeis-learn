@@ -37,6 +37,7 @@ pub mod dependence;
 pub mod parameters;
 pub mod symbolic;
 pub mod affine;
+pub mod modular;
 pub mod smt;
 pub mod fit;
 pub mod fit_budget;

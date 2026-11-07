@@ -144,3 +144,26 @@ def test_native_verification_failure_cannot_pass_as_diagnostic_success(tmp_path)
     result=replay(packet,{},tmp_path,concurrency=1,repetitions=1,client_factory=Client)
     assert result['status']=='FAIL' and result['integrity_failures']==8
     assert result['runs'][0]['attempts'][0]['reason']=='independent disagreement'
+
+
+def test_registered_core_amendment_is_exact_and_opt_in():
+    from oeis_learn.generalization.selector_fit_replay import check_core
+    old={'crates/oeis_synthesis_core/src/fit.rs':'old','Dockerfile':'same'}
+    current={'crates/oeis_synthesis_core/src/fit.rs':'new','Dockerfile':'same'}
+    amendment=seal(dict(version='pac-fit-core-amendment/v1',name='native-fit-fastpaths/v1',files={
+        'crates/oeis_synthesis_core/src/fit.rs':dict(parent='old',current='new')}))
+    with pytest.raises(ValueError):check_core(old,current)
+    check_core(old,current,amendment=amendment)
+    with pytest.raises(ValueError):check_core(old,dict(current,Dockerfile='other'),amendment=amendment)
+    with pytest.raises(ValueError):check_core(old,dict(current,**{'crates/oeis_synthesis_core/src/fit.rs':'unreviewed'}),amendment=amendment)
+
+
+def test_registered_fastpath_hashes_match_checkout():
+    from pathlib import Path
+    from oeis_learn.generalization.selector_fit_replay import core_amendment,check_core
+    from oeis_learn.pipeline_validation.identity import file_hash
+    policy=core_amendment('native-fit-fastpaths/v1');root=Path(__file__).resolve().parents[2]
+    old={k:v['parent'] for k,v in policy['files'].items() if v['parent'] is not None}
+    new={k:file_hash(root/k) for k in policy['files']}
+    check_core(old,new,amendment=policy)
+    with pytest.raises(ValueError):core_amendment('unregistered')

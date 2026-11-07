@@ -15,7 +15,7 @@ struct Envelope {
 /// No candidates, stores, guest instances, results or resource profiles are cached.
 #[derive(Default)]
 pub(crate) struct DispatchContext { installed:Option<Installed> }
-struct Installed { bytes:Vec<u8>, binary_hash:String, runtime:Option<BigintRuntime> }
+struct Installed { bytes:Vec<u8>, guest_hash:String, binary_hash:String, runtime:Option<BigintRuntime> }
 impl Installed {
     fn load()->Result<Self,String> {
         let path=std::env::var("OEIS_BIGINT_WASM").unwrap_or("/opt/oeis-build-info/bigint-dependency-smoke.wasm".into());
@@ -24,13 +24,17 @@ impl Installed {
             .read_to_end(&mut bytes).map_err(|e|e.to_string())?;
         if bytes.len()>16*1024*1024{return Err("runtime_failure".into());}
         let binary=std::fs::read(std::env::current_exe().map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
-        Ok(Self{bytes,binary_hash:digest(&binary),runtime:None})
+        let guest_hash=digest(&bytes);
+        Ok(Self{bytes,guest_hash,binary_hash:digest(&binary),runtime:None})
+    }
+    fn ensure_runtime(&mut self)->Result<&mut BigintRuntime,String> {
+        if self.runtime.is_none(){self.runtime=Some(BigintRuntime::new(&self.bytes)?);}
+        Ok(self.runtime.as_mut().unwrap())
     }
     fn execute(&mut self,source:&str,indices:&[String],limits:&Resources)->Result<serde_json::Value,String> {
-        if self.runtime.is_none(){self.runtime=Some(BigintRuntime::new(&self.bytes)?);}
         // Preserve the existing setup charge even on a warm engine. Each evaluate
         // still compiles the candidate and creates fresh stores/instances/clocks.
-        serde_json::to_value(self.runtime.as_mut().unwrap().evaluate(source,indices,limits)).map_err(|e|e.to_string())
+        serde_json::to_value(self.ensure_runtime()?.evaluate(source,indices,limits)).map_err(|e|e.to_string())
     }
 }
 pub fn run(retained:&mut dyn ExecutionBackend)->Result<(),String>{
@@ -44,6 +48,7 @@ pub fn dispatch(raw:&[u8],retained:&mut dyn ExecutionBackend)->Result<serde_json
     dispatch_with_context(raw,retained,&mut DispatchContext::default())
 }
 pub(crate) fn dispatch_with_context(raw:&[u8],retained:&mut dyn ExecutionBackend,context:&mut DispatchContext)->Result<serde_json::Value,String>{
+    let dispatch_start=Instant::now();
     if raw.len()>4*1024*1024{return Err("frame_limit".into());}
     let envelope:Envelope=serde_json::from_slice(&raw).map_err(|e|e.to_string())?;
     envelope.request.validate_qualification()?;
@@ -57,11 +62,18 @@ pub(crate) fn dispatch_with_context(raw:&[u8],retained:&mut dyn ExecutionBackend
     if operation!="execute"{envelope.limits.validate()?;}
     if envelope.evidence.as_ref().is_some_and(|e|e.language_profile.as_str()!=language_profile){return Err("evidence_profile_mismatch".into());}
     if indices.is_empty()||indices.len()>100||source.len()>65536{return Err("invalid_request".into());}
+    let validation_seconds=dispatch_start.elapsed().as_secs_f64();
     let deadline=Instant::now()+Duration::from_millis(u64::from(envelope.request.remaining_budget.wall_time_ms.min(2000)));
+    let installed_start=Instant::now();
     if context.installed.is_none(){context.installed=Some(Installed::load()?);}
+    let installed_load_seconds=installed_start.elapsed().as_secs_f64();
     let installed=context.installed.as_mut().unwrap();
-    let runtime_id=crate::runtime::execution_identity(&digest(&installed.bytes),&installed.binary_hash,language_profile);
-    let output=if language_profile==retained.profile(){
+    let identity_start=Instant::now();
+    let runtime_id=crate::runtime::execution_identity(&installed.guest_hash,&installed.binary_hash,language_profile);
+    let runtime_identity_seconds=identity_start.elapsed().as_secs_f64();
+    let runtime_reused=installed.runtime.is_some();let mut runtime_setup_seconds=0.;
+    let fit_start=Instant::now();
+    let mut output=if language_profile==retained.profile(){
         if operation=="fit"{
             fit::fit(source,indices,values,&envelope.limits,&candidate.abstraction_policy,envelope.request.seed,deadline,&runtime_id,&envelope.reference_sha256,language_profile,|source,indices,_|retained.execute(source,indices))
         }else if operation=="replay_unsat"{
@@ -72,7 +84,8 @@ pub(crate) fn dispatch_with_context(raw:&[u8],retained:&mut dyn ExecutionBackend
     }else if language_profile!="bigint-body/v1"{json!({"outcome":"unsupported","reason":"unknown language profile"})}else{match operation{
         "execute"=>installed.execute(source,indices,&envelope.limits)?,
         "fit"=>{
-            let mut runtime=BigintRuntime::new(&installed.bytes)?;
+            let setup_start=Instant::now();let runtime=installed.ensure_runtime()?;
+            runtime_setup_seconds=setup_start.elapsed().as_secs_f64();
             fit::fit(source,indices,values,&envelope.limits,&candidate.abstraction_policy,envelope.request.seed,deadline,&runtime_id,&envelope.reference_sha256,language_profile,|source,indices,limits|{
                 let result=runtime.evaluate_after_setup(source,indices,limits);if result.outcome=="ok"{Ok(result.values)}else{Err(result.reason.unwrap_or("runtime_failure".into()))}
             })
@@ -80,6 +93,10 @@ pub(crate) fn dispatch_with_context(raw:&[u8],retained:&mut dyn ExecutionBackend
         "replay_unsat"=>{match evidence::replay(source,indices,values,&envelope.limits,envelope.evidence.as_ref().ok_or("missing_evidence")?,deadline){Ok(outcome)=>json!({"outcome":outcome}),Err(reason)=>json!({"outcome":if reason=="verification_failure"{"verification_failure"}else{"resource_exhausted"},"reason":reason})}},
         _=>return Err("unknown_operation".into()),
     }};
+    output["dispatch_timing"]=json!({"validation_seconds":validation_seconds,"installed_load_seconds":installed_load_seconds,
+        "runtime_identity_seconds":runtime_identity_seconds,"runtime_setup_seconds":runtime_setup_seconds,
+        "runtime_reused":runtime_reused,"execution_seconds":fit_start.elapsed().as_secs_f64(),
+        "total_seconds":dispatch_start.elapsed().as_secs_f64(),"policy":"native-dispatch-timing/v1"});
     let encoded=serde_json::to_string(&output).map_err(|e|e.to_string())?;if encoded.len()>4*1024*1024{return Err("response_limit".into());}Ok(output)
 }
 
@@ -87,7 +104,17 @@ pub(crate) fn dispatch_with_context(raw:&[u8],retained:&mut dyn ExecutionBackend
 mod reuse_tests {
     use super::*;
     fn snapshot(bytes:Vec<u8>)->Installed {
-        Installed{bytes,binary_hash:digest(b"test-binary"),runtime:None}
+        let guest_hash=digest(&bytes);Installed{bytes,guest_hash,binary_hash:digest(b"test-binary"),runtime:None}
+    }
+    #[test]
+    fn fit_setup_reuses_only_the_immutable_compiled_runtime(){
+        let mut installed=snapshot(wat::parse_str("(module)").unwrap());
+        let identity=installed.guest_hash.clone();
+        let first=installed.ensure_runtime().unwrap() as *mut BigintRuntime;
+        // Test-only sentinel: a second compilation would reject these bytes.
+        installed.bytes=b"invalid wasm sentinel".to_vec();
+        assert_eq!(first,installed.ensure_runtime().unwrap() as *mut BigintRuntime);
+        assert_eq!(identity,installed.guest_hash);
     }
     #[test]
     fn failed_execution_keeps_engine_but_never_reuses_results_or_limits() {

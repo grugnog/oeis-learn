@@ -749,3 +749,29 @@ container CPU/native checks include the new owning tests and are required by the
 operator command. Stdlib help, prerequisites, whitespace and unchanged 16/16
 checklist pass; no extension hooks. Original 68 dispositions are preserved while
 refreshing the implementation binding. Separate stack targets #66; no CI wait.
+
+## Native fitting fast paths (2026-11-07)
+
+Follow-up diagnostic reproduced all 11 timeouts with negligible queue/throttling
+and ~150 ms outside native fit timing. Inspection found a fresh WASM engine/guest
+compile before every fit. Operator authorized continuing with sound improvements.
+
+- [X] T113 Add bounded residue contradiction proof tests, runtime reuse/fresh-state counterexamples and explicit engineering-comparison compatibility tests before implementation.
+- [X] T114 Reuse immutable installed runtime/guest identities, expose dispatch phase timing, add bounded modular UNSAT precheck and independently replayable evidence without relaxing numeric/search limits.
+- [X] T115 Freeze an explicit core amendment and benchmark against the prior diagnostic report using identical packets/resources; export the five timeout templates and visible inputs for inspection.
+- [X] T116 Run available affected checks, require native Rust/build qualification on workstation, refresh implementation binding, document commands and limitations, commit/publish the separate stack without waiting for CI.
+
+T113–T116: 126 affected Python/contract/transport checks pass locally, with
+13 native-binary-dependent checks skipped; final targeted amendment/baseline/
+reporting/binding rerun passes 23 checks with one native-image skip. The uploaded
+original baseline validates unchanged three repetitions and replay packet identity.
+The named amendment pins five exact parent/current Rust files; default same-core
+validation remains strict. Added Rust tests cover sound/inconclusive residue cases,
+work/deadline bounds, certificate replay and runtime reuse; the real-worker test
+also checks positive independent admission. This workspace has no Rust/compiler
+or container engine, so these native checks were not executed here. Existing
+qualification-image builds run the Rust suite and the operator command enforces
+CPU/native checks before measuring. Native results/performance and full probe
+advancement remain pending. Stdlib help, whitespace, prerequisites and unchanged
+16/16 checklist pass; no hooks. Only the implementation binding changes among
+the historical 68 dispositions. Separate stack targets #67; no CI wait.

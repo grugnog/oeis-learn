@@ -52,7 +52,18 @@ def extract(records,prompts,targets):
     return seal(dict(version='pac-fit-replay-packet/v1',prompts=[visible[k] for k in sorted(targets)],attempts=attempts))
 
 
-def check_core(original,current):
+def core_amendment(name):
+    import json
+    from importlib.resources import files
+    if name!='native-fit-fastpaths/v1':raise ValueError('unknown native fit engineering policy')
+    value=json.loads(files('oeis_learn.generalization').joinpath('policies/fit-core-amendment.json').read_text())
+    if (set(value)!={'version','name','files','identity'} or seal(value)!=value
+            or value['version']!='pac-fit-core-amendment/v1' or value['name']!=name):
+        raise ValueError('registered native core amendment changed')
+    return value
+
+
+def check_core(original,current,*,amendment=None):
     def relevant(k):
         return (k.startswith(('src/oeis_learn/synthesis/','crates/oeis_synthesis_core/',
                 'crates/oeis_bigint_runtime/','crates/oeis_wasm_evaluator/'))
@@ -60,6 +71,14 @@ def check_core(original,current):
                      'src/oeis_learn/decoder/bigint_codec.py'})
     old={k:v for k,v in original.items() if relevant(k)}
     new={k:v for k,v in current.items() if relevant(k)}
+    if amendment is not None:
+        changed={k for k in set(old)|set(new) if old.get(k)!=new.get(k)}
+        if (seal(amendment)!=amendment or amendment['version']!='pac-fit-core-amendment/v1'
+                or amendment['name']!='native-fit-fastpaths/v1' or changed!=set(amendment['files'])
+                or any(set(v)!={'parent','current'} or old.get(k)!=v['parent'] or new.get(k)!=v['current']
+                       for k,v in amendment['files'].items())):
+            raise ValueError('native core changes differ from registered engineering amendment')
+        return
     if not old or old!=new:
         changed=[k for k in sorted(set(old)|set(new)) if old.get(k)!=new.get(k)]
         raise ValueError('fitter/core/build source differs from original probe run: '+', '.join(changed))

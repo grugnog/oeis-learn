@@ -25,11 +25,12 @@ def test_preparation_keeps_full_training_truth_out_of_fitter_channels(tmp_path,m
     assert not (output/'private/targets.json').exists()
 
 
-def test_host_matrix_is_cpu_only_and_original_probe_is_not_rewritten(tmp_path,monkeypatch):
+@pytest.mark.parametrize('engineering',[False,True])
+def test_host_matrix_is_cpu_only_and_original_probe_is_not_rewritten(tmp_path,monkeypatch,engineering):
     from oeis_learn.pipeline_validation import selector_fit_replay_commands as host,generalization_roles,engines
     from oeis_learn import container_validation
     write(tmp_path/'original.json',seal(dict(status='PASS',freeze_eligible=False)));before=(tmp_path/'original.json').read_bytes()
-    monkeypatch.setattr(host,'inputs',lambda *a:dict(targets={'case':['x']*8},generation={},probes={},inventory={},recipe={}))
+    monkeypatch.setattr(host,'inputs',lambda *a,**kw:dict(targets={'case':['x']*8},generation={},probes={},inventory={},recipe={}))
     monkeypatch.setattr(host,'source',lambda *a:'current-source')
     monkeypatch.setattr(engines.Images,'ensure',lambda *a,**kw:'image')
     monkeypatch.setattr(container_validation,'inspect_current_image',lambda *a,**kw:None)
@@ -42,18 +43,28 @@ def test_host_matrix_is_cpu_only_and_original_probe_is_not_rewritten(tmp_path,mo
         launches.append((host.cpus,role,artifacts,kw))
         assert not kw.get('gpu',False)
         assert kw['envelope']['work']>=7200
-        if role=='preparation':return dict(status='PASS',packet='packet',cases=1,attempts=8,prompts={},candidates={})
+        if role=='preparation':return dict(status='PASS',packet='packet',cases=1,attempts=8,prompts={},candidates={},visible_cases=[dict(id='case',indices=['0'],values=['0'])],timeout_templates=[])
         assert role=='fitter' and set(artifacts)=={'visible_prompts','generated_candidates'}
         assert kw['settings']['recipe']=={}
         return dict(status='PASS',packet='packet',runs=[dict(wall_seconds=1,attempts=[dict(complete=True)]*8,
             cases={'case':dict(fit_search_complete=True)})])
     monkeypatch.setattr(generalization_roles,'project_and_invoke',invoke)
-    args=SimpleNamespace(probes='original',output='diagnostics',compare_cpus=8,repetitions=3)
+    args=SimpleNamespace(probes='original',output='diagnostics',compare_cpus=8,repetitions=3,
+        core_policy='native-fit-fastpaths/v1' if engineering else None,baseline='baseline' if engineering else None)
+    if engineering:
+        monkeypatch.setattr(host,'core_amendment',lambda _:dict(registered=True))
+        monkeypatch.setattr(host,'load_baseline',lambda *a:dict(report={},plan={},result=dict(packet='packet',runs=[dict(wall_seconds=2,attempts=[dict(complete=False)]*8,cases={'case':dict(fit_search_complete=False)})])))
     assert host.main(args,tmp_path,factory)==0
-    assert [h.cpus for h in hosts]==[4,8] and all(h.memory==16 for h in hosts)
-    assert [(cpu,role) for cpu,role,*_ in launches]==[(4,'preparation'),(4,'fitter'),(4,'fitter'),(8,'fitter')]
+    assert [h.cpus for h in hosts]==([4] if engineering else [4,8]) and all(h.memory==16 for h in hosts)
+    assert [(cpu,role) for cpu,role,*_ in launches]==([(4,'preparation'),(4,'fitter')] if engineering else [(4,'preparation'),(4,'fitter'),(4,'fitter'),(8,'fitter')])
     result=json.loads((tmp_path/'diagnostics/result.json').read_text())
     assert result['freeze_eligible'] is False and result['scientific_status']=='DIAGNOSTIC_ONLY'
+    if engineering:
+        assert result['core_comparison']['original_completed']==[0]
+        assert result['core_comparison']['new_completed']==[8]
+        assert result['version']=='pac-fit-diagnostic-report/v2'
+        assert len(result['visible_cases'])==1
+        assert 'Recorded original-core baseline' in (tmp_path/'diagnostics/summary.md').read_text()
     assert (tmp_path/'original.json').read_bytes()==before and (tmp_path/'diagnostics/report.zip').exists()
 
 
@@ -70,3 +81,39 @@ def test_observer_records_real_supervised_worker_transport(tmp_path):
         timing=observer.local.calls[0]
         assert timing['complete'] and timing['wall_seconds']>0 and timing['queue_wait_seconds']>=0
         assert timing['metrics']['batches']==1
+
+
+def test_actual_native_modular_certificate_and_runtime_reuse(tmp_path):
+    import time
+    from oeis_learn.synthesis.client import SynthesisClient
+    from oeis_learn.synthesis.admission import VisiblePrompt
+    if not Path('/opt/oeis-build-info/synthesis-worker').is_file():pytest.skip('requires qualification image')
+    source='(program (return (mul (param.get p0) (param.get p0))))'
+    with SynthesisClient(digest('native-fit-fastpaths-test'),cache_root=tmp_path/'cache') as native:
+        warm=native.execute('(program (return (int 0)))',['0'],deadline=time.monotonic()+4)
+        assert warm['outcome']=='ok'
+        result=native.fit(source,VisiblePrompt(('0',),('-1',)),deadline=time.monotonic()+4)
+        assert result['complete'] and result['outcome']=='unsat_in_scope' and not result['admitted']
+        assert result['native']['phase']=='modular'
+        assert result['native']['dispatch_timing']['runtime_reused'] is True
+        evidence=result['native']['evidence']
+        assert evidence['solver']=='residue-exhaustion/v1/mod-3'
+        replay=native.request('replay_unsat',[dict(candidate_id='proof',source=source,evidence=evidence)],
+            ['0'],['-1'],deadline=time.monotonic()+4)
+        assert replay['results'][0]['outcome']=='replayed_unsat'
+        valid=native.fit(source,VisiblePrompt(('0',),('4',)),deadline=time.monotonic()+4)
+        assert valid['complete'] and valid['outcome']=='verified_solution' and valid['admitted']
+        assert all(row['verification']['values']==['4'] for row in valid['admitted'])
+
+
+def test_engineering_baseline_requires_same_original_inputs(tmp_path):
+    from oeis_learn.pipeline_validation.selector_fit_replay_commands import load_baseline
+    data={k:{'binding':k} for k in ('original_plan','original_result','original_scoring','generation','recipe_ref','targets')}
+    native=seal(dict(status='PASS',integrity_failures=0,concurrency=4,runs=[dict(wall_seconds=1)],packet='packet'))
+    plan=seal(dict(version='pac-fit-diagnostic-plan/v1',inputs=data,repetitions=1,memory_bytes=16<<30,workers=4,native_threads=1))
+    report=seal(dict(version='pac-fit-diagnostic-report/v1',status='PASS',plan=plan['identity'],runs=[dict(config=dict(cpus=4,concurrency=4),result=native)]))
+    write(tmp_path/'baseline/plan.json',plan);write(tmp_path/'baseline/result.json',report)
+    baseline=load_baseline(tmp_path,'baseline',data,1)
+    assert baseline['result']['packet']=='packet'
+    with pytest.raises(ValueError):load_baseline(tmp_path,'baseline',dict(data,generation={'different':'payload'}),1)
+    with pytest.raises(ValueError):load_baseline(tmp_path,'baseline',data,2)
