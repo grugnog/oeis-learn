@@ -818,3 +818,21 @@ arm adoption follows. Report/plan and generation seals, reviewed checkout source
 unchanged original inputs/roster and every exported paired summary verify. The
 public ZIP lacks qualification transcripts and full utilization traces; those
 claims remain bounded accordingly. Documentation-only follow-up; no CI wait.
+
+## Fresh admission feasibility review and support census (2026-11-07)
+
+- [X] T122 Verify uploaded frozen-plan/availability/producer bindings, account for all 917 window exclusions and four zero-availability families, and reproduce the shared-branch exclusion on public synthetic sources.
+- [X] T123 Add a stdlib-only read-only full-law witness census with fixed protocol/input hashes, bounded input/work, count-only diagnostics and no model/qualification/cohort authority; test both blocking and inconclusive outcomes before implementation.
+- [X] T124 Validate focused/related checks, document the original qualified-checkout-preserving workstation command and scientific decision boundary, commit and publish separately without waiting for CI.
+
+T122–T124: the 2,288 draws lose exactly 917 finite-window matches, leaving
+1,371 candidates. All 256 draws in the four deficient families pass independent
+reference evaluation but are excluded; five certified/two ambiguous slots remain
+missing. Current evidence cannot establish full-law infeasibility. Seven focused
+support tests pass; the related selector run passes 21 checks before the final
+deadline case. Stdlib help, whitespace and unchanged read-only 16/16 checklist
+pass; no hooks. The new helper exports only counts/identities and is run from
+ignored run-state without changing the qualified checkout. No scientific policy
+or installed package code changes; no implementation-binding change is needed.
+The workstation support census remains pending. See
+`validation/fresh-admission-review.md` for proof scope, limits and command.
