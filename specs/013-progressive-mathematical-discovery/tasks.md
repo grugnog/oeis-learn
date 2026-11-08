@@ -1,5 +1,16 @@
 # Tasks: Progressive Mathematical Discovery
 
+**Model allocation note**: Prefer the most capable available model for implementation and review of these six particularly demanding algorithm/integration tasks:
+
+- **T024 — Statistical inference**: paired family resampling, linked strata, censoring and multiplicity must produce defensible decision bounds.
+- **T040 — Logical optimizer updates**: introduce correct gradient accumulation and scheduler semantics while preserving existing training behavior.
+- **T050 — Crash recovery**: reconcile atomic model/data/library state with irreversible resource charges across interrupted work and task boundaries.
+- **T067 — Component-guided search**: integrate learned fragments, hygienic expansion, neural scoring, fitting and shared search budgets.
+- **T070 — Polynomial certificates**: independently establish sound, source-bound mathematical claims with explicit machine-semantics limits.
+- **T083 — Integrated acceptance**: validate all five stages through real installed roles and correctly bind or reuse hardware evidence.
+
+For these tasks, review prerequisite contracts and independent counterexample tests alongside the implementation.
+
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), all five [contracts](contracts/contingencies.md), [quickstart.md](quickstart.md) and adopted constitution 2.0.0.
 
 **Status**: Implementation task list only. No task below has been executed by generating this document; no HIP qualification or research result is claimed.
