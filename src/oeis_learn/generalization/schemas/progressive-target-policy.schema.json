@@ -228,13 +228,96 @@
           },
           "minItems": 0,
           "maxItems": 4
+        },
+        "statistics": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "const": "progressive-family-bootstrap/v1"
+            },
+            "replicates": {
+              "const": 10000
+            },
+            "minimum_groups": {
+              "const": 16
+            },
+            "max_comparisons": {
+              "const": 500
+            },
+            "primary_weights": {
+              "const": {
+                "composition": "1/2",
+                "unseen_structure": "1/2"
+              }
+            },
+            "seed_weights": {
+              "const": "equal_observed_seeds"
+            },
+            "uncertainty_scope": {
+              "const": "family_sampling_conditional_on_observed_seeds"
+            },
+            "resampling": {
+              "const": "stratified_multinomial; linked_strata_union_dependency_components; within_stratum_renormalization"
+            },
+            "empty_stratum_draw": {
+              "const": "redraw_whole_linked_block; maximum_128_attempts; fail_closed"
+            },
+            "lower_censoring": {
+              "const": "candidate_unresolved=failure; baseline_unresolved=success"
+            },
+            "upper_censoring": {
+              "const": "candidate_unresolved=success; baseline_unresolved=failure"
+            },
+            "lower_order_statistic": {
+              "const": "max(1,floor(B/(20*K)))"
+            },
+            "upper_order_statistic": {
+              "const": "min(B,ceil(B*(20*K-1)/(20*K)))"
+            },
+            "nominal_order_statistics": {
+              "const": [
+                "max(1,floor(B/40))",
+                "min(B,ceil(39*B/40))"
+              ]
+            },
+            "indexing": {
+              "const": "one_based; integer_arithmetic; no_interpolation"
+            },
+            "no_material_gain": {
+              "const": "conservative_adjusted_upper < 0.02"
+            },
+            "confirmed_regression": {
+              "const": "conservative_adjusted_upper < 0"
+            }
+          },
+          "required": [
+            "version",
+            "replicates",
+            "minimum_groups",
+            "max_comparisons",
+            "primary_weights",
+            "seed_weights",
+            "uncertainty_scope",
+            "resampling",
+            "empty_stratum_draw",
+            "lower_censoring",
+            "upper_censoring",
+            "lower_order_statistic",
+            "upper_order_statistic",
+            "nominal_order_statistics",
+            "indexing",
+            "no_material_gain",
+            "confirmed_regression"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
         "selected",
         "targets",
         "verdict_precedence",
-        "diagnostics"
+        "diagnostics",
+        "statistics"
       ],
       "additionalProperties": false
     }

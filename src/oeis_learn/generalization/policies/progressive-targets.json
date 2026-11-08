@@ -1288,7 +1288,32 @@
       "NO_MATERIAL_GAIN",
       "INCONCLUSIVE"
     ],
-    "diagnostics": []
+    "diagnostics": [],
+    "statistics": {
+      "version": "progressive-family-bootstrap/v1",
+      "replicates": 10000,
+      "minimum_groups": 16,
+      "max_comparisons": 500,
+      "primary_weights": {
+        "composition": "1/2",
+        "unseen_structure": "1/2"
+      },
+      "seed_weights": "equal_observed_seeds",
+      "uncertainty_scope": "family_sampling_conditional_on_observed_seeds",
+      "resampling": "stratified_multinomial; linked_strata_union_dependency_components; within_stratum_renormalization",
+      "empty_stratum_draw": "redraw_whole_linked_block; maximum_128_attempts; fail_closed",
+      "lower_censoring": "candidate_unresolved=failure; baseline_unresolved=success",
+      "upper_censoring": "candidate_unresolved=success; baseline_unresolved=failure",
+      "lower_order_statistic": "max(1,floor(B/(20*K)))",
+      "upper_order_statistic": "min(B,ceil(B*(20*K-1)/(20*K)))",
+      "nominal_order_statistics": [
+        "max(1,floor(B/40))",
+        "min(B,ceil(39*B/40))"
+      ],
+      "indexing": "one_based; integer_arithmetic; no_interpolation",
+      "no_material_gain": "conservative_adjusted_upper < 0.02",
+      "confirmed_regression": "conservative_adjusted_upper < 0"
+    }
   },
-  "identity": "sha256:3e79b49f46af423932054d4b193757cbe3a86c8b8013baa84b7cf9cbc0451b0f"
+  "identity": "sha256:214a95da2032662a38590e8c3312ea137b31f65f78339e12a8eff47ddacda6bf"
 }

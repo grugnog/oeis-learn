@@ -17,9 +17,9 @@ from oeis_learn.generalization.progressive.contracts import atomic_write, refere
 from oeis_learn.pipeline_validation.identity import digest, seal
 from oeis_learn.experiments.source_snapshot import source_snapshot
 
-# T019 specifies the future T024/T025 reducer. Expected failures are not runtime
-# acceptance; retain their explicit disposition without accepting skips elsewhere.
-DEFERRED_SPECIFICATIONS = ("tests/unit/test_progressive_metrics.py",)
+# T019 still specifies future T025 decisions; T024 metrics are now mandatory.
+# Expected failures are not runtime acceptance; retain their explicit disposition.
+DEFERRED_SPECIFICATIONS = ("tests/unit/test_progressive_decisions.py",)
 HISTORICAL_TESTS = (
     "tests/contract/test_generalization_authority.py",
     "tests/contract/test_generalization_roles.py",

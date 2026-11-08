@@ -1,8 +1,8 @@
 """Mandatory native CI must not silently accept skipped or absent test coverage."""
 
 import importlib.util
-from pathlib import Path
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import pytest
 
@@ -39,7 +39,8 @@ def test_acceptance_has_explicit_software_and_future_specification_scopes(tmp_pa
     assert "tests/unit/test_progressive_coverage.py" in gate.TESTS
     assert "tests/contract/test_progressive_authority.py" in gate.TESTS
     assert set(gate.DEFERRED_SPECIFICATIONS).isdisjoint(gate.TESTS)
-    assert "tests/unit/test_progressive_metrics.py" in gate.DEFERRED_SPECIFICATIONS
+    assert "tests/unit/test_progressive_metrics.py" in gate.TESTS
+    assert "tests/unit/test_progressive_decisions.py" in gate.DEFERRED_SPECIFICATIONS
 
 
 @pytest.mark.parametrize(

@@ -1,6 +1,6 @@
 # Spec 013 implementation map
 
-Scope: T001–T023. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
+Scope: T001–T024 software, with T018 acceptance pending. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
 quickstart.md, hardware-validation.md, planning-review.md, all five contracts,
 the requirements checklist and adopted constitution in full before implementation.
 Requirements checklist: 16 checked, zero unchecked. No extension hooks registered.
@@ -33,7 +33,7 @@ exist: the actual shared archive owner is pipeline_validation/bundle.py.
 
 ## Validation
 
-Source/test implementation is complete for T001–T017 and T019–T023. T018 now has mandatory Docker/Podman CI acceptance and remains unchecked pending its first successful receipt. The initial local validation environment has no Docker or Podman binary
+Source/test implementation is complete for T001–T017 and T019–T024. T018 now has mandatory Docker/Podman CI acceptance and remains unchecked pending its first successful receipt. The initial local validation environment has no Docker or Podman binary
 and no packaged native worker or HIP device. Local CPU/stdlib checks cannot
 establish container/native/HIP qualification. No training/research is launched.
 
@@ -217,3 +217,54 @@ failures. New tests first reproduced eight failures in the earlier baseline
 implementation. Ruff and whitespace checks passed. The current disposition
 implementation binding was refreshed using its original serializer; historical
 dispositions and hardware/research qualification are unchanged.
+
+## T024 paired censored metrics
+
+Implemented `progressive/metrics.py` as an outcome-only reducer. It reports exact
+counts, all-task yield/completion/censoring bounds and family macros per arm, seed
+and stratum. Successful returned candidates can explicitly have incomplete
+portfolios; cost completion is not accepted as scientific completion. An explicit
+frozen task and seed roster fills absent results as unresolved. Diagnostic row-only
+input must be a complete paired rectangle and is labeled `roster_supplied=false`;
+installed evaluation must pass the independent frozen roster.
+
+The primary endpoint is fixed at half composition plus half unseen-structure
+family macro, with equal observed-seed weights. Parameter/OEIS metrics and
+pessimistic familiar-panel retention losses are reported separately. All
+fractions and bootstrap weighted sums are computed as exact rationals before
+conversion to report numbers. The 10,000 replicates resample families jointly
+across arms and seeds. Unlinked strata use independent multinomial draws. Linked
+strata use multinomial draws of their union of dependency components, common
+integer multiplicities and within-stratum normalization; empty-stratum draws have
+a frozen 128-redraw cap and fail closed on exhaustion. Dependency components,
+not aliases within a stratum, determine the 16-independent-group requirement.
+
+The installed target policy and closed schema now bind these choices before
+scoring, including nominal floor(2.5% B)/ceil(97.5% B) one-based indices and exact
+integer arithmetic for the specified adjusted lower/upper order statistics.
+Comparison counts above 500 are unsupported because alpha/K would be below one
+empirical draw at B=10,000. Lower samples treat candidate unresolved as failure
+and baseline unresolved as success; upper samples reverse those assumptions.
+NO_MATERIAL_GAIN requires conservative adjusted upper <0.02 and confirmed primary
+regression requires upper <0. The pre-existing verdict precedence remains
+INVALID, INCOMPLETE, REGRESSION, successful registered claim, NO_MATERIAL_GAIN,
+INCONCLUSIVE. Actual verdict/action records remain T025.
+
+Missing primary strata, fewer than 16 independent groups or fewer than two paired
+seeds yield incomplete support and no claim interval. Intervals are explicitly
+conditional on observed seeds, with each seed effect and range reported. The
+historical >=3-seed population uncertainty routine and its tests are unchanged.
+
+Validation: 20 metric tests cover hand-computed denominators, unequal families,
+fixed stratum/seed weights, both censoring directions, missing results/strata,
+explicit incomplete successful portfolios, retention, sparse/dependent support,
+malformed pairing, prospective quantiles and exact independently calculated
+small linked-resampling fixtures. The initial run failed 16 missing-implementation
+cases before implementation (the historical guard already passed). Final full
+progressive plus historical acceptance inventory: **250 passed, one unavailable
+native-service skip, five strict expected T025 failures**. Wheel/source-closure
+and disposition-binding regressions passed; changed module lint and whitespace
+checks passed. T024 metrics are mandatory in both-engine native CI acceptance;
+only the moved T025 specifications remain deferred. No CI result, hardware
+qualification or research outcome is claimed, and CI will not be awaited after
+publishing.

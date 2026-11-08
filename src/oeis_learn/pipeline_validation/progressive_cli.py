@@ -31,6 +31,7 @@ CPU_TESTS = (
     "tests/unit/test_progressive_ci.py",
     "tests/unit/test_progressive_cohorts.py",
     "tests/unit/test_progressive_coverage.py",
+    "tests/unit/test_progressive_decisions.py",
     "tests/unit/test_progressive_exposure.py",
     "tests/unit/test_progressive_failures.py",
     "tests/unit/test_progressive_freeze.py",
