@@ -28,7 +28,7 @@ The public interface will be `foundation_run.py ... discovery ...`, a thin canon
 
 **Project Type**: Research CLI with isolated installed roles and offline verifiable evidence.
 
-**Performance Goals**: Progress or explicit stalled/unavailable state within 60 seconds; every training task <=86,400 active seconds including startup/online search/checkpoint/finalization. Positive scientific gates use prospective +2 pp gain, >=95% completion and <=2 pp retention loss. No throughput/accuracy speedup is promised. Preserve fixed 1,024-token, four-second fitting-service and 60-second portfolio budgets in the base evaluation profile.
+**Performance Goals**: Progress or explicit stalled/unavailable state within 60 seconds; every training task <=86,400 active seconds including startup/online search/checkpoint/finalization. Confirmed capability gates use prospective +2 pp gain, >=95% completion and <=2 pp retention loss. Classify these separately from invariant correctness and binding execution caps; soft targets and bounded exploratory/efficiency routes are defined in the contingency contract. No throughput/accuracy speedup is promised. Preserve fixed 1,024-token, four-second fitting-service and 60-second portfolio budgets in the base evaluation profile.
 
 **Constraints**: Exact source values and offsets; immutable historical contracts; no evaluation truth in learning; charge rejected draws, failed searches and discarded updates; finite nested resource graph; prospective metadata-driven freeze; current-source qualification; no automatic imported teacher or new host service.
 
@@ -59,6 +59,7 @@ The constitution's historical Docker wording is implemented through the already 
 - `contracts/experiment.md`: cohorts, metrics, tuning, curriculum and scientific gates.
 - `contracts/execution.md`: role channels, budgets, recovery and evidence.
 - `contracts/learning-discovery.md`: targets, OEIS admission, components, sources and claims.
+- `contracts/contingencies.md`: target classes, sensitivity, failure alternatives and bounded diagnostic reservations.
 - `checklists/requirements.md`: existing specification quality review.
 - `tasks.md`: produced by the subsequent tasks workflow, not by this planning pass.
 
@@ -118,9 +119,13 @@ Exit: at least one actual learned component is used in generation in acceptance,
 
 ### F — Consolidated qualification and staged research
 
-Run CPU/native, installed-wheel, isolation, both-engine portability where required by the existing foundation, actual HIP and shortened end-to-end acceptance; collect one complete bounded package. Only then execute the frozen research DAG, serially, with milestone stops and reserved continuation slots. Reuse compatible evidence. Research stage failure prevents dependent research, not completion of remaining software acceptance work.
+Run CPU/native, installed-wheel, isolation, both-engine portability where required by the existing foundation, actual HIP and shortened end-to-end acceptance; collect one complete bounded package. Only then execute the frozen research DAG, serially, with milestone stops and reserved continuation slots. Reuse compatible evidence. Research stage failure prevents its confirmed-expansion path, not completion of remaining software acceptance work. Independently valid baseline paths and pre-reserved diagnostic actions follow their own frozen rules; they never upgrade the failed result.
 
 Tasks must include concrete work in A–F and acceptance for all five stages. No phase is replaced with a vague future-work placeholder. Commit coherent groups and push without waiting for CI jobs; fix failures identified during ordinary review.
+
+## Contingency and target review
+
+The numeric research defaults are not equally hard. Use the four classes in [contingencies.md](contracts/contingencies.md) and freeze a target registry before execution. Correctness/isolation/accounting and the user’s 24-hour cap stay hard. Capability confirmation, utility adoption and information-gathering actions have distinct evidence/action records. Reserve limited diagnostic work within existing totals, never by automatically adding another campaign. Perform outcome-blind sensitivity checks before treating a 2 pp effect as detectable. Add software counterexamples for an attractive-but-unconfirmed model, a cheaper noninferior model, a late learner, a failed seed, a sparse cohort and an attempted integrity waiver.
 
 ## Validation and traceability
 

@@ -7,7 +7,7 @@
 - Spec 013 implementation installed from the same checkout/source closure as its images; existing functional Docker/Podman and actual HIP workstation access.
 - Retained original campaign, checkpoint/recipe/input producers and prior exposure manifests, including fresh-002. Start with the existing original campaign root; `init` inventories dependencies and reports all missing references together.
 - Measured free disk/inodes and shared-memory capacity; a single GPU owner; exact selected settings and finite stage/campaign budgets.
-- [CLI contract](contracts/cli.md), [experiment contract](contracts/experiment.md), [execution contract](contracts/execution.md) and [learning/discovery contract](contracts/learning-discovery.md).
+- [CLI contract](contracts/cli.md), [experiment contract](contracts/experiment.md), [execution contract](contracts/execution.md), [learning/discovery contract](contracts/learning-discovery.md) and [target/contingency contract](contracts/contingencies.md).
 
 ## Currently runnable design checks
 
@@ -41,7 +41,7 @@ python3 -S scripts/foundation_run.py discovery init \
   --output run-state/discovery/013-001/inputs
 ```
 
-Expected: blueprint, input/exposure inventory and explicitly named deficits. Resolve source/retained-artifact references locally. Inspect the proposed stage subset, trial spaces, task roster, all caps and estimated storage. The default subset is capability + diversity; select the full dependency graph only when its large finite reservation is intended. Freezing a blueprint is required before any research run, but defining it can use the already authorized study scope without asking permission at every internal gate.
+Expected: blueprint, input/exposure inventory and explicitly named deficits. Resolve source/retained-artifact references locally. Inspect the proposed stage subset, target classes, claim and diagnostic routes, trial spaces, task roster, all caps and estimated storage. The default subset is capability + diversity; select the full dependency graph only when its large finite reservation is intended. Freezing a blueprint is required before any research run, but defining it can use the already authorized study scope without asking permission at every internal gate.
 
 ```bash
 python3 -S scripts/foundation_run.py --engine podman discovery qualify \
@@ -65,7 +65,7 @@ python3 -S scripts/foundation_run.py --engine podman discovery run \
   --output run-state/discovery/013-001/execution
 ```
 
-Expected: actual CPU/native/HIP evidence, outcome-blind support census, immutable campaign, shortened all-stage acceptance labeled diagnostic, then only selected research stages. A sparse cohort, model infeasibility or incompatible receipt stops before dependent research. A negative research gate completes its experiment with a stop/inconclusive report, not a hidden retry. Record `mechanical_status` and `scientific_status` independently.
+Expected: actual CPU/native/HIP evidence, outcome-blind support census, immutable campaign, shortened all-stage acceptance labeled diagnostic, then only selected research stages. A sparse cohort, model infeasibility or incompatible receipt stops before dependent research. A negative research gate completes its experiment with its evidence verdict preserved. A separately frozen baseline/diagnostic action may proceed within its own allowance; otherwise the affected branch stops. Record `mechanical_status`, `scientific_status` and `next_action` independently.
 
 The reference recipe remains fixed for the first static/refreshed comparison. If qualification or a language audit proposes a new primitive/model family, its receipt and compatible child freeze must exist before that branch runs. The user can review one diagnostic package instead of uploading individual failure files.
 
@@ -104,4 +104,5 @@ Final assessment is a distinct `discovery assess` invocation with the frozen sel
 | Learned component and invalid expansion | Real proposal/verified update for valid component; invalid or cyclic expansion rejected |
 | Short combinatorial task | Real four-input update, restore and generation; exact n=0..8 scoring; no numeric padding or mixing into main 20/100 gate |
 | Refuted target/proof | Descendant quarantine and honest claim status |
+| Soft target missed / hard invariant violated | A pre-reserved diagnostic may inspect the first; the second stops/quarantines affected work. No failed gate becomes PASS |
 | Missing/truncated required report evidence | INCOMPLETE/invalid verification; original producer failure preserved |

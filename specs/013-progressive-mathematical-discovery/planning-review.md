@@ -14,3 +14,13 @@ Phase 0 research and Phase 1 design complete. This review validates design coher
 - Future CLI examples are explicitly labeled unavailable until implementation. Existing local design checks are separately identified. CPU tests, HIP qualification, acceptance, sustained runs and scientific gains are not claimed.
 
 Ready for dependency-ordered task generation. The specification-quality checklist is unchanged; this planning review does not reinterpret its marks as implementation completion.
+
+## Contingency review — 2026-11-08
+
+- Distinguished unconditional integrity, frozen execution ceilings, prospective claim criteria and soft research aspirations. Correctness and isolation cannot be traded for speed or a higher score. Proposed numerical research defaults may be calibrated before outcomes, never waived afterwards.
+- Separated evidence verdict from next action. Inconclusive evidence may justify one concretely frozen diagnostic; it cannot establish a positive learning claim. Valid baselines remain usable after a failed refresh/tuning branch.
+- Added bounded responses for weak learning, data difficulty, allocation, short-trial rank reversal, seed disagreement, incomplete scoring, sparse cohorts, plateaus, low OEIS yield, unhelpful components and unsuitable external sources. All five software capabilities still require acceptance, including negative outcomes.
+- Added cost, breadth, generation-tail, transfer, abstraction and measurement-efficiency aspirations; defined an optional prospective efficiency/noninferiority claim distinct from accuracy improvement.
+- Added outcome-blind sensitivity checks, including the distinction between detecting an effect and passing a point-estimate materiality cutoff. Optional confirmation looks and claim routes count in multiplicity; conditional family uncertainty is not seed-population uncertainty.
+- Reallocated 24h within the existing synthetic-scaling allowance: 168h routine plus 24h diagnostic, at most four diagnostic tasks of <=12h and <=24h combined. Training/campaign totals remain 536h/672h; smaller selected campaigns need their own explicitly frozen reserve.
+- Rechecked artifact links, requirement/outcome identities, branch prerequisites, budget arithmetic and whitespace. No runtime code, live training or qualification changed; CI was not awaited.

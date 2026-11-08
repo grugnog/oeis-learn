@@ -17,17 +17,17 @@ These commands are design contracts, not available commands at planning time. Im
 | verify-bundle | --archive FILE.zip --output NEW_DIR | Stdlib independent reconciliation and verified/incomplete/invalid terminal record; no engine |
 | assess | --campaign FILE --selection FILE --acceptance DIR --output NEW_DIR | Explicit locked final-model assessment after selection freeze; evidence cannot reenter adaptive stages |
 
-Blueprint `selected_stages` selects a closed dependency-respecting subset; defaults to capability + diversity rather than launching the maximum full-path reservation. Full-path blueprint explicitly includes all stages and finite budgets. Automated trial choices are deterministic children of frozen distributions, not unrestricted edits to immutable parents. Expanded primitive or source decisions requiring new runtime compatibility stop at a proposal boundary and require a new frozen child study.
+Blueprint `selected_stages` selects a closed dependency-respecting subset; defaults to capability + diversity rather than launching the maximum full-path reservation. Full-path blueprint explicitly includes all stages, finite budgets and any concrete contingency branches. No reserve implies permission to invent a new experiment after results. Status/report distinguish confirmed adoption from a bounded exploratory action. Automated trial choices are deterministic children of frozen distributions, not unrestricted edits to immutable parents. Expanded primitive or source decisions requiring new runtime compatibility stop at a proposal boundary and require a new frozen child study.
 
 Paths must be workspace-confined and exact. New outputs must be empty/nonexistent and ownership-tagged. An existing completed output is never overwritten. `init` reports missing workstation artifacts together in one inventory, rather than repeatedly asking for files; final freeze refuses guesses. Input archives are bounded/hash-verified before use.
 
 ## Results and exit semantics
 
-Every operation emits a sealed result record and one final JSON line containing campaign/stage/task IDs where applicable, mechanical_status, scientific_status, reason, evidence path and missing-evidence list. Progress lines are bounded and distinguish liveness from committed work. First producer failure and local traceback remain available; “private detail omitted” cannot be the only diagnostic.
+Every operation emits a sealed result record and one final JSON line containing campaign/stage/task IDs where applicable, mechanical_status, scientific_status (evidence_verdict), next_action, target_policy, reason, evidence path and missing-evidence list. Progress lines are bounded and distinguish liveness from committed work. First producer failure and local traceback remain available; “private detail omitted” cannot be the only diagnostic.
 
-- Exit 0: operation completed mechanically, including a correctly reported scientific STOP_NO_GAIN/STOP_REGRESSION. `scientific_status` remains decisive; exit 0 alone is not a positive gate.
+- Exit 0: operation completed mechanically, including a correctly reported NO_MATERIAL_GAIN/REGRESSION or an eligible bounded diagnostic action. `scientific_status` remains decisive; exit 0 alone is not a positive gate.
 - Exit 1: technical execution or publication failure; preserve the original cause plus collector failures.
-- Exit 2: blocked/incomplete prerequisites, support, budget or required evidence; do not launch dependent work.
+- Exit 2: blocked/incomplete prerequisites, support, budget or required evidence; do not launch the blocked dependency. A separately frozen diagnostic action must validate its own prerequisites and reservation before it can run.
 - Exit 3: integrity/contract mismatch or quarantined lineage; reject mutation/reuse.
 - Exit 130: operator interruption with explicit durable recovery status.
 

@@ -19,10 +19,12 @@ Initial maximum research reservation, subject to outcome-blind calibration and e
 | Diversity | 2 arms × 2 seeds × 1 task of 12h | 48h |
 | Tuning screen | 16 trials × 2h | 32h |
 | Finalist confirmation | baseline + at most 3 finalists × 2 seeds × 12h | 96h |
-| Synthetic scaling | 2 selected seeds × at most 4 continuation tasks × 24h, shared across 100M/400M milestones | 192h |
+| Synthetic scaling | 2 selected seeds, at most 8 total routine slots (each <=24h; aggregate <=168h), plus <=24h diagnostic pool | 192h |
 | OEIS pilot | 1 cycle × 2 arms (replay/continued synthetic) × 2 seeds × 24h | 96h |
 | Component pilot | library/no-library × 2 seeds × 12h | 48h |
 | External-source mixture pilot | with/without source × 2 seeds × 6h | 24h |
+
+The diagnostic pool is suballocated from scaling, not added: at most four diagnostic tasks, each <=12h and aggregate <=24h, with concrete triggers, ancillary reservations and maximum visits frozen under [contingencies.md](contingencies.md). A smaller stage subset does not inherit this pool automatically.
 
 This upper bound is **536 training-task hours**, not an ETA or an automatic booking. Reserve at most 24h acquisition, 24h mechanical/source preparation, 12h qualification/acceptance, 72h evaluation/analysis and 4h packaging outside those tasks: maximum campaign active sum **672h**, with measured concurrent overlaps reported separately. Heavy independent qualification or a source-specific image build that cannot fit must receive a new freeze before launch. Early failures/gates release unused reservation but never erase spent cost. The operator may freeze a smaller stage subset; the full feature remains implemented and testable. A further OEIS cycle is a new prospective study, not an unbounded repeat edge.
 
@@ -53,7 +55,7 @@ Atomic checkpoint cut contains weights, optimizer/scheduler, all RNG states, pen
 
 Use write-ahead reserve → perform → verify → commit for batch, target admission and library publication. Pending target bytes not covered by a committed admission record cannot train. Recovery reconciles new progress debits with the older full checkpoint and does not roll exposure back. Retried draws/verification remain charged. Idempotency key = campaign/task/operation/ordinal; replay returns the original committed output rather than applying it again.
 
-`resume` continues the same task's remaining allowance in a new owned invocation directory. A preallocated next task starts only after compatible boundary publication and the declared dependency/gate. No direct reopening of a terminal historical 012 run. A weights-only import starts a labeled child experiment with new optimizer/state; it does not claim exact continuation.
+`resume` continues the same task's remaining allowance in a new owned invocation directory. A preallocated next task starts only after compatible boundary publication and the declared dependency/gate or a separately frozen exploratory trigger. The evidence verdict and action remain distinct; exploratory work never marks a failed gate passed. No direct reopening of a terminal historical 012 run. A weights-only import starts a labeled child experiment with new optimizer/state; it does not claim exact continuation.
 
 Refutation appends a quarantine record and enumerates descendants through target → archive/library → checkpoint → dossier. Historical bytes and previous results remain readable but invalid for the affected claim. Resume from a clean ancestor retains spent cost and contamination history.
 

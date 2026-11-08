@@ -92,6 +92,14 @@ Persist ordered canonical proposal/result events before dispatch/after scoring. 
 
 **Alternatives**: Padding coefficients with zeros or flattening arbitrary object order invents an easy extrapolation problem. LMFDB/Cremona and knot data initially receive suitability reports addressing integral values, object relations, finite support, access terms and verification cost. Acquisition scripts are allowlisted; source-provided code is not executed automatically.
 
+## R12 — Separate scientific claims from experimental allocation
+
+**Decision**: Classify invariants, execution caps, claim criteria and soft aspirations; keep evidence verdict separate from next action. Permit only pre-reserved bounded diagnostics for inconclusive results, plus an optional prospectively registered efficiency/noninferiority route. Reallocate 24h within the existing scaling reservation rather than add to campaign totals.
+
+**Rationale**: A 2 pp target and 16-group panel can be underpowered; conservative censoring can exceed the entire effect or retention tolerance. Seed disagreement, slow learning and better compute efficiency pose different questions. Missing a promotion target is not equivalent to software failure or proof of no learning. Numbers such as 16 trials and 400M tokens are provisional study designs, not obligations to spend.
+
+**Alternatives**: Waiving failed gates contaminates claims; stopping all later work after any negative result wastes a usable baseline; unlimited exploratory retries spend resources and overfit evaluation. Use the finite contingency register and outcome-blind sensitivity checks instead.
+
 ## Unresolved runtime facts, not unresolved design
 
 Actual retained checkpoint/recipe hashes, available fresh groups, source permissions/snapshot bytes, qualified package versions and measured resource envelopes are mandatory freeze inputs. Their absence blocks a run with a named deficit. No experiment defaults may substitute guessed values. Design decisions and interfaces are resolved sufficiently for task generation; no NEEDS CLARIFICATION remains.
