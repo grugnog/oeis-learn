@@ -1,7 +1,7 @@
 {
   "schema_version": "review-disposition/v1",
   "phase": 13,
-  "code_revision": "Spec013 T040 shared logical updates and research optimizer policy; CPU acceptance only, no new hardware/research qualification",
+  "code_revision": "Spec013 durable trials, tuning and versioned complete-state adapter; CPU implementation only",
   "source_sha256": "sha256:fcf84cd2f6f420daf2f5ef3fe11beee0f04543aa5032bb580752347ae19b787a",
   "scope": "Original-input/task traceability with phase-13 code repairs. Missing source/model and phase-14 acceptance remain pending; no checklist grants release authorization.",
   "full_007_complete": false,
@@ -1755,7 +1755,7 @@
     }
   ],
   "original_inputs": 68,
-  "implementation_sha256": "sha256:c2c25deb6463bc51c8d024f54057f1a585420304126cbe1eca4f97f6592acf7b",
+  "implementation_sha256": "sha256:1a55bc2c227a2bc89e9a9ac1a3233bf411e57e1276d5b6c8718c07b7e6349c4c",
   "implementation_hash_method": "experiment_runner.implementation_identity()",
   "task_inventory_sha256": "sha256:87b554eb1482ac30aab8229d456b0f92665635c21ad210b150658a38f26b9053",
   "historical_template": {

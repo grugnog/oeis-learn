@@ -35,6 +35,14 @@ def execute(operation, *, inputs=Path("/inputs"), output=Path("/output/discovery
             if seal(value) != value:
                 raise ValueError("installed channel identity mismatch")
             values.append(value)
+    if operation == "propose-trial":
+        if len(values) != 1 or values[0]["kind"] != "search_space":
+            raise ValueError("one closed scalar-history proposal request required")
+        from oeis_learn.generalization.progressive.tuning import propose_request
+        proposal = propose_request(values[0]["data"], output / "journal")
+        atomic_write(output / "proposal.json", proposal)
+        return publish(output, operation=operation, mechanical_status="COMPLETE",
+                       reason="PROPOSAL_DURABLE_BEFORE_DISPATCH", metrics={"proposal": proposal["identity"]})
     if operation == "prepare-stream":
         policies = [v["data"] for v in values if v["kind"] == "generation_policy"]
         if len(policies) != 1 or any(v["kind"] != "generation_policy" for v in values):

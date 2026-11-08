@@ -1,13 +1,7 @@
 """T038 contracts for T041–T044 durable proposal/trial/pruning implementation."""
 
-import importlib.util
-
 import pytest
 
-pending = importlib.util.find_spec("oeis_learn.generalization.progressive.trials") is None
-pytestmark = pytest.mark.xfail(
-    pending, strict=True, reason="T041–T044 trial execution remains outside T025–T039"
-)
 
 
 def test_proposal_is_durable_before_dispatch_and_reused_after_interruption(tmp_path):

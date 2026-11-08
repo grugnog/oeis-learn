@@ -20,7 +20,7 @@ from oeis_learn.experiments.source_snapshot import source_snapshot
 # T038 includes explicit executable specifications for later T041-T044.
 # Their independent gold/Torch/Optuna tests remain mandatory in CPU_TESTS.
 DEFERRED_SPECIFICATIONS = (
-    "tests/unit/test_progressive_trial_specifications.py",
+    "tests/unit/test_progressive_contingencies.py",
 )
 HISTORICAL_TESTS = (
     "tests/contract/test_generalization_authority.py",

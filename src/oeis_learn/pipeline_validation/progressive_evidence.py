@@ -192,3 +192,16 @@ def diversity_report(static, refreshed, *, decision=None):
             "preparation_accounting": "shared preallocated shard production; do not add shared work twice",
         }
     )
+
+
+def tuning_report(rows):
+    """Public development-only ranking; screening is never confirmation."""
+    from oeis_learn.generalization.progressive.selection import rank
+    from oeis_learn.pipeline_validation.identity import seal
+    ranking = rank(rows)
+    return seal(dict(version="progressive-tuning-report/v1", scientific_status="UNMEASURED",
+        qualification_status="PENDING", ranking=ranking,
+        trials=[dict(r,learning_trial=i<12,size_trial=i>=12,
+                     performance_pruning_allowed=i not in (0,1) and i<12,
+                     grace_tokens=1000000) for i,r in enumerate(rows)],
+        missing=["actual_HIP_selected_shape_dropout_matrix","independent_confirmation"]))
