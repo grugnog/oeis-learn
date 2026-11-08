@@ -725,7 +725,20 @@ class RecoverableUpdate:
         return record
 
     def step(
-        self, sequences, tokens, *, entries, update, context, cuts, boot, monotonic_us, costs=None
+        self,
+        sequences,
+        tokens,
+        *,
+        entries,
+        update,
+        context,
+        cuts,
+        boot,
+        monotonic_us,
+        costs=None,
+        allocation=None,
+        fault_after_reserve=False,
+        progress=None,
     ):
         import copy
 
@@ -747,8 +760,23 @@ class RecoverableUpdate:
             batch, count, boot=boot, monotonic_us=monotonic_us, costs=costs
         )
         try:
-            metrics, ledger = self.runner.update(sequences, tokens, ledger=ledger)
+            if progress is not None:
+                progress.update(
+                    charged=ledger.consumed,
+                    discarded=ledger.consumed - self.recovery.state["useful_tokens"] - count,
+                    phase="UPDATE_IN_PROGRESS",
+                )
+            if fault_after_reserve:
+                if self.recovery.task["purpose"] != "acceptance":
+                    raise ValueError("diagnostic faults cannot enter research")
+                raise InterruptedError("diagnostic interruption after durable update debit")
+            metrics, ledger = self.runner.update(
+                sequences, tokens, ledger=ledger, allocation=allocation
+            )
             next_context = copy.deepcopy(context)
+            if allocation is not None:
+                next_context["scheduler"]["controller"] = allocation.snapshot()
+                cuts = dict(cuts, allocation=digest(allocation.snapshot()))
             next_context["history"][f"recovery-update/{update}"] = metrics
             next_context["data"] = {"cursor": ledger.updates, "pending_batch": None}
             record = self.recovery.commit(self.capture(next_context), ledger, cuts)
@@ -770,8 +798,21 @@ class Progress:
         self.last = None
         self.ordinal = 0
 
-    def sample(self, *, committed, charged, discarded, remaining, phase, device="cpu", force=False):
+    def sample(
+        self,
+        *,
+        committed,
+        charged,
+        discarded,
+        remaining,
+        phase,
+        device="cpu",
+        force=False,
+        last_boundary_age_us=None,
+        stalled_reason=None,
+    ):
         import shutil
+
         from oeis_learn.tracking.foundation_metrics import resource_metrics, sensor_metrics
 
         now = time.monotonic()
@@ -785,22 +826,24 @@ class Progress:
         self.output.mkdir(parents=True, exist_ok=True)
         disk = shutil.disk_usage(self.output)
         value = seal(
-            dict(
-                version="progressive-progress/v1",
-                phase=phase,
-                committed=committed,
-                charged=charged,
-                discarded=discarded,
-                remaining=remaining,
-                resources=resource_metrics(device),
-                sensors=sensor_metrics(device),
-                free_disk_bytes=disk.free,
-                memory_accounting="overlapping counters reported separately",
-                generation_tail=None,
-                queue=None,
-                fit=None,
-                unavailable_reason="requires generator/native producer clocks",
-            )
+            {
+                "version": "progressive-progress/v1",
+                "phase": phase,
+                "last_boundary_age_us": last_boundary_age_us,
+                "stalled_reason": stalled_reason,
+                "committed": committed,
+                "charged": charged,
+                "discarded": discarded,
+                "remaining": remaining,
+                "resources": resource_metrics(device),
+                "sensors": sensor_metrics(device),
+                "free_disk_bytes": disk.free,
+                "memory_accounting": "overlapping counters reported separately",
+                "generation_tail": None,
+                "queue": None,
+                "fit": None,
+                "unavailable_reason": "requires generator/native producer clocks",
+            }
         )
         if self.ordinal >= 65536:
             raise ValueError("bounded progress inventory exhausted")
@@ -835,9 +878,12 @@ class Progress:
 class Heartbeat:
     """Independent liveness sampling while a forward pass or checkpoint blocks."""
 
-    def __init__(self, progress, *, device, initial):
+    def __init__(self, progress, *, device, initial, clock=None):
         import threading
 
+        self.clock = clock
+        self.boundary = time.monotonic()
+        self.last_committed = initial["committed"]
         self.progress = progress
         self.device = device
         self.state = dict(initial)
@@ -848,6 +894,9 @@ class Heartbeat:
 
     def update(self, **values):
         with self.lock:
+            if values.get("committed", self.last_committed) != self.last_committed:
+                self.last_committed = values["committed"]
+                self.boundary = time.monotonic()
             self.state.update(values)
         if self.error is not None:
             raise RuntimeError("heartbeat publication failed") from self.error
@@ -855,13 +904,24 @@ class Heartbeat:
     def emit(self):
         with self.lock:
             value = dict(self.state)
+            value["last_boundary_age_us"] = int((time.monotonic() - self.boundary) * 1000000)
+            value["stalled_reason"] = (
+                "awaiting next complete update or owned termination"
+                if value["phase"] not in {"COMPLETE", "PAUSED", "PARTIAL", "FAILED"}
+                else None
+            )
+            if self.clock is not None:
+                value["remaining"] = {
+                    **value["remaining"],
+                    "elapsed_us": max(0, self.clock["end"] - time.monotonic_ns() // 1000),
+                }
         self.progress.sample(**value, device=self.device, force=True)
 
     def _run(self):
         while not self.stop_event.wait(self.progress.interval):
             try:
                 self.emit()
-            except BaseException as exc:
+            except Exception as exc:  # noqa: BLE001 -- retain the first sampler failure for the owning thread
                 self.error = exc
                 return
 

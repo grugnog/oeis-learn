@@ -249,3 +249,30 @@ def prepare_oeis_pool(root, snapshot_ref, members, *, exposure, output, count=51
             "claim": "training_feedback_only",
         }
     )
+
+
+def publish_training_input(
+    root, output, shards, profile, update_policy, *, diagnostic=False, refresh_updates=8
+):
+    """Freeze one bounded learner-only package, with no external pointer chasing."""
+    from oeis_learn.generalization.progressive.contracts import atomic_write
+    from oeis_learn.pipeline_validation.identity import confined, seal
+    from oeis_learn.pipeline_validation.progressive_training import PreparedSupport
+
+    support = PreparedSupport(
+        root, shards, arm="static", refresh_updates=refresh_updates, diagnostic=diagnostic
+    )
+    package = seal(
+        {
+            "version": "progressive-training-input/v1",
+            "profile": profile,
+            "update_policy": update_policy,
+            "shards": support.rows,
+            "layout": support.layout,
+            "refresh_updates": refresh_updates,
+            "scope": "DIAGNOSTIC_ONLY" if diagnostic else "NATIVE_VERIFIED",
+            "diagnostic_fault": None,
+        }
+    )
+    atomic_write(confined(root, output, exists=False), package)
+    return package

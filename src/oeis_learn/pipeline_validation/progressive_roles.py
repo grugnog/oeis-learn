@@ -43,7 +43,17 @@ ROLE_POLICY = digest(
     }
 )
 IMPLEMENTED = frozenset(
-    {"census", "audit-language", "publish", "generate", "score", "prepare-stream", "propose-trial", "admit-training"}
+    {
+        "census",
+        "audit-language",
+        "publish",
+        "generate",
+        "score",
+        "prepare-stream",
+        "propose-trial",
+        "admit-training",
+        "train",
+    }
 )
 
 
@@ -113,6 +123,10 @@ def _invoke_reserved(
         or journal.binding["caps"] != c["payload"]["caps"]
     ):
         raise ValueError("unrelated campaign journal")
+    if operation == "train" and any(reservation[k] for k in reservation if k != "elapsed_us"):
+        raise ValueError(
+            "learner reserves updates separately; enclosing role may reserve elapsed only"
+        )
     remaining = journal.task_remaining(t)
     vector(reservation)
     if reservation["elapsed_us"] != int(seconds * 1_000_000) or any(
@@ -166,13 +180,71 @@ def _invoke_reserved(
     mounted = [(str(path), "/inputs/" + channel, False) for channel, path in channels.items()] + [
         (str(role_output), "/output/discovery", True)
     ]
+    gpu = spec.gpu and not (operation == "train" and t["purpose"] == "acceptance")
+    if operation == "train":
+        from oeis_learn.generalization.progressive.contracts import atomic_write, seal
+
+        authority_dir = target / "authority"
+        authority_dir.mkdir()
+        invocation = uuid.uuid4().hex
+        # Host campaign invocation identifies exactly one pause namespace.
+        from .progressive_commands import _INVOCATION
+
+        invocation = _INVOCATION.get() or invocation
+        authority = seal(
+            {
+                "version": "progressive-supervisor/v1",
+                "campaign": c,
+                "task": t,
+                "clock": {
+                    "reservation_key": charge["key"],
+                    "boot": boot,
+                    "start_us": started_us,
+                    "end_us": started_us + reservation["elapsed_us"],
+                },
+                "invocation": invocation,
+            }
+        )
+        atomic_write(authority_dir / "supervisor.json", authority)
+        control = Path(root) / "run-state" / "discovery-control" / c["identity"].split(":")[1]
+        control.mkdir(parents=True, exist_ok=True)
+        states = Path(root) / "run-state" / "discovery-learning" / c["identity"].split(":")[1]
+        state = states / t["identity"].split(":")[1]
+        state.mkdir(parents=True, exist_ok=True)
+        mounted.append((str(state), "/learning-state", True))
+        parent_slot = t["payload"]["initializer"].get("parent_slot")
+        parent_task = t["payload"]["initializer"].get("parent_task")
+        if parent_slot or parent_task:
+            from oeis_learn.generalization.progressive.contracts import record
+
+            plan = next(
+                p
+                for p in c["payload"]["tasks"]
+                if (p["id"] == parent_task if parent_task else p["slot"] == parent_slot)
+                and p["arm"] == t["payload"]["arm"]
+                and p["seed"] == t["payload"]["seed"]
+            )
+            parent = record(
+                "task",
+                dict(plan, campaign=c["identity"]),
+                created_at=c["created_at"],
+                purpose=c["purpose"],
+                track=c["track"],
+            )
+            parent_state = confined(states, parent["identity"].split(":")[1])
+            mounted.append((str(parent_state), "/predecessor-state", False))
+        mounted += [
+            (str(authority_dir), "/authority", False),
+            (str(journal.root), "/accounting", True),
+            (str(control), "/control", False),
+        ]
     argv = [
         "python",
         "-u",
         "-c",
         diagnostic_program(
             "import runpy;runpy.run_module('oeis_learn.pipeline_validation.progressive_role',run_name='__main__')",
-            "discovery",
+            "discovery STARTUP; exposure unavailable until checkpoint verification; remaining deadline externally supervised",
         ),
         operation,
     ]
@@ -183,8 +255,8 @@ def _invoke_reserved(
         name=name,
         mounts=mounted,
         argv=argv,
-        gpu=spec.gpu,
-        render_node=host.policy.get("render_node") if spec.gpu else None,
+        gpu=gpu,
+        render_node=host.policy.get("render_node") if gpu else None,
         memory_bytes=host.policy["memory_bytes"],
         cpus=host.policy["cpus"],
         network=False,
@@ -199,7 +271,8 @@ def _invoke_reserved(
             target,
             deadline=deadline,
             cleanup_seconds=min(30, seconds / 5),
-            gpu=spec.gpu,
+            gpu=gpu,
+            allowed_returncodes=(0, 2),
         )
         journal.commit(
             charge["key"],
@@ -210,10 +283,43 @@ def _invoke_reserved(
         from oeis_learn.generalization.progressive.contracts import load
 
         result = load(role_output / "result.json")
-        if result.get("mechanical_status") not in {"COMPLETE", "PARTIAL", "FAILED", "BLOCKED"}:
-            raise ValueError("role missing terminal result")
+        from oeis_learn.pipeline_validation.identity import seal
+
+        if (
+            seal(result) != result
+            or result.get("version") != "discovery-result/v1"
+            or result.get("operation") != operation
+        ):
+            raise ValueError("role terminal identity/operation differs")
+        expected = {"COMPLETE": 0, "PARTIAL": 2, "BLOCKED": 2, "FAILED": 1, "INVALID": 1}
+        import json
+
+        process = json.loads((target / "supervision" / "process.json").read_text())
+        if (
+            result.get("mechanical_status") not in expected
+            or process.get("returncode") != expected[result["mechanical_status"]]
+        ):
+            raise ValueError("role process/result disagree")
         return result
     finally:
+        import json
+
+        cleanup = target / "supervision" / "cleanup.json"
+        process = target / "supervision" / "process.json"
+        if cleanup.is_file() and process.is_file():
+            q = json.loads(cleanup.read_text())
+            p = json.loads(process.read_text())
+            if (
+                q.get("within_bound") is True
+                and q.get("acknowledged") is True
+                and p.get("cleanup_failure") is None
+            ):
+                journal.commit(
+                    charge["key"],
+                    boot=boot,
+                    monotonic_us=time.monotonic_ns() // 1000,
+                    termination_proven=True,
+                )
         remove_projection(views)
 
 

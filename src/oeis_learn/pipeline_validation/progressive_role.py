@@ -10,7 +10,17 @@ from .progressive_evidence import failure, publish
 from .progressive_roles import IMPLEMENTED, REGISTRY
 
 
-def execute(operation, *, inputs=Path("/inputs"), output=Path("/output/discovery")):
+def execute(
+    operation,
+    *,
+    inputs=Path("/inputs"),
+    output=Path("/output/discovery"),
+    authority=Path("/authority/supervisor.json"),
+    accounting=Path("/accounting"),
+    control=Path("/control"),
+    state_root=Path("/learning-state"),
+    predecessor_state=Path("/predecessor-state"),
+):
     if operation not in IMPLEMENTED:
         raise ValueError("unsupported discovery operation")
     spec = REGISTRY[operation]
@@ -35,31 +45,78 @@ def execute(operation, *, inputs=Path("/inputs"), output=Path("/output/discovery
             if seal(value) != value:
                 raise ValueError("installed channel identity mismatch")
             values.append(value)
+    if operation == "train":
+        if len(values) != 1 or values[0]["kind"] != "training_request":
+            raise ValueError("one frozen training-only request required")
+        from oeis_learn.generalization.progressive.contracts import verify_refs
+        from oeis_learn.generalization.progressive.projections import _validate_channel
+        from oeis_learn.pipeline_validation.identity import confined
+
+        from .progressive_learner import compatibility, run
+
+        data = values[0]["data"]
+        _validate_channel("training_request", data)
+        verify_refs(inputs / "training", [data["artifact"]], max_bytes=256 << 20)
+        package = load(confined(inputs / "training", data["artifact"]["path"]), maximum=256 << 20)
+        if data["compatibility"] != compatibility(package):
+            raise ValueError("typed training compatibility differs")
+        return run(
+            package,
+            load(authority),
+            accounting=accounting,
+            control=control,
+            output=output,
+            state_root=state_root,
+            predecessor_state=predecessor_state,
+            initializer_root=inputs / "training",
+        )
     if operation == "admit-training":
         if any(v["kind"] not in {"candidate", "training_continuation"} for v in values):
             raise ValueError("admission role received excluded truth")
         candidates = [v["data"] for v in values if v["kind"] == "candidate"]
         members = [v["data"] for v in values if v["kind"] == "training_continuation"]
-        if len(candidates) != 1 or len(members) != 1 or set(candidates[0]) != {"task", "source"} or candidates[0]["task"] != members[0]["id"]:
+        if (
+            len(candidates) != 1
+            or len(members) != 1
+            or set(candidates[0]) != {"task", "source"}
+            or candidates[0]["task"] != members[0]["id"]
+        ):
             raise ValueError("one bound concrete candidate/training member required")
-        from oeis_learn.generalization.progressive.admission import admit
-        from oeis_learn.synthesis.client import SynthesisClient
-        from oeis_learn.pipeline_validation.identity import digest
         import os
+
+        from oeis_learn.generalization.progressive.admission import admit
+        from oeis_learn.pipeline_validation.identity import digest
+        from oeis_learn.synthesis.client import SynthesisClient
+
         with SynthesisClient(digest(members[0])) as client:
-            admission = admit(members[0], candidates[0]["source"], client=client,
-                              purpose=os.environ.get("OEIS_DISCOVERY_PURPOSE", "acceptance"))
+            admission = admit(
+                members[0],
+                candidates[0]["source"],
+                client=client,
+                purpose=os.environ.get("OEIS_DISCOVERY_PURPOSE", "acceptance"),
+            )
         atomic_write(output / "admission.json", admission)
-        return publish(output, operation=operation, mechanical_status="COMPLETE",
-                       reason="FINITE_TRAINING_ADMISSION", metrics={"admission": admission["identity"]})
+        return publish(
+            output,
+            operation=operation,
+            mechanical_status="COMPLETE",
+            reason="FINITE_TRAINING_ADMISSION",
+            metrics={"admission": admission["identity"]},
+        )
     if operation == "propose-trial":
         if len(values) != 1 or values[0]["kind"] != "search_space":
             raise ValueError("one closed scalar-history proposal request required")
         from oeis_learn.generalization.progressive.tuning import propose_request
+
         proposal = propose_request(values[0]["data"], output / "journal")
         atomic_write(output / "proposal.json", proposal)
-        return publish(output, operation=operation, mechanical_status="COMPLETE",
-                       reason="PROPOSAL_DURABLE_BEFORE_DISPATCH", metrics={"proposal": proposal["identity"]})
+        return publish(
+            output,
+            operation=operation,
+            mechanical_status="COMPLETE",
+            reason="PROPOSAL_DURABLE_BEFORE_DISPATCH",
+            metrics={"proposal": proposal["identity"]},
+        )
     if operation == "prepare-stream":
         policies = [v["data"] for v in values if v["kind"] == "generation_policy"]
         if len(policies) != 1 or any(v["kind"] != "generation_policy" for v in values):
@@ -222,6 +279,63 @@ def execute(operation, *, inputs=Path("/inputs"), output=Path("/output/discovery
     if operation == "publish":
         if any(v["kind"] != "public_evidence" for v in values):
             raise ValueError("public-only publication")
+        if len(values) == 1 and values[0]["data"].get("version") == "progressive-decision-input/v1":
+            from oeis_learn.generalization.progressive.decisions import publish as decide
+            from oeis_learn.pipeline_validation.identity import seal
+
+            data = values[0]["data"]
+            if set(data) != {
+                "version",
+                "source_slot",
+                "target_slot",
+                "rows",
+                "roster",
+                "seeds",
+                "design",
+                "policy",
+                "remaining",
+                "kwargs",
+            }:
+                raise ValueError("closed decision producer request required")
+            if set(data["kwargs"]) - {"target_id", "action", "trigger", "costs"}:
+                raise ValueError("closed comparison arguments required")
+            policy = data["policy"]
+            decision = decide(
+                data["rows"],
+                data["roster"],
+                data["seeds"],
+                data["design"],
+                policy=policy,
+                remaining=data["remaining"],
+                created_at=policy["created_at"],
+                purpose=policy["purpose"],
+                track=policy["track"],
+                **data["kwargs"],
+            )
+            bundle = seal(
+                {
+                    "version": "progressive-decision-bundle/v1",
+                    "source_slot": data["source_slot"],
+                    "target_slot": data["target_slot"],
+                    "decision": decision,
+                    "rows": data["rows"],
+                    "roster": data["roster"],
+                    "seeds": data["seeds"],
+                    "design": data["design"],
+                    "kwargs": data["kwargs"],
+                }
+            )
+            atomic_write(output / "decision-bundle.json", bundle)
+            return publish(
+                output,
+                operation=operation,
+                mechanical_status="COMPLETE",
+                scientific_status=decision["payload"]["evidence_verdict"],
+                next_action=decision["payload"]["next_action"],
+                target_policy=policy["identity"],
+                reason="RECOMPUTED_REGISTERED_DECISION",
+                metrics={"decision_bundle": reference(output, output / "decision-bundle.json")},
+            )
         # Initial collection only, not T080 independent bundle verification.
         atomic_write(output / "inventory.json", [v["identity"] for v in values])
         return publish(

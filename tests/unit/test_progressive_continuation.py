@@ -95,3 +95,24 @@ def test_unknown_or_nonancestor_parent_slot_rejected():
 
     with pytest.raises(ValueError):
         validate_task(seal(two), campaign=c)
+
+
+def test_preallocated_same_slot_continuation_after_terminal_partial(tmp_path):
+    c = campaign()
+    p = c["payload"]
+    second = p["tasks"][1]
+    second["slot"] = "capability"
+    second["stage"] = "capability"
+    second["initializer"].pop("parent_slot")
+    second["initializer"]["parent_task"] = "first"
+    p["graph"]["nodes"][0]["caps"] = {k: 2 * v for k, v in p["graph"]["nodes"][0]["caps"].items()}
+    c = validate_campaign(envelope("campaign", p))
+    _one, _two = tasks(c)
+    from oeis_learn.generalization.progressive.lifecycle import RunStore
+
+    store = RunStore(tmp_path / "control", c)
+    store.append({"tasks": {"first": "PARTIAL"}, "status": "PARTIAL", "invocation": "first"})
+    assert store.next_task()["payload"]["id"] == "second"
+    p["tasks"][1]["initializer"]["parent_task"] = "second"
+    with pytest.raises(ValueError):
+        validate_campaign(envelope("campaign", p))

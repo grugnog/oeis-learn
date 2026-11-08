@@ -6,6 +6,7 @@ not inferred from worker timestamps, files, or time spent powered off.
 """
 
 import copy
+from pathlib import Path
 
 from oeis_learn.generalization.budgets import Ledger, integer
 
@@ -15,15 +16,19 @@ from .contracts import atomic_write, digest, load, seal
 
 
 class Recovery:
-    def __init__(self, journal, task, compatibility):
+    def __init__(self, journal, task, compatibility, *, state_root=None):
         self.journal = journal
         self.task = validate_task(task)
         self.p = self.task["payload"]
         journal.task_remaining(task)  # bind stable identity/output/caps before I/O
-        self.root = journal.root / ("recovery-" + digest(self.p["id"]).split(":")[1])
+        self.root = (
+            Path(state_root)
+            if state_root is not None
+            else journal.root / ("recovery-" + digest(self.p["id"]).split(":")[1])
+        )
         if self.root.is_symlink() or (self.root / "checkpoints").is_symlink():
             raise ValueError("symlink recovery storage")
-        self.root.mkdir(exist_ok=True)
+        self.root.mkdir(parents=True, exist_ok=True)
         self.compatibility = compatibility
         self.lease = TaskLease(journal.root, task)
         self.owned = False
@@ -149,9 +154,12 @@ class Recovery:
         parent.read()
         if (
             self.state["checkpoint"] is not None
-            or self.state["status"] != "NEW"
-            or self.p["initializer"].get("parent_slot") != parent.p["slot"]
-            or parent.state["status"] not in {"COMPLETE", "PARTIAL"}
+            or self.state["status"] not in {"NEW", "RUNNING"}
+            or not (
+                self.p["initializer"].get("parent_slot") == parent.p["slot"]
+                or self.p["initializer"].get("parent_task") == parent.p["id"]
+            )
+            or parent.state["status"] not in {"COMPLETE", "PARTIAL", "FAILED"}
             or self.p["arm"] != parent.p["arm"]
             or self.p["seed"] != parent.p["seed"]
         ):
@@ -218,7 +226,7 @@ class Recovery:
     def begin(self, *, boot, monotonic_us):
         integer(monotonic_us)
         self.read()
-        if self.state["status"] in {"PARTIAL", "COMPLETE"}:
+        if self.state["status"] in {"PARTIAL", "COMPLETE", "FAILED"}:
             raise ValueError("terminal task requires a separately reserved compatible next task")
         # Any unclosed invocation on any boot has no trustworthy end proof.
         # A proven supervisor close covers orphan zero-time update debits too.
@@ -265,7 +273,7 @@ class Recovery:
     def attach(self, authority):
         """Adopt a reservation made by the external supervisor, without refund rights."""
         self.read()
-        if self.state["status"] in {"COMPLETE", "PARTIAL"}:
+        if self.state["status"] in {"COMPLETE", "PARTIAL", "FAILED"}:
             raise ValueError("terminal task cannot restart")
         with self.journal.lock():
             _, pending, _, _, _ = self.journal._read()

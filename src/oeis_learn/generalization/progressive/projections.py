@@ -19,7 +19,14 @@ CHANNELS = {
         "generation_policy",
         "reference_tool",
     },
-    "training": {"mechanical_shard", "admitted_target", "reward_probe", "full_state", "library"},
+    "training": {
+        "training_request",
+        "mechanical_shard",
+        "admitted_target",
+        "reward_probe",
+        "full_state",
+        "library",
+    },
     "visible": {"visible_prompt"},
     "model": {"checkpoint", "recipe", "library"},
     "candidates": {"candidate"},
@@ -72,10 +79,16 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
     refs = [a.ref for a in all_artifacts]
     nested = []
     for descriptor in all_artifacts:
-        if descriptor.kind in {"checkpoint", "recipe"}:
+        if descriptor.kind in {"checkpoint", "recipe", "training_request"}:
             data = load(confined(root, descriptor.ref["path"]))["data"]
             _validate_channel(descriptor.kind, data)
+            if descriptor.kind == "training_request" and data["artifact"]["bytes"] > 256 << 20:
+                raise ValueError("bounded training package required")
             nested.append(data["artifact"])
+            if descriptor.kind == "training_request":
+                package = load(confined(root, data["artifact"]["path"]), maximum=256 << 20)
+                if package.get("weights") is not None:
+                    nested.append(package["weights"])
     verify_refs(root, refs)
     # Metadata is not a substitute for verifying the actual mounted weights.
     unique_nested = {r["path"]: r for r in nested}
@@ -127,7 +140,7 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                 target = folder / (item.identity.removeprefix("sha256:") + ".json")
                 shutil.copyfile(confined(root, item.ref["path"]), target)
                 target.chmod(0o444)
-                if item.kind in {"checkpoint", "recipe"}:
+                if item.kind in {"checkpoint", "recipe", "training_request"}:
                     ref = load(confined(root, item.ref["path"]))["data"]["artifact"]
                     raw = confined(folder, ref["path"], exists=False)
                     if raw.exists():
@@ -135,6 +148,16 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                     raw.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(confined(root, ref["path"]), raw)
                     raw.chmod(0o444)
+                    if item.kind == "training_request":
+                        package = load(confined(root, ref["path"]), maximum=256 << 20)
+                        if package.get("weights") is not None:
+                            weights = package["weights"]
+                            target_weights = confined(folder, weights["path"], exists=False)
+                            if target_weights.exists():
+                                raise ValueError("duplicate weights-only projection path")
+                            target_weights.parent.mkdir(parents=True, exist_ok=True)
+                            shutil.copyfile(confined(root, weights["path"]), target_weights)
+                            target_weights.chmod(0o444)
             for child in folder.rglob("*"):
                 if child.is_dir():
                     child.chmod(0o555)
@@ -175,6 +198,18 @@ def _validate_channel(kind, data):
 
         number(data["value"])
         number(data["coordinate"])
+    if kind == "training_request":
+        if (
+            not isinstance(data, dict)
+            or set(data) != {"membership", "artifact", "compatibility", "profile"}
+            or data["membership"] != "training"
+            or data["profile"] != "bigint-body/v1"
+        ):
+            raise ValueError("closed learner-only training request required")
+        from .contracts import _check, schema
+
+        _check(schema("common")["$defs"]["artifact"], data["artifact"], schema("common"))
+        _check(schema("common")["$defs"]["hash"], data["compatibility"], schema("common"))
     if kind in {"checkpoint", "recipe", "library", "full_state"}:
         if not isinstance(data, dict) or not {"artifact", "compatibility", "profile"} <= set(
             data

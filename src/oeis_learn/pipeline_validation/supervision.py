@@ -31,7 +31,7 @@ try:
 
 
 def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartbeat=30,
-           cleanup_state=None, grace_seconds=None):
+           cleanup_state=None, grace_seconds=None,allowed_returncodes=(0,)):
     output=Path(output); output.mkdir(parents=True,exist_ok=True)
     start=time.monotonic();next_beat=start+heartbeat
     process=None;omitted={'stdout':0,'stderr':0}
@@ -65,7 +65,7 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
                     rest=block[keep:]
                     if rest and tail_cap:tails[key.data]=(tails[key.data]+rest)[-tail_cap:]
                     omitted[key.data]=received[key.data]-stream.tell()-len(tails[key.data])
-            if process.returncode:
+            if process.returncode not in allowed_returncodes:
                 raise RuntimeError(f'exit {process.returncode}: {output}/stderr.log')
     except KeyboardInterrupt:
         interrupted=True;outcome='INTERRUPTED';failure='KeyboardInterrupt'

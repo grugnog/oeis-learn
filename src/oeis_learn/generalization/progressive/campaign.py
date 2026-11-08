@@ -19,8 +19,14 @@ def validate_task(task, *, campaign=None, track=None, compatibility=None):
     if task["purpose"] == "research" and p["finalization_us"] < 1_800_000_000:
         raise ValueError("research finalization reserve below 30 minutes")
     init = p["initializer"]
-    future = init["mode"] == "full_state" and init["artifact"] is None and "parent_slot" in init
-    if "parent_slot" in init and not future:
+    future = (
+        init["mode"] == "full_state"
+        and init["artifact"] is None
+        and ("parent_slot" in init or "parent_task" in init)
+    )
+    if ("parent_slot" in init or "parent_task" in init) and (
+        not future or {"parent_slot", "parent_task"} <= set(init)
+    ):
         raise ValueError("parent slot requires an unresolved full-state successor")
     if not future and (init["mode"] == "random") != (init["artifact"] is None):
         raise ValueError("explicit compatible initializer required")
@@ -61,12 +67,32 @@ def validate_campaign(campaign):
         if plan["kind"] == "training" and plan["caps"]["elapsed_us"] > 86_400_000_000:
             raise ValueError("training ceiling")
         init = plan["initializer"]
-        future = init["mode"] == "full_state" and init["artifact"] is None and "parent_slot" in init
+        future = (
+            init["mode"] == "full_state"
+            and init["artifact"] is None
+            and ("parent_slot" in init or "parent_task" in init)
+        )
+        if "parent_task" in init:
+            parents = [
+                t
+                for t in plans[: plans.index(plan)]
+                if t["id"] == init["parent_task"]
+                and (t["slot"] == plan["slot"] or t["slot"] in slots[plan["slot"]]["dependencies"])
+                and t["arm"] == plan["arm"]
+                and t["seed"] == plan["seed"]
+            ]
+            if (
+                not future
+                or "parent_slot" in init
+                or len(parents) != 1
+                or parents[0]["initializer"]["compatibility"] != init["compatibility"]
+            ):
+                raise ValueError("one earlier compatible task in the same finite slot required")
         if "parent_slot" in init and (
             not future or init["parent_slot"] not in slots[plan["slot"]]["dependencies"]
         ):
             raise ValueError("successor initializer must name a frozen predecessor slot")
-        if future:
+        if future and "parent_slot" in init:
             parents = [
                 t
                 for t in plans
@@ -79,7 +105,7 @@ def validate_campaign(campaign):
                 or parents[0]["initializer"]["compatibility"] != init["compatibility"]
             ):
                 raise ValueError("one compatible paired predecessor required")
-        elif init["mode"] != "random" and init["artifact"] is None:
+        elif not future and init["mode"] != "random" and init["artifact"] is None:
             raise ValueError("missing initializer")
     for slot in slots:
         children = [t for t in plans if t["slot"] == slot]

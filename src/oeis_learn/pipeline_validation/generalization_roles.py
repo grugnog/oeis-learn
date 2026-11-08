@@ -14,7 +14,7 @@ runpy.run_module('oeis_learn.pipeline_validation.generalization_role',run_name='
 """
 
 
-def supervise_owned(host,name,command,target,*,deadline,cleanup_seconds,gpu=False,launcher=None):
+def supervise_owned(host,name,command,target,*,deadline,cleanup_seconds,gpu=False,launcher=None,allowed_returncodes=(0,)):
     """Shared external watchdog and bounded reclamation for registered roles."""
     import json
     from contextlib import nullcontext
@@ -26,12 +26,13 @@ def supervise_owned(host,name,command,target,*,deadline,cleanup_seconds,gpu=Fals
             work_seconds=remaining_seconds(deadline)-cleanup_seconds
             if work_seconds<=0:raise TimeoutError('role startup exhausted work allowance')
             (launcher or launch)(command,Path(target)/'supervision',seconds=work_seconds,
-                stream_cap=1<<20,cleanup_seconds=cleanup_seconds,cleanup_state=cleanup)
+                stream_cap=1<<20,cleanup_seconds=cleanup_seconds,cleanup_state=cleanup,
+                **({'allowed_returncodes':allowed_returncodes} if allowed_returncodes!=(0,) else {}))
     finally:
         reclaim(host.engine,name,Path(target)/'supervision',cleanup)
     for name in ('process','cleanup'):
         record=json.loads((Path(target)/'supervision'/(name+'.json')).read_text())
-        if name=='process' and (record.get('outcome')!='COMPLETE' or record.get('returncode')!=0 or record.get('cleanup_failure') is not None):raise ValueError('role process failed')
+        if name=='process' and (record.get('outcome')!='COMPLETE' or record.get('returncode') not in allowed_returncodes or record.get('cleanup_failure') is not None):raise ValueError('role process failed')
         if name=='cleanup' and (record.get('within_bound') is not True or record.get('acknowledged') is not True):raise ValueError('role cleanup incomplete')
 
 

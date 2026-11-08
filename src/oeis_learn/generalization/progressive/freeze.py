@@ -2,17 +2,19 @@
 
 import json
 import shutil
-from .contracts import validate, record, load, verify_refs, reference, digest
-from .campaign import validate_campaign, validate_task, validate_runtime
-from .targets import validate_policy
+
 from oeis_learn.pipeline_validation.identity import confined
+
+from .campaign import validate_campaign, validate_runtime, validate_task
+from .contracts import digest, load, record, reference, validate, verify_refs
+from .targets import validate_policy
 
 
 def inventory(root, reference_campaign):
     """Audit explicit retained files only; collect all missing refs in one pass."""
     base = confined(root, reference_campaign, exists=False)
     if not base.is_dir():
-        return dict(references=[], unresolved=["reference_campaign"])
+        return {"references": [], "unresolved": ["reference_campaign"]}
     names = (
         "campaign.json",
         "study.json",
@@ -52,12 +54,12 @@ def inventory(root, reference_campaign):
             verify_refs(root, [r])
             value = load(path)
             refs.append(
-                dict(
-                    name=name,
-                    role="custodian",
-                    kind="recipe" if name == "recipe.json" else "source",
-                    artifact=r,
-                )
+                {
+                    "name": name,
+                    "role": "custodian",
+                    "kind": "recipe" if name == "recipe.json" else "source",
+                    "artifact": r,
+                }
             )
         except (ValueError, OSError):
             missing.append(name + ":invalid")
@@ -87,7 +89,12 @@ def inventory(root, reference_campaign):
                 seen.add(resolved["path"])
                 queue.append(resolved)
                 refs.append(
-                    dict(name=resolved["path"], role="custodian", kind="source", artifact=resolved)
+                    {
+                        "name": resolved["path"],
+                        "role": "custodian",
+                        "kind": "source",
+                        "artifact": resolved,
+                    }
                 )
             except (OSError, ValueError):
                 missing.append("artifact:" + child["path"])
@@ -100,7 +107,7 @@ def inventory(root, reference_campaign):
     ):
         if not any(r["name"] == required for r in refs):
             missing.append(required)
-    return dict(references=refs, unresolved=sorted(set(missing)))
+    return {"references": refs, "unresolved": sorted(set(missing))}
 
 
 def freeze(
@@ -194,10 +201,15 @@ def freeze(
         ):
             raise ValueError("unresolved task policy or incompatible initializer")
         initializer = plan["initializer"]
-        if initializer["mode"] == "full_state":
-            # Complete-state support belongs to T049/T050. Historical states
-            # cannot be relabeled as exact discovery continuation meanwhile.
-            raise ValueError("discovery full-state continuation not implemented")
+        if initializer["mode"] == "full_state" and not (
+            {"parent_slot", "parent_task"} & set(initializer)
+        ):
+            candidate = validate("state", load(confined(root, initializer["artifact"]["path"])))
+            if (
+                candidate["payload"]["compatibility"] != compatibility
+                or candidate["payload"]["kind"] != "full_state"
+            ):
+                raise ValueError("incompatible discovery full-state initializer")
         if initializer["artifact"] is not None:
             if initializer["artifact"] not in declared_checkpoints:
                 raise ValueError("initializer is not a permitted checkpoint")
@@ -218,26 +230,26 @@ def freeze(
         raise IncompleteFreeze(["storage_bytes" if required_bytes > free else "storage_inodes"])
     campaign = record(
         "campaign",
-        dict(
-            blueprint=b["identity"],
-            runtime=runtime["identity"],
-            graph=q["graph"],
-            tasks=q["task_plans"],
-            references=refs,
-            caps=q["caps"],
-            storage=dict(
-                checkpoint_bytes=measured,
-                atomic_generations=2,
-                milestone_pins=q["milestone_pins"],
-                shard_bytes=q["shard_bytes"],
-                package_bytes=q["package_bytes"],
-                required_bytes=required_bytes,
-                available_bytes=free,
-                required_inodes=q["required_inodes"],
-                available_inodes=inodes,
-            ),
-            target_policy=policy["identity"],
-        ),
+        {
+            "blueprint": b["identity"],
+            "runtime": runtime["identity"],
+            "graph": q["graph"],
+            "tasks": q["task_plans"],
+            "references": refs,
+            "caps": q["caps"],
+            "storage": {
+                "checkpoint_bytes": measured,
+                "atomic_generations": 2,
+                "milestone_pins": q["milestone_pins"],
+                "shard_bytes": q["shard_bytes"],
+                "package_bytes": q["package_bytes"],
+                "required_bytes": required_bytes,
+                "available_bytes": free,
+                "required_inodes": q["required_inodes"],
+                "available_inodes": inodes,
+            },
+            "target_policy": policy["identity"],
+        },
         created_at=p["created_at"],
         parents=[b["identity"], p["identity"], runtime["identity"]],
         purpose=b["purpose"],
@@ -275,6 +287,44 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
         raise ValueError("selected target policy is not a declared input")
     from oeis_learn.fresh.bigint_config import resolve
 
+    learner_packages = []
+    for item in grouped.get("prepared", []):
+        envelope = load(confined(root, item["artifact"]["path"]), maximum=256 << 20)
+        if (
+            envelope.get("version") == "discovery-channel/v1"
+            and envelope.get("kind") == "training_request"
+        ):
+            from oeis_learn.pipeline_validation.identity import seal
+            from oeis_learn.pipeline_validation.progressive_learner import (
+                compatibility,
+                validate_input,
+            )
+
+            from .projections import _validate_channel
+
+            if (
+                seal(envelope) != envelope
+                or envelope.get("role") != "learner"
+                or item["role"] != "learner"
+            ):
+                raise ValueError("frozen training request role/identity differs")
+            data = envelope["data"]
+            _validate_channel("training_request", data)
+            raw = verify_refs(root, [data["artifact"]], max_bytes=256 << 20)[0]
+            package = json.loads(raw)
+            validate_input(
+                package,
+                {
+                    "purpose": runtime["purpose"],
+                    "payload": {
+                        "seed": package["profile"]["model"]["seed"],
+                        "initializer": {"compatibility": compatibility(package)},
+                    },
+                },
+            )
+            if data["compatibility"] != compatibility(package):
+                raise ValueError("declared training compatibility differs")
+            learner_packages.append(package)
     recipes = []
     for item in grouped["recipe"]:
         recipe = load(confined(root, item["artifact"]["path"]))
@@ -283,8 +333,18 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
         if recipe["execution"]["language"] != scope["language"]:
             raise ValueError("recipe/runtime language differs")
         model = digest({k: v for k, v in recipe["model"].items() if k != "seed"})
-        if model != scope["model"]:
+        qualified_models = (
+            {
+                digest({k: v for k, v in p["profile"]["model"].items() if k != "seed"})
+                for p in learner_packages
+            }
+            if learner_packages
+            else {model}
+        )
+        if qualified_models != {scope["model"]}:
             raise ValueError("recipe/model qualification differs")
+        if any(p["profile"]["base_recipe"] != recipe for p in learner_packages):
+            raise ValueError("research profiles require the declared resolved base recipe")
         if track == "synthetic_strict" and recipe["track"]["kind"] != "generic_only":
             raise ValueError("assisted recipe cannot be strict")
         recipes.append(recipe)
@@ -304,23 +364,28 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
             raise ValueError("wrong grouping track")
     if len(recipes) != 1:
         raise ValueError("one resolved initial recipe required")
+    if learner_packages:
+        identities = {compatibility(p) for p in learner_packages}
+        if len(identities) != 1:
+            raise ValueError("one frozen compatible learning trajectory required")
+        return identities.pop()
     return learning_compatibility(recipes[0], refs, scope, track)
 
 
 def learning_compatibility(recipe, refs, scope, track):
     """Learning semantics exclude task output paths, elapsed caps and seed choice."""
     return digest(
-        dict(
-            model={k: v for k, v in recipe["model"].items() if k != "seed"},
-            learning=recipe["learning"],
-            inputs=recipe["inputs"],
-            execution=recipe["execution"],
-            execution_policy=scope["execution_policy"],
-            track=track,
-            support=sorted(
+        {
+            "model": {k: v for k, v in recipe["model"].items() if k != "seed"},
+            "learning": recipe["learning"],
+            "inputs": recipe["inputs"],
+            "execution": recipe["execution"],
+            "execution_policy": scope["execution_policy"],
+            "track": track,
+            "support": sorted(
                 r["artifact"]["sha256"] for r in refs if r["kind"] in {"source", "policy"}
             ),
-        )
+        }
     )
 
 

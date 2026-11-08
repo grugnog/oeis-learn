@@ -99,7 +99,7 @@ def status(args, root):
     folder = confined(root, args.run)
     from oeis_learn.pipeline_validation.identity import seal
 
-    if (folder / "run.json").is_file() and not (folder / "result.json").is_file():
+    if (folder / "run.json").is_file():
         manifest = load(folder / "run.json")
         if seal(manifest) != manifest:
             raise ValueError("run manifest changed")
@@ -109,7 +109,7 @@ def status(args, root):
         store = object.__new__(RunStore)
         store.root = confined(
             root,
-            "run-state/discovery-accounting/" + campaign["identity"].split(":")[1] + "/control",
+            "run-state/discovery-control/" + campaign["identity"].split(":")[1],
             exists=False,
         )
         store.campaign = campaign
@@ -377,7 +377,9 @@ def lifecycle_command(args, root, host_factory):
     folder = confined(
         root, "run-state/discovery-accounting/" + campaign["identity"].split(":")[1], exists=False
     )
-    control = folder / "control"
+    control = confined(
+        root, "run-state/discovery-control/" + campaign["identity"].split(":")[1], exists=False
+    )
     if args.operation == "pause":
         if not (control / "campaign.json").is_file():
             raise ValueError("owned campaign run required")
@@ -444,57 +446,109 @@ def lifecycle_command(args, root, host_factory):
     checked = current_runtime(host, root, output, runtime, producer_root=producer_root)
     store = RunStore(control, campaign)
     journal = BudgetJournal(folder, campaign["identity"], campaign["payload"]["caps"])
-    store.append(
-        {"tasks": store.state["tasks"], "status": "RUNNING", "invocation": _INVOCATION.get()}
-    )
-    for _ in range(len(campaign["payload"]["tasks"])):
-        task = store.next_task()
-        if task is None:
-            break
-        request_refs = [
-            r["artifact"]
-            for r in campaign["payload"]["references"]
-            if r["kind"] == "policy" and r["artifact"]["sha256"] == task["payload"]["policy"]
-        ]
-        if len(request_refs) != 1:
-            return publish(
-                output,
-                operation=args.operation,
-                mechanical_status="PARTIAL",
-                campaign=campaign["identity"],
-                reason="TASK_REQUEST_DEFICIT",
-                missing=["frozen_task_request"],
-            ), 2
-        request = json.loads(verify_refs(root, request_refs)[0])
-        if set(request) != {"operation", "artifacts", "image", "seconds", "reservation"}:
-            raise ValueError("closed installed task request required")
-        artifacts = [describe(root, p) for p in request["artifacts"]]
-        result = invoke(
-            host,
-            request["image"],
-            root,
-            request["operation"],
-            artifacts,
-            output=str((output / ("task-" + task["identity"].split(":")[1])).relative_to(root)),
-            campaign=campaign,
-            task=task,
-            journal=journal,
-            ordinal=store.ordinal,
-            reservation=request["reservation"],
-            seconds=request["seconds"],
-            runtime=checked,
+    with store.lease():
+        store.append(
+            {"tasks": store.state["tasks"], "status": "RUNNING", "invocation": _INVOCATION.get()}
         )
-        store.boundary(task, result["mechanical_status"], _INVOCATION.get())
-        if store.state["status"] == "PAUSED" or result["mechanical_status"] != "COMPLETE":
-            break
-    done = all(
-        store.state["tasks"].get(t["id"]) == "COMPLETE" for t in campaign["payload"]["tasks"]
-    )
-    return publish(
-        output,
-        operation=args.operation,
-        campaign=campaign["identity"],
-        mechanical_status="COMPLETE" if done else "PARTIAL",
-        reason="FINITE_DAG_COMPLETE" if done else "NO_ELIGIBLE_RESERVED_NEXT_TASK",
-        missing=[] if done else ["eligible_reserved_next_slot"],
-    ), 0 if done else 2
+        for _ in range(len(campaign["payload"]["tasks"])):
+            task = store.next_task()
+            if task is None:
+                break
+            request_refs = [
+                r["artifact"]
+                for r in campaign["payload"]["references"]
+                if r["kind"] == "policy" and r["artifact"]["sha256"] == task["payload"]["policy"]
+            ]
+            if len(request_refs) != 1:
+                return publish(
+                    output,
+                    operation=args.operation,
+                    mechanical_status="PARTIAL",
+                    campaign=campaign["identity"],
+                    reason="TASK_REQUEST_DEFICIT",
+                    missing=["frozen_task_request"],
+                ), 2
+            request = json.loads(verify_refs(root, request_refs)[0])
+            if set(request) != {"operation", "artifacts", "image", "seconds", "reservation"}:
+                raise ValueError("closed installed task request required")
+            from .progressive_roles import IMPLEMENTED, REGISTRY
+
+            if request["operation"] not in IMPLEMENTED:
+                return publish(
+                    output,
+                    operation=args.operation,
+                    mechanical_status="BLOCKED",
+                    reason="REGISTERED_OPERATION_PENDING",
+                    missing=[request["operation"]],
+                    campaign=campaign["identity"],
+                ), 2
+            if not isinstance(request["artifacts"], dict) or set(request["artifacts"]) != set(
+                REGISTRY[request["operation"]].channels
+            ):
+                raise ValueError("frozen exact role channel map required")
+            artifacts = {
+                channel: [describe(root, p) for p in paths]
+                for channel, paths in request["artifacts"].items()
+            }
+            remaining = journal.task_remaining(task)
+            seconds = request["seconds"]
+            reservation = dict(request["reservation"])
+            if request["operation"] == "train":
+                if (
+                    not remaining["tokens"]
+                    or remaining["elapsed_us"]
+                    <= task["payload"]["startup_us"] + task["payload"]["finalization_us"]
+                ):
+                    from oeis_learn.generalization.progressive.recovery import Recovery
+
+                    state_root = confined(
+                        root,
+                        "run-state/discovery-learning/"
+                        + campaign["identity"].split(":")[1]
+                        + "/"
+                        + task["identity"].split(":")[1],
+                        exists=False,
+                    )
+                    with Recovery(
+                        journal,
+                        task,
+                        task["payload"]["initializer"]["compatibility"],
+                        state_root=state_root,
+                    ) as recovery:
+                        recovery.append(status="PARTIAL")
+                    store.boundary(task, "PARTIAL", _INVOCATION.get())
+                    continue
+                seconds = min(seconds, remaining["elapsed_us"] / 1000000)
+                reservation["elapsed_us"] = int(seconds * 1000000)
+            result = invoke(
+                host,
+                request["image"],
+                root,
+                request["operation"],
+                artifacts,
+                output=str((output / ("task-" + task["identity"].split(":")[1])).relative_to(root)),
+                campaign=campaign,
+                task=task,
+                journal=journal,
+                ordinal=store.ordinal,
+                reservation=reservation,
+                seconds=seconds,
+                runtime=checked,
+            )
+            task_status = result.get("metrics", {}).get("task_status", result["mechanical_status"])
+            if task_status in {"INVALID", "BLOCKED"}:
+                task_status = "FAILED"
+            store.boundary(task, task_status, _INVOCATION.get())
+            if store.state["status"] == "PAUSED" or task_status == "FAILED":
+                break
+        done = all(
+            store.state["tasks"].get(t["id"]) == "COMPLETE" for t in campaign["payload"]["tasks"]
+        )
+        return publish(
+            output,
+            operation=args.operation,
+            campaign=campaign["identity"],
+            mechanical_status="COMPLETE" if done else "PARTIAL",
+            reason="FINITE_DAG_COMPLETE" if done else "NO_ELIGIBLE_RESERVED_NEXT_TASK",
+            missing=[] if done else ["eligible_reserved_next_slot"],
+        ), 0 if done else 2
