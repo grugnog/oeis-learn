@@ -153,14 +153,18 @@ def candidates(*,nested=()):
         role=f'{case}/validation/role'
         yield role+'/result.json'
         for name in CONTROL:yield role+'/supervision/'+name
-    for stage in ('image.qualification','cpu.semantic','image.gpu','hip.preflight'):
-        yield f'qualify/pipeline/stages/{stage}/receipt.json'
-        yield f'qualify/pipeline/stages/{stage}/inspection/cleanup.json'
-        for name in CONTROL:yield f'qualify/pipeline/stages/{stage}/inspection/logs/{name}'
-    for stage,suite in (('cpu.semantic','bigint-cpu'),('hip.preflight','bigint-gpu')):
-        for step in ('environment',suite+'-regressions'):
-            for name in (*CONTROL,'receipt.json','results.xml'):
-                yield f'qualify/pipeline/stages/{stage}/{step}/{name}'
+    # The serial runner calls this directory qualify; selector probes use
+    # qualification. Keep both fixed layouts without traversing private roles.
+    for base in ('qualify','qualification'):
+        yield f'{base}/pipeline/summary.json'
+        for stage in ('image.qualification','cpu.semantic','image.gpu','hip.preflight'):
+            yield f'{base}/pipeline/stages/{stage}/receipt.json'
+            yield f'{base}/pipeline/stages/{stage}/inspection/cleanup.json'
+            for name in CONTROL:yield f'{base}/pipeline/stages/{stage}/inspection/logs/{name}'
+        for stage,suite in (('cpu.semantic','bigint-cpu'),('hip.preflight','bigint-gpu')):
+            for step in ('environment',suite+'-regressions'):
+                for name in (*CONTROL,'receipt.json','results.xml'):
+                    yield f'{base}/pipeline/stages/{stage}/{step}/{name}'
     yield 'report/inspection/cleanup.json'
     for name in CONTROL:yield 'report/inspection/logs/'+name
 

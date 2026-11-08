@@ -28,6 +28,14 @@ where F:FnMut(&str,&[String],&Resources)->Result<Vec<String>,String>,
             Solution::Unique(xs)=>{if xs.iter().any(|n|bits(n)>4096){return Err("coefficient_limit".into());}discovered.push(xs);uniqueness="unique_in_scope".into();scope=4096;},
             Solution::Inconsistent|Solution::NonIntegral=>{scope=4096;proof=Some(evidence::record(source,indices,values,r,&problem,4096,policy));completed.push(4096);return Ok("unsat_in_scope".into());},
             Solution::RankDeficient=>{
+                phase="modular";
+                if let Some(prime)=crate::modular::contradiction(&problem,budget.search)? {
+                    scope=4096;completed.push(scope);
+                    proof=Some(evidence::record_modular(source,indices,values,r,&problem,policy,prime));
+                    searches.push(json!({"coefficient_bits":scope,"outcome":"unsat_in_scope","reason":null,
+                        "uniqueness":"unchecked","assignments":0,"checks":0,"modulus":prime}));
+                    return Ok("unsat_in_scope".into());
+                }
                 phase="smt";
                 for bound in [16,64,256,1024,4096] {
                     let found=search(&problem,r,bound,budget.search,seed,8)?;
@@ -66,6 +74,24 @@ mod tests {
     use super::*;
     use crate::fit_budget::FitBudget;
     use std::cell::Cell;
+
+    #[test]
+    fn residue_unsat_has_an_independently_replayable_and_bound_certificate(){
+        let source="(program (return (mul (param.get p0) (param.get p0))))";
+        let indices=vec!["0".into()];let values=vec!["-1".into()];let r=Resources::default();
+        let deadline=Instant::now()+Duration::from_secs(2);
+        let result=fit(source,&indices,&values,&r,"none",0,deadline,"runtime","reference","bigint-body/v1",
+            |_,_,_|panic!("contradiction must not execute or admit a candidate"));
+        assert_eq!(result["outcome"],"unsat_in_scope");assert_eq!(result["phase"],"modular");
+        assert!(result["assignments"].as_array().unwrap().is_empty());
+        let mut proof:crate::evidence::Evidence=serde_json::from_value(result["evidence"].clone()).unwrap();
+        assert_eq!(proof.solver,"residue-exhaustion/v1/mod-3");
+        assert_eq!(crate::evidence::replay(source,&indices,&values,&r,&proof,deadline).unwrap(),"replayed_unsat");
+        proof.solver="residue-exhaustion/v1/mod-2".into();
+        assert_eq!(crate::evidence::replay(source,&indices,&values,&r,&proof,deadline).unwrap(),"unknown");
+        proof.prompt_sha256="changed".into();
+        assert!(crate::evidence::replay(source,&indices,&values,&r,&proof,deadline).is_err());
+    }
 
     // Advance a logical clock at phase boundaries: no sleeps or scheduler-dependent assertions.
     fn late_search(overrun: bool, has_model: bool) -> (Value, usize) {
