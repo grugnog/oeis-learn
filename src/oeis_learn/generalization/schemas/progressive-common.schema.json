@@ -271,6 +271,12 @@
         "compatibility": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "parent_slot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$"
         }
       },
       "required": [

@@ -76,6 +76,20 @@ class Recovery:
                 raise ValueError("invalid recovery event chain")
             self.state, self.tip = e["state"], e["identity"]
         self.ordinal = len(paths)
+        lineage = self.root / "lineage.json"
+        self.base = {"tokens": 0, "updates": 0, "useful": 0, "ancestor_cost_us": 0}
+        if lineage.exists():
+            value = load(lineage)
+            if (
+                seal(value) != value
+                or value["task"] != self.task["identity"]
+                or value["compatibility"] != self.compatibility
+            ):
+                raise ValueError("successor lineage binding differs")
+            self.base = value["base"]
+            for n in self.base.values():
+                integer(n)
+        self.token_cap = self.base["tokens"] + self.p["caps"]["tokens"]
         from oeis_learn.fresh.bigint_state import ProgressiveCheckpointStore
 
         self.store = ProgressiveCheckpointStore(
@@ -83,7 +97,7 @@ class Recovery:
             compatibility=self.compatibility,
             campaign=self.p["campaign"],
             task=self.task["identity"],
-            token_cap=self.p["caps"]["tokens"],
+            token_cap=self.token_cap,
         )
         return copy.deepcopy(self.state)
 
@@ -112,9 +126,62 @@ class Recovery:
             if k != "elapsed_us" or not hasattr(self, "clock")
         ):
             raise ValueError("spent task cannot be initialized again")
-        record = self.save(states, Ledger(self.p["caps"]["tokens"]), cuts)
-        self.append(checkpoint=record, status="RUNNING" if hasattr(self, "clock") else "PAUSED")
+        if self.p["initializer"].get("parent_slot") and not (self.root / "lineage.json").exists():
+            raise ValueError("successor must resolve its frozen parent slot")
+        record = self.save(
+            states,
+            Ledger(self.token_cap, consumed=self.base["tokens"], updates=self.base["updates"]),
+            cuts,
+        )
+        self.append(
+            checkpoint=record,
+            useful_tokens=self.base["useful"],
+            status="RUNNING" if hasattr(self, "clock") else "PAUSED",
+        )
         return record
+
+    def initialize_from(self, parent, *, campaign):
+        from .campaign import validate_campaign
+
+        validate_campaign(campaign)
+        validate_task(self.task, campaign=campaign, compatibility=self.compatibility)
+        validate_task(parent.task, campaign=campaign, compatibility=self.compatibility)
+        parent.read()
+        if (
+            self.state["checkpoint"] is not None
+            or self.state["status"] != "NEW"
+            or self.p["initializer"].get("parent_slot") != parent.p["slot"]
+            or parent.state["status"] not in {"COMPLETE", "PARTIAL"}
+            or self.p["arm"] != parent.p["arm"]
+            or self.p["seed"] != parent.p["seed"]
+        ):
+            raise ValueError("reserved terminal paired predecessor required")
+        restored = parent.restore()
+        remaining = parent.journal.task_remaining(parent.task)
+        base = {
+            "tokens": restored["ledger"].consumed,
+            "updates": restored["ledger"].updates,
+            "useful": parent.state["useful_tokens"],
+            "ancestor_cost_us": parent.base["ancestor_cost_us"]
+            + parent.p["caps"]["elapsed_us"]
+            - remaining["elapsed_us"],
+        }
+        value = seal(
+            {
+                "task": self.task["identity"],
+                "compatibility": self.compatibility,
+                "parent": parent.state["checkpoint"]["identity"],
+                "base": base,
+            }
+        )
+        path = self.root / "lineage.json"
+        if path.exists():
+            if load(path) != value:
+                raise ValueError("conflicting predecessor cut")
+        else:
+            atomic_write(path, value)
+        self.read()
+        return self.initialize(restored["states"], restored["cuts"])
 
     def save(self, states, ledger, cuts):
         if not self.owned:
@@ -137,11 +204,11 @@ class Recovery:
             raise ValueError("no committed checkpoint")
         restored = self.store.load(self.state["checkpoint"])
         remaining = self.journal.task_remaining(self.task)
-        consumed = self.p["caps"]["tokens"] - remaining["tokens"]
+        consumed = self.base["tokens"] + self.p["caps"]["tokens"] - remaining["tokens"]
         if consumed < restored["ledger"].consumed or consumed < self.state["useful_tokens"]:
             raise ValueError("cost journal rolled back behind checkpoint")
         restored["ledger"] = Ledger(
-            self.p["caps"]["tokens"], consumed=consumed, updates=restored["ledger"].updates
+            self.token_cap, consumed=consumed, updates=restored["ledger"].updates
         )
         restored["discarded_tokens"] = consumed - self.state["useful_tokens"]
         restored["pending"] = copy.deepcopy(self.state["pending"])
@@ -194,6 +261,46 @@ class Recovery:
         }
         self.append(status="RUNNING")
         return self.restore() if self.state["checkpoint"] is not None else None
+
+    def attach(self, authority):
+        """Adopt a reservation made by the external supervisor, without refund rights."""
+        self.read()
+        if self.state["status"] in {"COMPLETE", "PARTIAL"}:
+            raise ValueError("terminal task cannot restart")
+        with self.journal.lock():
+            _, pending, _, _, _ = self.journal._read()
+        key = authority["reservation_key"]
+        if key not in pending or not key.startswith(self.p["id"] + "/train/"):
+            raise ValueError("original supervisor training reservation required")
+        e = pending[key]
+        if (
+            authority["boot"] != e["boot"]
+            or authority["start_us"] != e["start_us"]
+            or authority["end_us"] != e["start_us"] + e["cost"]["elapsed_us"]
+        ):
+            raise ValueError("supervisor clock differs")
+        self.clock = {
+            "key": key,
+            "boot": e["boot"],
+            "start": e["start_us"],
+            "end": authority["end_us"],
+            "external": True,
+        }
+        self.append(status="RUNNING")
+        return self.restore() if self.state["checkpoint"] is not None else None
+
+    def finish_external(self, status):
+        if (
+            not self.owned
+            or not getattr(self, "clock", {}).get("external")
+            or status not in {"PAUSED", "COMPLETE", "PARTIAL", "FAILED"}
+        ):
+            raise ValueError("owned external invocation outcome required")
+        if status == "COMPLETE" and self.state["pending"] is not None:
+            raise ValueError("pending update cannot complete")
+        # Only the supervisor commits elapsed after proving process termination.
+        self.append(status=status)
+        del self.clock
 
     def completed(self, update, batch):
         integer(update, 1)
@@ -254,7 +361,11 @@ class Recovery:
         if self.state["status"] != "RUNNING" or self.state["pending"] is None:
             raise ValueError("reserved update required")
         old = self.store.load(self.state["checkpoint"])["ledger"]
-        spent = self.p["caps"]["tokens"] - self.journal.task_remaining(self.task)["tokens"]
+        spent = (
+            self.base["tokens"]
+            + self.p["caps"]["tokens"]
+            - self.journal.task_remaining(self.task)["tokens"]
+        )
         if (
             ledger.pending is not None
             or ledger.updates != old.updates + 1
@@ -273,7 +384,7 @@ class Recovery:
 
     def close(self, *, boot, monotonic_us, complete=False):
         """Supervisor calls only after owned worker termination/publication proof."""
-        if not self.owned or not hasattr(self, "clock"):
+        if not self.owned or not hasattr(self, "clock") or self.clock.get("external"):
             raise ValueError("no invocation owned by this supervisor")
         if complete and self.state["pending"] is not None:
             raise ValueError("unfinished update cannot complete task")

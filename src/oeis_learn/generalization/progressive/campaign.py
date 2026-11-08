@@ -1,7 +1,8 @@
 """Discovery authority validation, separate from old PAC execution policy."""
 
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
+
 from .contracts import validate, verify_refs
 from .graph import validate_graph
 
@@ -18,7 +19,10 @@ def validate_task(task, *, campaign=None, track=None, compatibility=None):
     if task["purpose"] == "research" and p["finalization_us"] < 1_800_000_000:
         raise ValueError("research finalization reserve below 30 minutes")
     init = p["initializer"]
-    if (init["mode"] == "random") != (init["artifact"] is None):
+    future = init["mode"] == "full_state" and init["artifact"] is None and "parent_slot" in init
+    if "parent_slot" in init and not future:
+        raise ValueError("parent slot requires an unresolved full-state successor")
+    if not future and (init["mode"] == "random") != (init["artifact"] is None):
         raise ValueError("explicit compatible initializer required")
     if compatibility is not None and init["compatibility"] != compatibility:
         raise ValueError("incompatible initializer")
@@ -56,7 +60,26 @@ def validate_campaign(campaign):
             raise ValueError("unresolved task slot")
         if plan["kind"] == "training" and plan["caps"]["elapsed_us"] > 86_400_000_000:
             raise ValueError("training ceiling")
-        if plan["initializer"]["mode"] != "random" and plan["initializer"]["artifact"] is None:
+        init = plan["initializer"]
+        future = init["mode"] == "full_state" and init["artifact"] is None and "parent_slot" in init
+        if "parent_slot" in init and (
+            not future or init["parent_slot"] not in slots[plan["slot"]]["dependencies"]
+        ):
+            raise ValueError("successor initializer must name a frozen predecessor slot")
+        if future:
+            parents = [
+                t
+                for t in plans
+                if t["slot"] == init["parent_slot"]
+                and t["arm"] == plan["arm"]
+                and t["seed"] == plan["seed"]
+            ]
+            if (
+                len(parents) != 1
+                or parents[0]["initializer"]["compatibility"] != init["compatibility"]
+            ):
+                raise ValueError("one compatible paired predecessor required")
+        elif init["mode"] != "random" and init["artifact"] is None:
             raise ValueError("missing initializer")
     for slot in slots:
         children = [t for t in plans if t["slot"] == slot]
