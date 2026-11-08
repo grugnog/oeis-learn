@@ -1,0 +1,398 @@
+# Tasks: Progressive Mathematical Discovery
+
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), all five [contracts](contracts/contingencies.md), [quickstart.md](quickstart.md) and adopted constitution 2.0.0.
+
+**Status**: Implementation task list only. No task below has been executed by generating this document; no HIP qualification or research result is claimed.
+
+**Tests**: Required by FR-011/016/024/028/031/035/038–040 and the constitution for arithmetic, admission, isolation, recovery and containment. Write meaningful failing cases first, then implement and run them. CPU fixtures cannot substitute for actual learning/native/HIP evidence.
+
+**Conventions**: Paths are repository-relative and new files below are deliberate proposed owners. Brace notation such as `progressive-{admission,archive}.schema.json` names each listed file explicitly. Inspect existing seams rather than building a second trainer, engine or fitter. Dependencies are explicit task IDs plus the previous phase checkpoint. [P] permits only listed independent test-writing tasks at the start of a story; implementation touching shared adapters remains serial. Test helpers/fixtures must be committed before these parallel tasks.
+
+**Mandatory versus optional**: Every task is mandatory unless its description begins OPTIONAL. All five stages, source pilot capability, negative paths and contingency routing must be implemented/tested even if live research is deferred. OPTIONAL RESEARCH/CONTINGENCY tasks execute only when selected, concretely frozen, eligible and budgeted. OPTIONAL IMPLEMENTATION requires its witnessed need/new profile first. Leave unexecuted optional boxes unchecked and record disposition/reason in the findings; do not turn SKIPPED into PASS. No requirement to spend the full 672h optional envelope.
+
+**Execution rule**: Implement all software/CPU checks before the shared workstation handoff described in [hardware-validation.md](hardware-validation.md). Later runtime research tasks depend on compatible qualification, exact freeze and installed acceptance even when their immediate dependencies list an earlier research stage. A negative predecessor may supply a valid baseline; task completion does not mean its candidate won. Branches requiring no positive predecessor remain independently eligible as stated. Outcome-blind support/sensitivity preparation may use its own bounded preparation authority before campaign freeze, but cannot score models or launch learning. No new research launches during task generation.
+
+
+## Phase 1: Setup
+
+**Goal**: Establish the new namespace, explicit ownership and installed dependencies without changing historical behavior.
+
+**Independent test / exit**: New imports and assets are installable; host commands retain standard-library-only imports. No research or device execution in this phase.
+
+- [ ] T001 Record the concrete reuse map in `specs/013-progressive-mathematical-discovery/validation/implementation-map.md`: trace host dispatch, installed role dispatch, `generalization_training.py::run_torch`, `src/oeis_learn/rl/sft_trainer.py::supervised_step`, `src/oeis_learn/fresh/bigint_state.py::GeneralizationCheckpointStore`, qualification and bundle verification. Identify the old six-hour/PAC/replay guards that must remain. List the new adapters below as proposed files, and resolve any renamed seam before editing it.
+
+- [ ] T002 Create `src/oeis_learn/generalization/progressive/__init__.py` and `src/oeis_learn/pipeline_validation/progressive_cli.py` as the isolated 013 namespace. Keep the former free of model/engine imports; unsupported operations must fail explicitly until implemented. Do not confuse this package with existing `src/oeis_learn/rl/progressive.py` or replace legacy discovery commands. **Depends on**: T001.
+
+- [ ] T003 Pin one compatible Optuna release in `pyproject.toml`, `uv.lock` and root `Dockerfile` through the existing lock/build workflow. Install it in the bounded CPU proposal role, not the host wrapper; retain current PyTorch/ROCm/native locks and fp32. Add import/version checks to `tests/contract/test_progressive_packaging.py`; avoid a database service, host toolchain or floating package install. **Depends on**: T002.
+
+- [ ] T004 Extend `src/oeis_learn/experiments/source_snapshot.py`, `setup.py` and `MANIFEST.in` as needed to ship `src/oeis_learn/generalization/schemas/progressive-*.schema.json`, `src/oeis_learn/generalization/policies/progressive-*.json` and spec-013 contracts. Cover installed-wheel discovery in `tests/contract/test_progressive_assets.py`. Keep prospective workstation manifests outside compiled policy assets; do not exempt source/tests from `src/oeis_learn/pipeline_validation/closures.py` to obtain reuse. **Depends on**: T003.
+
+- [ ] T005 Create `tests/fixtures/progressive/manifest.json` and `tests/helpers/progressive_fixture.py` with independently hand-checked integer programs, exposed/fresh groups, a prefix-only overfit, interrupted journal, cyclic component, invalid proof and finite short-source cases. Separate private truth from public projections on disk. Mark forced candidate/tiny task fixtures DIAGNOSTIC_ONLY; record expected values independently of production lowering. **Depends on**: T004.
+
+## Phase 2: Foundational authority and execution boundaries
+
+**Goal**: Implement the common authority needed by every story. Finish this phase before connecting any research path.
+
+**Independent test / exit**: Malformed, stale, cross-role, over-budget and duplicate-authority inputs fail closed; existing 011/012 tests retain their behavior.
+
+- [ ] T006 Write boundary tests in `tests/contract/test_progressive_authority.py` for unknown keys, boolean-as-int, nonfinite numbers, altered seals, symlinks/path aliases, unresolved blueprints, cyclic/unbounded DAGs, >86,400-second tasks and forged qualification. Add wrong-track and historical-record rejection cases. Run to demonstrate the missing behavior before implementing the validators. **Depends on**: T005.
+
+- [ ] T007 Implement canonical references/envelopes in `src/oeis_learn/generalization/progressive/contracts.py` and `src/oeis_learn/generalization/schemas/progressive-common.schema.json`. Preserve the data-model constraints verbatim: "Reject symlinks, duplicate/conflicting paths, unknown keys, nonfinite numbers and booleans substituted for integers." "Times use integer microseconds; authoritative values use canonical signed decimal integer strings." Set additionalProperties=false recursively for every closed object. Reuse canonical SHA-256 sealing excluding identity; require version, created_at, parents, purpose and track. **Depends on**: T006.
+
+- [ ] T008 Implement blueprint/campaign/task/runtime schemas and semantic validators in `src/oeis_learn/generalization/schemas/progressive-{blueprint,campaign,task,runtime}.schema.json` and `src/oeis_learn/generalization/progressive/campaign.py`. Blueprint: "May be unresolved; explicitly non-executable"; campaign: "Immutable; every node/edge bounded; all dependencies and resources resolved before freeze"; task: "<=86,400s for training; no new entitlement from duplicate identity/output"; runtime: "Exact compatible original producers; no fixtures as research authority". Check frozen child ceilings and compatible initializers. **Depends on**: T007.
+
+- [ ] T009 Implement `src/oeis_learn/generalization/progressive/exposure.py` and `src/oeis_learn/generalization/schemas/progressive-exposure.schema.json`: "Append-only; cannot erase exposure by changing seed or cohort name". Track training/development/confirmation/assessment and historical fresh-002 access; group canonical structures, finite behavior, duplicate/prefix/shift and known source relations according to endpoint. Parameter holdout may share structures by declared policy. Record detector limits rather than claiming all semantic duplicates are known. **Depends on**: T008.
+
+- [ ] T010 Implement the explicit operation/channel registry in `src/oeis_learn/pipeline_validation/progressive_roles.py` and projections in `src/oeis_learn/generalization/progressive/projections.py`, following every row of contracts/execution.md. Validate role/type/identity and disjoint files, not only hashes. No socket, workspace-root mount or network except approved acquisition. Test attempted learner/generator reads of witnesses, admission truth and score truth in `tests/contract/test_progressive_roles.py` using real filesystem projections. **Depends on**: T009.
+
+- [ ] T011 Implement `src/oeis_learn/generalization/progressive/targets.py`, `src/oeis_learn/generalization/policies/progressive-targets.json` and `src/oeis_learn/generalization/schemas/progressive-target-policy.schema.json`. Store id/class/metric/scope/baseline/threshold/evidence/on_miss/allowed_actions/budget_ref. Enforce "Invariants cannot be softened; every action consumes a frozen reservation; no recursive diagnostic loop"; baseline-retention/defer/stop actions consume no new execution allowance. Separate proposed defaults from immutable selected thresholds, and declare every optional route before outcomes. **Depends on**: T010.
+
+- [ ] T012 Implement reserve/commit/reconcile in `src/oeis_learn/generalization/progressive/budgets.py`, reusing existing ledger primitives. Charge tokens, draws/rejections, attempts, native work, elapsed, disk and archives; reserve startup/finalization before dispatch and each update. Use supervisor monotonic intervals plus boot identity; unknown unclean elapsed consumes the unproven remaining reservation. Clean paused downtime is excluded. Test update overshoot, duplicate ordinal, crash after work, missing termination proof and child sums in `tests/unit/test_progressive_budgets.py`. **Depends on**: T011.
+
+- [ ] T013 Implement bounded selected-stage DAG and contingency validation in `src/oeis_learn/generalization/progressive/graph.py` and `src/oeis_learn/generalization/policies/progressive-campaign.json`. Freeze slots/maximum visits, dependencies and independent claim/action edges. Default subset capability+diversity; full-path totals 536h training plus 136h ancillary. Within 192h scaling reserve, routine <=168h and diagnostics <=24h (<=4 tasks, <=12h each), not additive. Smaller subsets must explicitly allocate their own pool. Reject recursive fallback, hidden assessment and unreserved continuation. **Depends on**: T012.
+
+- [ ] T014 Add the discovery runtime adapter in `src/oeis_learn/pipeline_validation/progressive_roles.py` using `generalization_roles.py` supervision, with explicit version dispatch only where necessary. Enforce one GPU owner and enclosing remaining deadline on every role. Extend the six-hour operational envelope only for valid discovery task authority, while retaining old PAC and generic limits. Test legacy acceptance/rejection and hung-worker cleanup in `tests/integration/test_progressive_runtime.py` on CPU/native. **Depends on**: T013.
+
+- [ ] T015 Implement blueprint inventory, preparation-reference assembly and immutable freeze in `src/oeis_learn/pipeline_validation/progressive_preparation.py` and `src/oeis_learn/generalization/progressive/freeze.py`. Resolve all checkpoint/recipe/source/image/group references together; reject guessed hashes or missing inputs. Freeze storage graph with measured checkpoint size, two atomic generations, pinned milestones, shards and package reserve; report deficits before work. Inputs are scope-checked, and a valid hash alone grants no role permission. **Depends on**: T014.
+
+- [ ] T016 Register `discovery` in `scripts/foundation_run.py`, `scripts/foundation_local.py` and `src/oeis_learn/pipeline_validation/progressive_cli.py`; implement `init`, `freeze` and read-only status plumbing in `src/oeis_learn/pipeline_validation/progressive_commands.py`. Declare all 12 commands and exact arguments from contracts/cli.md; incomplete handlers fail explicitly. Stdlib-only init/freeze/status/report/verify paths must pass `python3 -S` import-isolation tests. Preserve existing commands and exit codes. **Depends on**: T015.
+
+- [ ] T017 Implement initial result/diagnostic collection in `src/oeis_learn/pipeline_validation/progressive_evidence.py`. Keep mechanical, scientific, qualification, claim and next_action fields independent; preserve original producer path/cause/local traceback plus collector errors. Explicitly mark unavailable metrics and required omissions. Add success/partial/failure publication tests in `tests/unit/test_progressive_failures.py`; private truth must not leak through public exceptions or tracebacks. Export safe exception type/message/code and the original local traceback reference; redact only actual private values, never use a generic omission as the sole failure reason. **Depends on**: T016.
+
+- [ ] T018 Run the new authority/role/budget/runtime/CLI tests and affected historical tests through the existing CPU/native workflow; record commands/results in `specs/013-progressive-mathematical-discovery/validation/implementation-map.md`. Close every new unsupported foundational path before proceeding. Commit this coherent group without claiming HIP readiness or launching a device job. **Depends on**: T017.
+
+## Phase 3: US1 — Foundation capability and language coverage (P1, MVP)
+
+**Goal**: Produce a useful readiness report without training a new model.
+
+**Independent test / exit**: A fixed tiny panel covers all four strata and actual checkpoint loading, baseline outcomes and witness classifications; independently computed metrics and uncertainty reproduce, including missing-support and unresolved cases.
+
+- [ ] T019 [P] [US1] Write hand-computed paired metric/gate cases in `tests/unit/test_progressive_metrics.py`: family imbalance, linked strata, unequal task counts, censoring, per-seed retention/completion, sparse groups, no-material-gain versus inconclusive, multiplicity and efficiency-only outcomes. Include +2 pp mean with one negative seed and 94.9% completion. Expected counts/bounds must not call the production reducer; deterministic small resampling fixtures test the algorithm. **Depends on**: T018.
+
+- [ ] T020 [P] [US1] Write `tests/contract/test_progressive_evaluation.py` for real-checkpoint identity, hidden-witness isolation, shuffled/absent conditioning, expired service results, unsupported fitting, total portfolio allowance and missing strata. Preserve 20-visible/100-total, 8 attempts/60s, 4s fit, 1,024 tokens and drain as the default profile. Add two methods whose observed success union is larger but is not an executable portfolio. **Depends on**: T018.
+
+- [ ] T021 [US1] Implement `src/oeis_learn/generalization/progressive/cohorts.py`, `src/oeis_learn/generalization/schemas/progressive-cohort.schema.json` and the census/publication operation in `src/oeis_learn/pipeline_validation/progressive_preparation.py`: "Role-specific projections; sufficient support; exclusive group policy and no silent horizon change". Default 128 tasks/stratum with >=16 groups, four transfer strata and separate retention/reward panels; reserve different confirmation panels by decision and final assessment. Count availability before scoring and publish deficits without reseeding. **Depends on**: T019, T020.
+
+- [ ] T022 [US1] Implement `src/oeis_learn/generalization/progressive/coverage.py` and `src/oeis_learn/generalization/schemas/progressive-coverage.schema.json`: "Search failure never equals inexpressible; witness not a training target". Independently validate private constructive witnesses for bigint-body/v1, classify supported/over-budget/unresolved and record missing operations and limits. Exercise grammar-completion, signed/overflow/exception and fit-support counterexamples through existing parser/reference/native tools; no automatic new primitive. **Depends on**: T021.
+
+- [ ] T023 [US1] Implement `src/oeis_learn/generalization/progressive/baselines.py` using existing templates and checkpoint loaders; add fixed conventional polynomial/linear-recurrence methods only with frozen applicability/bounds. Include retained D, random or compatible earlier checkpoint, shuffled and absent conditioning. Report per-method candidate/time cost; do not spend a full allowance separately on branches of a combined method. D is a reference, not a mandatory new B/D campaign. **Depends on**: T022.
+
+- [ ] T024 [US1] Implement `src/oeis_learn/generalization/progressive/metrics.py`: success/completed-failure/unresolved denominators, family macro, fixed 1/2 composition + 1/2 unseen-structure endpoint, paired family resampling with linked-stratum weights, equal seed weights and 10,000 seeded replicates. Apply the exact lower-quantile/multiplicity rule in contracts/experiment.md; use conservative upper bounds with candidate unresolved=success/baseline unresolved=failure and one-based sorted index min(B, ceil(B*(1-0.05/K))). NO_MATERIAL_GAIN requires that upper bound <0.02; confirmed primary regression requires it <0. Specify deterministic quantile rounding and verdict precedence (INVALID, INCOMPLETE, confirmed regression, successful registered claim, NO_MATERIAL_GAIN, otherwise INCONCLUSIVE) in policies/progressive-targets.json before scoring. Preserve historical >=3-seed population-interval guard and label new intervals conditional on observed seeds. **Depends on**: T023.
+
+- [ ] T025 [US1] Implement `src/oeis_learn/generalization/progressive/decisions.py` and `src/oeis_learn/generalization/schemas/progressive-decision.schema.json`: "Recomputed from outcomes; evidence and action separately validated; outcome-driven threshold change invalid". Enforce per-arm/seed/stratum 95% completion, per-seed <=2 pp conservative retention loss, mean >=2 pp, both seeds positive and adjusted lower bound >0 for default CONFIRMED_GAIN. Distinguish invalid/incomplete/regression/no-material-gain/inconclusive. Implement predeclared efficiency >=20% total-cost reduction and lower bound >=-1 pp in each primary stratum, without calling it accuracy gain. **Depends on**: T024.
+
+- [ ] T026 [US1] Implement outcome-blind sensitivity in `src/oeis_learn/generalization/progressive/sensitivity.py` and `tests/unit/test_progressive_sensitivity.py`: synthetic effects 0/2/5 pp, varied family dependence/sizes, seed disagreement, censoring 0/2/5/10% and planned looks including optional claim routes. Report false advancement, missed gain and inconclusive rate with assumption labels. The 80% aspiration applies to named scenarios, not guaranteed promotion exactly at a 2 pp cutoff; no real confirmation scores may calibrate thresholds. **Depends on**: T025.
+
+- [ ] T027 [US1] Implement installed generate/score adapters in `src/oeis_learn/pipeline_validation/progressive_evaluation.py` using existing checkpoint model, decoder, fitter and reference acceptance. Freeze candidate outputs before scorer access; measure raw/fitted/selected success, token tails, deadlines, queues and total cost. Use exact closed projections and the retained drain scheduler. Add CPU/native production-path integration in `tests/integration/test_progressive_evaluation.py` rather than only mocked outcomes. **Depends on**: T026.
+
+- [ ] T028 [US1] Wire capability census, audit, evaluation and readiness publication in `src/oeis_learn/pipeline_validation/progressive_commands.py` and `src/oeis_learn/generalization/progressive/readiness.py`. Report all four categories, baselines, representation versus runtime limits, every denominator and historical exposure. Run the US1 tests and record acceptance in `specs/013-progressive-mathematical-discovery/validation/implementation-map.md`; this is the software MVP, with live HIP qualification deferred to the shared handoff. **Depends on**: T027.
+
+## Phase 4: US2 — Diverse verified structures (P1)
+
+**Goal**: Prepare reproducible new structural support and a matched static/refresh comparison.
+
+**Independent test / exit**: A real tiny CPU learning fixture reads both support modes, crosses a shard boundary and resumes with identical draw order and retained spent work; numeric-only changes cannot increase structural diversity.
+
+- [ ] T029 [P] [US2] Write `tests/unit/test_progressive_stream.py` for deterministic accepted/rejected ordinals, structure versus coefficient diversity, held-out-group exclusion, behavioral-signature limitations and draw/byte exhaustion. Add a crash between reserve and shard seal and one after seal before consumption; both must reproduce the same next accepted sample without erasing cost. **Depends on**: T028.
+
+- [ ] T030 [P] [US2] Write `tests/unit/test_progressive_curriculum.py` for fixed bins, eight-update EXP3.S clocks, training-only probes, familiar/frontier floors, missing-probe rejection and static/refresh matched initialization. Test that changing family inventory or using development score as allocation reward is rejected. These tests must not change historical `PacController` expectations. **Depends on**: T028.
+
+- [ ] T031 [US2] Implement `src/oeis_learn/generalization/schemas/progressive-stream.schema.json` and `src/oeis_learn/generalization/progressive/stream.py`: "Every ordinal accounted; independent verification; no arbitrary post-outcome redraw". Freeze typed AST operator/depth/control-flow law, seed/counter range, accepted/rejected ledger, shard caps and separate campaign draws/work. Initial shard bounds: 4,096 accepted rows OR 65,536 draws and <=256 MiB; sealed shards only enter learner access. **Depends on**: T029, T030.
+
+- [ ] T032 [US2] Implement counter-keyed typed program generation in `src/oeis_learn/generalization/progressive/generator.py`, reusing rendering/canonicalization from `src/oeis_learn/data/bigint_programs.py` but not its four-template-only distribution. Produce compositional AST/control-flow variation under frozen depth/work bounds. Include independent examples for active branches/loops; generate first then validate, and record rejected unsafe draws rather than silently resampling identities. **Depends on**: T031.
+
+- [ ] T033 [US2] Implement independent native/reference 100-term verification and bounded shard publication in `src/oeis_learn/pipeline_validation/progressive_preparation.py`. Apply control-taint and parameter-count checks before `paired_learning_view` conversion, ground back and verify equality, otherwise retain whole-row literals. Keep exact source indices, structure hashes, finite behavior signatures, operator execution and membership evidence in `src/oeis_learn/generalization/progressive/stream.py`. **Depends on**: T032.
+
+- [ ] T034 [US2] Implement `src/oeis_learn/generalization/progressive/curriculum.py` as a new fixed-bin adapter over existing allocation/update logic. Freeze bins/probe identity; initial 20% familiar, 10% frontier, 70% adaptive law applies identically to static and refreshed arms, using training-only gain. Persist sampler probabilities/rewards, eight-update block position, shard cursor and rejection watermark; reject dynamic arm insertion or policy changes on resume. **Depends on**: T033.
+
+- [ ] T035 [US2] Implement matched static/refresh pilot definitions in `configs/foundation/progressive/diversity.json` and adapters in `src/oeis_learn/pipeline_validation/progressive_training.py`. Same initial sealed shard, random seed/model/optimizer, language, bins, probes and allocation; static reuses support, refresh changes structures only at declared boundaries. Default 25M charged tokens and two paired seeds; report full-update overshoot, preparation cost and equal-wall utility. Do not initialize this comparison from retained D weights. **Depends on**: T034.
+
+- [ ] T036 [US2] Add `tests/integration/test_progressive_stream.py` using actual small CPU updates through the canonical learner, plus interrupted preparation/consumption and literal-fallback examples. Verify identical resumed next draws/counters and independent targets, then produce diversity/negative-result reports from `src/oeis_learn/pipeline_validation/progressive_evidence.py`. Keep real HIP coverage queued for the shared matrix rather than adding a story-specific workstation run. **Depends on**: T035.
+
+## Phase 5: US3 — Bounded tuning and model sizing (P2)
+
+**Goal**: Implement attributable learning/size searches, reproducible proposals and independent confirmation.
+
+**Independent test / exit**: A tiny real CPU study covers completed, pruned, failed, partial and resumed trial states; independent logical-batch tests and proposal replay pass. HIP shape feasibility remains a shared later gate.
+
+- [ ] T037 [P] [US3] Write `tests/unit/test_progressive_optimizer.py` comparing a full logical batch with uneven accumulated microbatches at dropout=0 using an independent per-program-mean objective. Assert weighting by example counts, one clip/optimizer/LR/allocation step, finite parameters and correct interrupted-work charging. Separately test dropout RNG save/restore; do not demand bitwise equivalence between different stochastic batch partitions. **Depends on**: T036.
+
+- [ ] T038 [P] [US3] Write `tests/unit/test_progressive_trials.py` for ask-before-dispatch sealing, identical replay after interruption, conflicting duplicate tell, 1M grace, five comparable references, unpruned controls, wall-limited PARTIAL and confirmation truth exclusion. Use known scalar histories for pruning; sampler replay tests must use the pinned Optuna, not a fake optimizer. **Depends on**: T036.
+
+- [ ] T039 [US3] Implement research model configuration/constructors in `src/oeis_learn/generalization/progressive/models.py` and adapters to `src/oeis_learn/fresh/bigint_worker.py`, `src/oeis_learn/encoder/tri_stream_encoder.py` and `src/oeis_learn/decoder/wat_decoder.py` only where required. Resolve retained recipe dimensions, head divisibility, positions, actual parameter count, fp32 and effective dropout. Define reference/smaller-width/shallower/larger shapes; fresh initialize each size. Preserve legacy defaults and hardware-only m8/m32/m100 scope. **Depends on**: T037, T038.
+
+- [ ] T040 [US3] Refactor a shared logical update in `src/oeis_learn/rl/sft_trainer.py` without changing `supervised_step` callers, and add policy adapter in `src/oeis_learn/pipeline_validation/progressive_training.py`. Weight each microbatch mean by examples/logical_batch_examples; accumulate gradients; clip/step/schedule/clock once. Wire explicit AdamW decay, LR schedules, effective batches 16/32/64 and dropout. Reject unsupported settings instead of falling back; checkpoint only complete updates. **Depends on**: T039.
+
+- [ ] T041 [US3] Implement `src/oeis_learn/generalization/schemas/progressive-trial.schema.json` and `src/oeis_learn/generalization/progressive/trials.py`: "Parameters sealed before execution; one result per proposal; confirmation never sampler feedback". Preserve PROPOSED/RESERVED/RUNNING/COMPLETE/PRUNED/FAILED/PARTIAL/INFEASIBLE, recovery_pending invocation semantics and remaining resources. Write proposal/result events durably and account every failed/pruned trial; exhausted PARTIAL cannot restart with a new allowance. **Depends on**: T040.
+
+- [ ] T042 [US3] Implement `src/oeis_learn/generalization/progressive/tuning.py` and bounded CPU `propose-trial` operation in `src/oeis_learn/pipeline_validation/progressive_roles.py`. Reconstruct in-memory Optuna from ordered sealed history; seed from study+ordinal, ask once, persist before launch and reuse after crash. Four learning startup trials include baseline and fixed nonbaseline controls, then eight TPE proposals; enumerate four size candidates separately. No sampler pickle, external DB, host Optuna or parallel GPU trials. **Depends on**: T041.
+
+- [ ] T043 [US3] Create `src/oeis_learn/generalization/policies/progressive-tuning.json` and `configs/foundation/progressive/tuning.json`: 12 learning +4 size trials; LR multiplier {0.3,1,3}, constant/warmup-cosine, batch {16,32,64}, decay {0,0.01,0.1}, dropout {0,0.1,0.2}. Freeze seeds, distributions, baseline and same support/language/precision. Screening <=4M tokens and <=2h including evaluations/reserves; stage-specific schedule horizon and 5% warmup/final multiplier 0.1 explicit. **Depends on**: T042.
+
+- [ ] T044 [US3] Implement screening/pruning in `src/oeis_learn/generalization/progressive/tuning.py`: fixed 32 tasks/stratum, two from each of 16 groups; evaluations at 1M/2M and terminal 4M allowance. No performance pruning before 1M or fewer than five comparable completed references. Baseline/nonbaseline controls and all four sizing candidates remain unpruned except technical/budget stops. Measured startup+three evaluations+training+finalization must fit before trial launch; PARTIAL cannot win equal-token ranking. **Depends on**: T043.
+
+- [ ] T045 [US3] Implement finalist selection in `src/oeis_learn/generalization/progressive/selection.py`: feasible development yield then total cost then stable ID; display cost/capability frontier and ranking uncertainty. Baseline plus <=3 nonbaseline finalists get fresh 25M, two-seed confirmation, <=12h per run and reserved unused panels. Freeze 400M continuation schedule before confirmation (cosine warmup 5% of 25M then decay to 400M); no reused screening optimizer and no confirmation feedback to Optuna. **Depends on**: T044.
+
+- [ ] T046 [US3] Add `tests/integration/test_progressive_tuning.py` for the real CPU proposer/learner/scorer with short diagnostic coordinates, testing all trial outcomes, crash-before-launch and byte-identical proposal resume. Compare equal-token and equal-wall reports and independently reproduce selection. Add learning/size/grace flags to `src/oeis_learn/pipeline_validation/progressive_evidence.py`; queue selected production shape/dropout paths for consolidated HIP instead of executing per-trial qualification now. **Depends on**: T045.
+
+## Phase 6: US4 — Long tasks, recovery and conditional progression (P2)
+
+**Goal**: Continue compatible learning across finite tasks and milestones, preserving accounting and separate evidence/action decisions.
+
+**Independent test / exit**: Two shortened linked production tasks survive interruption and reconcile complete state and spent cost; invariant failure blocks all affected actions while one registered diagnostic may follow an inconclusive result. Actual sustained device behavior is checked later.
+
+- [ ] T047 [P] [US4] Write `tests/integration/test_progressive_recovery.py` with real CPU parameters/optimizer/RNG and kill points around update, journal debit, checkpoint fsync/rename and latest pointer. Compare uninterrupted/resumed state, stream/allocation positions and next sample. Verify pending microbatches count as discarded, old checkpoint survives publication failure, changed shape/objective fails, and task/output-path changes cannot reset budget. **Depends on**: T046.
+
+- [ ] T048 [P] [US4] Write `tests/unit/test_progressive_contingencies.py`: gain/efficiency/inconclusive/no-material-gain/regression/incomplete/invalid versus independent actions; no posthoc waiver, training-loss-only trigger, recursive diagnostic, reused assessment, unreserved task or fifth pool task. Include a predeclared third-seed branch reporting all seeds and counting its extra look; the original failed two-seed decision remains unchanged. **Depends on**: T046.
+
+- [ ] T049 [US4] Implement `src/oeis_learn/generalization/schemas/progressive-state.schema.json` and `src/oeis_learn/generalization/progressive/state.py`: "Atomic complete-update state; full-state vs weights-only explicit; exact compatible lineage". Separate learning compatibility from campaign/task entitlement. Bind weights, optimizer/scheduler, framework/device RNG, stream/rejection/watermark, allocation/reward, archive/library cuts, journal positions, selection/milestones and consumed-entry/group ledger. Extend `src/oeis_learn/fresh/bigint_state.py` through explicit version dispatch without weakening legacy loads. **Depends on**: T047, T048.
+
+- [ ] T050 [US4] Implement atomic reserve/work/verify/commit and rollback-to-last-durable-cut in `src/oeis_learn/generalization/progressive/recovery.py` and `src/oeis_learn/pipeline_validation/progressive_training.py`. Preserve later supervisor debits when restoring earlier model state; recharge retried work, never load a newer archive/library implicitly. Recovery of same task uses its remaining cap; terminal partial can only start a reserved compatible next task. Include clean and unproven reboot intervals. **Depends on**: T049.
+
+- [ ] T051 [US4] Implement `run`, `pause`, `resume`, `status` in `src/oeis_learn/pipeline_validation/progressive_commands.py` with finite DAG transitions. Pause requests only owned workers and acknowledges a durable update boundary or pending/external deadline. Resume uses a new invocation directory but the original campaign/task chain; no arbitrary --start-step. An unallocated next slot produces INCOMPLETE, not a new task. **Depends on**: T050.
+
+- [ ] T052 [US4] Implement `src/oeis_learn/generalization/progressive/milestones.py` and `configs/foundation/progressive/scaling.json`: cumulative 25M/100M/400M, full-update overshoot, finite continuation slots and unchanged scheduler horizon. Gate confirmed scaling on paired executable gain/retention/completion; log marginal gain per added compute and all ancestor costs. A weights-only child is labeled new initialization, not resume. Stop at attainable milestones when reserve is insufficient. **Depends on**: T051.
+
+- [ ] T053 [US4] Implement `src/oeis_learn/generalization/progressive/contingencies.py` with concrete trigger/design/panel/task/reservation/terminal rule fields. Support keep-baseline, defer and one bounded information-gathering episode per failure class; require held-out/runtime evidence beyond training loss. Implement predeclared third-seed mean>=2 pp, >=2 positive seeds, none below -2 pp and unchanged completion/retention/adjusted conditional-family checks. All three seeds and extra looks count; no choosing best two or relabeling the original gate. **Depends on**: T052.
+
+- [ ] T054 [US4] Implement progress and resource sampling in `src/oeis_learn/pipeline_validation/progressive_training.py` and `src/oeis_learn/pipeline_validation/progressive_evidence.py`: <=60s heartbeat with committed/charged/discarded exposure and remaining allowance or explicit stalled/unavailable reason. Collect generation tail/queue/fit timing, CPU, non-double-counted shared memory and mapped available sensors. Stop before insufficient disk/inodes or finalization reserve; research reserve >=30m or higher measured margin. Timing overlap is not extra wall time. **Depends on**: T053.
+
+- [ ] T055 [US4] Implement shortened two-task continuation/interrupt/export acceptance in `src/oeis_learn/pipeline_validation/progressive_acceptance.py` and `tests/integration/test_progressive_lifecycle.py`. Exercise successful, partial, failed and eligible diagnostic decisions through actual CPU installed roles. Record protocol for later sustained-duration evidence, distinguish simulated ceilings from actual elapsed hours, and place the corresponding GPU case in the shared acceptance inventory. **Depends on**: T054.
+
+## Phase 7: US5 — Verified OEIS self-learning (P2)
+
+**Goal**: Search a designated OEIS training pool, admit exact candidates and learn from them under separate provenance.
+
+**Independent test / exit**: A tiny real search/admit/update path rejects a prefix-only overfit, admits a valid finite target, restores archive/model state and compares with a continued-synthetic control; a low-yield case stops cleanly.
+
+- [ ] T056 [US5] Write `tests/contract/test_progressive_admission.py` and `tests/unit/test_progressive_archive.py` for native/reference disagreement, prefix-only fit, short horizon, wrong source index, exposed/evaluation membership, imported formula, duplicate target and interrupted admission. Assert no uncommitted target can train, finite validity is not proof, alternatives are task-balanced and rejected work remains charged. **Depends on**: T055.
+
+- [ ] T057 [US5] Implement `src/oeis_learn/generalization/schemas/progressive-{admission,archive}.schema.json` and `src/oeis_learn/generalization/progressive/archive.py`. Admission: "Training membership only; no named formula as candidate authority; no prefix-only pass"; archive: "Capacity and diversity rules; every consumed entry tied to checkpoint lineage". Freeze <=4,096 targets, <=2 verified programs/task, task-first then alternative sampling, shortest plus structurally distinct alternative, deterministic ties/eviction and charged-token weights. **Depends on**: T056.
+
+- [ ] T058 [US5] Implement frozen OEIS bulk membership/offset/horizon preparation in `src/oeis_learn/pipeline_validation/progressive_preparation.py`. Require 100 exact terms, project only first 20 to generator and 80 continuation terms to training admission; exclude names/formulas/metadata from candidate and learner channels. Reserve an outcome-blind pool of <=512 tasks; insufficient membership stops before search. Reuse actual source producers rather than asking for one file at a time. **Depends on**: T057.
+
+- [ ] T059 [US5] Implement `src/oeis_learn/generalization/progressive/admission.py` and `admit-training` in `src/oeis_learn/pipeline_validation/progressive_roles.py`: validate final concrete source and all 100 indices with native plus independent reference; seal source/member/limits/implementation identities. Only committed evidence enters archive. Apply verified safe paired-target conversion with literal fallback. Do not bypass mechanical replay oracle/shorter-target restrictions; this is a separate type/track. **Depends on**: T058.
+
+- [ ] T060 [US5] Implement `src/oeis_learn/generalization/progressive/yield_audit.py` and `configs/foundation/progressive/oeis.json`: <=512 tasks, eight attempts/60s each, <=12 active hours inside first OEIS task including admission/package. Initial gate >=32 accepted distinct task groups, >=16 structures, >=0.05 groups/active search-admission minute and zero invalid admissions. Publish every deficit/rejection/cost; measured low yield defers self-learning, not software acceptance. **Depends on**: T059.
+
+- [ ] T061 [US5] Wire deterministic 25% OEIS/75% synthetic charged-token mixing with whole-example overshoot in `src/oeis_learn/generalization/progressive/replay.py` and `src/oeis_learn/pipeline_validation/progressive_training.py`. Bind archive cut to complete checkpoint; membership is rechecked before consuming targets. Pair replay and continued-synthetic arms from the same declared compatible initializer, two seeds/matched tokens/inference; control gets no discoveries. Report discovery cost separately and in total, not as equal-total-compute training. **Depends on**: T060.
+
+- [ ] T062 [US5] Implement one bounded search/admit/update/evaluate cycle in `src/oeis_learn/pipeline_validation/progressive_commands.py` with separate OEIS-derived track and transfer panels. Promotion depends on other-task yield, retention/completion and frozen cost; archive size alone cannot advance. Further cycles need a new reserved study. Add integration in `tests/integration/test_progressive_oeis.py` using real CPU updates, positive and low-yield fixtures; forced candidates remain DIAGNOSTIC_ONLY with zero autonomous-discovery claim. **Depends on**: T061.
+
+## Phase 8: US6 — Reusable methods, claims and refutation (P3)
+
+**Goal**: Mine and actually use typed components, compare their value and preserve scoped discovery evidence.
+
+**Independent test / exit**: A mined component changes a generated candidate which independently verifies and enters a real update; cycles/expansion bombs and invalid proof are rejected, and a refutation quarantines every dependent target/library/checkpoint/dossier.
+
+- [ ] T063 [P] [US6] Write `tests/unit/test_progressive_components.py` for typed holes, alpha-renaming, operand order, capture, recursion, cyclic dependencies, expanded size limits and runtime-cost accounting. Use independently expected expanded programs. Add a support case with three structures/two task groups and failures below those counts; syntax compression alone is not scientific success. **Depends on**: T062.
+
+- [ ] T064 [P] [US6] Write `tests/unit/test_progressive_claims.py` for a source-bound true polynomial identity, incorrect coefficients, unsupported loops, finite machine-range limitation, spoofed reviewer and transitive refutation. Expected algebra is independent of production lowering. Distinguish finite/conjectural/bounded/proved from the separate novelty axis; include existing legacy certificate labels that must not pass. **Depends on**: T062.
+
+- [ ] T065 [US6] Implement `src/oeis_learn/generalization/schemas/progressive-library.schema.json` and `src/oeis_learn/generalization/progressive/components.py`: "Training-only origins, acyclic dependencies, hygienic expansion, positive budgets". Initial pure bigint-expression profile excludes mutable locals/statements; enforce 64 components, depth<=4, arguments<=8, expanded nodes<=4,096 and bytes<=256 KiB, with lower existing runtime bound taking precedence. Bind origins, assumptions, exact typed arguments and expanded AST. **Depends on**: T063, T064.
+
+- [ ] T066 [US6] Implement deterministic connected-subtree mining across >=3 verified training structures and >=2 groups in `src/oeis_learn/generalization/progressive/component_mining.py`. Use alpha-normalized typed holes; prohibit algebraic reordering/simplification. Commit immutable library versions through reserve/verify/commit; independent parser/reference/native checks operate on full expansions. Evaluation witnesses and failed confirmation solutions are ineligible sources. **Depends on**: T065.
+
+- [ ] T067 [US6] Implement bounded component-guided proposals in `src/oeis_learn/generalization/progressive/component_search.py` and integrate `src/oeis_learn/pipeline_validation/progressive_evaluation.py`. At most four of eight library-arm attempts use components; ordinary arm gets eight, each whole portfolio <=60s. Expand into existing codec before fitting/execution; charge mining/validation/expanded work and model inference. No new component token embeddings or invisible free calls. **Depends on**: T066.
+
+- [ ] T068 [US6] Integrate verified expanded-target distillation and atomic library/model cuts in `src/oeis_learn/pipeline_validation/progressive_training.py`; create `configs/foundation/progressive/components.json` with matched paired-seed library/no-library arms and harder held-out panel. Demonstrate a mined component affecting search and an actual CPU update in `tests/integration/test_progressive_components.py`, including restore and a negative cost/yield result. Record usefulness separately from compression. **Depends on**: T067.
+
+- [ ] T069 [US6] Implement `src/oeis_learn/generalization/schemas/progressive-dossier.schema.json` and `src/oeis_learn/generalization/progressive/claims.py`: "Evidence scopes independent; unsupported claims cannot be promoted". Seal candidate before literature review; capture source/offset/ranges, budgets, provenance, counterexamples, known-method comparison, independent checks, assumptions and untested scope. Novelty requires reviewer/evidence for independently_confirmed; otherwise known/uncertain/potentially_novel/not_reviewed. Keep review outputs training-ineligible. **Depends on**: T068.
+
+- [ ] T070 [US6] Implement narrow exact polynomial certificate checker in `src/oeis_learn/generalization/progressive/polynomial_certificate.py`, independently of production arithmetic/lowering, with bounded coefficient/node/work budgets and source binding. Separate mathematical-integer identity from checked-machine finite-range safety. Unsupported recurrence/loop/asymptotic claims remain finite/conjectural. Integrate replay into `tests/integration/test_progressive_claims.py`; never reuse legacy IR proof labels as authority. **Depends on**: T069.
+
+- [ ] T071 [US6] Implement `src/oeis_learn/generalization/schemas/progressive-quarantine.schema.json` and `src/oeis_learn/generalization/progressive/quarantine.py`: "Append-only; transitive closure complete; cannot retroactively rewrite original bytes". Traverse target→archive/library→consumed-update→checkpoint→dossier edges; deny affected resume/adoption and retain original claims with invalidation overlays. Clean-ancestor recovery keeps spent cost; otherwise label contamination. Validate traversal with independently enumerated descendants. **Depends on**: T070.
+
+## Phase 9: US7 — Deliberate external-source pilot (P3)
+
+**Goal**: Support a genuinely short combinatorial task and source suitability decisions without inventing long sequences.
+
+**Independent test / exit**: An approved exact finite snapshot yields meaningful n=0..8 totals, a four-input real update/generation/admission path and source-group separation; unsuitable/insufficient samples stop with an explicit deficit.
+
+- [ ] T072 [US7] Write `tests/contract/test_progressive_sources.py` for non-integral/approximate values, missing offset/access terms, finite polynomial zero-padding, arbitrary object order, duplicate source relations and downloaded-code rejection. Write `tests/unit/test_progressive_short_profile.py` for four visible/nine total indices, no authoritative padding, position masks and preservation of historical non-20-row rejection. **Depends on**: T071.
+
+- [ ] T073 [US7] Implement `src/oeis_learn/generalization/schemas/progressive-source.schema.json` and `src/oeis_learn/generalization/progressive/sources.py`: "Unsupported data rejected; bounded finite-support semantics explicit". Record immutable revision/hash, availability/use conditions, exact indexing, objects/relations, transformation, verification and suitability. Group related statistics/maps across roles and cross-source duplicates. Human transformations are external_assisted; sources with unresolved terms cannot be admitted. **Depends on**: T072.
+
+- [ ] T074 [US7] Implement approved permutation-statistic adapter in `src/oeis_learn/generalization/progressive/combinatorial.py` and bounded preparation in `src/oeis_learn/pipeline_validation/progressive_preparation.py`. At most 32 allowlisted statistics, moment orders 1/2, full collections for n=0..8, exact factorial cardinalities/zero-size conventions. Independently check totals with reviewed small examples/alternate enumeration. Freeze total objects/work/bytes; never execute downloaded statistic code or add Sage to the learner/host. **Depends on**: T073.
+
+- [ ] T075 [US7] Add combinatorial-short/v1 adapters in `src/oeis_learn/generalization/progressive/short_profile.py`, `src/oeis_learn/pipeline_validation/progressive_training.py` and `src/oeis_learn/pipeline_validation/progressive_evaluation.py`: four-term length-bucketed encoding/collation, loss, prompts and generation; n=4..8 reserved admission/evaluation. Masked tensor padding may not affect loss/visibility or become exact values. Learner targets remain its own verified programs, not statistic implementations. Parameterize existing model operations without loosening old profile guards. **Depends on**: T074.
+
+- [ ] T076 [US7] Create `configs/foundation/progressive/source-pilot.json` with matched with/without-source mixtures, separate assisted lineage and short-horizon outcome. Require >=4 independent training groups and >=4 disjoint evaluation groups with >=2 tasks each; fail with deficit if unavailable. Source accuracy cannot satisfy primary scaling. Implement preparation/search/admission/update/score in `src/oeis_learn/pipeline_validation/progressive_commands.py`; no outcome-driven source expansion. **Depends on**: T075.
+
+- [ ] T077 [US7] Add source suitability producer in `src/oeis_learn/generalization/progressive/sources.py` and concise decision template at `specs/013-progressive-mathematical-discovery/validation/source-suitability.md`. Cover FindStat/Sage, LMFDB/Cremona and KnotInfo/Dartmouth: immutable access, integral versus algebraic/approximate values, relationship/index semantics, finite support, cost and independent verification. Distinguish researched facts from unresolved runtime inputs; no requirement to bulk-ingest all sources. **Depends on**: T076.
+
+- [ ] T078 [US7] Implement `tests/integration/test_progressive_sources.py` with real four-input CPU forward/backward, full restore, generation and native/reference scoring; also exercise inadequate-support and unsuitable-source branches. Register the four-input update/restore/generation path once in the common HIP acceptance matrix. A source feasibility report is a valid negative research outcome but does not replace this software integration test. **Depends on**: T077.
+
+## Phase 10: Cross-cutting validation, consolidated HIP and optional research
+
+**Goal**: Complete every software capability, minimize device handoffs and execute only concretely eligible research branches.
+
+**Independent test / exit**: All mandatory software cases and compatible actual-device receipts are present; negative/optional dispositions remain explicit. One bounded package independently reconciles success, partial and failure results.
+
+- [ ] T079 Complete `src/oeis_learn/generalization/schemas/progressive-report.schema.json`, `src/oeis_learn/generalization/progressive/report.py` and `src/oeis_learn/pipeline_validation/progressive_evidence.py`: "Offline reconciliation; required missing evidence prevents VERIFIED". Include closed inventory, per-task/group outcomes, decisions, qualification producers, ancestry and accounting; <=512 MiB uncompressed metadata. Exclude weights/private continuations/raw corpora; deterministic table partitions or REPORT_INCOMPLETE if required data cannot fit. Preserve first error plus collector error on every terminal path. **Depends on**: T078.
+
+- [ ] T080 Implement stdlib independent `report`/`verify-bundle` in `src/oeis_learn/pipeline_validation/progressive_cli.py` and `src/oeis_learn/generalization/progressive/verify.py`. Recalculate inventory/hash closure, scope, budgets, counts, metrics and decisions from public tables using an independent reducer, without torch/native/Optuna or private truth. Verify negative scientific results without upgrading them. Add forged-count, missing-receipt, bad-gate and zip-bound cases in `tests/contract/test_progressive_bundle.py`. **Depends on**: T079.
+
+- [ ] T081 Implement locked `assess` in `src/oeis_learn/pipeline_validation/progressive_commands.py` and `tests/contract/test_progressive_assessment.py`: require final selected checkpoint/library and frozen assessment scope plus compatible acceptance. Ordinary run, Optuna, milestones and review cannot mount or consume assessment outputs. Record exposure after explicit assessment; no adaptive branch can resume while calling that panel untouched. **Depends on**: T080.
+
+- [ ] T082 Implement `src/oeis_learn/pipeline_validation/progressive_qualification.py`, `configs/foundation/progressive/acceptance.json` and `tests/integration/test_progressive_gpu.py` following [hardware-validation.md](hardware-validation.md). Produce one serial scope matrix for each selected model shape/dropout/input-length/update path; prove finite actual HIP forward/backward, parameter changes, full restore, deterministic compatible continuation, generation and cleanup. Mandatory device mode fails on missing HIP/skip/CPU fallback. Persist per-case producers so successful compatible cases can be reused. **Depends on**: T081.
+
+- [ ] T083 Complete `src/oeis_learn/pipeline_validation/progressive_acceptance.py` and `tests/integration/test_progressive_acceptance.py` as one shortened installed-role suite covering all five stages, two linked tasks/recovery, actual OEIS admission/update, mined component use/update and four-term source path. Independent diagnostic fixtures exercise positive and negative branches even if research yield is poor. Reuse original exact hardware producers only when all case scope/inputs match; freeze-specific changed cases run as a bounded delta. **Depends on**: T082.
+
+- [ ] T084 Implement the concrete diagnostic template inventory in `configs/foundation/progressive/diagnostics.json` and `tests/contract/test_progressive_diagnostic_blueprints.py` **before selecting any optional research above**. Each branch contains trigger, compared arms, immutable data/policy, task/panel slots, caps, maximum visits, distinguishing observations and terminal action; unresolved fields keep blueprint non-executable. Include all contingency rows, including sparse-support redesign and integrity quarantine. Match the optional tasks below without inventing extra budget; tests cover selected, disabled, untriggered, exhausted and forbidden cases. **Depends on**: T083.
+
+- [ ] T085 Register new tests/assets in the existing qualification/CI inventories, `src/oeis_learn/pipeline_validation/role.py`, `.github/workflows/foundation.yml` and packaging checks as applicable. Run CPU/unit/contract/native/installed-wheel/isolation and required Docker/Podman portability checks before workstation HIP. Use CPU/native portability evidence for both engines where supported; execute GPU on the selected engine and record that engine scope. Fix observed failures without waiting for unrelated CI jobs. **Depends on**: T083.
+
+- [ ] T086 Run required local/container non-GPU suites and affected 011/012 regressions; record exact source/tests/lock/image identities and the selected hardware matrix in `specs/013-progressive-mathematical-discovery/validation/implementation-map.md`. Verify every FR/SC mapping below, no placeholder production handlers, all CLI exit states and complete negative-path reports. Commit/push the stable source group before expensive HIP; code/test/policy edits afterwards invalidate evidence according to the existing closure rule. **Depends on**: T085.
+
+- [ ] T087 Update `specs/013-progressive-mathematical-discovery/quickstart.md` and `specs/013-progressive-mathematical-discovery/validation/implementation-map.md` with the verified canonical workstation commands and hardware matrix. Remove the unavailable-command warning only after actual CLI implementation and CPU command acceptance; retain explicit hardware/sustained-pending labels until their producers exist. List exact required retained artifacts together. Document that optional research being unchecked/skipped is not a missing mandatory implementation, and that hardware unavailability stays BLOCKED. Keep one diagnostic ZIP per campaign and concise repo summaries. **Depends on**: T086, T084.
+
+- [ ] T088 Run the consolidated actual-device qualification batch from `src/oeis_learn/pipeline_validation/progressive_qualification.py` on the workstation after the CPU preflight passes. Use one GPU owner/shared immutable image, serial cases and per-case isolation; consolidate shapes/dropout/accumulation/20-term/four-term/static-refresh/restore coverage in one operator handoff. Save bounded diagnostic producers under workspace run-state and concise receipts in `specs/013-progressive-mathematical-discovery/validation/hardware-results.md`. Missing hardware is BLOCKED, never a checked-off PASS. **Depends on**: T086, T087.
+
+- [ ] T089 Execute the outcome-blind prepare/sensitivity and exact freeze through `src/oeis_learn/pipeline_validation/progressive_commands.py`; resolve retained artifacts, panels, measured memory/timing/storage, finalization reserves and every optional branch selected for this campaign. Default to capability+diversity; full graph only if explicitly selected. Verify combined trial/evaluation feasibility and initial primary panel support before scores. Publish concise scope/deficits in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`; a deficit blocks dependent research, not other software tests. **Depends on**: T088.
+
+- [ ] T090 Run post-freeze installed acceptance through `src/oeis_learn/pipeline_validation/progressive_acceptance.py` using the same unchanged source/image. Reuse matching original qualification case producers; execute only missing campaign-dependent device cases in one consolidated delta batch. Include interrupted two-task continuation, actual target/library consumption and short-profile generation; do not repeat every shape test. Produce one complete package. Record coverage/reuse/omissions and actual duration in `specs/013-progressive-mathematical-discovery/validation/hardware-results.md`. **Depends on**: T089.
+
+- [ ] T091 Collect separately labeled sustained-duration evidence through `src/oeis_learn/pipeline_validation/progressive_training.py` and `src/oeis_learn/pipeline_validation/progressive_acceptance.py`: freeze actual duration, interval diagnostics, linked task boundary and crash/restore before execution; each task <=24h and total within selected allowance. Prefer piggybacking telemetry/recovery on the first already-eligible, preregistered two-task training path, after short acceptance; do not force an extra standalone soak or extend a task. If no eligible path can supply the evidence, use a separately budgeted acceptance run or record sustained status pending in `specs/013-progressive-mathematical-discovery/validation/hardware-results.md`. **Depends on**: T090.
+
+- [ ] T092 OPTIONAL RESEARCH — US1: Run the frozen retained-checkpoint/templates/conditioning/conventional-method capability panel and coverage audit through `src/oeis_learn/pipeline_validation/progressive_commands.py`, after compatible hardware acceptance. Update `specs/013-progressive-mathematical-discovery/validation/research-findings.md` with all four strata, baseline cost, incompleteness and representation gaps. No training and no new B/D replication. If fresh support is inadequate, preserve the deficit and stop that comparison. **Depends on**: T090.
+
+- [ ] T093 OPTIONAL CONTINGENCY — US1: If the outcome-blind census or sensitivity check cannot support the registered claim, execute only the predeclared support/design investigation in `configs/foundation/progressive/diagnostics.json`. Compare available group counts, censoring assumptions and planned looks without model scores; publish a smaller-domain/exploratory proposal or independent-panel redesign in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`. Use only its already bounded preparation allowance; without that allowance, produce a proposal from existing evidence and stop. A concrete changed cohort requires a new freeze before scoring; never lower quotas after outcomes or use fresh seeds to erase exposure. **Depends on**: T089.
+
+- [ ] T094 OPTIONAL CONTINGENCY — US1/US2: If the predeclared weak-learning trigger fires, use `configs/foundation/progressive/diagnostics.json` and the existing learner for one tiny independently verified expressible-panel memorization/conditioning diagnostic, then fixed-candidate acceptance checks. Require a concrete runtime/held-out question and reserved task. Record implementation/representation versus optimization evidence in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`; do not begin broad HPO on a broken endpoint. **Depends on**: T092.
+
+- [ ] T095 OPTIONAL IMPLEMENTATION + QUALIFICATION — US1: Only after a witnessed gap and a newly frozen concrete profile, implement that specific extension across `src/oeis_learn/decoder/bigint_grammar.py`, `src/oeis_learn/decoder/bigint_codec.py`, `src/oeis_learn/synthesis/reference.py`, `src/oeis_learn/synthesis/reference_parser.py`, `src/oeis_learn/generalization/progressive/coverage.py`, `crates/oeis_bigint_runtime/src/lib.rs` and `crates/oeis_synthesis_core/src/lib.rs` as applicable. Define signed/zero/overflow/work semantics and unsupported-fit behavior first; add independent native/reference/grammar tests in `tests/contract/test_progressive_language.py`. Queue changed device scope into a consolidated requalification batch; do not silently choose division, memory or calls now. **Depends on**: T092.
+
+- [ ] T096 OPTIONAL RESEARCH — US1: If independently selected, freeze visible-only learned/template selection and split attempts/time in `configs/foundation/progressive/portfolio.json`; implement the bounded adapter in `src/oeis_learn/generalization/progressive/baselines.py` with contract tests. Test cost/completion on an independent reserved panel and report in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`. Observed success union is only diagnostic. Group any required requalification with other pending scope changes; do not reopen primary scores. **Depends on**: T092.
+
+- [ ] T097 OPTIONAL RESEARCH — US2: Execute `configs/foundation/progressive/diversity.json` after exact selected-campaign freeze and software/device acceptance. Run matched static/refreshed paired seeds at 25M or prospectively calibrated allowance, with identical policy and reported preparation cost. Evaluate reserved confirmation, completion/retention and conditional uncertainty; retain valid static baseline on negative refresh result. Record gains, breadth and tail costs in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`. **Depends on**: T092.
+
+- [ ] T098 OPTIONAL CONTINGENCY — US2: On its frozen trigger choose the predeclared static/refresh difficulty-mixture diagnostic OR fixed-stream allocation control in `configs/foundation/progressive/diagnostics.json`. Hold other factors fixed, charge the shared pool, and run at most one episode for that failure class. Record novelty/exposure/forgetting or reward-noise evidence in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`; keep static/hybrid/simpler allocation if negative, without making a full B/D repeat mandatory. **Depends on**: T097.
+
+- [ ] T099 OPTIONAL RESEARCH — US3: With a valid retained baseline/data choice, execute the frozen learning then sizing study in `configs/foundation/progressive/tuning.json`. Run all trials serially; retain failures/partials and unpruned controls. Confirm locked finalists on unused panels with fresh seeds and full costs; no automatic increase to 16 trials if a smaller freeze was selected. Record frontier, short/long ranking stability and decision in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`. **Depends on**: T097.
+
+- [ ] T100 OPTIONAL CONTINGENCY — US3: If reserved controls discredit short-run ranking, execute the predeclared smaller/longer-fidelity candidate diagnostic from `configs/foundation/progressive/diagnostics.json`, or publish a new study proposal if not concretely frozen. Preserve original pruned/failed history and reserve independent confirmation. Also record cheaper-without-gain candidates descriptively unless the efficiency route was registered. No posthoc objective or dropout/size change under an old trial. **Depends on**: T099.
+
+- [ ] T101 OPTIONAL RESEARCH — US3: If the efficiency/noninferiority route was selected before outcomes and a frozen candidate is eligible, execute its reserved repeated-timing/independent-confirmation workload from `configs/foundation/progressive/diagnostics.json`. Require >=20% total measured cost reduction, adjusted conservative capability lower bound >=-1 pp in each primary stratum and unchanged completion/replication/retention rules. Freeze repeats and any amortization horizon; report unamortized costs in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`. Without registration, publish a new study proposal rather than adopting the cost endpoint retrospectively. **Depends on**: T099.
+
+- [ ] T102 OPTIONAL CONTINGENCY — US3/US4: If the original paired seeds disagree and the third-seed branch was frozen, execute its paired tasks from `configs/foundation/progressive/diagnostics.json` inside the shared <=24h pool. Apply the all-three rule and adjusted additional look from the contingency contract; disclose the original failed two-seed gate and every seed in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`. Otherwise retain baseline/stop with a proposal; never silently add replacement seeds. **Depends on**: T099.
+
+- [ ] T103 OPTIONAL RESEARCH — US4: Execute only eligible registered continuations in `configs/foundation/progressive/scaling.json`, preserving optimizer/schedule/source lineage and cumulative 25M/100M/400M exposure. Report per-milestone paired gain, retention/completion, tails and incremental cost in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`. Stop at the last useful/attainable checkpoint when gates or allowances fail; 400M is not a completion obligation. Reuse compatible actual-HIP receipts; do not requalify simply because the checkpoint advanced. **Depends on**: T099.
+
+- [ ] T104 OPTIONAL CONTINGENCY — US4: Use the one frozen diagnostic in `configs/foundation/progressive/diagnostics.json` appropriate to an inconclusive/plateau result: justified medium continuation OR fixed-input reliability replay at original scientific caps OR independent confirmation expansion. Require the recorded distinguishing question and additional signal; no training on confirmation solutions. Keep original INCONCLUSIVE/INCOMPLETE verdict, report uncertainty/censoring and terminate at the declared rule in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`. **Depends on**: T103.
+
+- [ ] T105 OPTIONAL RESEARCH — US5: Execute the frozen bounded yield audit and, only if eligible, one replay-versus-continued-synthetic cycle in `configs/foundation/progressive/oeis.json`. Evaluate transfer on different sequences, preserve training-feedback labels, paired seeds and total search+learning costs. Report low-yield/diversity/cost deficits without recycling a few examples as new support; valid synthetic/search-only work can remain in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`. **Depends on**: T103.
+
+- [ ] T106 OPTIONAL CONTINGENCY — US5: If concretely frozen and triggered, run one low-yield search/preparation diagnostic OR preset lower-replay/diversity-balanced pilot from `configs/foundation/progressive/diagnostics.json`. Narrow membership only under an outcome-blind new commitment, exclude imported teachers and keep discovery cost charged. Record whether new-task yield improves; otherwise defer self-learning while keeping the clean model/search archive. All work fits the shared reserve and independent confirmation rules. **Depends on**: T105.
+
+- [ ] T107 OPTIONAL RESEARCH — US6: Run the frozen library/no-library comparison in `configs/foundation/progressive/components.json` on independently verified permitted training archives, which may be synthetic if OEIS was deferred. Measure held-out yield, cross-group reuse, expanded cost and candidate lineage in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`. Apply only registered gain/efficiency adoption; keep analysis-only components if no utility. This branch needs valid archive/model prerequisites, not a positive OEIS result. **Depends on**: T103.
+
+- [ ] T108 OPTIONAL CONTINGENCY — US6: If frozen and triggered by compression without utility, execute one search-only reuse versus expanded-program-distillation diagnostic using `configs/foundation/progressive/diagnostics.json`. Preserve matched budgets and count extraction cost. Record reuse across groups and capability/cost in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`; defer adoption if negative. Compact-token vocabularies or mutable macros are new studies, not an automatic fallback. **Depends on**: T107.
+
+- [ ] T109 OPTIONAL RESEARCH — US7: Run the bounded admitted FindStat/Sage-derived short-profile with/without-source pilot in `configs/foundation/progressive/source-pilot.json`, only if the independent group census and source terms permit it. If unsuitable or insufficient, publish feasibility/deficit findings in `specs/013-progressive-mathematical-discovery/validation/source-suitability.md` and defer ingestion; no padding or arbitrary ordering. Additional databases need a new concrete bounded profile, not unused reserve alone. **Depends on**: T092.
+
+- [ ] T110 OPTIONAL RESEARCH — US6: After sealing eligible candidates, run bounded counterexample/proof/known-method review through `src/oeis_learn/generalization/progressive/claims.py` and publish concise dossiers in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`. Keep finite agreement when proof/novelty is absent; include known rediscoveries and refutations. Literature evidence must not reenter training. Algorithmic/asymptotic claims require independent scoped reasoning, not finite timing alone. **Depends on**: T107.
+
+- [ ] T111 Publish final acceptance/disposition summary in `specs/013-progressive-mathematical-discovery/validation/research-findings.md`, separating software coverage, actual device/sustained evidence, live research, optional branches and historical INCOMPLETE results. For each selected branch record completed/blocked/deferred/not-triggered, original verdict, next action and remaining budget. Unselected optional runs are not required dependencies; do not mark them executed. Commit/push coherent changes; fix observed CI failures without waiting for jobs or committing weights/raw outputs. **Depends on**: T087, T090, T091.
+
+## Dependencies and delivery order
+
+Setup → foundation → US1 → US2 → US3 → US4 → US5 → US6 → US7 → integrated software/CPU acceptance → consolidated workstation qualification → outcome-blind preparation/freeze → scoped post-freeze acceptance → selected research.
+
+This serial implementation order deliberately avoids conflicts in shared role/training/CLI files. Every story has its own independent diagnostic fixtures, so its acceptance does not require a preceding **positive research result**. US6 may use a synthetic verified archive when OEIS self-learning is deferred; US7 may report insufficient support without claiming a learning comparison. No later software acceptance is gated on discovering a new theorem.
+
+Optional runtime graph: capability → diversity → tuning → scaling → OEIS. Components require a valid trained model and verified training archive, not a successful OEIS branch. Source pilot requires its own profile/source/support gate. Each contingency is a leaf episode with a terminal decision; no automatic diagnostic-to-diagnostic chain. A branch with a new policy/model/source/language needs a new concrete child freeze and compatible qualification. Baseline-retention paths keep the original failed decision.
+
+
+Mandatory diagnostic templates T084 precede the shared hardware handoff; optional execution must not be used to finish missing implementation. Sustained evidence T091 can overlap a previously eligible selected research path but cannot waive short acceptance or invent unused resources. Final report T111 records all selected/unselected outcomes; it does not require every optional checkbox to be completed.
+
+
+## Requirement and acceptance coverage
+
+| Requirement | Implementation / acceptance tasks |
+| --- | --- |
+
+| FR-001–006; SC-011 | T008, T009, T010, T013, T083, T081, T111 |
+
+| FR-007–011; SC-001 | T021, T022, T023, T024, T025, T026, T027, T028, T095 |
+
+| FR-012–016; SC-002 | T031, T032, T033, T034, T035, T036 |
+
+| FR-017–021; SC-003 | T039, T040, T041, T042, T043, T044, T045, T046 |
+
+| FR-022–026; SC-004–005 | T012, T013, T049, T050, T051, T052, T053, T054, T055, T091 |
+
+| FR-027–030; SC-006 | T057, T058, T059, T060, T061, T062 |
+
+| FR-031–035; SC-007–008 | T065, T066, T067, T068, T069, T070, T071 |
+
+| FR-036–037; SC-009 | T073, T074, T075, T076, T077, T078 |
+
+| FR-038–040; SC-010 | T014, T016, T017, T079, T080, T082, T083, T085, T088, T090 |
+
+| FR-041; SC-011 | T087, T111 |
+
+| Target classes and optional branches | T011, T025, T026, T048, T053, T084 |
+
+
+## Parallel opportunities and independent story checks
+
+| Story | Safe parallel example after its incoming checkpoint | Independent pass evidence |
+| --- | --- | --- |
+
+| US1 | T019, T020 | Fixed panel/witness/baseline report and independently recomputed censored decisions |
+
+| US2 | T029, T030 | Actual CPU static/refreshed update and exact draw/cost continuation |
+
+| US3 | T037, T038 | Uneven-microbatch objective check and real pinned-proposer/CPU-trial replay |
+
+| US4 | T047, T048 | Full-state interrupted two-task recovery and forbidden/eligible diagnostic decisions |
+
+| US5 | T056 | Admission rejection fixtures can be authored alongside archive fixtures within separate test files; real cycle follows serial implementation |
+
+| US6 | T063, T064 | Actual mined-component candidate/update, sound limited proof and complete quarantine |
+
+| US7 | T072 | Source and short-profile tests in separate files may be authored together; real four-input update/generation follows serial implementation |
+
+
+Parallel examples mean separate test files with already frozen interfaces, not permission to edit shared fixtures/role/training adapters concurrently. Run all GPU cases serially under one owner. Commit after each logical tested group; a coding task is not done merely because its test was collected or skipped.
+
+## Implementation strategy
+
+1. Deliver setup, authority and US1 as the software MVP: readiness and coverage without new training. Preserve D as the starting reference and the drain schedule.
+2. Add US2–US7 in order, each with actual CPU/native positive and negative fixtures. Complete shared diagnostic templates, report verification and CLI integration before the workstation request. Do not leave OEIS/components as future placeholders.
+3. Finish source/lock/test changes, run non-GPU gates, then use the consolidated hardware plan. A CPU-passing increment may be committed before hardware is available, but is not production qualified.
+4. Freeze only feasible selected research and explicit optional branches. Start with capability+diversity, retaining a baseline when an intervention fails. Keep expensive training conditional; avoid speculative device runs for unselected language/architecture changes.
+5. Prefer information gained per unit of compute. Token counts, trial counts and soft goals are not obligations; failed integrity and hard execution caps remain non-negotiable. Summaries explain observed result, alternatives, action and remaining budget.
+
+## Task inventory
+
+
+Total: **111** tasks; **92 mandatory**, **19 optional**, **10 [P] tasks**. These are implementation/acceptance work items, not a prediction of elapsed time.
+
+
+| Group | Tasks |
+| --- | ---: |
+
+| Phase 1 | 5 |
+
+| Phase 2 | 13 |
+
+| US1 | 10 |
+
+| US2 | 8 |
+
+| US3 | 10 |
+
+| US4 | 9 |
+
+| US5 | 7 |
+
+| US6 | 9 |
+
+| US7 | 7 |
+
+| Phase 10 | 33 |
+
+
+All tasks are initially unchecked. Hardware/retained-data absence is reported explicitly; no acceptance task may be checked off using invented receipts.
