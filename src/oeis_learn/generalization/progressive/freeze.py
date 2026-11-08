@@ -326,6 +326,24 @@ def freeze(
         track=b["track"],
     )
     validate_campaign(campaign)
+    cycle_plans = set()
+    for item in refs:
+        if item["kind"] != "policy":
+            continue
+        request = load(confined(root, item["artifact"]["path"]))
+        if request.get("operation") == "oeis-cycle":
+            from oeis_learn.pipeline_validation.progressive_oeis import validate_cycle
+
+            if (
+                set(request.get("artifacts", {})) != {"cycle"}
+                or len(request["artifacts"]["cycle"]) != 1
+            ):
+                raise ValueError("one frozen OEIS cycle plan required")
+            cycle = load(confined(root, request["artifacts"]["cycle"][0]), maximum=256 << 20)
+            validate_cycle(root, campaign, cycle)
+            cycle_plans.add(cycle["identity"])
+    if len(cycle_plans) > 1:
+        raise ValueError("a further OEIS cycle requires a new study")
     tasks = []
     for plan in q["task_plans"]:
         tasks.append(
@@ -391,6 +409,7 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
                         "initializer": {"compatibility": compatibility(package)},
                     },
                 },
+                allow_pending=True,
             )
             if data["compatibility"] != compatibility(package):
                 raise ValueError("declared training compatibility differs")

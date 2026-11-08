@@ -38,6 +38,7 @@ def generate(
     output_root=None,
     budget=None,
     methods=("correct", "shuffled", "absent", "template", "polynomial", "linear_recurrence"),
+    forced=None,
 ):
     import torch
 
@@ -68,7 +69,8 @@ def generate(
     prompts.sort(key=lambda p: p["id"])
     if not prompts or len({p["id"] for p in prompts}) != len(prompts):
         raise ValueError("nonempty unique visible roster required")
-    conditioning(prompts, "shuffled", seed=recipe["model"]["seed"])
+    if "shuffled" in methods:
+        conditioning(prompts, "shuffled", seed=recipe["model"]["seed"])
     began = time.monotonic()
     deadline = min(began + seconds, budget.deadline) if budget else began + seconds
     output_root = root if output_root is None else output_root
@@ -86,7 +88,20 @@ def generate(
         device=device,
     )
     snapshot = model_snapshot(encoder, decoder)
-    controlled = conditioning(prompts, "shuffled", seed=recipe["model"]["seed"])
+    runtime_recipe = recipe.get("base_recipe", recipe)
+    if forced is not None and (
+        set(forced) != {p["id"] for p in prompts}
+        or any(
+            not isinstance(v, list) or len(v) > 8 or any(not isinstance(s, str) for s in v)
+            for v in forced.values()
+        )
+    ):
+        raise ValueError("bounded diagnostic candidate roster required")
+    controlled = (
+        conditioning(prompts, "shuffled", seed=recipe["model"]["seed"])
+        if "shuffled" in methods
+        else prompts
+    )
     rows = {}
     evidence = FullClockEvidence(
         output / "attempts", prompts, source=digest(recipe), work=snapshot, policy=DRAIN
@@ -97,7 +112,11 @@ def generate(
             with torch.no_grad():
                 for mode, values in [
                     ("correct", p["values"]),
-                    ("shuffled", controlled[ordinal]["values"]),
+                    *(
+                        [("shuffled", controlled[ordinal]["values"])]
+                        if "shuffled" in methods
+                        else []
+                    ),
                 ]:
                     memories[mode] = encoder.forward_from_sequences(
                         [[int(v) for v in values]], device=device
@@ -106,6 +125,38 @@ def generate(
                 padding = torch.zeros(memory.shape[:2], dtype=torch.bool, device=memory.device)
                 memories["absent"] = condition_memory(memory, padding, "absent")[0]
             record = {"selections": {}, "arm_evidence": {}, "costs": {}}
+            if forced is not None:
+                visible = VisiblePrompt(tuple(p["indices"]), tuple(p["values"]))
+                admitted = []
+                for source in forced[p["id"]]:
+                    if budget:
+                        budget.consume(draws=1, attempts=1, rejections=1)
+                    result = client.fit(
+                        source,
+                        visible,
+                        policy=fitting_policy(source),
+                        deadline=min(deadline, time.monotonic() + 4),
+                    )
+                    admitted.extend(result.get("admitted", []))
+                chosen = _seal(admitted, visible, cost=0)
+                for method in (
+                    "raw",
+                    "rescue",
+                    "equal_budget",
+                    "shuffled",
+                    "absent",
+                    "template",
+                    "polynomial",
+                    "linear_recurrence",
+                ):
+                    selected = method in {"raw", "rescue", "equal_budget"}
+                    record["selections"][method] = chosen if selected else None
+                    record["arm_evidence"][method] = dict(
+                        complete=selected, reason="DIAGNOSTIC_ONLY"
+                    )
+                record["costs"]["diagnostic"] = dict(autonomous_discoveries=0)
+                rows[p["id"]] = record
+                continue
             for mode in ("correct", "shuffled", "absent", "template"):
                 if mode not in methods:
                     for key in ("raw", "rescue", "equal_budget") if mode == "correct" else (mode,):
@@ -120,7 +171,7 @@ def generate(
                     decoder,
                     memories.get(mode),
                     p,
-                    recipe,
+                    runtime_recipe,
                     client,
                     deadline=deadline,
                     attempt_count=8,

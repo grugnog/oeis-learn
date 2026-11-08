@@ -100,6 +100,7 @@ def _invoke_reserved(
     runtime=None,
     settings=None,
     forbidden=(),
+    derived=None,
 ):
     if operation not in IMPLEMENTED:
         raise NotImplementedError("discovery operation not implemented: " + operation)
@@ -199,6 +200,10 @@ def _invoke_reserved(
     spec = REGISTRY[operation]
     views = target / "private-input"
     authorized = [r["artifact"] for r in c["payload"]["references"] if r["role"] == spec.role]
+    if derived is not None:
+        from .progressive_oeis import check_derived
+
+        authorized.extend(check_derived(derived, campaign=c, task=t, operation=operation))
     with projection_guard.activate():
         channels = project(
             root,
@@ -223,7 +228,7 @@ def _invoke_reserved(
     mounted = [(str(path), "/inputs/" + channel, False) for channel, path in channels.items()] + [
         (str(role_output), "/output/discovery", True)
     ]
-    gpu = spec.gpu and not (operation == "train" and t["purpose"] == "acceptance")
+    gpu = spec.gpu and t["purpose"] != "acceptance"
     if operation == "train":
         from oeis_learn.generalization.progressive.contracts import atomic_write, seal
 

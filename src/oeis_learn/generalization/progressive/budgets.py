@@ -379,7 +379,13 @@ def role_work_requirements(operation, values):
         n = sum(v["kind"] == "visible_prompt" for v in values)
         if not n:
             raise ValueError("nonempty bounded generation roster required")
-        costs.update(draws=32 * n, attempts=48 * n, rejections=48 * n, native_work=64 * n)
+        oeis = any(v["kind"] == "oeis_generation" for v in values)
+        costs.update(
+            draws=(8 if oeis else 32) * n,
+            attempts=(8 if oeis else 48) * n,
+            rejections=(8 if oeis else 48) * n,
+            native_work=64 * n,
+        )
     elif operation == "score":
         n = sum(v["kind"] in {"development_truth", "confirmation_truth"} for v in values)
         if not n:

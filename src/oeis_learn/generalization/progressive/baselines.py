@@ -57,6 +57,40 @@ def load_baseline(
     recipe: matching tensor shapes alone cannot establish input compatibility.
     This does not restore optimizer state or authorize an evaluation campaign.
     """
+    if recipe.get("version") == "progressive-research-model/v1":
+        from oeis_learn.generalization.progressive.models import construct, validate_profile
+        import torch
+        from oeis_learn.pipeline_validation.identity import confined
+
+        if method not in {"random", "retained_D", "earlier_checkpoint", "shuffled", "absent"}:
+            raise ValueError("registered research model baseline required")
+        if method == "earlier_checkpoint" and reference_recipe != recipe:
+            raise ValueError("compatible original research recipe required")
+        profile = validate_profile(recipe)
+        if method == "random":
+            if ref is not None or root is not None or seed != profile["model"]["seed"]:
+                raise ValueError("bound random research model required")
+        elif ref is None or root is None or seed is not None:
+            raise ValueError("identified research checkpoint required")
+        encoder, decoder, counts = construct(profile, device=device)
+        if ref is not None:
+            verify_refs(root, [ref], max_bytes=64 << 30)
+            state = torch.load(confined(root, ref["path"]), map_location=device, weights_only=True)
+            if set(state) != {"encoder", "decoder"}:
+                raise ValueError("generator requires the verified weight slice")
+            for name, model in (("encoder", encoder), ("decoder", decoder)):
+                expected = model.state_dict()
+                if set(state[name]) != set(expected) or any(
+                    not isinstance(v, torch.Tensor)
+                    or v.dtype != expected[k].dtype
+                    or not bool(torch.isfinite(v).all())
+                    for k, v in state[name].items()
+                ):
+                    raise ValueError("finite compatible checkpoint tensors required")
+                model.load_state_dict(state[name])
+        encoder.eval()
+        decoder.eval()
+        return encoder, decoder, counts
     from oeis_learn.fresh.bigint_config import resolve
 
     if resolve(recipe) != recipe:

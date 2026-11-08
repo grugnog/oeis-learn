@@ -486,6 +486,34 @@ def lifecycle_command(args, root, host_factory):
                 raise ValueError("closed installed task request required")
             from .progressive_roles import IMPLEMENTED, REGISTRY
 
+            if request["operation"] == "oeis-cycle":
+                result = oeis_cycle(
+                    root,
+                    output / ("task-" + task["identity"].split(":")[1]),
+                    campaign,
+                    task,
+                    request,
+                    journal,
+                    host=host,
+                    runtime=checked,
+                )
+                for task_id in result["metrics"]["completed_tasks"]:
+                    plan = next(p for p in campaign["payload"]["tasks"] if p["id"] == task_id)
+                    child = record(
+                        "task",
+                        dict(plan, campaign=campaign["identity"]),
+                        created_at=campaign["created_at"],
+                        purpose=campaign["purpose"],
+                        track=campaign["track"],
+                    )
+                    store.boundary(child, "COMPLETE", _INVOCATION.get())
+                store.boundary(task, result["metrics"]["task_status"], _INVOCATION.get())
+                # A second cycle is a new study; do not let an unvisited paired
+                # slot silently rerun a low-yield first cycle.
+                if result["reason"] == "OEIS_YIELD_DEFICIT":
+                    store.append(dict(store.state, status="PARTIAL"))
+                    return result, 2
+                continue
             if request["operation"] not in IMPLEMENTED:
                 store.append(dict(store.state, status="PARTIAL"))
                 return publish(
@@ -603,3 +631,10 @@ def lifecycle_command(args, root, host_factory):
             },
             missing=[] if done else ["eligible_reserved_next_slot"],
         ), 1 if failed else 0 if done else 2
+
+
+def oeis_cycle(root, output, campaign, manager, request, journal, **kwargs):
+    """Explicit fixed-cycle orchestration; no user callbacks or recursive repeats."""
+    from .progressive_oeis import run_cycle
+
+    return run_cycle(root, output, campaign, manager, request, journal, **kwargs)

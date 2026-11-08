@@ -155,7 +155,10 @@ def _execute(
             metrics={"shards": [s["identity"] for s in shards]},
         )
     if operation == "generate":
-        if any(v["kind"] not in {"checkpoint", "recipe", "visible_prompt"} for v in values):
+        if any(
+            v["kind"] not in {"checkpoint", "recipe", "visible_prompt", "oeis_generation"}
+            for v in values
+        ):
             raise ValueError("closed generation types required")
         recipes = [v["data"] for v in values if v["kind"] == "recipe"]
         checkpoints = [v["data"] for v in values if v["kind"] == "checkpoint"]
@@ -179,8 +182,25 @@ def _execute(
         recipe = load(confined(model_root, recipes[0]["artifact"]["path"]))
         from oeis_learn.fresh.bigint_config import resolve
 
-        if resolve(recipe) != recipe:
+        if recipe.get("version") == "progressive-research-model/v1":
+            from oeis_learn.generalization.progressive.models import validate_profile
+
+            validate_profile(recipe)
+        elif resolve(recipe) != recipe:
             raise ValueError("resolved installed recipe required")
+        generation_policy = [v["data"] for v in values if v["kind"] == "oeis_generation"]
+        if len(generation_policy) > 1:
+            raise ValueError("one OEIS generation policy required")
+        mode_policy = generation_policy[0] if generation_policy else None
+        if mode_policy:
+            from oeis_learn.generalization.progressive.projections import _validate_channel
+
+            _validate_channel("oeis_generation", mode_policy)
+            if (
+                mode_policy["forced"] is not None
+                and load(authority)["task"]["purpose"] != "acceptance"
+            ):
+                raise ValueError("forced candidates are DIAGNOSTIC_ONLY")
         control = checkpoints[0].get("control", "retained_D")
         with SynthesisClient(digest(recipe)) as client:
             budget.client(client)
@@ -195,8 +215,13 @@ def _execute(
                 model_control=control,
                 reference_recipe=recipe if control == "earlier_checkpoint" else None,
                 seed=recipe["model"]["seed"] if control == "random" else None,
-                device="cuda",
+                device="cpu" if load(authority)["task"]["purpose"] == "acceptance" else "cuda",
                 budget=budget,
+                **(
+                    {"methods": tuple(mode_policy["methods"]), "forced": mode_policy["forced"]}
+                    if mode_policy
+                    else {}
+                ),
             )
         from .progressive_evidence import generation_timing
 

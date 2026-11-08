@@ -40,20 +40,20 @@ def compatibility(package):
         "refresh_updates": package["refresh_updates"],
         "scope": package["scope"],
     }
-    if "oeis_replay" in package:
+    if "oeis_replay" in package or "oeis_rules" in package:
         from oeis_learn.generalization.progressive.replay import RULE
 
         value["replay_policy"] = RULE
     return digest(value)
 
 
-def validate_input(package, task):
+def validate_input(package, task, *, allow_pending=False):
     from oeis_learn.decoder.bigint_codec import encode_body
     from oeis_learn.generalization.progressive.models import validate_profile
     from oeis_learn.pipeline_validation.progressive_training import validate_update_policy
 
     if (
-        set(package) - {"weights", "origin", "oeis_replay"}
+        set(package) - {"weights", "origin", "oeis_replay", "oeis_rules"}
         != {
             "version",
             "identity",
@@ -79,6 +79,11 @@ def validate_input(package, task):
         )
     ):
         raise ValueError("scaling must retain the frozen 400M schedule and 1.25M warmup")
+    if "oeis_rules" in package:
+        from oeis_learn.generalization.progressive.replay import RULE
+
+        if package["oeis_rules"] != RULE or ("oeis_replay" not in package and not allow_pending):
+            raise ValueError("frozen OEIS mixture requires its committed archive cut")
     if "oeis_replay" in package:
         from oeis_learn.generalization.progressive.replay import Mixer
 

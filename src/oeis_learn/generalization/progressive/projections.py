@@ -28,7 +28,7 @@ CHANNELS = {
         "library",
     },
     "visible": {"visible_prompt"},
-    "model": {"checkpoint", "recipe", "library"},
+    "model": {"checkpoint", "recipe", "library", "oeis_generation"},
     "candidates": {"candidate"},
     "admission_truth": {"training_continuation"},
     "score_truth": {"development_truth", "confirmation_truth"},
@@ -205,6 +205,13 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
 
 
 def _validate_channel(kind, data):
+    if kind == "oeis_generation":
+        if (
+            set(data) != {"methods", "forced"}
+            or data["methods"] != ["correct"]
+            or (data["forced"] is not None and not isinstance(data["forced"], dict))
+        ):
+            raise ValueError("closed one-portfolio OEIS generation policy required")
     if kind in {"cohort", "exposure"}:
         from .contracts import validate
 

@@ -356,3 +356,30 @@ def test_order_invariance_and_nontrivial_censored_intervals():
     assert (c["lower"], c["upper"]) == (0.0, 1.0)
     # Candidate censoring cannot establish no material gain or regression.
     assert c["upper"] >= 0.02
+
+
+def test_oeis_endpoint_has_full_weight_and_independent_seed_support():
+    from oeis_learn.generalization.progressive.metrics import compare
+
+    values = []
+    roster = []
+    for g in range(16):
+        for i in range(4):
+            task = f"oeis-{g}-{i}"
+            roster.append(dict(task=task, group=str(g), stratum="oeis"))
+            for seed in (1, 2):
+                for arm in ("baseline", "candidate"):
+                    values.append(
+                        dict(
+                            task=task,
+                            group=str(g),
+                            stratum="oeis",
+                            seed=seed,
+                            arm=arm,
+                            outcome="success" if arm == "candidate" or i < 3 else "failure",
+                        )
+                    )
+    result = compare(values, roster=roster, seeds=[1, 2], seed=13, primary=("oeis",))
+    assert result["primary_weights"] == {"oeis": 1.0}
+    assert result["mean_gain"] == result["lower"] == result["upper"] == 0.25
+    assert result["support"] == {"oeis": 16}

@@ -148,8 +148,8 @@ def nominal_interval(values):
     return float(values[max(1, b // 40) - 1]), float(values[min(b, (39 * b + 39) // 40) - 1])
 
 
-def _components(cells, links):
-    nodes = {f"{s}/{g}" for s in PRIMARY for g in cells.get(s, {})}
+def _components(cells, links, primary=PRIMARY):
+    nodes = {f"{s}/{g}" for s in primary for g in cells.get(s, {})}
     parent = {node: node for node in nodes}
 
     def root(node):
@@ -176,7 +176,7 @@ def _components(cells, links):
     return {node: root(node) for node in sorted(nodes)}
 
 
-def _resample(cells, links, *, seed, replicates):
+def _resample(cells, links, *, seed, replicates, primary=PRIMARY):
     """Exact paired cluster bootstrap; small draws are diagnostic-only test seams.
 
     Unlinked strata use separate multinomial draws of their family groups.
@@ -189,10 +189,10 @@ def _resample(cells, links, *, seed, replicates):
     _seed(seed)
     if type(replicates) is not int or not 1 <= replicates <= 10000:
         raise ValueError("bounded diagnostic replicate count required")
-    components = _components(cells, links)
-    if any(not cells.get(s) for s in PRIMARY):
+    components = _components(cells, links, primary)
+    if any(not cells.get(s) for s in primary):
         raise ValueError("both primary strata required for bootstrap")
-    blocks = [PRIMARY] if links else [(s,) for s in PRIMARY]
+    blocks = [primary] if links else [(s,) for s in primary]
     prepared = []
     for block in blocks:
         units = sorted({components[f"{s}/{g}"] for s in block for g in cells[s]})
@@ -221,9 +221,9 @@ def _resample(cells, links, *, seed, replicates):
             for scale, rows in strata:
                 denominator = sum(weights[i] for i, _ in rows) * scale
                 for j in range(3):
-                    totals[j] += (
-                        Fraction(sum(weights[i] * vs[j] for i, vs in rows), denominator) / 2
-                    )
+                    totals[j] += Fraction(
+                        sum(weights[i] * vs[j] for i, vs in rows), denominator
+                    ) / len(primary)
         result.append(tuple(totals))
     return result
 
@@ -278,8 +278,20 @@ def _paired(rows, roster, seeds):
     return aligned, seeds, explicit
 
 
-def compare(rows, *, seed, replicates=10000, comparisons=1, links=(), roster=None, seeds=None):
+def compare(
+    rows,
+    *,
+    seed,
+    replicates=10000,
+    comparisons=1,
+    links=(),
+    roster=None,
+    seeds=None,
+    primary=PRIMARY,
+):
     """Fixed primary endpoint and both conservative bounds, without a gate verdict."""
+    if primary not in (PRIMARY, ("oeis",)):
+        raise ValueError("registered synthetic or OEIS endpoint required")
     policy = _settings(replicates, comparisons, seed)
     rows, seeds, explicit = _paired(rows, roster, seeds)
     links = list(links)
@@ -292,9 +304,9 @@ def compare(rows, *, seed, replicates=10000, comparisons=1, links=(), roster=Non
     cells = {arm: {s: {} for s in seeds} for arm in ARMS}
     for (arm, s, stratum), selected in sorted(grouped.items()):
         cells[arm][s][stratum] = _summary(selected)
-    vectors = {stratum: {} for stratum in PRIMARY}
+    vectors = {stratum: {} for stratum in primary}
     seed_vectors = {s: {} for s in seeds}
-    for stratum in PRIMARY:
+    for stratum in primary:
         groups = sorted({r["group"] for r in rows if r["stratum"] == stratum})
         for group in groups:
             paired = []
@@ -313,8 +325,8 @@ def compare(rows, *, seed, replicates=10000, comparisons=1, links=(), roster=Non
             vectors[stratum][group] = tuple(
                 sum((v[j] for v in paired), Fraction()) / len(seeds) for j in range(3)
             )
-    components = _components(vectors, links)
-    support = {s: len({components[f"{s}/{g}"] for g in vectors[s]}) for s in PRIMARY}
+    components = _components(vectors, links, primary)
+    support = {s: len({components[f"{s}/{g}"] for g in vectors[s]}) for s in primary}
     deficits = [
         f"{s}: {n} independent groups < {policy['minimum_groups']}"
         for s, n in support.items()
@@ -325,17 +337,17 @@ def compare(rows, *, seed, replicates=10000, comparisons=1, links=(), roster=Non
     effects = {}
     bounds = []
     for s in seeds:
-        if all(seed_vectors[s].get(stratum) for stratum in PRIMARY):
+        if all(seed_vectors[s].get(stratum) for stratum in primary):
             vector = tuple(
                 sum(
                     (
                         sum((v[j] for v in seed_vectors[s][stratum]), Fraction())
                         / len(seed_vectors[s][stratum])
-                        for stratum in PRIMARY
+                        for stratum in primary
                     ),
                     Fraction(),
                 )
-                / 2
+                / len(primary)
                 for j in range(3)
             )
             effects[s] = vector[1]
@@ -368,7 +380,7 @@ def compare(rows, *, seed, replicates=10000, comparisons=1, links=(), roster=Non
         )
     lower = upper = nominal = None
     if not deficits:
-        samples = _resample(vectors, links, seed=seed, replicates=replicates)
+        samples = _resample(vectors, links, seed=seed, replicates=replicates, primary=primary)
         lower, upper = decision_bounds(
             [v[0] for v in samples], upper_values=[v[2] for v in samples], comparisons=comparisons
         )
@@ -385,7 +397,7 @@ def compare(rows, *, seed, replicates=10000, comparisons=1, links=(), roster=Non
         "nominal_interval": nominal,
         "cells": cells,
         "retention_losses": retention,
-        "primary_weights": dict.fromkeys(PRIMARY, 0.5),
+        "primary_weights": dict.fromkeys(primary, 1 / len(primary)),
         "support": support,
         "minimum_groups": min(support.values()),
         "support_status": "INCOMPLETE" if deficits else "SUFFICIENT",

@@ -7,6 +7,14 @@ from .contracts import digest, record
 from .generator import structure_id
 
 
+class AdmissionRejected(ValueError):
+    code = "ADMISSION_REJECTED"
+
+
+class AdmissionIntegrityError(ValueError):
+    code = "ADMISSION_INTEGRITY"
+
+
 def validate_member(member):
     from oeis_learn.synthesis.contracts import canonical_integer
 
@@ -50,6 +58,10 @@ def admit(
     deadline = min(time.monotonic() + 4, budget.deadline) if budget else time.monotonic() + 4
     reference = evaluate(source, member["indices"], limits, deadline=deadline)
     native = client.execute(source, member["indices"], deadline=deadline)
+    if reference.outcome == native.get("outcome") == "ok" and list(reference.values) != native.get(
+        "values"
+    ):
+        raise AdmissionIntegrityError("native/reference admission disagreement")
     if (
         reference.outcome != "ok"
         or native.get("outcome") != "ok"
@@ -57,7 +69,7 @@ def admit(
         or list(reference.values) != member["values"]
         or native.get("values") != member["values"]
     ):
-        raise ValueError(
+        raise AdmissionRejected(
             "final-source hundred-term native/reference mismatch or incomplete verification"
         )
     # Pairing reuses the established independent grounding/taint adapter; its
