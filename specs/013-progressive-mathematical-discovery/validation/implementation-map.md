@@ -334,3 +334,32 @@ pass. The new tests use test_discovery_readiness.py because the pre-existing
 test_progressive_readiness.py belongs to the legacy RL harness; that original
 file and its explicit inventory exclusion are preserved. The full pre-rename
 roster otherwise passed 272 cases with three local native-service skips.
+
+## T029–T034 verified structural streams
+
+Added failing-first stream/curriculum tests and implemented a closed typed AST
+law with counter-keyed source generation, compositional arithmetic, active
+branches and bounded loops. Structural fingerprints normalize all literal
+magnitudes; finite 100-term behavior signatures disclose their limitations.
+Frozen structure, behavior and finite prefix/shift exclusions remain custodian
+inputs; rejected/unsafe/over-byte draws retain their ordinals and costs.
+
+StreamStore reserves durably before work, debits replay work without changing the
+ordinal, validates append-only hash chains and publishes immutable bounded shards.
+An interrupted shard publication is recovered as the same cut. Shards are capped
+at 4096 rows/65536 draws/256MiB and require native verification before ordinary
+learner access. The installed prepare-stream role uses actual native/reference
+100-term verification, then the existing control-taint/parameter-count and exact
+grounding policy with whole-row literal fallback. Role purpose is inherited from
+the validated task rather than relabeling acceptance data as research.
+
+The fixed-bin controller reuses the existing Graves EXP3.S kernel with the
+20% familiar/10% frontier/70% adaptive mixture, training-only probes and eight
+complete updates per feedback block. Snapshots bind layout/probes, probabilities,
+bounded reward history, RNG, charged/discarded tokens and stream cuts. Historical
+PAC validators are unchanged. Native shard acceptance is mandatory in CI.
+
+Validation: the complete roster initially passed 282 cases with four local native
+service skips; additional independent finite-signature, prefix/byte and purpose
+checks pass in the focused suite. No actual native/HIP qualification is claimed
+on this host. T035/T036 own the subsequent matched-learning acceptance.

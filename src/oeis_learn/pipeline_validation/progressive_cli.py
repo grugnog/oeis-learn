@@ -26,6 +26,7 @@ CPU_TESTS = (
     "tests/contract/test_progressive_roles.py",
     "tests/integration/test_progressive_preparation.py",
     "tests/integration/test_progressive_evaluation.py",
+    "tests/integration/test_progressive_stream.py",
     "tests/integration/test_progressive_runtime.py",
     "tests/unit/test_progressive_baselines.py",
     "tests/unit/test_progressive_budgets.py",
@@ -39,6 +40,8 @@ CPU_TESTS = (
     "tests/unit/test_progressive_metrics.py",
     "tests/unit/test_progressive_targets.py",
     "tests/unit/test_progressive_sensitivity.py",
+    "tests/unit/test_progressive_stream.py",
+    "tests/unit/test_progressive_curriculum.py",
     "tests/unit/test_discovery_readiness.py",
 )
 

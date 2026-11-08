@@ -35,6 +35,32 @@ def execute(operation, *, inputs=Path("/inputs"), output=Path("/output/discovery
             if seal(value) != value:
                 raise ValueError("installed channel identity mismatch")
             values.append(value)
+    if operation == "prepare-stream":
+        policies = [v["data"] for v in values if v["kind"] == "generation_policy"]
+        if len(policies) != 1 or any(v["kind"] != "generation_policy" for v in values):
+            raise ValueError("one frozen structural stream law required")
+        from oeis_learn.pipeline_validation.identity import digest
+        from oeis_learn.synthesis.client import SynthesisClient
+
+        from .progressive_preparation import prepare_stream
+
+        with SynthesisClient(digest(policies[0])) as client:
+            import os
+
+            shards = prepare_stream(
+                output / "stream",
+                policies[0],
+                client=client,
+                purpose=os.environ.get("OEIS_DISCOVERY_PURPOSE", "acceptance"),
+            )
+        complete = bool(shards) and all(s["payload"]["native_verified"] for s in shards)
+        return publish(
+            output,
+            operation=operation,
+            mechanical_status="COMPLETE" if complete else "PARTIAL",
+            reason="SEALED_STRUCTURAL_STREAM",
+            metrics={"shards": [s["identity"] for s in shards]},
+        )
     if operation == "generate":
         if any(v["kind"] not in {"checkpoint", "recipe", "visible_prompt"} for v in values):
             raise ValueError("closed generation types required")

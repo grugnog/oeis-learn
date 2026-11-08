@@ -37,9 +37,14 @@ REGISTRY = MappingProxyType(
     }
 )
 ROLE_POLICY = digest(
-    {name: {"role": v.role, "channels": list(v.channels), "gpu": v.gpu} for name, v in REGISTRY.items()}
+    {
+        name: {"role": v.role, "channels": list(v.channels), "gpu": v.gpu}
+        for name, v in REGISTRY.items()
+    }
 )
-IMPLEMENTED = frozenset({"census", "audit-language", "publish", "generate", "score"})
+IMPLEMENTED = frozenset(
+    {"census", "audit-language", "publish", "generate", "score", "prepare-stream"}
+)
 
 
 def deadline_for(task, *, remaining_us, seconds, runtime=None, operation):
@@ -172,6 +177,7 @@ def _invoke_reserved(
         operation,
     ]
     environment = private_runtime_environment(role_output, destination="/output/discovery")
+    environment["OEIS_DISCOVERY_PURPOSE"] = t["purpose"]
     command = host.engine.command(
         image=image,
         name=name,
