@@ -1,6 +1,6 @@
 # Spec 013 implementation map
 
-Scope: T001–T049 software/specification tasks, with T018 acceptance pending. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
+Scope: T001–T050 software/specification tasks, with T018 acceptance pending. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
 quickstart.md, hardware-validation.md, planning-review.md, all five contracts,
 the requirements checklist and adopted constitution in full before implementation.
 Requirements checklist: 16 checked, zero unchecked. No extension hooks registered.
@@ -33,7 +33,7 @@ exist: the actual shared archive owner is pipeline_validation/bundle.py.
 
 ## Validation
 
-Source/test implementation is complete for T001–T017 and T019–T049; T048 includes an executable third-seed specification for later T053 routing. T018 now has mandatory Docker/Podman CI acceptance and remains unchecked pending its first successful receipt. The initial local validation environment has no Docker or Podman binary
+Source/test implementation is complete for T001–T017 and T019–T050; T048 includes an executable third-seed specification for later T053 routing. T018 now has mandatory Docker/Podman CI acceptance and remains unchecked pending its first successful receipt. The initial local validation environment has no Docker or Podman binary
 and no packaged native worker or HIP device. Local CPU/stdlib checks cannot
 establish container/native/HIP qualification. No research or HIP training is launched.
 
@@ -602,3 +602,59 @@ New-module lint, affected legacy undefined-name checks and whitespace pass. All
 68 historical disposition states remain unchanged. Requirements checklist remains
 16/16; no pre/post extension hooks exist. Commits are pushed incrementally without
 waiting for CI. No HIP, long-task runtime or research gain is asserted.
+
+
+## T050: transactional learning recovery
+
+`progressive/recovery.py::Recovery` owns an exclusive stable task lease and an
+immutable recovery event chain under the existing campaign budget root. Changing
+an invocation output path cannot create a fresh allowance. The last committed
+recovery event identifies the complete checkpoint; the tensor store's mutable
+latest pointer is never recovery authority. Newly published but uncommitted
+generations remain unadopted. Full reference/tensor verification precedes commit.
+
+The transaction is durable cost reservation → pending batch → canonical logical
+update → verified full checkpoint → immutable commit. Later journal costs survive
+restoration of old weights. Retried work receives a fresh debit; useful and
+ discarded exposure are reported separately. Pending retries bind exact entries,
+conditioning and target bytes. Draw/rejection/native/attempt costs supplied with
+the update use the same irreversible budget vector. Current archive/library and
+stream/allocation cuts come only from the committed full checkpoint, never a newer
+external pointer. Explicit logical update ordinals replay the original committed
+checkpoint and metrics after a lost acknowledgement, without extra optimization
+or charge; conflicting duplicate input is rejected.
+
+`progressive_training.RecoverableUpdate` reuses `PolicyUpdate` and the existing
+checkpoint serializer, restoring encoder/decoder weights, AdamW/schedule,
+Python/NumPy/framework/device RNG and complete caller-owned data/replay/selection
+context. Failure poisons the in-memory learner until a new instance restores the
+committed cut. The supervisor owns begin/close and termination proofs; it can
+reserve the invocation clock before model construction so startup is included.
+Finalization headroom is checked before updates. A clean close releases only
+proven unused elapsed time; paused calendar downtime is excluded. A reboot with
+an unclosed invocation consumes its remaining reserved time and makes the task
+terminal PARTIAL. Orphan zero-time update-cost records can be settled after a
+proven supervisor close without refunding work. Budget journal publication now
+fsyncs its parent directory as well as the event file.
+
+Terminal tasks cannot resume or buy another allowance. A reserved compatible next
+task and its dependency/gate remain the explicit T051/T052 dispatch/continuation
+boundary; this library adapter neither launches tasks nor treats a new path as
+such a reservation. Existing campaign/runtime qualification and enclosing process
+supervision remain required. CPU acceptance does not qualify actual HIP or a
+sustained long-running task.
+
+Validation: full progressive/historical roster **372 passed, six local native
+service skips, one expected later T053 specification failure** (53.81s). Final
+startup-accounting and recovery/current-binding selection: **12 passed** (11.15s).
+Real dropout-enabled CPU model tests interrupt after debit, during accumulation,
+after optimization, after tensor publication, and after commit/lost acknowledgement.
+Recovered model parameters and RNG exactly match uninterrupted constant-schedule
+updates, while discarded charges remain spent. Additional cases cover exclusive
+leases, protected finalization, clean pauses across reboot, unknown termination,
+startup failure, conflicting replays and attempted output-path budget reset.
+These new unit and integration cases are in mandatory CPU/native CI. New-source
+lint and whitespace checks pass; current disposition metadata uses the existing
+implementation serializer and preserves all 68 historical item states. Checklist
+remains 16/16; no implementation extension hooks are registered. Changes are
+committed/pushed incrementally without waiting for CI.

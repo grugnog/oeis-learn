@@ -94,3 +94,46 @@ def test_exclusive_lease_and_protected_finalization(tmp_path):
         r.close(boot="one", monotonic_us=100, complete=True)
         with pytest.raises(ValueError, match="terminal"):
             r.begin(boot="one", monotonic_us=101)
+
+
+def test_orphan_debit_with_clean_supervisor_proof_does_not_consume_paused_time(
+    tmp_path, monkeypatch
+):
+    t, j, cuts = setup(tmp_path)
+    with Recovery(j, t, digest("learning")) as r:
+        r.initialize(states(), cuts)
+        r.begin(boot="boot", monotonic_us=0)
+        commit = j.commit
+
+        def fault(key, **kwargs):
+            if "/update/" in key:
+                raise InterruptedError("after durable debit")
+            return commit(key, **kwargs)
+
+        with monkeypatch.context() as m:
+            m.setattr(j, "commit", fault)
+            with pytest.raises(InterruptedError):
+                r.reserve(["x"], 3, boot="boot", monotonic_us=1)
+        r.close(boot="boot", monotonic_us=100)
+    with Recovery(j, t, digest("learning")) as r:
+        state = r.begin(boot="reboot", monotonic_us=100000000)
+        assert state["ledger"].consumed == 3 and state["discarded_tokens"] == 3
+        assert r.clock["end"] - r.clock["start"] == 9999900
+        r.close(boot="reboot", monotonic_us=100000100)
+
+
+def test_clock_can_cover_fresh_model_startup_and_failed_startup_cannot_reset(tmp_path):
+    t, j, cuts = setup(tmp_path)
+    with Recovery(j, t, digest("learning")) as r:
+        assert r.begin(boot="boot", monotonic_us=0) is None
+        r.initialize(states(), cuts)
+        assert r.state["status"] == "RUNNING"
+        r.close(boot="boot", monotonic_us=200)
+    assert j.task_remaining(t)["elapsed_us"] == 9999800
+    other = tmp_path / "other"
+    t, j, cuts = setup(other)
+    with Recovery(j, t, digest("learning")) as r:
+        r.begin(boot="boot", monotonic_us=0)
+        # Power loss before initializer publication: no end proof, no free retry.
+    with Recovery(j, t, digest("learning")) as r, pytest.raises(ValueError, match="exhausted"):
+        r.begin(boot="reboot", monotonic_us=0)

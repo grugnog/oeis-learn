@@ -697,6 +697,7 @@ class RecoverableUpdate:
 
     def capture(self, context):
         import copy
+
         import numpy as np
         import torch
 
@@ -723,8 +724,11 @@ class RecoverableUpdate:
         self.context = context
         return record
 
-    def step(self, sequences, tokens, *, entries, context, cuts, boot, monotonic_us, costs=None):
+    def step(
+        self, sequences, tokens, *, entries, update, context, cuts, boot, monotonic_us, costs=None
+    ):
         import copy
+
         from oeis_learn.decoder.bigint_codec import PAD_ID
 
         if self.failed:
@@ -734,6 +738,10 @@ class RecoverableUpdate:
             "inputs": digest(sequences),
             "targets": digest(tokens.tolist()),
         }
+        prior = self.recovery.completed(update, batch)
+        if prior is not None:
+            restored = self.recovery.store.load(prior)
+            return restored["states"]["history"][f"recovery-update/{update}"], prior
         count = int(tokens[:, 1:].ne(PAD_ID).sum())
         ledger = self.recovery.reserve(
             batch, count, boot=boot, monotonic_us=monotonic_us, costs=costs
@@ -741,6 +749,7 @@ class RecoverableUpdate:
         try:
             metrics, ledger = self.runner.update(sequences, tokens, ledger=ledger)
             next_context = copy.deepcopy(context)
+            next_context["history"][f"recovery-update/{update}"] = metrics
             next_context["data"] = {"cursor": ledger.updates, "pending_batch": None}
             record = self.recovery.commit(self.capture(next_context), ledger, cuts)
             self.context = next_context

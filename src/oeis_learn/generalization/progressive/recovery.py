@@ -21,6 +21,8 @@ class Recovery:
         self.p = self.task["payload"]
         journal.task_remaining(task)  # bind stable identity/output/caps before I/O
         self.root = journal.root / ("recovery-" + digest(self.p["id"]).split(":")[1])
+        if self.root.is_symlink() or (self.root / "checkpoints").is_symlink():
+            raise ValueError("symlink recovery storage")
         self.root.mkdir(exist_ok=True)
         self.compatibility = compatibility
         self.lease = TaskLease(journal.root, task)
@@ -52,7 +54,13 @@ class Recovery:
         else:
             atomic_write(path, binding)
         self.tip = binding["identity"]
-        self.state = {"checkpoint": None, "useful_tokens": 0, "pending": None, "status": "NEW"}
+        self.state = {
+            "checkpoint": None,
+            "useful_tokens": 0,
+            "pending": None,
+            "status": "NEW",
+            "last": None,
+        }
         paths = sorted(self.root.glob("event-*.json"))
         if len(paths) > 65536:
             raise ValueError("recovery journal exhausted")
@@ -97,10 +105,15 @@ class Recovery:
             raise ValueError("exclusive task lease required")
         if self.state["checkpoint"] is not None:
             raise ValueError("existing task must restore its committed cut")
-        if any(self.p["caps"][k] != self.journal.task_remaining(self.task)[k] for k in KEYS):
+        remaining = self.journal.task_remaining(self.task)
+        if any(
+            self.p["caps"][k] != remaining[k]
+            for k in KEYS
+            if k != "elapsed_us" or not hasattr(self, "clock")
+        ):
             raise ValueError("spent task cannot be initialized again")
         record = self.save(states, Ledger(self.p["caps"]["tokens"]), cuts)
-        self.append(checkpoint=record, status="PAUSED")
+        self.append(checkpoint=record, status="RUNNING" if hasattr(self, "clock") else "PAUSED")
         return record
 
     def save(self, states, ledger, cuts):
@@ -140,9 +153,21 @@ class Recovery:
         self.read()
         if self.state["status"] in {"PARTIAL", "COMPLETE"}:
             raise ValueError("terminal task requires a separately reserved compatible next task")
-        if self.state["checkpoint"] is None:
-            raise ValueError("initial complete cut required")
         # Any unclosed invocation on any boot has no trustworthy end proof.
+        # A proven supervisor close covers orphan zero-time update debits too.
+        # Completing these cost records does not refund tokens or other work.
+        with self.journal.lock():
+            events, pending, _, _, _ = self.journal._read()
+        prefix = self.p["id"] + "/"
+        invocations = [e for e in events if e["operation"].startswith(prefix + "invocation/")]
+        if (
+            invocations
+            and invocations[-1]["event"] == "COMMIT"
+            and invocations[-1]["end_us"] is not None
+        ):
+            for key, event in pending.items():
+                if key.startswith(prefix + "update/") and event["cost"]["elapsed_us"] == 0:
+                    self.journal.commit(key)
         self.journal.reconcile(self.task)
         remaining = self.journal.task_remaining(self.task)
         if (
@@ -168,7 +193,20 @@ class Recovery:
             "end": monotonic_us + remaining["elapsed_us"],
         }
         self.append(status="RUNNING")
-        return self.restore()
+        return self.restore() if self.state["checkpoint"] is not None else None
+
+    def completed(self, update, batch):
+        integer(update, 1)
+        self.read()
+        for path in sorted(self.root.glob("event-*.json")):
+            state = load(path, maximum=4 << 20)["state"]
+            if state["last"] is not None and state["last"]["update"] == update:
+                if state["last"]["batch"] != batch:
+                    raise ValueError("conflicting committed update replay")
+                return state["checkpoint"]
+        if update != self.store.load(self.state["checkpoint"])["ledger"].updates + 1:
+            raise ValueError("ordered logical update required")
+        return None
 
     def reserve(self, batch, tokens, *, boot, monotonic_us, costs=None):
         if not self.owned:
@@ -225,7 +263,12 @@ class Recovery:
             raise ValueError("complete matching optimizer and cost cut required")
         record = self.save(states, ledger, cuts)
         useful = self.state["useful_tokens"] + self.state["pending"]["tokens"]
-        self.append(checkpoint=record, useful_tokens=useful, pending=None)
+        self.append(
+            checkpoint=record,
+            useful_tokens=useful,
+            pending=None,
+            last={"update": ledger.updates, "batch": self.state["pending"]["batch"]},
+        )
         return record
 
     def close(self, *, boot, monotonic_us, complete=False):
