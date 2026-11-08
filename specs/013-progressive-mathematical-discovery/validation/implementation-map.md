@@ -1,6 +1,6 @@
 # Spec 013 implementation map
 
-Scope: T001–T024 software, with T018 acceptance pending. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
+Scope: T001–T039 software/specification tasks, with T018 acceptance pending. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
 quickstart.md, hardware-validation.md, planning-review.md, all five contracts,
 the requirements checklist and adopted constitution in full before implementation.
 Requirements checklist: 16 checked, zero unchecked. No extension hooks registered.
@@ -33,7 +33,7 @@ exist: the actual shared archive owner is pipeline_validation/bundle.py.
 
 ## Validation
 
-Source/test implementation is complete for T001–T017 and T019–T024. T018 now has mandatory Docker/Podman CI acceptance and remains unchecked pending its first successful receipt. The initial local validation environment has no Docker or Podman binary
+Source/test implementation is complete for T001–T017 and T019–T039; T037/T038 include executable specifications for later T040–T044 implementations. T018 now has mandatory Docker/Podman CI acceptance and remains unchecked pending its first successful receipt. The initial local validation environment has no Docker or Podman binary
 and no packaged native worker or HIP device. Local CPU/stdlib checks cannot
 establish container/native/HIP qualification. No training/research is launched.
 
@@ -404,3 +404,53 @@ the decision. This avoids requiring unknowable measured timings in a pre-outcome
 policy. Missing measurements yield INCOMPLETE; costs cannot retrofit a capability
 comparison into an efficiency claim. The synthetic sensitivity runner likewise
 separates its cost-saving assumption from the measured-input slot.
+
+## T037–T039 optimizer/trial contracts and research models
+
+T037 supplies an independent per-program objective oracle, actual canonical full
+batch update comparison, uneven-microbatch gold weights and real dropout RNG
+restore checks. Two companion specifications require the future T040 accumulated
+update to match an independent full-batch gradient, clip/step/LR/allocation once,
+and leave parameters/clocks unchanged on interrupted microbatches. Actual spent
+work recovery is exercised through T036's canonical CPU learner.
+
+T038 uses actual pinned Optuna 4.5.0 for ordered-history ask/tell replay, failed
+and pruned trial retention, and enqueued baseline/nonbaseline controls. Eight
+companion specifications cover future T041–T044 durable proposal-before-dispatch,
+conflicting tell, confirmation exclusion, grace/comparable-reference pruning,
+unpruned controls and wall-limited PARTIAL behavior. These ten future-only tests
+are strict expected failures only while their implementation entry points are
+absent; they are explicitly separated from mandatory native runtime acceptance.
+The independent Torch/gold/Optuna tests remain mandatory in that acceptance.
+No accumulated optimizer or trial scheduler implementation is claimed here.
+
+T039 adds a closed progressive-research-model/v1 profile resolved from the retained
+recipe, with reference/smaller-width/shallower/larger fresh shapes, valid heads,
+positions, codec, strict FP32, seeds and registered effective dropout. Existing
+worker dispatch reaches the new constructor. Explicit research-profile adapters
+in ChunkHybridEncoder/ChunkEncoder support the new widths while unprofiled and
+hardware-only width/default guards retain their previous behavior. Existing
+TriStreamEncoder and decoder parameters already support the required dimensions
+and dropout; no gratuitous changes were made to those implementations.
+
+Model tests verify actual parameter counts, all four finite CPU forwards, actual
+dropout modules, fresh deterministic seeds, a finite dropout-enabled CPU update,
+old hardware-profile separation and rejected CPU fallback. A focused comparison
+confirms the new reference shape preserves the qualified initialization exactly.
+T036 also now exercises a real nine-update training/probe cycle and the declared
+eight-update refresh boundary. All model qualification fields remain PENDING.
+
+Final complete progressive/historical roster: **304 passed, five local native
+service skips, ten strict expected future-implementation failures**. The reference
+initialization case added afterward passed separately. Additional legacy model/
+mask/sizing selection: 21 passed; its unmarked native-fitting case could not run
+because /opt/oeis-build-info/synthesis-worker is absent on this host. The actual
+legacy CPU size/update/parity test passed. Container CI owns native execution;
+no CI result or actual-HIP qualification is claimed. New-module lint, affected
+legacy undefined-name checks, whitespace and current-disposition binding checks
+pass. All 68 historical disposition item states remain unchanged; only current
+implementation metadata is refreshed with the original serializer.
+
+T025–T039 are marked complete at their stated software/specification scope.
+T040 onward, original-producer feature acceptance, actual HIP and research launches
+remain separate later tasks. No pre/post implementation hooks are registered.

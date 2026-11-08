@@ -17,8 +17,12 @@ from oeis_learn.generalization.progressive.contracts import atomic_write, refere
 from oeis_learn.pipeline_validation.identity import digest, seal
 from oeis_learn.experiments.source_snapshot import source_snapshot
 
-# All implemented metric and decision cases are mandatory.
-DEFERRED_SPECIFICATIONS = ()
+# T037/T038 include explicit executable specifications for later T040-T044.
+# Their independent gold/Torch/Optuna tests remain mandatory in CPU_TESTS.
+DEFERRED_SPECIFICATIONS = (
+    "tests/unit/test_progressive_optimizer_specifications.py",
+    "tests/unit/test_progressive_trial_specifications.py",
+)
 HISTORICAL_TESTS = (
     "tests/contract/test_generalization_authority.py",
     "tests/contract/test_generalization_roles.py",

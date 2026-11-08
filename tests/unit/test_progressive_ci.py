@@ -41,6 +41,10 @@ def test_acceptance_has_explicit_software_and_future_specification_scopes(tmp_pa
     assert set(gate.DEFERRED_SPECIFICATIONS).isdisjoint(gate.TESTS)
     assert "tests/unit/test_progressive_metrics.py" in gate.TESTS
     assert "tests/unit/test_progressive_decisions.py" in gate.TESTS
+    assert "tests/unit/test_progressive_optimizer.py" in gate.TESTS
+    assert "tests/unit/test_progressive_trials.py" in gate.TESTS
+    assert "tests/unit/test_progressive_models.py" in gate.TESTS
+    assert len(gate.DEFERRED_SPECIFICATIONS) == 2
 
 
 @pytest.mark.parametrize(

@@ -159,3 +159,27 @@ def test_full_update_overshoot_and_binding_execution_ceiling(tmp_path):
         acceptance_pilot(
             tmp_path / "data", "stopped", shards, recipe, token_cap=1, resume=True, **kwargs
         )
+
+
+def test_real_training_probe_feedback_and_refresh_at_eight_update_boundary(tmp_path):
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.pipeline_validation.progressive_training import acceptance_pilot
+
+    shards = _diagnostic_shards(tmp_path / "data")
+    result = acceptance_pilot(
+        tmp_path / "data",
+        "run",
+        shards,
+        resolve({"version": "bigint-bootstrap/v1"}),
+        arm="refreshed",
+        seed=2,
+        updates=9,
+        refresh_updates=8,
+        diagnostic_shards=True,
+        seconds=120,
+    )
+    assert result["updates"] == 9
+    assert len(result["controller"]["rewards"]) == 1
+    assert result["controller"]["kernel"]["valid_updates"] == 1
+    assert result["history"]["8"]["shard"] == 0
+    assert result["history"]["9"]["shard"] == 1

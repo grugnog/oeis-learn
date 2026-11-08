@@ -81,10 +81,16 @@ class GrowingPosition(nn.Module):
 
 
 class ChunkEncoder(nn.Module):
-    def __init__(self, *, dropout=0.0, d_model=256):
+    def __init__(self, *, dropout=0.0, d_model=256, research_profile=None):
         super().__init__()
-        if type(d_model) is not int or d_model not in (256,512,768):
-            raise ValueError('registered chunk projection width required')
+        if research_profile is None:
+            if type(d_model) is not int or d_model not in (256,512,768):
+                raise ValueError('registered chunk projection width required')
+        else:
+            from oeis_learn.generalization.progressive.models import validate_profile
+            profile=validate_profile(research_profile)
+            if d_model != profile['model']['d_model'] or dropout != profile['model']['dropout']:
+                raise ValueError('frozen research chunk width/dropout required')
         self.byte_embedding = nn.Embedding(256, 4)
         self.chunk_projection = nn.Linear(33, 64)
         self.position = GrowingPosition()
