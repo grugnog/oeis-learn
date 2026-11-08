@@ -11,6 +11,8 @@ Aim for **one planned workstation handoff after the implementation and CPU/nativ
 
 This is a target of **one consolidated qualification batch plus at most one planned acceptance delta for unchanged scope**, not a promise of one process or permission to omit a test. Separate role processes, isolated outputs, controlled worker restarts and crash recovery remain necessary. Newly discovered defects or new execution scopes can require more validation.
 
+Freeze a separate bounded DIAGNOSTIC_ONLY acceptance campaign from the sealed tiny fixtures when research preparation lacks fresh support or other scientific prerequisites. This lets all-stage software/device acceptance finish without manufacturing a research cohort. The diagnostic campaign never authorizes research; a later real campaign needs its own complete freeze and acceptance scope binding, reusing only genuinely matching original capability producers. Required source/hardware/containment prerequisites still apply to the diagnostic campaign.
+
 Do not run one HIP session per user story, per test-file edit, per training seed, or simply because a new checkpoint was produced. Scientific training/evaluation still executes its actual GPU work, and paired seeds are not collapsed into one run. Qualification reuse reduces repeated validation, not the experiments' scientific replication.
 
 ## Prepare everything before Q
