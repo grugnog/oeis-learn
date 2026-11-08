@@ -89,6 +89,25 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                 package = load(confined(root, data["artifact"]["path"]), maximum=256 << 20)
                 if package.get("weights") is not None:
                     nested.append(package["weights"])
+                if package.get("origin") is not None:
+                    from .campaign import initializer_origin
+
+                    _, closure = initializer_origin(
+                        root,
+                        dict(
+                            mode="weights_only",
+                            artifact=package["weights"],
+                            origin=package["origin"],
+                        ),
+                        track="synthetic_strict",
+                        purpose=load(
+                            confined(
+                                root,
+                                load(confined(root, package["origin"]["path"]))["campaign"]["path"],
+                            )
+                        )["purpose"],
+                    )
+                    nested.extend(closure)
     verify_refs(root, refs)
     # Metadata is not a substitute for verifying the actual mounted weights.
     unique_nested = {r["path"]: r for r in nested}
@@ -158,6 +177,15 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                             target_weights.parent.mkdir(parents=True, exist_ok=True)
                             shutil.copyfile(confined(root, weights["path"]), target_weights)
                             target_weights.chmod(0o444)
+                        if package.get("origin") is not None:
+                            for child in unique_nested.values():
+                                destination_child = confined(folder, child["path"], exists=False)
+                                if destination_child.exists():
+                                    verify_refs(folder, [child], max_bytes=64 << 30)
+                                    continue
+                                destination_child.parent.mkdir(parents=True, exist_ok=True)
+                                shutil.copyfile(confined(root, child["path"]), destination_child)
+                                destination_child.chmod(0o444)
             for child in folder.rglob("*"):
                 if child.is_dir():
                     child.chmod(0o555)

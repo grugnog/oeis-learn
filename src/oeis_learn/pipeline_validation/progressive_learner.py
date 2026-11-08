@@ -50,7 +50,7 @@ def validate_input(package, task):
     from oeis_learn.pipeline_validation.progressive_training import validate_update_policy
 
     if (
-        set(package) - {"weights"}
+        set(package) - {"weights", "origin"}
         != {
             "version",
             "identity",
@@ -195,6 +195,12 @@ def run(
     c = validate_campaign(authority["campaign"])
     t = validate_task(authority["task"], campaign=c)
     validate_input(package, t)
+    from oeis_learn.generalization.progressive.campaign import initializer_origin
+
+    init = t["payload"]["initializer"]
+    if init.get("origin") != package.get("origin") and init["artifact"] is not None:
+        raise ValueError("initializer origin package differs from frozen task")
+    origin, _ = initializer_origin(initializer_root, init, track=t["track"], purpose=t["purpose"])
     device = "cuda" if t["purpose"] == "research" else "cpu"
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
@@ -306,6 +312,8 @@ def run(
                 "selection": {
                     "origin": "new_initialization" if mode == "weights_only" else "fresh_random",
                     "ancestor_cost_available": mode != "weights_only",
+                    "initializer_origin": origin["identity"] if origin else None,
+                    "prior_exposure": origin["exposure"] if origin else None,
                 },
             }
             cuts = {

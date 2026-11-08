@@ -201,6 +201,9 @@ def freeze(
         ):
             raise ValueError("unresolved task policy or incompatible initializer")
         initializer = plan["initializer"]
+        from .campaign import initializer_origin
+
+        initializer_origin(root, initializer, track=b["track"], purpose=b["purpose"])
         if initializer["mode"] == "full_state" and not (
             {"parent_slot", "parent_task"} & set(initializer)
         ):

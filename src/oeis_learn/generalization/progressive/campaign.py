@@ -19,6 +19,12 @@ def validate_task(task, *, campaign=None, track=None, compatibility=None):
     if task["purpose"] == "research" and p["finalization_us"] < 1_800_000_000:
         raise ValueError("research finalization reserve below 30 minutes")
     init = p["initializer"]
+    if (
+        task["track"] == "synthetic_strict"
+        and init["artifact"] is not None
+        and "origin" not in init
+    ):
+        raise ValueError("strict imported initializer requires original origin evidence")
     future = (
         init["mode"] == "full_state"
         and init["artifact"] is None
@@ -67,6 +73,12 @@ def validate_campaign(campaign):
         if plan["kind"] == "training" and plan["caps"]["elapsed_us"] > 86_400_000_000:
             raise ValueError("training ceiling")
         init = plan["initializer"]
+        if (
+            c["track"] == "synthetic_strict"
+            and init["artifact"] is not None
+            and "origin" not in init
+        ):
+            raise ValueError("strict imported initializer requires original origin evidence")
         future = (
             init["mode"] == "full_state"
             and init["artifact"] is None
@@ -199,3 +211,129 @@ def validate_runtime(runtime, *, root, current_facts, required_capabilities=(), 
     ):
         raise ValueError("unknown runtime operation")
     return VerifiedRuntime(r["identity"], p, r["purpose"], r["track"], tuple(producers), inspected)
+
+
+def initializer_origin(root, initializer, *, track, purpose):
+    """Verify retained strict weights against original full-state producers.
+
+    A hash of an imported tensor is not origin evidence. Each bounded lineage
+    link binds an original campaign/task, full checkpoint and prior exposure.
+    Returned references are the explicit learner-safe projection closure; source
+    campaign reference inventories are metadata, never recursively mounted.
+    """
+    from .contracts import digest, reference, seal
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.generalization.contracts import artifact_refs
+    from oeis_learn.generalization.state import restore
+
+    if track != "synthetic_strict" or initializer["artifact"] is None:
+        return None, []
+    if root is None or initializer.get("origin") is None:
+        raise ValueError("strict imported initializer requires original origin evidence")
+    refs, seen = {}, set()
+
+    def read(ref):
+        if ref["path"] in refs and refs[ref["path"]] != ref:
+            raise ValueError("conflicting initializer origin reference")
+        refs[ref["path"]] = ref
+        return json.loads(verify_refs(root, [ref], max_bytes=64 << 20)[0])
+
+    def visit(ref, expected, mode):
+        if ref["sha256"] in seen or len(seen) >= 64:
+            raise ValueError("bounded acyclic strict origin required")
+        seen.add(ref["sha256"])
+        origin = read(ref)
+        if (
+            set(origin)
+            != {
+                "version",
+                "identity",
+                "checkpoint",
+                "campaign",
+                "task",
+                "state",
+                "state_root",
+                "exposure",
+                "parent",
+            }
+            or origin["version"] != "progressive-initializer-origin/v1"
+            or seal(origin) != origin
+            or origin["checkpoint"] != expected
+        ):
+            raise ValueError("closed original initializer origin binding required")
+        campaign = validate_campaign(read(origin["campaign"]))
+        task = validate_task(read(origin["task"]), campaign=campaign)
+        state = validate("state", read(origin["state"]))
+        exposure = validate("exposure", read(origin["exposure"]))
+        if any(
+            v["track"] != "synthetic_strict" or v["purpose"] != purpose
+            for v in (campaign, task, state, exposure)
+        ):
+            raise ValueError("assisted or cross-purpose origin cannot enter strict track")
+        if not any(
+            r["kind"] == "groups"
+            and all(r["artifact"][k] == origin["exposure"][k] for k in ("sha256", "bytes"))
+            for r in campaign["payload"]["references"]
+        ):
+            raise ValueError("original campaign exposure producer required")
+        p = state["payload"]
+        if (
+            p["kind"] != "full_state"
+            or p["campaign"] != campaign["identity"]
+            or p["task"] != task["identity"]
+            or p["compatibility"] != task["payload"]["initializer"]["compatibility"]
+            or any(p["cuts"][k] not in (None, digest(None)) for k in ("archive", "library"))
+        ):
+            raise ValueError("strict mechanical full-state lineage differs")
+        base = confined(root, origin["state_root"])
+        full_ref = p["full_state"]
+        raw = verify_refs(base, [full_ref], max_bytes=64 << 20)[0]
+        full = json.loads(raw)
+        bound = reference(root, confined(base, full_ref["path"]))
+        refs[bound["path"]] = bound
+        # Verify the entire tensor closure without importing torch on the host.
+        for child in artifact_refs(full["states"]):
+            verify_refs(base, [child], max_bytes=64 << 30)
+            bound = reference(root, confined(base, child["path"]))
+            if bound["path"] in refs and refs[bound["path"]] != bound:
+                raise ValueError("conflicting initializer tensor reference")
+            refs[bound["path"]] = bound
+        restore(full, contract=p["compatibility"], cap=full["ledger"]["cap"], root=base)
+        if full["ledger"]["updates"] != p["model_update"] or full["ledger"]["pending"] is not None:
+            raise ValueError("origin requires complete committed model boundary")
+        weights = full["states"]["weights"]
+        if mode == "weights_only":
+            if any(expected[k] != weights[k] for k in ("sha256", "bytes")):
+                raise ValueError("imported weights differ from original full-state tensor")
+        elif expected != origin["state"]:
+            raise ValueError("full-state import differs from original checkpoint")
+        prior = task["payload"]["initializer"]
+        if prior["mode"] == "random":
+            if origin["parent"] is not None:
+                raise ValueError("random origin cannot hide a parent")
+        else:
+            if origin["parent"] is None:
+                raise ValueError("missing strict random-origin ancestor")
+            parent_origin = read(origin["parent"])
+            parent_task = visit(
+                origin["parent"],
+                parent_origin["checkpoint"],
+                "full_state" if prior["artifact"] is None else prior["mode"],
+            )
+            if prior["artifact"] is not None:
+                if prior["artifact"]["sha256"] != parent_origin["checkpoint"]["sha256"]:
+                    raise ValueError("imported ancestor checkpoint differs")
+            elif (
+                parent_task["payload"]["campaign"] != campaign["identity"]
+                or parent_task["payload"]["arm"] != task["payload"]["arm"]
+                or parent_task["payload"]["seed"] != task["payload"]["seed"]
+                or (
+                    prior.get("parent_task") != parent_task["payload"]["id"]
+                    and prior.get("parent_slot") != parent_task["payload"]["slot"]
+                )
+            ):
+                raise ValueError("successor origin differs from frozen parent")
+        return task
+
+    visit(initializer["origin"], initializer["artifact"], initializer["mode"])
+    return read(initializer["origin"]), list(refs.values())

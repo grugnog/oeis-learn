@@ -312,3 +312,57 @@ def test_installed_eligible_diagnostic_and_complete_partial_failed_exports(
         )["tokens"]
         < selected["payload"]["caps"]["tokens"]
     )
+
+
+@pytest.mark.parametrize("bad_origin", ["unknown", "assisted"])
+def test_installed_learner_rechecks_strict_import_origin(tmp_path, bad_origin):
+    from oeis_learn.generalization.progressive.contracts import (
+        atomic_write,
+        load,
+        reference,
+        record,
+    )
+    from oeis_learn.pipeline_validation.progressive_acceptance import fixture
+    from oeis_learn.pipeline_validation.progressive_learner import run
+
+    c, tasks, _, _ = fixture(tmp_path, interrupt=False, weights_only=True)
+    package = load(tmp_path / "training-input.json")
+    init = c["payload"]["tasks"][0]["initializer"]
+    if bad_origin == "unknown":
+        del init["origin"]
+        del package["origin"]
+    else:
+        origin = load(tmp_path / init["origin"]["path"])
+        exposure = load(tmp_path / origin["exposure"]["path"])
+        atomic_write(tmp_path / "assisted.json", seal(dict(exposure, track="external_assisted")))
+        origin["exposure"] = reference(tmp_path, "assisted.json")
+        atomic_write(tmp_path / "altered-origin.json", seal(origin))
+        init["origin"] = package["origin"] = reference(tmp_path, "altered-origin.json")
+    c = seal(c)
+    task = record(
+        "task",
+        dict(c["payload"]["tasks"][0], campaign=c["identity"]),
+        created_at=c["created_at"],
+        purpose=c["purpose"],
+        track=c["track"],
+    )
+    authority = seal(
+        dict(
+            version="progressive-supervisor/v1",
+            campaign=c,
+            task=task,
+            clock={},
+            invocation="invalid-origin",
+        )
+    )
+    with pytest.raises(ValueError, match="strict|assisted"):
+        run(
+            seal(package),
+            authority,
+            accounting=tmp_path / "unused-accounting",
+            control=tmp_path / "unused-control",
+            output=tmp_path / "unused-output",
+            state_root=tmp_path / "unused-state",
+            initializer_root=tmp_path,
+        )
+    assert not (tmp_path / "unused-state").exists()

@@ -93,21 +93,44 @@ def fixture(root, *, interrupt=True, first_cap_updates=8, weights_only=False, fa
             else None,
         }
     )
-    weights_ref = None
+    weights_ref = origin_ref = None
     if weights_only:
-        import torch
+        # Build an actual original strict checkpoint, then import its exact
+        # weights blob. A tensor hash alone is no longer origin evidence.
+        import shutil
 
-        from oeis_learn.generalization.progressive.models import construct
-
-        other = resolve_profile(
-            resolve({"version": "bigint-bootstrap/v1"}), shape="smaller_width", seed=17, dropout=0.1
+        ancestor = root / "ancestor"
+        ac, at, ach, _ = fixture(ancestor, interrupt=False)
+        atomic_write(
+            ancestor / "control" / ("pause-" + digest("invocation-0").split(":")[1] + ".json"),
+            seal({"campaign": ac["identity"], "requested": True}),
         )
-        e, d, _ = construct(other, device="cpu")
-        torch.save(
-            {"encoder": e.state_dict(), "decoder": d.state_dict()}, root / "imported-weights.pt"
+        result, produced = invoke_cpu(ancestor, ac, at[0], ach, ordinal=0)
+        if result["mechanical_status"] != "PARTIAL":
+            raise ValueError("original diagnostic checkpoint failed: " + str(result))
+        checkpoint = load(produced / "role/checkpoint.json")
+        state_root = ancestor / "learning" / at[0]["identity"].split(":")[1] / "checkpoints"
+        full = load(state_root / checkpoint["payload"]["full_state"]["path"])
+        shutil.copyfile(
+            state_root / full["states"]["weights"]["path"], root / "imported-weights.pt"
         )
         weights_ref = reference(root, "imported-weights.pt")
-        package = seal(dict(package, weights=weights_ref))
+        atomic_write(ancestor / "task.json", at[0])
+        origin = seal(
+            dict(
+                version="progressive-initializer-origin/v1",
+                checkpoint=weights_ref,
+                campaign=reference(root, ancestor / "campaign.json"),
+                task=reference(root, ancestor / "task.json"),
+                state=reference(root, produced / "role/checkpoint.json"),
+                state_root=str(state_root.relative_to(root)),
+                exposure=reference(root, ancestor / "exposure.json"),
+                parent=None,
+            )
+        )
+        atomic_write(root / "origin.json", origin)
+        origin_ref = reference(root, "origin.json")
+        package = seal(dict(package, weights=weights_ref, origin=origin_ref))
     atomic_write(root / "training-input.json", package)
     channel = seal(
         {
@@ -168,6 +191,16 @@ def fixture(root, *, interrupt=True, first_cap_updates=8, weights_only=False, fa
                 "output": name,
             }
         )
+    if origin_ref is not None:
+        plans[0]["initializer"]["origin"] = origin_ref
+    exposure = record(
+        "exposure",
+        dict(previous=None, detector_limits=["diagnostic mechanical source"], events=[]),
+        created_at="2026-11-08T00:00:00Z",
+        purpose="acceptance",
+        track="synthetic_strict",
+    )
+    atomic_write(root / "exposure.json", exposure)
     graph = {
         "selected_stages": ["capability", "diversity"],
         "nodes": [
@@ -215,7 +248,15 @@ def fixture(root, *, interrupt=True, first_cap_updates=8, weights_only=False, fa
             "runtime": digest("UNQUALIFIED_CPU_FIXTURE"),
             "graph": graph,
             "tasks": plans,
-            "references": request_refs
+            "references": [
+                dict(
+                    name="original-exposure",
+                    role="custodian",
+                    kind="groups",
+                    artifact=reference(root, "exposure.json"),
+                )
+            ]
+            + request_refs
             + (
                 [
                     {

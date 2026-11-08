@@ -422,3 +422,45 @@ def test_freeze_accepts_bound_single_panel_and_rejects_erased_history(tmp_path, 
     )
     with pytest.raises(ValueError, match="history cannot be erased"):
         freeze(tmp_path, b, seal(p), qualification_root="qualification")
+
+
+def test_freeze_rejects_strict_import_without_original_lineage(tmp_path, monkeypatch):
+    test_complete_diagnostic_freeze_binds_original_producer_and_task_roster(tmp_path, monkeypatch)
+    b = json.loads((tmp_path / "test-blueprint.json").read_text())
+    p = json.loads((tmp_path / "test-prepared.json").read_text())
+    p["payload"]["task_plans"][0]["initializer"].update(
+        mode="weights_only", artifact=p["payload"]["checkpoint"]
+    )
+    with pytest.raises(ValueError, match="strict.*origin"):
+        freeze(tmp_path, b, seal(p), qualification_root="qualification")
+
+
+@pytest.mark.parametrize("origin_track", ["synthetic_strict", "external_assisted"])
+def test_whole_freeze_retained_strict_origin(tmp_path, monkeypatch, origin_track):
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.pipeline_validation.progressive_acceptance import fixture as learning_fixture
+
+    test_complete_diagnostic_freeze_binds_original_producer_and_task_roster(tmp_path, monkeypatch)
+    _, tasks, _, _ = learning_fixture(tmp_path, interrupt=False, weights_only=True)
+    init = tasks[0]["payload"]["initializer"]
+    if origin_track == "external_assisted":
+        origin = load(tmp_path / init["origin"]["path"])
+        exposure = load(tmp_path / origin["exposure"]["path"])
+        (tmp_path / "assisted-exposure.json").write_text(
+            json.dumps(seal(dict(exposure, track=origin_track)))
+        )
+        origin["exposure"] = reference(tmp_path, "assisted-exposure.json")
+        (tmp_path / "assisted-origin.json").write_text(json.dumps(seal(origin)))
+        init = dict(init, origin=reference(tmp_path, "assisted-origin.json"))
+    b, p = (load(tmp_path / ("test-" + name + ".json")) for name in ("blueprint", "prepared"))
+    p["payload"]["references"].append(
+        dict(name="strict-retained", role="learner", kind="checkpoint", artifact=init["artifact"])
+    )
+    original = p["payload"]["task_plans"][0]["initializer"]
+    original.update(mode="weights_only", artifact=init["artifact"], origin=init["origin"])
+    if origin_track == "synthetic_strict":
+        frozen, _, _ = freeze(tmp_path, b, seal(p), qualification_root="qualification")
+        assert frozen["payload"]["tasks"][0]["initializer"]["origin"] == init["origin"]
+    else:
+        with pytest.raises(ValueError, match="assisted"):
+            freeze(tmp_path, b, seal(p), qualification_root="qualification")
