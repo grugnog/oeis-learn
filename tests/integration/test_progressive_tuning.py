@@ -1,5 +1,7 @@
 """Actual CPU proposer/learner/native scorer diagnostic, never research authority."""
 
+import time
+
 import torch
 
 from oeis_learn.fresh.bigint_config import resolve
@@ -13,6 +15,7 @@ from oeis_learn.pipeline_validation.progressive_training import PolicyUpdate, re
 
 
 def test_real_cpu_proposal_learning_frozen_generation_and_native_score(tmp_path, fitting_client):
+    began = time.monotonic_ns()
     j = TrialJournal(tmp_path / "journal", study=digest("diagnostic-tuning"))
     proposal = propose(j, 0)
     assert propose(TrialJournal(tmp_path / "journal", study=j.binding["study"]), 0) == proposal
@@ -64,7 +67,7 @@ def test_real_cpu_proposal_learning_frozen_generation_and_native_score(tmp_path,
         {
             "status": "PARTIAL",
             "tokens": ledger.consumed,
-            "elapsed_us": 1,
+            "elapsed_us": (time.monotonic_ns() - began) // 1000,
             "value": value,
             "role": "development",
         },

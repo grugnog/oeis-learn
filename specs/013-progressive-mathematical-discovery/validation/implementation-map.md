@@ -1,6 +1,6 @@
 # Spec 013 implementation map
 
-Scope: T001–T040 software/specification tasks, with T018 acceptance pending. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
+Scope: T001–T049 software/specification tasks, with T018 acceptance pending. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
 quickstart.md, hardware-validation.md, planning-review.md, all five contracts,
 the requirements checklist and adopted constitution in full before implementation.
 Requirements checklist: 16 checked, zero unchecked. No extension hooks registered.
@@ -33,7 +33,7 @@ exist: the actual shared archive owner is pipeline_validation/bundle.py.
 
 ## Validation
 
-Source/test implementation is complete for T001–T017 and T019–T040; T038 includes executable specifications for later T041–T044 implementations. T018 now has mandatory Docker/Podman CI acceptance and remains unchecked pending its first successful receipt. The initial local validation environment has no Docker or Podman binary
+Source/test implementation is complete for T001–T017 and T019–T049; T048 includes an executable third-seed specification for later T053 routing. T018 now has mandatory Docker/Podman CI acceptance and remains unchecked pending its first successful receipt. The initial local validation environment has no Docker or Podman binary
 and no packaged native worker or HIP device. Local CPU/stdlib checks cannot
 establish container/native/HIP qualification. No research or HIP training is launched.
 
@@ -532,3 +532,73 @@ unchanged; only current implementation traceability metadata is refreshed using
 the original serializer. T040 is complete at software/CPU scope. T041 onward,
 actual HIP qualification and live research remain pending. No extension hooks are
 registered. Coherent increments are pushed without waiting for CI.
+
+
+## T041–T049: trials, tuning, selection and complete-state cuts
+
+- **T041**: `progressive/trials.py` writes bounded immutable, fsynced event files
+  under a process lock, chained to a fixed study/cap binding. Proposal ordinals are
+  ordered and immutable. Dispatch, reserve, interrupted invocation, remaining
+  cumulative costs and all terminal states are distinct; duplicate conflicting
+  tells, confirmation feedback, cost rollback and exhausted restart fail. A
+  closed installed trial schema validates every persisted state on write/reopen.
+- **T042–T044**: `progressive/tuning.py` reconstructs actual pinned Optuna 4.5.0
+  from ordered sealed development history. Study+ordinal seeds and durable proposal
+  reuse survive reopen. Two fixed enqueued controls start four startup proposals;
+  subsequent proposals explicitly use TPE without adding startup trials after
+  failures. Four sizes are enumerated after locked learning selection. The
+  installed `propose-trial` CPU operation accepts one bounded closed request;
+  no user callback, GPU, external database or sampler pickle is introduced.
+  Frozen non-executable policy/blueprint files record the 12+4 roster, distributions,
+  controls, seeds, FP32, screening/confirmation horizons, panels and resource caps.
+  Pure preflight requires startup, all three evaluations, training and finalization
+  to fit together. Screening validates two tasks/group ×16 groups in every stratum.
+  Median pruning requires 1M/2M coordinates and five completed comparable development
+  references; both controls and all sizing candidates remain unpruned.
+- **T045**: `progressive/selection.py` excludes short/partial/failed trials from
+  equal-token eligibility, sorts yield/cost/stable ID, and publishes the
+  capability/cost frontier and descriptive ranking uncertainty. A feasible baseline
+  plus at most three alternatives receive a sealed fresh initialization/optimizer
+  confirmation plan, two seeds, distinct unused confirmation panels, 25M/12h caps,
+  1.25M warmup and fixed 400M decay horizon. This metadata grants no execution
+  entitlement; enclosing campaign freeze/qualification still applies.
+- **T046**: real CPU proposal → canonical learner → saved actual checkpoint →
+  canonical native generator/scorer integration is in the mandatory CI inventory.
+  The tiny acceptance coordinate is explicitly diagnostic, ends PARTIAL and cannot
+  win a 4M-token ranking. Separate durable journal tests cover every terminal
+  outcome, reopened proposals, grace, controls and selection. Public tuning reports
+  retain learning/size/control/grace flags, equal-token ordering, total elapsed
+  cost frontier and explicit missing confirmation/HIP evidence.
+- **T047–T048**: CPU tests exercise actual AdamW moments/RNG, interrupted charged
+  work and exact retry outputs; failed weights/optimizer/scheduler publication,
+  fsync, rename and latest-pointer publication preserve the prior complete cut.
+  Existing T040 real model/dropout/optimizer disk restore and T036 stream/allocation
+  continuation tests remain in the same mandatory roster. Negative action cases
+  cover all verdicts, invariant waiver, unfunded advance, recursive diagnostics and
+  a fifth pool task. The third-seed executable specification remains a strict
+  expected failure until its deliberately later T053 implementation; its original
+  verdict and all-seed reporting contract cannot be silently dropped.
+- **T049**: `progressive/state.py` and the explicit `ProgressiveCheckpointStore`
+  adapter reuse `GeneralizationCheckpointStore` tensor/RNG serialization and
+  atomic generations. Discovery records separate learning compatibility from
+  campaign/task entitlement, validate closed envelopes before tensor I/O and bind
+  full state, update number, stream/allocation/archive/library/cost/selection/
+  milestone/consumed cuts. The same cuts are bound inside the tensor generation.
+  Weights-only records cannot resume; pending microbatches cannot publish complete
+  discovery state. Changed compatibility/task/cap or mismatched dynamic cuts fail.
+  T050 still owns installed rollback/cost-journal reconciliation and task transitions;
+  no operational recovery entitlement or actual-device qualification is claimed here.
+
+Validation: final full progressive/historical roster **362 passed, six local
+native-service skips, one strict expected T053 failure**, in 54.23s. An earlier
+run observed two stale source-fingerprint failures while the inventory was being
+edited; refreshing the serializer binding resolved both. After the full roster,
+explicit TPE startup handling and a full sixteen-trial/sizing enumeration case
+were checked with the tuning/current-binding selection: **9 passed**. The new
+actual native scorer integration is one of the six local skips and is mandatory
+in Docker/Podman CI. Only the separate T053 specification file is deferred from
+no-skip runtime qualification; existing negative action tests are mandatory.
+New-module lint, affected legacy undefined-name checks and whitespace pass. All
+68 historical disposition states remain unchanged. Requirements checklist remains
+16/16; no pre/post extension hooks exist. Commits are pushed incrementally without
+waiting for CI. No HIP, long-task runtime or research gain is asserted.

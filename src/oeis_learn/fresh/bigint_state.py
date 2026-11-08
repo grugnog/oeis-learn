@@ -528,12 +528,14 @@ class ProgressiveCheckpointStore:
 
     def save(self, states, ledger, *, cuts, created_at, purpose, track):
         import copy
-        from oeis_learn.generalization.progressive.contracts import digest
         from oeis_learn.generalization.progressive.state import snapshot
         if ledger.pending is not None or states['data']['pending_batch'] is not None:
             raise ValueError('only complete discovery updates can checkpoint')
         if states['data']['cursor'] != ledger.updates:
             raise ValueError('model/update ledger cut differs')
+        snapshot(compatibility=self.compatibility,campaign=self.campaign,task=self.task,
+            full_state={'path':'pending.json','bytes':0,'sha256':self.compatibility},
+            model_update=ledger.updates,cuts=cuts,created_at=created_at,purpose=purpose,track=track)
         bound = copy.deepcopy(states)
         bound['selection'] = dict(version='progressive-checkpoint-cut/v1',
             selection=states['selection'], cuts=cuts, campaign=self.campaign,task=self.task)

@@ -84,3 +84,50 @@ def test_independent_ranking_cost_ties_and_fresh_panels():
     panels[0]["exposed"] = True
     with pytest.raises(ValueError):
         confirmation(rows, baseline="baseline", panels=panels, seeds=[13, 14])
+
+
+def test_screening_panel_membership_is_fixed_before_scores():
+    from oeis_learn.generalization.progressive.tuning import validate_screening_panel
+
+    rows = [
+        {"id": f"{s}-{g}-{i}", "role": "development", "stratum": s, "group": str(g)}
+        for s in ("parameter", "composition", "unseen_structure", "oeis")
+        for g in range(16)
+        for i in range(2)
+    ]
+    assert validate_screening_panel(rows)
+    rows[-1]["group"] = "0"
+    with pytest.raises(ValueError):
+        validate_screening_panel(rows)
+
+
+def test_proposal_request_role_excludes_confirmation_and_replays(tmp_path):
+    from oeis_learn.generalization.progressive.tuning import propose_request
+
+    request = {
+        "study": "sha256:" + "b" * 64,
+        "ordinal": 0,
+        "history": [],
+        "selected_learning": None,
+    }
+    assert propose_request(request, tmp_path) == propose_request(request, tmp_path)
+    with pytest.raises(ValueError):
+        propose_request(dict(request, truth="private"), tmp_path)
+
+
+def test_full_trial_roster_and_sizing_controls_are_bounded(tmp_path):
+    j = TrialJournal(tmp_path, study="sha256:" + "c" * 64)
+    for i in range(16):
+        p = propose(j, i, selected_learning=BASELINE if i >= 12 else None)
+        if i >= 12:
+            assert (
+                p["parameters"]["shape"]
+                == ("reference", "smaller_width", "shallower", "larger")[i - 12]
+            )
+        j.dispatch(i)
+        j.tell(
+            i,
+            dict(status="COMPLETE", tokens=4000000, elapsed_us=100, value=0.25, role="development"),
+        )
+    with pytest.raises(ValueError):
+        propose(j, 16, selected_learning=BASELINE)

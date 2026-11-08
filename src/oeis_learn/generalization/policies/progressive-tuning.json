@@ -48,5 +48,40 @@
   "confirmation_horizon": 400000000,
   "confirmation_warmup": 1250000,
   "confirmation_seconds": 43200,
-  "executable": false
+  "executable": false,
+  "baseline": {
+    "lr_multiplier": 1,
+    "schedule": "constant",
+    "effective_batch": 16,
+    "weight_decay": 0.01,
+    "dropout": 0
+  },
+  "nonbaseline_control": {
+    "lr_multiplier": 0.3,
+    "schedule": "constant",
+    "effective_batch": 16,
+    "weight_decay": 0.01,
+    "dropout": 0
+  },
+  "shapes": [
+    "reference",
+    "smaller_width",
+    "shallower",
+    "larger"
+  ],
+  "screening_panel": {
+    "tasks_per_stratum": 32,
+    "groups_per_stratum": 16,
+    "tasks_per_group": 2,
+    "role": "development"
+  },
+  "pruning": {
+    "grace_tokens": 1000000,
+    "minimum_completed_references": 5,
+    "unpruned_learning_ordinals": [
+      0,
+      1
+    ],
+    "unpruned_sizing": true
+  }
 }

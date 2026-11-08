@@ -53,7 +53,8 @@ def propose(journal, ordinal, *, selected_learning=None):
         params = dict(selected_learning, shape=SHAPES[ordinal - 12])
     else:
         study = optuna.create_study(
-            direction="maximize", sampler=optuna.samplers.TPESampler(seed=seed, n_startup_trials=4)
+            direction="maximize",
+            sampler=optuna.samplers.TPESampler(seed=seed, n_startup_trials=4 if ordinal < 4 else 0),
         )
         distributions = {k: CategoricalDistribution(v) for k, v in SPACE.items()}
         for s in journal.trials.values():
@@ -83,7 +84,7 @@ def propose(journal, ordinal, *, selected_learning=None):
 def validate_screening_panel(rows):
     if not isinstance(rows, list) or len(rows) != 128 or len({r["id"] for r in rows}) != 128:
         raise ValueError("fixed 128-task development subset required")
-    for stratum in ("parameter", "composition", "unseen_structure", "OEIS"):
+    for stratum in ("parameter", "composition", "unseen_structure", "oeis"):
         groups = {}
         for row in rows:
             if row["role"] != "development":

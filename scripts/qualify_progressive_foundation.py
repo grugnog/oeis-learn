@@ -17,10 +17,10 @@ from oeis_learn.generalization.progressive.contracts import atomic_write, refere
 from oeis_learn.pipeline_validation.identity import digest, seal
 from oeis_learn.experiments.source_snapshot import source_snapshot
 
-# T038 includes explicit executable specifications for later T041-T044.
+# T048 includes an explicit third-seed routing specification for later T053.
 # Their independent gold/Torch/Optuna tests remain mandatory in CPU_TESTS.
 DEFERRED_SPECIFICATIONS = (
-    "tests/unit/test_progressive_contingencies.py",
+    "tests/unit/test_progressive_contingency_specifications.py",
 )
 HISTORICAL_TESTS = (
     "tests/contract/test_generalization_authority.py",

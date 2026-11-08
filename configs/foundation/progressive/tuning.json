@@ -54,5 +54,40 @@
   "support": null,
   "development_panel": null,
   "confirmation_panels": null,
-  "calibration": null
+  "calibration": null,
+  "baseline": {
+    "lr_multiplier": 1,
+    "schedule": "constant",
+    "effective_batch": 16,
+    "weight_decay": 0.01,
+    "dropout": 0
+  },
+  "nonbaseline_control": {
+    "lr_multiplier": 0.3,
+    "schedule": "constant",
+    "effective_batch": 16,
+    "weight_decay": 0.01,
+    "dropout": 0
+  },
+  "shapes": [
+    "reference",
+    "smaller_width",
+    "shallower",
+    "larger"
+  ],
+  "screening_panel": {
+    "tasks_per_stratum": 32,
+    "groups_per_stratum": 16,
+    "tasks_per_group": 2,
+    "role": "development"
+  },
+  "pruning": {
+    "grace_tokens": 1000000,
+    "minimum_completed_references": 5,
+    "unpruned_learning_ordinals": [
+      0,
+      1
+    ],
+    "unpruned_sizing": true
+  }
 }
