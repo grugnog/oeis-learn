@@ -792,11 +792,11 @@ owned by T079/T080.
   The packaged shared `progressive-acceptance.json` inventory queues the actual-HIP
   logical-update/recovery and two-task/pause cases for T090/T091.
 
-Validation: full progressive/historical roster **405 passed, seven local native
-service skips** (114.41s). The mandatory Docker/Podman CI roster includes every new
+Validation: final full progressive/historical roster **408 passed, seven local native
+service skips** (129.95s), including installed-wheel learning and bounded tensor retention. The mandatory Docker/Podman CI roster includes every new
 CPU case; native skips remain failures in mandatory native-image mode. Final
-multiplicity, ancestry and host-failure changes receive focused regression checks
-before publication. Installed-wheel learning, original source closure and unchanged
+multiplicity, ancestry, host-failure and retention changes pass the complete roster
+before completion. Installed-wheel learning, original source closure and unchanged
 historical disposition items are checked. No HIP, sustained-duration or scientific
 advancement claim is made. Requirements checklist remains 16/16; no implementation
 extension hooks are registered. Commits are published incrementally without waiting
