@@ -154,6 +154,11 @@ class BudgetJournal:
             stream.write(json.dumps(seal(event), sort_keys=True, allow_nan=False) + "\n")
             stream.flush()
             os.fsync(stream.fileno())
+        fd = os.open(self.root, os.O_DIRECTORY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
 
     def reserve(self, task, operation, ordinal, costs, *, boot, monotonic_us):
         integer(ordinal)

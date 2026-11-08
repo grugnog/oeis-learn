@@ -1,0 +1,96 @@
+import pytest
+
+from oeis_learn.generalization.progressive.budgets import BudgetJournal
+from oeis_learn.generalization.progressive.contracts import digest
+from oeis_learn.generalization.progressive.recovery import Recovery
+from tests.helpers.progressive_fixture import caps, task
+from tests.integration.test_progressive_recovery import states
+
+
+def setup(tmp_path):
+    t = task(caps=caps(tokens=100, elapsed_us=10000000))
+    j = BudgetJournal(tmp_path, t["payload"]["campaign"], caps(tokens=100, elapsed_us=10000000))
+    cuts = {
+        k: digest(k)
+        for k in (
+            "stream",
+            "allocation",
+            "archive",
+            "library",
+            "cost_journal",
+            "selection",
+            "milestones",
+            "consumed",
+        )
+    }
+    return t, j, cuts
+
+
+def test_newer_uncommitted_checkpoint_is_ignored_but_charges_survive(tmp_path, monkeypatch):
+    t, j, cuts = setup(tmp_path)
+    with Recovery(j, t, digest("learning")) as r:
+        first = r.initialize(states(), cuts)
+        r.begin(boot="one", monotonic_us=0)
+        ledger = r.reserve(["row-a"], 3, boot="one", monotonic_us=1)
+        ledger = ledger.commit(ledger.pending[0])
+        changed = states()
+        changed["data"]["cursor"] = 1
+        original = r.append
+
+        def fail(**kwargs):
+            if "checkpoint" in kwargs:
+                raise InterruptedError("after tensor publication")
+            return original(**kwargs)
+
+        monkeypatch.setattr(r, "append", fail)
+        with pytest.raises(InterruptedError):
+            r.commit(changed, ledger, dict(cuts, library=digest("newer")))
+        assert r.restore()["cuts"]["library"] == cuts["library"]
+        assert r.restore()["ledger"].consumed == 3 and r.restore()["ledger"].updates == 0
+        r.close(boot="one", monotonic_us=100)
+    with Recovery(j, t, digest("learning")) as r:
+        restored = r.begin(boot="two", monotonic_us=500)
+        assert restored["discarded_tokens"] == 3
+        assert r.state["checkpoint"] == first
+        with pytest.raises(ValueError):
+            r.reserve(["different"], 3, boot="two", monotonic_us=501)
+        retry = r.reserve(["row-a"], 3, boot="two", monotonic_us=501)
+        assert retry.consumed == 6
+        s = states()
+        s["data"]["cursor"] = 1
+        r.commit(s, retry.commit(retry.pending[0]), cuts)
+        assert r.restore()["discarded_tokens"] == 3
+        r.close(boot="two", monotonic_us=600)
+    assert j.task_remaining(t)["elapsed_us"] == 9999800
+
+
+def test_unproven_reboot_exhausts_time_and_changed_output_cannot_reset(tmp_path):
+    from oeis_learn.pipeline_validation.identity import seal
+
+    t, j, cuts = setup(tmp_path)
+    with Recovery(j, t, digest("learning")) as r:
+        r.initialize(states(), cuts)
+        r.begin(boot="old", monotonic_us=0)
+    with Recovery(j, t, digest("learning")) as r:
+        with pytest.raises(ValueError, match="exhausted"):
+            r.begin(boot="new", monotonic_us=0)
+        assert r.state["status"] == "PARTIAL"
+        with pytest.raises(ValueError, match="terminal"):
+            r.begin(boot="new", monotonic_us=1)
+    t["payload"]["output"] = "different"
+    with pytest.raises(ValueError):
+        Recovery(j, seal(t), digest("learning"))
+
+
+def test_exclusive_lease_and_protected_finalization(tmp_path):
+    t, j, cuts = setup(tmp_path)
+    with Recovery(j, t, digest("learning")) as r:
+        r.initialize(states(), cuts)
+        r.begin(boot="one", monotonic_us=0)
+        with pytest.raises(ValueError, match="lease"), Recovery(j, t, digest("learning")):
+            pass
+        with pytest.raises(ValueError, match="finalization"):
+            r.reserve(["x"], 3, boot="one", monotonic_us=9999999)
+        r.close(boot="one", monotonic_us=100, complete=True)
+        with pytest.raises(ValueError, match="terminal"):
+            r.begin(boot="one", monotonic_us=101)

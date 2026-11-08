@@ -655,3 +655,96 @@ class PolicyUpdate:
             raise
         finally:
             self.active = False
+
+
+class RecoverableUpdate:
+    """Canonical learner transactions under an already-owned recovery/task lease.
+
+    The supervisor owns begin/close and termination proofs. This adapter performs
+    no task dispatch and cannot create a new reservation after a terminal task.
+    """
+
+    def __init__(self, recovery, profile, policy, *, device):
+        import copy
+
+        self.recovery = recovery
+        self.runner = PolicyUpdate(profile, policy, device=device)
+        self.failed = False
+        self.context = None
+        if recovery.state["checkpoint"] is not None:
+            restored = recovery.restore()
+            state = restored["states"]
+            self.runner.encoder.load_state_dict(state["weights"]["encoder"])
+            self.runner.decoder.load_state_dict(state["weights"]["decoder"])
+            self.runner.load_state_dict(state["optimizer"])
+            self.context = copy.deepcopy(
+                {k: v for k, v in state.items() if k not in {"weights", "optimizer", "rng"}}
+            )
+            self._rng_restore(state["rng"])
+
+    @staticmethod
+    def _rng_restore(rng):
+        import numpy as np
+        import torch
+
+        random.setstate(rng["python"])
+        np.random.set_state(rng["numpy"])
+        torch.set_rng_state(rng["torch"])
+        if rng["device"]:
+            if not torch.cuda.is_available():
+                raise ValueError("checkpoint device RNG requires actual device")
+            torch.cuda.set_rng_state_all(rng["device"])
+
+    def capture(self, context):
+        import copy
+        import numpy as np
+        import torch
+
+        if set(context) != {"scheduler", "data", "replay", "history", "pins", "selection"}:
+            raise ValueError("complete stream/allocation/archive context required")
+        result = copy.deepcopy(context)
+        result.update(
+            weights={
+                "encoder": self.runner.encoder.state_dict(),
+                "decoder": self.runner.decoder.state_dict(),
+            },
+            optimizer=self.runner.state_dict(),
+            rng={
+                "python": random.getstate(),
+                "numpy": np.random.get_state(),
+                "torch": torch.get_rng_state(),
+                "device": torch.cuda.get_rng_state_all() if self.runner.device == "cuda" else [],
+            },
+        )
+        return result
+
+    def initialize(self, context, cuts):
+        record = self.recovery.initialize(self.capture(context), cuts)
+        self.context = context
+        return record
+
+    def step(self, sequences, tokens, *, entries, context, cuts, boot, monotonic_us, costs=None):
+        import copy
+        from oeis_learn.decoder.bigint_codec import PAD_ID
+
+        if self.failed:
+            raise ValueError("restore committed full state before retry")
+        batch = {
+            "entries": entries,
+            "inputs": digest(sequences),
+            "targets": digest(tokens.tolist()),
+        }
+        count = int(tokens[:, 1:].ne(PAD_ID).sum())
+        ledger = self.recovery.reserve(
+            batch, count, boot=boot, monotonic_us=monotonic_us, costs=costs
+        )
+        try:
+            metrics, ledger = self.runner.update(sequences, tokens, ledger=ledger)
+            next_context = copy.deepcopy(context)
+            next_context["data"] = {"cursor": ledger.updates, "pending_batch": None}
+            record = self.recovery.commit(self.capture(next_context), ledger, cuts)
+            self.context = next_context
+            return metrics, record
+        except BaseException:
+            self.failed = True
+            raise
