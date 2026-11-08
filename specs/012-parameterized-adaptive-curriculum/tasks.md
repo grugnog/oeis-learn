@@ -868,3 +868,22 @@ quota probabilities are explicitly optimistic and do not certify the actual
 prefix or full admission. This is documentation only: no amendment is active,
 no frozen plan changes and no new model/qualification execution is authorized
 by the census. Implementation remains a separate prospective decision.
+
+## Operator-adopted reservoir amendment (2026-11-07)
+
+- [X] T127 Register the exact 4,096/512/512/512 prefix expansion (7,664 total), preserve every old candidate prefix and all other scientific fields, and test rejection of seed/law/protocol changes before implementation.
+- [X] T128 Validate original blocked parent, all-window census, score/checkpoint provenance and historical qualification; prove unchanged inference/metric/native/build closure using bound parent-module text and protected AST; require fresh current CPU/native and HIP qualification without rerunning probe panels.
+- [X] T129 Keep one fresh frozen execution path, verify the new qualification again at execution, enforce measured preparation memory before native/model work, and export public admission/resource counts in success and failure archives.
+- [X] T130 Complete affected local checks and real probes-003 source-compatibility verification, refresh only the current implementation binding, record operator adoption/commands/limitations, commit periodically and publish a separate stack without waiting for CI.
+
+T127–T130: 132 affected checks pass locally, one installed-native-image check
+skips. Exact source compatibility against the actual original probes-003 digest
+d29306db... verifies; 68 historical disposition entries remain unchanged. The
+new protocol is 6603333f...; registered policy is 7c0be8a1.... New qualification
+still requires actual current CPU/native/HIP scopes and identical resource,
+runtime, build and security facts. Historical probe records are preserved under
+their original identities. Prefix, protected-code, tampering, fixed-output,
+qualification-failure, memory-before-native and admission-export regressions
+pass, including real wheel packaging. Stdlib help, whitespace and unchanged
+16/16 read-only checklist pass; no hooks. Workstation qualification, new cohort
+admission and model scores remain pending. See `validation/reservoir-amendment.md`.
