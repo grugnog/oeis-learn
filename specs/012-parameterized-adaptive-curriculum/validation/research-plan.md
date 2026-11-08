@@ -1,5 +1,12 @@
 # First B/C/D research campaign
 
+The operator has authorized the separate [7,664-draw fresh structural reservoir
+amendment](reservoir-amendment.md) after reviewing the blocked prospective
+admission and exact support census. It preserves seed, law, exclusions, quotas,
+checkpoints and scoring; the original failed plan remains immutable. New image
+qualification and prospective model outcomes remain pending workstation execution.
+The campaign history below retains its original scope.
+
 The [separate installed follow-up integration](installed-followups.md) moves the
 remaining baseline/report fixes into installed modules. It is a future source
 scope; the operator's already-started R1 retry retains its original #63 scope.
@@ -235,3 +242,14 @@ resetting clocks/caps or restoring newer policy journals onto old model weights.
 4. Run the frozen serial campaign and independently verify normal/recovery exports.
    Complete conditional T073 only from actual research results and review the cases
    and limitations before choosing any next experiment.
+
+
+## Separate post-R1 selector experiment
+
+The original frozen campaign above remains historical. The operator-requested
+[selector validation workflow](selector-validation.md) reuses B/D final
+checkpoints and training-only probes, then explicitly freezes a separate fresh
+structural screen. It shares candidate generation across selectors, preserves
+all seven controls, adds observed-cohort exclusions, and does not execute
+assessment or start hyperparameter optimization. Workstation results remain
+pending; local implementation tests are not scientific outcomes.
