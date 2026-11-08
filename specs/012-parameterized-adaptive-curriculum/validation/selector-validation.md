@@ -109,7 +109,55 @@ The structural report is written beneath `pac-selector-fresh-001/execution/`.
 Share each phase's `report.zip` for analysis. No full model upload is needed.
 Fresh output paths are required; failed runs and original campaign files remain
 unchanged. Errors print their actual exception and original role-result path. A run-owned
-`failure.zip` preserves `failure.json` and the full local traceback.
+`failure.zip` preserves `failure.json`, the full local traceback and bounded
+qualification receipts, inspection logs, process/cleanup records and suite XML.
+`diagnostics/index.json` identifies copied, projected, truncated, missing and
+omitted files. These diagnostic copies confer no qualification authority.
+
+### GPU wheel packaging repair (2026-11-07)
+
+The `pac-selector-probes-002` qualification stopped before HIP execution. Its
+verified `qualification/pipeline.zip` (SHA-256
+`9f12ecb8b2596fb6519d2578764c0a13f19e1feadb3b5a0350979a6e47194db5`)
+records PASS for `image.qualification` and `cpu.semantic`, FAIL for `image.gpu`,
+and BLOCKED for `hip.preflight`. The CPU suite reports 1,547 tests with zero
+failures or skips. The GPU image inspection's original stderr reports:
+
+```text
+ValueError: installed wheel source identity mismatch: src/oeis_learn/generalization/policies/fit-core-amendment.json
+```
+
+The wheel package-data list named only the two older structural policies. The
+new fit amendment was bound by the source snapshot but absent from the installed
+wheel. The CPU image's checkout imports masked that omission; the GPU image's
+installed-wheel inspection correctly rejected it. This is a packaging defect,
+not evidence of an unavailable accelerator or a failure of the modular solver.
+
+Package all versioned policy JSON files in both wheel and source distribution.
+A regression builds an actual wheel, extracts it outside the checkout, checks
+its entire installed source closure, then confirms a modified policy is still
+rejected. It also checks that the source-distribution inventory retains the
+amendment. Existing source/image integrity checks remain mandatory.
+
+Qualification failures now return the failed/blocked stage reasons and original
+receipt/archive references to callers. The selector failure ZIP automatically
+captures the fixed qualification layout with the existing bounded diagnostic
+collector. This repairs the earlier two-file ZIP, which omitted the actual
+image failure. Private model/target trees and raw command records are excluded;
+capture failures are recorded separately from the primary exception.
+
+After checking out `012-pac-qualification-diagnostics`, retry into a fresh path:
+
+```bash
+python3 -S scripts/foundation_run.py --engine podman pac-selector-validation probes \
+  --campaign run-state/generalization/pac-012-bcd-r1-002 \
+  --output run-state/generalization/pac-selector-probes-003
+```
+
+This rebuilds and qualifies the new source and uses the same existing checkpoints
+and training probes. Preserve `-002` as failed evidence. Actual HIP qualification
+and new probe outcomes remain pending the workstation retry; the repaired
+packaging test is not accelerator evidence.
 
 ## Validation boundary
 
@@ -119,3 +167,11 @@ selection seals, canonical 100-term scoring with synthetic execution, training
 role rejection, original inventory/weight tampering, freeze gates and unchanged
 historical draws. Host CLI help works with `python3 -S`. These checks do not
 constitute workstation HIP execution or new scientific results.
+
+
+## Incomplete fitting cases
+
+The completed first probe run stopped at D 235/256. The separate
+[fixed-candidate fitting diagnostic](fit-diagnostics.md) replays its nine solver
+timeout cases and benchmarks CPU quotas without changing the probe result or
+structural freeze gate.

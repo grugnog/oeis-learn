@@ -38,13 +38,17 @@ def publish_structural(inputs, output, settings, *, seconds):
     from oeis_learn.generalization.preparation import reference_candidate
     from oeis_learn.generalization.cohorts import project
     from oeis_learn.synthesis.client import SynthesisClient
-    if set(settings) != {'protocol','originals','observed','probes','study'} or settings['protocol'] != fresh_design():
+    from oeis_learn.generalization.selector_reservoir import reservoir_design,draw as reservoir_draw,MEMORY_CEILING
+    amended=settings.get('protocol',{}).get('version')=='pac-selector-structural/v2'
+    expected=reservoir_design() if amended else fresh_design()
+    if set(settings) != {'protocol','originals','observed','probes','study'} or settings['protocol'] != expected:
         raise ValueError('closed frozen fresh structural request')
     declared=[{k:v for k,v in r.items() if k!='ref'} for r in settings['originals']]
     if sorted(declared,key=lambda r:r['name']) != sorted(original_cells(),key=lambda r:r['name']):
         raise ValueError('all sixteen original exclusion cells required')
     deadline=time.monotonic()+seconds
-    protocol=settings['protocol'];draws=fresh_draw(protocol);exact=[];rejections=Counter()
+    protocol=settings['protocol'];draws=(reservoir_draw if amended else fresh_draw)(protocol);exact=[];rejections=Counter()
+    if len(draws)>8192:raise ValueError('fresh reservoir identity cap')
     for row in draws:
         if time.monotonic()>=deadline:raise TimeoutError('fresh reference admission deadline')
         value,error=reference_candidate(row)
@@ -70,9 +74,18 @@ def publish_structural(inputs, output, settings, *, seconds):
     for row in eligible:unique.setdefault(row['source'],row)
     eligible=list(unique.values());available=Counter(r['family'] for r in eligible)
     deficits={c['family']:c['count']-available[c['family']] for c in protocol['cells'] if available[c['family']]<c['count']}
+    measurements={}
+    if amended:
+        import resource
+        peak=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*1024
+        measurements=dict(peak_rss_bytes=peak,memory_ceiling_bytes=MEMORY_CEILING,
+            reference_and_exclusion_seconds=seconds-(deadline-time.monotonic()),index_rows=len(exact))
+        write(output/'preparation-resources.json',measurements)
+        if peak>MEMORY_CEILING:raise ValueError('fresh reservoir preparation memory ceiling exceeded')
     availability=seal(dict(version='pac-selector-availability/v1',protocol=protocol['identity'],
         draws=len(draws),available=dict(available),deficits=deficits,
-        reference_rejections=dict(rejections),exclusion_reasons=dict(Counter(v for reasons in bad.values() for v in reasons))))
+        reference_rejections=dict(rejections),exclusion_reasons=dict(Counter(v for reasons in bad.values() for v in reasons)),
+        **(dict(resources=measurements) if amended else {})))
     write(output/'availability.json',availability)
     if deficits:
         return dict(status='BLOCKED',reason='FRESH_COHORT_QUOTA_DEFICIT',deficits=deficits,

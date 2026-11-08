@@ -291,7 +291,10 @@ HANDLERS={(Role.LEARNER,'pac-rehearse'):pac_rehearse,(Role.LEARNER,'pac-calibrat
 
 
 from . import selector_validation_roles as selector_validation
+from . import selector_fit_replay_role as fit_replay
 HANDLERS.update({(Role.PREPARATION,'selector-probes'):selector_validation.publish_probes,
+                 (Role.PREPARATION,'prepare-fit-replay'):fit_replay.prepare,
+                 (Role.FITTER,'replay-native-fits'):fit_replay.run,
                  (Role.PREPARATION,'selector-structural'):selector_validation.publish_structural,
                  (Role.GENERATOR,'selector-generate'):selector_validation.generate,
                  (Role.SELECTION,'selector-score'):selector_validation.score})
