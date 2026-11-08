@@ -25,6 +25,10 @@ def register(commands):
     freeze.add_argument('--output',required=True)
     structural=phases.add_parser('structural',help='execute one frozen fresh structural comparison')
     structural.add_argument('--plan',required=True)
+    amended=phases.add_parser('amend',help='freeze adopted 7664-draw amendment after a blocked parent; freshly qualify current images')
+    amended.add_argument('--previous',required=True)
+    amended.add_argument('--support',required=True)
+    amended.add_argument('--output',required=True)
     replay=phases.add_parser('fit-diagnostics',help='replay original D timeout cases; compare CPU resources without changing probe results')
     replay.add_argument('--probes',default='run-state/generalization/pac-selector-probes-001')
     replay.add_argument('--output',required=True)
@@ -196,6 +200,8 @@ def report(workspace,plan,output,results,generation):
     with zipfile.ZipFile(output/'report.zip','x',zipfile.ZIP_DEFLATED) as archive:
         for name in ('result.json','summary.md'):archive.write(output/name,name)
         archive.write(output/'plan.json','plan.json')
+        if (output/'admission.json').is_file():
+            archive.write(output/'admission.json','admission.json')
     print(json.dumps(dict(status='PASS',scientific_status=result['scientific_status'],freeze_eligible=eligible,report=str(output/'report.zip')),sort_keys=True))
     return result
 
@@ -237,6 +243,9 @@ def structural_plan(probe, probe_result, probe_plan, execution):
 
 
 def verify_structural_plan(workspace, path, plan):
+    if 'reservoir_amendment' in plan:
+        from .selector_reservoir_commands import verify
+        return verify(workspace,path,plan)
     probe=read(check_ref(workspace,plan['probe_plan']),sealed=True)
     result=read(check_ref(workspace,plan['probe_result']),sealed=True)
     expected=structural_plan(probe,plan['probe_result'],plan['probe_plan'],
@@ -270,7 +279,11 @@ def freeze(args,workspace):
 
 def structural(args,workspace,host_factory):
     path=confined(workspace,args.plan);plan=read(path,sealed=True)
-    if (plan['phase']!='structural' or plan['protocol']!=fresh_design() or plan['selector']!=POLICY
+    if 'reservoir_amendment' in plan:
+        from oeis_learn.generalization.selector_reservoir import reservoir_design
+        protocol=reservoir_design()
+    else:protocol=fresh_design()
+    if (plan['phase']!='structural' or plan['protocol']!=protocol or plan['selector']!=POLICY
             or plan['source']!=source(workspace) or plan['budgets']!=budgets(128)):
         raise ValueError('Unchanged separately frozen structural plan required')
     verify_structural_plan(workspace,path,plan)
@@ -290,6 +303,9 @@ def structural(args,workspace,host_factory):
         {'mechanical_sources':[],'isolation_truth':[inputs['observed'],inputs['probes'],*[x['ref'] for x in inputs['originals']]]},
         {'isolation_truth':workspace},dict(protocol=plan['protocol'],originals=inputs['originals'],
             observed=inputs['observed'],probes=inputs['probes'],study=plan['identity']),'publication')
+    if 'reservoir_amendment' in plan:
+        from .selector_reservoir_commands import admission_attachment
+        admission_attachment(workspace,plan,output,publication)
     compare(host,workspace,plan,output,publication,output/'publication/role')
     return 0
 
@@ -297,6 +313,9 @@ def structural(args,workspace,host_factory):
 def main(args,workspace,host_factory):
     workspace=Path(workspace)
     try:
+        if args.selector_phase=='amend':
+            from .selector_reservoir_commands import amend
+            return amend(args,workspace,host_factory)
         if args.selector_phase=='fit-diagnostics':
             from .selector_fit_replay_commands import main as fit_diagnostics
             return fit_diagnostics(args,workspace,host_factory)
@@ -309,8 +328,20 @@ def main(args,workspace,host_factory):
             target=args._selector_output
             write(target/'failure.json',failure)
             (target/'traceback.txt').write_text(traceback.format_exc())
+            members=['failure.json','traceback.txt']
+            from .generalization_diagnostics import collect,EXPORTED
+            try:
+                diagnostics=collect(target,target/'diagnostics')
+                members.append('diagnostics/index.json')
+                members.extend('diagnostics/'+row['export_path'] for row in diagnostics['files'] if row['status'] in EXPORTED)
+                from .selector_reservoir_commands import capture_admission
+                members.extend(capture_admission(target))
+            except (OSError,ValueError,RecursionError) as capture_error:
+                # Diagnostic capture must never replace the primary exception.
+                (target/'diagnostics-error.txt').write_text(type(capture_error).__name__+': '+str(capture_error)[:2048]+'\n')
+                members.append('diagnostics-error.txt')
             with zipfile.ZipFile(target/'failure.zip','x',zipfile.ZIP_DEFLATED) as archive:
-                for name in ('failure.json','traceback.txt'):archive.write(target/name,name)
+                for name in members:archive.write(target/name,name)
             print('Failure details: '+str(target/'failure.zip'),flush=True)
         print(json.dumps(failure),flush=True)
         traceback.print_exc()

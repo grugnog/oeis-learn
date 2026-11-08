@@ -787,3 +787,103 @@ warmup; individual native test transcripts were not supplied. Historical probe
 completion remains 235/256 and structural advancement remains pending a fresh
 full probe run. Detailed evidence and limitations are recorded in
 `validation/native-fit-fastpaths.md`.
+
+## Installed wheel and qualification failure repair (2026-11-07)
+
+- [X] T118 Reproduce the uploaded GPU image inspection failure with an actual wheel outside the checkout; retain rejection of modified policy bytes.
+- [X] T119 Include all generalization policy JSON resources in wheel/sdist, return failed qualification stage references/reasons, and capture bounded original qualification evidence in selector failure ZIPs without exporting private payloads.
+- [X] T120 Run affected packaging/diagnostic/source-binding checks, record the verified pipeline diagnosis and fresh `-003` retry command, commit and publish a separate stacked repair without waiting for CI.
+
+The uploaded original qualification archive verifies FAIL: CPU/native reports
+1,547 tests with no failures/skips; GPU installed-wheel inspection rejects the
+omitted fit amendment before HIP. The new wheel regression reproduces that exact
+failure before the fix. Three diagnostic scenarios also fail before repair:
+stage details absent from producer result, qualification logs missing from the
+failure ZIP, and capture errors omitted. Existing scientific gates remain intact.
+
+T118–T120: 127 affected checks pass, one installed-native-image check skips;
+final wheel/tamper and implementation-binding checks pass 2/2. Only the current
+implementation binding changes among the 68 historical dispositions. Stdlib
+probe help and whitespace checks pass; read-only checklist remains 16/16 and
+there are no extension hooks. Actual GPU qualification/probe outcomes remain
+workstation-only and pending. The separate repair stack targets #68; no CI wait.
+
+- [X] T121 Review the repaired `probes-003` report: verify seals/source/input bindings, independently recompute all selector/control and B/D summaries, match the nine completed D cases to the fit replay, record remaining censoring and the separate structural freeze/execution commands in `validation/probe-003-review.md`.
+
+T121: PASS / COMPLETE_DESCRIPTIVE, B 255/256 and D 244/256 complete for both
+selectors, zero incomplete traces. B remains 182 successes; D remains 83 original
+and 84 coverage successes. All nine newly completed cases are observed failures.
+The technical gate permits the existing fresh structural screen; no selector or
+arm adoption follows. Report/plan and generation seals, reviewed checkout source,
+unchanged original inputs/roster and every exported paired summary verify. The
+public ZIP lacks qualification transcripts and full utilization traces; those
+claims remain bounded accordingly. Documentation-only follow-up; no CI wait.
+
+## Fresh admission feasibility review and support census (2026-11-07)
+
+- [X] T122 Verify uploaded frozen-plan/availability/producer bindings, account for all 917 window exclusions and four zero-availability families, and reproduce the shared-branch exclusion on public synthetic sources.
+- [X] T123 Add a stdlib-only read-only full-law witness census with fixed protocol/input hashes, bounded input/work, count-only diagnostics and no model/qualification/cohort authority; test both blocking and inconclusive outcomes before implementation.
+- [X] T124 Validate focused/related checks, document the original qualified-checkout-preserving workstation command and scientific decision boundary, commit and publish separately without waiting for CI.
+
+T122–T124: the 2,288 draws lose exactly 917 finite-window matches, leaving
+1,371 candidates. All 256 draws in the four deficient families pass independent
+reference evaluation but are excluded; five certified/two ambiguous slots remain
+missing. Current evidence cannot establish full-law infeasibility. Seven focused
+support tests pass; the related selector run passes 21 checks before the final
+deadline case. Stdlib help, whitespace and unchanged read-only 16/16 checklist
+pass; no hooks. The new helper exports only counts/identities and is run from
+ignored run-state without changing the qualified checkout. No scientific policy
+or installed package code changes; no implementation-binding change is needed.
+The workstation support census remains pending. See
+`validation/fresh-admission-review.md` for proof scope, limits and command.
+
+- [X] T125 Verify uploaded v1 support totals/code binding and retain all four conclusions as inconclusive; implement an opt-in exact all-81-window inverse census with independent-reference, boundary, shifted-window, set-union and copied-stdlib CLI counterexamples, then document the separately scoped workstation command.
+
+T125: v1 completes in 15.716 seconds, leaving 430/53/1,449/1,197 uncovered
+witness classes. These are not eligible-task counts. Full-window projection
+handles linear intervals, quadratic rows/columns and exact mixed-branch points,
+including one-term boundary cases and sum multiplicity. No scientific law,
+quota, seed, exclusion or installed package code changes. The extended census
+remains diagnostic-only and exports counts/identities. Workstation v2 results
+remain pending; v1 is not rewritten. Tests and publication are recorded below.
+
+T125 validation: 29 affected checks pass, including 14 focused support cases.
+Every true window in independent-reference boundary/extreme cases is recognized;
+inverse membership agrees with brute-force equality on an independent grid.
+Shift, overlap, sum multiplicity, optimized reader, zero/full support fixtures
+and actual copied stdlib CLI checks pass. Stdlib help, whitespace, prerequisites
+and unchanged 16/16 read-only checklist pass; no hooks. The qualified checkout
+is preserved by fetching the helper to ignored run-state. Committed and published
+to the existing support-audit stack without waiting for CI.
+
+- [X] T126 Review and verify the uploaded v2 all-window census, reconcile assignment counts and cell increments, and record a concrete proposed draw-only amendment with unchanged scientific controls and explicit planning assumptions in `validation/fresh-reservoir-proposal.md`.
+
+T126: PASS / DIAGNOSTIC_ONLY in 35.837 seconds. All four families have positive
+window support: 6, 98,334, 63,406 and 82,537 assignments respectively. Source
+digest and result seal verify; all 18 scan increments and final counts reconcile.
+The original 64-draw reservoir is particularly inadequate for the six-assignment
+family. Proposed caps 4,096/512/512/512 produce 7,664 total draws within 8,192,
+without changing quotas, seed, law, exclusions, weights or scoring. Random-model
+quota probabilities are explicitly optimistic and do not certify the actual
+prefix or full admission. This is documentation only: no amendment is active,
+no frozen plan changes and no new model/qualification execution is authorized
+by the census. Implementation remains a separate prospective decision.
+
+## Operator-adopted reservoir amendment (2026-11-07)
+
+- [X] T127 Register the exact 4,096/512/512/512 prefix expansion (7,664 total), preserve every old candidate prefix and all other scientific fields, and test rejection of seed/law/protocol changes before implementation.
+- [X] T128 Validate original blocked parent, all-window census, score/checkpoint provenance and historical qualification; prove unchanged inference/metric/native/build closure using bound parent-module text and protected AST; require fresh current CPU/native and HIP qualification without rerunning probe panels.
+- [X] T129 Keep one fresh frozen execution path, verify the new qualification again at execution, enforce measured preparation memory before native/model work, and export public admission/resource counts in success and failure archives.
+- [X] T130 Complete affected local checks and real probes-003 source-compatibility verification, refresh only the current implementation binding, record operator adoption/commands/limitations, commit periodically and publish a separate stack without waiting for CI.
+
+T127–T130: 132 affected checks pass locally, one installed-native-image check
+skips. Exact source compatibility against the actual original probes-003 digest
+d29306db... verifies; 68 historical disposition entries remain unchanged. The
+new protocol is 6603333f...; registered policy is 7c0be8a1.... New qualification
+still requires actual current CPU/native/HIP scopes and identical resource,
+runtime, build and security facts. Historical probe records are preserved under
+their original identities. Prefix, protected-code, tampering, fixed-output,
+qualification-failure, memory-before-native and admission-export regressions
+pass, including real wheel packaging. Stdlib help, whitespace and unchanged
+16/16 read-only checklist pass; no hooks. Workstation qualification, new cohort
+admission and model scores remain pending. See `validation/reservoir-amendment.md`.
