@@ -186,3 +186,34 @@ was aligned to the committed 48.0.0 lock for this follow-up; the repository lock
 was not changed. Workflow YAML, embedded stdlib host syntax, Ruff and whitespace
 checks pass. Actual Docker/Podman/native execution belongs to the new CI steps;
 local skips do not satisfy them.
+
+## T023 focused completion
+
+The baseline-only follow-up adds a model-control loader for retained D, random,
+compatible earlier weights and the shuffled/absent controls. Earlier weights
+require an explicit resolved reference recipe with matching input/model/language
+semantics; matching shapes alone are insufficient. All checkpoint paths still
+use the existing verified weights loader. No new B/D campaign is required.
+
+Conventional priors are an immutable, identity-bound policy: integer polynomial
+coefficients, degree <=3, homogeneous integer recurrence order <=2 at indices
+0..19, coefficient bits <=4096 and the existing 1,024-token codec ceiling.
+Narrower bounds must be supplied when the shared portfolio is constructed and
+cannot change between calls. Unsupported applicability and codec limits are
+explicit. Zero recurrence, signed geometric recurrence and shifted polynomial
+indices have independent exact-reference cases.
+
+The drainable candidate iterator charges a single shared attempt/wall allowance,
+records generation failures and late results, and starts each bounded fitting
+window after generation. Per-method reports distinguish attempts, produced
+candidates, generation/fitting costs and measured total wall time; fitting does
+not count an existing candidate twice. Actual installed model generation, native
+fitting and scorer publication remain T027.
+
+Validation: the focused baseline/evaluation tests passed (25 cases). The complete
+progressive CPU inventory plus historical acceptance roster passed 230 cases,
+with one unavailable native-service skip and eight existing T024/T025 expected
+failures. New tests first reproduced eight failures in the earlier baseline
+implementation. Ruff and whitespace checks passed. The current disposition
+implementation binding was refreshed using its original serializer; historical
+dispositions and hardware/research qualification are unchanged.
