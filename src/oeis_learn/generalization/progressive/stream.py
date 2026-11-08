@@ -158,7 +158,7 @@ class StreamStore:
     def shards(self):
         return [load(confined(self.root, r["path"])) for r in self.state()["shards"]]
 
-    def step(self, *, client=None, fault=None):
+    def step(self, *, client=None, fault=None, budget=None):
         with self._lock():
             self._recover()
             s = self._read()
@@ -173,13 +173,15 @@ class StreamStore:
             ):
                 raise TimeoutError("frozen draw/work/shard allowance exhausted")
             ordinal = s["pending"] if s["pending"] is not None else s["draws"]
+            if budget:
+                budget.consume(draws=1, attempts=1, rejections=1)
             self._append("replay" if s["pending"] is not None else "reserve", ordinal)
             if fault == "after_reserve":
                 raise InterruptedError("diagnostic interruption after reservation")
             value = draw(p, ordinal)
             from oeis_learn.pipeline_validation.progressive_preparation import verify_draw
 
-            row, reason = verify_draw(value, client=client)
+            row, reason = verify_draw(value, client=client, budget=budget)
             if row is not None:
                 if row["structure"] in p["forbidden_structures"]:
                     row, reason = None, "held_out_structure"

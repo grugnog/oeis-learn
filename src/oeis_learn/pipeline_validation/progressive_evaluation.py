@@ -36,6 +36,7 @@ def generate(
     device="cpu",
     seconds=3600,
     output_root=None,
+    budget=None,
     methods=("correct", "shuffled", "absent", "template", "polynomial", "linear_recurrence"),
 ):
     import torch
@@ -69,7 +70,7 @@ def generate(
         raise ValueError("nonempty unique visible roster required")
     conditioning(prompts, "shuffled", seed=recipe["model"]["seed"])
     began = time.monotonic()
-    deadline = began + seconds
+    deadline = min(began + seconds, budget.deadline) if budget else began + seconds
     output_root = root if output_root is None else output_root
     output = confined(output_root, output, exists=False)
     if output.exists():
@@ -113,6 +114,8 @@ def generate(
                     continue
                 # The canonical synchronous driver drains native work before
                 # asking the model for another draw. No second scheduler.
+                if budget:
+                    budget.consume(draws=8, attempts=8, rejections=8)
                 value = portfolio(
                     decoder,
                     memories.get(mode),
@@ -134,13 +137,15 @@ def generate(
                 record["costs"][mode] = value
             visible = VisiblePrompt(tuple(p["indices"]), tuple(p["values"]))
             for method in ("polynomial", "linear_recurrence"):
-                budget = Portfolio()
+                portfolio_budget = Portfolio()
                 admitted = []
                 complete = True
-                stream = iter_candidates(method, p, budget) if method in methods else ()
+                stream = iter_candidates(method, p, portfolio_budget) if method in methods else ()
                 if method not in methods or time.monotonic() >= deadline:
                     complete = False
                     stream = ()
+                if budget and method in methods:
+                    budget.consume(attempts=8, rejections=8)
                 for row in stream:
                     if not row["applicable"]:
                         continue
@@ -160,7 +165,7 @@ def generate(
                             for item in result.get("admitted", [])
                         )
                         complete &= result.get("complete") is True
-                    budget.observe(
+                    portfolio_budget.observe(
                         method,
                         candidate=digest(row["source"]),
                         started=start,
@@ -169,13 +174,13 @@ def generate(
                         phase="fit",
                     )
                 record["selections"][method] = _seal(
-                    admitted, visible, cost=budget.report()["total_elapsed_us"] / 1e6
+                    admitted, visible, cost=portfolio_budget.report()["total_elapsed_us"] / 1e6
                 )
                 record["arm_evidence"][method] = {
                     "complete": complete and time.monotonic() < deadline,
                     "reason": "conventional_visible_only",
                 }
-                record["costs"][method] = budget.report()
+                record["costs"][method] = portfolio_budget.report()
             rows[p["id"]] = record
     finally:
         evidence.finish()
@@ -200,7 +205,7 @@ def generate(
     return reference(output_root, output / "candidates.json")
 
 
-def score(root, candidates, truth, *, client, output, seconds=3600):
+def score(root, candidates, truth, *, client, output, seconds=3600, budget=None):
     from oeis_learn.fresh.bigint_diagnostics import score as canonical_score
     from oeis_learn.synthesis.contracts import canonical_integer
 
@@ -253,7 +258,9 @@ def score(root, candidates, truth, *, client, output, seconds=3600):
     ]
     if digest(prompts) != value["prompts"]:
         raise ValueError("visible truth differs from generation")
-    deadline = time.monotonic() + seconds
+    deadline = (
+        min(time.monotonic() + seconds, budget.deadline) if budget else time.monotonic() + seconds
+    )
     methods = (
         "raw",
         "rescue",
@@ -266,6 +273,8 @@ def score(root, candidates, truth, *, client, output, seconds=3600):
     )
     outcomes = {r["id"]: {} for r in truth}
     for method in methods:
+        if budget:
+            budget.consume(attempts=len(truth), rejections=len(truth))
         projected = {
             k: {
                 "selections": {"equal_budget": v["selections"][method]},

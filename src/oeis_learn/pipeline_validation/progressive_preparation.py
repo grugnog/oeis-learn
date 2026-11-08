@@ -13,7 +13,7 @@ def publish_cohort(*args, **kwargs):
     return publish(*args, **kwargs)
 
 
-def verify_draw(value, *, client=None):
+def verify_draw(value, *, client=None, budget=None):
     """Custodian verification; reference-only diagnostic rows cannot train."""
     import re
     import time
@@ -28,7 +28,7 @@ def verify_draw(value, *, client=None):
     indices = list(map(str, range(100)))
     events = Counter()
     branches = Counter()
-    deadline = time.monotonic() + 4
+    deadline = min(time.monotonic() + 4, budget.deadline) if budget else time.monotonic() + 4
     result = evaluate(
         value["source"],
         indices,
@@ -99,7 +99,7 @@ def verify_draw(value, *, client=None):
     return row, None
 
 
-def prepare_stream(root, policy, *, client, shards=1, purpose="acceptance"):
+def prepare_stream(root, policy, *, client, shards=1, purpose="acceptance", budget=None):
     """Bounded native custodian producer; every rejected draw remains charged."""
     from oeis_learn.generalization.progressive.stream import StreamStore
 
@@ -110,7 +110,7 @@ def prepare_stream(root, policy, *, client, shards=1, purpose="acceptance"):
     for _ in range(shards):
         while True:
             try:
-                store.step(client=client)
+                store.step(client=client, budget=budget)
             except TimeoutError:
                 break
         state = store.state()

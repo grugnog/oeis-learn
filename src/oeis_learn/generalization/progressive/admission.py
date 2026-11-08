@@ -32,7 +32,9 @@ def validate_member(member):
     return member
 
 
-def admit(member, source, *, client, created_at="2026-11-08T00:00:00Z", purpose="acceptance"):
+def admit(
+    member, source, *, client, created_at="2026-11-08T00:00:00Z", purpose="acceptance", budget=None
+):
     from oeis_learn.decoder.bigint_codec import encode_body
     from oeis_learn.synthesis.admission import reference_identity
     from oeis_learn.synthesis.contracts import ResourceProfile
@@ -41,9 +43,11 @@ def admit(member, source, *, client, created_at="2026-11-08T00:00:00Z", purpose=
     validate_member(member)
     if client is None:
         raise ValueError("actual native verification required")
+    if budget:
+        budget.consume(attempts=1, rejections=1)
     tokens = encode_body(source)
     limits = ResourceProfile()
-    deadline = time.monotonic() + 4
+    deadline = min(time.monotonic() + 4, budget.deadline) if budget else time.monotonic() + 4
     reference = evaluate(source, member["indices"], limits, deadline=deadline)
     native = client.execute(source, member["indices"], deadline=deadline)
     if (
@@ -75,6 +79,7 @@ def admit(member, source, *, client, created_at="2026-11-08T00:00:00Z", purpose=
                 "detector_limit": "finite admission only",
             },
             client=client,
+            budget=budget,
         )
         if row is None:
             raise ValueError("paired target verification failed: " + str(reason))

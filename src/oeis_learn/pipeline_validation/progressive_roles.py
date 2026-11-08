@@ -145,6 +145,24 @@ def _invoke_reserved(
         runtime=runtime,
         operation=operation,
     )
+    from oeis_learn.generalization.progressive.budgets import WORK_ROLES, role_work_requirements
+    from oeis_learn.generalization.progressive.contracts import (
+        load,
+        verify_refs,
+        digest,
+        atomic_write,
+        seal,
+    )
+
+    work_values = []
+    if operation in WORK_ROLES:
+        for items in artifacts.values():
+            for item in items:
+                verify_refs(root, [item.ref])
+                work_values.append(load(confined(root, item.ref["path"]), maximum=512 << 20))
+        need = role_work_requirements(operation, work_values)
+        if any(reservation[k] < need[k] for k in need):
+            raise ValueError("insufficient enclosing role work reservation")
     root = Path(root)
     target = confined(root, output, exists=False)
     if target.exists():
@@ -238,6 +256,29 @@ def _invoke_reserved(
             (str(journal.root), "/accounting", True),
             (str(control), "/control", False),
         ]
+    if operation in WORK_ROLES:
+        authority_dir = target / "authority"
+        authority_dir.mkdir()
+        with journal.lock():
+            reserved = next(
+                e
+                for e in journal._read()[0]
+                if e["operation"] == charge["key"] and e["event"] == "RESERVE"
+            )
+        atomic_write(
+            authority_dir / "supervisor.json",
+            seal(
+                dict(
+                    version="progressive-role-budget/v1",
+                    campaign=c,
+                    task=t,
+                    operation=operation,
+                    inputs=digest(sorted(work_values, key=lambda v: v["identity"])),
+                    reservation=reserved,
+                )
+            ),
+        )
+        mounted.append((str(authority_dir), "/authority", False))
     argv = [
         "python",
         "-u",

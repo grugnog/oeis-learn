@@ -101,3 +101,119 @@ def test_budget_state_rejects_symlink_aliases(tmp_path):
     (state / "budget.lock").symlink_to(other / "unrelated")
     with pytest.raises(ValueError):
         BudgetJournal(state, "c", caps())
+
+
+def role_authority(root, operation, values, *, costs=None, useful_us=5_000_000):
+    import time
+    from oeis_learn.generalization.progressive.budgets import role_work_requirements
+    from oeis_learn.generalization.progressive.contracts import record, digest, seal
+    from tests.unit.test_progressive_freeze import campaign
+
+    c = campaign()
+    plan = c["payload"]["tasks"][0]
+    plan["finalization_us"] = 1000
+    plan["startup_us"] = 1000
+    c = seal(c)
+    t = record(
+        "task",
+        dict(plan, campaign=c["identity"]),
+        created_at=c["created_at"],
+        purpose=c["purpose"],
+        track=c["track"],
+    )
+    j = BudgetJournal(root / "journal", c["identity"], c["payload"]["caps"])
+    j.task_remaining(t)
+    cost = role_work_requirements(operation, values) if costs is None else dict(costs)
+    cost["elapsed_us"] = useful_us + plan["finalization_us"]
+    boot = __import__("pathlib").Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    j.reserve(plan["id"], operation, 0, cost, boot=boot, monotonic_us=time.monotonic_ns() // 1000)
+    event = j._read()[0][-1]
+    a = seal(
+        dict(
+            version="progressive-role-budget/v1",
+            campaign=c,
+            task=t,
+            operation=operation,
+            inputs=digest(sorted(values, key=lambda v: v["identity"])),
+            reservation=event,
+        )
+    )
+    return a, j, t
+
+
+@pytest.mark.parametrize("operation", ["generate", "score", "prepare-stream", "admit-training"])
+def test_installed_work_requires_full_prepaid_enclosing_reservation(tmp_path, operation):
+    from oeis_learn.generalization.progressive.budgets import RoleWorkBudget, role_work_requirements
+    from oeis_learn.generalization.progressive.generator import default_policy
+    from oeis_learn.pipeline_validation.identity import seal
+
+    kinds = {
+        "generate": "visible_prompt",
+        "score": "confirmation_truth",
+        "prepare-stream": "generation_policy",
+        "admit-training": "candidate",
+    }
+    p = default_policy(seed=13) | {"max_draws": 2, "max_work_units": 3}
+    values = [seal(dict(kind=kinds[operation], data=p if operation == "prepare-stream" else {}))]
+    cost = role_work_requirements(operation, values)
+    for index, key in enumerate(k for k, v in cost.items() if v):
+        inadequate = dict(cost, **{key: cost[key] - 1})
+        a, _, _ = role_authority(tmp_path / str(index), operation, values, costs=inadequate)
+        with pytest.raises(ValueError, match="insufficient enclosing"):
+            RoleWorkBudget(a, operation, values, tmp_path / f"forbidden-{index}")
+        assert not (tmp_path / f"forbidden-{index}").exists()
+
+
+def test_host_refuses_zero_work_before_role_projection(tmp_path):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation.progressive_roles import _invoke_reserved
+    from oeis_learn.generalization.progressive.budgets import KEYS
+    from oeis_learn.generalization.progressive.contracts import seal
+    from tests.contract.test_progressive_roles import artifact
+
+    values = [seal(dict(kind="candidate", data={}))]
+    a, j, t = role_authority(tmp_path, "admit-training", values)
+    c = a["campaign"]
+    runtime = SimpleNamespace(
+        execution_ready=True,
+        identity=c["payload"]["runtime"],
+        track=c["track"],
+        purpose=c["purpose"],
+        payload={"operations": ["admit-training"], "scope": {"images": ["image"]}},
+    )
+    item = artifact(tmp_path, "candidate.json", "candidate", "admission", {})
+    cost = dict.fromkeys(KEYS, 0) | {"elapsed_us": 1_000_000}
+    before = j.path.read_bytes()
+    with pytest.raises(ValueError, match="insufficient enclosing"):
+        _invoke_reserved(
+            None,
+            "image",
+            tmp_path,
+            "admit-training",
+            {"candidates": [item], "admission_truth": []},
+            output="never",
+            campaign=c,
+            task=t,
+            journal=j,
+            ordinal=1,
+            reservation=cost,
+            seconds=1,
+            runtime=runtime,
+        )
+    assert j.path.read_bytes() == before and not (tmp_path / "never").exists()
+
+
+def test_installed_work_counter_stops_retries_without_refunding_reservation(tmp_path):
+    from oeis_learn.generalization.progressive.budgets import RoleWorkBudget
+    from oeis_learn.generalization.progressive.contracts import seal
+
+    values = [seal(dict(kind="candidate", data={}))]
+    authority, journal, task = role_authority(tmp_path, "admit-training", values)
+    budget = RoleWorkBudget(authority, "admit-training", values, tmp_path / "out")
+    budget.consume(attempts=1, rejections=1, native_work=1)
+    budget.consume(native_work=1)
+    before = budget.path.read_bytes()
+    with pytest.raises(TimeoutError, match="reservation exhausted"):
+        budget.consume(native_work=1)
+    assert budget.path.read_bytes() == before
+    assert journal.task_remaining(task)["native_work"] == task["payload"]["caps"]["native_work"] - 2

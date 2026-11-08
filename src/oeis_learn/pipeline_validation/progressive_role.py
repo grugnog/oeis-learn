@@ -45,6 +45,13 @@ def execute(
             if seal(value) != value:
                 raise ValueError("installed channel identity mismatch")
             values.append(value)
+    from oeis_learn.generalization.progressive.budgets import WORK_ROLES, RoleWorkBudget
+
+    budget = (
+        RoleWorkBudget(load(authority), operation, values, output)
+        if operation in WORK_ROLES
+        else None
+    )
     if operation == "train":
         if len(values) != 1 or values[0]["kind"] != "training_request":
             raise ValueError("one frozen training-only request required")
@@ -89,11 +96,13 @@ def execute(
         from oeis_learn.synthesis.client import SynthesisClient
 
         with SynthesisClient(digest(members[0])) as client:
+            budget.client(client)
             admission = admit(
                 members[0],
                 candidates[0]["source"],
                 client=client,
                 purpose=os.environ.get("OEIS_DISCOVERY_PURPOSE", "acceptance"),
+                budget=budget,
             )
         atomic_write(output / "admission.json", admission)
         return publish(
@@ -127,6 +136,7 @@ def execute(
         from .progressive_preparation import prepare_stream
 
         with SynthesisClient(digest(policies[0])) as client:
+            budget.client(client)
             import os
 
             shards = prepare_stream(
@@ -134,6 +144,7 @@ def execute(
                 policies[0],
                 client=client,
                 purpose=os.environ.get("OEIS_DISCOVERY_PURPOSE", "acceptance"),
+                budget=budget,
             )
         complete = bool(shards) and all(s["payload"]["native_verified"] for s in shards)
         return publish(
@@ -172,6 +183,7 @@ def execute(
             raise ValueError("resolved installed recipe required")
         control = checkpoints[0].get("control", "retained_D")
         with SynthesisClient(digest(recipe)) as client:
+            budget.client(client)
             artifact = generate(
                 model_root,
                 "generation",
@@ -184,6 +196,7 @@ def execute(
                 reference_recipe=recipe if control == "earlier_checkpoint" else None,
                 seed=recipe["model"]["seed"] if control == "random" else None,
                 device="cuda",
+                budget=budget,
             )
         from .progressive_evidence import generation_timing
 
@@ -215,12 +228,14 @@ def execute(
 
         atomic_write(output / "input-candidates.json", candidates[0])
         with SynthesisClient(digest(candidates[0])) as client:
+            budget.client(client)
             result = score(
                 output,
                 reference(output, output / "input-candidates.json"),
                 truth,
                 client=client,
                 output="scoring",
+                budget=budget,
             )
         return publish(
             output,

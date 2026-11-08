@@ -133,3 +133,87 @@ def test_nested_model_payload_cannot_alias_forbidden_truth(tmp_path):
             registry=REGISTRY,
             forbidden=[reference(tmp_path, "secret.json")],
         )
+
+
+@pytest.mark.parametrize("failure", ["late", "interrupted"])
+def test_installed_admission_keeps_native_work_charged(tmp_path, monkeypatch, failure):
+    import time
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive.contracts import load, digest
+    from oeis_learn.pipeline_validation.progressive_role import execute
+    from tests.unit.test_progressive_budgets import role_authority
+    from oeis_learn.synthesis.client import SynthesisClient
+
+    member = dict(
+        id="training",
+        group="group",
+        role="training",
+        source_snapshot=digest("snapshot"),
+        indices=list(map(str, range(100))),
+        values=list(map(str, range(100))),
+    )
+    values = [
+        seal(
+            dict(
+                version="discovery-channel/v1",
+                role="admission",
+                kind="candidate",
+                data=dict(task="training", source="(program (return $index))"),
+            )
+        ),
+        seal(
+            dict(
+                version="discovery-channel/v1",
+                role="admission",
+                kind="training_continuation",
+                data=member,
+            )
+        ),
+    ]
+    for channel, value in zip(("candidates", "admission_truth"), values):
+        atomic_write(tmp_path / "inputs" / channel / (value["identity"][7:] + ".json"), value)
+    a, journal, task = role_authority(
+        tmp_path, "admit-training", values, useful_us=100_000 if failure == "late" else 5_000_000
+    )
+    atomic_write(tmp_path / "authority.json", a)
+    calls = []
+
+    class Worker:
+        def call(self, request, *, deadline):
+            calls.append(request)
+            if failure == "interrupted":
+                raise InterruptedError("interrupted native admission")
+            time.sleep(max(0, deadline - time.monotonic()) + 0.01)
+            return dict(outcome="ok", values=member["values"])
+
+    class Client:
+        def __init__(self, *args):
+            self.worker = Worker()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def execute(self, source, indices, *, deadline):
+            return self.worker.call({"candidates": [{"source": source}]}, deadline=deadline)
+
+    monkeypatch.setattr("oeis_learn.synthesis.client.SynthesisClient", Client)
+    error = TimeoutError if failure == "late" else InterruptedError
+    with pytest.raises(error):
+        execute(
+            "admit-training",
+            inputs=tmp_path / "inputs",
+            output=tmp_path / "out",
+            authority=tmp_path / "authority.json",
+        )
+    assert len(calls) == 1
+    import json
+
+    events = [
+        json.loads(line) for line in (tmp_path / "out/work-debits.jsonl").read_text().splitlines()
+    ]
+    assert events[-1]["used"]["native_work"] == 1
+    assert journal.task_remaining(task)["native_work"] == task["payload"]["caps"]["native_work"] - 2
+    assert not (tmp_path / "out/admission.json").exists()

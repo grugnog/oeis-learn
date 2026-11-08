@@ -330,3 +330,128 @@ class TaskLease:
 
     def __exit__(self, *_):
         self.stream.close()
+
+
+WORK_ROLES = frozenset({"generate", "score", "prepare-stream", "admit-training"})
+
+
+def role_work_requirements(operation, values):
+    """Conservative maximum work for the fixed installed algorithms.
+
+    native_work counts bounded native candidate requests, each retaining the
+    existing resource-profile and service deadline. All maxima are debited before
+    dispatch; rejections, cache hits and interrupted work never refund that debit.
+    """
+    costs = dict.fromkeys(KEYS, 0)
+    if operation == "prepare-stream":
+        from .generator import validate_policy
+
+        policies = [v["data"] for v in values if v["kind"] == "generation_policy"]
+        if len(policies) != 1:
+            raise ValueError("one bounded stream policy required")
+        n = validate_policy(policies[0])["max_work_units"]
+        costs.update(draws=n, rejections=n, attempts=n, native_work=n)
+    elif operation == "generate":
+        n = sum(v["kind"] == "visible_prompt" for v in values)
+        if not n:
+            raise ValueError("nonempty bounded generation roster required")
+        costs.update(draws=32 * n, attempts=48 * n, rejections=48 * n, native_work=64 * n)
+    elif operation == "score":
+        n = sum(v["kind"] in {"development_truth", "confirmation_truth"} for v in values)
+        if not n:
+            raise ValueError("nonempty bounded scoring roster required")
+        costs.update(attempts=8 * n, rejections=8 * n, native_work=8 * n)
+    elif operation == "admit-training":
+        costs.update(attempts=1, rejections=1, native_work=2)
+    return vector(costs)
+
+
+class RoleWorkBudget:
+    """Installed counters constrained by an already durable host reservation."""
+
+    def __init__(self, authority, operation, values, output):
+        import time
+        from .campaign import validate_campaign, validate_task
+
+        if (
+            set(authority)
+            != {"version", "identity", "campaign", "task", "operation", "inputs", "reservation"}
+            or authority["version"] != "progressive-role-budget/v1"
+            or seal(authority) != authority
+            or authority["operation"] != operation
+            or authority["inputs"] != digest(sorted(values, key=lambda v: v["identity"]))
+        ):
+            raise ValueError("original installed role budget authority required")
+        c = validate_campaign(authority["campaign"])
+        t = validate_task(authority["task"], campaign=c)
+        reservation = authority["reservation"]
+        if (
+            seal(reservation) != reservation
+            or reservation["event"] != "RESERVE"
+            or not reservation["operation"].startswith(t["payload"]["id"] + "/" + operation + "/")
+            or reservation["boot"] != Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+        ):
+            raise ValueError("original pre-dispatch resource reservation required")
+        self.caps = vector(reservation["cost"])
+        need = role_work_requirements(operation, values)
+        if any(self.caps[k] < need[k] or self.caps[k] > t["payload"]["caps"][k] for k in KEYS):
+            raise ValueError("insufficient enclosing role work reservation")
+        self.deadline = (
+            reservation["start_us"] + self.caps["elapsed_us"] - t["payload"]["finalization_us"]
+        ) / 1e6
+        if time.monotonic() >= self.deadline:
+            raise TimeoutError("role work allowance exhausted before dispatch")
+        self.used = dict.fromkeys(KEYS, 0)
+        self.output = Path(output)
+        self.output.mkdir(parents=True, exist_ok=True)
+        self.path = self.output / "work-debits.jsonl"
+        if self.path.exists():
+            raise ValueError("spent role allowance cannot restart in place")
+        self.tip = authority["identity"]
+        self.sequence = 0
+
+    def consume(self, **costs):
+        import time
+
+        if time.monotonic() >= self.deadline:
+            raise TimeoutError("enclosing role work deadline exhausted")
+        if set(costs) - set(KEYS) or any(type(v) is not int or v < 0 for v in costs.values()):
+            raise ValueError("closed nonnegative work charge required")
+        used = {k: self.used[k] + costs.get(k, 0) for k in KEYS}
+        if any(used[k] > self.caps[k] for k in KEYS):
+            raise TimeoutError("enclosing role work reservation exhausted")
+        if (
+            self.sequence >= 400000
+            or self.path.exists()
+            and self.path.stat().st_size > (64 << 20) - 4096
+        ):
+            raise TimeoutError("bounded role work journal exhausted")
+        event = seal(dict(previous=self.tip, sequence=self.sequence, used=used))
+        with self.path.open("a") as stream:
+            stream.write(json.dumps(event, sort_keys=True) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        self.used, self.tip = used, event["identity"]
+        self.sequence += 1
+
+    def client(self, client):
+        """Charge at the actual native dispatch boundary, including retries."""
+        budget = self
+        worker = client.worker
+
+        class MeteredWorker:
+            def __getattr__(self, name):
+                return getattr(worker, name)
+
+            def call(self, request, *, deadline):
+                import time
+
+                budget.consume(native_work=len(request["candidates"]))
+                deadline = min(deadline, budget.deadline)
+                result = worker.call(request, deadline=deadline)
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("late native work remains charged and cannot be admitted")
+                return result
+
+        client.worker = MeteredWorker()
+        return client
