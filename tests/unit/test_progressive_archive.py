@@ -94,3 +94,17 @@ def test_publication_failure_does_not_change_old_cut(tmp_path, monkeypatch):
     assert archive.sample(old, ordinal=0, count=4) == expected
     new = archive.publish([admitted("b", "second")], previous=old)
     assert len(archive.entries(new)) == 2
+
+
+def test_resealed_invalid_entry_is_rejected_when_loading_cut(tmp_path):
+    from oeis_learn.generalization.progressive.contracts import atomic_write, reference
+    from oeis_learn.pipeline_validation.identity import seal
+
+    archive = Archive(tmp_path)
+    cut = archive.publish([admitted("a", "first")])
+    bad = admitted("b", "second")
+    bad["payload"]["source_hash"] = digest("wrong")
+    atomic_write(tmp_path / "forged.json", seal(bad))
+    cut["payload"]["entries"] = [reference(tmp_path, "forged.json")]
+    with pytest.raises(ValueError, match="binding"):
+        archive.sample(seal(cut), ordinal=0)

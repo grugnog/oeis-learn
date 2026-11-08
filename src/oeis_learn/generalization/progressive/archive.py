@@ -17,26 +17,31 @@ class Archive:
         self.capacity = capacity
         self.seed = seed
 
+    @staticmethod
+    def validate_entry(r):
+        r = validate("admission", r)
+        from oeis_learn.decoder.bigint_codec import encode_body
+
+        from .generator import structure_id
+
+        p = r["payload"]
+        if (
+            digest(p["source"]) != p["source_hash"]
+            or structure_id(p["source"]) != p["structure"]
+            or encode_body(p["target_source"]) != p["tokens"]
+        ):
+            raise ValueError("admission source/structure/target binding differs")
+        if r["track"] != "oeis_derived" or r["payload"]["status"] != "COMMITTED":
+            raise ValueError("committed OEIS targets only")
+        return r
+
     def publish(self, admissions, *, previous=None):
         values = {}
         if previous is not None:
             for r in self.entries(previous):
                 values[r["identity"]] = r
         for r in admissions:
-            r = validate("admission", r)
-            from oeis_learn.decoder.bigint_codec import encode_body
-
-            from .generator import structure_id
-
-            p = r["payload"]
-            if (
-                digest(p["source"]) != p["source_hash"]
-                or structure_id(p["source"]) != p["structure"]
-                or encode_body(p["target_source"]) != p["tokens"]
-            ):
-                raise ValueError("admission source/structure/target binding differs")
-            if r["track"] != "oeis_derived" or r["payload"]["status"] != "COMMITTED":
-                raise ValueError("committed OEIS targets only")
+            r = self.validate_entry(r)
             values[r["identity"]] = r
         grouped = {}
         for r in values.values():
@@ -94,7 +99,20 @@ class Archive:
             raise ValueError("archive policy changed")
         import json
 
-        return [validate("admission", json.loads(b)) for b in verify_refs(self.root, p["entries"])]
+        rows = [self.validate_entry(json.loads(b)) for b in verify_refs(self.root, p["entries"])]
+        tasks = {}
+        for row in rows:
+            tasks.setdefault(row["payload"]["task"], []).append(row)
+        if (
+            len(rows) > self.capacity
+            or len({r["identity"] for r in rows}) != len(rows)
+            or any(
+                len(v) > 2 or len({r["payload"]["structure"] for r in v}) != len(v)
+                for v in tasks.values()
+            )
+        ):
+            raise ValueError("invalid archive capacity or structural alternatives")
+        return rows
 
     def sample(self, cut, *, ordinal, count=1):
         if (
