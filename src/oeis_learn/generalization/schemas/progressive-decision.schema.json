@@ -1,0 +1,138 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "discovery-decision/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "parents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "enum": [
+        "acceptance",
+        "research"
+      ]
+    },
+    "track": {
+      "enum": [
+        "synthetic_strict",
+        "oeis_derived",
+        "external_assisted"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "outcomes": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "roster": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "design": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "metrics": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "seeds": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "minItems": 2,
+          "maxItems": 64,
+          "uniqueItems": true
+        },
+        "evidence_verdict": {
+          "enum": [
+            "INVALID",
+            "INCOMPLETE",
+            "REGRESSION",
+            "CONFIRMED_GAIN",
+            "CONFIRMED_EFFICIENCY",
+            "NO_MATERIAL_GAIN",
+            "INCONCLUSIVE"
+          ]
+        },
+        "next_action": {
+          "enum": [
+            "ADVANCE_REGISTERED",
+            "RETAIN_BASELINE",
+            "EXPLORE_RESERVED",
+            "DEFER_BRANCH",
+            "STOP_AFFECTED"
+          ]
+        },
+        "target_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "trigger": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            }
+          ]
+        }
+      },
+      "required": [
+        "outcomes",
+        "roster",
+        "design",
+        "policy",
+        "metrics",
+        "seeds",
+        "evidence_verdict",
+        "next_action",
+        "target_id",
+        "trigger"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "created_at",
+    "parents",
+    "purpose",
+    "track",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-decision.schema.json"
+}

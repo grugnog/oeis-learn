@@ -40,7 +40,7 @@ def test_acceptance_has_explicit_software_and_future_specification_scopes(tmp_pa
     assert "tests/contract/test_progressive_authority.py" in gate.TESTS
     assert set(gate.DEFERRED_SPECIFICATIONS).isdisjoint(gate.TESTS)
     assert "tests/unit/test_progressive_metrics.py" in gate.TESTS
-    assert "tests/unit/test_progressive_decisions.py" in gate.DEFERRED_SPECIFICATIONS
+    assert "tests/unit/test_progressive_decisions.py" in gate.TESTS
 
 
 @pytest.mark.parametrize(

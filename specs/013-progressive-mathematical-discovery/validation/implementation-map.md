@@ -268,3 +268,18 @@ checks passed. T024 metrics are mandatory in both-engine native CI acceptance;
 only the moved T025 specifications remain deferred. No CI result, hardware
 qualification or research outcome is claimed, and CI will not be awaited after
 publishing.
+
+## T025 decision boundary
+
+Implemented closed discovery-decision/v1 records with outcome/roster/design/policy
+bindings and independent recomputation. Frozen target evidence must register the
+comparison design; threshold changes are rejected. Scientific verdict and action
+are independently validated, including reservation checks. Efficiency requires
+its registered route, measured total cost and noninferiority separately in both
+primary strata with the registered joint dependency weights. Historical seed
+interval rules remain unchanged.
+
+Validation: initial complete progressive/historical roster 262 passed, one local
+native-service skip and no expected failures. Additional production efficiency
+coverage passes with the decision suite. All T025 cases are mandatory in both
+engine CI; no CI or hardware qualification result is inferred locally.
