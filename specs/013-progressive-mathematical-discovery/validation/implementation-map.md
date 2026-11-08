@@ -33,7 +33,7 @@ exist: the actual shared archive owner is pipeline_validation/bundle.py.
 
 ## Validation
 
-Source/test implementation is complete for T001–T017 and T019–T023. T018 remains unchecked and BLOCKED: the required container/native execution has not run. This environment has no Docker or Podman binary
+Source/test implementation is complete for T001–T017 and T019–T023. T018 now has mandatory Docker/Podman CI acceptance and remains unchecked pending its first successful receipt. The initial local validation environment has no Docker or Podman binary
 and no packaged native worker or HIP device. Local CPU/stdlib checks cannot
 establish container/native/HIP qualification. No training/research is launched.
 
@@ -134,5 +134,55 @@ No container, native or HIP status is upgraded by these local results.
 
 Final whitespace and new-source/test Ruff checks pass. No extension pre/post hooks
 are registered. Research and later task boxes remain unchanged. This increment is
-reviewable independently; workstation execution of the canonical bigint-cpu gate
-is still necessary to complete T018.
+reviewable independently; a successful mandatory Docker/Podman CI receipt can complete T018; no workstation
+handoff is required for this CPU/native task.
+
+
+## CI follow-up — stale binding repair and T018 handoff
+
+Reviewed the existing d013814 check logs without waiting for a new CI run. The
+portable-engines Docker and Podman checks and native-qualification failed on the
+same stale `current-dispositions.json` implementation hash. The separate
+cpu-regressions check reports that same cause. Engine startup, private worker
+mount/device isolation and reclamation had passed. This differs from the older
+rl/progressive harness issues noted in the initial local report.
+
+Refreshed only the current review-disposition package binding and its descriptive
+revision. All 68 original review items, task states, historical producer records,
+source/task hashes and `full_007_complete=false` remain unchanged. The actual
+package implementation serializer is still used; no hashing or validation guard
+was weakened. The original failing tests now pass locally, together with the
+full disposition rejection/replay tests.
+
+Added `scripts/qualify_progressive_foundation.py` to both portable-engine CI matrix
+entries via the existing stdlib host and `container_stage` launcher. Each bounded
+900-second CPU/native role uses the shared immutable qualification image, read-only
+root, no network/socket/workspace mount, one owned evidence directory and actual
+cleanup/inspection. `OEIS_REQUIRE_NATIVE=1` and `OEIS_REQUIRE_BIGINT_BUILD=1` are
+mandatory. Reports and JUnit are uploaded as portable-engine artifacts.
+
+The fixed acceptance roster covers all 18 progressive CPU test modules except
+T019's explicitly deferred T024/T025 metric specifications, plus the affected
+historical authority/roles/budget/qualification/metric/host/wheel regressions and
+the two stale-binding regressions. Mandatory JUnit reconciliation requires every
+requested module, the real native witness case and installed-wheel source closure
+case. Empty, failed, errored, skipped (including xfail) or omitted mandatory cases
+cannot produce PASS. The future metric specifications stay in the repository and
+ordinary CPU inventory; they cannot be counted as current implementation acceptance.
+
+T018 is now infrastructure-unblocked and **PENDING_CI**, rather than blocked on
+this local environment. Its checkbox remains honest until the first complete
+native CI receipt exists. No current-source PASS, HIP qualification or research
+result is inferred from wiring a workflow. The requested follow-up is pushed
+without waiting for CI.
+
+Follow-up local validation: the complete progressive inventory plus affected
+historical acceptance selection reports **216 passed, 1 native skip, 8 expected
+future-metric failures**. The full related container/runtime/role, pipeline
+contract, phase-10 and handoff modules separately report **100 passed, 1 actual
+engine skip**. Both original stale-binding regressions pass. These two selections
+overlap and their counts are not added together. The local Wasmtime installation
+was aligned to the committed 48.0.0 lock for this follow-up; the repository lock
+was not changed. Workflow YAML, embedded stdlib host syntax, Ruff and whitespace
+checks pass. Actual Docker/Podman/native execution belongs to the new CI steps;
+local skips do not satisfy them.

@@ -10,6 +10,7 @@ on:
       - 'crates/**'
       - 'specs/008-bigint-constant-synthesis/**'
       - 'specs/009-pipeline-throughput/**'
+      - 'specs/013-progressive-mathematical-discovery/contracts/**'
       - 'uv.lock'
       - 'pyproject.toml'
       - 'setup.py'
@@ -94,6 +95,29 @@ jobs:
             tests/unit/test_foundation_roles.py \
             tests/integration/test_foundation_resources.py::test_actual_container_worker_mount_and_device_isolation \
             --basetemp=tmp-engine-evidence/pytest --junitxml=tmp-engine-evidence/${{ matrix.engine }}.xml
+      - name: Spec 013 mandatory CPU and native foundation acceptance
+        env:
+          OEIS_CONTAINER_ENGINE: ${{ matrix.engine }}
+        run: |
+          python3 -S - <<'PYCODE'
+          import os
+          import sys
+          from pathlib import Path
+          from types import SimpleNamespace
+          sys.path.insert(0, "scripts")
+          from foundation_local import Host
+          from qualify_bigint_phase5 import container_stage
+          host = Host(SimpleNamespace(
+              engine=os.environ["OEIS_CONTAINER_ENGINE"], image="oeis-portable-ci",
+              gpu_base_image=None, render_node=None, memory_gib=None, cpus=2,
+              free_disk_gib=5, host_free_memory_gib=1,
+          ))
+          container_stage(
+              host, host.ensure(), Path("tmp-engine-evidence/progressive-foundation").resolve(),
+              ["python", "scripts/qualify_progressive_foundation.py", "--output", "/work/output"],
+              seconds=900,
+          )
+          PYCODE
       - name: Public standard-library CLI validation and verified rerun
         env:
           OEIS_CONTAINER_ENGINE: ${{ matrix.engine }}
@@ -114,6 +138,9 @@ jobs:
             tmp-engine-evidence/public-cli/validation/*/receipt.json
             tmp-engine-evidence/public-cli/validation/*/*.log
             tmp-engine-evidence/public-cli/validation/*/*.xml
+            tmp-engine-evidence/progressive-foundation/*.json
+            tmp-engine-evidence/progressive-foundation/*.xml
+            tmp-engine-evidence/progressive-foundation/*.log
 
   native-qualification:
     needs: image

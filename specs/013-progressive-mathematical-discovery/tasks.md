@@ -13,7 +13,7 @@ For these tasks, review prerequisite contracts and independent counterexample te
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), all five [contracts](contracts/contingencies.md), [quickstart.md](quickstart.md) and adopted constitution 2.0.0.
 
-**Status**: T001–T017 and T019–T023 implemented in the first software increment. T018 remains BLOCKED on the portable container/native workflow; local validation and the exact limitation are recorded in [implementation-map.md](validation/implementation-map.md). No HIP qualification or research result is claimed. T024 onward remain unimplemented.
+**Status**: T001–T017 and T019–T023 implemented in the first software increment. T018 is wired into mandatory Docker/Podman CI acceptance and awaits its first successful receipt; local validation and the exact scope are recorded in [implementation-map.md](validation/implementation-map.md). No HIP qualification or research result is claimed. T024 onward remain unimplemented.
 
 **Tests**: Required by FR-011/016/024/028/031/035/038–040 and the constitution for arithmetic, admission, isolation, recovery and containment. Write meaningful failing cases first, then implement and run them. CPU fixtures cannot substitute for actual learning/native/HIP evidence.
 
@@ -70,7 +70,7 @@ For these tasks, review prerequisite contracts and independent counterexample te
 
 - [X] T017 Implement initial result/diagnostic collection in `src/oeis_learn/pipeline_validation/progressive_evidence.py`. Keep mechanical, scientific, qualification, claim and next_action fields independent; preserve original producer path/cause/local traceback plus collector errors. Explicitly mark unavailable metrics and required omissions. Add success/partial/failure publication tests in `tests/unit/test_progressive_failures.py`; private truth must not leak through public exceptions or tracebacks. Export safe exception type/message/code and the original local traceback reference; redact only actual private values, never use a generic omission as the sole failure reason. **Depends on**: T016.
 
-- [ ] T018 Run the new authority/role/budget/runtime/CLI tests and affected historical tests through the existing CPU/native workflow; record commands/results in `specs/013-progressive-mathematical-discovery/validation/implementation-map.md`. Close every new unsupported foundational path before proceeding. Commit this coherent group without claiming HIP readiness or launching a device job. **Depends on**: T017.
+- [ ] T018 Run the new authority/role/budget/runtime/CLI tests and affected historical tests through the existing CPU/native workflow; record commands/results in `specs/013-progressive-mathematical-discovery/validation/implementation-map.md`. Close every new unsupported foundational path before proceeding. Commit this coherent group without claiming HIP readiness or launching a device job. **Depends on**: T017. **CI handoff**: `scripts/qualify_progressive_foundation.py` runs through the existing socket-free CPU/native launcher on both Docker and Podman; awaiting the first successful CI receipt, not a workstation handoff.
 
 ## Phase 3: US1 — Foundation capability and language coverage (P1, MVP)
 

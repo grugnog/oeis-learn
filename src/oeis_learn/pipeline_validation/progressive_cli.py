@@ -28,6 +28,7 @@ CPU_TESTS = (
     "tests/integration/test_progressive_runtime.py",
     "tests/unit/test_progressive_baselines.py",
     "tests/unit/test_progressive_budgets.py",
+    "tests/unit/test_progressive_ci.py",
     "tests/unit/test_progressive_cohorts.py",
     "tests/unit/test_progressive_coverage.py",
     "tests/unit/test_progressive_exposure.py",
