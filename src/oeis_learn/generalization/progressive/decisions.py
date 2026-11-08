@@ -112,12 +112,30 @@ def _stratum_bounds(rows, roster, seeds, *, bootstrap_seed, comparisons, links):
     return result
 
 
-def recompute(rows, roster, seeds, design):
+COST_POLICY = {
+    "metric": "total_active_us",
+    "scope": "preparation_search_training",
+    "amortization": "none",
+}
+
+
+def recompute(rows, roster, seeds, design, *, costs=None):
     """Design is frozen independently of results; no supplied summary is trusted."""
     if set(design) != {"claim", "bootstrap_seed", "comparisons", "links", "costs"}:
         raise ValueError("closed registered comparison design required")
     if design["claim"] not in {"capability", "efficiency"}:
         raise ValueError("registered claim required")
+    if design["claim"] == "efficiency":
+        if design["costs"] != COST_POLICY:
+            raise ValueError("prospectively registered total-cost scope required")
+        if costs is not None and (
+            not isinstance(costs, dict)
+            or set(costs) != {"baseline", "candidate"}
+            or any(type(v) is not int or v <= 0 for v in costs.values())
+        ):
+            raise ValueError("positive measured total cost microseconds required")
+    elif design["costs"] is not None or costs is not None:
+        raise ValueError("capability design cannot retroactively select efficiency")
     rows, roster, seeds = list(rows), list(roster), list(seeds)
     metrics = compare(
         rows,
@@ -139,7 +157,10 @@ def recompute(rows, roster, seeds, design):
     ]
     cost_reduction, stratum_lowers = None, None
     if design["claim"] == "efficiency":
-        costs = design["costs"]
+        if design["costs"] != COST_POLICY:
+            raise ValueError("prospectively registered total-cost scope required")
+        if costs is None:
+            return metrics, "INCOMPLETE"
         if (
             not isinstance(costs, dict)
             or set(costs) != {"baseline", "candidate"}
@@ -157,7 +178,7 @@ def recompute(rows, roster, seeds, design):
         )
         stratum_lowers = list(bounds.values())
         metrics["efficiency_stratum_lowers"] = bounds
-    elif design["costs"] is not None:
+    elif design["costs"] is not None or costs is not None:
         raise ValueError("capability design cannot retroactively select efficiency")
     verdict = classify(
         mean_gain=metrics["mean_gain"],
@@ -190,6 +211,7 @@ def publish(
     track,
     trigger=None,
     visited=(),
+    costs=None,
 ):
     validate_policy(policy)
     if not policy["payload"]["selected"]:
@@ -202,7 +224,7 @@ def publish(
         t["id"] in fixed and t["threshold"] != fixed[t["id"]] for t in policy["payload"]["targets"]
     ):
         raise ValueError("outcome-driven threshold change invalid")
-    metrics, verdict = recompute(rows, roster, seeds, design)
+    metrics, verdict = recompute(rows, roster, seeds, design, costs=costs)
     validate_action(
         policy,
         target_id,
@@ -222,6 +244,7 @@ def publish(
         "roster": digest(roster),
         "seeds": list(seeds),
         "design": digest(design),
+        "costs": digest(costs) if costs is not None else None,
         "policy": policy["identity"],
         "metrics": digest(normalized),
         "evidence_verdict": verdict,

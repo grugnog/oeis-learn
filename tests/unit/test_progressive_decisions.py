@@ -83,7 +83,13 @@ def fixture():
         for r in data
         if r["seed"] == 1 and r["arm"] == "baseline"
     ]
-    design = {"claim": "capability", "bootstrap_seed": 13, "comparisons": 1, "links": [], "costs": None}
+    design = {
+        "claim": "capability",
+        "bootstrap_seed": 13,
+        "comparisons": 1,
+        "links": [],
+        "costs": None,
+    }
     p = defaults()
     p["payload"]["selected"] = True
     target = next(t for t in p["payload"]["targets"] if t["id"] == "gain")
@@ -204,7 +210,29 @@ def test_production_efficiency_uses_per_stratum_conservative_bounds():
         data,
         roster,
         [1, 2],
-        design | {"claim": "efficiency", "costs": {"baseline": 100, "candidate": 80}},
+        design
+        | {
+            "claim": "efficiency",
+            "costs": {
+                "metric": "total_active_us",
+                "scope": "preparation_search_training",
+                "amortization": "none",
+            },
+        },
+        costs={"baseline": 100, "candidate": 80},
     )
     assert verdict == "CONFIRMED_EFFICIENCY"
     assert metrics["efficiency_stratum_lowers"] == {"composition": 0.0, "unseen_structure": 1.0}
+
+
+def test_efficiency_freezes_cost_scope_before_measured_costs_exist():
+    from oeis_learn.generalization.progressive.decisions import COST_POLICY, recompute
+
+    data, roster, design, _ = fixture()
+    design = design | {"claim": "efficiency", "costs": dict(COST_POLICY)}
+    _, missing = recompute(data, roster, [1, 2], design)
+    assert missing == "INCOMPLETE"
+    _, verdict = recompute(data, roster, [1, 2], design, costs={"baseline": 1000, "candidate": 800})
+    assert verdict == "CONFIRMED_EFFICIENCY"
+    with pytest.raises(ValueError, match="registered total-cost scope"):
+        recompute(data, roster, [1, 2], design | {"costs": {"baseline": 1000, "candidate": 800}})

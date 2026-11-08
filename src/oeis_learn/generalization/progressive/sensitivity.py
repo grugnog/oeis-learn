@@ -9,7 +9,7 @@ import random
 from collections import Counter
 
 from .contracts import digest
-from .decisions import recompute
+from .decisions import COST_POLICY, recompute
 from .metrics import _seed
 
 FIELDS = {
@@ -144,10 +144,9 @@ def run(design):
                     "bootstrap_seed": seed,
                     "comparisons": s["comparisons"],
                     "links": [],
-                    "costs": {"baseline": 100, "candidate": 80}
-                    if s["claim"] == "efficiency"
-                    else None,
+                    "costs": dict(COST_POLICY) if s["claim"] == "efficiency" else None,
                 },
+                costs={"baseline": 100, "candidate": 80} if s["claim"] == "efficiency" else None,
             )
             counts[verdict] += 1
         promoted = counts["CONFIRMED_GAIN"] + counts["CONFIRMED_EFFICIENCY"]

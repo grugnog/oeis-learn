@@ -106,6 +106,17 @@
               "maxLength": 1024
             }
           ]
+        },
+        "costs": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          ]
         }
       },
       "required": [
@@ -118,7 +129,8 @@
         "evidence_verdict",
         "next_action",
         "target_id",
-        "trigger"
+        "trigger",
+        "costs"
       ],
       "additionalProperties": false
     }

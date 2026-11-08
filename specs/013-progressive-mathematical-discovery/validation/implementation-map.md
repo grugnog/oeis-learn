@@ -395,3 +395,12 @@ The native-shard-to-real-CPU-update case is mandatory in container CI.
 Validation: full progressive/historical roster passed 286 tests with five local
 native-service skips before the additional overshoot/ceiling case; that case also
 passes. HIP remains in the shared later matrix.
+
+### Efficiency receipt binding correction
+
+The frozen comparison design now records the total-cost metric/scope, while
+measured cost receipts are supplied separately after execution and bound into
+the decision. This avoids requiring unknowable measured timings in a pre-outcome
+policy. Missing measurements yield INCOMPLETE; costs cannot retrofit a capability
+comparison into an efficiency claim. The synthetic sensitivity runner likewise
+separates its cost-saving assumption from the measured-input slot.
