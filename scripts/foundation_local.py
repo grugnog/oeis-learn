@@ -291,6 +291,8 @@ def parser():
     commands = p.add_subparsers(dest="command", required=True)
     from oeis_learn.pipeline_validation.generalization_cli import register
     register(commands)
+    from oeis_learn.pipeline_validation.progressive_cli import register as register_discovery
+    register_discovery(commands)
     from oeis_learn.pipeline_validation.selector_validation_commands import register as register_selector_validation
     register_selector_validation(commands)
     from oeis_learn.pipeline_validation.selector_reliability_commands import register as register_reliability
@@ -428,6 +430,9 @@ def main(argv=None):
     args = parser().parse_args(argv)
     args.explicit_options = {v.split("=", 1)[0] for v in argv if v.startswith("--")}
     try:
+        if args.command == "discovery":
+            from oeis_learn.pipeline_validation.progressive_cli import main as discovery_main
+            return discovery_main(args, ROOT, Host)
         if args.command == "pac-reliability":
             from oeis_learn.pipeline_validation.selector_reliability_commands import main as reliability_main
             return reliability_main(args, ROOT, Host)

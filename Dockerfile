@@ -79,6 +79,8 @@ RUN pip install --no-cache-dir uv==0.8.22
 COPY docker/dev/install.sh /opt/oeis-setup/install.sh
 COPY pyproject.toml uv.lock /opt/oeis-build/
 RUN bash /opt/oeis-setup/install.sh cpu
+# Assert the committed CPU proposal dependency; never import it on the host.
+RUN /opt/oeis-venv/bin/python -c 'import optuna; assert optuna.__version__ == "4.5.0"'
 ENV VIRTUAL_ENV=/opt/oeis-venv
 
 # Compile the extension before the full checkout COPY. Only its exact native
@@ -118,6 +120,7 @@ ENV PATH=/opt/venv/bin:/opt/cargo/bin:${PATH} \
 COPY docker/dev/install.sh /opt/oeis-setup/install.sh
 COPY pyproject.toml uv.lock /opt/oeis-build/
 RUN bash /opt/oeis-setup/install.sh gpu
+RUN /opt/venv/bin/python -c 'import optuna; assert optuna.__version__ == "4.5.0"'
 
 FROM gpu-dependencies AS gpu-native
 COPY --from=native-dependencies /opt/cargo /opt/cargo

@@ -1,0 +1,289 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "discovery-cohort/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "parents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "enum": [
+        "acceptance",
+        "research"
+      ]
+    },
+    "track": {
+      "enum": [
+        "synthetic_strict",
+        "oeis_derived",
+        "external_assisted"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "enum": [
+            "training",
+            "development",
+            "confirmation",
+            "assessment"
+          ]
+        },
+        "panel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "decision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "profile": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "const": "bigint-20-100/v1"
+            },
+            "visible": {
+              "const": 20
+            },
+            "total": {
+              "const": 100
+            },
+            "attempts": {
+              "const": 8
+            },
+            "portfolio_us": {
+              "const": 60000000
+            },
+            "fit_us": {
+              "const": 4000000
+            },
+            "token_cap": {
+              "const": 1024
+            },
+            "schedule": {
+              "const": "drain"
+            }
+          },
+          "required": [
+            "id",
+            "visible",
+            "total",
+            "attempts",
+            "portfolio_us",
+            "fit_us",
+            "token_cap",
+            "schedule"
+          ],
+          "additionalProperties": false
+        },
+        "required_per_stratum": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "minimum_groups": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "group_policy": {
+          "enum": [
+            "exclusive",
+            "parameter_structure_sharing"
+          ]
+        },
+        "detector_limits": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 1,
+          "maxItems": 4096
+        },
+        "exposure": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "offset": {
+                "$ref": "progressive-common.schema.json#/$defs/decimal"
+              },
+              "stratum": {
+                "enum": [
+                  "parameter",
+                  "composition",
+                  "unseen_structure",
+                  "oeis",
+                  "retention",
+                  "reward"
+                ]
+              },
+              "groups": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "minItems": 1,
+                "maxItems": 64,
+                "uniqueItems": true
+              },
+              "structure": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "behavior": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "composition": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "operations": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "minItems": 0,
+                "maxItems": 64,
+                "uniqueItems": true
+              },
+              "difficulty": {
+                "type": "object",
+                "properties": {
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9223372036854775807
+                  },
+                  "nodes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9223372036854775807
+                  },
+                  "work": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9223372036854775807
+                  }
+                },
+                "required": [
+                  "depth",
+                  "nodes",
+                  "work"
+                ],
+                "additionalProperties": false
+              },
+              "visible": {
+                "$ref": "progressive-common.schema.json#/$defs/artifact"
+              },
+              "truth": {
+                "$ref": "progressive-common.schema.json#/$defs/artifact"
+              }
+            },
+            "required": [
+              "id",
+              "source",
+              "offset",
+              "stratum",
+              "groups",
+              "structure",
+              "behavior",
+              "composition",
+              "operations",
+              "difficulty",
+              "visible",
+              "truth"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 100000
+        },
+        "strata": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "parameter",
+              "composition",
+              "unseen_structure",
+              "oeis",
+              "retention",
+              "reward"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "role",
+        "panel",
+        "decision",
+        "profile",
+        "required_per_stratum",
+        "minimum_groups",
+        "group_policy",
+        "detector_limits",
+        "exposure",
+        "rows",
+        "strata"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "created_at",
+    "parents",
+    "purpose",
+    "track",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-cohort.schema.json"
+}

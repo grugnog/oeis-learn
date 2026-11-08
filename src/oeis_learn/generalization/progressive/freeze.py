@@ -1,0 +1,330 @@
+"""Resolve complete prospective inputs and publish an immutable campaign cut."""
+
+import json
+import shutil
+from .contracts import validate, record, load, verify_refs, reference, digest
+from .campaign import validate_campaign, validate_task, validate_runtime
+from .targets import validate_policy
+from oeis_learn.pipeline_validation.identity import confined
+
+
+def inventory(root, reference_campaign):
+    """Audit explicit retained files only; collect all missing refs in one pass."""
+    base = confined(root, reference_campaign, exists=False)
+    if not base.is_dir():
+        return dict(references=[], unresolved=["reference_campaign"])
+    names = (
+        "campaign.json",
+        "study.json",
+        "runtime.json",
+        "recipe.json",
+        "inputs.json",
+        "exposure.json",
+    )
+    refs = []
+    missing = []
+    supplied = base / "retained-inputs.json"
+    if supplied.is_file():
+        from oeis_learn.pipeline_validation.identity import seal
+
+        selected = load(supplied)
+        if (
+            set(selected) != {"version", "identity", "references"}
+            or selected["version"] != "discovery-retained-inputs/v1"
+            or seal(selected) != selected
+        ):
+            raise ValueError("closed retained input inventory required")
+        for item in selected["references"]:
+            try:
+                from .contracts import _check, schema
+
+                _check(schema("common")["$defs"]["reference"], item, schema("common"))
+                verify_refs(root, [item["artifact"]], max_bytes=64 << 30)
+                refs.append(item)
+            except (ValueError, OSError):
+                missing.append("invalid:" + item.get("name", "reference"))
+    for name in names:
+        path = base / name
+        if not path.is_file():
+            continue
+        try:
+            r = reference(root, path)
+            verify_refs(root, [r])
+            value = load(path)
+            refs.append(
+                dict(
+                    name=name,
+                    role="custodian",
+                    kind="recipe" if name == "recipe.json" else "source",
+                    artifact=r,
+                )
+            )
+        except (ValueError, OSError):
+            missing.append(name + ":invalid")
+    # Walk only hash/size/path references explicitly supplied by these producers.
+    from oeis_learn.generalization.contracts import artifact_refs
+
+    seen = {r["artifact"]["path"] for r in refs}
+    queue = [r["artifact"] for r in refs]
+    while queue:
+        ref = queue.pop(0)
+        if len(seen) > 10000:
+            raise ValueError("retained input inventory cap")
+        try:
+            value = json.loads(verify_refs(root, [ref])[0])
+        except (ValueError, UnicodeError):
+            continue
+        for child in artifact_refs(value):
+            # Retained producers use paths relative to their campaign directory.
+            try:
+                path = confined(base, child["path"])
+                resolved = reference(root, path)
+                if any(resolved[k] != child[k] for k in ("bytes", "sha256")):
+                    raise ValueError("retained identity changed")
+                if resolved["path"] in seen:
+                    continue
+                verify_refs(root, [resolved])
+                seen.add(resolved["path"])
+                queue.append(resolved)
+                refs.append(
+                    dict(name=resolved["path"], role="custodian", kind="source", artifact=resolved)
+                )
+            except (OSError, ValueError):
+                missing.append("artifact:" + child["path"])
+    for required in (
+        "retained_checkpoint",
+        "original_qualification",
+        "fresh-002_exposure",
+        "prepared_groups",
+        "measured_feasibility",
+    ):
+        if not any(r["name"] == required for r in refs):
+            missing.append(required)
+    return dict(references=refs, unresolved=sorted(set(missing)))
+
+
+def freeze(
+    root, blueprint, prepared, *, qualification_root, available_bytes=None, available_inodes=None
+):
+    b = validate("blueprint", blueprint)
+    p = validate("prepared", prepared)
+    if (
+        p["payload"]["blueprint"] != b["identity"]
+        or b["track"] != p["track"]
+        or b["purpose"] != p["purpose"]
+    ):
+        raise ValueError("preparation scope differs")
+    q = p["payload"]
+    if q["deficits"]:
+        raise IncompleteFreeze(q["deficits"])
+    if q["graph"]["selected_stages"] != b["payload"]["selected_stages"]:
+        raise ValueError("selected stages changed")
+    if any(q["caps"][k] > b["payload"]["proposed_caps"][k] for k in q["caps"]):
+        raise ValueError("prepared caps exceed proposal")
+    refs = q["references"]
+    if len({r["name"] for r in refs}) != len(refs):
+        raise ValueError("conflicting named input")
+    unresolved = set(b["payload"]["unresolved"]) - {r["name"] for r in refs}
+    if unresolved:
+        raise IncompleteFreeze(sorted(unresolved))
+    required = {
+        "checkpoint",
+        "recipe",
+        "source",
+        "image",
+        "groups",
+        "policy",
+        "qualification",
+        "prepared",
+    }
+    if not required <= {r["kind"] for r in refs}:
+        raise IncompleteFreeze(
+            ["missing_reference:" + k for k in sorted(required - {r["kind"] for r in refs})]
+        )
+    # Distinct named refs may point at the same legitimate policy: verify once,
+    # while still rejecting conflicting identity or physical aliases.
+    unique = {}
+    for ref in [r["artifact"] for r in refs] + [q["runtime"], q["checkpoint"], q["target_policy"]]:
+        if ref["path"] in unique and unique[ref["path"]] != ref:
+            raise ValueError("conflicting input identity")
+        unique[ref["path"]] = ref
+    verify_refs(root, list(unique.values()), max_bytes=64 << 30)
+    runtime = validate("runtime", json.loads(verify_refs(root, [q["runtime"]])[0]))
+    if runtime["track"] != b["track"] or runtime["purpose"] != b["purpose"]:
+        raise ValueError("wrong runtime track/purpose")
+    qual_root = confined(root, qualification_root)
+    original = load(qual_root / "qualification.json")
+    from oeis_learn.generalization.qualification import FACTS
+
+    if not FACTS <= set(original):
+        raise ValueError("original qualification facts required")
+    facts = {k: original[k] for k in FACTS}
+    # Freeze has no engine side effects. It reconciles the original producer and
+    # local source bytes; execution must re-inspect current device/image facts.
+    from oeis_learn.experiments.source_snapshot import collect_snapshot
+
+    source = load(confined(qual_root, facts["source_closure"]["path"]), maximum=64 << 20)
+    if source != collect_snapshot(root):
+        raise ValueError("stale qualification source closure")
+    # Runtime qualification references use workspace-relative exact producer refs.
+    if reference(root, qual_root / "qualification.json") not in runtime["payload"]["qualification"]:
+        raise ValueError("qualification producer route differs")
+    validate_runtime(runtime, root=root, current_facts=facts)
+    policy = json.loads(verify_refs(root, [q["target_policy"]])[0])
+    validate_policy(policy)
+    if not policy["payload"]["selected"]:
+        raise ValueError("proposed target defaults cannot execute")
+    compatibility = _scope_inputs(
+        root,
+        refs,
+        runtime,
+        qualification_root=qual_root,
+        checkpoint=q["checkpoint"],
+        target_policy=q["target_policy"],
+        track=b["track"],
+    )
+    known_policies = {r["artifact"]["sha256"] for r in refs if r["kind"] == "policy"} | {
+        policy["identity"]
+    }
+    declared_checkpoints = [r["artifact"] for r in refs if r["kind"] == "checkpoint"]
+    for plan in q["task_plans"]:
+        if (
+            plan["policy"] not in known_policies
+            or plan["initializer"]["compatibility"] != compatibility
+        ):
+            raise ValueError("unresolved task policy or incompatible initializer")
+        initializer = plan["initializer"]
+        if initializer["mode"] == "full_state":
+            # Complete-state support belongs to T049/T050. Historical states
+            # cannot be relabeled as exact discovery continuation meanwhile.
+            raise ValueError("discovery full-state continuation not implemented")
+        if initializer["artifact"] is not None:
+            if initializer["artifact"] not in declared_checkpoints:
+                raise ValueError("initializer is not a permitted checkpoint")
+            verify_refs(root, [initializer["artifact"]], max_bytes=64 << 30)
+    slots = {n["id"]: n["caps"] for n in q["graph"]["nodes"]}
+    validate_policy(policy, reservations=slots)
+    measured = q["checkpoint"]["bytes"]
+    if measured < 1:
+        raise ValueError("measured checkpoint size required")
+    required_bytes = measured * (2 + q["milestone_pins"]) + q["shard_bytes"] + q["package_bytes"]
+    usage = shutil.disk_usage(root)
+    import os
+
+    stat = os.statvfs(root)
+    free = usage.free if available_bytes is None else min(usage.free, available_bytes)
+    inodes = stat.f_favail if available_inodes is None else min(stat.f_favail, available_inodes)
+    if required_bytes > free or q["required_inodes"] > inodes:
+        raise IncompleteFreeze(["storage_bytes" if required_bytes > free else "storage_inodes"])
+    campaign = record(
+        "campaign",
+        dict(
+            blueprint=b["identity"],
+            runtime=runtime["identity"],
+            graph=q["graph"],
+            tasks=q["task_plans"],
+            references=refs,
+            caps=q["caps"],
+            storage=dict(
+                checkpoint_bytes=measured,
+                atomic_generations=2,
+                milestone_pins=q["milestone_pins"],
+                shard_bytes=q["shard_bytes"],
+                package_bytes=q["package_bytes"],
+                required_bytes=required_bytes,
+                available_bytes=free,
+                required_inodes=q["required_inodes"],
+                available_inodes=inodes,
+            ),
+            target_policy=policy["identity"],
+        ),
+        created_at=p["created_at"],
+        parents=[b["identity"], p["identity"], runtime["identity"]],
+        purpose=b["purpose"],
+        track=b["track"],
+    )
+    validate_campaign(campaign)
+    tasks = []
+    for plan in q["task_plans"]:
+        tasks.append(
+            validate_task(
+                record(
+                    "task",
+                    dict(plan, campaign=campaign["identity"]),
+                    created_at=p["created_at"],
+                    parents=[campaign["identity"]],
+                    purpose=b["purpose"],
+                    track=b["track"],
+                ),
+                campaign=campaign,
+            )
+        )
+    return campaign, runtime, tasks
+
+
+def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target_policy, track):
+    """A valid file hash alone cannot substitute for its declared input scope."""
+    scope = runtime["payload"]["scope"]
+    grouped = {kind: [r for r in refs if r["kind"] == kind] for kind in {r["kind"] for r in refs}}
+    if not any(r["artifact"] == checkpoint for r in grouped["checkpoint"]):
+        raise ValueError("measured checkpoint is not a declared checkpoint")
+    original = reference(root, qualification_root / "qualification.json")
+    if not any(r["artifact"] == original for r in grouped["qualification"]):
+        raise ValueError("declared qualification differs from original producer")
+    if not any(r["artifact"] == target_policy for r in grouped["policy"]):
+        raise ValueError("selected target policy is not a declared input")
+    from oeis_learn.fresh.bigint_config import resolve
+
+    recipes = []
+    for item in grouped["recipe"]:
+        recipe = load(confined(root, item["artifact"]["path"]))
+        if resolve(recipe) != recipe:
+            raise ValueError("fully resolved retained recipe required")
+        if recipe["execution"]["language"] != scope["language"]:
+            raise ValueError("recipe/runtime language differs")
+        model = digest({k: v for k, v in recipe["model"].items() if k != "seed"})
+        if model != scope["model"]:
+            raise ValueError("recipe/model qualification differs")
+        if track == "synthetic_strict" and recipe["track"]["kind"] != "generic_only":
+            raise ValueError("assisted recipe cannot be strict")
+        recipes.append(recipe)
+    for item in grouped["image"]:
+        images = load(confined(root, item["artifact"]["path"]))
+        if images != {"version": "discovery-images/v1", "images": scope["images"]}:
+            raise ValueError("declared image pair differs")
+    for item in grouped["groups"]:
+        value = load(confined(root, item["artifact"]["path"]), maximum=512 << 20)
+        kind = {"discovery-exposure/v1": "exposure", "discovery-cohort/v1": "cohort"}.get(
+            value.get("version")
+        )
+        if kind is None:
+            raise ValueError("closed grouping/exposure authority required")
+        validate(kind, value)
+        if value["track"] != track:
+            raise ValueError("wrong grouping track")
+    if len(recipes) != 1:
+        raise ValueError("one resolved initial recipe required")
+    return learning_compatibility(recipes[0], refs, scope, track)
+
+
+def learning_compatibility(recipe, refs, scope, track):
+    """Learning semantics exclude task output paths, elapsed caps and seed choice."""
+    return digest(
+        dict(
+            model={k: v for k, v in recipe["model"].items() if k != "seed"},
+            learning=recipe["learning"],
+            inputs=recipe["inputs"],
+            execution=recipe["execution"],
+            execution_policy=scope["execution_policy"],
+            track=track,
+            support=sorted(
+                r["artifact"]["sha256"] for r in refs if r["kind"] in {"source", "policy"}
+            ),
+        )
+    )
+
+
+class IncompleteFreeze(ValueError):
+    def __init__(self, deficits):
+        self.deficits = list(deficits)
+        super().__init__("freeze prerequisites incomplete: " + ", ".join(self.deficits))

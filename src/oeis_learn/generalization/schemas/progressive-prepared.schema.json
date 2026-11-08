@@ -1,0 +1,225 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "discovery-prepared/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "parents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "enum": [
+        "acceptance",
+        "research"
+      ]
+    },
+    "track": {
+      "enum": [
+        "synthetic_strict",
+        "oeis_derived",
+        "external_assisted"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "blueprint": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "runtime": {
+          "$ref": "progressive-common.schema.json#/$defs/artifact"
+        },
+        "graph": {
+          "$ref": "progressive-common.schema.json#/$defs/graph"
+        },
+        "task_plans": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$"
+              },
+              "stage": {
+                "enum": [
+                  "capability",
+                  "diversity",
+                  "tuning",
+                  "scaling",
+                  "oeis",
+                  "components",
+                  "source_pilot"
+                ]
+              },
+              "kind": {
+                "enum": [
+                  "training",
+                  "preparation",
+                  "evaluation",
+                  "qualification",
+                  "packaging"
+                ]
+              },
+              "arm": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "seed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "initializer": {
+                "$ref": "progressive-common.schema.json#/$defs/initializer"
+              },
+              "token_target": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "caps": {
+                "$ref": "progressive-common.schema.json#/$defs/caps"
+              },
+              "startup_us": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "finalization_us": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "policy": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "slot": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$"
+              },
+              "output": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024,
+                "pattern": "^(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$"
+              }
+            },
+            "required": [
+              "id",
+              "stage",
+              "kind",
+              "arm",
+              "seed",
+              "initializer",
+              "token_target",
+              "caps",
+              "startup_us",
+              "finalization_us",
+              "policy",
+              "slot",
+              "output"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 256
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "$ref": "progressive-common.schema.json#/$defs/reference"
+          },
+          "minItems": 1,
+          "maxItems": 4096
+        },
+        "caps": {
+          "$ref": "progressive-common.schema.json#/$defs/caps"
+        },
+        "checkpoint": {
+          "$ref": "progressive-common.schema.json#/$defs/artifact"
+        },
+        "milestone_pins": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "shard_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "package_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "required_inodes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854775807
+        },
+        "target_policy": {
+          "$ref": "progressive-common.schema.json#/$defs/artifact"
+        },
+        "deficits": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 4096
+        }
+      },
+      "required": [
+        "blueprint",
+        "runtime",
+        "graph",
+        "task_plans",
+        "references",
+        "caps",
+        "checkpoint",
+        "milestone_pins",
+        "shard_bytes",
+        "package_bytes",
+        "required_inodes",
+        "target_policy",
+        "deficits"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "created_at",
+    "parents",
+    "purpose",
+    "track",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-prepared.schema.json"
+}

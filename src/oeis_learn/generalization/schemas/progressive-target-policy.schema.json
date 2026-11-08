@@ -1,0 +1,254 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "discovery-target-policy/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "parents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "enum": [
+        "acceptance",
+        "research"
+      ]
+    },
+    "track": {
+      "enum": [
+        "synthetic_strict",
+        "oeis_derived",
+        "external_assisted"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "selected": {
+          "type": "boolean"
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "class": {
+                "enum": [
+                  "integrity_invariant",
+                  "execution_limit",
+                  "claim_criterion",
+                  "research_aspiration"
+                ]
+              },
+              "metric": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "scope": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "baseline": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "threshold": {
+                "$ref": "progressive-common.schema.json#/$defs/decimal"
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "minItems": 1,
+                "maxItems": 4096
+              },
+              "on_miss": {
+                "enum": [
+                  "RETAIN_BASELINE",
+                  "EXPLORE_RESERVED",
+                  "DEFER_BRANCH",
+                  "STOP_AFFECTED"
+                ]
+              },
+              "allowed_actions": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "ADVANCE_REGISTERED",
+                    "RETAIN_BASELINE",
+                    "EXPLORE_RESERVED",
+                    "DEFER_BRANCH",
+                    "STOP_AFFECTED"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 5,
+                "uniqueItems": true
+              },
+              "budget_ref": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "class",
+              "metric",
+              "scope",
+              "baseline",
+              "threshold",
+              "evidence",
+              "on_miss",
+              "allowed_actions",
+              "budget_ref"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 4096
+        },
+        "verdict_precedence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 1,
+          "maxItems": 4096
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "failure_class": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "trigger": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "signal": {
+                "enum": [
+                  "heldout_yield",
+                  "seed_disagreement",
+                  "runtime_bottleneck",
+                  "support_deficit"
+                ]
+              },
+              "task_slots": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "minItems": 1,
+                "maxItems": 4,
+                "uniqueItems": true
+              },
+              "panel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "reservation": {
+                "$ref": "progressive-common.schema.json#/$defs/caps"
+              },
+              "maximum_visits": {
+                "const": 1
+              },
+              "terminal_action": {
+                "enum": [
+                  "RETAIN_BASELINE",
+                  "DEFER_BRANCH",
+                  "STOP_AFFECTED"
+                ]
+              },
+              "assessment": {
+                "const": false
+              }
+            },
+            "required": [
+              "id",
+              "failure_class",
+              "trigger",
+              "signal",
+              "task_slots",
+              "panel",
+              "reservation",
+              "maximum_visits",
+              "terminal_action",
+              "assessment"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "selected",
+        "targets",
+        "verdict_precedence",
+        "diagnostics"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "created_at",
+    "parents",
+    "purpose",
+    "track",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-target-policy.schema.json"
+}

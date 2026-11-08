@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Portable Docker/Podman foundation commands. Host Python uses the standard library."""
+"""Portable Docker/Podman foundation and discovery commands; stdlib-only host."""
 
 from foundation_local import entrypoint
 
