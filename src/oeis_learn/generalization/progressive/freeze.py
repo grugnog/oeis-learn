@@ -2,6 +2,7 @@
 
 import json
 import shutil
+from pathlib import Path
 
 from oeis_learn.pipeline_validation.identity import confined
 
@@ -194,6 +195,7 @@ def freeze(
         policy["identity"]
     }
     declared_checkpoints = [r["artifact"] for r in refs if r["kind"] == "checkpoint"]
+    initializer_closure = {}
     for plan in q["task_plans"]:
         if (
             plan["policy"] not in known_policies
@@ -203,7 +205,8 @@ def freeze(
         initializer = plan["initializer"]
         from .campaign import initializer_origin
 
-        initializer_origin(root, initializer, track=b["track"], purpose=b["purpose"])
+        _, closure = initializer_origin(root, initializer, track=b["track"], purpose=b["purpose"])
+        initializer_closure.update({r["path"]: r for r in closure})
         if initializer["mode"] == "full_state" and not (
             {"parent_slot", "parent_task"} & set(initializer)
         ):
@@ -249,17 +252,47 @@ def freeze(
                 or design.get("branch") != branch["id"]
             ):
                 raise ValueError("frozen third-seed registration required")
-    measured = q["checkpoint"]["bytes"]
-    if measured < 1:
-        raise ValueError("measured checkpoint size required")
-    required_bytes = measured * (2 + q["milestone_pins"]) + q["shard_bytes"] + q["package_bytes"]
+    from .storage import checkpoint_size
+
+    measured, checkpoint_inodes = checkpoint_size(
+        root,
+        q["checkpoint"],
+        checkpoint_root=q.get("checkpoint_root"),
+        research=b["purpose"] == "research",
+    )
+    task_store_bytes = sum(t["caps"]["disk_bytes"] for t in q["task_plans"])
+    for plan in q["task_plans"]:
+        if (
+            plan["kind"] == "training"
+            and measured * (2 + q["milestone_pins"]) > plan["caps"]["disk_bytes"]
+        ):
+            raise IncompleteFreeze(["task_checkpoint_storage:" + plan["id"]])
+    # Frozen disjoint task partitions include all retained predecessor stores,
+    # archive history and task metadata. Separate reserves cover shared journal,
+    # the largest projection (conservatively all inputs) and final packaging.
+    from .storage import projection_size
+
+    projection_bytes, projection_inodes = projection_size(root, list(unique.values()))
+    # Retained strict origins are copied into the learner's isolated training view.
+    projection_bytes += sum(r["bytes"] for r in initializer_closure.values()) + measured
+    projection_inodes += sum(len(Path(r["path"]).parts) + 1 for r in initializer_closure.values())
+    journal_bytes = 128 << 20
+    required_bytes = (
+        task_store_bytes + projection_bytes + journal_bytes + q["shard_bytes"] + q["package_bytes"]
+    )
+    required_inodes = max(
+        q["required_inodes"],
+        len(q["task_plans"]) * (checkpoint_inodes * (2 + q["milestone_pins"]) + 256)
+        + projection_inodes
+        + 16384,
+    )
     usage = shutil.disk_usage(root)
     import os
 
     stat = os.statvfs(root)
     free = usage.free if available_bytes is None else min(usage.free, available_bytes)
     inodes = stat.f_favail if available_inodes is None else min(stat.f_favail, available_inodes)
-    if required_bytes > free or q["required_inodes"] > inodes:
+    if required_bytes > free or required_inodes > inodes:
         raise IncompleteFreeze(["storage_bytes" if required_bytes > free else "storage_inodes"])
     campaign = record(
         "campaign",
@@ -278,7 +311,11 @@ def freeze(
                 "package_bytes": q["package_bytes"],
                 "required_bytes": required_bytes,
                 "available_bytes": free,
-                "required_inodes": q["required_inodes"],
+                "required_inodes": required_inodes,
+                "task_store_bytes": task_store_bytes,
+                "projection_bytes": projection_bytes,
+                "journal_bytes": journal_bytes,
+                "checkpoint_inodes": checkpoint_inodes,
                 "available_inodes": inodes,
             },
             "target_policy": policy["identity"],

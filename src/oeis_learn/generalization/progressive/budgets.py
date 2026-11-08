@@ -5,7 +5,7 @@ import fcntl
 import json
 import os
 from pathlib import Path
-from .contracts import atomic_write, load, digest, seal, _check, schema
+from .contracts import load, digest, seal, _check, schema
 from oeis_learn.generalization.budgets import Ledger, integer
 
 KEYS = (
@@ -51,7 +51,9 @@ class BudgetJournal:
                 if load(p) != seal(self.binding):
                     raise ValueError("campaign budget binding changed")
             else:
-                atomic_write(p, seal(self.binding))
+                from .storage import journal_write
+
+                journal_write(self.root, p, seal(self.binding))
             self._read()
 
     @contextmanager
@@ -150,10 +152,13 @@ class BudgetJournal:
         return events, pending, finished, totals, previous
 
     def _append(self, event):
-        with self.path.open("a") as stream:
-            stream.write(json.dumps(seal(event), sort_keys=True, allow_nan=False) + "\n")
-            stream.flush()
-            os.fsync(stream.fileno())
+        from .storage import append_json, StorageGuard
+
+        value = seal(event)
+        StorageGuard([self.root], max_bytes=64 << 20, max_inodes=8192).check(
+            len((json.dumps(value, sort_keys=True, allow_nan=False) + "\n").encode()), 1
+        )
+        append_json(self.path, value)
         fd = os.open(self.root, os.O_DIRECTORY)
         try:
             os.fsync(fd)
@@ -281,7 +286,9 @@ class BudgetJournal:
                 if load(binding) != task:
                     raise ValueError("duplicate identity cannot enlarge task or change output")
             else:
-                atomic_write(binding, task)
+                from .storage import journal_write
+
+                journal_write(self.root, binding, task)
             events, _, _, _, _ = self._read()
             totals = dict.fromkeys(KEYS, 0)
             for event in events:
@@ -374,7 +381,7 @@ class RoleWorkBudget:
         from .campaign import validate_campaign, validate_task
 
         if (
-            set(authority)
+            set(authority) - {"storage"}
             != {"version", "identity", "campaign", "task", "operation", "inputs", "reservation"}
             or authority["version"] != "progressive-role-budget/v1"
             or seal(authority) != authority
@@ -427,10 +434,9 @@ class RoleWorkBudget:
         ):
             raise TimeoutError("bounded role work journal exhausted")
         event = seal(dict(previous=self.tip, sequence=self.sequence, used=used))
-        with self.path.open("a") as stream:
-            stream.write(json.dumps(event, sort_keys=True) + "\n")
-            stream.flush()
-            os.fsync(stream.fileno())
+        from .storage import append_json
+
+        append_json(self.path, event)
         self.used, self.tip = used, event["identity"]
         self.sequence += 1
 

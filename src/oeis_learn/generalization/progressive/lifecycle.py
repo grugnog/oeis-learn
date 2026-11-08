@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from .campaign import validate_campaign, validate_task
-from .contracts import atomic_write, digest, load, record, seal
+from .contracts import digest, load, record, seal
 
 
 class RunStore:
@@ -17,7 +17,9 @@ class RunStore:
             if load(binding) != self.campaign:
                 raise ValueError("run campaign changed")
         else:
-            atomic_write(binding, self.campaign)
+            from .storage import journal_write
+
+            journal_write(self.root, binding, self.campaign)
         self.read()
 
     @contextmanager
@@ -55,7 +57,10 @@ class RunStore:
         if self.ordinal >= 4096:
             raise ValueError("transition allowance exhausted")
         state = dict(state, decisions=state.get("decisions", self.state.get("decisions", {})))
-        atomic_write(
+        from .storage import journal_write
+
+        journal_write(
+            self.root,
             self.root / f"transition-{self.ordinal:04d}.json",
             seal({"previous": self.tip, "state": state}),
         )
@@ -310,7 +315,10 @@ class RunStore:
     def pause(self):
         self.read()
         if not (self.pause_path()).exists():
-            atomic_write(
+            from .storage import journal_write
+
+            journal_write(
+                self.root,
                 self.pause_path(),
                 seal({"campaign": self.campaign["identity"], "requested": True}),
             )

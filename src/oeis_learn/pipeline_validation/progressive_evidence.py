@@ -97,8 +97,12 @@ def failure(output, operation, exc, *, producer, private_values=(), collector_er
     private.mkdir(exist_ok=True)
     private.chmod(0o700)
     trace = private / "producer-traceback.txt"
-    with trace.open("x") as stream:
-        stream.write("".join(traceback.format_exception(exc)))
+    from oeis_learn.generalization.progressive.storage import writing
+
+    raw_trace = "".join(traceback.format_exception(exc))
+    with writing(trace, len(raw_trace.encode())):
+        with trace.open("x") as stream:
+            stream.write(raw_trace)
     trace.chmod(0o600)
     error = safe_failure(
         exc,

@@ -526,7 +526,7 @@ class ProgressiveCheckpointStore:
         self.compatibility, self.campaign, self.task = compatibility, campaign, task
         self.store = GeneralizationCheckpointStore(self.root, compatibility, token_cap)
 
-    def save(self, states, ledger, *, cuts, created_at, purpose, track):
+    def save(self, states, ledger, *, cuts, created_at, purpose, track, maximum_bytes=None):
         import copy
         from oeis_learn.generalization.progressive.state import snapshot
         if ledger.pending is not None or states['data']['pending_batch'] is not None:
@@ -539,6 +539,14 @@ class ProgressiveCheckpointStore:
         bound = copy.deepcopy(states)
         bound['selection'] = dict(version='progressive-checkpoint-cut/v1',
             selection=states['selection'], cuts=cuts, campaign=self.campaign,task=self.task)
+        # Measure actual current tensors before any generation is written.
+        # AdamW allocation and growing context must fit the frozen generation.
+        from oeis_learn.generalization.progressive.storage import preflight
+        pieces = [v for k,v in bound.items() if k not in {'rng','data'}] + list(bound['rng'].values())
+        measured = sum(len(self.store._encode(v)) for v in pieces) + (64 << 10)
+        if maximum_bytes is not None and measured > maximum_bytes:
+            raise TimeoutError('checkpoint growth exceeds frozen storage measurement')
+        preflight(measured, len(pieces) + 4)
         ref = self.store.save(bound, ledger)
         return snapshot(compatibility=self.compatibility,campaign=self.campaign,task=self.task,
             full_state=ref,model_update=ledger.updates,cuts=cuts,created_at=created_at,

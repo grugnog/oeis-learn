@@ -168,7 +168,7 @@ def validate_input(package, task):
     return package
 
 
-def run(
+def _run(
     package,
     authority,
     *,
@@ -187,7 +187,8 @@ def run(
     from oeis_learn.pipeline_validation.progressive_evidence import publish
 
     if (
-        set(authority) != {"version", "identity", "campaign", "task", "clock", "invocation"}
+        set(authority) - {"storage"}
+        != {"version", "identity", "campaign", "task", "clock", "invocation"}
         or authority["version"] != "progressive-supervisor/v1"
         or seal(authority) != authority
     ):
@@ -238,7 +239,13 @@ def run(
     status = "PAUSED"
     reason = "UPDATE_BOUNDARY"
     first_failure = None
-    with Recovery(journal, t, compatibility(package), state_root=state_root) as recovery:
+    with Recovery(
+        journal,
+        t,
+        compatibility(package),
+        state_root=state_root,
+        checkpoint_bytes=c["payload"]["storage"]["checkpoint_bytes"],
+    ) as recovery:
         recovery.attach(authority["clock"])
         if recovery.state["checkpoint"] is None and (
             {"parent_slot", "parent_task"} & set(t["payload"]["initializer"])
@@ -484,7 +491,12 @@ def run(
                 private.mkdir(exist_ok=True)
                 private.chmod(0o700)
                 trace = private / "train-traceback.txt"
-                trace.write_text("".join(traceback.format_exception(exc)))
+                from oeis_learn.generalization.progressive.storage import writing
+
+                raw_trace = "".join(traceback.format_exception(exc))
+                with writing(trace, len(raw_trace.encode())):
+                    with trace.open("x") as stream:
+                        stream.write(raw_trace)
                 trace.chmod(0o600)
                 first_failure = safe_failure(
                     exc, producer="installed-train", traceback_ref=reference(output, trace)
@@ -541,4 +553,33 @@ def run(
                     "ancestor_cost_available", True
                 ),
             },
+        )
+
+
+def run(
+    package,
+    authority,
+    *,
+    accounting,
+    control,
+    output,
+    state_root=Path("/learning-state"),
+    predecessor_state=Path("/predecessor-state"),
+    initializer_root=None,
+):
+    from oeis_learn.generalization.progressive.storage import owned_guard
+
+    validate_task(authority["task"], campaign=authority["campaign"])
+    # Preflight precedes the very first checkpoint and includes previous owned
+    # invocation outputs supplied by the supervisor's append-only inventory.
+    with owned_guard(authority, output=output, state_root=state_root).activate():
+        return _run(
+            package,
+            authority,
+            accounting=accounting,
+            control=control,
+            output=output,
+            state_root=state_root,
+            predecessor_state=predecessor_state,
+            initializer_root=initializer_root,
         )

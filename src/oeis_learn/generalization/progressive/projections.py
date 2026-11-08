@@ -147,6 +147,14 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                 or destination in source.parents
             ):
                 raise ValueError("overlapping input/output")
+    from .storage import preflight, copy_file
+
+    preflight(
+        sum(r["bytes"] for r in refs) + sum(r["bytes"] for r in unique_nested.values()),
+        sum(len(Path(r["path"]).parts) + 1 for r in [*refs, *unique_nested.values()])
+        + len(artifacts)
+        + 1,
+    )
     destination.mkdir(parents=True, exist_ok=False)
     try:
         result = {}
@@ -157,7 +165,7 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
             for item in items:
                 # Flatten to digest filename; never preserve a private host path.
                 target = folder / (item.identity.removeprefix("sha256:") + ".json")
-                shutil.copyfile(confined(root, item.ref["path"]), target)
+                copy_file(confined(root, item.ref["path"]), target)
                 target.chmod(0o444)
                 if item.kind in {"checkpoint", "recipe", "training_request"}:
                     ref = load(confined(root, item.ref["path"]))["data"]["artifact"]
@@ -165,7 +173,7 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                     if raw.exists():
                         raise ValueError("duplicate projected payload path")
                     raw.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copyfile(confined(root, ref["path"]), raw)
+                    copy_file(confined(root, ref["path"]), raw)
                     raw.chmod(0o444)
                     if item.kind == "training_request":
                         package = load(confined(root, ref["path"]), maximum=256 << 20)
@@ -175,7 +183,7 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                             if target_weights.exists():
                                 raise ValueError("duplicate weights-only projection path")
                             target_weights.parent.mkdir(parents=True, exist_ok=True)
-                            shutil.copyfile(confined(root, weights["path"]), target_weights)
+                            copy_file(confined(root, weights["path"]), target_weights)
                             target_weights.chmod(0o444)
                         if package.get("origin") is not None:
                             for child in unique_nested.values():
@@ -184,7 +192,7 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                                     verify_refs(folder, [child], max_bytes=64 << 30)
                                     continue
                                 destination_child.parent.mkdir(parents=True, exist_ok=True)
-                                shutil.copyfile(confined(root, child["path"]), destination_child)
+                                copy_file(confined(root, child["path"]), destination_child)
                                 destination_child.chmod(0o444)
             for child in folder.rglob("*"):
                 if child.is_dir():

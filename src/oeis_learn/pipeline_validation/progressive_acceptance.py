@@ -324,15 +324,33 @@ def invoke_cpu(root, campaign, task, channel, *, ordinal, pythonpath=None):
     remaining = journal.task_remaining(task)
     name = "invocation-" + str(ordinal)
     output = root / name
-    output.mkdir()
-    project(
-        root,
-        output / "inputs",
-        "train",
-        {"training": [describe(root, "training-channel.json")]},
-        registry=REGISTRY,
-        authorized=[reference(root, "training-channel.json")],
+    from oeis_learn.generalization.progressive.storage import (
+        register_invocation,
+        usage,
+        owned_guard,
     )
+    import json
+
+    storage_proof = register_invocation(root, campaign, task, accounting, output)
+    state = root / "learning" / task["identity"].split(":")[1]
+    guard = owned_guard(
+        dict(campaign=campaign, task=task, storage=storage_proof), output=output, state_root=state
+    )
+    metadata_bytes = len(json.dumps(dict(campaign=campaign, task=task), indent=2).encode()) + (
+        64 << 10
+    )
+    guard.reserve_bytes += metadata_bytes
+    guard.check(0, 64)
+    output.mkdir()
+    with guard.activate():
+        project(
+            root,
+            output / "inputs",
+            "train",
+            {"training": [describe(root, "training-channel.json")]},
+            registry=REGISTRY,
+            authorized=[reference(root, "training-channel.json")],
+        )
     boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
     start = time.monotonic_ns() // 1000
     cost = dict.fromkeys(remaining, 0)
@@ -340,6 +358,9 @@ def invoke_cpu(root, campaign, task, channel, *, ordinal, pythonpath=None):
     charge = journal.reserve(
         task["payload"]["id"], "train", ordinal, cost, boot=boot, monotonic_us=start
     )
+    projected_bytes, projected_inodes = usage([output / "inputs"])
+    storage_proof["prior_bytes"] += projected_bytes + metadata_bytes
+    storage_proof["prior_inodes"] += projected_inodes + 64
     authority = seal(
         {
             "version": "progressive-supervisor/v1",
@@ -352,6 +373,7 @@ def invoke_cpu(root, campaign, task, channel, *, ordinal, pythonpath=None):
                 "end_us": start + cost["elapsed_us"],
             },
             "invocation": name,
+            "storage": storage_proof,
         }
     )
     atomic_write(output / "authority.json", authority)
@@ -380,7 +402,10 @@ from oeis_learn.pipeline_validation.progressive_evidence import failure
 try:
  r=execute('train',inputs=Path(sys.argv[1]),output=Path(sys.argv[2]),authority=Path(sys.argv[3]),accounting=Path(sys.argv[4]),control=Path(sys.argv[5]),state_root=Path(sys.argv[6]),predecessor_state=Path(sys.argv[7]))
 except Exception as exc:
- r=failure(Path(sys.argv[2]),'train',exc,producer='installed-train')
+ from oeis_learn.generalization.progressive.storage import owned_guard
+ from oeis_learn.generalization.progressive.contracts import load
+ with owned_guard(load(Path(sys.argv[3])),output=Path(sys.argv[2]),state_root=Path(sys.argv[6])).activate():
+  r=failure(Path(sys.argv[2]),'train',exc,producer='installed-train')
 raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical_status']=='PARTIAL' else 1)
 """
     env = dict(os.environ)

@@ -174,19 +174,44 @@ def _invoke_reserved(
     )
     if charge.get("committed") or "reserved" in charge:
         raise ValueError("existing operation requires reconciliation, never duplicate dispatch")
+    from oeis_learn.generalization.progressive.storage import (
+        register_invocation,
+        owned_guard,
+        usage,
+    )
+
+    storage_proof = register_invocation(root, c, t, journal.root, target)
+    own_state = (
+        root
+        / "run-state/discovery-learning"
+        / c["identity"].split(":")[1]
+        / t["identity"].split(":")[1]
+    )
+    projection_guard = owned_guard(
+        dict(campaign=c, task=t, storage=storage_proof), output=target, state_root=own_state
+    )
+    import json
+
+    metadata_bytes = len(json.dumps(dict(campaign=c, task=t), indent=2).encode()) + (64 << 10)
+    projection_guard.reserve_bytes += (2 << 20) + metadata_bytes
+    projection_guard.check(0, 64)
     target.mkdir(parents=True)
     spec = REGISTRY[operation]
     views = target / "private-input"
     authorized = [r["artifact"] for r in c["payload"]["references"] if r["role"] == spec.role]
-    channels = project(
-        root,
-        views,
-        operation,
-        artifacts,
-        registry=REGISTRY,
-        forbidden=forbidden,
-        authorized=authorized,
-    )
+    with projection_guard.activate():
+        channels = project(
+            root,
+            views,
+            operation,
+            artifacts,
+            registry=REGISTRY,
+            forbidden=forbidden,
+            authorized=authorized,
+        )
+    projected_bytes, projected_inodes = usage([target])
+    storage_proof["prior_bytes"] += projected_bytes + (2 << 20) + metadata_bytes
+    storage_proof["prior_inodes"] += projected_inodes + 64
     from oeis_learn.container_runtime import private_runtime_environment
 
     from .generalization_roles import supervise_owned
@@ -221,6 +246,7 @@ def _invoke_reserved(
                     "end_us": started_us + reservation["elapsed_us"],
                 },
                 "invocation": invocation,
+                "storage": storage_proof,
             }
         )
         atomic_write(authority_dir / "supervisor.json", authority)
@@ -275,6 +301,7 @@ def _invoke_reserved(
                     operation=operation,
                     inputs=digest(sorted(work_values, key=lambda v: v["identity"])),
                     reservation=reserved,
+                    storage=storage_proof,
                 )
             ),
         )

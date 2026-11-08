@@ -10,7 +10,7 @@ from .progressive_evidence import failure, publish
 from .progressive_roles import IMPLEMENTED, REGISTRY
 
 
-def execute(
+def _execute(
     operation,
     *,
     inputs=Path("/inputs"),
@@ -367,6 +367,19 @@ def execute(
     raise ValueError("unimplemented discovery role")
 
 
+def execute(operation, **kwargs):
+    from oeis_learn.generalization.progressive.budgets import WORK_ROLES
+    from oeis_learn.generalization.progressive.storage import owned_guard
+
+    if operation in WORK_ROLES:
+        authority = load(kwargs.get("authority", Path("/authority/supervisor.json")))
+        with owned_guard(
+            authority, output=kwargs.get("output", Path("/output/discovery"))
+        ).activate():
+            return _execute(operation, **kwargs)
+    return _execute(operation, **kwargs)
+
+
 def main(argv=None):
     args = list(sys.argv[1:] if argv is None else argv)
     if len(args) != 1 or args[0] not in IMPLEMENTED:
@@ -398,9 +411,23 @@ def main(argv=None):
                 strings(value)
             except (ValueError, OSError):
                 pass
-        result = failure(
-            output, args[0], exc, producer="installed-" + args[0], private_values=values
+        from contextlib import nullcontext
+        from oeis_learn.generalization.progressive.storage import owned_guard
+
+        authority_path = Path("/authority/supervisor.json")
+        guard = (
+            owned_guard(
+                load(authority_path),
+                output=output,
+                state_root=Path("/learning-state") if args[0] == "train" else None,
+            )
+            if authority_path.is_file()
+            else None
         )
+        with guard.activate() if guard else nullcontext():
+            result = failure(
+                output, args[0], exc, producer="installed-" + args[0], private_values=values
+            )
     print(json.dumps(result, sort_keys=True))
     return (
         0

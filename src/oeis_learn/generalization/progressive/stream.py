@@ -132,10 +132,9 @@ class StreamStore:
     def _append(self, kind, ordinal, **data):
         s = self._read()
         event = seal(dict(previous=s["tip"], kind=kind, ordinal=ordinal, **data))
-        with (self.root / "events.jsonl").open("a") as stream:
-            stream.write(json.dumps(event, sort_keys=True) + "\n")
-            stream.flush()
-            os.fsync(stream.fileno())
+        from .storage import append_json
+
+        append_json(self.root / "events.jsonl", event)
         fd = os.open(self.root, os.O_DIRECTORY)
         try:
             os.fsync(fd)

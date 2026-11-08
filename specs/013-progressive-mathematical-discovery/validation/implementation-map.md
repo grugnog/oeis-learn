@@ -801,3 +801,44 @@ historical disposition items are checked. No HIP, sustained-duration or scientif
 advancement claim is made. Requirements checklist remains 16/16; no implementation
 extension hooks are registered. Commits are published incrementally without waiting
 for CI.
+
+### Critical convergence repairs T112–T116
+
+- **T112:** freeze validates every selected cohort against original exposure cuts,
+  historical exposure and detectable cross-panel relations, including value-window
+  overlap concealed by renamed declared fingerprints.
+- **T113:** ordinary gate authorization binds original frozen panels, paired
+  arms/seeds, checkpoint identities, candidate files and scorer files. Recomputed
+  producer outcomes retain the original roster and missing-result denominator.
+- **T114:** strict imported initializers require verified ancestry ending at random
+  mechanical initialization, complete original state and prior exposure. Unknown
+  and assisted origins are rejected at freeze and in the installed learner;
+  weights-only imports still start a new optimizer and new clocks.
+- **T115:** generation, stream preparation, scoring and admission reserve their
+  maximum non-time work before dispatch. Installed roles verify that reservation
+  and debit attempts, rejected/retried work and native requests before execution.
+  Late results and interruptions cannot restore spent work.
+- **T116:** freeze measures the checkpoint manifest's tensor closure and optimizer
+  growth allowance. Research preparation supplies the original `checkpoint_root`;
+  a weights-only blob or incomplete manifest cannot establish that measurement.
+  The frozen storage graph includes disjoint task-store reservations for all live
+  predecessors/pins, nested projections, journals, shards and package reserve.
+  Initial and subsequent checkpoint writes, copied inputs, attempt logs and owned
+  evidence enforce bytes/inodes before publication. Prior invocation outputs stay
+  charged; replacing archive cuts cannot evade a fixed history ceiling or delete
+  entries referenced by older cuts. Growth failure preserves the prior full cut.
+
+Both Docker and Podman CI failures used the same obsolete `correct` lookup in the
+native tuning test. It now reads the scorer's published `equal_budget` outcome and
+checks its original denominator. Native execution remains mandatory in CI.
+
+Validation for these repairs: the complete registered progressive/historical run
+returned **444 passed, seven local native-service skips**, plus two stale historical
+implementation-hash failures. The current disposition hash was regenerated using
+`experiment_runner.implementation_identity()`; both failed checks then passed in a
+**20-test** archive/budget/identity rerun. An additional **52 historical training and
+evidence tests** passed. Installed lifecycle/recovery, strict-origin, producer-binding,
+resource debit and storage regressions passed, including actual optimizer growth
+and repeated archive replacement. Syntax/undefined-name checks and `git diff --check`
+passed. No native-container, HIP, sustained-duration or research acceptance is inferred
+from the local CPU results. T117–T125 remain separate convergence work.

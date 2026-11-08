@@ -128,3 +128,53 @@ def test_exact_model_retry_and_irreversible_charge(tmp_path, monkeypatch, point)
                 x, tokens, **dict(kwargs, entries=["other"], boot="new-boot", monotonic_us=1003)
             )
         r.close(boot="new-boot", monotonic_us=1100)
+
+
+def test_optimizer_growth_rejected_before_new_generation_preserves_old_cut(tmp_path):
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    from oeis_learn.generalization.budgets import Ledger
+
+    p = profile(0)
+    cfg = policy(p, microbatch_size=7)
+    t = task(caps=caps(tokens=10000, elapsed_us=60000000))
+    j = BudgetJournal(tmp_path, t["payload"]["campaign"], caps(tokens=10000, elapsed_us=60000000))
+    context = {k: {} for k in ("scheduler", "data", "replay", "history", "pins", "selection")}
+    context["data"] = dict(cursor=0, pending_batch=None)
+    cuts = dict.fromkeys(
+        (
+            "stream",
+            "allocation",
+            "archive",
+            "library",
+            "cost_journal",
+            "selection",
+            "milestones",
+            "consumed",
+        ),
+        digest(None),
+    )
+    with Recovery(j, t, digest([p, cfg])) as recovery:
+        worker = RecoverableUpdate(recovery, p, cfg, device="cpu")
+        worker.initialize(context, cuts)
+        original = recovery.state["checkpoint"]
+        # Set the frozen envelope at the initial generation, before AdamW moments.
+        captured = worker.capture(context)
+        parts = [v for k, v in captured.items() if k not in {"rng", "data"}] + list(
+            captured["rng"].values()
+        )
+        recovery.checkpoint_bytes = sum(
+            len(GeneralizationCheckpointStore._encode(v)) for v in parts
+        ) + (128 << 10)
+        files = {str(p): p.read_bytes() for p in recovery.store.root.rglob("*") if p.is_file()}
+        x, tokens, pad = batch()
+        charge = int(tokens[:, 1:].ne(pad).sum())
+        worker.runner.update(x, tokens, ledger=Ledger(10000).reserve("update", charge))
+        after = copy.deepcopy(context)
+        after["data"]["cursor"] = 1
+        with pytest.raises(TimeoutError, match="checkpoint growth"):
+            recovery.save(worker.capture(after), Ledger(10000, consumed=charge, updates=1), cuts)
+        assert {
+            str(p): p.read_bytes() for p in recovery.store.root.rglob("*") if p.is_file()
+        } == files
+        recovery.restore()
+        assert recovery.state["checkpoint"] == original

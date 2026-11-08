@@ -7,7 +7,7 @@ from .contracts import atomic_write, digest, load, record, reference, validate, 
 
 
 class Archive:
-    def __init__(self, root, *, capacity=4096, seed=13):
+    def __init__(self, root, *, capacity=4096, seed=13, max_bytes=512 << 20, max_inodes=131072):
         if type(capacity) is not int or not 1 <= capacity <= 4096 or type(seed) is not int:
             raise ValueError("frozen bounded archive policy required")
         self.root = Path(root)
@@ -16,6 +16,20 @@ class Archive:
         self.root.mkdir(parents=True, exist_ok=True)
         self.capacity = capacity
         self.seed = seed
+        from .storage import StorageGuard
+
+        self.storage = StorageGuard([self.root], max_bytes=max_bytes, max_inodes=max_inodes)
+        self.storage.check()
+        policy = dict(capacity=capacity, seed=seed, max_bytes=max_bytes, max_inodes=max_inodes)
+        binding = self.root / "storage-policy.json"
+        if binding.exists():
+            if load(binding) != policy:
+                raise ValueError("archive storage policy changed")
+        else:
+            import json
+
+            self.storage.check(len(json.dumps(policy).encode()) + 64, 2)
+            atomic_write(binding, policy)
 
     @staticmethod
     def validate_entry(r):
@@ -67,6 +81,19 @@ class Archive:
             selected.append(keep[0])
             alternatives.extend(keep[1:])
         selected += alternatives[: self.capacity - len(selected)]
+        import json
+
+        pending = [
+            value
+            for value in selected
+            if not (self.root / ("entry-" + value["identity"].split(":")[1] + ".json")).exists()
+        ]
+        # All retained cuts remain readable; eviction of the current cut never
+        # deletes historical entry files or silently resets the storage budget.
+        self.storage.check(
+            sum(len((json.dumps(v, sort_keys=True, indent=2) + "\n").encode()) for v in pending),
+            len(pending) + (1 if pending else 0),
+        )
         refs = []
         for value in selected:
             path = self.root / ("entry-" + value["identity"].split(":")[1] + ".json")

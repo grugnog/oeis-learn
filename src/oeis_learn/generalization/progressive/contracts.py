@@ -234,7 +234,7 @@ def verify_refs(root, refs, *, max_bytes=512 << 20):
     return result
 
 
-def atomic_write(path, value):
+def _atomic_write(path, value):
     """Immutable, durable publication: never replace a prior valid object."""
     import os
     import uuid
@@ -259,3 +259,11 @@ def atomic_write(path, value):
             os.close(fd)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def atomic_write(path, value):
+    from .storage import writing
+
+    raw = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
+    with writing(path, len(raw)):
+        return _atomic_write(path, value)

@@ -142,6 +142,35 @@ def validate_campaign(campaign):
     needed = (
         s["checkpoint_bytes"] * (2 + s["milestone_pins"]) + s["shard_bytes"] + s["package_bytes"]
     )
+    complete_storage = {
+        "task_store_bytes",
+        "projection_bytes",
+        "journal_bytes",
+        "checkpoint_inodes",
+    }
+    if complete_storage & set(s):
+        if not complete_storage <= set(s) or s["task_store_bytes"] != sum(
+            t["caps"]["disk_bytes"] for t in plans
+        ):
+            raise ValueError("complete simultaneous task storage partitions required")
+        if any(
+            t["kind"] == "training"
+            and s["checkpoint_bytes"] * (2 + s["milestone_pins"]) > t["caps"]["disk_bytes"]
+            for t in plans
+        ):
+            raise ValueError("task checkpoint storage partition insufficient")
+        task_inodes = len(plans) * (s["checkpoint_inodes"] * (2 + s["milestone_pins"]) + 256)
+        if s["journal_bytes"] < 128 << 20 or s["required_inodes"] < 16384 + task_inodes:
+            raise ValueError("host journal/task storage reserve insufficient")
+        needed = (
+            s["task_store_bytes"]
+            + s["projection_bytes"]
+            + s["journal_bytes"]
+            + s["shard_bytes"]
+            + s["package_bytes"]
+        )
+    elif c["purpose"] == "research":
+        raise ValueError("complete peak-live research storage graph required")
     if (
         s["required_bytes"] != needed
         or needed > s["available_bytes"]

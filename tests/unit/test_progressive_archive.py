@@ -108,3 +108,31 @@ def test_resealed_invalid_entry_is_rejected_when_loading_cut(tmp_path):
     cut["payload"]["entries"] = [reference(tmp_path, "forged.json")]
     with pytest.raises(ValueError, match="binding"):
         archive.sample(seal(cut), ordinal=0)
+
+
+def test_archive_history_has_byte_and_inode_ceiling_without_erasing_old_cuts(tmp_path):
+    archive = Archive(tmp_path, capacity=1, max_bytes=100_000, max_inodes=6)
+    first = archive.publish([admitted("z", "first")])
+    second = archive.publish([admitted("y", "first")], previous=first)
+    third = archive.publish([admitted("x", "first")], previous=second)
+    before = {p.name: p.read_bytes() for p in tmp_path.iterdir() if p.is_file()}
+    with pytest.raises(TimeoutError, match="storage"):
+        archive.publish([admitted("w", "first")], previous=third)
+    assert {p.name: p.read_bytes() for p in tmp_path.iterdir() if p.is_file()} == before
+    assert archive.entries(first)[0]["payload"]["task"] == "z"
+    with pytest.raises(ValueError, match="policy"):
+        Archive(tmp_path, capacity=1, max_bytes=200_000, max_inodes=6)
+
+
+def test_archive_byte_ceiling_keeps_replaced_entries_available(tmp_path):
+    import json
+
+    size = len((json.dumps(admitted("z", "first"), sort_keys=True, indent=2) + "\n").encode())
+    archive = Archive(tmp_path, capacity=1, max_bytes=2 * size + 512, max_inodes=100)
+    old = archive.publish([admitted("z", "first")])
+    current = archive.publish([admitted("y", "first")], previous=old)
+    before = {p.name: p.read_bytes() for p in tmp_path.iterdir() if p.is_file()}
+    with pytest.raises(TimeoutError, match="storage"):
+        archive.publish([admitted("x", "first")], previous=current)
+    assert {p.name: p.read_bytes() for p in tmp_path.iterdir() if p.is_file()} == before
+    assert archive.entries(old)[0]["payload"]["task"] == "z"

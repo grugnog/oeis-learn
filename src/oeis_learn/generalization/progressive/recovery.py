@@ -16,7 +16,8 @@ from .contracts import atomic_write, digest, load, seal
 
 
 class Recovery:
-    def __init__(self, journal, task, compatibility, *, state_root=None):
+    def __init__(self, journal, task, compatibility, *, state_root=None, checkpoint_bytes=None):
+        self.checkpoint_bytes = checkpoint_bytes
         self.journal = journal
         self.task = validate_task(task)
         self.p = self.task["payload"]
@@ -207,6 +208,7 @@ class Recovery:
             created_at=self.task["created_at"],
             purpose=self.task["purpose"],
             track=self.task["track"],
+            maximum_bytes=self.checkpoint_bytes,
         )
         self.store.load(record)  # verify complete reference/tensor closure before commit
         return record

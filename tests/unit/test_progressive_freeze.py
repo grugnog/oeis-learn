@@ -276,7 +276,7 @@ def test_complete_diagnostic_freeze_binds_original_producer_and_task_roster(tmp_
     p = seal(p)
     campaign, runtime, tasks = freeze(tmp_path, b, p, qualification_root="qualification")
     assert len(tasks) == 1 and tasks[0]["payload"]["campaign"] == campaign["identity"]
-    assert campaign["payload"]["storage"]["checkpoint_bytes"] == p["payload"]["checkpoint"]["bytes"]
+    assert campaign["payload"]["storage"]["checkpoint_bytes"] >= p["payload"]["checkpoint"]["bytes"]
     assert campaign["payload"]["runtime"] == runtime["identity"]
     # Full successful freeze, including recipe/original-qualification checks, is
     # host-stdlib-only. The source mapping is an explicit diagnostic test seam.
@@ -464,3 +464,86 @@ def test_whole_freeze_retained_strict_origin(tmp_path, monkeypatch, origin_track
     else:
         with pytest.raises(ValueError, match="assisted"):
             freeze(tmp_path, b, seal(p), qualification_root="qualification")
+
+
+def test_freeze_measures_tensor_closure_not_manifest_bytes(tmp_path, monkeypatch):
+    from oeis_learn.generalization.progressive.storage import checkpoint_size
+
+    # The manifest is tiny; the original tensor producer is not.
+    (tmp_path / "weights.pt").write_bytes(b"w" * 100_000)
+    (tmp_path / "optimizer.pt").write_bytes(b"o" * 200_000)
+    full = seal(
+        dict(
+            version="generalization-learner-state/v1",
+            states={
+                "weights": reference(tmp_path, "weights.pt"),
+                "optimizer": reference(tmp_path, "optimizer.pt"),
+            },
+        )
+    )
+    (tmp_path / "state.json").write_text(json.dumps(full))
+    measured, inodes = checkpoint_size(
+        tmp_path, reference(tmp_path, "state.json"), checkpoint_root="."
+    )
+    assert measured >= 300_000 and inodes >= 3
+
+
+def test_freeze_reserves_all_retained_task_stores(tmp_path, monkeypatch):
+    test_complete_diagnostic_freeze_binds_original_producer_and_task_roster(tmp_path, monkeypatch)
+    b, p = (
+        json.loads((tmp_path / ("test-" + name + ".json")).read_text())
+        for name in ("blueprint", "prepared")
+    )
+    first = p["payload"]["task_plans"][0]
+    second = json.loads(json.dumps(first))
+    second.update(id="second-store", output="second-store", slot="capability", stage="capability")
+    p["payload"]["task_plans"].append(second)
+    frozen, _, _ = freeze(tmp_path, b, seal(p), qualification_root="qualification")
+    assert (
+        frozen["payload"]["storage"]["task_store_bytes"]
+        == first["caps"]["disk_bytes"] + second["caps"]["disk_bytes"]
+    )
+    assert (
+        frozen["payload"]["storage"]["required_bytes"]
+        >= frozen["payload"]["storage"]["task_store_bytes"]
+    )
+
+
+def test_storage_measurement_includes_nested_projection_payload(tmp_path):
+    from oeis_learn.generalization.progressive.storage import projection_size
+
+    (tmp_path / "model.pt").write_bytes(b"w" * 100_000)
+    channel = seal(
+        dict(
+            version="discovery-channel/v1",
+            kind="checkpoint",
+            role="generator",
+            data=dict(artifact=reference(tmp_path, "model.pt")),
+        )
+    )
+    (tmp_path / "channel.json").write_text(json.dumps(channel))
+    descriptor = reference(tmp_path, "channel.json")
+    measured, inodes = projection_size(tmp_path, [descriptor])
+    assert measured == 100_000 + descriptor["bytes"]
+    assert inodes >= 2
+
+
+def test_research_storage_rejects_weights_only_or_incomplete_manifest(tmp_path):
+    from oeis_learn.generalization.progressive.storage import checkpoint_size
+
+    (tmp_path / "weights.pt").write_bytes(b"w" * 100)
+    with pytest.raises(ValueError, match="full-state"):
+        checkpoint_size(tmp_path, reference(tmp_path, "weights.pt"), research=True)
+    partial = seal(
+        dict(
+            version="generalization-learner-state/v1",
+            contract=digest("contract"),
+            ledger=dict(cap=100),
+            states=dict(weights=reference(tmp_path, "weights.pt")),
+        )
+    )
+    (tmp_path / "partial.json").write_text(json.dumps(partial))
+    with pytest.raises(ValueError, match="incomplete"):
+        checkpoint_size(
+            tmp_path, reference(tmp_path, "partial.json"), checkpoint_root=".", research=True
+        )

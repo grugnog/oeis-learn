@@ -366,3 +366,59 @@ def test_installed_learner_rechecks_strict_import_origin(tmp_path, bad_origin):
             initializer_root=tmp_path,
         )
     assert not (tmp_path / "unused-state").exists()
+
+
+def test_installed_initial_checkpoint_preflights_storage(tmp_path):
+    from oeis_learn.generalization.progressive.contracts import load, record
+    from oeis_learn.pipeline_validation.progressive_acceptance import fixture
+    from oeis_learn.pipeline_validation.progressive_learner import run
+
+    c, _, _, _ = fixture(tmp_path, interrupt=False)
+    c["payload"]["tasks"][0]["caps"]["disk_bytes"] = c["payload"]["storage"]["package_bytes"] - 1
+    c = seal(c)
+    t = record(
+        "task",
+        dict(c["payload"]["tasks"][0], campaign=c["identity"]),
+        created_at=c["created_at"],
+        purpose=c["purpose"],
+        track=c["track"],
+    )
+    authority = seal(
+        dict(
+            version="progressive-supervisor/v1", campaign=c, task=t, clock={}, invocation="no-room"
+        )
+    )
+    with pytest.raises(TimeoutError, match="storage"):
+        run(
+            load(tmp_path / "training-input.json"),
+            authority,
+            accounting=tmp_path / "unused-accounting",
+            control=tmp_path / "unused-control",
+            output=tmp_path / "unused-output",
+            state_root=tmp_path / "unused-state",
+        )
+    assert not (tmp_path / "unused-state").exists()
+
+
+def test_resume_storage_counts_retained_invocation_outputs(tmp_path):
+    from oeis_learn.generalization.progressive.storage import register_invocation, owned_guard
+    from oeis_learn.generalization.progressive.contracts import atomic_write, record
+
+    c = campaign()
+    plan = c["payload"]["tasks"][0]
+    t = record(
+        "task",
+        dict(plan, campaign=c["identity"]),
+        created_at=c["created_at"],
+        purpose=c["purpose"],
+        track=c["track"],
+    )
+    register_invocation(tmp_path, c, t, tmp_path / "journal", tmp_path / "old")
+    (tmp_path / "old").mkdir()
+    (tmp_path / "old" / "retained.bin").write_bytes(b"x" * (plan["caps"]["disk_bytes"] - 1000))
+    proof = register_invocation(tmp_path, c, t, tmp_path / "journal", tmp_path / "resumed")
+    assert proof["prior_bytes"] == plan["caps"]["disk_bytes"] - 1000
+    guard = owned_guard(dict(campaign=c, task=t, storage=proof), output=tmp_path / "resumed")
+    with guard.activate(), pytest.raises(TimeoutError, match="storage"):
+        atomic_write(tmp_path / "resumed" / "new.json", {"value": "x" * 2000})
+    assert not (tmp_path / "resumed").exists()

@@ -201,6 +201,26 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 9223372036854775807
+            },
+            "task_store_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            },
+            "projection_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            },
+            "journal_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            },
+            "checkpoint_inodes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
             }
           },
           "required": [

@@ -217,3 +217,23 @@ def test_installed_work_counter_stops_retries_without_refunding_reservation(tmp_
         budget.consume(native_work=1)
     assert budget.path.read_bytes() == before
     assert journal.task_remaining(task)["native_work"] == task["payload"]["caps"]["native_work"] - 2
+
+
+def test_storage_guard_covers_shared_evidence_writers_and_copy(tmp_path):
+    from oeis_learn.generalization.progressive.storage import StorageGuard, copy_file
+    from oeis_learn.pipeline_validation.identity import write
+    from oeis_learn.pipeline_validation.pilot_evidence import Evidence
+
+    output = tmp_path / "output"
+    output.mkdir()
+    source = tmp_path / "source"
+    source.write_bytes(b"x" * 200)
+    with StorageGuard([output], max_bytes=100, max_inodes=16).activate():
+        with pytest.raises(TimeoutError, match="storage"):
+            write(output / "index.json", dict(payload="x" * 200))
+        with pytest.raises(TimeoutError, match="storage"):
+            copy_file(source, output / "copied")
+        evidence = Evidence(output, [dict(id="task")])
+        with pytest.raises(TimeoutError, match="storage"):
+            evidence("task", "correct", 0, "STARTED", dict(tokens=[]))
+    assert list(output.iterdir()) == []
