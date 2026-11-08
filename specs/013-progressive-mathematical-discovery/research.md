@@ -86,7 +86,7 @@ Persist ordered canonical proposal/result events before dispatch/after scoring. 
 
 ## R11 — A feasible combinatorial pilot, not fake long sequences
 
-**Decision**: Use a separate assisted combinatorial-short/v1 profile: exact totals or low-order moments of an allowlisted permutation statistic over complete collections for sizes 0..8; visible sizes 0..3, held-out training admission or evaluation sizes 4..8. Source-related tasks stay grouped. Freeze at most eight statistics and moment orders 1 and 2, subject to duplicate/semantic checks. Independently implement/check the bounded enumeration; stop with a deficit if too few distinct tasks support a learning comparison.
+**Decision**: Use a separate assisted combinatorial-short/v1 profile: exact totals or low-order moments of an allowlisted permutation statistic over complete collections for sizes 0..8; visible sizes 0..3, held-out training admission or evaluation sizes 4..8. Source-related tasks stay grouped. Freeze at most 32 statistics and moment orders 1 and 2, subject to duplicate/semantic checks. Independently implement/check the bounded enumeration; stop with a deficit if too few distinct tasks support a learning comparison.
 
 **Rationale**: [FindStat](https://www.findstat.org/) stores object/statistic maps; its [Sage interface](https://doc.sagemath.org/html/en/reference/databases/sage/databases/findstat.html) does not provide unlimited independently labeled 100-term sequence tasks. Full permutation enumeration at size 8 is bounded; arbitrary size-100 enumeration is not practical. A short-horizon pilot measures source feasibility, not the main 20/100 endpoint.
 

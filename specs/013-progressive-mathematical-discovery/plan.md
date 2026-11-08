@@ -112,7 +112,7 @@ Exit: real CPU/HIP acceptance demonstrates complete-state continuation, an OEIS 
 
 ### E — Reusable components, external data and discoveries
 
-Implement typed training-source extraction and bounded macro expansion with independent semantics, library-guided search with expansion into the existing codec, checkpoint/library binding and matched no-library evaluation. Add FindStat-derived source admission and bounded object-conditioned pilot; other database groups get suitability records. Build discovery dossiers, proof/novelty separation and transitive refutation quarantine.
+Implement typed training-source extraction and bounded macro expansion with independent semantics, library-guided search with expansion into the existing codec, checkpoint/library binding and matched no-library evaluation. Add FindStat-derived source admission and bounded terms-only combinatorial-short/v1 pilot; other database groups get suitability records. Build discovery dossiers, proof/novelty separation and transitive refutation quarantine.
 
 Exit: at least one actual learned component is used in generation in acceptance, not merely counted in a report. Source and component negative cases and a refuted claim traverse the same installed path as research.
 
