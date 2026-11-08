@@ -1,11 +1,13 @@
 """Installed closed discovery operations; never accepts user Python or callbacks."""
 
 import json
-from pathlib import Path
 import sys
-from .progressive_roles import REGISTRY, IMPLEMENTED
-from .progressive_evidence import publish, failure
-from oeis_learn.generalization.progressive.contracts import load, atomic_write, reference
+from pathlib import Path
+
+from oeis_learn.generalization.progressive.contracts import atomic_write, load, reference
+
+from .progressive_evidence import failure, publish
+from .progressive_roles import IMPLEMENTED, REGISTRY
 
 
 def execute(operation, *, inputs=Path("/inputs"), output=Path("/output/discovery")):
@@ -18,6 +20,10 @@ def execute(operation, *, inputs=Path("/inputs"), output=Path("/output/discovery
         if not folder.is_dir() or folder.is_symlink():
             raise ValueError("required installed channel absent")
         for path in sorted(folder.glob("*.json")):
+            import re
+
+            if re.fullmatch(r"[0-9a-f]{64}\.json", path.name) is None:
+                continue
             value = load(path, maximum=512 << 20)
             if value.get("version") != "discovery-channel/v1" or value.get("role") not in {
                 spec.role,
@@ -29,6 +35,84 @@ def execute(operation, *, inputs=Path("/inputs"), output=Path("/output/discovery
             if seal(value) != value:
                 raise ValueError("installed channel identity mismatch")
             values.append(value)
+    if operation == "generate":
+        if any(v["kind"] not in {"checkpoint", "recipe", "visible_prompt"} for v in values):
+            raise ValueError("closed generation types required")
+        recipes = [v["data"] for v in values if v["kind"] == "recipe"]
+        checkpoints = [v["data"] for v in values if v["kind"] == "checkpoint"]
+        prompts = [v["data"] for v in values if v["kind"] == "visible_prompt"]
+        if (
+            len(recipes) != 1
+            or len(checkpoints) != 1
+            or recipes[0]["compatibility"] != checkpoints[0]["compatibility"]
+        ):
+            raise ValueError("one compatible recipe/checkpoint required")
+        from oeis_learn.generalization.progressive.contracts import verify_refs
+        from oeis_learn.pipeline_validation.identity import confined, digest, seal
+        from oeis_learn.synthesis.client import SynthesisClient
+
+        from .progressive_evaluation import generate
+
+        model_root = inputs / "model"
+        verify_refs(
+            model_root, [recipes[0]["artifact"], checkpoints[0]["artifact"]], max_bytes=64 << 30
+        )
+        recipe = load(confined(model_root, recipes[0]["artifact"]["path"]))
+        from oeis_learn.fresh.bigint_config import resolve
+
+        if resolve(recipe) != recipe:
+            raise ValueError("resolved installed recipe required")
+        with SynthesisClient(digest(recipe)) as client:
+            artifact = generate(
+                model_root,
+                "generation",
+                prompts,
+                recipe,
+                client=client,
+                output_root=output,
+                checkpoint=checkpoints[0]["artifact"],
+                device="cuda",
+            )
+        return publish(
+            output,
+            operation=operation,
+            mechanical_status="COMPLETE",
+            reason="SEALED_VISIBLE_CANDIDATES",
+            metrics={"candidates": artifact},
+        )
+    if operation == "score":
+        if any(
+            v["kind"] not in {"candidate", "development_truth", "confirmation_truth"}
+            for v in values
+        ):
+            raise ValueError("closed scorer inputs required")
+        candidates = [v["data"] for v in values if v["kind"] == "candidate"]
+        truth = [
+            v["data"] for v in values if v["kind"] in {"development_truth", "confirmation_truth"}
+        ]
+        if len(candidates) != 1:
+            raise ValueError("one frozen candidate collection required")
+        from oeis_learn.pipeline_validation.identity import digest
+        from oeis_learn.synthesis.client import SynthesisClient
+
+        from .progressive_evaluation import score
+
+        atomic_write(output / "input-candidates.json", candidates[0])
+        with SynthesisClient(digest(candidates[0])) as client:
+            result = score(
+                output,
+                reference(output, output / "input-candidates.json"),
+                truth,
+                client=client,
+                output="scoring",
+            )
+        return publish(
+            output,
+            operation=operation,
+            mechanical_status="COMPLETE",
+            reason="FINITE_SCORING_COMPLETE",
+            metrics={"scores": result["identity"]},
+        )
     if operation == "census":
         cohorts = [v["data"] for v in values if v["kind"] == "cohort"]
         exposures = [v["data"] for v in values if v["kind"] == "exposure"]
@@ -52,9 +136,9 @@ def execute(operation, *, inputs=Path("/inputs"), output=Path("/output/discovery
         witnesses = [v["data"] for v in values if v["kind"] == "coverage_witness"]
         if not witnesses:
             raise ValueError("constructive witness request required")
-        from oeis_learn.synthesis.client import SynthesisClient
-        from oeis_learn.pipeline_validation.identity import digest
         from oeis_learn.generalization.progressive.coverage import audit
+        from oeis_learn.pipeline_validation.identity import digest
+        from oeis_learn.synthesis.client import SynthesisClient
 
         results = []
         private = output / "private"

@@ -295,3 +295,23 @@ uncertainty. Real confirmation outcomes and threshold overrides are rejected.
 The 80% aspiration is explicitly scenario-specific. Four independent CPU tests
 cover the default grid, paired task construction, reproducible report rates and
 closed input rejection. No empirical power calibration or research is claimed.
+
+## T027 installed generation and scoring
+
+Added isolated installed generator/scorer handlers. Generation loads actual
+checkpoint weights (or explicit random controls), uses the canonical synchronous
+drain driver with eight-attempt/60s portfolios and bounded native fitting, and
+seals candidate bytes before the scorer can access 100-term truth. Conventional
+methods share their declared portfolio and use final-source native/reference
+acceptance. Reports retain raw/rescue/selected outcomes, per-attempt token and
+clock/queue details, total elapsed time, and scientific completion separately
+from candidate success and cost completion.
+
+Typed model projection now verifies and copies referenced recipe/weight bytes,
+including nested inode checks against forbidden truth. Independent CPU tests
+verify leakage rejection, actual payload copies and sealed-input rejection.
+Native production integration includes real CPU sampling/checkpoint load plus
+independent native/reference scoring, and conventional visible fitting followed
+by hidden scoring; these tests are mandatory in the qualification image.
+Local full progressive/historical roster: 270 passed, three native-service skips.
+No native execution or actual HIP result is claimed on this host.

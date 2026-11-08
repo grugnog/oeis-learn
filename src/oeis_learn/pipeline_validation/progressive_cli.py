@@ -25,6 +25,7 @@ CPU_TESTS = (
     "tests/contract/test_progressive_packaging.py",
     "tests/contract/test_progressive_roles.py",
     "tests/integration/test_progressive_preparation.py",
+    "tests/integration/test_progressive_evaluation.py",
     "tests/integration/test_progressive_runtime.py",
     "tests/unit/test_progressive_baselines.py",
     "tests/unit/test_progressive_budgets.py",

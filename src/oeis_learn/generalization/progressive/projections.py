@@ -1,10 +1,12 @@
 """Typed filesystem projection with inode checks; a hash never grants permission."""
 
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
-import shutil
-from .contracts import verify_refs, reference, load
+
 from oeis_learn.pipeline_validation.identity import confined
+
+from .contracts import load, reference, verify_refs
 
 # Types, rather than filename conventions, determine role permission.
 CHANNELS = {
@@ -68,7 +70,18 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
         raise ValueError("fresh projection required")
     all_artifacts = [a for channel in artifacts.values() for a in channel]
     refs = [a.ref for a in all_artifacts]
+    nested = []
+    for descriptor in all_artifacts:
+        if descriptor.kind in {"checkpoint", "recipe"}:
+            data = load(confined(root, descriptor.ref["path"]))["data"]
+            _validate_channel(descriptor.kind, data)
+            nested.append(data["artifact"])
     verify_refs(root, refs)
+    # Metadata is not a substitute for verifying the actual mounted weights.
+    unique_nested = {r["path"]: r for r in nested}
+    if any(unique_nested[r["path"]] != r for r in nested):
+        raise ValueError("conflicting nested model artifact")
+    verify_refs(root, list(unique_nested.values()), max_bytes=64 << 30)
     if authorized is not None:
         for descriptor in all_artifacts:
             if descriptor.ref not in authorized:
@@ -78,6 +91,10 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
         verify_refs(root, [ref])
         info = confined(root, ref["path"]).stat()
         excluded.add((info.st_dev, info.st_ino))
+    for ref in nested:
+        info = confined(root, ref["path"]).stat()
+        if (info.st_dev, info.st_ino) in excluded:
+            raise ValueError("nested model artifact aliases private truth")
     for channel, items in artifacts.items():
         for descriptor in items:
             source = confined(root, descriptor.ref["path"])
@@ -110,6 +127,17 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                 target = folder / (item.identity.removeprefix("sha256:") + ".json")
                 shutil.copyfile(confined(root, item.ref["path"]), target)
                 target.chmod(0o444)
+                if item.kind in {"checkpoint", "recipe"}:
+                    ref = load(confined(root, item.ref["path"]))["data"]["artifact"]
+                    raw = confined(folder, ref["path"], exists=False)
+                    if raw.exists():
+                        raise ValueError("duplicate projected payload path")
+                    raw.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(confined(root, ref["path"]), raw)
+                    raw.chmod(0o444)
+            for child in folder.rglob("*"):
+                if child.is_dir():
+                    child.chmod(0o555)
             folder.chmod(0o555)
         return result
     except BaseException:
@@ -122,8 +150,10 @@ def _validate_channel(kind, data):
         from .contracts import validate
 
         validate(kind, data)
-    if kind == "coverage_witness":
-        if not isinstance(data, dict) or set(data) != {
+    if kind == "coverage_witness" and (
+        not isinstance(data, dict)
+        or set(data)
+        != {
             "task",
             "source",
             "indices",
@@ -131,8 +161,9 @@ def _validate_channel(kind, data):
             "operator_class",
             "missing_operations",
             "created_at",
-        }:
-            raise ValueError("closed coverage witness")
+        }
+    ):
+        raise ValueError("closed coverage witness")
     if kind == "visible_prompt":
         from .cohorts import validate_prompt
 

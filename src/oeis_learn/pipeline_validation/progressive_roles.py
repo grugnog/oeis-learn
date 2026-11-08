@@ -1,13 +1,13 @@
 """Explicit discovery operation registry and supervised installed-role adapter."""
 
+import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
-import time
 from types import MappingProxyType
-import uuid
 
-from oeis_learn.pipeline_validation.identity import digest, confined
 from oeis_learn.generalization.progressive.projections import project, remove_projection
+from oeis_learn.pipeline_validation.identity import confined, digest
 
 
 @dataclass(frozen=True)
@@ -37,15 +37,15 @@ REGISTRY = MappingProxyType(
     }
 )
 ROLE_POLICY = digest(
-    {name: dict(role=v.role, channels=list(v.channels), gpu=v.gpu) for name, v in REGISTRY.items()}
+    {name: {"role": v.role, "channels": list(v.channels), "gpu": v.gpu} for name, v in REGISTRY.items()}
 )
-IMPLEMENTED = frozenset({"census", "audit-language", "publish"})
+IMPLEMENTED = frozenset({"census", "audit-language", "publish", "generate", "score"})
 
 
 def deadline_for(task, *, remaining_us, seconds, runtime=None, operation):
     """Only validated discovery authority can extend the generic six-hour cap."""
-    from oeis_learn.generalization.progressive.campaign import validate_task, VerifiedRuntime
     from oeis_learn.generalization.budgets import integer
+    from oeis_learn.generalization.progressive.campaign import VerifiedRuntime, validate_task
 
     t = validate_task(task)
     p = t["payload"]
@@ -56,16 +56,15 @@ def deadline_for(task, *, remaining_us, seconds, runtime=None, operation):
         raise ValueError("enclosing remaining deadline exceeded")
     if remaining_us <= p["startup_us"] + p["finalization_us"]:
         raise ValueError("protected startup/finalization exhausted")
-    if seconds > 21600:
-        if (
-            not isinstance(runtime, VerifiedRuntime)
-            or not runtime.execution_ready
-            or operation not in runtime.payload["operations"]
-            or runtime.purpose != t["purpose"]
-            or runtime.track != t["track"]
-            or not runtime.producers
-        ):
-            raise ValueError("verified discovery task/runtime required beyond six hours")
+    if seconds > 21600 and (
+        not isinstance(runtime, VerifiedRuntime)
+        or not runtime.execution_ready
+        or operation not in runtime.payload["operations"]
+        or runtime.purpose != t["purpose"]
+        or runtime.track != t["track"]
+        or not runtime.producers
+    ):
+        raise ValueError("verified discovery task/runtime required beyond six hours")
     return time.monotonic() + seconds
 
 
@@ -93,8 +92,8 @@ def _invoke_reserved(
         raise ValueError("no arbitrary role settings accepted")
     if runtime is None or not runtime.execution_ready:
         raise ValueError("freshly inspected original qualified runtime required")
-    from oeis_learn.generalization.progressive.campaign import validate_task, validate_campaign
     from oeis_learn.generalization.progressive.budgets import vector
+    from oeis_learn.generalization.progressive.campaign import validate_campaign, validate_task
 
     c = validate_campaign(campaign)
     t = validate_task(task, campaign=c)
@@ -151,9 +150,10 @@ def _invoke_reserved(
         forbidden=forbidden,
         authorized=authorized,
     )
+    from oeis_learn.container_runtime import private_runtime_environment
+
     from .generalization_roles import supervise_owned
     from .supervision import diagnostic_program
-    from oeis_learn.container_runtime import private_runtime_environment
 
     name = "discovery-" + uuid.uuid4().hex
     role_output = target / "role"
@@ -213,9 +213,10 @@ def _invoke_reserved(
 
 def current_runtime(host, root, output, runtime, *, producer_root):
     """Reinspect original producers on the selected engine before execution."""
-    from .generalization_qualification_io import current_facts
-    from oeis_learn.generalization.progressive.contracts import validate, load
     from oeis_learn.generalization.progressive.campaign import validate_runtime
+    from oeis_learn.generalization.progressive.contracts import load, validate
+
+    from .generalization_qualification_io import current_facts
 
     r = validate("runtime", runtime)
     q = load(Path(producer_root) / "qualification.json")
