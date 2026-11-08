@@ -1,6 +1,6 @@
 # Spec 013 implementation map
 
-Scope: T001–T039 software/specification tasks, with T018 acceptance pending. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
+Scope: T001–T040 software/specification tasks, with T018 acceptance pending. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
 quickstart.md, hardware-validation.md, planning-review.md, all five contracts,
 the requirements checklist and adopted constitution in full before implementation.
 Requirements checklist: 16 checked, zero unchecked. No extension hooks registered.
@@ -11,7 +11,7 @@ Requirements checklist: 16 checked, zero unchecked. No extension hooks registere
 | --- | --- | --- |
 | Portable host | scripts/foundation_run.py → foundation_local.py::parser/main | progressive_cli.py → progressive_commands.py; stdlib host |
 | Installed role | generalization_roles.py::invoke / project_and_invoke → generalization_role.py | progressive_roles.py; reuse process supervision and engine isolation |
-| Real learning | generalization_training.py::run_torch → torch_update → rl/sft_trainer.py::supervised_step | later progressive_training.py; no second learner in this increment |
+| Real learning | generalization_training.py::run_torch → torch_update → rl/sft_trainer.py::supervised_step | progressive_training.PolicyUpdate → shared logical_update; no second learner |
 | Full checkpoint | fresh/bigint_state.py::GeneralizationCheckpointStore.save/load | later progressive state adapter, preserving atomic generations |
 | Actual checkpoint evaluation | generalization_evaluation.py::load_retained | progressive/baselines.py; no invented checkpoint weights |
 | Native and reference | synthesis/client.py, reference.py, reference_parser.py; decoder/bigint_codec.py | progressive/coverage.py with independent witness checks |
@@ -33,9 +33,9 @@ exist: the actual shared archive owner is pipeline_validation/bundle.py.
 
 ## Validation
 
-Source/test implementation is complete for T001–T017 and T019–T039; T037/T038 include executable specifications for later T040–T044 implementations. T018 now has mandatory Docker/Podman CI acceptance and remains unchecked pending its first successful receipt. The initial local validation environment has no Docker or Podman binary
+Source/test implementation is complete for T001–T017 and T019–T040; T038 includes executable specifications for later T041–T044 implementations. T018 now has mandatory Docker/Podman CI acceptance and remains unchecked pending its first successful receipt. The initial local validation environment has no Docker or Podman binary
 and no packaged native worker or HIP device. Local CPU/stdlib checks cannot
-establish container/native/HIP qualification. No training/research is launched.
+establish container/native/HIP qualification. No research or HIP training is launched.
 
 
 ## Delivered boundaries
@@ -452,8 +452,8 @@ pass. All 68 historical disposition item states remain unchanged; only current
 implementation metadata is refreshed with the original serializer.
 
 T025–T039 are marked complete at their stated software/specification scope.
-T040 onward, original-producer feature acceptance, actual HIP and research launches
-remain separate later tasks. No pre/post implementation hooks are registered.
+At that increment, T040 onward, original-producer feature acceptance, actual HIP
+and research launches remained separate later tasks. No pre/post implementation hooks are registered.
 
 
 ## T040 shared logical update (first increment)
@@ -470,3 +470,65 @@ learning and progressive stream regressions pass 46 tests with two local native
 service skips. Optimizer specifications now join mandatory no-skip container CI;
 only T041–T044 trial specifications remain deferred. The research policy adapter
 and final T040 completion follow in a separate increment. No HIP claim is made.
+
+
+## T040 complete: frozen optimizer policy and update-boundary state
+
+`progressive_training.resolve_update_policy` seals the research model identity,
+mean-per-program objective, FP32, effective batch 16/32/64, independently chosen
+microbatch size, LR multiplier 0.3/1/3, explicit AdamW decay 0/0.01/0.1 and the
+model's effective dropout. Unknown or altered policies fail before construction.
+`PolicyUpdate` constructs the existing research models and delegates every update
+to `sft_trainer.logical_update`; it does not add a second forward/backward engine.
+
+Constant and warmup/cosine schedules use the **reserved cumulative charged-token
+end coordinate** of the complete logical update. Default warmup is 5% of the
+frozen horizon, rounded up to a token, and final multiplier is 0.1. Separate explicit
+warmup and decay horizons support the contract's 1.25M warmup / 400M continuation
+schedule without restarting at 25M. A failed attempt keeps its full reservation;
+retry needs a new debit and includes spent exposure in its schedule coordinate.
+Scheduler and optional fixed-bin allocation clocks step once after finite updated
+parameters, never per microbatch. Full-update overshoot is not clipped.
+
+The adapter requires the existing `Ledger`'s matching admitted debit before work.
+Its optimizer/scheduler snapshots are available only at complete boundaries;
+partial work poisons the adapter and requires a new instance restored from the
+prior full checkpoint. It reuses `GeneralizationCheckpointStore` in CPU acceptance
+for both an initial cut and a nonempty AdamW cut. Full model/RNG/data and durable
+cost-journal ownership remains with the caller and the later T049/T050 installed
+recovery implementation; this task grants no long-running research entitlement.
+
+Validation commands (in the existing pinned CPU validation environment):
+
+```sh
+PYTHONPATH=src .venv-progressive/bin/python -m pytest -q \
+  tests/unit/test_progressive_optimizer.py \
+  tests/unit/test_progressive_optimizer_specifications.py tests/unit/test_progressive_ci.py
+PYTHONPATH=src .venv-progressive/bin/python -m pytest -q \
+  tests/unit/test_token_loss.py tests/unit/test_foundation_config_metrics.py \
+  tests/unit/test_bootstrap_workflow.py tests/integration/test_progressive_stream.py
+PYTHONPATH=src .venv-progressive/bin/python - <<'CHECK'
+import runpy, pytest
+from oeis_learn.pipeline_validation.progressive_cli import CPU_TESTS
+raise SystemExit(pytest.main(['-q', *CPU_TESTS,
+    *runpy.run_path('scripts/qualify_progressive_foundation.py')['HISTORICAL_TESTS']]))
+CHECK
+```
+
+The first two selections passed **18** and **46** tests respectively (two native
+skips in the latter). Final complete progressive/historical roster: **331 passed,
+five native-service skips, eight strict expected T041–T044 failures**, in 51.64s.
+All 19 policy-adapter tests pass: actual CPU batches 16/32/64 with uneven partitions
+and dropout, analytic schedule endpoints, unsupported settings, one allocation
+step, retained interrupted charges, blocked partial snapshots, and exact next
+update/RNG/weights after disk restoration of a nonempty AdamW checkpoint.
+The shared primitive's independent objective/finite-gradient/interruption tests
+are no longer expected failures and now join mandatory Docker/Podman acceptance.
+
+New adapter/test lint, affected legacy undefined-name checks and whitespace checks
+pass. Installed-wheel/source closure and current implementation binding tests are
+included in the full roster. All 68 historical disposition item states are
+unchanged; only current implementation traceability metadata is refreshed using
+the original serializer. T040 is complete at software/CPU scope. T041 onward,
+actual HIP qualification and live research remain pending. No extension hooks are
+registered. Coherent increments are pushed without waiting for CI.
