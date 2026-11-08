@@ -753,7 +753,9 @@ class RecoverableUpdate:
         }
         prior = self.recovery.completed(update, batch)
         if prior is not None:
-            restored = self.recovery.store.load(prior)
+            # Historical receipts remain immutable after tensor generations are
+            # retired. The current complete cut retains all committed metrics.
+            restored = self.recovery.restore()
             return restored["states"]["history"][f"recovery-update/{update}"], prior
         count = int(tokens[:, 1:].ne(PAD_ID).sum())
         ledger = self.recovery.reserve(
@@ -838,6 +840,7 @@ class Progress:
                 "resources": resource_metrics(device),
                 "sensors": sensor_metrics(device),
                 "free_disk_bytes": disk.free,
+                "free_inodes": __import__("os").statvfs(self.output).f_favail,
                 "memory_accounting": "overlapping counters reported separately",
                 "generation_tail": None,
                 "queue": None,

@@ -216,6 +216,36 @@ def freeze(
             verify_refs(root, [initializer["artifact"]], max_bytes=64 << 30)
     slots = {n["id"]: n["caps"] for n in q["graph"]["nodes"]}
     validate_policy(policy, reservations=slots)
+    if policy["payload"]["diagnostics"]:
+        from oeis_learn.pipeline_validation.progressive_decision_control import frozen_evidence
+
+        # Use original referenced bytes, never a post-outcome replacement registry.
+        selected, panels, designs = frozen_evidence(
+            root, {"payload": {"references": refs, "target_policy": policy["identity"]}}
+        )
+        nodes = {n["id"]: n for n in q["graph"]["nodes"]}
+        for branch in selected["payload"]["diagnostics"]:
+            if any(
+                nodes[s]["kind"] != "diagnostic" or not any(t["slot"] == s for t in q["task_plans"])
+                for s in branch["task_slots"]
+            ):
+                raise ValueError("concrete frozen diagnostic tasks required")
+            panel = panels.get(branch["panel"])
+            if (
+                panel is None
+                or panel["payload"]["role"] != "confirmation"
+                or panel["track"] != b["track"]
+                or panel["purpose"] != b["purpose"]
+            ):
+                raise ValueError("original unexposed confirmation panel required for diagnostic")
+            design = designs.get(branch["design"])
+            if design is None:
+                raise ValueError("original diagnostic design reference required")
+            if branch["signal"] == "seed_disagreement" and (
+                design.get("version") != "progressive-third-seed-design/v1"
+                or design.get("branch") != branch["id"]
+            ):
+                raise ValueError("frozen third-seed registration required")
     measured = q["checkpoint"]["bytes"]
     if measured < 1:
         raise ValueError("measured checkpoint size required")

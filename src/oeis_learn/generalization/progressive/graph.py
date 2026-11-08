@@ -1,7 +1,8 @@
 """Finite stage selection and leaf contingencies; no arbitrary executable DAG."""
 
-from .contracts import _check, schema
 from oeis_learn.generalization.budgets import integer
+
+from .contracts import _check, schema
 
 STAGES = ("capability", "diversity", "tuning", "scaling", "oeis", "components", "source_pilot")
 DEPENDENCIES = {
@@ -67,6 +68,17 @@ def validate_graph(graph, *, caps):
         if nodes[edge["target"]]["kind"] == "diagnostic" and edge["action"] != "EXPLORE_RESERVED":
             raise ValueError("diagnostic cannot inherit a passed gate")
     for node in nodes.values():
+        if (
+            node["stage"] in {"scaling", "oeis"}
+            and node["kind"] == "routine"
+            and not any(
+                e["target"] == node["id"]
+                and e["condition"] == "CONFIRMED_GAIN"
+                and e["action"] == "ADVANCE_REGISTERED"
+                for e in graph["edges"]
+            )
+        ):
+            raise ValueError("confirmed scaling requires a frozen executable gain edge")
         if node["kind"] == "diagnostic" and not any(
             e["target"] == node["id"] for e in graph["edges"]
         ):
@@ -76,7 +88,7 @@ def validate_graph(graph, *, caps):
 
         def ancestors(name):
             for dep in nodes[name]["dependencies"]:
-                ancestor_stages.add(nodes[dep]["stage"])
+                ancestor_stages.add(nodes[dep]["stage"])  # noqa: B023 -- invoked before the next loop iteration
                 ancestors(dep)
 
         ancestors(node["id"])

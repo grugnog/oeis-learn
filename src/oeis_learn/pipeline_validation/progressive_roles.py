@@ -272,7 +272,7 @@ def _invoke_reserved(
             deadline=deadline,
             cleanup_seconds=min(30, seconds / 5),
             gpu=gpu,
-            allowed_returncodes=(0, 2),
+            allowed_returncodes=(0, 1, 2),
         )
         journal.commit(
             charge["key"],

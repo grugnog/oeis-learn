@@ -124,6 +124,9 @@ def validate_campaign(campaign):
         ):
             raise ValueError("maximum research campaign reservation exceeded")
     s = p["storage"]
+    planned = max((t["token_target"] for t in plans if t["kind"] == "training"), default=0)
+    if s["milestone_pins"] < sum(m <= planned for m in (25000000, 100000000, 400000000)):
+        raise ValueError("frozen milestone pin storage is insufficient for planned exposure")
     needed = (
         s["checkpoint_bytes"] * (2 + s["milestone_pins"]) + s["shard_bytes"] + s["package_bytes"]
     )

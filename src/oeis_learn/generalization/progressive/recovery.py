@@ -131,7 +131,9 @@ class Recovery:
             if k != "elapsed_us" or not hasattr(self, "clock")
         ):
             raise ValueError("spent task cannot be initialized again")
-        if self.p["initializer"].get("parent_slot") and not (self.root / "lineage.json").exists():
+        if ({"parent_slot", "parent_task"} & set(self.p["initializer"])) and not (
+            self.root / "lineage.json"
+        ).exists():
             raise ValueError("successor must resolve its frozen parent slot")
         record = self.save(
             states,
@@ -159,7 +161,7 @@ class Recovery:
                 self.p["initializer"].get("parent_slot") == parent.p["slot"]
                 or self.p["initializer"].get("parent_task") == parent.p["id"]
             )
-            or parent.state["status"] not in {"COMPLETE", "PARTIAL", "FAILED"}
+            or parent.state["status"] not in {"COMPLETE", "PARTIAL"}
             or self.p["arm"] != parent.p["arm"]
             or self.p["seed"] != parent.p["seed"]
         ):
@@ -179,6 +181,9 @@ class Recovery:
                 "task": self.task["identity"],
                 "compatibility": self.compatibility,
                 "parent": parent.state["checkpoint"]["identity"],
+                "ancestor_cost_available": restored["states"]
+                .get("selection", {})
+                .get("ancestor_cost_available", parent.p["initializer"]["mode"] != "weights_only"),
                 "base": base,
             }
         )
@@ -403,3 +408,85 @@ class Recovery:
         terminal = not remaining["tokens"] or remaining["elapsed_us"] <= self.p["finalization_us"]
         self.append(status="COMPLETE" if complete else "PARTIAL" if terminal else "PAUSED")
         del self.clock
+
+    def retain(self, *, milestone_pins):
+        """Prune owned tensors before the next write; never prune journal authority.
+
+        The current full cut plus a new atomic generation consume two slots.
+        Milestone tensors use only the separately frozen pin allowance. Original
+        event/decision/update receipts remain immutable after tensor retirement.
+        """
+        import json
+
+        from oeis_learn.generalization.contracts import verify_artifact
+
+        from .milestones import MILESTONES
+
+        integer(milestone_pins)
+        self.read()
+        current = self.state["checkpoint"]
+        if current is None:
+            raise ValueError("committed checkpoint required before retention")
+        paths = sorted(self.root.glob("retention-*.json"))
+        if len(paths) > 65536:
+            raise ValueError("bounded retention journal exhausted")
+        path = self.root / f"retention-{self.ordinal:05d}.json"
+        old = load(paths[-1]) if paths else None
+        if old and (
+            seal(old) != old
+            or old["task"] != self.task["identity"]
+            or old["allowance"] != milestone_pins
+        ):
+            raise ValueError("changed frozen checkpoint retention")
+        pins = dict(old["milestones"]) if old else {}
+        # Only committed model exposure selects a first milestone generation.
+        pointer = current["payload"]["full_state"]
+        raw = json.loads(verify_artifact(self.store.root, pointer))
+        tokens = raw["ledger"]["consumed"]
+        for target in MILESTONES:
+            if self.base["tokens"] < target <= tokens and str(target) not in pins:
+                pins[str(target)] = current
+        if len(pins) > milestone_pins:
+            raise TimeoutError("frozen milestone pin allowance exhausted")
+        owned = {}
+        for event in sorted(self.root.glob("event-*.json")):
+            snapshot = load(event)["state"]["checkpoint"]
+            if snapshot:
+                ref = snapshot["payload"]["full_state"]
+                if (self.store.root / ref["path"]).is_file():
+                    owned[ref["sha256"]] = ref
+        latest_path = self.store.root / "generalization-latest.json"
+        latest = load(latest_path)
+        if latest != pointer:
+            # Tensor publication may precede a lost recovery commit. This owned
+            # orphan is disposable; it must never become recovery authority.
+            orphan = json.loads(verify_artifact(self.store.root, latest))
+            if seal(orphan) != orphan or orphan["contract"] != self.compatibility:
+                raise ValueError("unrelated orphan tensor generation")
+            owned[latest["sha256"]] = latest
+            from oeis_learn.fresh.common import write
+
+            write(latest_path, pointer)
+        kept = {pointer["sha256"]}
+        for snapshot in pins.values():
+            kept.add(snapshot["payload"]["full_state"]["sha256"])
+        if not kept <= owned.keys():
+            raise ValueError("retained milestone tensor closure missing")
+        # Publish the immutable pin choices first. A crash during removal can
+        # only leave excess generations, which the next owner retries safely.
+        manifest = seal(
+            {
+                "version": "progressive-retention/v1",
+                "task": self.task["identity"],
+                "allowance": milestone_pins,
+                "current": current["identity"],
+                "milestones": pins,
+            }
+        )
+        if path.is_file():
+            if load(path) != manifest:
+                raise ValueError("conflicting checkpoint retention replay")
+        else:
+            atomic_write(path, manifest)
+        self.store.store.retain(owned, tuple(sorted(kept)))
+        return load(path)

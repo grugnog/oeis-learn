@@ -210,6 +210,10 @@
               },
               "assessment": {
                 "const": false
+              },
+              "design": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
               }
             },
             "required": [
@@ -222,7 +226,8 @@
               "reservation",
               "maximum_visits",
               "terminal_action",
-              "assessment"
+              "assessment",
+              "design"
             ],
             "additionalProperties": false
           },

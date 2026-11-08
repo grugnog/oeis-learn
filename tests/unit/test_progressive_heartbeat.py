@@ -38,3 +38,40 @@ def test_progress_preflight_protects_disk_and_finalization(tmp_path):
         progress.preflight(
             bytes_required=0, inodes_required=1, remaining_us=100, finalization_us=1, research=True
         )
+
+
+def test_generation_queue_fit_and_tail_clocks_remain_separate_from_wall_time():
+    from oeis_learn.pipeline_validation.identity import seal
+    from oeis_learn.pipeline_validation.progressive_evidence import generation_timing
+
+    value = seal(
+        {
+            "version": "discovery-candidates/v1",
+            "elapsed_us": 5000000,
+            "records": {
+                "prompt": {
+                    "costs": {
+                        "correct": {
+                            "details": [
+                                {
+                                    "generation_seconds": 0.1,
+                                    "complete": True,
+                                    "source": "private",
+                                    "fitting": {
+                                        "clock": {"admitted": 1, "dispatched": 2, "completed": 4}
+                                    },
+                                },
+                                {"generation_seconds": 0.2, "complete": False},
+                            ]
+                        }
+                    }
+                }
+            },
+        }
+    )
+    report = generation_timing(value)
+    assert report["generation_tail"]["p95_us"] == 200000
+    assert report["generation_tail"]["token_cap_or_incomplete_events"] == 1
+    assert report["queue"]["total_us"] == 1000000 and report["fit"]["total_us"] == 2000000
+    assert report["wall_elapsed_us"] == 5000000 and report["fit"]["unavailable"] == 1
+    assert "private" not in str(report)

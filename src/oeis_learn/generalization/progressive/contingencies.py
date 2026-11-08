@@ -9,7 +9,12 @@ from .trials import integer
 
 def third_seed(*, effects, completion, retention, lower, original_verdict, registered, comparisons):
     integer(comparisons, 2)
-    if registered is not True or len(effects) != 3 or len(completion) != 3 or len(retention) != 3:
+    if (
+        registered is not True
+        or len(effects) != 3
+        or len(completion) not in {3, 12}
+        or len(retention) != 3
+    ):
         raise ValueError("registered extra look with all three paired seeds required")
     if original_verdict not in {"INCONCLUSIVE", "NO_MATERIAL_GAIN", "INCOMPLETE"}:
         raise ValueError("original failed decision must be preserved")
@@ -77,3 +82,96 @@ def validate_branch(branch, *, evidence, remaining, visited, exposed_panels):
     if remaining.get(branch["reservation"], 0) <= 0:
         raise ValueError("no frozen diagnostic reservation")
     return branch
+
+
+def confirm(rows, roster, seeds, design, *, confirmation, policy, remaining):
+    """Recompute a registered extra look, preserving the original two-seed proof.
+
+    Scalar third_seed is diagnostic convenience only. This entry point derives
+    every bound, completion cell and retention loss from the paired outcomes.
+    """
+    from .contracts import digest
+    from .decisions import recompute, verify
+
+    if set(confirmation) != {"registration", "original"}:
+        raise ValueError("closed third-seed confirmation required")
+    registration, original = confirmation["registration"], confirmation["original"]
+    if (
+        set(registration)
+        != {
+            "version",
+            "branch",
+            "original_seeds",
+            "third_seed",
+            "original_design",
+            "confirmation_design",
+        }
+        or registration["version"] != "progressive-third-seed-design/v1"
+    ):
+        raise ValueError("frozen third-seed design required")
+    if set(original) != {"decision", "rows", "roster", "seeds", "design", "kwargs"} or set(
+        original["kwargs"]
+    ) - {"target_id", "action", "trigger", "costs"}:
+        raise ValueError("original closed two-seed evidence required")
+    branch = next(
+        (b for b in policy["payload"]["diagnostics"] if b["id"] == registration["branch"]), None
+    )
+    if (
+        branch is None
+        or branch["signal"] != "seed_disagreement"
+        or branch["design"] != digest(registration)
+    ):
+        raise ValueError("unregistered third-seed branch")
+    first = registration["original_seeds"]
+    if (
+        len(first) != 2
+        or len(set(first)) != 2
+        or registration["third_seed"] in first
+        or list(original["seeds"]) != first
+        or list(seeds) != [*first, registration["third_seed"]]
+    ):
+        raise ValueError("all three fixed seeds required; no best-two selection")
+    if (
+        digest(original["design"]) != registration["original_design"]
+        or digest(design) != registration["confirmation_design"]
+        or (design["comparisons"] != original["design"]["comparisons"] or design["comparisons"] < 2)
+        or design["claim"] != "capability"
+    ):
+        raise ValueError("registered designs and extra look must count")
+    verify(
+        original["decision"],
+        original["rows"],
+        original["roster"],
+        first,
+        original["design"],
+        policy=policy,
+        remaining={**remaining, branch["id"]: branch["reservation"]},
+        **original["kwargs"],
+    )
+    if (
+        original["decision"]["payload"]["next_action"] != "EXPLORE_RESERVED"
+        or original["decision"]["payload"]["trigger"] != branch["trigger"]
+    ):
+        raise ValueError("original failed decision must select this reserved diagnostic")
+    if roster != original["roster"] or sorted(
+        (r for r in rows if r["seed"] in first), key=lambda r: (r["seed"], r["arm"], r["task"])
+    ) != sorted(original["rows"], key=lambda r: (r["seed"], r["arm"], r["task"])):
+        raise ValueError("original outcomes/roster cannot be replaced after the extra look")
+    metrics, ordinary = recompute(rows, roster, seeds, design)
+    if ordinary in {"INVALID", "INCOMPLETE", "REGRESSION"}:
+        return metrics, ordinary
+    result = third_seed(
+        effects=list(metrics["seed_effects"].values()),
+        completion=[
+            metrics["cells"][a][s][t]["completion"]
+            for a in ("baseline", "candidate")
+            for s in seeds
+            for t in ("composition", "unseen_structure")
+        ],
+        retention=list(metrics["retention_losses"].values()),
+        lower=metrics["lower"],
+        original_verdict=original["decision"]["payload"]["evidence_verdict"],
+        registered=True,
+        comparisons=design["comparisons"],
+    )
+    return metrics, result["evidence_verdict"]

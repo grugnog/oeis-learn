@@ -114,6 +114,11 @@ def status(args, root):
         )
         store.campaign = campaign
         observed = store.read()
+        if store.ordinal == 0 and (folder / "result.json").is_file():
+            original = load(folder / "result.json")
+            if seal(original) != original or original.get("version") != "discovery-result/v1":
+                raise ValueError("invalid original terminal record")
+            observed["status"] = original["mechanical_status"]
         value = seal(
             {
                 "version": "discovery-result/v1",
@@ -261,7 +266,8 @@ def main(args, root, host_factory):
                 }
             )
             code = 2
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as exc:
+        caught = exc
         result = seal(
             {
                 "version": "discovery-result/v1",
@@ -422,6 +428,9 @@ def lifecycle_command(args, root, host_factory):
     receipt = load(receipt_path)
     if (
         seal(receipt) != receipt
+        or receipt.get("version") != "discovery-acceptance/v1"
+        or receipt.get("scope") != "progressive-lifecycle"
+        or receipt.get("qualified") is not True
         or receipt.get("campaign") != campaign["identity"]
         or receipt.get("runtime") != campaign["payload"]["runtime"]
         or receipt.get("status") != "COMPLETE"
@@ -459,7 +468,8 @@ def lifecycle_command(args, root, host_factory):
                 for r in campaign["payload"]["references"]
                 if r["kind"] == "policy" and r["artifact"]["sha256"] == task["payload"]["policy"]
             ]
-            if len(request_refs) != 1:
+            if not request_refs:
+                store.append(dict(store.state, status="PARTIAL"))
                 return publish(
                     output,
                     operation=args.operation,
@@ -468,12 +478,16 @@ def lifecycle_command(args, root, host_factory):
                     reason="TASK_REQUEST_DEFICIT",
                     missing=["frozen_task_request"],
                 ), 2
-            request = json.loads(verify_refs(root, request_refs)[0])
+            request_bytes = verify_refs(root, request_refs)
+            if len(set(request_bytes)) != 1:
+                raise ValueError("conflicting frozen request bytes")
+            request = json.loads(request_bytes[0])
             if set(request) != {"operation", "artifacts", "image", "seconds", "reservation"}:
                 raise ValueError("closed installed task request required")
             from .progressive_roles import IMPLEMENTED, REGISTRY
 
             if request["operation"] not in IMPLEMENTED:
+                store.append(dict(store.state, status="PARTIAL"))
                 return publish(
                     output,
                     operation=args.operation,
@@ -520,35 +534,72 @@ def lifecycle_command(args, root, host_factory):
                     continue
                 seconds = min(seconds, remaining["elapsed_us"] / 1000000)
                 reservation["elapsed_us"] = int(seconds * 1000000)
-            result = invoke(
-                host,
-                request["image"],
-                root,
-                request["operation"],
-                artifacts,
-                output=str((output / ("task-" + task["identity"].split(":")[1])).relative_to(root)),
-                campaign=campaign,
-                task=task,
-                journal=journal,
-                ordinal=store.ordinal,
-                reservation=reservation,
-                seconds=seconds,
-                runtime=checked,
-            )
+            role_output = output / ("task-" + task["identity"].split(":")[1])
+            try:
+                result = invoke(
+                    host,
+                    request["image"],
+                    root,
+                    request["operation"],
+                    artifacts,
+                    output=str(role_output.relative_to(root)),
+                    campaign=campaign,
+                    task=task,
+                    journal=journal,
+                    ordinal=store.ordinal,
+                    reservation=reservation,
+                    seconds=seconds,
+                    runtime=checked,
+                )
+            except (OSError, RuntimeError, ValueError):
+                store.boundary(task, "FAILED", _INVOCATION.get())
+                raise
+            if request["operation"] == "train":
+                from .progressive_evidence import finalize_learning
+
+                state_root = (
+                    root
+                    / "run-state/discovery-learning"
+                    / campaign["identity"].split(":")[1]
+                    / task["identity"].split(":")[1]
+                )
+                if (state_root / "binding.json").is_file():
+                    finalize_learning(journal, task, state_root, role_output / "role")
             task_status = result.get("metrics", {}).get("task_status", result["mechanical_status"])
             if task_status in {"INVALID", "BLOCKED"}:
                 task_status = "FAILED"
+            from .progressive_decision_control import reconcile_decision
+
+            if task_status == "COMPLETE":
+                reconcile_decision(root, role_output / "role", result, store, journal, task)
             store.boundary(task, task_status, _INVOCATION.get())
             if store.state["status"] == "PAUSED" or task_status == "FAILED":
                 break
         done = all(
             store.state["tasks"].get(t["id"]) == "COMPLETE" for t in campaign["payload"]["tasks"]
         )
+        failed = store.state["status"] == "FAILED"
+        paused = store.state["status"] == "PAUSED"
+        terminal = "FAILED" if failed else "COMPLETE" if done else "PARTIAL"
+        store.append(dict(store.state, status="PAUSED" if paused else terminal))
         return publish(
             output,
             operation=args.operation,
             campaign=campaign["identity"],
-            mechanical_status="COMPLETE" if done else "PARTIAL",
-            reason="FINITE_DAG_COMPLETE" if done else "NO_ELIGIBLE_RESERVED_NEXT_TASK",
+            mechanical_status=terminal,
+            scientific_status="INCOMPLETE" if not done else "UNMEASURED",
+            reason="OWNED_TASK_FAILED"
+            if failed
+            else "PAUSE_ACKNOWLEDGED"
+            if paused
+            else "FINITE_DAG_COMPLETE"
+            if done
+            else "NO_ELIGIBLE_RESERVED_NEXT_TASK",
+            producer_error=result.get("producer_error") if failed else None,
+            metrics={
+                "tasks": store.state["tasks"],
+                "decisions": store.state.get("decisions", {}),
+                "paused": paused,
+            },
             missing=[] if done else ["eligible_reserved_next_slot"],
-        ), 0 if done else 2
+        ), 1 if failed else 0 if done else 2

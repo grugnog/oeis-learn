@@ -85,3 +85,15 @@ If the selected research cannot supply the required sustained scenario, use a se
 Implement the canonical `qualify → prepare → freeze → acceptance` sequence from quickstart using the existing portable host interface. It may be wrapped in one operator script after those commands exist; do not create a new host service or an arbitrary-step bypass. Stop at the first blocking dependency and preserve the first producer cause. Resume compatible remaining cases without overwriting completed outputs.
 
 Return one inventory of missing inputs upfront, a scope/reuse table, per-case real outcomes, measured resource/timing data, complete failure details and one bounded diagnostic package. Repository publication contains concise findings and original receipt identities; weights and full outputs remain workstation artifacts.
+
+
+## Packaged lifecycle case inventory
+
+The shared [progressive-acceptance.json](../../src/oeis_learn/generalization/policies/progressive-acceptance.json)
+inventory registers the CPU installed-wheel lifecycle test and queues
+`progressive-logical-update-restore` and `progressive-two-task-continuation-pause`
+for the consolidated T090/T091 actual-HIP batch. Their QUEUED status supplies no
+device authority. The shortened lifecycle receipt records actual subprocess
+microseconds/hours and the future sustained protocol; its simulated task ceilings
+are never reported as elapsed research hours. Use the existing Q/A handoff and
+selected campaign reservations described above.

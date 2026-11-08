@@ -58,3 +58,38 @@ def scaling_gate(decision, rows, roster, seeds, design, *, remaining, required, 
         if v > remaining.get(k, 0):
             return "DEFER_BRANCH"
     return "ADVANCE_REGISTERED"
+
+
+def gain_cost(decision, rows, roster, seeds, design, *, costs, ancestor_costs):
+    """Diagnostic marginal utility over measured, non-amortized active compute.
+
+    A caller verifies the decision first. Neither this report nor a loss change
+    grants gate authority. All ancestor task costs stay visible in the report.
+    """
+    from .contracts import digest
+    from .decisions import recompute
+
+    for c in (*costs.values(), *ancestor_costs.values()):
+        integer(c)
+    metrics, _ = recompute(rows, roster, seeds, design)
+    added = sum(costs.values())
+    gain = metrics["mean_gain"]
+    return seal(
+        {
+            "version": "progressive-gain-cost/v1",
+            "decision": decision["identity"],
+            "costs": dict(costs),
+            "ancestor_costs": dict(ancestor_costs),
+            "added_active_us": added,
+            "total_active_us": added + sum(ancestor_costs.values()),
+            "mean_gain": gain,
+            "marginal_gain_per_active_hour": gain * 3600000000 / added
+            if gain is not None and added
+            else None,
+            "unavailable_reason": None
+            if gain is not None and added
+            else "missing gain or measured additional compute",
+            "cost_scope": "task active intervals; overlapping phase timings are not added wall time",
+            "outcomes": digest(rows),
+        }
+    )

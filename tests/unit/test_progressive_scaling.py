@@ -59,3 +59,37 @@ def test_reserved_diagnostic_requires_nontraining_evidence_and_fresh_panel():
             visited=[],
             exposed_panels=["panel"],
         )
+
+
+def test_marginal_gain_keeps_measured_ancestor_costs_and_has_no_gate_authority():
+    from oeis_learn.generalization.progressive.decisions import publish
+    from oeis_learn.generalization.progressive.milestones import gain_cost
+    from tests.unit.test_progressive_decisions import fixture
+
+    data, roster, design, policy = fixture()
+    decision = publish(
+        data,
+        roster,
+        [1, 2],
+        design,
+        policy=policy,
+        target_id="gain",
+        action="RETAIN_BASELINE",
+        remaining={},
+        created_at=policy["created_at"],
+        purpose=policy["purpose"],
+        track=policy["track"],
+    )
+    value = gain_cost(
+        decision,
+        data,
+        roster,
+        [1, 2],
+        design,
+        costs={"current": 3600000000},
+        ancestor_costs={"initial": 7200000000, "preparation": 100},
+    )
+    assert value["marginal_gain_per_active_hour"] == 1
+    assert value["total_active_us"] == 10800000100
+    assert value["ancestor_costs"] == {"initial": 7200000000, "preparation": 100}
+    assert "next_action" not in value

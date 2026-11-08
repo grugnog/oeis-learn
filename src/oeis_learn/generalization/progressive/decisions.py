@@ -212,6 +212,7 @@ def publish(
     trigger=None,
     visited=(),
     costs=None,
+    confirmation=None,
 ):
     validate_policy(policy)
     if not policy["payload"]["selected"]:
@@ -224,7 +225,22 @@ def publish(
         t["id"] in fixed and t["threshold"] != fixed[t["id"]] for t in policy["payload"]["targets"]
     ):
         raise ValueError("outcome-driven threshold change invalid")
-    metrics, verdict = recompute(rows, roster, seeds, design, costs=costs)
+    if confirmation is None:
+        metrics, verdict = recompute(rows, roster, seeds, design, costs=costs)
+    else:
+        if costs is not None:
+            raise ValueError("third-seed route is a capability confirmation")
+        from .contingencies import confirm
+
+        metrics, verdict = confirm(
+            rows,
+            roster,
+            seeds,
+            design,
+            confirmation=confirmation,
+            policy=policy,
+            remaining=remaining,
+        )
     validate_action(
         policy,
         target_id,
@@ -252,6 +268,8 @@ def publish(
         "target_id": target_id,
         "trigger": trigger,
     }
+    if confirmation is not None:
+        payload["confirmation"] = digest(confirmation)
     return record("decision", payload, created_at=created_at, purpose=purpose, track=track)
 
 

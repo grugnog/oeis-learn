@@ -185,12 +185,16 @@ def execute(
                 seed=recipe["model"]["seed"] if control == "random" else None,
                 device="cuda",
             )
+        from .progressive_evidence import generation_timing
+
+        timing = generation_timing(load(confined(output, artifact["path"]), maximum=512 << 20))
+        atomic_write(output / "timing.json", timing)
         return publish(
             output,
             operation=operation,
             mechanical_status="COMPLETE",
             reason="SEALED_VISIBLE_CANDIDATES",
-            metrics={"candidates": artifact},
+            metrics={"candidates": artifact, "timing": reference(output, output / "timing.json")},
         )
     if operation == "score":
         if any(
@@ -297,7 +301,7 @@ def execute(
                 "kwargs",
             }:
                 raise ValueError("closed decision producer request required")
-            if set(data["kwargs"]) - {"target_id", "action", "trigger", "costs"}:
+            if set(data["kwargs"]) - {"target_id", "action", "trigger", "costs", "confirmation"}:
                 raise ValueError("closed comparison arguments required")
             policy = data["policy"]
             decision = decide(

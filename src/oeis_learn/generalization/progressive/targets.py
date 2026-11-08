@@ -1,7 +1,8 @@
 """Target classes and bounded actions remain independent of observed verdicts."""
 
-from importlib.resources import files
 import json
+from importlib.resources import files
+
 from .contracts import validate
 
 NO_WORK = {"RETAIN_BASELINE", "DEFER_BRANCH", "STOP_AFFECTED"}
@@ -90,6 +91,8 @@ def validate_action(policy, target_id, *, verdict, action, remaining, trigger=No
         raise ValueError("failed gate cannot advance")
     if t["budget_ref"] not in remaining:
         raise ValueError("unreserved action")
+    if not remaining[t["budget_ref"]].get("elapsed_us", 0):
+        raise ValueError("reserved action has no remaining active time")
     if action == "EXPLORE_RESERVED":
         branch = next(
             (

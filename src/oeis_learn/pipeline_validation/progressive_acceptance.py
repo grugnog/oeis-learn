@@ -15,7 +15,19 @@ from oeis_learn.generalization.progressive.contracts import (
     seal,
 )
 
-GPU_CASES = ("progressive-logical-update-restore", "progressive-two-task-continuation-pause")
+
+def inventory():
+    import json
+    from importlib.resources import files
+
+    return json.loads(
+        files("oeis_learn.generalization")
+        .joinpath("policies", "progressive-acceptance.json")
+        .read_text()
+    )
+
+
+GPU_CASES = tuple(c["id"] for c in inventory()["cases"] if c["device"] == "actual_HIP")
 
 
 def fixture(root, *, interrupt=True, first_cap_updates=8, weights_only=False, fail=False):
@@ -367,4 +379,208 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
             }
         ),
     )
+    from .progressive_evidence import finalize_learning
+
+    if (state / "binding.json").is_file():
+        finalize_learning(journal, task, state, output / "role")
+    return load(output / "role/result.json"), output
+
+
+def export_lifecycle(root, outputs, destination):
+    """Bounded public metadata export; private tensors, inputs and traces stay local."""
+    import json
+    import zipfile
+
+    root, destination = Path(root), Path(destination)
+    members = {}
+    for i, output in enumerate(outputs):
+        output = Path(output)
+        result = load(output / "role/result.json")
+        if seal(result) != result:
+            raise ValueError("changed original lifecycle result")
+        error = result.get("producer_error")
+        public = {
+            k: result[k]
+            for k in (
+                "version",
+                "operation",
+                "campaign",
+                "stage",
+                "task",
+                "mechanical_status",
+                "scientific_status",
+                "qualification_status",
+                "claim_status",
+                "reason",
+                "metrics",
+            )
+        }
+        public["original_result"] = reference(root, output / "role/result.json")
+        public["producer_error"] = (
+            {k: error[k] for k in ("type", "code", "producer", "local_traceback")}
+            if error
+            else None
+        )
+        members[f"invocation-{i}/result.json"] = seal(public)
+        process = load(output / "process.json")
+        members[f"invocation-{i}/process.json"] = seal(
+            {k: process[k] for k in ("returncode", "elapsed_us")}
+        )
+        for name in (
+            "milestone.json",
+            "accounting-final.json",
+            "decision-bundle.json",
+            "gain-cost.json",
+        ):
+            if (output / "role" / name).is_file():
+                members[f"invocation-{i}/{name}"] = load(output / "role" / name)
+    if len(members) > 4096:
+        raise ValueError("finite lifecycle export required")
+    encoded = {
+        name: json.dumps(value, sort_keys=True, allow_nan=False).encode()
+        for name, value in members.items()
+    }
+    if sum(map(len, encoded.values())) > 32 << 20:
+        raise ValueError("lifecycle export exceeds metadata cap")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with (
+        destination.open("xb") as stream,
+        zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as archive,
+    ):
+        for name, blob in encoded.items():
+            archive.writestr(name, blob)
+    return reference(root, destination)
+
+
+def receipt(root, outputs, *, checks, archive):
+    """Short CPU evidence cannot authorize a research run or simulated duration."""
+    root = Path(root)
+    measured = [load(Path(p) / "process.json")["elapsed_us"] for p in outputs]
+    results = [load(Path(p) / "role/result.json") for p in outputs]
+    if any(seal(r) != r for r in results):
+        raise ValueError("original sealed role results required")
+    paused = [r for r in results if r.get("metrics", {}).get("task_status") == "PAUSED"]
+    completed = [r for r in results if r["mechanical_status"] == "COMPLETE"]
+    if (
+        not paused
+        or not any(r.get("task") == p.get("task") for p in paused for r in completed)
+        or not any(
+            (Path(p) / "role/accounting-final.json").is_file()
+            and load(Path(p) / "role/accounting-final.json")["milestone"]["ancestor_tokens"] > 0
+            for p in outputs
+        )
+        or not {"PARTIAL", "FAILED"} <= {r["mechanical_status"] for r in results}
+        or not any(r.get("next_action") == "EXPLORE_RESERVED" for r in results)
+    ):
+        raise ValueError(
+            "actual interrupted/resumed/continued and diagnostic terminal evidence required"
+        )
+    required = {
+        "interruption",
+        "resume",
+        "continuation",
+        "partial",
+        "failure",
+        "eligible_diagnostic",
+        "export",
+    }
+    if set(checks) != required or any(v is not True for v in checks.values()):
+        raise ValueError("every shortened lifecycle obligation must pass")
+    value = seal(
+        {
+            "version": "progressive-lifecycle-acceptance/v1",
+            "status": "COMPLETE",
+            "scope": "CPU DIAGNOSTIC_ONLY",
+            "qualified": False,
+            "scientific_status": "UNMEASURED",
+            "actual_elapsed_us": sum(measured),
+            "actual_elapsed_hours": sum(measured) / 3600000000,
+            "duration_evidence": "short real subprocesses; no simulated sustained hours",
+            "sustained_duration_status": "PENDING",
+            "hardware_status": "PENDING",
+            "gpu_cases": list(GPU_CASES),
+            "sustained_protocol": {
+                "tasks": 2,
+                "maximum_task_hours": 24,
+                "finalization_minutes_minimum": 30,
+                "checks": [
+                    "original campaign/task caps across invocation changes",
+                    "owned boundary pause and interrupt/recovery",
+                    "committed vs charged vs discarded exposure",
+                    "read-only predecessor and truth isolation",
+                    "bounded export preserving first error",
+                    "continuous <=60s progress and measured resources",
+                ],
+                "evidence": [
+                    "original supervisor cleanup receipts",
+                    "monotonic active intervals and boot identity",
+                    "checkpoint and budget journal cuts",
+                    "actual HIP device/runtime producer",
+                    "public export",
+                ],
+            },
+            "checks": checks,
+            "evidence": [reference(root, Path(p) / "role/result.json") for p in outputs],
+            "archive": archive,
+        }
+    )
+    atomic_write(root / "lifecycle-acceptance.json", value)
+    return value
+
+
+def invoke_decision_cpu(root, request, *, ordinal, pythonpath=None):
+    """Run the actual installed public-only decision producer in a new process."""
+    from oeis_learn.generalization.progressive.projections import describe, project
+
+    from .progressive_roles import REGISTRY
+
+    root = Path(root)
+    source = root / f"decision-input-{ordinal}.json"
+    atomic_write(
+        source,
+        seal(
+            {
+                "version": "discovery-channel/v1",
+                "kind": "public_evidence",
+                "role": "verifier",
+                "data": request,
+            }
+        ),
+    )
+    output = root / f"decision-{ordinal}"
+    output.mkdir()
+    project(
+        root,
+        output / "inputs",
+        "publish",
+        {"public": [describe(root, source)]},
+        registry=REGISTRY,
+        authorized=[reference(root, source)],
+    )
+    env = dict(os.environ)
+    if pythonpath is not None:
+        env["PYTHONPATH"] = str(pythonpath)
+    code = "from pathlib import Path;import sys;from oeis_learn.pipeline_validation.progressive_role import execute;execute('publish',inputs=Path(sys.argv[1]),output=Path(sys.argv[2]))"
+    started = time.monotonic_ns() // 1000
+    result = subprocess.run(
+        [sys.executable, "-c", code, str(output / "inputs"), str(output / "role")],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+        env=env,
+    )
+    atomic_write(
+        output / "process.json",
+        seal(
+            {
+                "returncode": result.returncode,
+                "elapsed_us": time.monotonic_ns() // 1000 - started,
+                "stdout": result.stdout[-4096:],
+                "stderr": result.stderr[-4096:],
+            }
+        ),
+    )
+    if result.returncode:
+        raise RuntimeError("installed decision producer failed: " + result.stderr[-2048:])
     return load(output / "role/result.json"), output

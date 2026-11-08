@@ -1,6 +1,6 @@
 # Spec 013 implementation map
 
-Scope: T001–T050 software/specification tasks, with T018 acceptance pending. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
+Scope: T001–T059 software/specification tasks, with T018 acceptance pending. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
 quickstart.md, hardware-validation.md, planning-review.md, all five contracts,
 the requirements checklist and adopted constitution in full before implementation.
 Requirements checklist: 16 checked, zero unchecked. No extension hooks registered.
@@ -33,7 +33,7 @@ exist: the actual shared archive owner is pipeline_validation/bundle.py.
 
 ## Validation
 
-Source/test implementation is complete for T001–T017 and T019–T050; T048 includes an executable third-seed specification for later T053 routing. T018 now has mandatory Docker/Podman CI acceptance and remains unchecked pending its first successful receipt. The initial local validation environment has no Docker or Podman binary
+Source/test implementation is complete for T001–T017 and T019–T059; T053 now supplies independently recomputed third-seed routing. T018 now has mandatory Docker/Podman CI acceptance and remains unchecked pending its first successful receipt. The initial local validation environment has no Docker or Podman binary
 and no packaged native worker or HIP device. Local CPU/stdlib checks cannot
 establish container/native/HIP qualification. No research or HIP training is launched.
 
@@ -660,10 +660,10 @@ remains 16/16; no implementation extension hooks are registered. Changes are
 committed/pushed incrementally without waiting for CI.
 
 
-## T051–T059 increment: completed admission, incomplete lifecycle integration
+## Historical T051–T059 increment: lifecycle gaps later closed below
 
-This increment completes **T056–T059 software** and introduces partial T051–T054
-helpers. **T051–T055 are not complete and remain unchecked.** In particular,
+At this earlier increment, **T056–T059 software** was complete and T051–T054
+helpers were partial. **The following gap inventory is historical and superseded by the T051–T055 delivery below.** In particular,
 `train` is still absent from the installed implemented-operation set. The finite
 controller, host command wiring, milestone/contingency calculations and Progress
 sampler do not establish the requested installed two-task continuation. T055's
@@ -719,3 +719,85 @@ host imports and implementation binding checks pass. New-source lint and whitesp
 checks pass. All 68 historical disposition item states are preserved. Checklist
 remains 16/16 and no extension hooks are registered. Changes are pushed incrementally;
 CI is not awaited. No actual HIP, scientific gain or completed T051–T055 claim.
+
+
+## T051–T055 delivery: installed learning lifecycle
+
+The installed `train` operation now consumes a sealed, bounded training package,
+constructs the real research-profile encoder/decoder and uses the existing
+PolicyUpdate/logical-update path. Acceptance data is explicitly DIAGNOSTIC_ONLY;
+research requires native-verified prepared support and actual qualified HIP.
+The portable host remains stdlib-only. Original runtime producers and complete
+campaign-bound feature acceptance remain prerequisites for a research dispatch;
+this shortened CPU receipt cannot replace the later T090/T091 device/full-feature
+acceptance. Report/bundle verification beyond this bounded lifecycle export remains
+owned by T079/T080.
+
+- **T051:** run/pause/resume/status use one canonical campaign control/accounting
+  chain and a nonblocking campaign lease. Each resume owns a fresh output and pause
+  namespace; no path resets a task cap. Only the installed owned worker consumes
+  a pause request, at a complete checkpoint boundary. Until acknowledged, pause is
+  pending/external-deadline. Missing reserved tasks/edges produce scientific
+  INCOMPLETE. Failed producers retain their first error and cannot authorize
+  advancement. Typed decision bundles are recomputed against the original frozen
+  policy, roster/seeds/design and actual remaining reservations before certifying
+  a DAG edge. Process completion alone cannot certify scientific gain.
+- **T052:** `parent_slot` resolves one paired predecessor in the frozen DAG;
+  `parent_task` supports an explicit earlier compatible continuation within an
+  already admitted finite slot. Only committed terminal COMPLETE/PARTIAL state can
+  initialize a successor. Model/optimizer/scheduler/RNG, stream/allocation state,
+  token/update clocks and ancestor costs survive. Tasks retain separate remaining
+  allowances. Before the next atomic write, the shared checkpoint retention owner
+  retires only proven owned tensor generations, preserving the current full cut
+  and frozen first-crossing milestone pins. Immutable update/event receipts survive
+  retirement; committed-update replays read their metrics from the latest full cut.
+  Uncommitted tensor tips are discarded without becoming recovery authority.
+  Pin capacity is checked against planned milestone exposure before execution.
+  The cumulative 25M/100M/400M milestones record full-update overshoot;
+  research scaling fixes the 400M horizon and 1.25M warmup. Marginal gain per added
+  active hour includes visible ancestor task costs. Weights-only initialization
+  starts fresh optimizer/clocks and keeps external ancestor cost unavailable,
+  including through later full-state continuations. Supervisor-final accounting
+  includes startup, all invocations and proven cleanup; overlapping phase times
+  are never added as extra wall time. Unattainable targets stop PARTIAL.
+- **T053:** diagnostic policies name concrete design/panel/task slots/reservation
+  and terminal rules. Frozen design/panel bytes are required; assessment/training
+  truth, reused panels, training-loss-only triggers, recursive episodes and
+  exhausted reserves are rejected. The extra-seed route independently recomputes
+  all paired rows and conservative adjusted bounds. All three fixed seeds count;
+  mean >=2 pp, at least two positive, no seed below -2 pp, per-arm/seed/stratum
+  completion >=95%, retention <=2 pp and positive adjusted lower bound remain
+  binding. Both original and third-seed looks use the same prospectively frozen
+  comparison count including the extra look. Original two-seed rows, verdict and
+  decision certificate remain unchanged. Scalar helper outputs grant no authority.
+- **T054:** a background <=60s heartbeat continues during blocked updates/checkpoint
+  work, reporting committed/charged/discarded exposure, actual active-clock
+  remainder and explicit waiting/unavailable reasons. Final interruption samples
+  reconcile discarded charges. CPU/resource, mapped sensors, free disk/inodes and
+  overlapping allocator/shared-memory counters are reported separately. Generator
+  queue/fit/tail clocks are collected from original installed generation receipts,
+  including tails, partial clocks and explicit omissions; they remain unavailable
+  when no producer exists in this training scope. Preflight protects peak-live checkpoint storage, inodes and
+  finalization; research requires at least 30 minutes. The enclosing existing
+  process supervisor bounds blocked workers and cleanup.
+- **T055:** real subprocesses import a built installed wheel and execute the same
+  train/decision dispatcher. Tests cover interrupted debit, resume, two-task
+  continuation, weights-only initialization, partial allowance, original producer
+  failure and an eligible reserved diagnostic followed by actual CPU learning.
+  Paired diagnostic outcomes are explicit mechanical fixtures, not checkpoint
+  evaluation or research evidence. Bounded public metadata ZIPs preserve original
+  result/error references and exclude tensors, training inputs, private truth and
+  raw tracebacks. The acceptance receipt records actual short monotonic intervals,
+  keeps sustained/HIP evidence PENDING and records the later sustained protocol.
+  The packaged shared `progressive-acceptance.json` inventory queues the actual-HIP
+  logical-update/recovery and two-task/pause cases for T090/T091.
+
+Validation: full progressive/historical roster **405 passed, seven local native
+service skips** (114.41s). The mandatory Docker/Podman CI roster includes every new
+CPU case; native skips remain failures in mandatory native-image mode. Final
+multiplicity, ancestry and host-failure changes receive focused regression checks
+before publication. Installed-wheel learning, original source closure and unchanged
+historical disposition items are checked. No HIP, sustained-duration or scientific
+advancement claim is made. Requirements checklist remains 16/16; no implementation
+extension hooks are registered. Commits are published incrementally without waiting
+for CI.

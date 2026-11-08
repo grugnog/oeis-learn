@@ -66,13 +66,26 @@ def validate_input(package, task):
         or seal(package) != package
     ):
         raise ValueError("closed frozen training input required")
+    if (
+        task["purpose"] == "research"
+        and task["payload"].get("stage") == "scaling"
+        and (
+            package["update_policy"]["schedule_horizon_tokens"] != 400000000
+            or package["update_policy"]["warmup_tokens"] != 1250000
+            or package["update_policy"]["schedule"] != "warmup_cosine"
+        )
+    ):
+        raise ValueError("scaling must retain the frozen 400M schedule and 1.25M warmup")
     initializer = task["payload"]["initializer"]
     if (
         initializer.get("mode") == "weights_only"
         and package.get("weights") != initializer["artifact"]
     ):
         raise ValueError("weights-only initializer must bind the frozen artifact")
-    if initializer.get("mode") not in {None, "weights_only"} and package.get("weights") is not None:
+    if (
+        initializer.get("mode") not in {None, "weights_only", "full_state"}
+        and package.get("weights") is not None
+    ):
         raise ValueError("unexpected imported weights on a fresh/full-state task")
     validate_profile(package["profile"])
     validate_update_policy(package["profile"], package["update_policy"])
@@ -350,6 +363,8 @@ def run(
                     # Reserve peak-live checkpoint bytes from measured frozen storage,
                     # preserving two generations, pinned milestones and package reserve.
                     storage = c["payload"]["storage"]
+                    heartbeat.update(phase="CHECKPOINT_RETENTION")
+                    recovery.retain(milestone_pins=storage["milestone_pins"])
                     used = sum(p.stat().st_size for p in Path(state_root).rglob("*") if p.is_file())
                     if used + storage["checkpoint_bytes"] > t["payload"]["caps"]["disk_bytes"]:
                         raise TimeoutError("task checkpoint storage cap exhausted")
@@ -468,7 +483,14 @@ def run(
                 )
                 status = "FAILED"
                 reason = "LEARNER_FAILURE"
-            heartbeat.update(phase=status)
+            final = recovery.restore()
+            heartbeat.update(
+                phase=status,
+                committed=recovery.state["useful_tokens"],
+                charged=final["ledger"].consumed,
+                discarded=final["discarded_tokens"],
+                remaining=journal.task_remaining(t),
+            )
         recovery.finish_external(status)
         current = recovery.restore()
         elapsed = max(0, time.monotonic_ns() // 1000 - authority["clock"]["start_us"])

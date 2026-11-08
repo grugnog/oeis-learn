@@ -116,3 +116,80 @@ def test_preallocated_same_slot_continuation_after_terminal_partial(tmp_path):
     p["tasks"][1]["initializer"]["parent_task"] = "second"
     with pytest.raises(ValueError):
         validate_campaign(envelope("campaign", p))
+
+
+def test_prepared_learning_channel_rejects_truth_alias_and_research_diagnostics(tmp_path):
+    import os
+
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.generalization.progressive.projections import describe, project
+    from oeis_learn.pipeline_validation.progressive_acceptance import fixture
+    from oeis_learn.pipeline_validation.progressive_learner import validate_input
+    from oeis_learn.pipeline_validation.progressive_roles import REGISTRY
+
+    _c, tasks, _channel, _ = fixture(tmp_path, interrupt=False)
+    package = load(tmp_path / "training-input.json")
+    with pytest.raises(ValueError, match="diagnostic"):
+        validate_input(package, dict(tasks[0], purpose="research"))
+    hidden = tmp_path / "private-truth.json"
+    os.link(tmp_path / "training-input.json", hidden)
+    with pytest.raises(ValueError):
+        project(
+            tmp_path,
+            tmp_path / "projection",
+            "train",
+            {"training": [describe(tmp_path, "training-channel.json")]},
+            registry=REGISTRY,
+            forbidden=[hidden],
+        )
+
+
+def test_retention_keeps_first_milestone_and_ignores_uncommitted_tensor_tip(tmp_path, monkeypatch):
+    from oeis_learn.generalization.budgets import Ledger
+    from oeis_learn.generalization.progressive import milestones
+    from oeis_learn.generalization.progressive.contracts import load
+
+    # Unit-scale token thresholds; this is not sustained-duration evidence.
+    monkeypatch.setattr(milestones, "MILESTONES", (3,))
+    c = campaign()
+    one, _ = tasks(c)
+    j = BudgetJournal(tmp_path, c["identity"], c["payload"]["caps"])
+    cuts = {
+        k: digest(k)
+        for k in (
+            "stream",
+            "allocation",
+            "archive",
+            "library",
+            "cost_journal",
+            "selection",
+            "milestones",
+            "consumed",
+        )
+    }
+    with Recovery(j, one, digest("learning")) as r:
+        initial = r.initialize(states(), cuts)
+        r.begin(boot="b", monotonic_us=0)
+        r.retain(milestone_pins=1)
+        committed = []
+        for update, count in enumerate((3, 2, 2), 1):
+            ledger = r.reserve([str(update)], count, boot="b", monotonic_us=update)
+            s = states()
+            s["data"]["cursor"] = update
+            committed.append(r.commit(s, ledger.commit(ledger.pending[0]), cuts))
+            r.retain(milestone_pins=1)
+        root = r.store.root
+        assert not (root / initial["payload"]["full_state"]["path"]).exists()
+        assert (root / committed[0]["payload"]["full_state"]["path"]).is_file()
+        assert not (root / committed[1]["payload"]["full_state"]["path"]).exists()
+        assert len(list(root.glob("generalization-*/state.json"))) == 2
+        s = states()
+        s["data"]["cursor"] = 4
+        orphan = r.save(s, Ledger(10, consumed=8, updates=4), cuts)
+        assert load(root / "generalization-latest.json") == orphan["payload"]["full_state"]
+        r.retain(milestone_pins=1)
+        assert not (root / orphan["payload"]["full_state"]["path"]).exists()
+        assert load(root / "generalization-latest.json") == committed[-1]["payload"]["full_state"]
+        assert r.restore()["ledger"].consumed == 7
+        with pytest.raises(ValueError, match="changed frozen"):
+            r.retain(milestone_pins=2)

@@ -44,6 +44,7 @@ CPU_TESTS = (
     "tests/unit/test_progressive_targets.py",
     "tests/unit/test_progressive_scaling.py",
     "tests/unit/test_progressive_dag_decisions.py",
+    "tests/unit/test_progressive_commands_lifecycle.py",
     "tests/unit/test_progressive_heartbeat.py",
     "tests/unit/test_progressive_continuation.py",
     "tests/unit/test_progressive_archive.py",

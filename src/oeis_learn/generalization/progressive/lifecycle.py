@@ -83,6 +83,14 @@ class RunStore:
             edges = [
                 e for e in self.campaign["payload"]["graph"]["edges"] if e["target"] == plan["slot"]
             ]
+            if any(
+                self.state["tasks"].get(p["id"]) != "COMPLETE"
+                and not any(
+                    e["source"] == p["slot"] and e["condition"] != "COMPLETE" for e in edges
+                )
+                for p in deps
+            ):
+                continue
             certificates = self.state.get("decisions", {})
             if any(
                 (
@@ -112,7 +120,7 @@ class RunStore:
             )
         return None
 
-    def authorize(self, bundle, *, policy, remaining, panels=None):
+    def authorize(self, bundle, *, policy, remaining, panels=None, designs=None):
         from .contracts import validate
         from .decisions import verify
         from .targets import validate_policy
@@ -176,8 +184,14 @@ class RunStore:
         )
         if edge is None:
             raise ValueError("decision lacks a frozen edge")
+        if edge["action"] == "ADVANCE_REGISTERED" and any(
+            self.state["tasks"].get(p["id"]) != "COMPLETE"
+            for p in self.campaign["payload"]["tasks"]
+            if p["slot"] == bundle["source_slot"] and p["kind"] == "training"
+        ):
+            raise ValueError("incomplete source learning cannot authorize confirmed expansion")
         kwargs = bundle["kwargs"]
-        if set(kwargs) - {"target_id", "action", "trigger", "costs"}:
+        if set(kwargs) - {"target_id", "action", "trigger", "costs", "confirmation"}:
             raise ValueError("closed decision arguments required")
         visited = [
             v["failure_class"]
@@ -195,12 +209,46 @@ class RunStore:
             visited=visited,
             **kwargs,
         )
+        confirmation = kwargs.get("confirmation")
+        if confirmation:
+            original = confirmation["original"]["decision"]
+            registration = confirmation["registration"]
+            registered_branch = next(
+                b for b in policy["payload"]["diagnostics"] if b["id"] == registration["branch"]
+            )
+            if not any(
+                v["decision"] == original["identity"]
+                and v.get("failure_class") == registered_branch["failure_class"]
+                for v in self.state.get("decisions", {}).values()
+            ):
+                raise ValueError("original diagnostic decision must remain in the run chain")
+            third = [
+                p
+                for p in self.campaign["payload"]["tasks"]
+                if p["slot"] in registered_branch["task_slots"] and p["kind"] == "training"
+            ]
+            if (
+                not third
+                or {p["seed"] for p in third} != {registration["third_seed"]}
+                or any(self.state["tasks"].get(p["id"]) != "COMPLETE" for p in third)
+            ):
+                raise ValueError("frozen third-seed diagnostic task must be complete")
         branch = None
         if edge["action"] == "EXPLORE_RESERVED":
             target = next(t for t in policy["payload"]["targets"] if t["id"] == kwargs["target_id"])
             branch = next(
                 d for d in policy["payload"]["diagnostics"] if d["id"] == target["budget_ref"]
             )
+            if branch["signal"] == "seed_disagreement":
+                registration = (designs or {}).get(branch["design"], {})
+                if (
+                    registration.get("original_design") != digest(bundle["design"])
+                    or registration.get("branch") != branch["id"]
+                    or registration.get("original_seeds") != bundle["seeds"]
+                ):
+                    raise ValueError("original frozen third-seed design required")
+            elif branch["design"] != digest(bundle["design"]):
+                raise ValueError("diagnostic comparison design differs from frozen registration")
             if bundle["target_slot"] not in branch["task_slots"] or branch["signal"] not in {
                 "heldout_yield",
                 "seed_disagreement",
@@ -216,8 +264,17 @@ class RunStore:
                 or panel["track"] != self.campaign["track"]
             ):
                 raise ValueError("diagnostic cannot consume assessment/training truth")
+            members = {r["id"]: r for r in panel["payload"]["rows"]}
             if any(
-                v.get("panel") == branch["panel"] for v in self.state.get("decisions", {}).values()
+                r["task"] not in members
+                or r["stratum"] != members[r["task"]]["stratum"]
+                or r["group"] not in members[r["task"]]["groups"]
+                for r in bundle["roster"]
+            ) or {r["task"] for r in bundle["roster"]} != set(members):
+                raise ValueError("diagnostic outcomes must cover the exact reserved panel roster")
+            if any(
+                v.get("panel") == panel["identity"]
+                for v in self.state.get("decisions", {}).values()
             ):
                 raise ValueError("diagnostic panel already consumed")
         certificates = dict(self.state.get("decisions", {}))
@@ -229,7 +286,11 @@ class RunStore:
             "verdict": decision["payload"]["evidence_verdict"],
             "action": decision["payload"]["next_action"],
             "failure_class": branch["failure_class"] if branch else None,
-            "panel": branch["panel"] if branch else None,
+            "panel": panel["identity"] if branch else None,
+            "original_decision": confirmation["original"]["decision"]["identity"]
+            if confirmation
+            else None,
+            "comparisons": bundle["design"]["comparisons"],
         }
         certificates[key] = cert
         self.append(dict(self.state, decisions=certificates))
@@ -261,7 +322,9 @@ class RunStore:
         return self.append(
             {
                 "tasks": tasks,
-                "status": "PAUSED" if (self.pause_path()).exists() else status,
+                "status": "PAUSED"
+                if status != "FAILED" and (self.pause_path()).exists()
+                else status,
                 "invocation": invocation,
             }
         )

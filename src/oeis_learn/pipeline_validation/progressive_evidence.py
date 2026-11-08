@@ -198,10 +198,127 @@ def tuning_report(rows):
     """Public development-only ranking; screening is never confirmation."""
     from oeis_learn.generalization.progressive.selection import rank
     from oeis_learn.pipeline_validation.identity import seal
+
     ranking = rank(rows)
-    return seal(dict(version="progressive-tuning-report/v1", scientific_status="UNMEASURED",
-        qualification_status="PENDING", ranking=ranking,
-        trials=[dict(r,learning_trial=i<12,size_trial=i>=12,
-                     performance_pruning_allowed=i not in (0,1) and i<12,
-                     grace_tokens=1000000) for i,r in enumerate(rows)],
-        missing=["actual_HIP_selected_shape_dropout_matrix","independent_confirmation"]))
+    return seal(
+        {
+            "version": "progressive-tuning-report/v1",
+            "scientific_status": "UNMEASURED",
+            "qualification_status": "PENDING",
+            "ranking": ranking,
+            "trials": [
+                dict(
+                    r,
+                    learning_trial=i < 12,
+                    size_trial=i >= 12,
+                    performance_pruning_allowed=i not in (0, 1) and i < 12,
+                    grace_tokens=1000000,
+                )
+                for i, r in enumerate(rows)
+            ],
+            "missing": ["actual_HIP_selected_shape_dropout_matrix", "independent_confirmation"],
+        }
+    )
+
+
+def finalize_learning(journal, task, state_root, output):
+    """Stdlib host receipt after owned process and cleanup have terminated.
+
+    Worker progress is a lower bound; this receipt includes process startup and
+    cleanup and all previous invocations. It never changes committed model state.
+    """
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.generalization.progressive.milestones import milestone
+
+    state_root = Path(state_root)
+    binding = load(state_root / "binding.json")
+    if seal(binding) != binding or binding["task"] != task:
+        raise ValueError("original recovery binding required")
+    lineage = load(state_root / "lineage.json") if (state_root / "lineage.json").is_file() else None
+    if lineage and (seal(lineage) != lineage or lineage["task"] != task["identity"]):
+        raise ValueError("changed learning ancestry")
+    base = lineage["base"] if lineage else {"tokens": 0, "ancestor_cost_us": 0}
+    remaining = journal.task_remaining(task)
+    charged = base["tokens"] + task["payload"]["caps"]["tokens"] - remaining["tokens"]
+    elapsed = task["payload"]["caps"]["elapsed_us"] - remaining["elapsed_us"]
+    report = seal(
+        {
+            "version": "progressive-final-accounting/v1",
+            "task": task["identity"],
+            "milestone": milestone(
+                charged,
+                ancestor_tokens=base["tokens"],
+                ancestor_cost_us=base["ancestor_cost_us"],
+                new_cost_us=elapsed,
+            ),
+            "ancestor_checkpoint": lineage["parent"] if lineage else None,
+            "remaining": remaining,
+            "journal": journal.snapshot()["watermark"],
+            "ancestor_cost_available": lineage.get("ancestor_cost_available", True)
+            if lineage
+            else task["payload"]["initializer"]["mode"] != "weights_only",
+            "cost_scope": "all task invocations including startup and proven supervisor cleanup",
+            "pending": journal.snapshot()["pending"],
+        }
+    )
+    atomic_write(Path(output) / "accounting-final.json", report)
+    return report
+
+
+def generation_timing(value):
+    """Collect only measured producer phase clocks, without adding overlap to wall time."""
+    import math
+
+    if value.get("version") != "discovery-candidates/v1" or seal(value) != value:
+        raise ValueError("original sealed generation producer required")
+    generated, queue, fit, capped, attempts = [], [], [], 0, 0
+
+    def micros(seconds):
+        if type(seconds) not in (int, float) or not math.isfinite(seconds) or seconds < 0:
+            raise ValueError("invalid producer phase clock")
+        return int(seconds * 1000000)
+
+    for row in value["records"].values():
+        for mode, cost in row["costs"].items():
+            if mode not in {"correct", "shuffled", "absent", "template"}:
+                continue
+            for detail in cost.get("details", []):
+                attempts += 1
+                if "generation_seconds" in detail:
+                    generated.append(micros(detail["generation_seconds"]))
+                capped += detail.get("complete") is False
+                clock = detail.get("fitting", {}).get("clock", {})
+                if {"admitted", "dispatched", "completed"} <= clock.keys():
+                    queue.append(micros(clock["dispatched"] - clock["admitted"]))
+                    fit.append(micros(clock["completed"] - clock["dispatched"]))
+
+    def summary(values):
+        return {
+            "observed": len(values),
+            "unavailable": attempts - len(values),
+            "total_us": sum(values),
+            "maximum_us": max(values) if values else None,
+            "unavailable_reason": None
+            if len(values) == attempts and attempts
+            else "producer phase clock absent",
+        }
+
+    tail = summary(generated)
+    tail.update(
+        attempts=attempts,
+        token_cap_or_incomplete_events=capped,
+        p95_us=sorted(generated)[max(0, (95 * len(generated) + 99) // 100 - 1)]
+        if generated
+        else None,
+    )
+    return seal(
+        {
+            "version": "progressive-phase-timing/v1",
+            "producer": value["identity"],
+            "generation_tail": tail,
+            "queue": summary(queue),
+            "fit": summary(fit),
+            "wall_elapsed_us": value["elapsed_us"],
+            "accounting": "phase clocks may overlap; do not add their totals to wall time",
+        }
+    )
