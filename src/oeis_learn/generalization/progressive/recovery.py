@@ -354,7 +354,13 @@ class Recovery:
             raise ValueError("full update cannot fit remaining task reservation")
         ordinal = self.sequence()
         event = self.journal.reserve(
-            self.p["id"], "update", ordinal, charge, boot=boot, monotonic_us=monotonic_us
+            self.p["id"],
+            "update",
+            ordinal,
+            charge,
+            boot=boot,
+            monotonic_us=monotonic_us,
+            details={"replay": batch["replay"]} if "replay" in batch else None,
         )
         # This commits the COST, never the model. Even a crash before the recovery
         # event becomes visible retains this irreversible debit.

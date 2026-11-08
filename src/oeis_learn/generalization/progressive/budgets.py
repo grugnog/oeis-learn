@@ -77,7 +77,7 @@ class BudgetJournal:
             for line in self.path.read_text().splitlines():
                 event = json.loads(line)
                 if (
-                    set(event)
+                    set(event) - {"details"}
                     != {
                         "identity",
                         "previous",
@@ -95,6 +95,14 @@ class BudgetJournal:
                 ):
                     raise ValueError("journal chain broken")
                 vector(event["cost"])
+                if "details" in event:
+                    from .replay import validate_charge
+
+                    if set(event["details"]) != {"replay"} or event["event"] != "RESERVE":
+                        raise ValueError("closed replay debit details required")
+                    debit = validate_charge(event["details"]["replay"])
+                    if debit["oeis_tokens"] + debit["synthetic_tokens"] != event["cost"]["tokens"]:
+                        raise ValueError("replay token charge differs")
                 integer(event["index"])
                 integer(event["start_us"])
                 if (
@@ -165,10 +173,18 @@ class BudgetJournal:
         finally:
             os.close(fd)
 
-    def reserve(self, task, operation, ordinal, costs, *, boot, monotonic_us):
+    def reserve(self, task, operation, ordinal, costs, *, boot, monotonic_us, details=None):
         integer(ordinal)
         integer(monotonic_us)
         vector(costs)
+        if details is not None:
+            from .replay import validate_charge
+
+            if not isinstance(details, dict) or set(details) != {"replay"} or operation != "update":
+                raise ValueError("closed replay update debit required")
+            debit = validate_charge(details["replay"])
+            if debit["oeis_tokens"] + debit["synthetic_tokens"] != costs["tokens"]:
+                raise ValueError("replay token charge differs")
         key = f"{task}/{operation}/{ordinal}"
         with self.lock():
             events, pending, finished, totals, previous = self._read()
@@ -176,7 +192,7 @@ class BudgetJournal:
                 (e for e in events if e["operation"] == key and e["event"] == "RESERVE"), None
             )
             if prior:
-                if prior["cost"] != costs:
+                if prior["cost"] != costs or prior.get("details") != details:
                     raise ValueError("conflicting duplicate ordinal")
                 return dict(key=key, committed=key in finished, reserved=prior)
             for k in KEYS:
@@ -202,6 +218,7 @@ class BudgetJournal:
                     boot=boot,
                     start_us=monotonic_us,
                     end_us=None,
+                    **({"details": details} if details is not None else {}),
                 )
             )
             return dict(key=key, committed=False)

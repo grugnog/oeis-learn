@@ -27,21 +27,24 @@ def compatibility(package):
     policy = {
         k: v for k, v in package["update_policy"].items() if k not in {"identity", "model_profile"}
     }
-    return digest(
-        {
-            "model": model,
-            "shape": profile["shape"],
-            "inputs": profile["inputs"],
-            "codec": profile["codec"],
-            "encoder_positions": profile["encoder_positions"],
-            "decoder_positions": profile["decoder_positions"],
-            "policy": policy,
-            "shards": package["shards"],
-            "layout": package["layout"],
-            "refresh_updates": package["refresh_updates"],
-            "scope": package["scope"],
-        }
-    )
+    value = {
+        "model": model,
+        "shape": profile["shape"],
+        "inputs": profile["inputs"],
+        "codec": profile["codec"],
+        "encoder_positions": profile["encoder_positions"],
+        "decoder_positions": profile["decoder_positions"],
+        "policy": policy,
+        "shards": package["shards"],
+        "layout": package["layout"],
+        "refresh_updates": package["refresh_updates"],
+        "scope": package["scope"],
+    }
+    if "oeis_replay" in package:
+        from oeis_learn.generalization.progressive.replay import RULE
+
+        value["replay_policy"] = RULE
+    return digest(value)
 
 
 def validate_input(package, task):
@@ -50,7 +53,7 @@ def validate_input(package, task):
     from oeis_learn.pipeline_validation.progressive_training import validate_update_policy
 
     if (
-        set(package) - {"weights", "origin"}
+        set(package) - {"weights", "origin", "oeis_replay"}
         != {
             "version",
             "identity",
@@ -76,6 +79,16 @@ def validate_input(package, task):
         )
     ):
         raise ValueError("scaling must retain the frozen 400M schedule and 1.25M warmup")
+    if "oeis_replay" in package:
+        from oeis_learn.generalization.progressive.replay import Mixer
+
+        mixer = Mixer(package["oeis_replay"])
+        if (
+            task["track"] != "oeis_derived"
+            or task["payload"]["arm"] != mixer.package["arm"]
+            or any(a["purpose"] != task["purpose"] for a in mixer.package["admissions"])
+        ):
+            raise ValueError("separate paired OEIS-derived replay authority required")
     initializer = task["payload"]["initializer"]
     if (
         initializer.get("mode") == "weights_only"
@@ -310,10 +323,15 @@ def _run(
             elif mode != "random":
                 raise ValueError("unresolved imported initializer")
             controller = Controller(package["layout"], seed=t["payload"]["seed"])
+            from oeis_learn.generalization.progressive.replay import Mixer
+
+            initial_replay = (
+                Mixer(package["oeis_replay"]).initial() if "oeis_replay" in package else {}
+            )
             context = {
                 "scheduler": {"controller": controller.snapshot(), "pre_loss": None},
                 "data": {"cursor": 0, "pending_batch": None},
-                "replay": {},
+                "replay": initial_replay,
                 "history": {},
                 "pins": {},
                 "selection": {
@@ -336,6 +354,8 @@ def _run(
                     "consumed",
                 )
             }
+            if "oeis_replay" in package:
+                cuts["archive"] = context["replay"]["archive"]
             worker.initialize(context, cuts)
         restored = recovery.restore()
         context = copy.deepcopy(worker.context)
@@ -408,6 +428,13 @@ def _run(
                         )
                         context["scheduler"]["pre_loss"] = None
                     rows, index = batch_for(controller)
+                    replay_debit = None
+                    if "oeis_replay" in package:
+                        from .progressive_training import replay_batch
+
+                        rows, replay_debit = replay_batch(
+                            package["oeis_replay"], rows, context["replay"]
+                        )
                     if controller.block_position == 0 and context["scheduler"]["pre_loss"] is None:
                         probe = lookup[package["layout"]["probes"][controller.pending["bin"]]["id"]]
                         observed = observe_targets(
@@ -461,6 +488,8 @@ def _run(
                         monotonic_us=time.monotonic_ns() // 1000,
                         allocation=controller_cut,
                         progress=heartbeat,
+                        replay=replay_debit,
+                        replay_package=package.get("oeis_replay"),
                         fault_after_reserve=(
                             package["diagnostic_fault"] is not None
                             and package["diagnostic_fault"]["slot"] == t["payload"]["slot"]

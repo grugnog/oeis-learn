@@ -739,6 +739,8 @@ class RecoverableUpdate:
         allocation=None,
         fault_after_reserve=False,
         progress=None,
+        replay=None,
+        replay_package=None,
     ):
         import copy
 
@@ -751,6 +753,8 @@ class RecoverableUpdate:
             "inputs": digest(sequences),
             "targets": digest(tokens.tolist()),
         }
+        if replay is not None:
+            batch["replay"] = replay
         prior = self.recovery.completed(update, batch)
         if prior is not None:
             # Historical receipts remain immutable after tensor generations are
@@ -776,6 +780,10 @@ class RecoverableUpdate:
                 sequences, tokens, ledger=ledger, allocation=allocation
             )
             next_context = copy.deepcopy(context)
+            if replay is not None:
+                next_context["replay"] = reconcile_replay(
+                    replay_package, context["replay"], self.recovery.journal, self.recovery.p["id"]
+                )
             if allocation is not None:
                 next_context["scheduler"]["controller"] = allocation.snapshot()
                 cuts = dict(cuts, allocation=digest(allocation.snapshot()))
@@ -942,3 +950,18 @@ class Heartbeat:
             raise RuntimeError("heartbeat publication failed") from self.error
         if kind is None:
             self.emit()
+
+
+def replay_batch(package, synthetic, state):
+    from oeis_learn.generalization.progressive.replay import Mixer
+
+    mixer = Mixer(package)
+    return mixer.plan(synthetic, state, count=len(synthetic))
+
+
+def reconcile_replay(package, state, journal, task):
+    from oeis_learn.generalization.progressive.replay import Mixer
+
+    with journal.lock():
+        events = journal._read()[0]
+    return Mixer(package).reconcile(state, events, task=task)

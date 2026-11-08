@@ -49,6 +49,7 @@ CPU_TESTS = (
     "tests/unit/test_progressive_continuation.py",
     "tests/unit/test_progressive_archive.py",
     "tests/unit/test_progressive_yield_audit.py",
+    "tests/unit/test_progressive_replay.py",
     "tests/contract/test_progressive_admission.py",
     "tests/unit/test_progressive_sensitivity.py",
     "tests/unit/test_progressive_stream.py",
