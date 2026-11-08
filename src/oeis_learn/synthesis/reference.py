@@ -20,7 +20,14 @@ class _Stop(Exception):
     pass
 
 
-def evaluate(source, indices, limits=ResourceProfile(), *, deadline=None, observer=None):
+def evaluate(source, indices, limits=ResourceProfile(), *, deadline=None, observer=None,
+             branch_observer=None):
+    """Observe optional stable AST sites without changing execution semantics.
+
+    The diagnostic callback receives (site_path, None) once per if/select site,
+    then (site_path, bool) on each decision. Unreached sites stay registered.
+    The existing observer protocol is unchanged. Select remains eager.
+    """
     start = time.monotonic()
     deadline = min(
         start + limits.evaluation_seconds, deadline if deadline is not None else float("inf")
@@ -30,6 +37,18 @@ def evaluate(source, indices, limits=ResourceProfile(), *, deadline=None, observ
         if time.monotonic() >= deadline:
             raise _Stop("deadline")
         program = parse(source, limits)
+        sites = {}
+        if branch_observer is not None:
+            def register(node, path):
+                if not isinstance(node, tuple):
+                    return
+                if node[0] in {"if", "select"}:
+                    sites[id(node)] = path
+                    branch_observer(path, None)
+                for ordinal, child in enumerate(node[1:], 1):
+                    register(child, path + (ordinal,))
+            for ordinal, node in enumerate((*program.statements, program.result)):
+                register(node, (ordinal,))
         if not 1 <= len(indices) <= 100:
             raise _Stop("invalid_source")
         for text in indices:
@@ -89,6 +108,8 @@ def evaluate(source, indices, limits=ResourceProfile(), *, deadline=None, observ
                 if op == "to_bigint":
                     return bounded(xs[0])
                 if op == "select":
+                    if branch_observer is not None:
+                        branch_observer(sites[id(node)], bool(xs[0]))
                     return xs[1] if xs[0] else xs[2]
                 if op in ("to_control", "increment"):
                     n = xs[0] + (op == "increment")
@@ -107,6 +128,8 @@ def evaluate(source, indices, limits=ResourceProfile(), *, deadline=None, observ
                     condition = expr(args[0])
                     if observer is not None:
                         observer("branch", bool(condition))
+                    if branch_observer is not None:
+                        branch_observer(sites[id(node)], bool(condition))
                     branch = args[1] if condition else args[2]
                     for child in branch[1:]:
                         statement(child)

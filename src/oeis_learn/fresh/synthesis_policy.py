@@ -120,6 +120,7 @@ def select_visible(rows, *, policy='visible-only/v1'):
 def transfer_success(selected, indices, expected, production, reference):
     if selected is None:
         return False
+    selected = _comparison_base(selected)
     record = {k: v for k, v in selected.items() if k not in {"seal_sha256", "selection"}}
     if selected.get("selection") not in {"visible-only/v1", "visible-only/v2"} or selected.get("seal_sha256") != identity(record):
         raise ValueError("changed sealed candidate")
@@ -177,10 +178,23 @@ def _select_v2(rows):
     return dict(semantic, selection='visible-only/v2', seal_sha256=identity(semantic))
 
 
+def _comparison_base(selected):
+    """Authenticate the experimental selector while retaining original fit provenance."""
+    if selected.get('selection') != 'visible-branch-coverage/v1':
+        return selected
+    from oeis_learn.generalization.selector_coverage import POLICY
+    body={k:v for k,v in selected.items() if k not in {'selection','seal_sha256'}}
+    if (selected.get('seal_sha256') != identity(body) or body.get('selector_policy') != POLICY['identity']
+            or body.get('base_selection') not in {'visible-only/v1','visible-only/v2'}):
+        raise ValueError('changed comparison selector seal')
+    base=body.pop('base_selection');body.pop('selector_policy')
+    return dict(body, selection=base, seal_sha256=identity(body))
+
+
 def validate_selection_envelope(envelope):
     """Bind v2 scoring provenance to the visible-only seal before hidden execution."""
     from oeis_learn.synthesis.admission import source_identity
-    selected=envelope['selected']
+    selected=_comparison_base(envelope['selected'])
     record={k:v for k,v in selected.items() if k not in {'seal_sha256','selection'}}
     if selected.get('selection') not in {'visible-only/v1','visible-only/v2'} or selected.get('seal_sha256')!=identity(record):
         raise ValueError('changed sealed candidate')

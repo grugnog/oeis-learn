@@ -205,7 +205,7 @@ the reason. Keep hardware tasks unchecked until actual evidence is supplied.
 - [X] T072 [US4] Verify actual fresh/resumed device/model/optimizer/RNG/data/adaptive/scaler/review equality at both pause boundaries, discarded-crash debit, no-Lt environment/source closure and independently checked success/failure archives from T068 in `specs/012-parameterized-adaptive-curriculum/validation/hip-acceptance.md`; keep any unavailable device/failure proof pending rather than inferring it from old 011 evidence.
 
   **T072 evidence status**: COMPLETE. Original -004 clean HIP resume/export evidence plus the verified supplemental actual HIP crash/debit summary are reconciled in `validation/t072-result.md`. No CPU substitution or ZIP upload was used.
-- [ ] T073 [US5] If authorized research completed in T068, run the scoped analysis over its final reports, examine passing/failing before/after cases and reconcile costs/denominators/attribution into `specs/012-parameterized-adaptive-curriculum/validation/research-results.md` (new); otherwise record research DEFERRED with exact missing evidence. Only check this task complete for actual research analysis; explicit deferral does not block software acceptance and does not authorize another campaign.
+- [X] T073 [US5] If authorized research completed in T068, run the scoped analysis over its final reports, examine passing/failing before/after cases and reconcile costs/denominators/attribution into `specs/012-parameterized-adaptive-curriculum/validation/research-results.md` (new); otherwise record research DEFERRED with exact missing evidence. Only check this task complete for actual research analysis; explicit deferral does not block software acceptance and does not authorize another campaign.
 
   **T073 evidence status**: DEFERRED under the uploaded `research=false` scope; missing actual research outputs are enumerated in `validation/research-results.md`. This remains unchecked and does not authorize a new campaign.
 
@@ -614,3 +614,276 @@ and the read-only 16/16 checklist pass; no extension hooks are registered. The
 handoff resumes from the failed R1 root's copied plan into fresh `pac-012-bcd-r1-002`,
 without rebuilding images or repeating the five successful gates. No HIP,
 structural inference or CI wait was performed.
+
+### Stacked installed follow-up integration (2026-11-06)
+
+The operator started the compatible R1 retry and requested a separate stacked PR
+for permanent integration. Work is isolated on `012-pac-followup-integration`,
+based on #63 at `bbeacb4`; the running branch and original evidence remain intact.
+R0 ownership, storage checks and qualification diagnostics already live in installed
+modules. The remaining helper-only baseline projection and exception reporting move
+to their existing installed boundaries, leaving serial orchestration temporary.
+
+- [X] T097 Move the follow-up regression cases into the normal integration suite; add direct installed projection and canonical normal/minimal exporter counterexamples before implementation.
+- [X] T098 Install exclusive verified retained-baseline projection and helper failure capture/validation; wire the temporary runner to those APIs without adding a second workflow or changing scientific authority.
+- [X] T099 Collect verified helper diagnostics directly through canonical rich/minimal export and read-only recovery, removing helper archive supplementation; retain tamper/privacy/status guards.
+- [X] T100 Validate affected installed/operator/archive paths and stdlib entrypoints, refresh the implementation disposition identity, document changed source/qualification scope, commit periodically and open the stacked PR against #63 without waiting for CI. Do not change the active campaign or claim actual HIP proof of the new source.
+
+T097 red baseline: four failed, two passed. Direct installed projection imports
+fail in both control modes, and direct canonical rich/minimal exports lack the
+bound helper diagnostic. Existing real helper-baseline branch tests still pass.
+
+T098–T099: installed `project_retained_checkpoint` owns exclusive creation, original
+weight verification and frozen descriptor/label checks through `checkpoint_request`.
+`generalization_helper_failures` owns bounded private/public capture and strict
+inventory/schema/status/vocabulary/source-location validation. The canonical PAC
+exporter shares failure projection across rich/minimal output; the wrapper's archive
+supplementation is removed and recovery delegates directly. Four red integration
+gaps now pass. Final affected/evaluation/archive/governance selection: 175 passed,
+three actual-native qualification checks skipped, five subtests passed. A separate
+161-test contract/privacy selection also passed. Stdlib CLI help passes. No HIP or
+CI wait occurred. The 007 implementation identity is refreshed without altering its
+68 dispositions or completion flag; the new installed source requires its own
+future source/image qualification and does not replace the active R1 scope.
+
+T100: affected tests, installed-source identity, stdlib entrypoints, prerequisite,
+local-link/shell syntax, whitespace and read-only checklist checks pass. The
+installed integration handoff records the unchanged active R1 scope and separate
+future qualification obligation. Red-first and implementation groups are pushed;
+the final documentation group and separate PR target #63's branch, with no CI wait.
+
+### Operator-authorized selector diagnosis (2026-11-06)
+
+Separate stack above #64; the completed R1 experiment and production selector stay
+frozen. Implement a read-only, explicitly exploratory audit, not a new campaign.
+The follow-up contract is `validation/selector-audit.md`. These tasks reuse the
+existing independent bounded reference interpreter; no second arithmetic engine,
+new fitting, training, hidden-term execution or automatic policy adoption.
+
+- [X] T101 Specify the audit/visible-only ranking boundary and add independent branch-coverage, leakage, provenance, unknown-outcome and immutable-output counterexamples before implementation.
+- [X] T102 Implement bounded branch-site observation and the experimental ranking API, preserving reference arithmetic and existing observer/selection semantics.
+- [X] T103 Implement the stdlib CLI over verified report/detail ZIPs, reconstruct original eligible candidate pools, reproduce original choices, join only previously scored exact sources after ranking, and export bounded diagnostic evidence.
+- [X] T104 Run affected CPU/stdlib regressions and the supplied R1 bundle, record outcomes and limitations, refresh source disposition, commit/push periodically and open a separate stacked PR without waiting for CI.
+
+Training-only probe calibration, freezing a research selector and fresh structural
+confirmation require workstation checkpoint/probe originals and a separately frozen
+execution plan. They are not claimed by this offline audit or launched here.
+
+T101: fifteen independent counterexamples fail before implementation (missing
+branch observer/ranking/audit boundaries). Checklist remains 16/16; no hooks are
+registered. Existing ignore files cover private run-state and Python artifacts.
+
+T102: the bounded reference interpreter now offers optional stable if/select site
+observation without changing arithmetic or legacy observer events. The closed
+experimental ranker accepts only generated source identities and a 20-term visible
+prompt. Seven independent selector tests pass; original reference/diagnostic
+regressions are included in the local validation. No production selector is changed.
+
+T103: the stdlib CLI verifies report/producer bindings, recovers retained and
+omitted eligible sources, reproduces every original choice and ranks without
+scores. Nineteen focused cases pass, including a red-first private-reason canary.
+The first original-bundle replay reproduces 384/384 choices and all 3,851 eligible
+candidates in 4.63 local CPU seconds; no hidden execution or hardware claim. The
+generation inventory is bound to the supplied detail ZIP, not falsely advertised
+as present in the public report; an optional externally recorded ZIP hash pins it.
+
+T073 (2026-11-06 update): completed actual R1 analysis is now recorded in
+`validation/research-results.md`, superseding the earlier acceptance-only deferral.
+Original full research outputs and detail ZIP were verified and all task cases
+audited; scientific comparisons remain INCOMPLETE under the unchanged 65/68 gate.
+No new campaign, policy adoption or assessment execution follows from completion.
+
+T104: final affected reference/admission/diagnostic/archive/scoring/privacy selection
+passes 108 tests (one intentional duplicate-ZIP fixture warning). Twenty selector
+and audit tests include an additional red-first original-censoring accounting case.
+The final stdlib replay reproduces 384 choices and observes all 3,851 eligible
+sources with no unavailable observations. Certified changed/known-recovered/unscored
+counts are B 23/0/20, C 20/10/10 and D 27/0/27; no new accuracy estimate is inferred.
+The bounded summary and research review record exact original and audit identities.
+CLI help, prerequisites, links, whitespace and the unchanged 16/16 checklist pass;
+no hooks are registered. The 007 implementation identity is refreshed with its 68
+historical dispositions unchanged. No HIP, training, fresh scoring, assessment,
+production selector adoption or CI wait occurred. Separate stack targets #64.
+
+## Selector validation follow-up (2026-11-07)
+
+The operator requested a workstation workflow using existing checkpoints/probes,
+followed by a separately frozen fresh structural comparison. This is a new
+prospective experiment; it does not overwrite R1 or adopt a production selector.
+
+- [X] T105 Add red-first selector comparison contracts: identical eligible pools, visible-only ranking, provenance seals, incomplete-trace censoring, unchanged historical draw, and separately versioned fresh draw in `tests/unit/test_selector_validation.py`.
+- [X] T106 Connect optional complete admitted-envelope retention to existing generation, preserve all seven controls including bank, and use the existing independent scorer through installed least-privilege roles in `selector_validation_roles.py`; exercise a synthetic shared-generation/two-selector/full-horizon path.
+- [X] T107 Finish the stdlib portable workstation command with inventory-bound final B/D checkpoints, training-only probe publication, source/image requalification, explicit post-probe freeze, one-use fresh execution, original/observed/probe exclusions and fail-closed quota diagnostics.
+- [X] T108 Validate affected host/generation/scoring/structural contracts, publish an operator handoff and frozen experimental design, refresh the implementation binding, commit and push the separate stack without waiting for CI. Actual workstation HIP/probe/fresh results remain operator execution evidence, not local test claims.
+
+T105–T108 validation: 184 affected local CPU/contract/integration checks pass
+(183 together plus the corrected implementation-binding check); one intentional
+duplicate-ZIP fixture warning. Fourteen new cases cover comparison seals, complete
+shared pools, synthetic canonical scoring, assessment rejection, observed-cohort
+exclusion, exact checkpoint inventory/tampering, freeze/source gates and visible
+failure bundles. Stdlib help for all three phases, prerequisites, whitespace and
+the unchanged 16/16 requirements checklist pass. No extension hooks are present.
+The historical 68 disposition records are unchanged; only their implementation
+binding is refreshed. Podman is confirmed from the supplied original plan. Current
+source builds and actual-HIP qualification are part of the workstation command.
+No real weights/probes/HIP or fresh scientific outcomes are claimed locally; no
+CI wait. The new stack builds on the offline audit branch/PR #65.
+
+## Fixed-candidate fitting diagnostics (2026-11-07)
+
+The completed training probe gate stopped at D 235/256 complete. Operator-approved
+follow-up replays the nine no-selection timeout cases (72 original fits), then
+compares resource configurations separately. It cannot update the probe gate.
+
+- [X] T109 Add red-first contracts for exact timeout-case extraction, original seeds/service allowances, visible-only fitter mounts, same-core-source binding and immutable diagnostic scope.
+- [X] T110 Add installed preparation/fitter adapters using the existing native client, native transport timing, queue/RSS/restart statistics and repeated fixed-work serial/concurrent comparisons.
+- [X] T111 Add portable CPU-only workstation command, original artifact verification, current image/native checks, frozen resource matrix, complete diagnostic exports and failure evidence.
+- [X] T112 Run affected checks, document the exact command and limitations, refresh the implementation binding, commit/publish a separate stack without CI wait. Workstation replay evidence remains pending.
+
+T109–T112: original uploaded scoring data selects exactly nine D cases / 72
+fits (11 timeouts, 61 completed controls). Initial red-first contracts plus
+additional tampering and verification-failure counterexamples pass. Affected
+local selection passes 101 checks with five existing native-binary-dependent
+checks skipped; no actual Z3/HIP/workstation performance claim follows. Current
+container CPU/native checks include the new owning tests and are required by the
+operator command. Stdlib help, prerequisites, whitespace and unchanged 16/16
+checklist pass; no extension hooks. Original 68 dispositions are preserved while
+refreshing the implementation binding. Separate stack targets #66; no CI wait.
+
+## Native fitting fast paths (2026-11-07)
+
+Follow-up diagnostic reproduced all 11 timeouts with negligible queue/throttling
+and ~150 ms outside native fit timing. Inspection found a fresh WASM engine/guest
+compile before every fit. Operator authorized continuing with sound improvements.
+
+- [X] T113 Add bounded residue contradiction proof tests, runtime reuse/fresh-state counterexamples and explicit engineering-comparison compatibility tests before implementation.
+- [X] T114 Reuse immutable installed runtime/guest identities, expose dispatch phase timing, add bounded modular UNSAT precheck and independently replayable evidence without relaxing numeric/search limits.
+- [X] T115 Freeze an explicit core amendment and benchmark against the prior diagnostic report using identical packets/resources; export the five timeout templates and visible inputs for inspection.
+- [X] T116 Run available affected checks, require native Rust/build qualification on workstation, refresh implementation binding, document commands and limitations, commit/publish the separate stack without waiting for CI.
+
+T113–T116: 126 affected Python/contract/transport checks pass locally, with
+13 native-binary-dependent checks skipped; final targeted amendment/baseline/
+reporting/binding rerun passes 23 checks with one native-image skip. The uploaded
+original baseline validates unchanged three repetitions and replay packet identity.
+The named amendment pins five exact parent/current Rust files; default same-core
+validation remains strict. Added Rust tests cover sound/inconclusive residue cases,
+work/deadline bounds, certificate replay and runtime reuse; the real-worker test
+also checks positive independent admission. This workspace has no Rust/compiler
+or container engine, so these native checks were not executed here. Existing
+qualification-image builds run the Rust suite and the operator command enforces
+CPU/native checks before measuring. Native results/performance and full probe
+advancement remain pending. Stdlib help, whitespace, prerequisites and unchanged
+16/16 checklist pass; no hooks. Only the implementation binding changes among
+the historical 68 dispositions. Separate stack targets #67; no CI wait.
+
+- [X] T117 Review the uploaded optimized workstation replay against the recorded baseline; verify seals, packet and exact attempt bindings, independently exhaust the 11 modular contradictions, and record resource/performance findings plus the fresh full-probe command.
+
+T117: all 72 fits and all nine case searches complete in each of three repeats,
+with zero integrity failures and unchanged classifications for all 61 original
+completed controls. Median warmed workload falls from 18.545 to 0.119 seconds.
+All 11 former timeouts independently fail their visible-prefix residue equations;
+no new solutions are admitted. The uploaded benchmark is CPU-only and excludes
+warmup; individual native test transcripts were not supplied. Historical probe
+completion remains 235/256 and structural advancement remains pending a fresh
+full probe run. Detailed evidence and limitations are recorded in
+`validation/native-fit-fastpaths.md`.
+
+## Installed wheel and qualification failure repair (2026-11-07)
+
+- [X] T118 Reproduce the uploaded GPU image inspection failure with an actual wheel outside the checkout; retain rejection of modified policy bytes.
+- [X] T119 Include all generalization policy JSON resources in wheel/sdist, return failed qualification stage references/reasons, and capture bounded original qualification evidence in selector failure ZIPs without exporting private payloads.
+- [X] T120 Run affected packaging/diagnostic/source-binding checks, record the verified pipeline diagnosis and fresh `-003` retry command, commit and publish a separate stacked repair without waiting for CI.
+
+The uploaded original qualification archive verifies FAIL: CPU/native reports
+1,547 tests with no failures/skips; GPU installed-wheel inspection rejects the
+omitted fit amendment before HIP. The new wheel regression reproduces that exact
+failure before the fix. Three diagnostic scenarios also fail before repair:
+stage details absent from producer result, qualification logs missing from the
+failure ZIP, and capture errors omitted. Existing scientific gates remain intact.
+
+T118–T120: 127 affected checks pass, one installed-native-image check skips;
+final wheel/tamper and implementation-binding checks pass 2/2. Only the current
+implementation binding changes among the 68 historical dispositions. Stdlib
+probe help and whitespace checks pass; read-only checklist remains 16/16 and
+there are no extension hooks. Actual GPU qualification/probe outcomes remain
+workstation-only and pending. The separate repair stack targets #68; no CI wait.
+
+- [X] T121 Review the repaired `probes-003` report: verify seals/source/input bindings, independently recompute all selector/control and B/D summaries, match the nine completed D cases to the fit replay, record remaining censoring and the separate structural freeze/execution commands in `validation/probe-003-review.md`.
+
+T121: PASS / COMPLETE_DESCRIPTIVE, B 255/256 and D 244/256 complete for both
+selectors, zero incomplete traces. B remains 182 successes; D remains 83 original
+and 84 coverage successes. All nine newly completed cases are observed failures.
+The technical gate permits the existing fresh structural screen; no selector or
+arm adoption follows. Report/plan and generation seals, reviewed checkout source,
+unchanged original inputs/roster and every exported paired summary verify. The
+public ZIP lacks qualification transcripts and full utilization traces; those
+claims remain bounded accordingly. Documentation-only follow-up; no CI wait.
+
+## Fresh admission feasibility review and support census (2026-11-07)
+
+- [X] T122 Verify uploaded frozen-plan/availability/producer bindings, account for all 917 window exclusions and four zero-availability families, and reproduce the shared-branch exclusion on public synthetic sources.
+- [X] T123 Add a stdlib-only read-only full-law witness census with fixed protocol/input hashes, bounded input/work, count-only diagnostics and no model/qualification/cohort authority; test both blocking and inconclusive outcomes before implementation.
+- [X] T124 Validate focused/related checks, document the original qualified-checkout-preserving workstation command and scientific decision boundary, commit and publish separately without waiting for CI.
+
+T122–T124: the 2,288 draws lose exactly 917 finite-window matches, leaving
+1,371 candidates. All 256 draws in the four deficient families pass independent
+reference evaluation but are excluded; five certified/two ambiguous slots remain
+missing. Current evidence cannot establish full-law infeasibility. Seven focused
+support tests pass; the related selector run passes 21 checks before the final
+deadline case. Stdlib help, whitespace and unchanged read-only 16/16 checklist
+pass; no hooks. The new helper exports only counts/identities and is run from
+ignored run-state without changing the qualified checkout. No scientific policy
+or installed package code changes; no implementation-binding change is needed.
+The workstation support census remains pending. See
+`validation/fresh-admission-review.md` for proof scope, limits and command.
+
+- [X] T125 Verify uploaded v1 support totals/code binding and retain all four conclusions as inconclusive; implement an opt-in exact all-81-window inverse census with independent-reference, boundary, shifted-window, set-union and copied-stdlib CLI counterexamples, then document the separately scoped workstation command.
+
+T125: v1 completes in 15.716 seconds, leaving 430/53/1,449/1,197 uncovered
+witness classes. These are not eligible-task counts. Full-window projection
+handles linear intervals, quadratic rows/columns and exact mixed-branch points,
+including one-term boundary cases and sum multiplicity. No scientific law,
+quota, seed, exclusion or installed package code changes. The extended census
+remains diagnostic-only and exports counts/identities. Workstation v2 results
+remain pending; v1 is not rewritten. Tests and publication are recorded below.
+
+T125 validation: 29 affected checks pass, including 14 focused support cases.
+Every true window in independent-reference boundary/extreme cases is recognized;
+inverse membership agrees with brute-force equality on an independent grid.
+Shift, overlap, sum multiplicity, optimized reader, zero/full support fixtures
+and actual copied stdlib CLI checks pass. Stdlib help, whitespace, prerequisites
+and unchanged 16/16 read-only checklist pass; no hooks. The qualified checkout
+is preserved by fetching the helper to ignored run-state. Committed and published
+to the existing support-audit stack without waiting for CI.
+
+- [X] T126 Review and verify the uploaded v2 all-window census, reconcile assignment counts and cell increments, and record a concrete proposed draw-only amendment with unchanged scientific controls and explicit planning assumptions in `validation/fresh-reservoir-proposal.md`.
+
+T126: PASS / DIAGNOSTIC_ONLY in 35.837 seconds. All four families have positive
+window support: 6, 98,334, 63,406 and 82,537 assignments respectively. Source
+digest and result seal verify; all 18 scan increments and final counts reconcile.
+The original 64-draw reservoir is particularly inadequate for the six-assignment
+family. Proposed caps 4,096/512/512/512 produce 7,664 total draws within 8,192,
+without changing quotas, seed, law, exclusions, weights or scoring. Random-model
+quota probabilities are explicitly optimistic and do not certify the actual
+prefix or full admission. This is documentation only: no amendment is active,
+no frozen plan changes and no new model/qualification execution is authorized
+by the census. Implementation remains a separate prospective decision.
+
+## Operator-adopted reservoir amendment (2026-11-07)
+
+- [X] T127 Register the exact 4,096/512/512/512 prefix expansion (7,664 total), preserve every old candidate prefix and all other scientific fields, and test rejection of seed/law/protocol changes before implementation.
+- [X] T128 Validate original blocked parent, all-window census, score/checkpoint provenance and historical qualification; prove unchanged inference/metric/native/build closure using bound parent-module text and protected AST; require fresh current CPU/native and HIP qualification without rerunning probe panels.
+- [X] T129 Keep one fresh frozen execution path, verify the new qualification again at execution, enforce measured preparation memory before native/model work, and export public admission/resource counts in success and failure archives.
+- [X] T130 Complete affected local checks and real probes-003 source-compatibility verification, refresh only the current implementation binding, record operator adoption/commands/limitations, commit periodically and publish a separate stack without waiting for CI.
+
+T127–T130: 132 affected checks pass locally, one installed-native-image check
+skips. Exact source compatibility against the actual original probes-003 digest
+d29306db... verifies; 68 historical disposition entries remain unchanged. The
+new protocol is 6603333f...; registered policy is 7c0be8a1.... New qualification
+still requires actual current CPU/native/HIP scopes and identical resource,
+runtime, build and security facts. Historical probe records are preserved under
+their original identities. Prefix, protected-code, tampering, fixed-output,
+qualification-failure, memory-before-native and admission-export regressions
+pass, including real wheel packaging. Stdlib help, whitespace and unchanged
+16/16 read-only checklist pass; no hooks. Workstation qualification, new cohort
+admission and model scores remain pending. See `validation/reservoir-amendment.md`.
