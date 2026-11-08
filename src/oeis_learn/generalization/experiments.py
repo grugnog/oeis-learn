@@ -41,3 +41,13 @@ def recipe(stage):
                 learner_seconds=0 if stage=='E0' else 7200 if stage=='P4' else 21600,
                 milestones=() if stage=='E0' else (1_000_000,2_000_000,4_000_000) if stage=='P4' else (4_000_000,8_000_000,16_000_000,25_000_000),
                 changing_factor={'E0':'evaluation','P0':'seed','P1-screen':'refresh','P1-confirm':'refresh','P2':'support','P3':'target_format','P4':'verified_replay'}[stage])
+
+
+def pac_recipe(*,control_mode='reference-only',optional_d=False):
+    """Independent registered scientific choices; this does not enable CLI dispatch."""
+    if control_mode not in {'matched','reference-only','fresh-control'} or type(optional_d) is not bool:
+        raise ValueError('predeclared PAC control/ablation required')
+    arms=(['A'] if control_mode=='fresh-control' else [])+['B','C']+(['D'] if optional_d else [])
+    return dict(version='PAC-screen/v1',arms=arms,token_cap=25_000_000,
+                sampling={a:{'A':'fixed','B':'fixed','C':'exp3s-leitner','D':'exp3s'}[a] for a in arms},
+                comparison_factors=(['representation'] if control_mode!='reference-only' else [])+['allocation_and_review']+(['allocation','review_substitution'] if optional_d else []))

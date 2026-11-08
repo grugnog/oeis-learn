@@ -78,3 +78,6 @@ system/
 **/.ssh/
 .env
 .env.*
+
+# Local pytest temporary trees under any execution account
+pytest-of-*/

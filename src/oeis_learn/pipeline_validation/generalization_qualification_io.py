@@ -32,7 +32,7 @@ Path('/output/inspection.json').write_text(json.dumps(result,sort_keys=True))
     return json.loads((output/'inspection.json').read_text())
 
 
-def current_facts(host,root,output,*,images,source_ref,build_refs,producer_root,device_inspector=inspect_device):
+def current_facts(host,root,output,*,images,source_ref,build_refs,producer_root,device_inspector=inspect_device,pac_seconds=None):
     """Inspect the current machine/package; never copy claimed runtime/device facts."""
     from oeis_learn.container_validation import inspect_current_image
     from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -45,9 +45,9 @@ def current_facts(host,root,output,*,images,source_ref,build_refs,producer_root,
             raise ValueError('build input changed')
     for position,image in enumerate(images):
         if host.engine.image(image)!=image:raise ValueError('immutable image changed')
-        inspect_current_image(host,image,Path(output)/('image-'+str(position)),seconds=120)
+        inspect_current_image(host,image,Path(output)/('image-'+str(position)),seconds=pac_seconds or 120)
     host.select_gpu()
-    device=device_inspector(host,images[1],Path(output)/'device')
+    device=device_inspector(host,images[1],Path(output)/'device',**({'seconds':pac_seconds} if pac_seconds else {}))
     if device['runtime'].get('execution_policy')!=POLICY_ID:raise ValueError('current numerical policy differs')
     engine=host.engine.facts()
     resources=dict(memory_bytes=host.policy['memory_bytes'],cpus=host.policy['cpus'],torch_intraop=2,torch_interop=1,native_threads=1,learners=1)
@@ -73,7 +73,7 @@ def public_closure(root,authority):
     return list(refs.values())
 
 
-def consume_original(host,workspace,producer_root,output,*,required_suites,required_capabilities,research=False,feature_receipt=None):
+def consume_original(host,workspace,producer_root,output,*,required_suites,required_capabilities,research=False,feature_receipt=None,pac_seconds=None):
     """Consumers independently inspect and validate the same original producer."""
     from .generalization_roles import project_and_invoke
     producer_root=Path(producer_root);output=Path(output)
@@ -81,7 +81,7 @@ def consume_original(host,workspace,producer_root,output,*,required_suites,requi
     if seal(authority)!=authority or authority.get('version')!='generalization-qualification/v2':
         raise ValueError('original v2 qualification authority required')
     facts=current_facts(host,workspace,output/'inspection',images=authority['images'],source_ref=authority['source_closure'],
-        build_refs=authority['build_dependencies'],producer_root=producer_root)
+        build_refs=authority['build_dependencies'],producer_root=producer_root,**({'pac_seconds':pac_seconds} if pac_seconds else {}))
     refs=[reference(path,producer_root),*public_closure(producer_root,authority)]
     if feature_receipt is not None:
         from oeis_learn.generalization.feature_acceptance import feature_artifacts
@@ -91,12 +91,12 @@ def consume_original(host,workspace,producer_root,output,*,required_suites,requi
     result=project_and_invoke(host,authority['images'][0],workspace,'report',{'public_evidence':refs},
         source_roots={'public_evidence':producer_root},output=str((output/'verification').relative_to(workspace)),
         operation='qualification-consume',settings=dict(authority=refs[0],current=facts,required_suites=list(required_suites),
-            required_capabilities=list(required_capabilities),research=research,feature_receipt=feature_receipt),seconds=120)
+            required_capabilities=list(required_capabilities),research=research,feature_receipt=feature_receipt),seconds=pac_seconds or 120)
     if result['status']!='PASS':raise ValueError('INCOMPATIBLE_QUALIFICATION: '+result.get('error',result.get('reason','verification failed')))
     return dict(original=result['original'],authority=authority,root=producer_root)
 
 
-def produce(host,workspace,output,*,images,contract):
+def produce(host,workspace,output,*,images,contract,pac_seconds=None):
     """Canonical runner executes each required CPU/native and HIP scope once."""
     from .registry import Stage
     from .runner import execute
@@ -130,12 +130,18 @@ def produce(host,workspace,output,*,images,contract):
         # The serial fallback archive preserves stdout, even when no authority
         # exists for the normal report. Keep the original stage reasons visible.
         from .receipts import read_terminal
+        failures=[]
         for stage in stages:
-            receipt=read_terminal(output/'pipeline/stages'/stage.id)
+            path=output/'pipeline/stages'/stage.id
+            receipt=read_terminal(path)
             if receipt['state']!='PASS':
-                print('QUALIFICATION '+json.dumps(dict(stage=stage.id,status=receipt['state'],
-                    reason=receipt.get('reason','')[:4096]),sort_keys=True),flush=True)
-        return dict(status='FAIL',reason='QUALIFICATION_FAILED',exit_code=code)
+                failure=dict(stage=stage.id,status=receipt['state'],reason=receipt.get('reason','')[:4096],
+                    receipt=reference(path/'receipt.json',output) if (path/'receipt.json').is_file() else None)
+                failures.append(failure)
+                print('QUALIFICATION '+json.dumps(failure,sort_keys=True),flush=True)
+        archive=output/'pipeline.zip'
+        return dict(status='FAIL',reason='QUALIFICATION_FAILED',exit_code=code,stages=failures,
+            archive=reference(archive,output) if archive.is_file() else None)
     write(output/'source.json',collect_snapshot(workspace));source_ref=reference(output/'source.json',output)
     names=['Dockerfile','pyproject.toml','uv.lock']
     names.extend(str(p.relative_to(workspace)) for p in sorted((workspace/'crates').rglob('Cargo.lock')))
@@ -145,7 +151,7 @@ def produce(host,workspace,output,*,images,contract):
         if not source.is_file():raise ValueError('missing pinned build input: '+name)
         target=output/'build'/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(source.read_bytes())
         builds.append(reference(target,output))
-    facts=current_facts(host,workspace,output/'current',images=images,source_ref=source_ref,build_refs=builds,producer_root=output)
+    facts=current_facts(host,workspace,output/'current',images=images,source_ref=source_ref,build_refs=builds,producer_root=output,**({'pac_seconds':pac_seconds} if pac_seconds else {}))
     evidence=list((output/'pipeline/stages/hip.preflight').rglob('generalization-device.json'))
     if len(evidence)!=1:raise ValueError('missing unique actual load/update proof')
     device_ref=reference(evidence[0],output);dependencies=[]
@@ -166,6 +172,6 @@ def produce(host,workspace,output,*,images,contract):
     refs=[reference(path,output),*public_closure(output,authority)]
     validated=project_and_invoke(host,images[0],workspace,'report',{'public_evidence':refs},source_roots={'public_evidence':output},
         output=str((output/'authority-validation').relative_to(workspace)),operation='qualification-consume',
-        settings=dict(authority=refs[0],current=facts,required_suites=producer['suites'],required_capabilities=producer['capabilities'],research=False,feature_receipt=None),seconds=120)
+        settings=dict(authority=refs[0],current=facts,required_suites=producer['suites'],required_capabilities=producer['capabilities'],research=False,feature_receipt=None),seconds=pac_seconds or 120)
     if validated['status']!='PASS':raise ValueError('qualification authority validation failed')
     return dict(status='PASS',original=producer['identity'],qualification=reference(path,output))

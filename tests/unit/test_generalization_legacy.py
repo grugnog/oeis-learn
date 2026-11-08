@@ -31,3 +31,17 @@ def test_legacy_rejects_mixed_or_ineligible_provenance(change):
     if change=='stage':s=seal(dict(s,state='REUSED'))
     if change=='history':h[1]['splits']['structural_development']['complete']=False
     with pytest.raises(ValueError):audit_uniform(t,p,r,h,s)
+
+
+def test_p3_cannot_be_relabelled_pac_and_original_recipe_is_unchanged():
+    from pathlib import Path
+    from oeis_learn.generalization.contracts import freeze,pac_record
+    from oeis_learn.generalization.experiments import recipe
+    from oeis_learn.generalization.execution import PAIRS,RECIPES
+    old=json.loads(Path('tests/fixtures/generalization/authority.json').read_text())['study']
+    assert freeze('study',old).record()['recipe']==old['recipe']
+    assert PAIRS['P3']==('literal','parameterized') and RECIPES['P3']=='P3-targets/v1'
+    assert recipe('P3')['learner_seconds']==21600
+    old['version']='PAC-screen/v1'
+    with pytest.raises(ValueError):freeze('study',old)
+    with pytest.raises(ValueError):pac_record('experiment',old,sealed=False)

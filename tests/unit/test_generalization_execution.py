@@ -63,3 +63,62 @@ def test_old_cuda_state_is_rejected_after_policy_binding(tmp_path):
     pointer=GeneralizationCheckpointStore(tmp_path,old,10).save(states,Ledger(10),encode=lambda x:json.dumps(x).encode())
     with pytest.raises(ValueError,match='incompatible'):
         GeneralizationCheckpointStore(tmp_path,new,10).load(pointer,decode=json.loads)
+
+
+def pac_setup(mode='reference-only',optional_d=False):
+    from oeis_learn.generalization.experiments import pac_recipe
+    from oeis_learn.generalization.execution import pac_control
+    from oeis_learn.pipeline_validation.identity import digest,seal
+    from tests.unit.test_generalization_contracts import pac_shell
+    h=digest('fixture')
+    proof={k:h for k in ('initializer','order','model','optimizer','exposure','diagnostics','backend')}
+    control=pac_control(proof,proof,original_study=h,source=h,image=h,checkpoint=h,historical_measurements=None)
+    exp=pac_shell();exp.update(control_mode=mode,control=control['identity'])
+    config=pac_recipe(control_mode=mode,optional_d=optional_d)
+    exp.update(arms=config['arms'],comparison_factors=config['comparison_factors'])
+    profiles={a:dict(initializer=h,initializer_kind='random',pool=h,targets=h,model=h,optimizer=h,backend=h,
+               order=h,token_cap=25_000_000,sampling=config['sampling'][a],exposure=h,diagnostics=h) for a in exp['arms']}
+    return seal(exp),control,profiles,proof
+
+
+def test_pac_freeze_defaults_and_control_proof():
+    from oeis_learn.generalization.execution import validate_pac_policy,pac_control
+    from oeis_learn.generalization.experiments import pac_recipe
+    from oeis_learn.pipeline_validation.identity import seal
+    exp,control,profiles,proof=pac_setup()
+    assert exp['arms']==['B','C'] and 'D' not in exp['arms']
+    validate_pac_policy(exp,control,profiles)
+    for key in proof:
+        original=dict(proof);original.pop(key)
+        bad=pac_control(original,proof,**{k:control[k] for k in ('original_study','source','image','checkpoint','historical_measurements')})
+        assert bad['disposition']=='REFERENCE_ONLY' and key in bad['reasons']
+        matched=seal(dict(exp,control=bad['identity'],control_mode='matched',comparison_factors=['representation','allocation_and_review']))
+        with pytest.raises(ValueError,match='matched'):validate_pac_policy(matched,bad,profiles)
+    for change in ({'outcomes_seen':True},{'frozen':False},{'initializer_kind':'trained'},{'arms':['B','C','D']}):
+        with pytest.raises(ValueError):validate_pac_policy(seal(dict(exp,**change)),control,profiles)
+    assert pac_recipe()['token_cap']==25_000_000
+
+
+def test_pac_exact_arm_identity_and_optional_arms():
+    import copy
+    from oeis_learn.generalization.execution import validate_pac_policy
+    for mode,d in [('matched',False),('fresh-control',True),('reference-only',True)]:
+        exp,control,profiles,_=pac_setup(mode,d)
+        validate_pac_policy(exp,control,profiles)
+        for field in ('initializer','pool','targets','model','optimizer','backend','token_cap'):
+            broken=copy.deepcopy(profiles);broken['C'][field]='different'
+            with pytest.raises(ValueError):validate_pac_policy(exp,control,broken)
+        broken=copy.deepcopy(profiles);broken['B']['private_path']='/private/weights'
+        with pytest.raises(ValueError):validate_pac_policy(exp,control,broken)
+
+
+def test_pac_matched_receipt_cannot_be_transplanted_to_different_experiment():
+    import copy
+    from oeis_learn.generalization.execution import validate_pac_policy
+    from oeis_learn.pipeline_validation.identity import seal,digest
+    exp,control,profiles,_=pac_setup('matched')
+    for key in ('model','optimizer','order','backend','exposure','diagnostics'):
+        changed=copy.deepcopy(exp);changed[key]=digest(['changed',key]);changed=seal(changed)
+        altered=copy.deepcopy(profiles)
+        for p in altered.values():p[key]=changed[key]
+        with pytest.raises(ValueError,match='control|proof|matched'):validate_pac_policy(changed,control,altered)

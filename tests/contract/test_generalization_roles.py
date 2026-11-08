@@ -123,3 +123,86 @@ def test_real_role_command_uses_qualified_private_runtime(tmp_path,monkeypatch,e
     assert len(mounts)==len(channels)+1 and all(m.endswith(',readonly') for m in mounts[:-1])
     assert '--read-only' in observed and '--network=none' in observed
     for path in (tmp_path/'out/.runtime').iterdir():assert stat.S_IMODE(path.stat().st_mode)==0o700
+
+
+@pytest.mark.parametrize('engine_name',['docker','podman'])
+@pytest.mark.parametrize('stage',['preparation','learner','generation','acceptance','calibration','resume','proof','export'])
+def test_pac_actual_role_limits_are_unclipped(tmp_path,monkeypatch,engine_name,stage):
+    from types import SimpleNamespace
+    from contextlib import nullcontext
+    from oeis_learn.container_runtime import Engine
+    from oeis_learn.pipeline_validation import generalization_roles as roles,supervision
+    from oeis_learn.pipeline_validation.generalization_execution import startup_environment
+    from tests.integration.test_generalization_recipes import pac_envelope
+    engine=Engine(engine_name,executable=engine_name,details={});monkeypatch.setattr(engine,'user_args',lambda:[])
+    monkeypatch.setattr(supervision,'reclaim',lambda *a:None)
+    monkeypatch.setattr(engine,'device_args',lambda render_node:['--device','/dev/kfd','--device','/dev/dri/renderD128'])
+    selected=Role.LEARNER;channels={m.channel:m.channel for m in ROLE_INPUTS[selected]}
+    for name in channels.values():(tmp_path/name).mkdir()
+    envelope=pac_envelope()[stage];seen=[]
+    def launch(argv,output,**kw):
+        seen.extend(argv);runtime=json.loads(argv[-1])
+        assert runtime['seconds']==envelope['work']+envelope['publication']
+        assert kw['seconds']>=runtime['seconds']
+        assert kw['cleanup_seconds']==30
+        (output.parent/'result.json').write_text('{"status":"PASS"}')
+    host=SimpleNamespace(engine=engine,policy={'memory_bytes':2<<30,'cpus':4},gpu_lock=nullcontext)
+    roles.invoke(host,'sha256:'+'a'*64,tmp_path,selected,channels,output='out',operation='train',settings={},
+                 seconds=envelope['outer'],gpu=True,launcher=launch,envelope=envelope)
+    env=dict(seen[i+1].split('=',1) for i,x in enumerate(seen) if x=='--env')
+    assert all(env[k]==v for k,v in startup_environment().items())
+    assert env['TMPDIR']=='/output/learner/.runtime/tmp'
+
+
+def test_pac_process_failure_cannot_be_overridden_by_stale_application_pass(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.container_runtime import Engine
+    from oeis_learn.pipeline_validation import generalization_roles as roles,supervision
+    from tests.integration.test_generalization_recipes import pac_envelope
+    engine=Engine('podman',executable='podman',details={});monkeypatch.setattr(engine,'user_args',lambda:[])
+    monkeypatch.setattr(supervision,'reclaim',lambda *a:None)
+    channels={m.channel:m.channel for m in ROLE_INPUTS[Role.REPORT]}
+    for name in channels.values():(tmp_path/name).mkdir()
+    def launch(argv,output,**kw):
+        output.mkdir();(output.parent/'result.json').write_text('{"status":"PASS"}')
+        (output/'process.json').write_text(json.dumps(dict(outcome='FAIL',returncode=1,cleanup_failure=None)))
+    with pytest.raises(ValueError,match='process'):
+        roles.invoke(SimpleNamespace(engine=engine,policy={'memory_bytes':2<<30,'cpus':4}),
+            'sha256:'+'a'*64,tmp_path,Role.REPORT,channels,output='out',operation='fixture',settings={},
+            seconds=3900,launcher=launch,envelope=pac_envelope()['export'])
+
+
+@pytest.mark.parametrize('engine_name',['docker','podman'])
+@pytest.mark.parametrize('role_name,operation,stage,gpu',[
+    ('preparation','pac-assemble','preparation',False),('learner','pac-calibrate','calibration',True),
+    ('learner','pac-campaign-acceptance','acceptance',True),('preparation','pac-publish-evaluation','validation',False),
+    ('generator','pac-evaluate','generation',True),('selection','pac-score','proof',False)])
+def test_pac_delivery_commands_have_exact_mounts_and_full_envelope(tmp_path,monkeypatch,engine_name,role_name,operation,stage,gpu):
+    from types import SimpleNamespace
+    from contextlib import nullcontext
+    from oeis_learn.container_runtime import Engine
+    from oeis_learn.pipeline_validation import generalization_roles as roles,supervision
+    from oeis_learn.pipeline_validation.generalization_pac_setup import envelope
+    from oeis_learn.pipeline_validation.generalization_execution import startup_environment
+    engine=Engine(engine_name,executable=engine_name,details={})
+    monkeypatch.setattr(engine,'user_args',lambda:[])
+    monkeypatch.setattr(engine,'device_args',lambda render_node:['--device','/dev/kfd','--device','/dev/dri/renderD128'])
+    monkeypatch.setattr(supervision,'reclaim',lambda *a:None)
+    role=Role(role_name);channels={m.channel:m.channel for m in ROLE_INPUTS[role]}
+    for name in channels.values():(tmp_path/name).mkdir()
+    limits=envelope(purpose='research',arms=['B','C'])[stage];observed=[]
+    def launch(argv,output,**kw):
+        observed.extend(argv);runtime=json.loads(argv[-1])
+        assert runtime['operation']==operation and runtime['seconds']==limits['work']+limits['publication']
+        assert runtime['device']==('cuda' if gpu else 'cpu')
+        assert kw['seconds']>=runtime['seconds'] and kw['cleanup_seconds']==30
+        (output.parent/'result.json').write_text('{"status":"PASS"}')
+    host=SimpleNamespace(engine=engine,policy=dict(memory_bytes=8<<30,cpus=4),gpu_lock=nullcontext)
+    roles.invoke(host,'sha256:'+'a'*64,tmp_path,role,channels,output='out',operation=operation,settings={},
+        seconds=limits['outer'],envelope=limits,gpu=gpu,launcher=launch)
+    mounts=[observed[i+1] for i,x in enumerate(observed) if x=='--mount']
+    assert len(mounts)==len(channels)+1 and all(m.endswith(',readonly') for m in mounts[:-1])
+    assert '--network=none' in observed and '--read-only' in observed and not any('sock' in m for m in mounts)
+    if gpu:
+        env=dict(observed[i+1].split('=',1) for i,x in enumerate(observed) if x=='--env')
+        assert all(env[k]==v for k,v in startup_environment().items())

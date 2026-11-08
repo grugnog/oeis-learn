@@ -89,6 +89,16 @@ class Reader:
         }[kind].copy()
         if available:
             ops.add("get")
+        # bigint has the unparenthesized $index leaf. Other expression kinds
+        # need another opening parenthesis, so these operators cannot finish
+        # when their required child would cross the nesting limit.
+        if self.depth == 32:
+            ops.discard("select")
+            ops.discard("control.lt")
+            if kind == "control":
+                ops.discard("increment")
+            if kind == "bigint":
+                ops.discard("to_bigint")
         op = self.take(ops)
         if op in ("int", "control"):
             self.number(control=op == "control")
@@ -117,17 +127,27 @@ class Reader:
             self.expr(kind)
         self.close()
 
-    def statement_ops(self):
-        out = {"if"}
-        if set(self.locals) - self.counters:
+    def writable(self):
+        return {n for n, t in self.locals.items() if n not in self.counters
+                and (t == "bigint" or self.depth < 32)}
+
+    def statement_ops(self, depth=None):
+        depth = self.depth if depth is None else depth
+        out = {"if"} if depth < 32 else set()
+        if any(n not in self.counters and (t == "bigint" or depth < 32)
+               for n, t in self.locals.items()):
             out.add("set")
-        if any(t == "control" and n not in self.counters for n, t in self.locals.items()):
+        # A loop needs a control expression and at least one body statement.
+        # At depth 31 only a bigint assignment can complete its depth-32 body.
+        body_possible = depth < 31 or any(t == "bigint" for t in self.locals.values())
+        if depth < 32 and body_possible and any(
+                t == "control" and n not in self.counters for n, t in self.locals.items()):
             out.add("loop")
         return out
 
     def statement(self, op):
         if op == "set":
-            name = self.take(set(self.locals) - self.counters)
+            name = self.take(self.writable())
             self.expr(self.locals[name])
         elif op == "if":
             self.expr("bool")
@@ -153,7 +173,7 @@ class Reader:
 
     def sequence(self):
         while True:
-            token = self.take(["(", ")"] if self.depth < 32 else [")"])
+            token = self.take(["(", ")"] if self.depth < 32 and self.statement_ops(self.depth + 1) else [")"])
             if token == ")":
                 self.at -= 1
                 return

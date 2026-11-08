@@ -111,3 +111,98 @@ def verify_resolution(original,resolved):
             value['replay'].pop('cell',None);value['replay'].pop('tasks',None)
         return value
     if choices(original)!=choices(resolved):raise ValueError('preparation resolution changed execution choices')
+
+
+PAC_MATCH_FIELDS=frozenset({'initializer','order','model','optimizer','exposure','diagnostics','backend'})
+
+
+def pac_control(original,expected,*,original_study,source,image,checkpoint,historical_measurements=None):
+    """Compare custodian-verified identities, never infer missing historical proof.
+
+    Diagnostic identity includes its nonmutation/censoring audit; different
+    diagnostics need a common verified equivalence identity, not a boolean waiver.
+    """
+    from .contracts import pac_record
+    if set(expected)!=PAC_MATCH_FIELDS or set(original)-PAC_MATCH_FIELDS:
+        raise ValueError('closed compatibility proof fields')
+    def identity(v):return isinstance(v,str) and len(v)==71 and v.startswith('sha256:') and all(c in '0123456789abcdef' for c in v[7:])
+    if not all(identity(v) for v in expected.values()) or not all(identity(v) for v in original.values()):
+        raise ValueError('compatibility requires verified identities')
+    checks={k:original.get(k)==expected[k] for k in sorted(PAC_MATCH_FIELDS)}
+    record=dict(version='pac-control/v1',original_study=original_study,source=source,image=image,
+                checkpoint=checkpoint,initializer=expected['initializer'],expected=dict(expected),checks=checks,
+                disposition='MATCHED' if all(checks.values()) else 'REFERENCE_ONLY',
+                reasons=[k for k,v in checks.items() if not v],historical_measurements=historical_measurements)
+    return pac_record('control',record,sealed=False).record()
+
+
+def validate_pac_policy(experiment,control,profiles):
+    from .contracts import pac_record
+    from .experiments import pac_recipe
+    exp=pac_record('experiment',experiment).record();receipt=pac_record('control',control).record()
+    return _pac_policy(exp,receipt,profiles)
+
+
+def _pac_policy(exp,receipt,profiles):
+    from .experiments import pac_recipe
+    if not exp['frozen'] or exp['outcomes_seen']:raise ValueError('freeze before outcomes; no outcome-driven arm switch')
+    if exp['control']!=receipt['identity']:raise ValueError('control receipt binding')
+    config=pac_recipe(control_mode=exp['control_mode'],optional_d='D' in exp['arms'])
+    if exp['arms']!=config['arms'] or exp['comparison_factors']!=config['comparison_factors'] or set(profiles)!=set(exp['arms']):
+        raise ValueError('predeclared complete PAC arms and comparison factors required')
+    if exp['control_mode']=='matched' and (receipt['disposition']!='MATCHED' or not all(receipt['checks'].values()) or receipt['reasons'] or receipt['initializer']!=exp['initializer']):
+        raise ValueError('matched A requires exact complete original proof')
+    if exp['control_mode']=='matched' and any(receipt['expected'][k]!=exp[k] for k in PAC_MATCH_FIELDS):
+        raise ValueError('matched control proof belongs to different experiment values')
+    if exp['target_tokens']!=25_000_000:raise ValueError('frozen PAC token allowance')
+    fields={'initializer','initializer_kind','pool','targets','model','optimizer','backend','order','token_cap','sampling','exposure','diagnostics'}
+    for arm,profile in profiles.items():
+        if set(profile)!=fields or profile['initializer_kind']!='random':raise ValueError('closed fresh random arm profile')
+        for field in ('initializer','pool','model','optimizer','backend','exposure','diagnostics'):
+            if profile[field]!=exp[field]:raise ValueError('paired '+field+' identity mismatch')
+        if profile['token_cap']!=exp['target_tokens'] or profile['sampling']!=config['sampling'][arm]:raise ValueError('arm exposure/sampling mismatch')
+        if profile['targets']!=exp['literal_targets' if arm=='A' else 'targets']:raise ValueError('paired target identity mismatch')
+        if arm in {'A','B'} and profile['order']!=exp['order']:raise ValueError('fixed underlying order mismatch')
+    return exp
+
+
+def reconcile_pac_policy(experiment,control,profiles):
+    """Read-only public reconciliation, never an execution/admission authority.
+
+    Canonical execution retains full installed schema validation. This host path
+    checks sealed closed scalar identities and the very same comparison invariants.
+    """
+    import json,re
+    from importlib.resources import files
+    from oeis_learn.pipeline_validation.identity import seal
+    schemas=json.loads(files('oeis_learn.generalization').joinpath('schemas/pac.schema.json').read_text())['$defs']
+    def check(value,rule):
+        if '$ref' in rule:return check(value,schemas[rule['$ref'].split('/')[-1]])
+        if 'anyOf' in rule:
+            for option in rule['anyOf']:
+                try:check(value,option);return
+                except ValueError:pass
+            raise ValueError('PAC reconciliation alternatives differ')
+        if 'const' in rule and (value!=rule['const'] or type(value)!=type(rule['const'])):raise ValueError('frozen PAC reconciliation constant differs')
+        if 'enum' in rule and value not in rule['enum']:raise ValueError('PAC reconciliation enum differs')
+        kind=rule.get('type')
+        if kind=='object':
+            if not isinstance(value,dict) or set(value)!=set(rule['properties']):raise ValueError('closed PAC reconciliation fields required')
+            for key,child in rule['properties'].items():check(value[key],child)
+        elif kind=='array':
+            if not isinstance(value,list) or not rule.get('minItems',0)<=len(value)<=rule.get('maxItems',32768):raise ValueError('bounded PAC reconciliation array required')
+            for child in value:check(child,rule['items'])
+        elif kind=='string':
+            if not isinstance(value,str) or not rule.get('minLength',0)<=len(value)<=rule.get('maxLength',1024) or 'pattern' in rule and not re.fullmatch(rule['pattern'],value):raise ValueError('PAC reconciliation identity differs')
+        elif kind=='integer':
+            if type(value) is not int or not rule.get('minimum',0)<=value<=rule.get('maximum',2**63-1):raise ValueError('PAC reconciliation integer differs')
+        elif kind=='boolean':
+            if type(value) is not bool:raise ValueError('PAC reconciliation flag differs')
+        elif kind=='null' and value is not None:raise ValueError('PAC reconciliation null differs')
+    for kind,record in [('experiment',experiment),('control',control)]:
+        check(record,schemas[kind])
+        if seal(record)!=record:raise ValueError('canonically bound PAC reconciliation input required')
+    for profile in profiles.values():
+        for key in ('initializer','pool','targets','model','optimizer','backend','order','exposure','diagnostics'):
+            check(profile.get(key),schemas['identity'])
+    return _pac_policy(experiment,control,profiles)

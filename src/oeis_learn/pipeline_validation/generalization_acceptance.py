@@ -44,7 +44,17 @@ def check_training(inputs,output,settings,*,seconds):
             return a==b
         equal=states[0]['ledger']==states[1]['ledger'] and all(same(states[0]['states'][k],states[1]['states'][k]) for k in ('weights','optimizer','rng','data','replay'))
         if not equal:raise ValueError('resumed state differs from uninterrupted state')
-    result=seal(dict(status='PASS',runs=proofs,resume_equal=equal))
+    extra={}
+    if any('pac' in state['states']['scheduler'] for state in states):
+        if not all('pac' in state['states']['scheduler'] for state in states):raise ValueError('mixed PAC/legacy proof')
+        if settings['compare']:
+            a,b=(state['states']['scheduler']['pac'] for state in states)
+            from oeis_learn.generalization.retention import deterministic_observer
+            a=dict(a,observer=deterministic_observer(a['observer']));b=dict(b,observer=deterministic_observer(b['observer']))
+            keys=set(a)-{'observed_seconds'}
+            if keys!=set(b)-{'observed_seconds'} or any(not same(a[k],b[k]) for k in keys):raise ValueError('resumed PAC policy/observer differs')
+            extra['pac_equal']=True
+    result=seal(dict(status='PASS',runs=proofs,resume_equal=equal,**extra))
     write(output/'training-proof.json',result);return result
 
 
@@ -53,7 +63,8 @@ def training_proof(host,workspace,output,runtime,study,runs,*,compare=False):
     from oeis_learn.generalization.budgets import remaining_seconds
     from oeis_learn.generalization.contracts import artifact_refs
     from oeis_learn.generalization.resources import PROOF_SECONDS
-    deadline=time.monotonic()+PROOF_SECONDS
+    envelope=runtime['envelope']['proof'] if runtime.get('version')=='pac-runtime/v1' else None
+    deadline=time.monotonic()+(envelope['outer'] if envelope else PROOF_SECONDS)
     sources=[];settings=[];origins={}
     for ordinal,(root,result) in enumerate(runs):
         parent=root/'checkpoints';pointer=result['checkpoint']
@@ -65,11 +76,11 @@ def training_proof(host,workspace,output,runtime,study,runs,*,compare=False):
         for ref in refs.values():
             projected=dict(ref,path=name+'/'+ref['path'])
             sources.append(projected);origins[projected['path']]=(parent,ref)
-        settings.append(dict(directory=name,compatibility=result['compatibility'],cap=study['budgets']['target_tokens'],checkpoint=pointer,roster=roster_ref))
+        settings.append(dict(directory=name,compatibility=result['compatibility'],cap=record['ledger']['cap'] if envelope else study['budgets']['target_tokens'],checkpoint=pointer,roster=roster_ref))
     return project_and_invoke(host,runtime['images'][0],workspace,'learner',
         {'training_targets':[],'verified_training_replay':sources},
         artifact_sources={'verified_training_replay':origins},
-        output=str((output/'proof').relative_to(workspace)),operation='check-training',settings=dict(runs=settings,compare=compare),seconds=remaining_seconds(deadline))
+        output=str((output/'proof').relative_to(workspace)),operation='check-training',settings=dict(runs=settings,compare=compare),seconds=remaining_seconds(deadline),**({'envelope':envelope} if envelope else {}))
 
 
 
@@ -166,3 +177,113 @@ def run_case(name,host,workspace,output,base,study,runtime,plan,*,qualification,
         ledger.transition('PARTIAL' if isinstance(exc,KeyboardInterrupt) else 'FAIL',reason=type(exc).__name__)
         if isinstance(exc,KeyboardInterrupt):raise
         return dict(status='FAIL',case=name,reason=str(exc),receipt=reference(output/'receipt.json',evidence_root))
+
+
+def pac_acceptance_fixture(output,*,execute,device,recipe=None,source=None,environment=None):
+    """Custodian-only mechanical data; native callback is mandatory outside CPU tests."""
+    from oeis_learn.data.bigint_programs import canonical_family
+    from oeis_learn.pipeline_validation.generalization_preparation import prepare_pac_training
+    from oeis_learn.pipeline_validation.generalization_training import PacPreparedBatches
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.generalization.budgets import charge_tokens
+    from oeis_learn.experiments.source_snapshot import source_snapshot
+    from .identity import digest
+    rows=[];probes=[]
+    patterns=('(program (return (add $index (param.get p0))))',
+              '(program (return (select (lt $index (param.get p0)) (int 1) (int 0))))')
+    for f,pattern in enumerate(patterns):
+        for i in range(12):
+            v=str(i+2)
+            row=dict(id=f'acceptance-{f}-{i}',role='training',family=canonical_family(pattern),parameter_source=pattern,
+                source=pattern.replace('(param.get p0)',f'(int {v})'),assignment={'p0':v},indices=list(map(str,range(100))))
+            (rows if i<4 else probes).append(row)
+    bundle=prepare_pac_training(rows,probes,output=output,execute=execute,final_exclusions=[],seed=7,batch_size=2,purpose='acceptance')
+    batches=PacPreparedBatches(output,bundle,arm='C',batch_size=2,updates=100000)
+    # A conservative encoded cap guarantees sixteen whole batches even when the
+    # actual family/row choices have different target lengths. Stop by updates.
+    tokens=16*2*max(charge_tokens([r['tokens']],bos=1,pad=0) for r in batches.rows.values())
+    return dict(study=digest('pac-mechanical-acceptance/v1'),arm='C',seed=7,recipe=recipe or resolve(dict(version='bigint-bootstrap/v1')),
+        shards=bundle['parameterized'],data_mode='static',batch_size=2,target_tokens=tokens,milestones=[],seconds=900,device=device,
+        checkpoint_policy='hourly/v1',pac=dict(bundle=bundle,purpose='acceptance',cadence='pac-acceptance/v1',
+        source=source or digest(source_snapshot()),environment=environment or digest(['acceptance',device]),initializer=digest('fresh'),
+        observation_seconds=600,publication_seconds=60))
+
+
+def pac_acceptance(inputs,output,settings,*,seconds):
+    """Actual installed learner, complete-state proof and real failure exporter."""
+    import time
+    from .generalization_role import learner
+    from .generalization_training import PacPreparedBatches
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    from oeis_learn.generalization.budgets import remaining_seconds,charge_tokens
+    from .bundle import pack,verify
+    if set(settings)!={'config'}:raise ValueError('closed PAC acceptance settings')
+    config=settings['config'];pac=config.get('pac',{})
+    if config['arm']!='C' or pac.get('purpose')!='acceptance' or pac.get('cadence')!='pac-acceptance/v1':
+        raise ValueError('explicit reduced PAC acceptance required')
+    deadline=time.monotonic()+seconds;output=Path(output);output.mkdir(parents=True,exist_ok=False)
+    batches=PacPreparedBatches(inputs['training_targets'],pac['bundle'],arm='C',batch_size=config['batch_size'],updates=100000)
+    if batches.inventory['version']!='pac-acceptance-inventory/v1':raise ValueError('mechanical acceptance inventory required')
+    minimum=16*config['batch_size']*max(charge_tokens([r['tokens']],bos=1,pad=0) for r in batches.rows.values())
+    if config['target_tokens']<minimum:raise ValueError('encoded token cap cannot reach acceptance boundaries')
+    if {r['target_stratum'] for r in batches.inventory['rows']}!={'supported','fallback'}:raise ValueError('parameterized and whole-row fallback required')
+    def run(name,stop,prior=None):
+        root=output/'private'/name
+        value=learner(dict(training_targets=inputs['training_targets'],verified_training_replay=prior[0] if prior else inputs['training_targets']),
+            root,dict(config=config,resume=prior[1]['checkpoint'] if prior else None,stop_after_updates=stop),
+            seconds=min(config['seconds'],remaining_seconds(deadline)))
+        if value['updates']!=stop or value['device']!=config['device']:raise ValueError('acceptance did not reach actual update/device boundary')
+        folder=root/'private/learner/checkpoints'
+        state=GeneralizationCheckpointStore(folder,value['compatibility'],config['target_tokens']).load(value['checkpoint'])
+        return folder,value,state
+    full=run('full',16);proofs={}
+    def proof_run(run):
+        folder,value,_=run
+        return dict(directory=str(folder.relative_to(output)),compatibility=value['compatibility'],cap=config['target_tokens'],
+                    checkpoint=value['checkpoint'],roster=reference(folder/'retained.json',folder))
+    for boundary in (1,2):
+        paused=run('paused-'+str(boundary),boundary)
+        policy=paused[2]['states']['scheduler']['pac']['policy']
+        if policy['block']['phase']!=('updates' if boundary==1 else 'post'):raise ValueError('acceptance pause missed block boundary')
+        resumed=run('resumed-'+str(boundary),16,paused)
+        where=output/('proof-'+str(boundary))
+        proof=check_training({'verified_training_replay':output},where,dict(runs=[proof_run(full),proof_run(resumed)],compare=True),seconds=remaining_seconds(deadline))
+        proofs[str(boundary)]=reference(where/'training-proof.json',output)
+    model_state=full[2]['states'];controller=model_state['scheduler']['pac'];policy=controller['policy']
+    grades=sum(a['last_grade'] is not None for a in policy['review']['anchors'].values())
+    exposed={key for key,a in policy['review']['anchors'].items() if a['acquired']}
+    strata={r['target_stratum'] for r in batches.inventory['rows'] if r['id'] in exposed}
+    event=policy['last_observation']
+    if policy['kernel']['valid_updates']<6 or event['status'] in {'warmup','degenerate','censored'} or not grades or strata!={'supported','fallback'}:
+        raise ValueError('acceptance lacks actual non-warmup reward/graded review/paired target exposure')
+    if config['device']=='cuda' and not model_state['rng']['device']:raise ValueError('actual device RNG missing')
+    # Evaluate the published final weights after a fresh weights-only load.
+    # This is a training-probe forward check, never a held-out research score.
+    from .generalization_evaluation import load_retained
+    from .generalization_curriculum import observe_targets
+    roster=json.loads((full[0]/'retained.json').read_text())
+    descriptor=next(c for c in roster['checkpoints'] if c['state']==full[1]['checkpoint'])
+    encoder,decoder,_=load_retained(full[0],descriptor['weights'],config['recipe'],device=config['device'])
+    evaluation_rows=[batches.probe_rows[ids[0]] for ids in batches.probes.values()]
+    remaining_seconds(deadline)
+    observation=observe_targets(encoder,decoder,evaluation_rows,device=config['device'])
+    remaining_seconds(deadline)
+    evaluated=seal(dict(version='pac-checkpoint-forward/v1',status='PASS',checkpoint=descriptor['identity'],weights=descriptor['weights']['sha256'],
+        device='hip' if config['device']=='cuda' else 'cpu',scope='training probes only',rows=len(evaluation_rows),**observation))
+    write(output/'checkpoint-evaluation.json',evaluated)
+    del encoder,decoder
+    failed=output/'failure';failed.mkdir()
+    write(failed/'summary.json',dict(selected_scope='FAIL',scientific_status='UNMEASURED',reason='injected acceptance failure'))
+    write(failed/'failure.json',dict(primary='injected_after_actual_updates',status='FAIL'))
+    write(failed/'private/hidden.json',dict(secret='excluded'))
+    archive=pack(failed,mandatory=['summary.json','failure.json']);checked=verify(archive)
+    if checked['summary_state']!='FAIL' or any('private' in Path(r['path']).parts for r in checked['members']):raise ValueError('acceptance failure export not verified')
+    result=seal(dict(version='pac-feature-acceptance/v2',status='PASS',source=pac['source'],environment=pac['environment'],
+        device='hip' if config['device']=='cuda' else 'cpu',research_eligible=config['device']=='cuda',
+        cadence=dict(block_updates=2,cycle_updates=8,review_interval=1,common_updates=8),updates=16,
+        valid_rewards=policy['kernel']['valid_updates'],graded_anchors=grades,resume_boundaries=[1,2],encoded_token_minimum=minimum,
+        proofs=proofs,checkpoint_evaluation=reference(output/'checkpoint-evaluation.json',output),failure_archive=reference(archive,output)))
+    from oeis_learn.generalization.feature_acceptance import verify_pac_acceptance
+    verify_pac_acceptance(result,root=output,source=pac['source'],environment=pac['environment'],device=result['device'])
+    write(output/'pac-acceptance.json',result)
+    return result

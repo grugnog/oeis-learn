@@ -81,3 +81,61 @@ def reserve_storage(snapshot_bytes, required_pins, available_bytes):
     if required > integer(available_bytes):
         raise ValueError('insufficient checkpoint storage; required pins cannot be pruned')
     return required
+
+
+def _seconds(value,*,positive=False):
+    from oeis_learn.pipeline_validation.identity import number
+    return number(value,positive=positive)
+
+
+def pac_work_allowance(kind,*,forecast,startup,publication,existing):
+    floors={'preparation':86400,'learner':43200,'generation':23400}
+    if kind not in floors:raise ValueError('PAC work kind')
+    for value in (startup,publication,existing):_seconds(value)
+    gaps=[]
+    if forecast is None:
+        gaps=['forecast'];calculated=floors[kind]
+    else:calculated=max(floors[kind],3*_seconds(forecast,positive=True)+7200+startup+publication)
+    _seconds(calculated)
+    return dict(seconds=max(existing,calculated),calibration_gaps=gaps,scientific_portfolio_seconds=60,semantic_probe_seconds=5)
+
+
+def pac_ancillary_allowance(name,*,observations,overhead,existing):
+    if not isinstance(name,str) or not name:raise ValueError('named ancillary reservation')
+    _seconds(overhead);_seconds(existing)
+    for value in observations:_seconds(value,positive=True)
+    if not observations and not existing:raise ValueError('missing measurement and prior justified allowance')
+    seconds=max(existing,3*max(observations)+overhead) if observations else existing
+    _seconds(seconds)
+    return dict(name=name,seconds=seconds,
+                calibration_gaps=[] if observations else [name],observations=len(observations))
+
+
+def pac_deadline_graph(nodes,*,root):
+    """Reject inner clipping even when the campaign has ample outer headroom."""
+    fields={'requested','effective','work','children','mode','cleanup','cleanup_floor','finalization','overhead','contention','schema_max'}
+    visiting=set();done={}
+    def visit(name):
+        if name in visiting:raise ValueError('cyclic deadline graph')
+        if name in done:return done[name]
+        if name not in nodes or set(nodes[name])!=fields:raise ValueError('closed complete deadline node')
+        n=nodes[name]
+        for key in fields-{'children','mode','schema_max'}:_seconds(n[key])
+        if n['mode'] not in {'serial','parallel'} or not isinstance(n['children'],list) or len(set(n['children']))!=len(n['children']):raise ValueError('explicit child critical path required')
+        if n['cleanup']<n['cleanup_floor'] or name==root and n['finalization']<3600:raise ValueError('protected cleanup/finalization floor')
+        if n['effective']<n['requested']:raise ValueError('clipped effective inner deadline')
+        if n['schema_max'] is not None:
+            _seconds(n['schema_max'],positive=True)
+            if n['effective']>n['schema_max']:raise ValueError('short inner/schema cap')
+        visiting.add(name)
+        children=[visit(child)['effective'] for child in n['children']]
+        nested=sum(children) if n['mode']=='serial' else max(children,default=0)
+        required=n['work']+nested+n['overhead']+n['contention']+n['cleanup']+n['finalization']
+        _seconds(required)
+        if n['requested']<required:raise ValueError('parent cannot enclose every child reservation')
+        visiting.remove(name)
+        done[name]=dict(required=required,requested=n['requested'],effective=n['effective'],schema_max=n['schema_max'])
+        return done[name]
+    result=visit(root)
+    if set(done)!=set(nodes):raise ValueError('unaccounted deadline stages')
+    return dict(version='pac-deadline-graph/v1',seconds=result['effective'],nodes=done,automatic_extension=False)

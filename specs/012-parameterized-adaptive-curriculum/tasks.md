@@ -1,0 +1,918 @@
+# Tasks: Parameterized Targets and Adaptive Curriculum
+
+**Branch**: `012-parameterized-adaptive-curriculum` | **Date**: 2026-11-04
+**Status**: A–D T001–T066 and all fifteen F001–F015 follow-ups complete. Mandatory Phase E software/evidence work is complete: T067–T072/T074 checked (7/8); only conditional T073 research analysis remains DEFERRED. Original -004 acceptance PASS and supplemental actual HIP crash-debit PASS are recorded for their distinct producer closures. Local selection: 712 tests and 2 subtests; original qualification: 1,499 CPU/27 HIP tests; focused crash: 1 HIP test, zero skips. No CI wait.
+**Authority**: [spec](spec.md), [plan](plan.md), [research](research.md),
+[data model](data-model.md), [experiment](contracts/experiment.md),
+[curriculum](contracts/curriculum.md), [execution](contracts/execution.md),
+[reliability review](reliability-review.md), [handoff](quickstart.md).
+
+## Execution rules
+
+These 74 tasks implement the accepted design, not a new research choice.
+Use phases A–E from the plan rather than introducing one critical phase per story:
+the operator explicitly requires **exactly two dedicated critical phases, B and C**.
+Story subgroups and labels preserve independently testable slices. A contains
+routine setup and foundations; D contains routine delivery and broad validation;
+E is one consolidated operator session plus evidence reconciliation.
+
+Read the applicable contract before each subgroup. Add independent counterexamples
+before changing its implementation; the constitution explicitly requires tests for
+arithmetic, admission, leakage, resume and containment. Existing correct behavior
+may satisfy a task after inspection and a relevant passing check: do not duplicate
+it. Paths below are repository-relative; paths marked **new** are intended additions.
+Keep the listed small module boundaries; do not build a second learner or scheduler
+framework. Commit **and push** after each completed subheader task group, recording
+validation and any remaining evidence gap. Do not wait for CI unless newly instructed.
+
+`[P]` means disjoint-file work may run concurrently **after its stated phase entry
+requirements**. It does not authorize bypassing dependencies or spawning agents.
+Otherwise execute in ID order. All B counterexample tasks marked `[P]` can be
+written after A, but each implementation must wait for its preceding tests. Finish
+all B before C and all C before D. A defect in an invariant found during D reopens
+the owning B/C task; it is not a third critical phase.
+
+No task here retroactively completes 011 T174 or T177–T181. Record new 012 evidence
+and original references. Run no HIP commands before E. Unavailable native/container
+checks remain unavailable, never PASS. The mandatory operator acceptance and the
+optional, separately frozen research campaign have distinct completion records.
+
+## Phase A — Routine setup and foundational contracts
+
+**Goal**: Closed interfaces, independent fixtures and legacy protection ready for B.
+No scheduler, quota, deadline or transaction algorithm belongs in scaffolding.
+
+### A1 — Establish authority and record boundaries
+
+- [X] T001 Inspect merged 011 follow-ups and current handlers; record reuse versus new work, original input requirements, the T177–T181 carry-forward and immutable T174 disposition in `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md` (new), referencing `specs/011-controlled-generalization/validation/merge-closeout.md` without editing historical task completion.
+- [X] T002 Define closed record/schema shells for `PAC-screen/v1`, `pac-exp3s-leitner/v1`, inventory, observations, review/adaptive state and receipts in `src/oeis_learn/generalization/contracts.py` and `src/oeis_learn/generalization/schemas/pac.schema.json` (new); transcribe every field/visibility constraint in `data-model.md`, reject unknown fields/versions at new boundaries, and preserve historical readers. Leave policy validation for B and canonical dispatch for C.
+- [X] T003 [P] Add independently specified kernel fractions, queue timelines, structural counts and fault-boundary input fixtures to `tests/fixtures/generalization/pac-policy.json` (new) and document their hand-derived provenance in `tests/fixtures/generalization/README.md`; do not derive expected results with production code or label prior planning calculations production tests.
+
+### A2 — Legacy guardrails and coverage ownership
+
+- [X] T004 [P] Add old-study/P3/schema rejection fixtures in `tests/unit/test_generalization_legacy.py` and `tests/unit/test_generalization_contracts.py`; preserve original recipe meanings and reject an old P3 relabeled PAC, unknown fields and `visit-scheduler/v1` as adaptive state.
+- [X] T005 Record every original failure class and added policy risk against the task IDs in this document in `specs/012-parameterized-adaptive-curriculum/reliability-review.md`; retain prevention, counterexample, evidence and recovery columns and distinguish proven failures from suspected mechanisms.
+- [X] T006 Check shells/fixtures and existing portable host help without HIP; record commands, results and unresolved dependency availability in `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md`, and confirm `scripts/foundation_run.py` and `scripts/generalization_inputs.py` still work under `python3 -S` before entering B.
+
+## Phase B — Critical algorithms and state invariants
+
+**Entry**: A complete. **Exit**: Pure policy counterexamples pass and all new
+mathematical, admission, transaction and resource rules are fixed for C to consume.
+
+### B1 — US1: Structural admission and comparison identity (P1)
+
+- [X] T007 [P] [US1] Add independent draw-identity, all-16-exclusion, native-disagreement and post-exclusion quota-deficit counterexamples in `specs/012-parameterized-adaptive-curriculum/validation/test_structural_policy.py` (new); preserve historical 256-task guards and prove a completed shortage cannot become a timeout/reseed retry.
+- [X] T008 [US1] Implement a versioned structural-scope adapter in `specs/012-parameterized-adaptive-curriculum/validation/structural_policy.py` (new), reusing `specs/011-controlled-generalization/validation/prospective_evaluation_policy.py`: retain all 2,288 draw IDs, seed/offset/counter keys and identity reservoir capacity 8,192, all 16 exclusions, exactly 128 tasks/27 families (68 certified/18 families, 26 ambiguous, 34 unresolved), 20/100 terms, eight attempts, 60-second portfolios, seven controls and bank seeds; parameter endpoint DEFERRED, no assessment execution.
+- [X] T009 [US1] Add comparison-freeze/control counterexamples to `tests/unit/test_generalization_execution.py`, then implement `PAC-screen/v1` admission and compatibility rules in `src/oeis_learn/generalization/execution.py` and `src/oeis_learn/generalization/experiments.py`: require exact initializer/order/model/optimizer/exposure/diagnostic/backend proof for matched A, otherwise explicit reference-only or predeclared fresh A; default B/C and D off, no trained initializer, outcome-driven arm switch or fabricated historical measurements. Preserve "Frozen before outcomes; no old P3 relabeling; public safe projection" and "Missing proof is not match; private paths/weights excluded from shared output".
+- [X] T010 [US1] Add finite pool/probe/anchor admission tests in `tests/unit/test_generalization_cohorts.py`, then extend `src/oeis_learn/generalization/cohorts.py` and `src/oeis_learn/generalization/exclusions.py` for 32-family/32,768-row identity, eight independent probes/family from at most 256 frozen draws/family, exact source/full-output duplicate rejection, custodian final-evaluation collision checks, disclosed shared training windows, four distinct anchors/family by frozen hash/strata and enough distinct batch rows; enforce "No empty family; exact counts; learner receives training role only", with no silent pool removal, reseeding or quota relaxation.
+
+### B2 — US2: Paired target safety (P1)
+
+- [X] T011 [P] [US2] Extend independent grounding/sharing/control-dependency/over-eight-parameter counterexamples in `tests/unit/test_generalization_refresh_targets.py`; verify every original row survives as an exact paired target or counted whole-row literal fallback, including repeated constants and unsafe guards.
+- [X] T012 [US2] Reuse and only where necessary fix paired-target policy in `src/oeis_learn/generalization/targets.py`; enforce "Equal underlying rows; fallback retains original literal; private source handling follows existing dataset boundary", identical final-source validation/fitter/at-most-eight-parameter limits, and no partial-control parameterizer or eligibility drift between B/C.
+
+### B3 — US3: Published kernel, reward and deterministic streams (P1)
+
+- [X] T013 [P] [US3] Add hand-calculated Graves Eq. 1 tests in `tests/unit/test_generalization_curriculum.py` (new): first alpha=1/2, probabilities (35/96,61/192,61/192) for positive reward and (37/120,83/240,83/240) for negative reward under the fixture constants, zero-reward q=(.5,.3125,.1875), missing unchanged, selection-time denominator, extreme logweights/nonfinite rejection and duplicate/forbidden feedback; distinguish Graves sharing from Auer and the legacy heuristic.
+- [X] T014 [US3] Implement the pure stable log-domain Graves EXP3.S kernel in `src/oeis_learn/generalization/curriculum.py` (new) with K>=2, epsilon=.25, eta=.001, beta=0, alpha=1/(valid_updates+2), replacement block draws and stored selection probability; derive K=32 bounds 1/128 and 97/128, apply sharing for observed zero only, and reject custom caps/priority mixing and legacy state.
+- [X] T015 [US3] Add independent scaler/stream cases to `tests/unit/test_generalization_curriculum.py`, then implement signed loss gain per actual charged block token, past-only linearly interpolated 20/80 quantiles, fewer-than-five/tied warmup-zero markers, the 4,096-value uniform reservoir/seen counter/separate RNG, deterministic two-of-eight probe rotation and independent seeded per-family Fisher–Yates streams in `src/oeis_learn/generalization/curriculum.py`; cover outliers, wrap/skip cursors, checkpoint continuation, review filler without duplicate IDs, and preserve raw as well as scaled gain.
+
+### B4 — US3: Per-anchor review and feedback coverage (P1)
+
+- [X] T016 [P] [US3] Add independently expected acquisition/promotion/demotion/incidental/missing-grade timelines and all 32 cycle-offset service simulations in `tests/unit/test_generalization_review.py` (new), including 128 synchronized due anchors, repeated failure, impossible capacity, terminal truncation and no-due fallback; assert 512-update due-delay and 8,704-update exposure bounds only while training continues.
+- [X] T017 [US3] Implement the pure 24-bandit-plus-eight-review-update policy in `src/oeis_learn/generalization/review.py` (new): one obligation/anchor, `(due_update, anchor_id)` ordering, acquisition without grade, queues 0..4 and 512*2^q intervals, anchor-specific pre-update recall transition only after committed practice, incidental clock reset without promotion and uniform-family fallback; enforce "Grade belongs to that anchor; initial acquisition and incidental exposure separate; no promotion without committed update". Report 25% review opportunities in updates and 18.75% full-cycle implicit uniform mass, not token guarantees.
+- [X] T018 [US3] Add coverage/budget stop counterexamples in `tests/unit/test_generalization_diagnostics.py` (new), then encode feedback disposition in `src/oeis_learn/generalization/diagnostics.py`: missing pre/post retains debits but no kernel/scaler update; two consecutive censored rewards or required-reward budget exhaustion pause INCOMPLETE; two eligible review blocks without valid acquired-anchor grades pause; two semantic rotations without a family result mark retention incomplete. Missing is never zero or mastery.
+- [X] T019 [US3] Implement frozen monitoring and observer schedules in `src/oeis_learn/generalization/diagnostics.py` with tests in `tests/unit/test_generalization_diagnostics.py`: common eight-probe/family initial/final/every-256-update loss panel, four-family rotating one-attempt/five-second semantic panels, B's three nominal uniform shadow reward opportunities and up to eight shadow anchor observations, C's actual grades, optional D's four reward blocks; keep policy-required counts/costs separate and forbid monitoring-based kernel credit or anchor promotion.
+
+### B5 — US4: Transactions, restore and discarded work (P1)
+
+- [X] T020 [P] [US4] Add an independent state-transition/fault matrix in `tests/unit/test_generalization_curriculum_state.py` (new), covering reservation, successful/failed optimizer update, pre/block/post observation, pending reward, duplicate IDs, review grade, snapshot publication, stale journal and terminal partial block; require "At most one pending learner update within one pending block; never repeat completed gradients or apply feedback twice".
+- [X] T021 [US4] Implement model-bound pending-block and review transaction transitions in `src/oeis_learn/generalization/curriculum_state.py` (new) and bind them to `src/oeis_learn/generalization/state.py`: one chosen family/eight contiguous updates, retained pre-panel/probability, no intervening review/other gradient, exactly-once scaler/kernel completion before next decision, atomic post-optimizer anchor transition, separate action/valid/update/service counters and persistent pause reasons. Enforce "Same panel around one contiguous family block; common trends are monitoring, not reward credit; no false zero for unavailable".
+- [X] T022 [US4] Add complete-generation/discarded-segment tests in `tests/unit/test_generalization_persistence.py`, then extend `src/oeis_learn/generalization/checkpoints.py` and `src/oeis_learn/generalization/state.py` to enforce "Atomic generation manifest hashes every component; weights-only is not resumable"; enforce "Named kernel and epsilon-derived probability bounds; reject old visit-scheduler state; complete identity-bound restore"; inventory/policy/source/environment mismatch rejects restore, newer journal only debits lost work, and recomputed work receives new segment IDs without refunding tokens/time or replaying newer policy on old tensors.
+- [X] T023 [US4] Validate the combined pure state against uninterrupted and interrupted traces in `tests/unit/test_generalization_curriculum_state.py`, including reservoir/row/probe RNGs and cursors, censored streaks, pending pauses, failed review updates and partial blocks; record exact clean-resume versus charged crash-loss expectations in `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md` before runtime binding.
+
+### B6 — US4: Complete deadline and peak-storage arithmetic (P1)
+
+- [X] T024 [P] [US4] Add independent exact-boundary/over-boundary nested time and peak-live byte fixtures in `tests/unit/test_generalization_operational_budgets.py` and `tests/unit/test_generalization_budgets.py`; cover existing longer limits, absent measurements, slow cold startup/load/save/hash/copy/exit, optional fresh A/D, resumed proof, finalization, simultaneous old/new/pinned snapshots and recovery packages, and reject larger outer limits masking a short inner/schema cap.
+- [X] T025 [US4] Implement PAC resource arithmetic in `src/oeis_learn/generalization/budgets.py` and `src/oeis_learn/generalization/resources.py`: max(existing justified, calculated), preparation >=24h and learner >=12h raised by 3*forecast_work+2h plus startup/publication, generation >=6.5h or longer prior allowance, >=3*largest representative ancillary cost plus overhead, summed serial/explicit parallel critical-path parents and >=1h finalization plus cleanup floors; include complete diagnostic forecast/reservation (initial 20%, enlarged before freeze), disk-backed scratch/all live copies, no silent cap/zero measurement/refund/automatic midrun extension, and unchanged scientific 60s/5s budgets.
+
+### B7 — US5: Denominators and permissible conclusions (P2)
+
+- [X] T026 [P] [US5] Add independent equal-total/different-family, paired-discordance, missing-arm and censored-completion fixtures to `tests/unit/test_generalization_metrics.py`; distinguish 64/68 from 65/68 complete, ambiguity from unresolved execution, task resampling from seed uncertainty, and token allowance from useful exposure or matched wall time.
+- [X] T027 [US5] Implement/reuse structural aggregation and comparison admission in `src/oeis_learn/generalization/metrics.py` and `src/oeis_learn/generalization/reconciliation.py`: fixed certified family-macro denominator, paired task counts, >=65/68 per compared arm, separately reported ambiguous/unresolved/censored strata, B–A only with matched A, C–B package, optional D–B allocation and C–D review substitution, explicit missing history and no automatic winner or positive-gain acceptance gate.
+
+## Phase C — Critical installed execution and provenance integration
+
+**Entry**: All B invariants tested. **Exit**: Canonical installed CPU path binds
+actual updates, policy state, evidence and resources; actual device proof awaits E.
+No broad reporting/wrapper work belongs here.
+
+### C1 — US1: Canonical PAC authority and admission (P1)
+
+- [X] T028 [US1] Add canonical PAC registration/role authority tests in `tests/integration/test_generalization_registration.py` and `tests/contract/test_generalization_authority.py`, including all-original-input gating before research generation/learning and rejection of a wrapper-only permissive policy bypass.
+- [X] T029 [US1] Register PAC through `src/oeis_learn/pipeline_validation/generalization_execution.py`, `src/oeis_learn/pipeline_validation/generalization_setup.py`, `src/oeis_learn/pipeline_validation/generalization_commands.py` and `src/oeis_learn/generalization/role_contracts.py`; bind frozen comparison/control/cohort policy and source/image identities to canonical CLI requests, keeping old recipes unchanged and protected selection/assessment truth outside learner roles.
+
+### C2 — US2: Installed paired preparation and batch binding (P1)
+
+- [X] T030 [US2] Add real prepared-input/target-sidecar/role isolation integration cases in `tests/integration/test_generalization_preparation.py` and `tests/integration/test_generalization_training.py`; include corrupted family hashes, missing probe quota, protected feedback injection, control fallback, identical concrete rows and fixed B order with actual encoded batches.
+- [X] T031 [US2] Bind original corpus, hash-bound family sidecar, finite probes/anchors and paired target proofs through `src/oeis_learn/pipeline_validation/generalization_preparation.py` and `src/oeis_learn/generalization/preparation.py`; execute native/reference admission before research, keep exact data/probe role boundaries and emit private proof plus safe coverage/deficit summaries.
+- [X] T032 [US2] Extend `src/oeis_learn/pipeline_validation/generalization_training.py` to retain family/row IDs through real prepared batches, reuse existing learning target/fitter support and identical fresh B/C initialization, and charge exact canonical target tokens without clipping batches to fake 25M equality; fixed B remains fixed and acceptance tensors cannot become research initialization.
+
+### C3 — US3: Actual contiguous feedback and review updates (P1)
+
+- [X] T033 [US3] Add installed real-tensor CPU tests in `tests/integration/test_generalization_curriculum.py` (new) for pre/eight-updates/post binding, non-padding sums/counts, RNG/mode restoration, no intervening gradient, nondegenerate scaler reward, changed finite parameters, anchor acquisition then grade/update, filler incidental exposure and failed optimizer non-promotion; mocks may inject failures but cannot substitute for the learner.
+- [X] T034 [US3] Wire pure curriculum/row/probe policy into the existing learner using `src/oeis_learn/pipeline_validation/generalization_curriculum.py` (new minimal adapter) and `src/oeis_learn/pipeline_validation/generalization_training.py`; execute actual contiguous family blocks, matching no-gradient pre/post probes with mode/RNG preservation and synchronization as required, charged review batches and exact anchor recall excluding BOS/pad but including EOS, committing policy state only at the B-defined boundaries.
+- [X] T035 [US3] Wire common panels, shadow B observers, optional D observations and persistent incomplete/stop rules through `src/oeis_learn/pipeline_validation/generalization_diagnostics.py` and `src/oeis_learn/pipeline_validation/generalization_curriculum.py`; test scheduling and accounting in `tests/integration/test_generalization_curriculum.py`, separating target recall, semantic execution, censored probes and policy-conditioned reward from matched final evaluation.
+- [X] T036 [US3] Exercise production eight-update/32-update clocks and all charged channels through installed CPU fixtures in `tests/integration/test_generalization_curriculum.py`; verify empirical counts, floor-derived selection behavior, fixed B order, D-off default and resumed row/probe choices against the pure policy oracle, recording evidence in `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md`.
+
+### C4 — US4: Full-state snapshots and execution envelope (P1)
+
+- [X] T037 [US4] Add installed pause/crash/publication tests to `tests/integration/test_generalization_runtime.py` before persistence edits: pause inside block and after gradients/before reward, fail before/after grade/update/debit, lose unsaved segments, ENOSPC mid-publication, reject weights-only/identity mismatch, and compare actual optimizer/tensors/RNG/scaler/queue/next batch on clean resume.
+- [X] T038 [US4] Extend `src/oeis_learn/pipeline_validation/generalization_persistence.py` and `src/oeis_learn/pipeline_validation/generalization_runtime.py` to snapshot/restore complete model-bound adaptive state atomically, including pending observation and all counters/RNGs/ledgers; resume it before new gradients, preserve old verified generation and discarded-work accounting, retain hourly full saves plus initial/final/4/8/16/25M pins with deduplication and the constraint "Small bounded journal; not authority to restore newer scheduler state".
+- [X] T039 [US4] Add end-to-end requested/effective limit and environment propagation tests in `tests/integration/test_generalization_recipes.py` and `tests/contract/test_generalization_roles.py`, including every acceptance/calibration/resume/proof/export branch, a stale PASS file with failed process and a changed no-Lt/engine identity.
+- [X] T040 [US4] Bind resource graph, actual engine/source/image identities and existing no-Lt process-start environment through `src/oeis_learn/pipeline_validation/generalization_execution.py`, `src/oeis_learn/pipeline_validation/generalization_runtime.py`, `src/oeis_learn/container_runtime.py` and relevant registered schema bounds in `src/oeis_learn/generalization/schemas/pac.schema.json`; propagate unclipped inner/outer limits, cleanup/publication reserves and private disk scratch, retaining canonical containment and no silent CPU fallback.
+- [X] T041 [US4] Extend canonical acceptance coverage in `src/oeis_learn/generalization/feature_acceptance.py` and `src/oeis_learn/pipeline_validation/generalization_acceptance.py`, with real-handler tests in `tests/integration/test_generalization_acceptance.py`: derive encoded token/update minima, declare reduced acceptance cadence distinct from production, reach parameter/fallback, non-warmup reward, acquired due graded review, both pending-block resume boundaries, initial/final load and fault export; implement HIP-marked proof cases in `tests/integration/test_generalization_gpu.py` without executing HIP here.
+- [X] T042 [US4] Run installed CPU lifecycle/fault fixtures and inspect source closure in `tests/integration/test_generalization_curriculum.py`, `tests/integration/test_generalization_runtime.py` and `tests/integration/test_generalization_acceptance.py`; record exact clean-resume equality and separately charged crash work in `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md`, identify unavailable native/device checks explicitly and close C only when all local critical correctness gates pass.
+
+## Phase D — Routine delivery, diagnostics and complete local validation
+
+**Entry**: C complete. **Exit**: A tested, stdlib-only serial handoff composes canonical
+operations, every reliability row has local evidence, and only actual workstation
+inputs/native capacity/device evidence or optional research remain outstanding.
+
+### D1 — US1: Structural and historical-control handoff (P1)
+
+- [X] T043 [P] [US1] Add complete/missing/incompatible original-input fixtures in `specs/012-parameterized-adaptive-curriculum/validation/test_inputs.py` (new), covering bounded-search exhaustion with an explicit-root remedy, all 16 exclusions, weights-only provenance, matched versus reference-only controls and immutable failed historical records.
+- [X] T044 [US1] Implement read-only explicit-root/inventory and control-audit assembly in `specs/012-parameterized-adaptive-curriculum/validation/inputs.py` (new), invoking canonical validators; inventory the named original chain in `quickstart.md`, emit exact missing requirements and MATCHED/REFERENCE_ONLY reasons, and bind structural scope/deficits using B policies rather than recoding them.
+- [X] T045 [US1] Connect scoped preparation, retained checkpoint inference and publication to existing canonical operations in `specs/012-parameterized-adaptive-curriculum/validation/run.py` (new); keep helper versus producer identity separate, apply admission before any research inference, and validate fixture receipts/rejection paths in `specs/012-parameterized-adaptive-curriculum/validation/test_run.py` (new).
+
+### D2 — US2: Representation evidence and inference parity (P1)
+
+- [X] T046 [P] [US2] Add report projection and evaluation parity fixtures in `tests/integration/test_generalization_reporting.py` (new) and `tests/integration/test_generalization_scoring.py`, covering supported/fallback fractions by family, row accounting, fitted assignments, identical attempt/fitter limits and forbidden private-source exports.
+- [X] T047 [US2] Wire paired-target coverage, fitter parity and tokens/examples/updates/cost projection into `src/oeis_learn/pipeline_validation/generalization_reporting.py` and `src/oeis_learn/pipeline_validation/generalization_scoring.py`, preserving exact raw/fitted distinctions and explicit unavailable evidence; do not label equal token allowances equal-data or equal-time comparisons.
+
+### D3 — US3: Allocation, retention and complete cost evidence (P1)
+
+- [X] T048 [P] [US3] Add reconstructibility/long-run/omitted-observation fixtures in `tests/integration/test_generalization_diagnostics.py`, including more than 128 progress windows, fewer realized grades than opportunities, optional D overhead, missing historic curves and positive scaled reward with negative raw gain.
+- [X] T049 [US3] Extend bounded policy/retention diagnostics and progress projections in `src/oeis_learn/pipeline_validation/generalization_diagnostics.py` and `src/oeis_learn/pipeline_validation/generalization_reporting.py` to expose all clocks, selected probabilities/reasons, acquisition/recall/incidental exposure, pending anchors, raw/scaled gain, censoring, useful/reserved/discarded/unspent tokens and complete preparation/probe/review/checkpoint/end-to-end costs; compact without losing whole-run coverage or reconstructible totals.
+
+### D4 — US4: One serial wrapper and measured readiness (P1)
+
+- [X] T050 [US4] Add dependency-graph, cancellation, no-GPU-before-admission, no-research-by-default and no-second-learner wrapper tests in `specs/012-parameterized-adaptive-curriculum/validation/test_run.py`; simulate all terminal dispositions and prove `recover` never launches work and `resume` repeats only the smallest incompatible/unfinished closure.
+- [X] T051 [US4] Complete stdlib `prepare/run/resume/recover` orchestration in `specs/012-parameterized-adaptive-curriculum/validation/run.py`: freeze exact scope before outcomes, compose canonical handlers serially, reuse only sealed compatible stages, preserve failures, accept research only from an already authorized frozen manifest, and export automatically on success/failure without an intermediate manual command. No policy arithmetic, learner or fitter implementation in this helper.
+- [X] T052 [US4] Add calibration/budget-binding fixtures in `specs/012-parameterized-adaptive-curriculum/validation/test_calibration.py` (new), then implement orchestration/report assembly in `specs/012-parameterized-adaptive-curriculum/validation/calibration.py` (new): short/long families, cold/warm native and early/later shards, production-sized actual update/save/load, complete reward/grade/common-panel cycle, synchronized costs/sample counts/worst observations/uncertainty; consume B's budget math and block research if projected work plus margins cannot fit.
+- [X] T053 [US4] Validate existing deterministic bounded worker/cache reuse and containment in `tests/integration/test_generalization_preparation.py`, `tests/unit/test_pipeline_disk.py`, `tests/unit/test_pipeline_supervision.py` and `tests/unit/test_container_runtime.py`: fresh worker execution state, parallel/single equivalence, cancellation, nested symlink/escaping path, insufficient space, cold startup/long exit, scanner/watchdog handler lifecycle and fresh output ownership; make only necessary routine fixes in `src/oeis_learn/pipeline_validation/generalization_preparation.py`, `src/oeis_learn/pipeline_validation/disk.py` and `src/oeis_learn/pipeline_validation/supervision.py`, reopening B/C for invariant changes.
+
+### D5 — US4: Terminal evidence and minimal recovery (P1)
+
+- [X] T054 [P] [US4] Add real packer/verifier tests in `tests/integration/test_generalization_archive.py` and `tests/unit/test_generalization_acceptance_archive.py`: success, negative scope, interruption, missing nested result/COMPLETE/quota ledger, stale producer, process or cleanup failure after application PASS, export failure after primary failure, legitimate helper paths and traversal/private-payload rejection.
+- [X] T055 [US4] Extend canonical public collection/finalization in `src/oeis_learn/pipeline_validation/generalization_archive.py`, `src/oeis_learn/pipeline_validation/generalization_finalization.py` and `src/oeis_learn/generalization/acceptance_archive.py` for PAC records; enforce "Reuse only complete compatible closure; primary/secondary errors both preserved", bind original report bytes/verifier/archive hash/terminal receipt, include bounded status/deadline/quota/progress/omission records and exclude weights/state/truth/private host paths.
+- [X] T056 [US4] Wire independently verified minimal fallback and read-only recovery into `specs/012-parameterized-adaptive-curriculum/validation/run.py`, with actual packer fixtures in `specs/012-parameterized-adaptive-curriculum/validation/test_run.py`; leave original failure immutable, report last-resort location if export itself fails, and demonstrate stage reuse without pretending failed/unverified outputs passed.
+- [X] T057 [US4] Exercise a complete fixture campaign, interrupted compatible resume and incompatible-source minimal retry through `specs/012-parameterized-adaptive-curriculum/validation/test_run.py`; assert command/config/source/image/helper identities, <=60s progress or explicit unavailable/stalled signal, application/process/cleanup outcomes, actual archive verification and no needless repeated successful stage.
+
+### D6 — US5: Structural comparison and before/after case analysis (P2)
+
+- [X] T058 [P] [US5] Add scoped reconciliation/case-selection fixtures in `specs/012-parameterized-adaptive-curriculum/validation/test_analysis.py` (new): equal totals with different family wins, 64/65 completion boundary, unmatched A, D absent/present, missing categories, stable ordering and raw/parameterized/fitted-source permissions; historical 256-task analysis must keep rejecting the new scope without the adapter.
+- [X] T059 [US5] Implement a versioned 128-task adapter in `specs/012-parameterized-adaptive-curriculum/validation/analysis.py` (new) around `specs/011-controlled-generalization/validation/post_pilot_analysis.py` and existing canonical metrics; produce family-macro/task-paired/censoring and cost/retention comparisons with declared B–A/C–B/optional-D attribution and no winner or seed-generalization claim.
+- [X] T060 [US5] Add deterministic selection and human-readable examination of at least 12 available case/arm records in `specs/012-parameterized-adaptive-curriculum/validation/analysis.py`, spanning shared/exclusive success, continuation failure, no-fit, timeout/decode and simple-control wins; retain permitted before/after sources/assignments/reasons, distinguish structural failure from solver/decoder/execution limitations and explicitly list unavailable categories without inventing examples.
+- [X] T061 [US5] Reconstruct every reported aggregate and token/example/update/time total from fixture exports using `specs/012-parameterized-adaptive-curriculum/validation/test_analysis.py` and `tests/integration/test_generalization_evidence.py`; record scientific/software status separation and exploratory positive/negative/inconclusive examples in `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md`.
+
+### D7 — Shared portability, regression and operator delivery
+
+- [X] T062 Check closed PAC schemas, canonical CLI registration/help and every new Docker/Podman role command using `tests/contract/test_generalization_roles.py`, `tests/integration/test_generalization_registration.py` and `tests/unit/test_generalization_host.py`; verify stdlib-only host entry, explicit engine/mounts/no socket, image/source/environment equivalence and all effective deadline branches, recording unexecuted engine operations honestly in `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md`.
+- [X] T063 Run the relevant combined non-HIP unit/contract/integration and 012 helper suites in the pinned environment after changes stabilize; record exact commands/results and skipped dependency reasons in `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md`, fix failures in their owning groups and rerun only affected checks plus necessary closure. Do not run HIP or claim hardware proof from CPU results.
+- [X] T064 Reconcile every task/FR/NFR/SC and all 18 reliability rows against concrete passing local checks and explicit E-only evidence in `specs/012-parameterized-adaptive-curriculum/reliability-review.md` and `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md`; stop handoff for unexplained gaps in contracts, quotas, transactions, packaging or nested limits.
+- [X] T065 Publish and verify against actual help/fixture invocation one copy-pastable operator block in `specs/012-parameterized-adaptive-curriculum/quickstart.md`, with explicit existing branch/engine/original roots/output and plan identity, scientific purpose/data/arms/25M limits, measured ETA versus generous ceiling, resume/recover variants and conditional research behavior; share the block directly with the user at handoff, not only a document link.
+- [X] T066 Update `specs/012-parameterized-adaptive-curriculum/plan.md`, `specs/012-parameterized-adaptive-curriculum/tasks.md` and `specs/012-parameterized-adaptive-curriculum/validation/implementation-ledger.md` to mark only evidenced local work complete, list actual workstation/HIP prerequisites and optional research separately, and commit/push the locally validated handoff without waiting for CI.
+
+## Phase E — One consolidated operator session and evidence reconciliation
+
+**Entry**: D complete. The operator runs **T068 once** on the normal compatible
+path. T069–T073 inspect its packaged results; they are not additional HIP commands.
+Failures use the same wrapper's minimal `resume` or read-only `recover`, recording
+the reason. Keep hardware tasks unchecked until actual evidence is supplied.
+
+### E1 — Freeze the exact authorized scope and run once
+
+- [X] T067 Record explicit operator scope (acceptance only by default; research B/C plus qualified/labeled A only if authorized, fresh A/D only if predeclared), original root inventory, source/image/plan identities and finite initial resource graph with explicit calibration gaps in `specs/012-parameterized-adaptive-curriculum/validation/operator-handoff.md` (new); the wrapper may raise and seal operational allowances from calibration before research but cannot alter scientific choices after outcomes or silently extend a running allowance.
+- [X] T068 [US4] Execute the single verified command from `specs/012-parameterized-adaptive-curriculum/quickstart.md` via `specs/012-parameterized-adaptive-curriculum/validation/run.py`: full CPU/native admission, needed qualification, representative calibration, real HIP acceptance and verified export, continuing to retained baselines and new serial arms only for the already frozen research scope; record actual invocation/outcomes in `specs/012-parameterized-adaptive-curriculum/validation/hip-acceptance.md` (new), retaining first-cause failures and smallest retry boundary.
+
+### E2 — Verify evidence from that session
+
+- [X] T069 [US1] Inspect actual original-input/control/native/quota receipts from T068 and reconcile exactly 128/27 and 68/18+26+34 with all 16 exclusions and original draw identities in `specs/012-parameterized-adaptive-curriculum/validation/structural-admission.md` (new); retain parameter DEFERRED and explicit control disposition, block failed scientific admission and reference inherited 011 follow-ups without checking old tasks.
+- [X] T070 [US2] Verify real HIP changed finite parameters, actual checkpoint evaluation, matched initialization, target-pair grounding/fallback counts and inference parity from T068 in `specs/012-parameterized-adaptive-curriculum/validation/hip-acceptance.md`; no mocked updates or acceptance tensors as research initializers.
+- [X] T071 [US3] Verify actual pre/block/post nondegenerate reward, selected probability, kernel/scaler update, anchor acquisition then due graded optimizer update, observation costs and policy clocks from T068 in `specs/012-parameterized-adaptive-curriculum/validation/hip-acceptance.md`; distinguish reduced acceptance cadence from production clock proof and target recall from semantic success.
+- [X] T072 [US4] Verify actual fresh/resumed device/model/optimizer/RNG/data/adaptive/scaler/review equality at both pause boundaries, discarded-crash debit, no-Lt environment/source closure and independently checked success/failure archives from T068 in `specs/012-parameterized-adaptive-curriculum/validation/hip-acceptance.md`; keep any unavailable device/failure proof pending rather than inferring it from old 011 evidence.
+
+  **T072 evidence status**: COMPLETE. Original -004 clean HIP resume/export evidence plus the verified supplemental actual HIP crash/debit summary are reconciled in `validation/t072-result.md`. No CPU substitution or ZIP upload was used.
+- [X] T073 [US5] If authorized research completed in T068, run the scoped analysis over its final reports, examine passing/failing before/after cases and reconcile costs/denominators/attribution into `specs/012-parameterized-adaptive-curriculum/validation/research-results.md` (new); otherwise record research DEFERRED with exact missing evidence. Only check this task complete for actual research analysis; explicit deferral does not block software acceptance and does not authorize another campaign.
+
+  **T073 evidence status**: DEFERRED under the uploaded `research=false` scope; missing actual research outputs are enumerated in `validation/research-results.md`. This remains unchecked and does not authorize a new campaign.
+
+### E3 — Close out with truthful completion
+
+- [X] T074 Reconcile actual evidence, software readiness, scientific interpretability, deferred optional research and all failure/retry boundaries in `specs/012-parameterized-adaptive-curriculum/validation/closeout.md` (new), `specs/012-parameterized-adaptive-curriculum/tasks.md` and `specs/012-parameterized-adaptive-curriculum/reliability-review.md`; commit/push public evidence references and bounded reports only, preserve private artifacts and historical failures, and do not auto-launch seeds/ablations or select a winner.
+
+## Dependencies and incremental delivery
+
+Phase order is **A -> B -> C -> D -> E**. Within a subgroup, tests precede
+implementation. Cross-subgroup dependencies beyond the phase barriers are:
+
+| Consumer | Required work |
+| --- | --- |
+| T009–T010 | T007–T008 structural identities and A closed records |
+| T015 | T013–T014 kernel; T010 inventory contract |
+| T017–T019 | T016 queue counterexamples; T014–T015 clocks/scaling; T010 finite inventory |
+| T021–T023 | T020 fault matrix, T014–T019 policy, T009 frozen identity |
+| T025 | T024 arithmetic cases and T009/T019 selected arms/observation graph |
+| T027 | T026 independent cases and T008–T009 scope/control policy |
+| T031–T032 | T028–T030 authority and preparation cases |
+| T034–T036 | T031–T033 actual batches and installed counterexamples |
+| T038–T042 | T034–T037 actual updates and restore tests; T039 before T040; T040 before T041 |
+| T045 | T043–T044 validated original input assembly |
+| T047/T049 | Their T046/T048 cases; C observations and role contracts |
+| T051–T053 | T045 canonical orchestration and T050 wrapper tests |
+| T055–T057 | T054 packer cases and T051 wrapper; T055 before T056 |
+| T059–T061 | T058 analysis cases, T047/T049 reports and T055 exports |
+| T062–T066 | All D story subgroups; handoff requires T063–T064 closure |
+| T068 | T067 frozen operator scope and every D local gate |
+| T069–T072 | Actual T068 evidence, not elapsed time or bare PASS |
+| T073 | Authorized completed research in T068, T069 denominators and T070–T072 acceptance |
+| T074 | T069–T072 verified or honestly blocked; T073 completed or explicitly deferred |
+
+US1 establishes shared comparison identity before US2/US3 learning. US2's paired
+batches precede US3's adaptive integration. US4 spans foundational recovery through
+delivery and gates every operator story. US5 consumes their frozen data/evidence;
+it cannot establish missing matched controls or device proof itself.
+
+### Story goals, independent acceptance and parallel opportunities
+
+| Story | Tasks | Independent acceptance | Disjoint-file parallel example |
+| --- | --- | --- | --- |
+| US1 (P1) | 10 | Small structural fixture rejects independent exclusions/deficit; full scope reconciles or blocks; original retained checkpoint/control audit requires no new learner | After A, T007 with US2 T011; after C, T043 with T048 |
+| US2 (P1) | 8 | Every pair independently grounds or retains counted fallback; real matched small updates and equal fitter policy | After A, T011 with US3 T013; after C, T046 with T054 |
+| US3 (P1) | 14 | Published numeric fractions, all queue offsets, signed/censored reward, actual charged review and deterministic decisions/restore | After A, T013 and T016 use separate test files; after C, T048 with T058 |
+| US4 (P1) | 22 | Fault-injected actual learner/packer; exact clean restore, honest crash debit, smallest compatible retry and first/secondary errors preserved | After A, T020 and T024 use separate test files; after C, T054 with T058 |
+| US5 (P2) | 7 | Equal-total/different-family fixtures reconstruct all aggregates, enforce 65/68 and matched attribution, select deterministic available cases | After A, T026 with T020; after C, T058 with T043 |
+| Shared setup/polish/closure | 13 | Closed schemas, legacy compatibility, portability, full traceability and honest handoff | A T003/T004 are disjoint; later shared closure is serial |
+
+**MVP**: US1's structural admission/control/reference analysis using existing
+checkpoints, with no fresh learner. Demonstrate its software slice with fixtures
+during B/C/D; perform its actual inference inside the same E invocation rather than
+adding a separate HIP session. Incremental local checkpoints then add US2 paired
+targets, US3 adaptive/review behavior, US4 full recovery and US5 analysis. These are
+reviewable milestones within A–D, not permission to bypass the two critical phases
+or launch research before complete admission and acceptance.
+
+## Requirement traceability
+
+All references below identify planned work, not passing evidence. Each task can
+only be checked after its implementation and stated validation are available.
+
+| Requirements | Task coverage |
+| --- | --- |
+| FR-001, FR-002, FR-003 | T002, T004, T009, T028–T029, T043–T045, T067, T069 |
+| FR-004 | T010, T012, T030–T032, T070 |
+| FR-005, FR-006, FR-007 | T001, T007–T010, T028–T031, T044–T045, T068–T069 |
+| FR-008, FR-009 | T011–T012, T030–T032, T046–T047, T070 |
+| FR-010, FR-011 | T010, T015, T018–T019, T028–T035, T048–T049 |
+| FR-012, FR-013 | T013–T017, T020–T021, T033–T036, T071 |
+| FR-014, FR-015 | T016–T017, T020–T023, T033–T038, T049, T071–T072 |
+| FR-016, FR-017, FR-018 | T013–T015, T018–T025, T033–T036, T048–T052, T071 |
+| FR-019, FR-020 | T002, T020–T023, T037–T042, T072 |
+| FR-021 | T022–T025, T037–T040, T048–T049, T052, T072 |
+| FR-022, FR-023 | T009–T010, T024–T025, T028–T031, T039–T045, T050–T057, T062, T067–T069 |
+| FR-024, FR-025, FR-026 | T039–T042, T048–T057, T062–T066, T068, T072, T074 |
+| FR-027, FR-028, FR-029 | T026–T027, T046–T049, T058–T061, T069, T073 |
+| FR-030 | T033, T036–T042, T054–T057, T068, T070–T072 |
+| FR-031 | T009, T019, T025, T029, T050–T052, T059, T065, T067–T074 |
+| NFR-001, SC-010 | A–E boundaries, T001, T023, T042, T064, T066, T074 |
+| NFR-002, SC-005 | T041, T050–T057, T065, T068, T072 |
+| NFR-003, SC-009 | T005, T024, T037–T042, T053–T057, T062–T064, T074 |
+| NFR-004 | T024–T025, T039–T040, T052–T053, T062, T065, T067–T068 |
+| NFR-005, NFR-006 | T002, T004, T010–T012, T028–T032, T039–T040, T053–T056, T062 |
+| NFR-007, SC-008 | T017, T022, T025, T038, T048–T049, T052–T053, T057 |
+| NFR-008, SC-006 | T015, T019, T025–T027, T048–T049, T052, T061, T073 |
+| SC-001 | T007–T010, T028–T031, T044–T045, T069 |
+| SC-002 | T011–T012, T030–T032, T046–T047, T070 |
+| SC-003 | T013–T019, T033–T036, T071 |
+| SC-004 | T020–T023, T037–T042, T072 |
+| SC-007 | T009, T026–T027, T058–T061, T069, T073–T074 |
+
+## Reliability ownership before hardware
+
+The full prevention/evidence/recovery definitions remain in [reliability-review.md](reliability-review.md).
+Each row below names both implementation and required regression tasks; D's T064
+must link actual check results, not merely cite this table.
+
+| Original failure class / additional design risk | Implementation owner | Counterexample / proof | Required evidence and recovery |
+| --- | --- | --- | --- |
+| Engine/qualification environment mismatch | T029, T040 | T039, T062, T072 | Requested/observed engine/source/image/env; requalify incompatible closure |
+| Fresh directory/host dependency | T044, T051, T053 | T043, T050, T053, T062 | Input/output owner; explicit root or safe sibling/resume |
+| Cold startup/inspection/overlay delay | T025, T040, T052 | T024, T039, T053 | Startup/work/exit costs; amend frozen operational plan before retry |
+| Nested learner/evaluation/persistence timeout | T025, T040 | T024, T039, T052, T062 | All requested/effective limits and exhausted boundary; last complete snapshot |
+| Repeated preparation compile/hash cost | T031, T052–T053 | T030, T052–T053 | Cold/warm/later-shard throughput; sealed-cell reuse only |
+| Finite quota deficit | T008, T010, T031 | T007, T010, T030, T069 | Original draws/exclusions, deficits; no reseed/blind timeout increase |
+| Smoke never reaches actual boundary | T034, T041 | T033, T036–T037, T070–T072 | Actual update/reward/review/load counts and checkpoint hashes |
+| Disk/tmpfs/live copy exhaustion | T025, T038, T040 | T024, T037, T053 | Peak required/free categories; preserve complete prior state/no auto-prune |
+| Excess snapshots/truncated progress | T038, T049 | T037, T048, T057 | Save count/time and whole-run totals; hourly/latest verified generation |
+| Process-to-process backend divergence | T038, T040 | T037, T039, T072 | Actual full-state equality and no-Lt closure; changed backend requalifies |
+| Diagnostic interference/watchdog lifetime | T035, T053 | T033, T053, T057 | Mode/RNG/handler/cleanup status and ordered errors |
+| Cross-image/newer-journal restore | T021–T022, T038 | T020, T022–T023, T037, T072 | Identity/pending/discarded segments; no policy-only replay |
+| Missing nested outcome/COMPLETE/primary cause | T055–T056 | T039, T054, T057, T072 | App/process/cleanup/verifier, quota, omissions and ordered errors |
+| Packer helper paths/stale producer | T055–T056 | T054, T056–T057, T072 | Verified archive and original producer/helper closure; minimal rerun |
+| Wrong EXP3 variant/probability | T014–T015 | T013, T015, T036, T071 | Named kernel, selected p, raw/scaled reward, valid clock |
+| Cross-family/double reward credit | T021, T034, T038 | T020, T023, T033, T037, T071–T072 | Panel/model/block IDs, exactly-once feedback, censored/discarded events |
+| Wrong anchor grade/service bound | T017, T021, T034 | T016, T020, T033, T036, T071 | Anchor grade/exposure/queue, cycle offsets, pending terminal items |
+| Observation cost/short timeout recurrence | T019, T025, T035, T052 | T018–T019, T024, T039, T048, T052, T071 | Complete probe/grade/panel counts/costs; required-feedback pause |
+
+## Completion accounting
+
+74 tasks: A 6, B 21, C 15, D 24, E 8. Story totals: US1 10, US2 8,
+US3 14, US4 22, US5 7; shared 13. Implementation completed A/B/C/D T001–T066 (66 tasks);
+seven E tasks T067–T072/T074 are checked; all mandatory software/evidence work
+is complete and conditional T073 research analysis remains deferred. See `validation/closeout.md`. Every implementation task has an incremental
+implementation or counterexample commit; local evidence is recorded in the ledger.
+T073 is conditional research analysis and may remain explicitly deferred at
+software closeout. Failed/missing admission or device proof is a real blocker to
+its dependent claims; no favorable scientific result is required for software PASS.
+
+
+## Post-D operator failure repairs (2026-11-05)
+
+The operator supplied a verified negative archive and requested both the scientific
+quota blocker and nested-cause reporting be fixed. These follow-ups do not mark E
+complete or rewrite the failed 27-family run. The revised evaluation scope must be
+frozen before any model outcomes; training, exclusions and draw law stay unchanged.
+
+- [X] F001 Add the original public failure counters and independent worst-duplicate source-capacity/old-scope rejection regressions before implementing the amendment.
+- [X] F002 Freeze and implement a new 128-task/23-family structural scope (68 certified/15 families), preserving all 2,288 draws, all 16 exclusions and historical v1 readers; publish exact changed quotas and removed families.
+- [X] F003 Bind the new scope through admission, scoring, metrics, analysis and offline archives; require exact new population identity and preserve historical denominator guards.
+- [X] F004 Add nested-role/first-cause/cleanup/export failure counterexamples; preserve bounded safe cause types and quota details without private paths, truth or tensors.
+- [X] F005 Implement bounded nested failure capture and verified public export/recovery for new and existing failed runs, keeping original records immutable.
+- [X] F006 Run affected and combined non-HIP regression closure, update fingerprint and operator instructions, commit/push repairs and stop without HIP or CI wait.
+
+
+## Qualification projection repair (2026-11-05)
+
+Admission in the operator's second run passed in 1,155.7 seconds. Qualification
+failed before its tests: the isolated validator lacked the structural artifact
+referenced by the admission receipt. Neither this repair nor the earlier admission
+receipt completes E for a changed source/image closure.
+
+- [X] F007 Reproduce missing structural truth through the real custodian projection for historical/current admission versions, plus rejection and safe-error reporting counterexamples.
+- [X] F008 Include verified structural truth only in the custodian validation closure; render exact known safe errors and recover their historical hashes without exposing private text or changing producer records.
+- [X] F009 Run affected and combined non-HIP checks, refresh the implementation fingerprint, document the new-plan rerun, commit/push and stop without CI wait.
+
+
+## Calibration row-boundary repair (2026-11-05)
+
+The third operator run passed admission and CPU/HIP qualification, then calibration
+failed with the exact public hash of `KeyError('source')`. Learner projections
+intentionally omit source text; this repair must preserve that boundary.
+
+- [X] F010 Reproduce calibration's missing source field with actual prepared learner rows and add whole-handler CPU tensor/update/checkpoint and native-failure counterexamples.
+- [X] F011 Decode the already-verified literal target tokens for native calibration only; preserve lean learner projections and add safe historical missing-field diagnostics.
+- [X] F012 Run the stable combined non-HIP regression selection, refresh the current fingerprint, record actual operator progress and fresh-plan instructions, and publish incremental commits without CI wait.
+
+
+## Focused T072 workstation proof (operator-authorized)
+
+The operator requested the missing crash test and explicitly permits omitting ZIP
+publication. During preparation the original -004 archive and T072's pending
+status remained unchanged. The subsequent supplied actual HIP summary now closes
+T072; see `validation/t072-result.md`.
+
+- [X] F013 Add actual subprocess-death/recovery CPU wiring and rejection/parser counterexamples for the focused HIP proof; commit before runner changes.
+- [X] F014 Register one serial HIP-only validation suite, require bounded source-bound crash-debit evidence, and provide a stdlib helper that prints the small result without ZIP upload.
+- [X] F015 Validate local wiring/host rejection and affected regression closure, refresh current identity, publish per-task commits and give the focused workstation command; keep T072 unchecked pending its actual result.
+
+
+## Phase 6: Convergence
+
+Review date: 2026-11-05. Assessed PR #63 at `5681c02aa69db223451e3a3f3ac935ee7525aaa1`
+against the current spec, plan, tasks and constitution, including the authorized
+23/15-family amendment. This append does not rewrite prior completion markers,
+revoke source-bound acceptance evidence or turn deferred T073 into mandatory
+research. It records four HIGH partial gaps before a full research campaign.
+This is a review backlog, not a third critical implementation phase: reopen the
+owning B/C boundary for invariant changes and use D for routine reporting/delivery.
+Commit and push each coherent remediation group; add independent regressions
+before changes and preserve historical recipes/evidence. No new HIP run is needed
+to reproduce these gaps; any later affected qualification follows its actual scope.
+
+Review checks: 31 FR / 8 NFR / 10 SC and 16 story acceptance scenarios cross-referenced
+with five implementation phases and six constitutional principles. Focused local
+selections: 86 passed, then 138 passed and one dependency-blocked test
+(`test_startup_environment_is_detached_and_policy_verification_fails_closed` imports
+unavailable `torch`). These were source-level/local checks, not pinned-image or HIP
+requalification. Two direct independent reproductions confirmed F2 and F4 below.
+Original private workstation tensors and the unpublished full acceptance ZIP were
+not available for reinspection; published bounded summaries remain scoped attestations.
+No extension hooks are registered.
+
+- [X] T075 HIGH — F1: Permit a correctly completed PAC learner with charged discarded crash work to reach final evaluation/analysis through `src/oeis_learn/pipeline_validation/generalization_training.py:450`, `src/oeis_learn/pipeline_validation/generalization_commands.py` and `specs/012-parameterized-adaptive-curriculum/validation/run.py:224`, per FR-020, FR-026, US4/AC1 and plan C whole-state recovery (partial). Currently `COMPLETE` becomes `RECOVERED_WITH_DISCARDED_EXPOSURE`/`PARTIAL` whenever discarded tokens are nonzero; the wrapper halts on that status, and another resume retains the same condition. Add an installed CPU crash-to-budget-completion and complete canonical wrapper regression before changing the PAC-specific terminal disposition; keep useful/discarded/unspent accounting and reduced useful exposure explicit, preserve genuine incomplete/paused states and historical non-PAC behavior, and demonstrate that evaluation/analysis can finish without refunding work or restarting successful stages. Owner: reopen C correctness integration; D wrapper closure.
+- [X] T076 HIGH — F2: Retain bounded whole-run per-family common-loss and semantic-retention histories in `src/oeis_learn/pipeline_validation/generalization_diagnostics.py:288` and its complete-state persistence/projection, per FR-018, FR-027, NFR-007 and T048–T049 (partial). A deterministic 8,192-update observer trace measured 33 common panels but retained only updates 7,680/7,936/8,192 in the shared 64-event buffer; its initial panel was lost, and semantic results retain only global success/completion totals plus family availability flags. Add an independent long-run/censoring/resume counterexample first, then preserve family-level loss sums/counts, semantic success/completion/attempt counts and token/example/update/time coordinates with declared bounded compaction and exact aggregate coverage. Keep a separate recent-event tail, persist the compact history with the model-bound observer and make first-to-final retention reconstructible without private tensors. Owner: B/C history/state invariant boundaries, D public projection.
+- [X] T077 HIGH — F3: Complete research analysis and shareable report projections in `specs/012-parameterized-adaptive-curriculum/validation/analysis.py:90` and `src/oeis_learn/pipeline_validation/generalization_pac_export.py:75`, per FR-009, FR-018, FR-027, NFR-008, SC-006 and T059–T061 (partial). `analyze_campaign` reduces scoring outcomes to `equal_budget`, takes only aggregate examples/updates/learner seconds from training, and the exporter copies analysis/cases without the scored controls or public training diagnostics; it consequently drops raw/rescue/shuffled/absent/template/bank outcomes, allocation/retention histories and measured observation/checkpoint/update cost breakdowns that exist in source receipts. Add producer-shaped whole-campaign fixtures with unequal raw/fitted outcomes and differing diagnostic/review costs first; carry all seven frozen controls, the bounded F2 histories, family/channel exposure and available measured stage/learner cost components into safe, identity-bound analysis/export and recompute every reported aggregate offline. Explicitly preserve unavailable measurements and privacy exclusions; no protected truth, raw logs or state uploads. Owner: D reporting/evidence delivery.
+- [X] T078 HIGH — F4: Reconcile scientific interpretability independently in `src/oeis_learn/generalization/acceptance_archive.py:86` and the PAC analysis/export closure, per FR-028, FR-031, SC-006 and T054–T061 (partial). A correctly sealed negative record with `research=false`, no stages/results/payloads and `scientific_status=EXPLORATORY_SINGLE_SEED` currently verifies and echoes that scientific status. Add altered-scope/status, missing research payload, changed roster/control and 64-versus-65-complete counterexamples first; require acceptance-only scope to remain UNMEASURED and derive any research interpretation from verified frozen experiment/control/arm/structural scope and reconstructible per-arm outcomes, including the >=65/68 gate. Verify actual analysis bytes and their denominator/source bindings, not only hashes or self-declared comparison booleans; preserve honest negative/incomplete export and historical version meanings. Owner: C evidence authority, D offline verifier/packer closure.
+
+T075 remediation: installed CPU optimizer crash/recovery reaches the charged cap, retains discarded exposure and reduced useful tokens, and traverses/reuses every canonical research wrapper stage. Non-PAC recovery stays PARTIAL. Focused regression: 2 passed; runtime/wrapper selection: 29 passed before correcting the counterexample accounting assertion. No new hardware qualification claimed.
+
+T076 remediation: v2 installed observers persist a separate <=64-bin whole-run history. Initial/latest endpoints, per-family exact rational loss sums/token and panel counts, semantic attempt/completion/success counts and useful token/example/update/elapsed-time coordinates survive oldest-interior compaction. Legacy observer restores explicitly disclose omitted old panels. Only elapsed wall-time coordinates are excluded from deterministic replay comparisons; policy, observations, model/optimizer/RNG and all measured counts remain compared. Local affected CPU selection: 29 passed; long/censored/midpoint-resume and legacy coverage tests pass. Historical evidence remains unchanged.
+
+T077 remediation: producer-inventoried campaign scoring now projects all seven controls into pac-analysis/v2 and a sealed, closed research-inputs/v1 payload. The installed stdlib reconciler recomputes control/family/paired metrics, legacy counts, useful/reserved/discarded/unspent costs, stage elapsed totals and per-family retention coverage; analysis bytes are checked during export and offline verification. Public diagnostics retain channel/family exposure and measured observation/checkpoint/update costs; unmeasured review/semantic timing and missing original history remain explicit nulls. Protected supervision, tensors and raw logs do not enter research inputs. Producer-shaped campaign and missing-measurement counterexamples pass; affected export/evidence/wrapper selection: 44 passed.
+
+T078 remediation: independent counterexamples first reproduced 12 failing scientific-authority cases. The verifier now derives scope/status from reconstructed outcomes plus a separately bound accepted research authority, native population and terminal producers; acceptance-only stays UNMEASURED, missing data stays INCOMPLETE, and each compared arm needs >=65/68 certified completion. Sealed report aggregates are compared canonically (including boolean/integer distinctions); nested public authority shapes fail closed. Targeted closure selection: 77 passed, then the added reference-only completion check passed in the 25-test research selection. Historical recipes/evidence are unchanged. See `validation/convergence.md` for versions, limits and reproduction.
+
+Conformance final check: T075–T078 are checked. Broad local regression: 598 passed, 3 actual-HIP tests deselected, after repairing an older fixture missing its protocol version. The final optional fresh-A/D reporting counterexample now preserves A-reference separately; affected analysis/export/policy/spec selection: 93 passed. Whitespace, compilation, prerequisites and unchanged 16/16 checklist pass; no hooks are registered. T073 remains deferred. Current runtime/helper changes require their own affected image/source qualification before a live campaign; historical HIP attestations remain scoped to their original sources.
+
+## Phase 7: R0 diagnostic rehearsal
+
+Operator request 2026-11-05: implement the short rehearsal in
+`validation/research-plan.md`, reusing completed work. These tasks do not reopen
+completed research decisions or authorize executing HIP here. Reuse the existing
+learner, stop boundaries, complete-state proofs, role isolation and archive packer.
+The new diagnostic stage must not qualify its intentionally PARTIAL learners as
+completed research or become a research initializer. Existing B/C/D research stays
+one seed 20261016 and 25M tokens/arm. Critical correctness fixes, if necessary,
+remain owned by the existing B/C phases; this is routine diagnostic delivery.
+Commit and push each subgroup; preserve all existing completed task text.
+
+### R0 counterexamples
+
+- [X] T079 Add independent diagnostic-scope/count/status/source tampering and serial stop/resume/export counterexamples in `tests/unit/test_generalization_rehearsal.py` and `specs/012-parameterized-adaptive-curriculum/validation/test_rehearsal.py`; reproduce missing behavior before implementation, per FR-019/020/025/030 and research-plan R0.
+
+### Installed diagnostic composition
+
+- [X] T080 Implement a minimal installed composition of existing learner/proof/evaluation handlers in `src/oeis_learn/pipeline_validation/generalization_pac_rehearsal.py`; exercise B/C/D production model/data/batch32/cadence for 256 committed updates, compare C uninterrupted versus pause129/resume256, verify finite changed weights/identical initial tensors/charged channels and loaded final forward, and preserve PARTIAL learner dispositions and UNMEASURED science. Register it only behind native admission/current qualification in existing PAC role/job dispatch; add real CPU tensor adapter coverage before closing, per FR-030 and research-plan R0.
+
+### Temporary runner and evidence
+
+- [X] T081 Extend `specs/012-parameterized-adaptive-curriculum/validation/run.py` with explicit rehearsal and stop-after-rehearsal options; freeze B/C/D R1 before outcomes, reuse exact compatible completed stages on resume, and retain generous bottom-up limits. Add versioned public diagnostic evidence and independent success/failure/recovery archive checks through existing canonical exporter/verifier, per FR-022–026 and NFR-002/004/006.
+
+### Local closure and operator handoff
+
+- [X] T082 Run relevant non-HIP regressions, verify stdlib host help and source fingerprint, update `validation/research-plan.md`, `quickstart.md` and `validation/r0-implementation.md` with exact R0/R1/resume/recovery commands, runtime expectations and proof limitations; commit/push each coherent group without waiting for CI, per NFR-003/007 and research-plan handoff.
+
+### Workstation evidence (not executable in this implementation turn)
+
+- [X] T083 Execute the published current-source R0 command on actual HIP, inspect its independently verified diagnostic report and record actual B/C/D/update/resume results in `validation/r0-implementation.md`; only then continue the frozen R1 campaign. Keep this task open until operator evidence exists; no full research or positive result is required to implement T079–T082.
+
+T079: twenty independent pre-implementation counterexamples fail as expected (missing diagnostic verifier and rehearsal runner options). Requirements checklist 16/16; existing ignore files already cover Python/build/private run-state artifacts. No HIP executed.
+
+T080: installed composition and closed proof checks pass 20 local tests, including real CPU B/C/D 256-update traces plus C pause129/resume256 against uninterrupted C. CPU test explicitly adapts production data/device boundaries and is not HIP/performance evidence. Production request requires full admitted 32-family/32,768-row pool, batch32, fresh initializer identity and current HIP environment. Sixteen additional snapshot generations are measured/reserved for diagnostic retention; all five child invocations and four tensor proofs are enclosed without shortening their allowances.
+
+T081: versioned rehearsal plans/reports and explicit stop-before-research are implemented. A single frozen plan reuses the five compatible completed gates on R1 resume. The real collector/packer/stdlb verifier round-trip R0 PARTIAL plus diagnostic PASS; resealed false proof and failed-stage/read-only recovery paths fail truthfully. Calibrated R0 child budgets propagate through the canonical job, and combined peak storage includes diagnostic snapshots. Focused wrapper/archive checks pass; broad non-HIP selection passed 690 tests with three actual-HIP tests deselected. No HIP or research executed.
+
+R0 deterministic-proof refinement: new counterexamples precede the explicit `r0-unmeasured/v1` semantic setting. R0 omits wall-timed semantic generation while retaining production update/review clocks and real loss/recall probes; research and reduced acceptance reject that setting. Production calibration/R1 keep their semantic path. The public diagnostic proof labels semantic retention UNMEASURED. Final affected runtime/archive/research selection: 96 passed; an additional 68-test closure confirms a semantic backend call would fail the real CPU rehearsal fixture. No HIP claimed.
+
+T082: all authorized non-HIP R0 work is complete. Broad local suite: 690 passed, three actual-HIP tests deselected. After the explicit semantic-proof refinement, 96 affected runtime/archive/research tests and 68 focused closure tests passed; final CLI/governance/handoff checks passed 43 tests. Stdlib host help, all six handoff shell-block syntax checks, links, prerequisites, whitespace, current implementation disposition and unchanged 16/16 checklist pass. New CPU adapter tests are not pinned-image/HIP or performance evidence. Exact R0/R1/resume/read-only recovery commands and the extra C comparison work are documented in `validation/r0-implementation.md`; T083 and conditional T073 remain unchecked. No hooks are registered; no HIP execution or CI wait occurred.
+
+
+### R0 canonical output ownership repair (2026-11-05)
+
+Append-only follow-up to the operator's verified negative R0 report; T083 stays
+open. Preserve the frozen research configuration, generous limits and current-source
+qualification. No HIP execution or CI wait is authorized here.
+
+- [X] T084 Reproduce the precreated canonical output-mount failure through the installed role entry point using real CPU tensors; add fresh/stale private directory, file and symlink ownership counterexamples before implementation.
+- [X] T085 Accept the launcher-owned R0 mount root while exclusively claiming fresh diagnostic work, preserving launcher scratch and refusing stale or partial output; audit sibling PAC handler boundaries and run affected non-HIP checks.
+- [X] T086 Record verified operator failure evidence, refresh implementation identity, publish exact current-source retry/resume commands and validation outcomes; commit and push each coherent subgroup. Keep T083 pending actual successful HIP evidence.
+
+T084: six counterexamples fail before the repair: installed dispatch reproduces the exact FileExistsError before any learner invocation, and five fresh/stale ownership cases require the missing claim boundary. Both supplied archives independently verify integrity PASS with negative software/scientific dispositions; no successful rehearsal is claimed.
+
+T085: `claim_output` accepts the launcher-created mount and exclusively creates
+`private`, retaining `.runtime`/supervision and refusing existing private work,
+symlinks or terminal records. The installed CPU dispatcher completes all five real
+learner calls and the full in-block tensor/policy/observer equality proof. Duplicate
+dispatch raises rather than overwriting the immutable original terminal; the
+regression checks its bytes as well as the rehearsal and scratch. Campaign sibling
+assembly/acceptance use fresh child roots, while calibration uses the existing mount;
+their mount ownership does not need the R0 repair. Affected rehearsal selection:
+29 passed using PyTorch 2.9.1+cpu and Wasmtime 48.0.0. This is local CPU adapter
+evidence, not installed-container/native/HIP qualification; T083 remains open.
+
+### Qualification reporting follow-up (operator requested)
+
+- [X] T087 Reproduce missing pipeline receipts/JUnit causes, misleading empty private detail, integrity/privacy/discovery limits and negative archive recovery before changing the collector; use dependency-free regressions in `tests/unit/test_generalization_qualification_failures.py`.
+- [X] T088 Project verified qualification substage outcomes, bounded test identifiers/counts and fixed safe diagnoses through normal/minimal/read-only reports; bind outer supervisor controls/logs and retain suite totals separately from enumerated XML cases.
+- [X] T089 Validate affected reporting/ownership/host paths, refresh the implementation fingerprint, record supplied failure evidence and exact recovery/fresh-plan commands, and commit/push without waiting for CI. Keep current-source HIP/R0 proof pending.
+
+T087–T088: seven dependency-free counterexamples failed before the collector/claim
+repairs. `pac-stage-failures/v2` now projects original sealed pipeline receipts
+and inventory-bound JUnit files before wrapper/process errors. It retains bounded
+source-verified test names, opaque parameter-case IDs, exception categories and
+fixed diagnoses for the two observed R0 failures. Unknown names, raw exceptions,
+tracebacks, terms and host paths are not exported. Original suite totals and
+enumerated testcase counts are separately retained; truncation and unavailable,
+unbound, tampered, oversized or unsafe XML are explicit. New wrappers bind outer
+supervision files; recognized QUALIFICATION lines retain stage/status without raw
+reasons. Normal and forced-minimal archive tests preserve all original bytes and
+the failed disposition. Reporting/archive/wrapper selection: 80 passed and five
+subtests passed; dependency-free selection: 11 passed. No HIP or CI wait.
+
+T086/T089: published the exact six-failure diagnosis and source match, read-only
+old-run recovery and fresh-source `pac-012-bcd-r0-003` handoff. Three distinct local
+selections passed 147 tests plus five subtests in total; three actual-native
+qualification checks were explicitly skipped, not relabeled PASS. Source identity
+and all 68 historical dispositions reconcile. All eight handoff shell blocks,
+stdlib host help, prerequisites, whitespace and read-only 16/16 checklist pass.
+Ownership and reporting were committed/pushed separately; the evidence/handoff
+follow-up closes local delivery only. T083 stays open pending actual repaired HIP
+R0, and T073 research remains deferred. No hooks were registered, HIP work launched
+or CI jobs awaited.
+
+### Early disk gate evidence follow-up (2026-11-06)
+
+The next supplied report stops before qualification creates an application result.
+Its 46-byte stderr hash exactly matches the fixed source literal `ERROR:
+insufficient PAC reserved disk storage`. Source matches `6d6153e`; admission
+passed, and qualification tests/HIP/R0 did not start. Free space at failure was not
+recorded, so no historical shortfall or physical peak-capacity conclusion is inferred.
+
+- [X] T090 Add counterexamples for the exact verified early disk diagnostic, unknown/unbound stderr privacy, required/free equality boundaries, measured negative canonical terminal, and sealed storage-check integrity. Three new tests failed before implementation.
+- [X] T091 Preserve a canonical BLOCKED terminal and measured required/available/shortfall bytes for the existing PAC free-space gate; include verified storage checks and exact known early stderr in normal/minimal/recovery reports, and bind outer admission role-job logs. Do not lower reservations, prune originals or fabricate historical measurements.
+- [X] T092 Run affected resource/reporting/registration/host tests, refresh the implementation fingerprint, document the actual new failure and a read-only current-space check, and commit/push without HIP execution or CI wait. Keep T083 and research pending.
+
+T090/T091: the canonical storage gate now writes its sealed check and BLOCKED
+terminal before any validation/model work. `pac-stage-failures/v3` retains verified
+required/available/shortfall bytes, and both rich/minimal exporters share this
+projection. Exact known host stderr recovers the old cause without arbitrary raw
+log disclosure; missing old measurements remain absent. Admission role-job outer
+controls/logs are now bound too. Sixteen dependency-free regressions pass, including
+unknown/unbound stderr, canonical negative exit3, exact storage boundary,
+rehashed boolean-counter tampering, original-byte preservation and both archive
+paths. The affected resources/reporting/registration/wrapper selection passes
+98 tests and five subtests. No reservation, scientific policy or original data
+was changed; T083 remains open.
+
+T092: recorded the independently verified new negative report, exact known stderr
+hash/source match and missing historical free-space measurement. Published a
+stdlib read-only current-space command before any further hardware retry. The
+affected selection passes 98 tests plus five subtests; conformance/governance
+passes 38 with three actual-native checks explicitly skipped. Sixteen dependency-
+free cases are included in the 98. Source fingerprint, 68 unchanged historical
+dispositions, prerequisites and the read-only 16/16 checklist reconcile. No hooks,
+reservation relaxation, original cleanup, HIP work or CI wait occurred.
+
+### Actual HIP R0 verification (2026-11-06)
+
+T083 is now COMPLETE for the supplied `report(20261106-104553).zip` scope.
+Independent stdlib verification yields integrity PASS, rehearsal PASS, overall
+PARTIAL and scientific INCOMPLETE with no errors; the campaign stopped before
+research. Admission, current-source CPU/HIP qualification, production calibration,
+reduced HIP acceptance and R0 all PASS with successful process/cleanup outcomes.
+The CPU JUnit suite reports 1,586 executions (1,504 explicit XML cases); HIP reports
+27, all without failures/errors/skips. B/C/D each commit 256 production-cadence
+updates with finite changed weights and no discarded tokens or pauses. C's
+pause129/resume256 tensor and complete policy/observer proofs equal uninterrupted
+C. R0 performs 1,024 actual optimizer calls including the extra C trace.
+
+The operator confirms the exact output is `run-state/generalization/pac-012-bcd-r0-00`
+(the intended trailing `4` was omitted); preserve that spelling for reuse. The
+review record `validation/evidence/r0-hip-summary.json` binds archive/verifier,
+source/helper/images/plan, actual counts and limitations. Source/helper exactly
+match the reviewed checkout. Updated handoff/quickstart/research-plan record the
+exact R1 resume with all five compatible gates reused. This closeout changes only
+documentation/data, preserving installed source and helper identities. Historical
+pending notes above refer to earlier runs; T073 remains deferred until actual R1
+analysis. No new device work, raw ZIP publication or CI wait occurred in review.
+
+### R1 retained-baseline helper repair (2026-11-06)
+
+The supplied first R1 report independently verifies integrity PASS/rehearsal PASS
+and preserves all five successful gates as REUSED. Baseline raises FileNotFoundError
+before any process/role launch; no research learner started. The accepted plan
+identity is unchanged despite the spelling difference in the pasted plan path.
+Its original exception text was discarded, so the ZIP cannot identify the missing
+filename. A real helper-branch counterexample independently proves that the
+retained checkpoint output root was confined before creation.
+
+- [X] T093 Reproduce baseline's missing-owned-root failure for both reference-only/fresh-control labels, and missing helper-level public/private diagnostics through actual normal/minimal publication before implementation. Four tests failed initially; rehashed unsafe failure strings also failed before the validation fix.
+- [X] T094 Repair only the temporary baseline projection: exclusively create its owned root, verify original retained bytes before copy, preserve descriptor identity and reject stale/tampered inputs. Record temporary-helper exceptions with a source-bound public location and bounded private original detail; do not alter qualified installed code or the scientific plan.
+- [X] T095 Add verified supplementary helper diagnostics using the existing canonical exporter and publisher, preserving their rich/minimal payload bytes and negative status. Reject unknown/unbound/tampered/unsafe records with explicit omissions; keep private text out of all shared reports and read-only recovery immutable.
+- [X] T096 Validate affected wrapper/archive/privacy paths and helper-only source preservation, publish the exact resume from the failed R1 root into a fresh sibling, and commit/push coherent groups without HIP execution or CI wait. Preserve T083 completion and defer T073 until actual research analysis.
+
+T093–T095: the baseline fixture reaches the installed checkpoint-request consumer
+with the original descriptor/verified bytes, checks both A/A-reference labels and
+rejects repeated output or changed originals. Real packer/offline verifier tests
+retain helper diagnostics in normal and forced-minimal reports, preserve original
+workflow bytes on recovery, and omit hash/shape/vocabulary failures including a
+resealed arbitrary private string. The affected selection passes 80 tests plus
+five subtests. This is CPU/host construction and archive evidence, not completed
+structural inference. Only `validation/run.py` and its adjacent tests changed;
+the installed source remains `sha256:b0951861c976252013a86718762666c6f9d0ae6eed017383650edf57f9715e41`.
+The new helper hash is reported separately and does not invalidate the five
+unchanged successful gate producers.
+
+T096: repair `80978d3` is committed/pushed. The final affected selection passes
+80 tests plus five subtests. Independent `python3 -S` verification preserves the
+supplied R1 archive's integrity PASS/rehearsal PASS/software FAIL, and the installed
+snapshot is exactly unchanged. All 17 shell blocks across the handoff/quickstart,
+embedded Python snippets, dependency-free helper help, prerequisites, whitespace
+and the read-only 16/16 checklist pass; no extension hooks are registered. The
+handoff resumes from the failed R1 root's copied plan into fresh `pac-012-bcd-r1-002`,
+without rebuilding images or repeating the five successful gates. No HIP,
+structural inference or CI wait was performed.
+
+### Stacked installed follow-up integration (2026-11-06)
+
+The operator started the compatible R1 retry and requested a separate stacked PR
+for permanent integration. Work is isolated on `012-pac-followup-integration`,
+based on #63 at `bbeacb4`; the running branch and original evidence remain intact.
+R0 ownership, storage checks and qualification diagnostics already live in installed
+modules. The remaining helper-only baseline projection and exception reporting move
+to their existing installed boundaries, leaving serial orchestration temporary.
+
+- [X] T097 Move the follow-up regression cases into the normal integration suite; add direct installed projection and canonical normal/minimal exporter counterexamples before implementation.
+- [X] T098 Install exclusive verified retained-baseline projection and helper failure capture/validation; wire the temporary runner to those APIs without adding a second workflow or changing scientific authority.
+- [X] T099 Collect verified helper diagnostics directly through canonical rich/minimal export and read-only recovery, removing helper archive supplementation; retain tamper/privacy/status guards.
+- [X] T100 Validate affected installed/operator/archive paths and stdlib entrypoints, refresh the implementation disposition identity, document changed source/qualification scope, commit periodically and open the stacked PR against #63 without waiting for CI. Do not change the active campaign or claim actual HIP proof of the new source.
+
+T097 red baseline: four failed, two passed. Direct installed projection imports
+fail in both control modes, and direct canonical rich/minimal exports lack the
+bound helper diagnostic. Existing real helper-baseline branch tests still pass.
+
+T098–T099: installed `project_retained_checkpoint` owns exclusive creation, original
+weight verification and frozen descriptor/label checks through `checkpoint_request`.
+`generalization_helper_failures` owns bounded private/public capture and strict
+inventory/schema/status/vocabulary/source-location validation. The canonical PAC
+exporter shares failure projection across rich/minimal output; the wrapper's archive
+supplementation is removed and recovery delegates directly. Four red integration
+gaps now pass. Final affected/evaluation/archive/governance selection: 175 passed,
+three actual-native qualification checks skipped, five subtests passed. A separate
+161-test contract/privacy selection also passed. Stdlib CLI help passes. No HIP or
+CI wait occurred. The 007 implementation identity is refreshed without altering its
+68 dispositions or completion flag; the new installed source requires its own
+future source/image qualification and does not replace the active R1 scope.
+
+T100: affected tests, installed-source identity, stdlib entrypoints, prerequisite,
+local-link/shell syntax, whitespace and read-only checklist checks pass. The
+installed integration handoff records the unchanged active R1 scope and separate
+future qualification obligation. Red-first and implementation groups are pushed;
+the final documentation group and separate PR target #63's branch, with no CI wait.
+
+### Operator-authorized selector diagnosis (2026-11-06)
+
+Separate stack above #64; the completed R1 experiment and production selector stay
+frozen. Implement a read-only, explicitly exploratory audit, not a new campaign.
+The follow-up contract is `validation/selector-audit.md`. These tasks reuse the
+existing independent bounded reference interpreter; no second arithmetic engine,
+new fitting, training, hidden-term execution or automatic policy adoption.
+
+- [X] T101 Specify the audit/visible-only ranking boundary and add independent branch-coverage, leakage, provenance, unknown-outcome and immutable-output counterexamples before implementation.
+- [X] T102 Implement bounded branch-site observation and the experimental ranking API, preserving reference arithmetic and existing observer/selection semantics.
+- [X] T103 Implement the stdlib CLI over verified report/detail ZIPs, reconstruct original eligible candidate pools, reproduce original choices, join only previously scored exact sources after ranking, and export bounded diagnostic evidence.
+- [X] T104 Run affected CPU/stdlib regressions and the supplied R1 bundle, record outcomes and limitations, refresh source disposition, commit/push periodically and open a separate stacked PR without waiting for CI.
+
+Training-only probe calibration, freezing a research selector and fresh structural
+confirmation require workstation checkpoint/probe originals and a separately frozen
+execution plan. They are not claimed by this offline audit or launched here.
+
+T101: fifteen independent counterexamples fail before implementation (missing
+branch observer/ranking/audit boundaries). Checklist remains 16/16; no hooks are
+registered. Existing ignore files cover private run-state and Python artifacts.
+
+T102: the bounded reference interpreter now offers optional stable if/select site
+observation without changing arithmetic or legacy observer events. The closed
+experimental ranker accepts only generated source identities and a 20-term visible
+prompt. Seven independent selector tests pass; original reference/diagnostic
+regressions are included in the local validation. No production selector is changed.
+
+T103: the stdlib CLI verifies report/producer bindings, recovers retained and
+omitted eligible sources, reproduces every original choice and ranks without
+scores. Nineteen focused cases pass, including a red-first private-reason canary.
+The first original-bundle replay reproduces 384/384 choices and all 3,851 eligible
+candidates in 4.63 local CPU seconds; no hidden execution or hardware claim. The
+generation inventory is bound to the supplied detail ZIP, not falsely advertised
+as present in the public report; an optional externally recorded ZIP hash pins it.
+
+T073 (2026-11-06 update): completed actual R1 analysis is now recorded in
+`validation/research-results.md`, superseding the earlier acceptance-only deferral.
+Original full research outputs and detail ZIP were verified and all task cases
+audited; scientific comparisons remain INCOMPLETE under the unchanged 65/68 gate.
+No new campaign, policy adoption or assessment execution follows from completion.
+
+T104: final affected reference/admission/diagnostic/archive/scoring/privacy selection
+passes 108 tests (one intentional duplicate-ZIP fixture warning). Twenty selector
+and audit tests include an additional red-first original-censoring accounting case.
+The final stdlib replay reproduces 384 choices and observes all 3,851 eligible
+sources with no unavailable observations. Certified changed/known-recovered/unscored
+counts are B 23/0/20, C 20/10/10 and D 27/0/27; no new accuracy estimate is inferred.
+The bounded summary and research review record exact original and audit identities.
+CLI help, prerequisites, links, whitespace and the unchanged 16/16 checklist pass;
+no hooks are registered. The 007 implementation identity is refreshed with its 68
+historical dispositions unchanged. No HIP, training, fresh scoring, assessment,
+production selector adoption or CI wait occurred. Separate stack targets #64.
+
+## Selector validation follow-up (2026-11-07)
+
+The operator requested a workstation workflow using existing checkpoints/probes,
+followed by a separately frozen fresh structural comparison. This is a new
+prospective experiment; it does not overwrite R1 or adopt a production selector.
+
+- [X] T105 Add red-first selector comparison contracts: identical eligible pools, visible-only ranking, provenance seals, incomplete-trace censoring, unchanged historical draw, and separately versioned fresh draw in `tests/unit/test_selector_validation.py`.
+- [X] T106 Connect optional complete admitted-envelope retention to existing generation, preserve all seven controls including bank, and use the existing independent scorer through installed least-privilege roles in `selector_validation_roles.py`; exercise a synthetic shared-generation/two-selector/full-horizon path.
+- [X] T107 Finish the stdlib portable workstation command with inventory-bound final B/D checkpoints, training-only probe publication, source/image requalification, explicit post-probe freeze, one-use fresh execution, original/observed/probe exclusions and fail-closed quota diagnostics.
+- [X] T108 Validate affected host/generation/scoring/structural contracts, publish an operator handoff and frozen experimental design, refresh the implementation binding, commit and push the separate stack without waiting for CI. Actual workstation HIP/probe/fresh results remain operator execution evidence, not local test claims.
+
+T105–T108 validation: 184 affected local CPU/contract/integration checks pass
+(183 together plus the corrected implementation-binding check); one intentional
+duplicate-ZIP fixture warning. Fourteen new cases cover comparison seals, complete
+shared pools, synthetic canonical scoring, assessment rejection, observed-cohort
+exclusion, exact checkpoint inventory/tampering, freeze/source gates and visible
+failure bundles. Stdlib help for all three phases, prerequisites, whitespace and
+the unchanged 16/16 requirements checklist pass. No extension hooks are present.
+The historical 68 disposition records are unchanged; only their implementation
+binding is refreshed. Podman is confirmed from the supplied original plan. Current
+source builds and actual-HIP qualification are part of the workstation command.
+No real weights/probes/HIP or fresh scientific outcomes are claimed locally; no
+CI wait. The new stack builds on the offline audit branch/PR #65.
+
+## Fixed-candidate fitting diagnostics (2026-11-07)
+
+The completed training probe gate stopped at D 235/256 complete. Operator-approved
+follow-up replays the nine no-selection timeout cases (72 original fits), then
+compares resource configurations separately. It cannot update the probe gate.
+
+- [X] T109 Add red-first contracts for exact timeout-case extraction, original seeds/service allowances, visible-only fitter mounts, same-core-source binding and immutable diagnostic scope.
+- [X] T110 Add installed preparation/fitter adapters using the existing native client, native transport timing, queue/RSS/restart statistics and repeated fixed-work serial/concurrent comparisons.
+- [X] T111 Add portable CPU-only workstation command, original artifact verification, current image/native checks, frozen resource matrix, complete diagnostic exports and failure evidence.
+- [X] T112 Run affected checks, document the exact command and limitations, refresh the implementation binding, commit/publish a separate stack without CI wait. Workstation replay evidence remains pending.
+
+T109–T112: original uploaded scoring data selects exactly nine D cases / 72
+fits (11 timeouts, 61 completed controls). Initial red-first contracts plus
+additional tampering and verification-failure counterexamples pass. Affected
+local selection passes 101 checks with five existing native-binary-dependent
+checks skipped; no actual Z3/HIP/workstation performance claim follows. Current
+container CPU/native checks include the new owning tests and are required by the
+operator command. Stdlib help, prerequisites, whitespace and unchanged 16/16
+checklist pass; no extension hooks. Original 68 dispositions are preserved while
+refreshing the implementation binding. Separate stack targets #66; no CI wait.
+
+## Native fitting fast paths (2026-11-07)
+
+Follow-up diagnostic reproduced all 11 timeouts with negligible queue/throttling
+and ~150 ms outside native fit timing. Inspection found a fresh WASM engine/guest
+compile before every fit. Operator authorized continuing with sound improvements.
+
+- [X] T113 Add bounded residue contradiction proof tests, runtime reuse/fresh-state counterexamples and explicit engineering-comparison compatibility tests before implementation.
+- [X] T114 Reuse immutable installed runtime/guest identities, expose dispatch phase timing, add bounded modular UNSAT precheck and independently replayable evidence without relaxing numeric/search limits.
+- [X] T115 Freeze an explicit core amendment and benchmark against the prior diagnostic report using identical packets/resources; export the five timeout templates and visible inputs for inspection.
+- [X] T116 Run available affected checks, require native Rust/build qualification on workstation, refresh implementation binding, document commands and limitations, commit/publish the separate stack without waiting for CI.
+
+T113–T116: 126 affected Python/contract/transport checks pass locally, with
+13 native-binary-dependent checks skipped; final targeted amendment/baseline/
+reporting/binding rerun passes 23 checks with one native-image skip. The uploaded
+original baseline validates unchanged three repetitions and replay packet identity.
+The named amendment pins five exact parent/current Rust files; default same-core
+validation remains strict. Added Rust tests cover sound/inconclusive residue cases,
+work/deadline bounds, certificate replay and runtime reuse; the real-worker test
+also checks positive independent admission. This workspace has no Rust/compiler
+or container engine, so these native checks were not executed here. Existing
+qualification-image builds run the Rust suite and the operator command enforces
+CPU/native checks before measuring. Native results/performance and full probe
+advancement remain pending. Stdlib help, whitespace, prerequisites and unchanged
+16/16 checklist pass; no hooks. Only the implementation binding changes among
+the historical 68 dispositions. Separate stack targets #67; no CI wait.
+
+- [X] T117 Review the uploaded optimized workstation replay against the recorded baseline; verify seals, packet and exact attempt bindings, independently exhaust the 11 modular contradictions, and record resource/performance findings plus the fresh full-probe command.
+
+T117: all 72 fits and all nine case searches complete in each of three repeats,
+with zero integrity failures and unchanged classifications for all 61 original
+completed controls. Median warmed workload falls from 18.545 to 0.119 seconds.
+All 11 former timeouts independently fail their visible-prefix residue equations;
+no new solutions are admitted. The uploaded benchmark is CPU-only and excludes
+warmup; individual native test transcripts were not supplied. Historical probe
+completion remains 235/256 and structural advancement remains pending a fresh
+full probe run. Detailed evidence and limitations are recorded in
+`validation/native-fit-fastpaths.md`.
+
+## Installed wheel and qualification failure repair (2026-11-07)
+
+- [X] T118 Reproduce the uploaded GPU image inspection failure with an actual wheel outside the checkout; retain rejection of modified policy bytes.
+- [X] T119 Include all generalization policy JSON resources in wheel/sdist, return failed qualification stage references/reasons, and capture bounded original qualification evidence in selector failure ZIPs without exporting private payloads.
+- [X] T120 Run affected packaging/diagnostic/source-binding checks, record the verified pipeline diagnosis and fresh `-003` retry command, commit and publish a separate stacked repair without waiting for CI.
+
+The uploaded original qualification archive verifies FAIL: CPU/native reports
+1,547 tests with no failures/skips; GPU installed-wheel inspection rejects the
+omitted fit amendment before HIP. The new wheel regression reproduces that exact
+failure before the fix. Three diagnostic scenarios also fail before repair:
+stage details absent from producer result, qualification logs missing from the
+failure ZIP, and capture errors omitted. Existing scientific gates remain intact.
+
+T118–T120: 127 affected checks pass, one installed-native-image check skips;
+final wheel/tamper and implementation-binding checks pass 2/2. Only the current
+implementation binding changes among the 68 historical dispositions. Stdlib
+probe help and whitespace checks pass; read-only checklist remains 16/16 and
+there are no extension hooks. Actual GPU qualification/probe outcomes remain
+workstation-only and pending. The separate repair stack targets #68; no CI wait.
+
+- [X] T121 Review the repaired `probes-003` report: verify seals/source/input bindings, independently recompute all selector/control and B/D summaries, match the nine completed D cases to the fit replay, record remaining censoring and the separate structural freeze/execution commands in `validation/probe-003-review.md`.
+
+T121: PASS / COMPLETE_DESCRIPTIVE, B 255/256 and D 244/256 complete for both
+selectors, zero incomplete traces. B remains 182 successes; D remains 83 original
+and 84 coverage successes. All nine newly completed cases are observed failures.
+The technical gate permits the existing fresh structural screen; no selector or
+arm adoption follows. Report/plan and generation seals, reviewed checkout source,
+unchanged original inputs/roster and every exported paired summary verify. The
+public ZIP lacks qualification transcripts and full utilization traces; those
+claims remain bounded accordingly. Documentation-only follow-up; no CI wait.
+
+## Fresh admission feasibility review and support census (2026-11-07)
+
+- [X] T122 Verify uploaded frozen-plan/availability/producer bindings, account for all 917 window exclusions and four zero-availability families, and reproduce the shared-branch exclusion on public synthetic sources.
+- [X] T123 Add a stdlib-only read-only full-law witness census with fixed protocol/input hashes, bounded input/work, count-only diagnostics and no model/qualification/cohort authority; test both blocking and inconclusive outcomes before implementation.
+- [X] T124 Validate focused/related checks, document the original qualified-checkout-preserving workstation command and scientific decision boundary, commit and publish separately without waiting for CI.
+
+T122–T124: the 2,288 draws lose exactly 917 finite-window matches, leaving
+1,371 candidates. All 256 draws in the four deficient families pass independent
+reference evaluation but are excluded; five certified/two ambiguous slots remain
+missing. Current evidence cannot establish full-law infeasibility. Seven focused
+support tests pass; the related selector run passes 21 checks before the final
+deadline case. Stdlib help, whitespace and unchanged read-only 16/16 checklist
+pass; no hooks. The new helper exports only counts/identities and is run from
+ignored run-state without changing the qualified checkout. No scientific policy
+or installed package code changes; no implementation-binding change is needed.
+The workstation support census remains pending. See
+`validation/fresh-admission-review.md` for proof scope, limits and command.
+
+- [X] T125 Verify uploaded v1 support totals/code binding and retain all four conclusions as inconclusive; implement an opt-in exact all-81-window inverse census with independent-reference, boundary, shifted-window, set-union and copied-stdlib CLI counterexamples, then document the separately scoped workstation command.
+
+T125: v1 completes in 15.716 seconds, leaving 430/53/1,449/1,197 uncovered
+witness classes. These are not eligible-task counts. Full-window projection
+handles linear intervals, quadratic rows/columns and exact mixed-branch points,
+including one-term boundary cases and sum multiplicity. No scientific law,
+quota, seed, exclusion or installed package code changes. The extended census
+remains diagnostic-only and exports counts/identities. Workstation v2 results
+remain pending; v1 is not rewritten. Tests and publication are recorded below.
+
+T125 validation: 29 affected checks pass, including 14 focused support cases.
+Every true window in independent-reference boundary/extreme cases is recognized;
+inverse membership agrees with brute-force equality on an independent grid.
+Shift, overlap, sum multiplicity, optimized reader, zero/full support fixtures
+and actual copied stdlib CLI checks pass. Stdlib help, whitespace, prerequisites
+and unchanged 16/16 read-only checklist pass; no hooks. The qualified checkout
+is preserved by fetching the helper to ignored run-state. Committed and published
+to the existing support-audit stack without waiting for CI.
+
+- [X] T126 Review and verify the uploaded v2 all-window census, reconcile assignment counts and cell increments, and record a concrete proposed draw-only amendment with unchanged scientific controls and explicit planning assumptions in `validation/fresh-reservoir-proposal.md`.
+
+T126: PASS / DIAGNOSTIC_ONLY in 35.837 seconds. All four families have positive
+window support: 6, 98,334, 63,406 and 82,537 assignments respectively. Source
+digest and result seal verify; all 18 scan increments and final counts reconcile.
+The original 64-draw reservoir is particularly inadequate for the six-assignment
+family. Proposed caps 4,096/512/512/512 produce 7,664 total draws within 8,192,
+without changing quotas, seed, law, exclusions, weights or scoring. Random-model
+quota probabilities are explicitly optimistic and do not certify the actual
+prefix or full admission. This is documentation only: no amendment is active,
+no frozen plan changes and no new model/qualification execution is authorized
+by the census. Implementation remains a separate prospective decision.
+
+## Operator-adopted reservoir amendment (2026-11-07)
+
+- [X] T127 Register the exact 4,096/512/512/512 prefix expansion (7,664 total), preserve every old candidate prefix and all other scientific fields, and test rejection of seed/law/protocol changes before implementation.
+- [X] T128 Validate original blocked parent, all-window census, score/checkpoint provenance and historical qualification; prove unchanged inference/metric/native/build closure using bound parent-module text and protected AST; require fresh current CPU/native and HIP qualification without rerunning probe panels.
+- [X] T129 Keep one fresh frozen execution path, verify the new qualification again at execution, enforce measured preparation memory before native/model work, and export public admission/resource counts in success and failure archives.
+- [X] T130 Complete affected local checks and real probes-003 source-compatibility verification, refresh only the current implementation binding, record operator adoption/commands/limitations, commit periodically and publish a separate stack without waiting for CI.
+
+T127–T130: 132 affected checks pass locally, one installed-native-image check
+skips. Exact source compatibility against the actual original probes-003 digest
+d29306db... verifies; 68 historical disposition entries remain unchanged. The
+new protocol is 6603333f...; registered policy is 7c0be8a1.... New qualification
+still requires actual current CPU/native/HIP scopes and identical resource,
+runtime, build and security facts. Historical probe records are preserved under
+their original identities. Prefix, protected-code, tampering, fixed-output,
+qualification-failure, memory-before-native and admission-export regressions
+pass, including real wheel packaging. Stdlib help, whitespace and unchanged
+16/16 read-only checklist pass; no hooks. Workstation qualification, new cohort
+admission and model scores remain pending. See `validation/reservoir-amendment.md`.
+
+## Consolidated reliability implementation (2026-11-08)
+
+- [X] T134 Merge follow-up PRs #64–#71 through their stack into #63, inspect their existing CI failures, and repair the incomplete portable packaging fixture while preserving the stdlib/empty-PATH assertion.
+- [X] T135 Prevent typed-grammar nesting-limit dead ends while retaining valid boundary programs; add synthetic and sampled-prefix regressions.
+- [X] T136 Add bounded affine-frontier residue projection and modulus-11 contradiction/replay tests, including actual-solution counterexamples; register a new core identity without rewriting the historical amendment.
+- [X] T137 Provide one fresh-qualified training-probe plus A–B–B–A scheduling diagnostic command, with fixed visible-only subset, original inference caps, behavior/completion accounting, bounded telemetry and a comprehensive hash-inventoried success/failure archive.
+- [X] T138 Complete affected checks and final-source CI-regression reproduction, preserve historical dispositions, record the workstation command and validation boundary, commit periodically and publish directly to #63 without waiting for CI.
+
+The engineering command and prospective research boundary are documented in
+`validation/reliability-followup.md`. Native Rust compilation/tests and actual
+HIP execution require the workstation's qualification image; local Python tests
+do not substitute for them. Later multi-seed research/portfolio confirmation is
+conditional on reviewing the diagnostic result, and is not executed by this
+implementation task.
+
+T134–T138 validation: the reported packaging regression reproduces before repair
+and passes after repair under `python -S`/empty PATH. Final-source CPU regression
+suite: 959 passed, 68 native/hardware skips. Affected selector/generalization
+suite: 456 passed, one installed-native-image skip, five subtests passed. New
+boundary/telemetry/orchestration regressions and actual wheel packaging checks
+also pass. The versioned fitter binding matches all current core bytes; the old
+binding remains immutable. Only the current implementation fingerprint changes
+among historical dispositions. CLI help, compile checks, artifact consistency,
+whitespace and the unchanged 16/16 read-only checklist pass; no extension hooks.
+Rust unit cases are included in the mandatory image build, but neither Rust nor
+an engine/HIP device is available locally. The workstation command must establish
+those gates before probe or scheduling execution. No CI wait or new scientific
+outcome is claimed.

@@ -211,3 +211,100 @@ def test_direct_projections_have_one_copy_and_preserve_originals(tmp_path,monkey
     with pytest.raises(ValueError,match='identity differs'):
         roles.project_and_invoke(None,'image',tmp_path,'learner',{'training_targets':[],'verified_training_replay':[bad]},
             artifact_sources={'verified_training_replay':sources},output='bad',operation='check-training',settings={},seconds=10)
+
+
+def pac_config(tmp_path,arm='C'):
+    from tests.integration.test_generalization_curriculum import prepared
+    from oeis_learn.fresh.bigint_config import resolve
+    batches,bundle=prepared(tmp_path,arm)
+    return dict(study=digest('pac-installed-fixture'),arm=arm,seed=7,recipe=resolve(dict(version='bigint-bootstrap/v1')),
+        shards=bundle['parameterized'],data_mode='static',batch_size=2,target_tokens=240,milestones=[],seconds=300,device='cpu',checkpoint_policy='hourly/v1',
+        pac=dict(bundle=bundle,purpose='acceptance',source=digest('source'),environment=digest('cpu'),initializer=digest('random'),
+            observation_seconds=120,publication_seconds=10))
+
+
+def assert_tensor_tree(a,b):
+    import torch
+    import numpy as np
+    if isinstance(a,np.ndarray):assert np.array_equal(a,b)
+    elif isinstance(a,torch.Tensor):assert torch.equal(a,b)
+    elif isinstance(a,dict):
+        assert set(a)==set(b)
+        for k in a:assert_tensor_tree(a[k],b[k])
+    elif isinstance(a,(tuple,list)):
+        assert len(a)==len(b)
+        for x,y in zip(a,b):assert_tensor_tree(x,y)
+    else:assert a==b
+
+
+@pytest.mark.parametrize('boundary',[3,8])
+def test_pac_real_installed_pause_resume_tensor_policy_equality(tmp_path,monkeypatch,boundary):
+    from oeis_learn.pipeline_validation.generalization_training import run_torch
+    from oeis_learn.pipeline_validation import generalization_curriculum as module
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    # Inject only unavailable native semantic measurement, never model/update/loss.
+    monkeypatch.setattr(module,'semantic_probe',lambda *a,**kw:None)
+    config=pac_config(tmp_path)
+    full=run_torch(tmp_path/'data',tmp_path/'full',config)
+    part=run_torch(tmp_path/'data',tmp_path/'part',config,stop_after_updates=boundary)
+    resumed=run_torch(tmp_path/'data',tmp_path/'resumed',config,resume=(tmp_path/'part/checkpoints',part['checkpoint']))
+    def load(name,result):return GeneralizationCheckpointStore(tmp_path/name/'checkpoints',result['compatibility'],config['target_tokens']).load(result['checkpoint'])
+    a=load('full',full);b=load('resumed',resumed);p=load('part',part)
+    assert p['states']['scheduler']['pac']['policy']['block']['phase']==('post' if boundary==8 else 'updates')
+    assert a['ledger']==b['ledger']
+    for key in ('weights','optimizer','rng','data'):assert_tensor_tree(a['states'][key],b['states'][key])
+    assert a['states']['scheduler']['pac']['policy']==b['states']['scheduler']['pac']['policy']
+    from oeis_learn.generalization.retention import deterministic_observer
+    assert deterministic_observer(a['states']['scheduler']['pac']['observer'])==deterministic_observer(b['states']['scheduler']['pac']['observer'])
+    assert full['initial_weights']==resumed['initial_weights']
+    assert full['timing']['checkpoint_calls']<=3
+    changed=dict(config,pac=dict(config['pac'],environment=digest('changed')))
+    with pytest.raises(ValueError,match='incompatible'):
+        run_torch(tmp_path/'data',tmp_path/'wrong',changed,resume=(tmp_path/'part/checkpoints',part['checkpoint']))
+
+
+def test_pac_publication_failure_keeps_previous_real_generation(tmp_path,monkeypatch):
+    import errno
+    from oeis_learn.pipeline_validation.generalization_training import run_torch
+    from oeis_learn.pipeline_validation import generalization_curriculum as module
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    monkeypatch.setattr(module,'semantic_probe',lambda *a,**kw:None)
+    config=pac_config(tmp_path)
+    part=run_torch(tmp_path/'data',tmp_path/'part',config,stop_after_updates=3)
+    store=GeneralizationCheckpointStore(tmp_path/'part/checkpoints',part['compatibility'],config['target_tokens'])
+    old=store.load(part['checkpoint'])
+    def full_disk(value):raise OSError(errno.ENOSPC,'injected full disk')
+    with pytest.raises(OSError):store.save(old['states'],old['ledger'],encode=full_disk)
+    assert json.loads((store.root/'generalization-latest.json').read_text())==part['checkpoint']
+    assert_tensor_tree(store.load(part['checkpoint'])['states']['weights'],old['states']['weights'])
+
+
+def test_pac_real_crash_discards_unsaved_work_without_policy_replay(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import generalization_training as training
+    from oeis_learn.pipeline_validation import generalization_curriculum as module
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    monkeypatch.setattr(module,'semantic_probe',lambda *a,**kw:None)
+    config=pac_config(tmp_path);original=training.torch_update
+    def injected(*args,**kwargs):
+        update=original(*args,**kwargs);count=0
+        def step(batch):
+            nonlocal count
+            result=update(batch);count+=1
+            if count==3:raise RuntimeError('crash after actual optimizer update')
+            return result
+        return step
+    monkeypatch.setattr(training,'torch_update',injected)
+    with pytest.raises(RuntimeError,match='crash'):
+        training.run_torch(tmp_path/'data',tmp_path/'crashed',config)
+    root=tmp_path/'crashed/checkpoints';pointer=json.loads((root/'generalization-latest.json').read_text())
+    manifest=json.loads((root/pointer['path']).read_text())
+    old=GeneralizationCheckpointStore(root,manifest['contract'],config['target_tokens']).load(pointer)
+    assert old['ledger'].updates==0
+    monkeypatch.setattr(training,'torch_update',original)
+    result=training.run_torch(tmp_path/'data',tmp_path/'recovered',config,resume=(root,pointer),resume_elapsed=30)
+    assert result['discarded_tokens']>0 and result['charged_tokens']<=config['target_tokens']
+    assert result['reason']=='RECOVERED_WITH_DISCARDED_EXPOSURE' and result['status']=='PASS'
+    restored=GeneralizationCheckpointStore(tmp_path/'recovered/checkpoints',result['compatibility'],config['target_tokens']).load(result['checkpoint'])
+    policy=restored['states']['scheduler']['pac']['policy']
+    assert policy['discarded_tokens']==result['discarded_tokens']
+    assert policy['segment']=='recovery-1' and policy['kernel']['valid_updates']==0

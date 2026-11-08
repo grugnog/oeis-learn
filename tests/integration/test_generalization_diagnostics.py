@@ -459,3 +459,17 @@ def test_all_canonical_control_boundaries_are_captured_and_projected(tmp_path,mo
         assert 'private' not in Path(row['export_path']).parts
     assert json.loads(read(rows[paths[0]]['export_path']))['failure_type']=='TimeoutError'
     assert json.loads(read(rows[paths[1]]['export_path']))['breach']=='study reservation exceeded: checkpoint_bytes'
+
+
+def test_pac_allocation_projection_reconciles_whole_run_and_missing_history():
+    from oeis_learn.pipeline_validation.generalization_diagnostics import pac_training_projection
+    ledger=dict(version='generalization-ledger/v1',cap=1000,consumed=700,updates=40,pending=['batch',50],debited=True)
+    controller=dict(channels={'bandit':32,'review':6,'fallback':2},observations=20,observed_seconds=12,
+        observer=dict(allocation={'f':{'bandit':dict(updates=32,tokens=500,examples=64),'review':dict(updates=6,tokens=100,examples=12),'fallback':dict(updates=2,tokens=50,examples=4)}},
+            review_counts=dict(acquisitions=4,grades=3,successes=2,censored=1,incidental=9),reward_counts=dict(valid=4,censored=1),recent=[]),
+        policy=dict(kernel=dict(action_count=5,valid_updates=4),review=dict(anchors={}),last_observation=dict(raw_gain=-1,reward=1),pauses=[]))
+    report=pac_training_projection(controller,ledger,discarded=100,timing={'checkpoint_seconds':9})
+    assert report['tokens']==dict(allowed=1000,useful=650,reserved=50,discarded=100,unspent=200)
+    assert report['last_reward']==dict(raw_gain=-1,reward=1)
+    assert report['review']['grades']==3 and report['review']['acquisitions']==4
+    assert pac_training_projection(None,None)['status']=='UNAVAILABLE'

@@ -164,3 +164,13 @@ def score_selection(truth_root,truth_ref,candidate_root,candidate_ref,*,client,o
         scientific_status='UNMEASURED',targets=truth_ref,candidates=candidate_ref,result=result))
     write(output/'scoring.json',record)
     return record
+
+
+def pac_fitter_parity(recipes):
+    """Same native fitting/validation policy and scientific budget for every arm."""
+    from .identity import digest
+    if not recipes or not set(recipes)<=set('ABCD'):raise ValueError('declared arm recipes required')
+    bindings={arm:digest(dict(fitting=r['fitting'],execution=r['execution'])) for arm,r in recipes.items()}
+    if len(set(bindings.values()))!=1:raise ValueError('compared arms have different fitter/final-source limits')
+    return dict(matched=True,bindings=bindings,attempts=8,seconds=60,visible_terms=20,total_terms=100,max_parameters=8,
+                scope='raw proposal and fitted finite agreement remain separate')

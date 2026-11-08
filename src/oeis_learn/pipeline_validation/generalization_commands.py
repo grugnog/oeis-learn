@@ -38,7 +38,8 @@ def _validate(host,workspace,output,base,study,runtime,*,seconds=300):
     result=project_and_invoke(host,runtime['images'][0],workspace,'preparation',
         {'mechanical_sources':refs,'isolation_truth':[]},source_roots={'mechanical_sources':base,'isolation_truth':base},
         output=str((output/'validation').relative_to(workspace)),operation='validate-runtime',
-        settings=dict(study=study,runtime=runtime),seconds=seconds)
+        settings=dict(study=study,runtime=runtime),seconds=seconds,
+        **({'envelope':runtime['envelope']['validation']} if runtime.get('version')=='pac-runtime/v1' else {}))
     if result['status']!='PASS':raise ValueError('invalid frozen execution: '+result.get('error',result.get('reason','failed')))
     return result['plan']
 
@@ -172,6 +173,8 @@ def preparation_seconds(purpose,seconds):
 def _execute(args,workspace,host_factory):
     workspace=Path(workspace)
     base,study,runtime=load(workspace,args.manifest,getattr(args,'runtime',None))
+    if study.get('version')=='PAC-screen/v1':
+        return execute_pac(args,workspace,base,study,runtime,host_factory)
     output=confined(workspace,args.output,exists=False)
     if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh command output required')
     if args.image is not None and args.image!=runtime['images'][0]:raise ValueError('global image differs from frozen qualification image')
@@ -204,7 +207,7 @@ def _execute(args,workspace,host_factory):
             refs=[reference(previous/'qualification.json',previous),*public_closure(previous,reused['authority'])]
             _copy(output,[(previous,r) for r in refs])
             result=dict(status='PASS',original=reused['original'],reused=True)
-        else:result=produce(host,workspace,output,images=runtime['images'],contract=runtime['identity'])
+        else:result=produce(host,workspace,output/'qualification',images=runtime['images'],contract=runtime['identity'])
         return finish(result)
     output.mkdir(parents=True)
     if args.operation=='preflight':
@@ -255,10 +258,121 @@ def main(args,workspace,host_factory):
     if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh command output required')
     from .generalization_lifecycle import scope
     base,_,limits=load(workspace,args.manifest,getattr(args,'runtime',None))
+    storage=limits.get('storage')
+    if limits.get('version')=='pac-runtime/v1':
+        reserved=limits['envelope']['storage']
+        storage=dict(study_bytes=reserved['reserved_bytes'],checkpoint_bytes=reserved['reserved_bytes'],
+            shard_bytes=reserved['data_bytes']*reserved['data_copies'],raw_bytes=reserved['logs_bytes'],sharing_bytes=reserved['package_bytes'])
     try:
-        with scope(base,limits['storage'],extra_roots=(output,)):return _execute(args,workspace,host_factory)
+        with scope(base,storage,extra_roots=(output,)):return _execute(args,workspace,host_factory)
     except (Exception,KeyboardInterrupt) as exc:
         if not output.exists():raise
         from .generalization_lifecycle import invocation
         base,study,runtime=load(workspace,args.manifest,getattr(args,'runtime',None))
         return _finish(output,study,args.operation,dict(status='INTERRUPTED' if isinstance(exc,KeyboardInterrupt) else 'FAIL',reason=type(exc).__name__,error=str(exc)),runtime,effective=invocation(args,study,runtime))
+
+
+def execute_pac(args,workspace,base,study,runtime,host_factory):
+    """Canonical PAC dispatch, with admission before any model-role construction."""
+    from .generalization_execution import verify_pac_runtime,require_pac_admission
+    verify_pac_runtime(study,runtime)
+    if args.engine!=runtime['engine']:raise ValueError('PAC engine identity mismatch')
+    if args.operation in {'train','evaluate','replay'}:require_pac_admission(study,runtime,args.operation)
+    return _execute_pac_plan(args,workspace,base,study,runtime,None,host_factory)
+
+
+def _execute_pac_plan(args,workspace,base,study,runtime,plan,host_factory):
+    from .generalization_execution import require_pac_admission
+    from oeis_learn.generalization.role_contracts import pac_training_refs
+    output=confined(workspace,args.output,exists=False)
+    if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh PAC output required')
+    host=host_factory(args)
+    if host.engine.name!=runtime['engine']:raise ValueError('actual PAC engine differs from requested engine')
+    import shutil
+    output.mkdir(parents=True)
+    def finish(value):
+        from .generalization_lifecycle import invocation
+        return _finish(output,study,args.operation,value,runtime,effective=invocation(args,study,runtime))
+    try:
+        from oeis_learn.generalization.resources import pac_free_storage
+        storage=pac_free_storage(required_bytes=runtime['envelope']['storage']['reserved_bytes'],available_bytes=shutil.disk_usage(workspace).free)
+        write(output/'storage-check.json',storage)
+        if storage['status']=='BLOCKED':
+            return finish(dict(status='BLOCKED',reason='StorageReservation',error='insufficient PAC reserved disk storage'))
+        plan=_validate(host,workspace,output,base,study,runtime,seconds=runtime['envelope']['validation']['outer'])
+        if args.operation=='preflight':return finish(dict(status='PASS',plan=plan))
+        if args.operation=='prepare':
+            refs=execution_refs(base,study,runtime,preparation=True)
+            value=project_and_invoke(host,runtime['images'][0],workspace,'preparation',
+                {'mechanical_sources':refs,'isolation_truth':[]},source_roots={'mechanical_sources':base,'isolation_truth':base},
+                output=str((output/'preparation').relative_to(workspace)),operation='pac-prepare',
+                settings=dict(study=study,runtime=runtime),seconds=runtime['envelope']['preparation']['outer'],envelope=runtime['envelope']['preparation'])
+            return finish(value)
+        if args.operation=='qualify':
+            from .generalization_qualification_io import produce
+            return finish(produce(host,workspace,output/'qualification',images=runtime['images'],contract=runtime['identity'],pac_seconds=1800))
+        require_pac_admission(study,runtime,'train' if args.operation=='acceptance' else args.operation)
+        if not args.qualification:raise ValueError('original compatible PAC qualification required')
+        from .generalization_qualification_io import consume_original
+        producer=confined(workspace,args.qualification)
+        feature=runtime['feature']
+        if runtime['purpose']=='research':
+            if not isinstance(feature,dict) or set(feature)!={'qualification','pac'}:raise ValueError('original PAC and legacy feature acceptance required')
+            from oeis_learn.generalization.feature_acceptance import verify_pac_acceptance
+            record=_document(base,feature['pac'])
+            verify_pac_acceptance(record,root=confined(base,feature['pac']['path']).parent,source=study['source'],
+                environment=digest(dict(images=runtime['images'],engine=runtime['engine'],backend=study['backend'])),device='hip')
+        qualification=consume_original(host,workspace,producer,output/'qualification',
+            required_suites=['bigint-cpu','bigint-gpu'],required_capabilities=['weight-load','finite-update','native-exact'],
+            research=False,feature_receipt=None if runtime['purpose']=='research' else feature,pac_seconds=1800)
+        if qualification['authority']['images']!=runtime['images'] or _document(producer,qualification['authority']['source_closure'])!=_document(base,runtime['source']):
+            raise ValueError('PAC qualification image/source mismatch')
+        if args.operation=='acceptance':
+            if runtime['purpose']!='acceptance' or args.case!='pac-curriculum' or confined(workspace,args.inputs)!=base:
+                raise ValueError('explicit PAC acceptance case and bound input root required')
+            config=learner_config(study,runtime,plan['recipe'],'C',study['seed'],prepared=plan['training'])
+            config['pac']['cadence']='pac-acceptance/v1'
+            limits=runtime['envelope']['acceptance']
+            if limits['work']<5*config['seconds']:raise ValueError('acceptance must reserve all five fresh/paused/resumed learners')
+            value=project_and_invoke(host,runtime['images'][1],workspace,'learner',
+                {'training_targets':pac_training_refs(plan['training'],'C'),'verified_training_replay':[]},
+                source_roots={'training_targets':base},output=str((output/'acceptance').relative_to(workspace)),
+                operation='pac-acceptance',settings=dict(config=config),seconds=limits['outer'],gpu=True,envelope=limits)
+            return finish(value)
+        if args.operation=='evaluate':
+            from .generalization_pac_evaluation import evaluate
+            return finish(evaluate(host,workspace,output/'evaluation',base,study,runtime,plan,checkpoints=args.checkpoints,bank=args.proposal_bank))
+        if args.operation!='train':raise ValueError('unsupported PAC operation')
+        if not args.arms or not args.seeds or len(set(args.arms))!=len(args.arms) or len(set(args.seeds))!=len(args.seeds):raise ValueError('explicit unique PAC arm/seed selection')
+        configs=[learner_config(study,runtime,plan['recipe'],a,s,prepared=plan['training']) for a in args.arms for s in args.seeds]
+        if args.resume and len(configs)!=1:raise ValueError('PAC resume selects one arm')
+        results=[]
+        prepared=plan['training']
+        for config in configs:
+            refs=[];sources={};pointer=None
+            if args.resume:
+                prior,pointer,refs=_resume_inputs(workspace,args.resume)
+                sources={r['path']:(prior,r) for r in refs}
+            settings=dict(config=config,resume=pointer,initializer=None)
+            if args.resume and prior.parts[-4:]==('role','private','learner','checkpoints'):
+                supervision=prior.parents[2]/'supervision'
+                if all((supervision/n).is_file() for n in ('process.json','cleanup.json')):
+                    proof={}
+                    for key in ('process','cleanup'):
+                        ref=reference(confined(supervision,key+'.json'),supervision)
+                        if ref['bytes']>64<<10 or ref['path'] in sources:raise ValueError('PAC recovery supervision size/path conflict')
+                        refs.append(ref);sources[ref['path']]=(supervision,ref);proof[key]=ref
+                    settings['resume_supervision']=proof
+            limits=runtime['envelope']['resume' if args.resume else 'learner']
+            folder=output/('training-'+config['arm'])
+            value=project_and_invoke(host,runtime['images'][1],workspace,'learner',
+                {'training_targets':pac_training_refs(prepared,config['arm']),'verified_training_replay':refs},
+                source_roots={'training_targets':base,'verified_training_replay':workspace},
+                artifact_sources={'verified_training_replay':sources},output=str(folder.relative_to(workspace)),
+                operation='train',settings=settings,
+                seconds=limits['outer'],gpu=True,envelope=limits)
+            results.append(dict(arm=config['arm'],result=value))
+            if value['status']!='PASS':return finish(dict(status=value['status'],runs=results))
+        return finish(dict(status='PASS',runs=results))
+    except (Exception,KeyboardInterrupt) as exc:
+        return finish(dict(status='INTERRUPTED' if isinstance(exc,KeyboardInterrupt) else 'FAIL',reason=type(exc).__name__,error=str(exc)))

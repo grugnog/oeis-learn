@@ -163,3 +163,45 @@ def resolve_study(preparation, proposed, manifests, *, shortfalls=(), root=None)
     from .initializers import verify_initializer
     verify_initializer(root,resolved.record(),allow_pending=True)
     return resolved
+
+
+# PAC deliberately has a separate entry point. Historical study/preparation
+# validators cannot be bypassed by changing a recipe string or resealing P3.
+PAC_PRIVATE_KINDS = frozenset({'inventory', 'target_pair', 'observation', 'review',
+                              'adaptive', 'transaction', 'checkpoint'})
+
+
+def pac_record(kind, record, *, sealed=True):
+    """Validate one closed PAC record, without asserting policy/native readiness."""
+    from jsonschema import Draft202012Validator
+    schema = _schemas()[0]['pac']
+    if kind not in {r['$ref'].split('/')[-1] for r in schema['oneOf']}:
+        raise ValueError('unknown PAC record kind')
+    candidate = record if sealed else seal(record)
+    validator = Draft202012Validator(dict(schema, oneOf=[{'$ref': '#/$defs/' + kind}]))
+    if not validator.is_valid(candidate):
+        raise ValueError('invalid closed PAC ' + kind)
+    if seal(candidate) != candidate:
+        raise ValueError('PAC canonical identity mismatch')
+    return FrozenAuthority('pac:' + kind, json.dumps(candidate, sort_keys=True, allow_nan=False).encode())
+
+
+def pac_public(kind, record):
+    """Only explicitly public shells may cross the shared-report boundary."""
+    authority = pac_record(kind, record)
+    if kind in PAC_PRIVATE_KINDS:
+        raise ValueError('private PAC record requires an explicit bounded projection')
+    result=authority.record()
+    if kind=='receipt':
+        # Phase D can extend this explicit public envelope with its own tests;
+        # hashes alone do not make a private artifact path safe to disclose.
+        for ref in result['artifacts']:
+            path=PurePosixPath(ref['path'])
+            if (path.is_absolute() or '\\' in ref['path'] or any(p in ('','.','..') for p in ref['path'].split('/'))
+                or path.parts[0] not in {'report','reports','metrics','receipts','logs','validation'}
+                or any(word in ref['path'].lower() for word in ('private','weight','optimizer','truth','checkpoint'))):
+                raise ValueError('private or noncanonical PAC public artifact')
+        codes=result['omissions']+[e['stage'] for e in result['errors']]+[e['reason'] for e in result['errors']]
+        if any(not value.replace('_','').replace('-','').replace('.','').replace(':','').isalnum() for value in codes):
+            raise ValueError('public PAC receipt uses bounded reason codes, never raw private errors')
+    return result

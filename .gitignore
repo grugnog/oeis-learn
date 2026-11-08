@@ -111,3 +111,6 @@ phase11-evidence/
 # Persistent local application artifacts
 run-state/
 container-cache/
+
+# Local pytest temporary trees under any execution account
+pytest-of-*/

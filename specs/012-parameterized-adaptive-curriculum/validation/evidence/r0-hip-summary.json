@@ -1,0 +1,204 @@
+{
+  "archive_sha256": "sha256:693839065d7d05bcf4473fc433b7e4f6ec9aa3fb9280cd1c211acc845354697d",
+  "batch_size": 32,
+  "helper": {
+    "observed": "sha256:4f76bd91cac8283f3b35171aa5f492c5dbdb5e2cc93392ae803d2e23f09ef84b",
+    "requested": "sha256:4f76bd91cac8283f3b35171aa5f492c5dbdb5e2cc93392ae803d2e23f09ef84b"
+  },
+  "identity": "sha256:2005a287ce72e4e41bf32c3f27efe16267b886ce5aed2459ab07b3b68ea3a3b0",
+  "images": [
+    "sha256:4285d790c266be7878c0b4bc74a1a6bd67e7d73a36fd641d0e5c44d6c21e0ae8",
+    "sha256:a80f549b39f64b00e7bb294e5f6332409986fb94367ed9a9a168bb451d538895"
+  ],
+  "limitations": [
+    "R0 diagnostic learners remain PARTIAL and cannot initialize R1",
+    "Timed semantic retention is UNMEASURED in R0",
+    "Production spaced retention is not validated at 256 updates",
+    "Research has not started; overall PARTIAL/scientific INCOMPLETE are expected",
+    "This bounded review is not private state, a frozen plan or an authority to alter source/images"
+  ],
+  "operator_output": "run-state/generalization/pac-012-bcd-r0-00",
+  "path_note": "Operator confirms successful output root run-state/generalization/pac-012-bcd-r0-00 (the intended trailing 4 was omitted). Preserve this exact existing spelling for resume.",
+  "plan": "sha256:f7f830ceff7a8d33a06092df676ebe4030875fefaf90c1107b108106720cc67c",
+  "production_retention_validated": false,
+  "qualification": "sha256:94357664361287046f47af3e7d542f3e611a51281c238a1e1e3b04e7df0ea4c4",
+  "qualification_tests": {
+    "cpu_suite_tests": 1586,
+    "cpu_testcase_elements": 1504,
+    "errors": 0,
+    "failures": 0,
+    "hip_suite_tests": 27,
+    "hip_testcase_elements": 27,
+    "skipped": 0
+  },
+  "rehearsal": "sha256:98f31f5423a08c7f051d25e958ffb3257e98e8efe53998b0ab5bb68835f2ac3a",
+  "rehearsal_elapsed_seconds": 1098.7554256832227,
+  "resume": {
+    "arm": "C",
+    "boundary": 129,
+    "equal": true,
+    "pac_equal": true,
+    "updates": 256
+  },
+  "review_date": "2026-11-06",
+  "runs": {
+    "B": {
+      "changed": true,
+      "channels": {
+        "fixed": 256
+      },
+      "charged_tokens": 515456,
+      "discarded_tokens": 0,
+      "finite": true,
+      "pauses": [],
+      "tokens": 515456,
+      "training_status": "PARTIAL",
+      "updates": 256,
+      "valid_rewards": 0
+    },
+    "C": {
+      "changed": true,
+      "channels": {
+        "bandit": 192,
+        "fallback": 0,
+        "review": 64
+      },
+      "charged_tokens": 518688,
+      "discarded_tokens": 0,
+      "finite": true,
+      "pauses": [],
+      "tokens": 518688,
+      "training_status": "PARTIAL",
+      "updates": 256,
+      "valid_rewards": 24
+    },
+    "D": {
+      "changed": true,
+      "channels": {
+        "bandit": 256,
+        "fallback": 0,
+        "review": 0
+      },
+      "charged_tokens": 536576,
+      "discarded_tokens": 0,
+      "finite": true,
+      "pauses": [],
+      "tokens": 536576,
+      "training_status": "PARTIAL",
+      "updates": 256,
+      "valid_rewards": 31
+    }
+  },
+  "scope": {
+    "arms": [
+      "B",
+      "C",
+      "D"
+    ],
+    "assessment": "NOT_EXECUTED",
+    "parameter": "DEFERRED",
+    "research": true,
+    "seed": 20261016,
+    "target_tokens": 25000000
+  },
+  "seed": 20261016,
+  "semantic_scope": "UNMEASURED_R0_DETERMINISTIC_PROOF",
+  "source": "sha256:b0951861c976252013a86718762666c6f9d0ae6eed017383650edf57f9715e41",
+  "stages": [
+    {
+      "binding": "sha256:57f93caf67b3863b73bc721e9f3e76bad5ee6b6fcbf8b1215b966d643456cef6",
+      "cleanup": {
+        "acknowledged": true,
+        "within_bound": true
+      },
+      "elapsed_seconds": 1139.2557963849977,
+      "process": {
+        "elapsed_seconds": 1137.269385880325,
+        "outcome": "COMPLETE",
+        "returncode": 0
+      },
+      "producer": "sha256:07afd1969b469a47c4753989e5230ae4d5e072ce92b1ddd2a058d9c1de9d4ac6",
+      "reused": false,
+      "stage": "admission",
+      "status": "PASS"
+    },
+    {
+      "binding": "sha256:cac186facbad4bb2cb8e4e62ddbc5c23903459ad96fff1febcc68ca189353197",
+      "cleanup": {
+        "acknowledged": true,
+        "within_bound": true
+      },
+      "elapsed_seconds": 765.8766415440477,
+      "process": {
+        "elapsed_seconds": 765.8609372172505,
+        "outcome": "COMPLETE",
+        "returncode": 0
+      },
+      "producer": "sha256:1da108f3b10528f12410881b2b9a06b7c5bed2e074e1be4680a6d6225ca5edf8",
+      "reused": false,
+      "stage": "qualification",
+      "status": "PASS"
+    },
+    {
+      "binding": "sha256:0cb85fd9cd9b5d1e47bb57981f43b5603516465067151509239a5a8ba4bf2a70",
+      "cleanup": {
+        "acknowledged": true,
+        "within_bound": true
+      },
+      "elapsed_seconds": 351.4438892262988,
+      "process": {
+        "elapsed_seconds": 350.33452726108953,
+        "outcome": "COMPLETE",
+        "returncode": 0
+      },
+      "producer": "sha256:6f1fe4184d62c6e1b2d57ce1c01f2a3174f66ddc9ab4a73fbed3ee6c486f76bf",
+      "reused": false,
+      "stage": "calibration",
+      "status": "PASS"
+    },
+    {
+      "binding": "sha256:4f01e5925093d13b304bf805b9a9a9133e25f68d26ca0e3d9b8b35b64a1f03fc",
+      "cleanup": {
+        "acknowledged": true,
+        "within_bound": true
+      },
+      "elapsed_seconds": 349.87501523829997,
+      "process": {
+        "elapsed_seconds": 344.3569263978861,
+        "outcome": "COMPLETE",
+        "returncode": 0
+      },
+      "producer": "sha256:cab14cadab9189f6e808654e6cfc9675b7d569efcaeb993fd3f24ac76da0a0cd",
+      "reused": false,
+      "stage": "acceptance",
+      "status": "PASS"
+    },
+    {
+      "binding": "sha256:f5b5c688ea67659481f964c49c816ec25eab7af4fcd64bebf9958f1ceed6db75",
+      "cleanup": {
+        "acknowledged": true,
+        "within_bound": true
+      },
+      "elapsed_seconds": 1098.7554256832227,
+      "process": {
+        "elapsed_seconds": 1093.2813255880028,
+        "outcome": "COMPLETE",
+        "returncode": 0
+      },
+      "producer": "sha256:3ab446254ce30821fecfac4855d91480facdfc12f177b7bc2df02b175c1117db",
+      "reused": false,
+      "stage": "rehearsal",
+      "status": "PASS"
+    }
+  ],
+  "verification": {
+    "evidence": "sha256:103fb6bf339c6a4715f9185019ffd2d88df8037d0dc0c8014acc6107bae9431e",
+    "feature_qualified": false,
+    "identity": "sha256:d6cffe09d9d84f0fa8ec367c8b460abf0dded9d268612cd0020d2dca0a63859b",
+    "integrity": "PASS",
+    "rehearsal_status": "PASS",
+    "scientific_status": "INCOMPLETE",
+    "software_status": "PARTIAL"
+  },
+  "version": "pac-r0-reviewed-summary/v1"
+}

@@ -114,20 +114,14 @@ def test_pack_cli_needs_neither_engine_nor_gpu(tmp_path):
     # The validation image checkout is read-only. Exercise the actual entrypoint
     # in an isolated writable workspace, without relaxing its path confinement.
     workspace = tmp_path / "workspace"
+    # Copy the actual first-party package, including CLI registration modules.
+    # -S and the empty PATH still enforce no third-party or engine dependency;
+    # a stale hand-maintained module subset only tests an incomplete install.
+    shutil.copytree(repo / "src/oeis_learn", workspace / "src/oeis_learn",
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     for name in (
         "scripts/foundation_run.py",
         "scripts/foundation_local.py",
-        "src/oeis_learn/__init__.py",
-        "src/oeis_learn/container_runtime.py",
-        "src/oeis_learn/pipeline_validation/__init__.py",
-        "src/oeis_learn/pipeline_validation/generalization_cli.py",
-        "src/oeis_learn/generalization/__init__.py",
-        "src/oeis_learn/generalization/interfaces.py",
-        "src/oeis_learn/fresh/__init__.py",
-        "src/oeis_learn/fresh/common.py",
-        "src/oeis_learn/fresh/bundle.py",
-        "src/oeis_learn/fresh/learnability.py",
-        "src/oeis_learn/fresh/bootstrap_contract.py",
     ):
         destination = workspace / name
         destination.parent.mkdir(parents=True, exist_ok=True)

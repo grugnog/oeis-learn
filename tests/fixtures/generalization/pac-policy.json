@@ -1,0 +1,26 @@
+{
+  "version": "pac-independent-fixtures/v1",
+  "kernel": {
+    "families": ["a", "b", "c"], "epsilon": "1/4", "eta": "log(2)/3", "selected": 0,
+    "positive": {"reward": 1, "alpha": "1/2", "probabilities": ["35/96", "61/192", "61/192"]},
+    "negative": {"reward": -1, "alpha": "1/2", "probabilities": ["37/120", "83/240", "83/240"]},
+    "zero": {"q": ["3/5", "3/10", "1/10"], "valid_updates": 2, "next_q": ["1/2", "5/16", "3/16"]},
+    "missing": {"q": ["3/5", "3/10", "1/10"], "next_q": ["3/5", "3/10", "1/10"], "valid_updates_delta": 0}
+  },
+  "queue": [
+    {"update": 1, "kind": "acquire", "grade": null, "queue": 0, "due": 513},
+    {"update": 513, "kind": "review", "grade": true, "queue": 1, "due": 1537},
+    {"update": 600, "kind": "incidental", "grade": null, "queue": 1, "due": 1624},
+    {"update": 1624, "kind": "review", "grade": false, "queue": 0, "due": 2136},
+    {"update": 2136, "kind": "review", "grade": null, "queue": 0, "due": 2648}
+  ],
+  "structural": {"draws": 2288, "capacity": 8192, "seed": 20261104, "offset": 1, "exclusions": 16, "tasks": 128, "families": 27, "certified": 68, "certified_families": 18, "ambiguous": 26, "unresolved": 34, "completion_fail": 64, "completion_pass": 65},
+  "faults": [
+    {"boundary": "reserved_before_optimizer", "updates": 0, "charged": 17, "reward": false},
+    {"boundary": "optimizer_failed", "updates": 0, "charged": 17, "reward": false},
+    {"boundary": "one_update_committed", "updates": 1, "charged": 17, "reward": false},
+    {"boundary": "eight_updates_before_post", "updates": 8, "charged": 136, "reward": false},
+    {"boundary": "feedback_committed", "updates": 8, "charged": 136, "reward": true},
+    {"boundary": "terminal_partial", "updates": 3, "charged": 51, "reward": false}
+  ]
+}

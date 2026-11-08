@@ -1,0 +1,379 @@
+{
+  "archive": {
+    "bytes": 453255,
+    "publication": "NOT_PUBLISHED",
+    "sha256": "sha256:ff468438aafc28c086b3a835953d4968c68b682c7a03c11e771baac4a05f40c1",
+    "uploaded_name": "report(10).zip"
+  },
+  "backend": "sha256:7e8b6150696841d883936a6599c05d80b7055cb6d8c518846c29bc0897f5d71d",
+  "controls": {
+    "campaign_seconds": 367440,
+    "effective": [
+      {
+        "seconds": 118860,
+        "stage": "admission"
+      },
+      {
+        "seconds": 126060,
+        "stage": "qualification"
+      },
+      {
+        "seconds": 50460,
+        "stage": "calibration"
+      },
+      {
+        "seconds": 68460,
+        "stage": "acceptance"
+      }
+    ],
+    "finalization_seconds": 3600,
+    "identity": "sha256:5cc525b51eddf9482080e7510507e79d709dfd548718471b1f42fab2573d9ec3",
+    "progress": "stage elapsed/terminal status; see bounded projected logs; heartbeat is not completed work",
+    "requested": [
+      {
+        "seconds": 118860,
+        "stage": "admission"
+      },
+      {
+        "seconds": 126060,
+        "stage": "qualification"
+      },
+      {
+        "seconds": 50460,
+        "stage": "calibration"
+      },
+      {
+        "seconds": 68460,
+        "stage": "acceptance"
+      }
+    ],
+    "structural_scope": {
+      "design": "sha256:11779350eaf229ec7f37aab492a750342b484f091d4cdf3a2ae6eed06930d4cc",
+      "version": "pac-structural-scope/v2"
+    },
+    "version": "pac-campaign-controls/v1"
+  },
+  "curriculum_review": {
+    "acceptance_cadence": {
+      "block_updates": 2,
+      "common_updates": 8,
+      "cycle_updates": 8,
+      "review_interval": 1
+    },
+    "acceptance_rewards": 6,
+    "calibration": "sha256:783486b2bbb3d470cf064df249dd7e3c801dad73ec75f821fc897cf944cb24e7",
+    "calibration_tokens": 122464,
+    "calibration_updates": 64,
+    "calibration_valid_rewards": 6,
+    "forecasts": {
+      "B": {
+        "diagnostic_forecast_seconds": 17724.30565477442,
+        "guaranteed_worst_case": false,
+        "learner_ceiling_seconds": 239284.0084601026,
+        "update_seconds": 24182.9174905736
+      },
+      "C": {
+        "diagnostic_forecast_seconds": 17724.30565477442,
+        "guaranteed_worst_case": false,
+        "learner_ceiling_seconds": 239284.0084601026,
+        "update_seconds": 24182.9174905736
+      }
+    },
+    "graded_anchors": 2,
+    "raw_observations": "NOT_EXPORTED",
+    "samples": {
+      "cleanup": [
+        0.0008558100089430809
+      ],
+      "cold_native": [
+        0.1888917237520218,
+        0.005930914077907801
+      ],
+      "common_panel": [
+        1.9381984863430262
+      ],
+      "early_shard": [
+        2.0448118448257446e-05
+      ],
+      "grade": [
+        0.013266195077449083,
+        0.01518033491447568
+      ],
+      "later_shard": [
+        9.027309715747833e-06
+      ],
+      "load": [
+        2.0414306251332164
+      ],
+      "long_update": [
+        0.8976584072224796,
+        0.556114012375474
+      ],
+      "publication": [
+        0.007322951219975948
+      ],
+      "restore": [
+        1.9575003534555435e-05
+      ],
+      "reward_probe": [
+        0.029068203642964363,
+        0.023615953978151083
+      ],
+      "save": [
+        2.834473868831992
+      ],
+      "semantic": [
+        0.3681598170660436,
+        0.3517002980224788
+      ],
+      "short_update": [
+        0.6166244489140809,
+        0.4222449087537825
+      ],
+      "warm_native": [
+        0.006493949797004461,
+        0.00574468495324254
+      ]
+    },
+    "selected_probability": "1/2 (derived for first six fixture blocks, not an exported trace)"
+  },
+  "evidence": "sha256:e4bd639c232543a9269de47e89f6ab7f6b2af073f312fbb954af87642d096d0f",
+  "helper": {
+    "observed": "sha256:430aa7c09551926fbcacab0fe1bc0c6b0e3ee4ffa4a113fc9bc547ff081418bd",
+    "requested": "sha256:430aa7c09551926fbcacab0fe1bc0c6b0e3ee4ffa4a113fc9bc547ff081418bd"
+  },
+  "helper_changed": false,
+  "images": [
+    "sha256:8c5814b6da8ff9edb4b9f8b01d653b937f92941e1051cbdacab713be20a84c4e",
+    "sha256:abfd06f7cafe415cc26bba28ac06f903d7e1a77013d868523fcb6a1c6520cdd4"
+  ],
+  "originals": [
+    {
+      "count": 128,
+      "holdout": "parameter",
+      "name": "selection-parameter",
+      "role": "selection"
+    },
+    {
+      "count": 128,
+      "holdout": "structural",
+      "name": "selection-structural",
+      "role": "selection"
+    },
+    {
+      "count": 128,
+      "holdout": "parameter",
+      "name": "assessment-parameter",
+      "role": "assessment"
+    },
+    {
+      "count": 128,
+      "holdout": "structural",
+      "name": "assessment-structural",
+      "role": "assessment"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "static",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-01",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-02",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-03",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-04",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-05",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-06",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-07",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-08",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-09",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-10",
+      "role": "training"
+    },
+    {
+      "count": 32768,
+      "holdout": "parameter",
+      "name": "refresh-11",
+      "role": "training"
+    }
+  ],
+  "phase_e_complete": false,
+  "phase_e_complete_scope": "Literal all eight tasks including conditional research; T073 remains deferred",
+  "phase_e_status": "SOFTWARE_COMPLETE_RESEARCH_DEFERRED",
+  "plan": "sha256:7f0cd8e86a10e450998eaf26fab1b0704cee882d7fa0001ce5858e14bcf351c8",
+  "qualification": "sha256:164f508c704d028d1581b0e3bfd24b15ddf99ba81d45c30bfd4056c11087d7a4",
+  "qualification_review": {
+    "cpu_tests": 1499,
+    "errors": 0,
+    "failures": 0,
+    "hip_tests": 27,
+    "skipped": 0
+  },
+  "recovery_review": {
+    "clean_hip_pause_boundaries": [
+      1,
+      2
+    ],
+    "cpu_crash_debit_test": "PASS in original CPU qualification",
+    "hip_crash_discarded_debit": "PASS_SUPPLEMENTAL_T072",
+    "model_optimizer_rng_data_ledger_equal": true,
+    "negative_archive_scope": "synthetic failure packaging after actual updates",
+    "negative_archive_verified": true,
+    "original_archive_hip_crash": "NOT_PRESENT",
+    "pac_policy_scaler_review_equal": true,
+    "task": "T072 COMPLETE"
+  },
+  "representation_review": {
+    "acceptance_updates": 16,
+    "corpus_tokens": {
+      "literal": 2543653,
+      "parameterized": 2064384
+    },
+    "fallback": 0,
+    "families": 32,
+    "final_weights": "sha256:923796ae278ef95fe4842c9925671872836e3ee2fd7c3258f1f2d63d71f83520",
+    "forward_loss_sum": 81.84005737304688,
+    "forward_recall": [
+      false,
+      false
+    ],
+    "forward_rows": 2,
+    "forward_tokens": 47,
+    "loaded_checkpoint": "sha256:2c2638b18991f2c1d0f99fe73bf104ccba5cfd17d045238cdc6c56cbe9112f8c",
+    "research_exposure": {
+      "examples": null,
+      "seconds": null,
+      "tokens": null,
+      "updates": null
+    },
+    "rows": 32768,
+    "supported": 32768
+  },
+  "research_review": {
+    "authorized_in_uploaded_plan": false,
+    "completed_research_arms": [],
+    "missing": [
+      "complete B/C learner histories and final research checkpoints",
+      "v2 retained baseline and final structural attempt/scoring exports",
+      "65/68 completion per compared arm",
+      "full retention/exposure/cost curves",
+      "12 available research case-arm records"
+    ],
+    "scientific_status": "UNMEASURED",
+    "status": "DEFERRED",
+    "task": "T073 DEFERRED"
+  },
+  "runtime_source_changed": false,
+  "scope": {
+    "arms": [
+      "B",
+      "C"
+    ],
+    "assessment": "NOT_EXECUTED",
+    "parameter": "DEFERRED",
+    "research": false,
+    "seed": 20261016,
+    "target_tokens": 25000000
+  },
+  "software_closeout_complete": true,
+  "source": "sha256:a5140e5d2be137411d6ae82bf6b6e28ec37ad27a8d71d3a283a4ce1ed814ac5c",
+  "structural_review": {
+    "categories": {
+      "ambiguous": {
+        "families": 3,
+        "tasks": 26
+      },
+      "certified": {
+        "families": 15,
+        "tasks": 68
+      },
+      "unresolved": {
+        "families": 5,
+        "tasks": 34
+      }
+    },
+    "control": "REFERENCE_ONLY_SOURCE_BOUND",
+    "draws": 2288,
+    "excluded_unique": 894,
+    "exclusion_cells": 16,
+    "families_with_deficit": 0,
+    "historical_scope": "NOT_SATISFIED",
+    "surviving_native": 1394,
+    "tasks": 128
+  },
+  "supplemental_t072": {
+    "bytes": 1653,
+    "image": "sha256:cb977acdc053e9f18362f53f8b396045641c04b3470fafa0dd1fe4ce0fabb776",
+    "path": "t072-summary.json",
+    "sha256": "sha256:9b8df22a522e4e93786cbbfe0e16a692d99788adfc70f72a1070b3ccf7a96cf9",
+    "source": "sha256:a38fa6acab09e0b978ce559f928a3270a4a45842c265a4236070e8d7ccd6b4af",
+    "summary_identity": "sha256:3950c0d0b0e87c873e6ee66d59043eb070a631adc6dd810d257bae73e026890a"
+  },
+  "task_dispositions": {
+    "T067": "COMPLETE",
+    "T068": "COMPLETE",
+    "T069": "COMPLETE",
+    "T070": "COMPLETE",
+    "T071": "COMPLETE",
+    "T072": "COMPLETE",
+    "T073": "DEFERRED_RESEARCH_NOT_EXECUTED",
+    "T074": "COMPLETE"
+  },
+  "verification": {
+    "evidence": "sha256:e4bd639c232543a9269de47e89f6ab7f6b2af073f312fbb954af87642d096d0f",
+    "feature_qualified": true,
+    "identity": "sha256:8284f63d02825d50ca0de6d8ca3039b8711f5a60cec9b61c8298c09597aad3e1",
+    "integrity": "PASS",
+    "scientific_status": "UNMEASURED",
+    "software_status": "PASS"
+  },
+  "version": "pac-phase-e-record/v1"
+}

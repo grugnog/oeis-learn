@@ -184,3 +184,52 @@ def test_bank_preserves_exact_original_without_mutating_fitter_records(tmp_path,
                 assert selected['verification']['values']==p['values']
                 assert rows[p['id']]['arm_evidence']['bank']['complete']==(mode=='complete')
     assert retained==before, 'fitter/cache-owned result objects must remain unchanged'
+
+
+def test_pac_export_reconstructs_every_family_total_pair_and_cost(tmp_path):
+    import importlib.util,json
+    from fractions import Fraction
+    from pathlib import Path
+    from tests.unit.test_generalization_metrics import pac_roster
+    from tests.unit.test_generalization_execution import pac_setup
+    from tests.integration.test_generalization_archive import pac_record
+    from oeis_learn.pipeline_validation.identity import write,seal
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
+    from oeis_learn.pipeline_validation.generalization_finalization import publish_pac
+    from oeis_learn.pipeline_validation.generalization_archive import verify_archive
+    root=Path(__file__).resolve().parents[2]
+    spec=importlib.util.spec_from_file_location('pac_analysis_evidence',root/'specs/012-parameterized-adaptive-curriculum/validation/analysis.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    roster=pac_roster();exp,control,profiles,_=pac_setup(optional_d=True)
+    outcomes={arm:{key:(None if i%31==0 else (i+offset)%3==0) for i,key in enumerate(roster)} for arm,offset in [('B',0),('C',1),('D',2)]}
+    costs={arm:dict(allowed_tokens=100,useful_tokens=80,reserved_tokens=5,discarded_tokens=10,unspent_tokens=5,examples=12,updates=6,seconds=9) for arm in outcomes}
+    report=module.analyze(roster,outcomes,experiment=exp,control=control,profiles=profiles,costs=costs)
+    import subprocess,sys,os
+    payload=dict(roster=roster,outcomes=outcomes,experiment=exp,control=control,profiles=profiles,costs=costs)
+    write(tmp_path/'reconciliation-input.json',payload)
+    portable=subprocess.run([sys.executable,'-S','-c',
+        'import importlib.util,json,sys; s=importlib.util.spec_from_file_location("a",sys.argv[1]); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); p=json.load(open(sys.argv[2])); m.analyze(p.pop("roster"),p.pop("outcomes"),**p)',
+        str(root/'specs/012-parameterized-adaptive-curriculum/validation/analysis.py'),str(tmp_path/'reconciliation-input.json')],
+        cwd=root,env=dict(os.environ,PYTHONPATH=str(root/'src')),capture_output=True,text=True,timeout=30)
+    assert portable.returncode==0,portable.stderr
+    assert report['comparisons']['C-D']['attribution']=='review_substitution'
+    write(tmp_path/'analysis.json',report)
+    packet=seal(dict(pac_record('PARTIAL'),inventory=[reference(tmp_path/'analysis.json',tmp_path)]))
+    archive=publish_pac(packet,tmp_path/'export',payload_root=tmp_path)
+    assert verify_archive(archive)['software_status']=='PARTIAL'
+    import zipfile
+    with zipfile.ZipFile(archive) as z:exported=json.loads(z.read('analysis.json'))
+    assert exported==report
+    report=exported;roster=report['reconstruction']['roster'];outcomes=report['reconstruction']['outcomes']
+    for arm,values in outcomes.items():
+        for category in ('certified','ambiguous','unresolved'):
+            ids=[k for k,r in roster.items() if r['category']==category]
+            observed=report['arms'][arm][category]
+            assert observed['successes']==sum(values[k] is True for k in ids)
+            assert observed['complete']==sum(values[k] is not None for k in ids)
+            groups={roster[k]['family'] for k in ids}
+            macro=sum((Fraction(sum(values[k] is True for k in ids if roster[k]['family']==f),sum(roster[k]['family']==f for k in ids)) for f in groups),Fraction())/len(groups)
+            assert observed['family_macro_lower']==str(macro)
+        actual=report['costs']['arms'][arm]
+        assert actual['allowed_tokens']==sum(actual[k] for k in ('useful_tokens','reserved_tokens','discarded_tokens','unspent_tokens'))
+        assert (actual['examples'],actual['updates'],actual['seconds'])==(12,6,9)

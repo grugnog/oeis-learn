@@ -61,3 +61,27 @@ def publish(root,workflow,summary):
     if destination.exists():raise ValueError('final archive already exists')
     result.rename(destination)
     return destination
+
+
+def publish_pac(record,output,*,payload_root=None):
+    """Verify original report bytes, then bind verifier/terminal and actual archive."""
+    from oeis_learn.generalization.acceptance_archive import verify_pac_evidence
+    from oeis_learn.generalization.contracts import verify_artifact
+    from .generalization_archive import verify_archive
+    output=Path(output)
+    if output.exists() or output.with_suffix('.zip').exists():raise ValueError('fresh PAC finalization destination required')
+    output.mkdir(parents=True)
+    for ref in record['inventory']:
+        if payload_root is None:raise ValueError('original payload root required')
+        payload=verify_artifact(payload_root,ref,max_bytes=512<<20)
+        target=confined(output,ref['path'],exists=False);target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(payload)
+    write(output/'evidence.json',record)
+    result=verify_pac_evidence(record,root=output,finalized=False)
+    write(output/'verification.json',result)
+    write(output/'terminal.json',seal(dict(version='pac-report-terminal/v1',status='COMPLETE',
+        evidence=reference(output/'evidence.json',output),verification=reference(output/'verification.json',output))))
+    write(output/'summary.json',dict(selected_scope=result['software_status'],scientific_status=result['scientific_status']))
+    archive=pack(output,mandatory=['summary.json','evidence.json','verification.json','terminal.json',*[r['path'] for r in record['inventory']]])
+    actual=verify_archive(archive)
+    write(output/'archive-complete.json',seal(dict(version='pac-archive-complete/v1',status='COMPLETE',archive=reference(archive,output.parent),verification=actual)))
+    return archive

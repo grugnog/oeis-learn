@@ -55,7 +55,7 @@ GPU_NODES = [
 def _stages(host, suite, output, *, external_seconds=None,generalization_policy=None):
     # bigint-gpu includes the installed prospective resume test. Generic/historical
     # GPU qualification and historical model commands retain their defaults.
-    if generalization_policy is None:generalization_policy=suite=='bigint-gpu'
+    if generalization_policy is None:generalization_policy=suite in {'bigint-gpu','pac-crash-hip'}
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     invocation_started = time.monotonic()
@@ -68,7 +68,7 @@ def _stages(host, suite, output, *, external_seconds=None,generalization_policy=
             for p in sorted((root / parent).rglob("*.py"))
         }
     )
-    gpu = suite in {"gpu", "bigint-gpu"}
+    gpu = suite in {"gpu", "bigint-gpu", "pac-crash-hip"}
     if gpu:
         host.select_gpu()
     stages = [
@@ -116,7 +116,7 @@ def _stages(host, suite, output, *, external_seconds=None,generalization_policy=
                 ],
             )
         )
-    if suite.startswith("bigint-"):
+    if suite.startswith("bigint-") or suite=="pac-crash-hip":
         bigint_cpu = [
             str(p.relative_to(ROOT))
             for area in ("unit", "contract", "integration")
@@ -126,6 +126,8 @@ def _stages(host, suite, output, *, external_seconds=None,generalization_policy=
         bigint_cpu += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'tests/unit').glob('test_pipeline_*.py'))]
         bigint_cpu += [str(p.relative_to(ROOT)) for area in ('unit','contract','integration')
                        for p in sorted((ROOT/'tests'/area).glob('test_generalization_*.py'))]
+        bigint_cpu += [str(p.relative_to(ROOT)) for area in ('unit','integration')
+                       for p in sorted((ROOT/'tests'/area).glob('test_selector_fit_replay.py'))]
         bigint_cpu += [
             "tests/unit/test_pilot_followup.py",
             "tests/unit/test_pilot_followup_host.py",
@@ -152,6 +154,8 @@ def _stages(host, suite, output, *, external_seconds=None,generalization_policy=
             if gpu
             else sorted(set(bigint_cpu))
         )
+        if suite=="pac-crash-hip":
+            nodes=["tests/integration/test_generalization_crash.py::test_pac_actual_hip_subprocess_crash_and_recovery"]
         stages = [
             (
                 "environment",
@@ -267,9 +271,10 @@ def _stages(host, suite, output, *, external_seconds=None,generalization_policy=
                     {
                         "OEIS_REQUIRE_BIGINT_BUILD": "1",
                         "OEIS_REQUIRE_BIGINT_GPU": "1" if gpu else "0",
+                        **({"OEIS_PAC_CRASH_EVIDENCE":"/work/output/pac-crash-proof.json"} if suite=="pac-crash-hip" else {}),
                         **({"OEIS_GENERALIZATION_DEVICE_EVIDENCE":"/work/output/generalization-device.json"} if gpu else {}),
                     }
-                    if suite.startswith("bigint-")
+                    if suite.startswith("bigint-") or suite=="pac-crash-hip"
                     else {}
                 ),
             },
@@ -297,7 +302,7 @@ def _stages(host, suite, output, *, external_seconds=None,generalization_policy=
                     ):
                         process = subprocess.Popen(command, stdout=stdout, stderr=stderr)
                         started = time.monotonic()
-                        cap = 7200 if name == "gpu-learning" else 1800 if gpu else 3600
+                        cap = 7200 if name == "gpu-learning" or suite=="pac-crash-hip" else 1800 if gpu else 3600
                         if external_seconds is not None:
                             cap = min(cap, max(0, external_seconds-(time.monotonic()-invocation_started)))
                         try:
@@ -340,6 +345,10 @@ def _stages(host, suite, output, *, external_seconds=None,generalization_policy=
                     raise RuntimeError(
                         "GPU validation requires actual execution of every selected test"
                     )
+            if suite=="pac-crash-hip" and name.endswith("-regressions"):
+                from .pipeline_validation.generalization_crash_proof import verify as verify_crash
+                from .experiments.source_snapshot import collect_snapshot
+                verify_crash(read(out/"pac-crash-proof.json"),source=digest(collect_snapshot(root)))
             files = {
                 str(p.relative_to(out)): file_hash(p)
                 for p in out.rglob("*")
@@ -390,7 +399,7 @@ def validate(host, suite, output):
     with lock(output / "validation.lock"):
         (output / "validation.json").unlink(missing_ok=True)
         # Do not overlap regression kernels with training in this workspace.
-        with host.gpu_lock() if suite in {"gpu", "bigint-gpu"} else nullcontext():
+        with host.gpu_lock() if suite in {"gpu", "bigint-gpu", "pac-crash-hip"} else nullcontext():
             host.engine.cleanup(token)
             try:
                 image, results = _stages(host, suite, output)

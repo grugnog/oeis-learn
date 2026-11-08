@@ -40,3 +40,32 @@ def commit_plan(previous,new,*,complete_update,verified_payloads,available_bytes
 def prune_plan(history,pins):
     if not set(pins)<=set(history): raise ValueError('missing required pin')
     return tuple(sorted(set(history)-set(pins)))
+
+
+PAC_COMPONENTS=frozenset({'weights','optimizer','scheduler','rng','data','adaptive','review','probes','transaction','ledger'})
+
+
+def pac_generation(components,*,root,generation,model_update,contract,inventory,source,environment):
+    """Build an atomic publication unit only after every component verifies.
+
+    Installed C writes/synchronizes these payloads before publishing this manifest
+    and the latest pointer. This pure boundary never publishes a partial generation.
+    """
+    from .contracts import pac_record,verify_artifact
+    if set(components)!=PAC_COMPONENTS:raise ValueError('complete generation components required; weights-only is not resumable')
+    if len({r['path'] for r in components.values()})!=len(components):raise ValueError('distinct generation component paths required')
+    for ref in components.values():verify_artifact(root,ref)
+    return pac_record('checkpoint',dict(version='pac-checkpoint/v1',kind='full_state',contract=contract,inventory=inventory,
+                      policy='pac-exp3s-leitner/v1',source=source,environment=environment,generation=generation,
+                      model_update=model_update,components=components),sealed=False).record()
+
+
+def verify_pac_generation(record,*,root,contract,inventory,source,environment):
+    from .contracts import pac_record
+    record=pac_record('checkpoint',record).record()
+    if any(record[k]!=v for k,v in dict(contract=contract,inventory=inventory,source=source,environment=environment).items()):
+        raise ValueError('complete generation identity mismatch')
+    actual=pac_generation(record['components'],root=root,generation=record['generation'],model_update=record['model_update'],
+                          contract=contract,inventory=inventory,source=source,environment=environment)
+    if actual!=record:raise ValueError('generation manifest mismatch')
+    return actual

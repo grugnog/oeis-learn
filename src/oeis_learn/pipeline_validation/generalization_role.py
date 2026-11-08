@@ -51,6 +51,18 @@ def preparation(inputs,output,settings,*,seconds):
             return prepare_study(root,authority,settings['proposed'],output=output/'private/prepared',execute=execute,workers=settings.get('workers',1),seconds=remaining_seconds(deadline))
 
 
+
+def pac_preparation(inputs,output,settings,*,seconds):
+    from .generalization_preparation import prepare_pac
+    from oeis_learn.synthesis.client import SynthesisClient
+    if set(settings)!={'study','runtime'}:raise ValueError('closed PAC custodian settings')
+    deadline=time.monotonic()+seconds
+    with SynthesisClient(settings['study']['identity'],cache_root=output/'private/native-cache') as native:
+        def execute(source,indices):
+            return native.execute(source,indices,deadline=min(deadline,time.monotonic()+4))
+        return prepare_pac(inputs['mechanical_sources'],settings['study'],settings['runtime'],
+            output=output/'private/prepared',execute=execute,seconds=seconds)
+
 def validate_runtime(inputs,output,settings,*,seconds):
     import sys
     def progress(phase):
@@ -156,7 +168,7 @@ def pin_selection(inputs,output,settings,*,seconds):
     return dict(status='PASS',checkpoint=pointer,root='private/selected',decision=decision['decision'])
 
 
-def generator(inputs,output,settings,*,seconds):
+def generator(inputs,output,settings,*,seconds,pac=False,compare_selectors=False,evaluation_policy=None,prompt_limit=None):
     deadline=time.monotonic()+seconds
     from oeis_learn.generalization.budgets import remaining_seconds
     from oeis_learn.generalization.contracts import verify_artifact
@@ -169,9 +181,14 @@ def generator(inputs,output,settings,*,seconds):
         from .generalization_execution import verify_execution
         verify_execution()
     prompts=json.loads(verify_artifact(inputs['visible_prompts'],settings['prompts']))
+    if prompt_limit is not None:
+        if prompt_limit!=16 or len(prompts)!=256:raise ValueError('complete training panel required for fixed benchmark subset')
+        prompts=sorted(prompts,key=lambda p:p['id'])[:prompt_limit]
     with execution_context(),client(dict(recipe=settings['recipe'],contract_sha256=settings['study']),output/'private') as native:
         return evaluate_retained(inputs['frozen_weights'],settings['checkpoint'],prompts,settings['recipe'],output/'generation',
-            client=native,device=settings['device'],study=settings['study'],source=settings['source'],seconds=remaining_seconds(deadline),bank_seeds=settings['bank_seeds'])
+            client=native,device=settings['device'],study=settings['study'],source=settings['source'],seconds=remaining_seconds(deadline),bank_seeds=settings['bank_seeds'],pac=pac,
+            **(dict(compare_selectors=True) if compare_selectors else {}),
+            **(dict(evaluation_policy=evaluation_policy) if evaluation_policy is not None else {}))
 
 
 def selection(inputs,output,settings,*,seconds):
@@ -252,7 +269,20 @@ def publish_initializer(inputs,output,settings,*,seconds):
     return publish_role(inputs,output,settings,seconds=seconds)
 
 
-HANDLERS={(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
+from .generalization_acceptance import pac_acceptance
+from .generalization_pac_evaluation import publish_views,score_views
+from .generalization_pac_calibration import calibrate as pac_calibrate
+from .generalization_pac_rehearsal import rehearse as pac_rehearse
+from .generalization_pac_setup import assemble as _pac_assemble,acceptance as pac_campaign_acceptance
+
+def pac_assemble(inputs,output,settings,*,seconds):
+    result=_pac_assemble(inputs,output/'private/assembly',settings,seconds=seconds)
+    return dict(result,manifest='private/assembly/'+result['manifest'],runtime='private/assembly/'+result['runtime'])
+
+def pac_generator(inputs,output,settings,*,seconds):
+    return generator(inputs,output,settings,seconds=seconds,pac=True)
+
+HANDLERS={(Role.LEARNER,'pac-rehearse'):pac_rehearse,(Role.LEARNER,'pac-calibrate'):pac_calibrate,(Role.PREPARATION,'pac-assemble'):pac_assemble,(Role.LEARNER,'pac-campaign-acceptance'):pac_campaign_acceptance,(Role.PREPARATION,'pac-publish-evaluation'):publish_views,(Role.GENERATOR,'pac-evaluate'):pac_generator,(Role.SELECTION,'pac-score'):score_views,(Role.LEARNER,'pac-acceptance'):pac_acceptance,(Role.PREPARATION,'pac-prepare'):pac_preparation,(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_archive,(Role.SELECTION,'score'):selection,(Role.PREPARATION,'prepare'):preparation,(Role.REPORT,'report'):report,
           (Role.SELECTION,'select-checkpoints'):checkpoint_selection,
           (Role.ASSESSMENT,'score'):assessment,
           (Role.LEARNER,'replay-audit'):replay_audit,(Role.GENERATOR,'replay-propose'):replay_propose,
@@ -262,6 +292,18 @@ HANDLERS={(Role.REPORT,'package'):package,(Role.REPORT,'verify-archive'):verify_
           (Role.PREPARATION,'publish-initializer'):publish_initializer,
           (Role.REPORT,'qualification-consume'):qualification_consume,
           (Role.LEARNER,'train'):learner,(Role.GENERATOR,'evaluate'):generator}
+
+
+from . import selector_validation_roles as selector_validation
+from . import selector_fit_replay_role as fit_replay
+from .selector_reliability_roles import benchmark as reliability_benchmark
+HANDLERS.update({(Role.PREPARATION,'selector-probes'):selector_validation.publish_probes,
+                 (Role.PREPARATION,'prepare-fit-replay'):fit_replay.prepare,
+                 (Role.FITTER,'replay-native-fits'):fit_replay.run,
+                 (Role.PREPARATION,'selector-structural'):selector_validation.publish_structural,
+                 (Role.GENERATOR,'selector-generate'):selector_validation.generate,
+                 (Role.GENERATOR,'selector-benchmark'):reliability_benchmark,
+                 (Role.SELECTION,'selector-score'):selector_validation.score})
 
 
 def main(argv=None):
@@ -288,7 +330,8 @@ def main(argv=None):
                 allowance=remaining_seconds(began+allowance)
             result=handler(inputs,output,runtime['settings'],seconds=allowance)
     except (KeyError,ValueError,OSError,RuntimeError,TimeoutError) as exc:
-        result=dict(status='FAIL',reason=type(exc).__name__,error=str(exc))
+        from .generalization_failures import public_failure
+        result=dict(status='FAIL',reason=type(exc).__name__,error=str(exc),failure=public_failure(exc))
     write(output/'result.json',seal(result))
     if result.get('status')!='PASS':
         from .generalization_diagnostics import terminal_fields
