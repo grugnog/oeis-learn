@@ -283,3 +283,15 @@ Validation: initial complete progressive/historical roster 262 passed, one local
 native-service skip and no expected failures. Additional production efficiency
 coverage passes with the decision suite. All T025 cases are mandatory in both
 engine CI; no CI or hardware qualification result is inferred locally.
+
+## T026 synthetic sensitivity
+
+Added a closed synthetic-only scenario runner for 0/2/5pp effects, unequal family
+sizes, family-shared dependence, opposing seed shifts, 0/2/5/10% censoring and
+frozen candidate/look counts including efficiency. It calls the actual paired
+metric and decision reducers, reports false advancement, missed gain, incomplete
+and inconclusive rates, and labels all sampling assumptions and conditional
+uncertainty. Real confirmation outcomes and threshold overrides are rejected.
+The 80% aspiration is explicitly scenario-specific. Four independent CPU tests
+cover the default grid, paired task construction, reproducible report rates and
+closed input rejection. No empirical power calibration or research is claimed.
