@@ -6,21 +6,59 @@
       "device": "cpu",
       "scope": "DIAGNOSTIC_ONLY",
       "test": "tests/integration/test_progressive_lifecycle.py",
-      "obligations": ["installed wheel", "interruption", "resume", "continuation", "eligible diagnostic", "partial", "failed", "bounded export"]
+      "obligations": [
+        "installed wheel",
+        "interruption",
+        "resume",
+        "continuation",
+        "eligible diagnostic",
+        "partial",
+        "failed",
+        "bounded export"
+      ]
     },
     {
       "id": "progressive-logical-update-restore",
       "device": "actual_HIP",
       "status": "QUEUED",
       "owner": "T090",
-      "obligations": ["every selected shape and dropout path", "finite update", "full optimizer scheduler RNG restore", "deterministic qualified continuation"]
+      "obligations": [
+        "every selected shape and dropout path",
+        "finite update",
+        "full optimizer scheduler RNG restore",
+        "deterministic qualified continuation"
+      ]
     },
     {
       "id": "progressive-two-task-continuation-pause",
       "device": "actual_HIP",
       "status": "QUEUED",
       "owner": "T090-T091",
-      "obligations": ["two frozen tasks", "owned update boundary pause", "repeated cleanup and restart", "bounded blocked worker", "original budget journal", "actual sustained active intervals", "<=60s progress", ">=30min finalization reserve", "public export"]
+      "obligations": [
+        "two frozen tasks",
+        "owned update boundary pause",
+        "repeated cleanup and restart",
+        "bounded blocked worker",
+        "original budget journal",
+        "actual sustained active intervals",
+        "<=60s progress",
+        ">=30min finalization reserve",
+        "public export"
+      ]
+    },
+    {
+      "id": "progressive-claims-prospective-contracts",
+      "device": "cpu",
+      "scope": "DIAGNOSTIC_ONLY",
+      "status": "PENDING_IMPLEMENTATION",
+      "owner": "T069-T071",
+      "test": "tests/unit/test_progressive_claims.py",
+      "obligations": [
+        "source-bound polynomial certificate",
+        "separate machine safety",
+        "independent novelty review",
+        "transitive refutation"
+      ]
     }
   ]
 }
