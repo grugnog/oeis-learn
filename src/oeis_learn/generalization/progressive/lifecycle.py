@@ -120,7 +120,9 @@ class RunStore:
             )
         return None
 
-    def authorize(self, bundle, *, policy, remaining, panels=None, designs=None):
+    def authorize(
+        self, bundle, *, policy, remaining, panels=None, designs=None, evidence_root=None
+    ):
         from .contracts import validate
         from .decisions import verify
         from .targets import validate_policy
@@ -193,6 +195,12 @@ class RunStore:
         kwargs = bundle["kwargs"]
         if set(kwargs) - {"target_id", "action", "trigger", "costs", "confirmation"}:
             raise ValueError("closed decision arguments required")
+        if edge["action"] != "EXPLORE_RESERVED":
+            from .decisions import verify_gate_producers
+
+            verify_gate_producers(
+                self.root if evidence_root is None else evidence_root, self.campaign, bundle
+            )
         visited = [
             v["failure_class"]
             for v in self.state.get("decisions", {}).values()

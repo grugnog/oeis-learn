@@ -75,6 +75,7 @@ def reconcile_decision(root, role_output, result, store, journal, task):
         remaining=remaining_slots(journal, store.campaign, policy),
         panels=panels,
         designs=designs,
+        evidence_root=root,
     )
     from oeis_learn.generalization.progressive.milestones import gain_cost
 

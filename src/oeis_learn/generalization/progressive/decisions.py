@@ -288,3 +288,135 @@ def verify(decision, rows, roster, seeds, design, **kwargs):
     if expected != decision:
         raise ValueError("decision differs from independently recomputed outcomes/action")
     return expected
+
+
+def verify_gate_producers(root, campaign, bundle):
+    """Reconcile an ordinary gate against original, frozen producer references.
+
+    Registrations are policy inputs, never supplied by the decision publisher.
+    Missing outcome rows are filled from the original roster as unresolved.
+    This adapter accepts existing immutable producers; future output-slot routing
+    is a separate contract and cannot be simulated with caller-supplied tables.
+    """
+    import json
+    from .contracts import verify_refs, seal
+    from .metrics import _paired
+
+    def read(ref):
+        return json.loads(verify_refs(root, [ref], max_bytes=512 << 20)[0])
+
+    registrations, panels = [], {}
+    for item in campaign["payload"]["references"]:
+        if item["kind"] not in {"policy", "groups"}:
+            continue
+        value = read(item["artifact"])
+        if value.get("version") == "discovery-cohort/v1":
+            validate("cohort", value)
+            panels[value["identity"]] = value
+        if value.get("version") == "progressive-gate-registration/v1" and (
+            value.get("source_slot"),
+            value.get("target_slot"),
+        ) == (bundle["source_slot"], bundle["target_slot"]):
+            registrations.append(value)
+    if len(registrations) != 1:
+        raise ValueError("one original frozen gate registration required")
+    registration = registrations[0]
+    if (
+        set(registration)
+        != {
+            "version",
+            "identity",
+            "source_slot",
+            "target_slot",
+            "panels",
+            "seeds",
+            "design",
+            "producers",
+        }
+        or seal(registration) != registration
+        or registration["design"] != digest(bundle["design"])
+        or registration["seeds"] != bundle["seeds"]
+    ):
+        raise ValueError("frozen gate design/seed registration differs")
+    roster = []
+    for identity in registration["panels"]:
+        panel = panels.get(identity)
+        if (
+            panel is None
+            or panel["purpose"] != campaign["purpose"]
+            or panel["track"] != campaign["track"]
+            or panel["payload"]["role"] != "confirmation"
+        ):
+            raise ValueError("original confirmation and retention panels required")
+        roster.extend(
+            dict(task=r["id"], stratum=r["stratum"], group=sorted(r["groups"])[0])
+            for r in panel["payload"]["rows"]
+        )
+    canonical = lambda rows: sorted(
+        rows, key=lambda r: (r.get("seed", -1), r.get("arm", ""), r["task"])
+    )
+    if not roster or canonical(roster) != canonical(bundle["roster"]):
+        raise ValueError("decision must cover exact original frozen cohort/retention roster")
+    members = {r["task"]: r for r in roster}
+    if len(members) != len(roster) or not any(r["stratum"] == "retention" for r in roster):
+        raise ValueError("unique complete roster with frozen retention required")
+    expected_cells = {(a, s) for a in ("baseline", "candidate") for s in registration["seeds"]}
+    found, derived = set(), []
+    for producer in registration["producers"]:
+        if set(producer) != {"arm", "seed", "checkpoint", "model", "candidates", "scores"}:
+            raise ValueError("closed generator/scorer producer registration required")
+        cell = producer["arm"], producer["seed"]
+        if cell not in expected_cells or cell in found:
+            raise ValueError("exact paired arm/seed producer roster required")
+        found.add(cell)
+        verify_refs(root, [producer["checkpoint"]], max_bytes=64 << 30)
+        generated, scored = read(producer["candidates"]), read(producer["scores"])
+        if (
+            seal(generated) != generated
+            or generated.get("version") != "discovery-candidates/v1"
+            or generated.get("checkpoint") != producer["checkpoint"]["sha256"]
+            or generated.get("model") != producer["model"]
+            or set(generated["records"]) != set(members)
+            or seal(scored) != scored
+            or scored.get("version") != "discovery-scoring/v1"
+            or scored.get("candidates") != producer["candidates"]["sha256"]
+            or scored.get("denominator") != len(roster)
+            or set(scored["outcomes"]) - set(members)
+        ):
+            raise ValueError("original checkpoint/generator/scorer provenance differs")
+        for task, outcomes in scored["outcomes"].items():
+            outcome = outcomes.get("equal_budget")
+            if (
+                not isinstance(outcome, dict)
+                or type(outcome.get("success")) is not bool
+                or type(outcome.get("complete")) is not bool
+            ):
+                raise ValueError("original scored primary outcome required")
+            status = (
+                "success"
+                if outcome["success"]
+                else "failure"
+                if outcome["complete"]
+                else "unresolved"
+            )
+            if outcome.get("outcome") != status:
+                raise ValueError("scorer outcome/completion mismatch")
+            derived.append(
+                dict(
+                    members[task],
+                    arm=cell[0],
+                    seed=cell[1],
+                    outcome=status,
+                    complete=outcome["complete"],
+                )
+            )
+    if found != expected_cells:
+        raise ValueError("missing paired arm/seed producer")
+    supplied, _, _ = _paired(bundle["rows"], roster, bundle["seeds"])
+    original, _, _ = _paired(derived, roster, bundle["seeds"])
+    normalize = lambda rows: canonical(
+        [dict(r, complete=r.get("complete", r["outcome"] != "unresolved")) for r in rows]
+    )
+    if normalize(supplied) != normalize(original):
+        raise ValueError("outcome table differs from original scorer producers")
+    return registration["identity"]

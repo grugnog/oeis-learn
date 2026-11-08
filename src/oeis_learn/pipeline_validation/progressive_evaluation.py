@@ -185,6 +185,7 @@ def generate(
         {
             "version": "discovery-candidates/v1",
             "model": snapshot,
+            "checkpoint": checkpoint["sha256"] if checkpoint else None,
             "model_control": model_control,
             "recipe": digest(recipe),
             "methods": list(methods),
@@ -214,6 +215,7 @@ def score(root, candidates, truth, *, client, output, seconds=3600):
             "identity",
             "model",
             "model_control",
+            "checkpoint",
             "recipe",
             "methods",
             "prompts",
