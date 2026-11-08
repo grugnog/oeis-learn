@@ -658,3 +658,64 @@ lint and whitespace checks pass; current disposition metadata uses the existing
 implementation serializer and preserves all 68 historical item states. Checklist
 remains 16/16; no implementation extension hooks are registered. Changes are
 committed/pushed incrementally without waiting for CI.
+
+
+## T051–T059 increment: completed admission, incomplete lifecycle integration
+
+This increment completes **T056–T059 software** and introduces partial T051–T054
+helpers. **T051–T055 are not complete and remain unchecked.** In particular,
+`train` is still absent from the installed implemented-operation set. The finite
+controller, host command wiring, milestone/contingency calculations and Progress
+sampler do not establish the requested installed two-task continuation. T055's
+actual CPU installed-role continuation/interrupt/export acceptance is still missing.
+No completed lifecycle or long-task readiness is claimed from these helper tests.
+
+Completed admission/preparation/archive work:
+
+- T056 counterexamples reject nontraining role, short horizon, imported metadata,
+  native/reference disagreement and prefix-only continuation mismatch. Interrupted
+  admission retains reserved attempt/native-work charges; interrupted archive
+  publication leaves the previous immutable cut readable and sampleable.
+- T057 adds closed admission/archive schemas and a separate OEIS-derived archive.
+  It retains at most 4,096 total targets, at most two distinct structures per task,
+  shortest-first deterministic ties, stable task-ID eviction and task-first then
+  alternative sampling. Source/structure/token bindings are checked before archive
+  insertion. Duplicate targets are idempotent, and only explicit committed cuts
+  are sampled. Samples retain the admission identity, visible conditioning and
+  charged target-token count. Historical mechanical replay validators are unchanged.
+- T058 consumes the existing `fresh.bulk.import_snapshot` producer's exact
+  `indexed-source/v1` manifest, checking its original nested terms/metadata hashes
+  and reusing `fresh.bulk.indexed_terms`. Signed authoritative offsets, finite/table
+  exclusions and complete 100-term support are preserved. Exact selected membership
+  is bounded at 512, outcome blind, with deficits before search. Existing overlap
+  grouping and exposure source/behavior/window relations exclude detected exposure.
+  Only first-20 terms enter generator envelopes; separate private admission envelopes
+  carry the training-only full verification horizon. Names/formulas/raw source
+  metadata are excluded from both target and generator channels.
+- T059 adds final-source 100-index native plus independent-reference admission,
+  sealed member/snapshot/source/limits/implementation binding and finite validity.
+  The established parameter taint/grounding/codec checks produce paired targets
+  where valid; shifted-index members retain literal targets. The installed
+  `admit-training` operation constructs the actual SynthesisClient and checks
+  candidate/member identity through its typed channels. No fixture/native mock
+  is used for its positive native integration test.
+
+Partial lifecycle/scaling helpers are intentionally recorded as incomplete:
+RunStore rejects unallocated predecessor slots and retains invocation-specific
+pause requests; host handlers require fresh original qualification and lifecycle
+feature capability before dispatch. Scientific edges are currently withheld rather
+than advanced from process completion. Milestone helpers preserve the 400M horizon;
+third-seed diagnostic calculations retain the original failed verdict and all seeds.
+The previous third-seed test now passes and joins mandatory CI. Progress exposes
+separate allocator counters and missing generator timing reasons, with storage/
+inode/finalization preflight; it still needs continuous installed learner wiring.
+
+Validation: full progressive/historical roster **386 passed, seven local native
+service skips, no expected failures** (54.97s). Additional publication/interruption
+and admission/lifecycle/preparation checks pass **12 tests with one native skip**.
+The seven full-roster skips include the new real native admission case, which is
+mandatory under Docker/Podman CI. Existing installed-wheel/source closure, portable
+host imports and implementation binding checks pass. New-source lint and whitespace
+checks pass. All 68 historical disposition item states are preserved. Checklist
+remains 16/16 and no extension hooks are registered. Changes are pushed incrementally;
+CI is not awaited. No actual HIP, scientific gain or completed T051–T055 claim.

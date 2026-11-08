@@ -24,7 +24,7 @@ def validate_member(member):
     if len(member["indices"]) != 100 or len(member["values"]) != 100:
         raise ValueError("exact hundred-term admission horizon required")
     for v in member["indices"] + member["values"]:
-        if canonical_integer(v) != v:
+        if str(canonical_integer(v)) != v:
             raise ValueError("exact canonical source values required")
     indices = list(map(int, member["indices"]))
     if any(b != a + 1 for a, b in itertools.pairwise(indices)):

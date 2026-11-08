@@ -129,11 +129,12 @@ def prepare_oeis_pool(root, snapshot_ref, members, *, exposure, output, count=51
     The existing acquisition producer owns downloading/parsing. Missing exact
     offsets are deficits; stripped terms alone never imply an offset of zero.
     """
-    from oeis_learn.generalization.progressive.contracts import verify_refs, atomic_write, digest
+    import json
+
     from oeis_learn.generalization.progressive.admission import validate_member
+    from oeis_learn.generalization.progressive.contracts import atomic_write, digest, verify_refs
     from oeis_learn.generalization.progressive.exposure import exposed
     from oeis_learn.pipeline_validation.identity import confined, seal
-    import json
 
     if type(count) is not int or not 1 <= count <= 512:
         raise ValueError("finite frozen training pool required")
@@ -146,7 +147,6 @@ def prepare_oeis_pool(root, snapshot_ref, members, *, exposure, output, count=51
         raise ValueError("existing indexed-source/v1 bulk producer required")
     if not isinstance(members, list) or len(members) != count or len(set(members)) != count:
         raise ValueError("outcome-blind exact member roster required")
-    from pathlib import Path
     from oeis_learn.fresh.bulk import indexed_terms
     from oeis_learn.pipeline_validation.identity import file_hash
 
@@ -170,12 +170,12 @@ def prepare_oeis_pool(root, snapshot_ref, members, *, exposure, output, count=51
         values = indexed_terms(confined(base, entry["terms"]["path"]), offset, horizon=100)
         if len(values) != 100:
             continue
-        records[key] = dict(
-            id=key,
-            group=key,
-            indices=[str(offset + i) for i in range(100)],
-            values=[values[offset + i] for i in range(100)],
-        )
+        records[key] = {
+            "id": key,
+            "group": key,
+            "indices": [str(offset + i) for i in range(100)],
+            "values": [values[offset + i] for i in range(100)],
+        }
     if records:
         from oeis_learn.fresh.bigint_splits import overlap_groups
 
@@ -197,18 +197,20 @@ def prepare_oeis_pool(root, snapshot_ref, members, *, exposure, output, count=51
         except ValueError:
             missing.append(key)
             continue
-        if exposed(exposure, row["group"], endpoint="oeis", role="training"):
+        detector_keys = [row["group"], "source:" + row["id"], "behavior:" + digest(row["values"])]
+        detector_keys += ["window:" + digest(row["values"][i : i + 20]) for i in range(81)]
+        if any(exposed(exposure, key, endpoint="oeis", role="training") for key in detector_keys):
             missing.append(key)
             continue
         selected.append(row)
     if missing:
         return seal(
-            dict(
-                version="progressive-oeis-preparation/v1",
-                status="INCOMPLETE",
-                missing=missing,
-                source=snapshot_ref,
-            )
+            {
+                "version": "progressive-oeis-preparation/v1",
+                "status": "INCOMPLETE",
+                "missing": missing,
+                "source": snapshot_ref,
+            }
         )
     folder = confined(root, output, exists=False)
     if folder.exists():
@@ -218,32 +220,32 @@ def prepare_oeis_pool(root, snapshot_ref, members, *, exposure, output, count=51
         atomic_write(
             folder / "visible" / name,
             seal(
-                dict(
-                    version="discovery-channel/v1",
-                    kind="visible_prompt",
-                    role="generator",
-                    data={k: row[k] for k in ("id", "indices", "values")}
+                {
+                    "version": "discovery-channel/v1",
+                    "kind": "visible_prompt",
+                    "role": "generator",
+                    "data": {k: row[k] for k in ("id", "indices", "values")}
                     | {"indices": row["indices"][:20], "values": row["values"][:20]},
-                )
+                }
             ),
         )
         atomic_write(
             folder / "private-admission" / name,
             seal(
-                dict(
-                    version="discovery-channel/v1",
-                    kind="training_continuation",
-                    role="admission",
-                    data=row,
-                )
+                {
+                    "version": "discovery-channel/v1",
+                    "kind": "training_continuation",
+                    "role": "admission",
+                    "data": row,
+                }
             ),
         )
     return seal(
-        dict(
-            version="progressive-oeis-preparation/v1",
-            status="COMPLETE",
-            members=members,
-            source=snapshot_ref,
-            claim="training_feedback_only",
-        )
+        {
+            "version": "progressive-oeis-preparation/v1",
+            "status": "COMPLETE",
+            "members": members,
+            "source": snapshot_ref,
+            "claim": "training_feedback_only",
+        }
     )

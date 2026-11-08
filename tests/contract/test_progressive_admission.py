@@ -45,3 +45,23 @@ def test_real_native_reference_admission_and_finite_scope(fitting_client):
     bad["values"][-1] = "-1"
     with pytest.raises(ValueError):
         admit(bad, "(program (return $index))", client=fitting_client)
+
+
+def test_interrupted_admission_retains_reserved_native_cost(tmp_path):
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.generalization.progressive.contracts import digest
+    from tests.helpers.progressive_fixture import caps
+
+    class Interrupted:
+        def execute(self, *args, **kwargs):
+            raise InterruptedError("native admission interrupted")
+
+    journal = BudgetJournal(tmp_path, digest("campaign"), caps())
+    cost = {k: 0 for k in caps()}
+    cost["attempts"] = 1
+    cost["native_work"] = 100
+    journal.reserve("admission", "candidate", 0, cost, boot="boot", monotonic_us=0)
+    with pytest.raises(InterruptedError):
+        admit(member(), "(program (return $index))", client=Interrupted())
+    assert journal.snapshot()["consumed"]["attempts"] == 1
+    assert journal.snapshot()["consumed"]["native_work"] == 100

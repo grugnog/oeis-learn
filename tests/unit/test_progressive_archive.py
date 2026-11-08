@@ -5,6 +5,16 @@ from oeis_learn.generalization.progressive.contracts import digest, record
 
 
 def admitted(task, structure, tokens=3):
+    from oeis_learn.decoder.bigint_codec import encode_body
+    from oeis_learn.generalization.progressive.generator import structure_id
+
+    source = (
+        "(program (return $index))"
+        if structure in {"first", "only", "a"}
+        else "(program (return (add $index (int 1))))"
+        if structure == "second"
+        else "(program (return (mul $index (int 2))))"
+    )
     return record(
         "admission",
         {
@@ -12,13 +22,13 @@ def admitted(task, structure, tokens=3):
             "task": task,
             "group": task,
             "source_snapshot": digest("snapshot"),
-            "source": "(program (return $index))",
-            "source_hash": digest("source"),
+            "source": source,
+            "source_hash": digest(source),
             "indices": list(map(str, range(100))),
             "values_hash": digest("truth"),
-            "structure": digest(structure),
-            "tokens": list(range(tokens)),
-            "target_source": "literal",
+            "structure": structure_id(source),
+            "tokens": encode_body(source),
+            "target_source": source,
             "target_disposition": "literal",
             "native_verified": True,
             "native": digest("native"),
@@ -65,3 +75,22 @@ def test_uncommitted_or_exposed_target_cannot_enter_archive(tmp_path):
     r["payload"]["membership"] = "assessment"
     with pytest.raises(ValueError):
         Archive(tmp_path).publish([seal(r)])
+
+
+def test_publication_failure_does_not_change_old_cut(tmp_path, monkeypatch):
+    import oeis_learn.generalization.progressive.archive as module
+
+    archive = Archive(tmp_path)
+    old = archive.publish([admitted("a", "first")])
+    expected = archive.sample(old, ordinal=0, count=4)
+
+    def interrupted(*args, **kwargs):
+        raise InterruptedError("archive entry publication interrupted")
+
+    with monkeypatch.context() as m:
+        m.setattr(module, "atomic_write", interrupted)
+        with pytest.raises(InterruptedError):
+            archive.publish([admitted("b", "second")], previous=old)
+    assert archive.sample(old, ordinal=0, count=4) == expected
+    new = archive.publish([admitted("b", "second")], previous=old)
+    assert len(archive.entries(new)) == 2

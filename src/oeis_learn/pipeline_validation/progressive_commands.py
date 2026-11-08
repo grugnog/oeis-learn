@@ -99,7 +99,33 @@ def status(args, root):
     folder = confined(root, args.run)
     from oeis_learn.pipeline_validation.identity import seal
 
-    value = load(folder / "result.json")
+    if (folder / "run.json").is_file() and not (folder / "result.json").is_file():
+        manifest = load(folder / "run.json")
+        if seal(manifest) != manifest:
+            raise ValueError("run manifest changed")
+        from oeis_learn.generalization.progressive.lifecycle import RunStore
+
+        campaign = load(confined(root, manifest["campaign_path"]))
+        store = object.__new__(RunStore)
+        store.root = confined(
+            root,
+            "run-state/discovery-accounting/" + campaign["identity"].split(":")[1] + "/control",
+            exists=False,
+        )
+        store.campaign = campaign
+        observed = store.read()
+        value = seal(
+            {
+                "version": "discovery-result/v1",
+                "operation": "status",
+                "campaign": campaign["identity"],
+                "mechanical_status": observed["status"],
+                "tasks": observed["tasks"],
+                "scientific_status": "UNMEASURED",
+            }
+        )
+    else:
+        value = load(folder / "result.json")
     if value.get("version") != "discovery-result/v1" or seal(value) != value:
         raise ValueError("invalid terminal record")
     # Read-only: status never allocates authority or invents a task's remainder.
@@ -209,6 +235,8 @@ def main(args, root, host_factory):
             and (confined(root, args.run) / "capability-inputs.json").is_file()
         ):
             result, code = capability_report(args, root)
+        elif args.operation in {"run", "resume", "pause"}:
+            result, code = lifecycle_command(args, root, host_factory)
         elif args.operation == "status":
             result, code = status(args, root)
         else:
@@ -324,3 +352,149 @@ def main(args, root, host_factory):
     print(json.dumps(result, sort_keys=True, allow_nan=False))
     _INVOCATION.reset(token)
     return code
+
+
+def lifecycle_command(args, root, host_factory):
+    """Finite invocation dispatch, retaining the original campaign accounting root."""
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.generalization.progressive.campaign import validate_campaign
+    from oeis_learn.generalization.progressive.contracts import verify_refs
+    from oeis_learn.generalization.progressive.lifecycle import RunStore
+    from oeis_learn.generalization.progressive.projections import describe
+
+    from .progressive_roles import current_runtime, invoke
+
+    if args.operation == "run":
+        campaign_path = args.campaign
+        acceptance_path = args.acceptance
+    else:
+        manifest = load(confined(root, args.run) / "run.json")
+        if seal(manifest) != manifest:
+            raise ValueError("run manifest seal differs")
+        campaign_path = manifest["campaign_path"]
+        acceptance_path = manifest["acceptance_path"]
+    campaign = validate_campaign(load(confined(root, campaign_path)))
+    folder = confined(
+        root, "run-state/discovery-accounting/" + campaign["identity"].split(":")[1], exists=False
+    )
+    control = folder / "control"
+    if args.operation == "pause":
+        if not (control / "campaign.json").is_file():
+            raise ValueError("owned campaign run required")
+        store = RunStore(control, campaign)
+        state = store.pause()
+        return seal(
+            {
+                "version": "discovery-result/v1",
+                "operation": "pause",
+                "mechanical_status": state,
+                "campaign": campaign["identity"],
+                "scientific_status": "UNMEASURED",
+                "reason": "OWNED_BOUNDARY_REQUEST",
+            }
+        ), 2 if state != "PAUSED" else 0
+    output = _output(root, args.output)
+    atomic_write(
+        output / "run.json",
+        seal(
+            {
+                "version": "discovery-run/v1",
+                "campaign_path": campaign_path,
+                "acceptance_path": acceptance_path,
+                "campaign": campaign["identity"],
+                "previous": getattr(args, "run", None),
+                "invocation": _INVOCATION.get(),
+            }
+        ),
+    )
+    receipt_path = confined(root, acceptance_path) / "acceptance.json"
+    if not receipt_path.is_file():
+        return publish(
+            output,
+            operation=args.operation,
+            mechanical_status="BLOCKED",
+            campaign=campaign["identity"],
+            reason="CURRENT_FEATURE_ACCEPTANCE_REQUIRED",
+            missing=["acceptance"],
+        ), 2
+    receipt = load(receipt_path)
+    if (
+        seal(receipt) != receipt
+        or receipt.get("campaign") != campaign["identity"]
+        or receipt.get("runtime") != campaign["payload"]["runtime"]
+        or receipt.get("status") != "COMPLETE"
+    ):
+        raise ValueError("acceptance campaign/runtime/status differs")
+    runtime = load(confined(root, campaign_path).parent / "runtime.json")
+    producers = verify_refs(root, runtime["payload"]["qualification"])
+    if not producers or any(
+        "progressive-lifecycle" not in json.loads(p).get("covered_capabilities", [])
+        for p in producers
+    ):
+        return publish(
+            output,
+            operation=args.operation,
+            mechanical_status="BLOCKED",
+            campaign=campaign["identity"],
+            reason="LIFECYCLE_PRODUCER_REQUIRED",
+            missing=["progressive-lifecycle"],
+        ), 2
+    host = host_factory(args)
+    producer_root = confined(root, runtime["payload"]["qualification"][0]["path"]).parent
+    checked = current_runtime(host, root, output, runtime, producer_root=producer_root)
+    store = RunStore(control, campaign)
+    journal = BudgetJournal(folder, campaign["identity"], campaign["payload"]["caps"])
+    store.append(
+        {"tasks": store.state["tasks"], "status": "RUNNING", "invocation": _INVOCATION.get()}
+    )
+    for _ in range(len(campaign["payload"]["tasks"])):
+        task = store.next_task()
+        if task is None:
+            break
+        request_refs = [
+            r["artifact"]
+            for r in campaign["payload"]["references"]
+            if r["kind"] == "policy" and r["artifact"]["sha256"] == task["payload"]["policy"]
+        ]
+        if len(request_refs) != 1:
+            return publish(
+                output,
+                operation=args.operation,
+                mechanical_status="PARTIAL",
+                campaign=campaign["identity"],
+                reason="TASK_REQUEST_DEFICIT",
+                missing=["frozen_task_request"],
+            ), 2
+        request = json.loads(verify_refs(root, request_refs)[0])
+        if set(request) != {"operation", "artifacts", "image", "seconds", "reservation"}:
+            raise ValueError("closed installed task request required")
+        artifacts = [describe(root, p) for p in request["artifacts"]]
+        result = invoke(
+            host,
+            request["image"],
+            root,
+            request["operation"],
+            artifacts,
+            output=str((output / ("task-" + task["identity"].split(":")[1])).relative_to(root)),
+            campaign=campaign,
+            task=task,
+            journal=journal,
+            ordinal=store.ordinal,
+            reservation=request["reservation"],
+            seconds=request["seconds"],
+            runtime=checked,
+        )
+        store.boundary(task, result["mechanical_status"], _INVOCATION.get())
+        if store.state["status"] == "PAUSED" or result["mechanical_status"] != "COMPLETE":
+            break
+    done = all(
+        store.state["tasks"].get(t["id"]) == "COMPLETE" for t in campaign["payload"]["tasks"]
+    )
+    return publish(
+        output,
+        operation=args.operation,
+        campaign=campaign["identity"],
+        mechanical_status="COMPLETE" if done else "PARTIAL",
+        reason="FINITE_DAG_COMPLETE" if done else "NO_ELIGIBLE_RESERVED_NEXT_TASK",
+        missing=[] if done else ["eligible_reserved_next_slot"],
+    ), 0 if done else 2

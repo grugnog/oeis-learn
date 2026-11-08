@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from .campaign import validate_campaign, validate_task
-from .contracts import atomic_write, load, record, seal
+from .contracts import atomic_write, digest, load, record, seal
 
 
 class RunStore:
@@ -54,6 +54,8 @@ class RunStore:
             deps = [
                 p for p in self.campaign["payload"]["tasks"] if p["slot"] in node["dependencies"]
             ]
+            if set(node["dependencies"]) - {p["slot"] for p in deps}:
+                continue
             if any(self.state["tasks"].get(p["id"]) != "COMPLETE" for p in deps):
                 continue
             edges = [
@@ -72,14 +74,22 @@ class RunStore:
             )
         return None
 
+    def pause_path(self):
+        return self.root / ("pause-" + digest(self.state["invocation"]).split(":")[1] + ".json")
+
     def pause(self):
-        if not (self.root / "pause.json").exists():
+        self.read()
+        if not (self.pause_path()).exists():
             atomic_write(
-                self.root / "pause.json",
+                self.pause_path(),
                 seal({"campaign": self.campaign["identity"], "requested": True}),
             )
         self.read()
-        return "PAUSED" if self.state["status"] == "PAUSED" else "PENDING_EXTERNAL_DEADLINE"
+        return (
+            "PAUSED"
+            if self.state["status"] in {"PAUSED", "COMPLETE", "FAILED", "PARTIAL"}
+            else "PENDING_EXTERNAL_DEADLINE"
+        )
 
     def boundary(self, task, status, invocation):
         validate_task(task, campaign=self.campaign)
@@ -90,7 +100,7 @@ class RunStore:
         return self.append(
             {
                 "tasks": tasks,
-                "status": "PAUSED" if (self.root / "pause.json").exists() else status,
+                "status": "PAUSED" if (self.pause_path()).exists() else status,
                 "invocation": invocation,
             }
         )

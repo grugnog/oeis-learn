@@ -24,6 +24,17 @@ class Archive:
                 values[r["identity"]] = r
         for r in admissions:
             r = validate("admission", r)
+            from oeis_learn.decoder.bigint_codec import encode_body
+
+            from .generator import structure_id
+
+            p = r["payload"]
+            if (
+                digest(p["source"]) != p["source_hash"]
+                or structure_id(p["source"]) != p["structure"]
+                or encode_body(p["target_source"]) != p["tokens"]
+            ):
+                raise ValueError("admission source/structure/target binding differs")
             if r["track"] != "oeis_derived" or r["payload"]["status"] != "COMMITTED":
                 raise ValueError("committed OEIS targets only")
             values[r["identity"]] = r
