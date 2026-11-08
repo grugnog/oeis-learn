@@ -293,6 +293,8 @@ def parser():
     register(commands)
     from oeis_learn.pipeline_validation.selector_validation_commands import register as register_selector_validation
     register_selector_validation(commands)
+    from oeis_learn.pipeline_validation.selector_reliability_commands import register as register_reliability
+    register_reliability(commands)
     commands.add_parser("image").add_argument("operation", choices=["ensure"])
     data = commands.add_parser("data")
     data.add_argument("operation", choices=["fetch"])
@@ -426,6 +428,9 @@ def main(argv=None):
     args = parser().parse_args(argv)
     args.explicit_options = {v.split("=", 1)[0] for v in argv if v.startswith("--")}
     try:
+        if args.command == "pac-reliability":
+            from oeis_learn.pipeline_validation.selector_reliability_commands import main as reliability_main
+            return reliability_main(args, ROOT, Host)
         if args.command == "pac-selector-validation":
             from oeis_learn.pipeline_validation.selector_validation_commands import main as selector_validation_main
             return selector_validation_main(args, ROOT, Host)

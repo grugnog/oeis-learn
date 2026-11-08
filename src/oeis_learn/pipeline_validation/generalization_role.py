@@ -168,7 +168,7 @@ def pin_selection(inputs,output,settings,*,seconds):
     return dict(status='PASS',checkpoint=pointer,root='private/selected',decision=decision['decision'])
 
 
-def generator(inputs,output,settings,*,seconds,pac=False,compare_selectors=False):
+def generator(inputs,output,settings,*,seconds,pac=False,compare_selectors=False,evaluation_policy=None,prompt_limit=None):
     deadline=time.monotonic()+seconds
     from oeis_learn.generalization.budgets import remaining_seconds
     from oeis_learn.generalization.contracts import verify_artifact
@@ -181,10 +181,14 @@ def generator(inputs,output,settings,*,seconds,pac=False,compare_selectors=False
         from .generalization_execution import verify_execution
         verify_execution()
     prompts=json.loads(verify_artifact(inputs['visible_prompts'],settings['prompts']))
+    if prompt_limit is not None:
+        if prompt_limit!=16 or len(prompts)!=256:raise ValueError('complete training panel required for fixed benchmark subset')
+        prompts=sorted(prompts,key=lambda p:p['id'])[:prompt_limit]
     with execution_context(),client(dict(recipe=settings['recipe'],contract_sha256=settings['study']),output/'private') as native:
         return evaluate_retained(inputs['frozen_weights'],settings['checkpoint'],prompts,settings['recipe'],output/'generation',
             client=native,device=settings['device'],study=settings['study'],source=settings['source'],seconds=remaining_seconds(deadline),bank_seeds=settings['bank_seeds'],pac=pac,
-            **(dict(compare_selectors=True) if compare_selectors else {}))
+            **(dict(compare_selectors=True) if compare_selectors else {}),
+            **(dict(evaluation_policy=evaluation_policy) if evaluation_policy is not None else {}))
 
 
 def selection(inputs,output,settings,*,seconds):
@@ -292,11 +296,13 @@ HANDLERS={(Role.LEARNER,'pac-rehearse'):pac_rehearse,(Role.LEARNER,'pac-calibrat
 
 from . import selector_validation_roles as selector_validation
 from . import selector_fit_replay_role as fit_replay
+from .selector_reliability_roles import benchmark as reliability_benchmark
 HANDLERS.update({(Role.PREPARATION,'selector-probes'):selector_validation.publish_probes,
                  (Role.PREPARATION,'prepare-fit-replay'):fit_replay.prepare,
                  (Role.FITTER,'replay-native-fits'):fit_replay.run,
                  (Role.PREPARATION,'selector-structural'):selector_validation.publish_structural,
                  (Role.GENERATOR,'selector-generate'):selector_validation.generate,
+                 (Role.GENERATOR,'selector-benchmark'):reliability_benchmark,
                  (Role.SELECTION,'selector-score'):selector_validation.score})
 
 

@@ -34,3 +34,19 @@ def test_many_legal_prefix_walks_never_reach_a_grammar_dead_end():
             if token == '<eos>':
                 Reader(tokens).program()
                 break
+
+
+def test_valid_programs_at_the_depth_boundary_still_round_trip():
+    from oeis_learn.decoder import bigint_codec as codec
+    expr='$index'
+    for _ in range(30):expr='(add $index '+expr+')'
+    body='(set $b0 $index)'
+    for _ in range(15):body='(if (true) (then '+body+') (else))'
+    for source in ['(program (return '+expr+'))',
+                   '(program (local $b0 bigint) '+body+' (return $index))']:
+        tokens=codec.encode_body(source)
+        state=codec.BodyState()
+        for token in tokens:
+            assert token in state.allowed()
+            state.consume(token)
+        assert state.finished and codec.encode_body(codec.decode_body(tokens))==tokens

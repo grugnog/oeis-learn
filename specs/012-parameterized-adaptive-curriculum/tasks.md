@@ -887,3 +887,32 @@ qualification-failure, memory-before-native and admission-export regressions
 pass, including real wheel packaging. Stdlib help, whitespace and unchanged
 16/16 read-only checklist pass; no hooks. Workstation qualification, new cohort
 admission and model scores remain pending. See `validation/reservoir-amendment.md`.
+
+## Consolidated reliability implementation (2026-11-08)
+
+- [X] T134 Merge follow-up PRs #64–#71 through their stack into #63, inspect their existing CI failures, and repair the incomplete portable packaging fixture while preserving the stdlib/empty-PATH assertion.
+- [X] T135 Prevent typed-grammar nesting-limit dead ends while retaining valid boundary programs; add synthetic and sampled-prefix regressions.
+- [X] T136 Add bounded affine-frontier residue projection and modulus-11 contradiction/replay tests, including actual-solution counterexamples; register a new core identity without rewriting the historical amendment.
+- [X] T137 Provide one fresh-qualified training-probe plus A–B–B–A scheduling diagnostic command, with fixed visible-only subset, original inference caps, behavior/completion accounting, bounded telemetry and a comprehensive hash-inventoried success/failure archive.
+- [X] T138 Complete affected checks and final-source CI-regression reproduction, preserve historical dispositions, record the workstation command and validation boundary, commit periodically and publish directly to #63 without waiting for CI.
+
+The engineering command and prospective research boundary are documented in
+`validation/reliability-followup.md`. Native Rust compilation/tests and actual
+HIP execution require the workstation's qualification image; local Python tests
+do not substitute for them. Later multi-seed research/portfolio confirmation is
+conditional on reviewing the diagnostic result, and is not executed by this
+implementation task.
+
+T134–T138 validation: the reported packaging regression reproduces before repair
+and passes after repair under `python -S`/empty PATH. Final-source CPU regression
+suite: 959 passed, 68 native/hardware skips. Affected selector/generalization
+suite: 456 passed, one installed-native-image skip, five subtests passed. New
+boundary/telemetry/orchestration regressions and actual wheel packaging checks
+also pass. The versioned fitter binding matches all current core bytes; the old
+binding remains immutable. Only the current implementation fingerprint changes
+among historical dispositions. CLI help, compile checks, artifact consistency,
+whitespace and the unchanged 16/16 read-only checklist pass; no extension hooks.
+Rust unit cases are included in the mandatory image build, but neither Rust nor
+an engine/HIP device is available locally. The workstation command must establish
+those gates before probe or scheduling execution. No CI wait or new scientific
+outcome is claimed.

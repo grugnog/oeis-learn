@@ -60,7 +60,7 @@ def build_bank(decoder,checkpoint,seeds,*,deadline):
     return make_bank(checkpoint,seeds,lambda _model,seed,_mode:sources[seed],elapsed_seconds=elapsed)
 
 
-def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,study,source,seconds=21600,bank_seeds=None,pac=False,compare_selectors=False):
+def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,study,source,seconds=21600,bank_seeds=None,pac=False,compare_selectors=False,evaluation_policy=None):
     """Existing matched/drained production portfolios, plus the shared bank control."""
     import time
     deadline=time.monotonic()+seconds
@@ -71,6 +71,9 @@ def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,stud
     from oeis_learn.decoder.bigint_codec import fitting_policy
     from oeis_learn.generalization.proposals import apply_bank,bank_cost
     from .pilot_clocks import DRAIN,FullClockEvidence,attempts
+    from .pilot_clocks import MATCHED
+    if evaluation_policy is None:evaluation_policy=DRAIN
+    if evaluation_policy not in (DRAIN,MATCHED):raise ValueError('registered matched diagnostic schedule required')
     from .identity import write
     from .identity import number
     number(seconds,positive=True)
@@ -87,10 +90,10 @@ def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,stud
     encoder,decoder,counts=load_retained(root,checkpoint,recipe,device=device)
     remaining_seconds(deadline)
     bank=build_bank(decoder,checkpoint['sha256'],bank_seeds,deadline=deadline) if bank_seeds is not None else None
-    evidence=FullClockEvidence(output/'attempts',prompts,source=source,work=study,policy=DRAIN)
+    evidence=FullClockEvidence(output/'attempts',prompts,source=source,work=study,policy=evaluation_policy)
     try:
         result=generate(encoder,decoder,prompts,recipe,client,deadline=deadline,
-                        diagnostic_attempts=attempts(DRAIN),evaluation_policy=DRAIN,evidence=evidence,
+                        diagnostic_attempts=attempts(evaluation_policy),evaluation_policy=evaluation_policy,evidence=evidence,
                         **(dict(retain_selector_candidates=True) if compare_selectors else {}))
     finally:evidence.finish()
     if bank is not None:
@@ -157,7 +160,7 @@ def evaluate_retained(root,checkpoint,prompts,recipe,output,*,client,device,stud
             observation_seconds=sum(v['elapsed_seconds'] for row in observations.values() for v in row.values()),
             cost='additional selector observation after shared generation'))
     report=seal(dict(status='PASS' if evidence.clock_summary['cost_complete'] else 'PARTIAL',availability='available',
-        checkpoint=checkpoint['sha256'],study=study,source=source,counts=counts,policy=DRAIN,
-        primary_attempts=attempts(DRAIN),raw_rescue_attempts=1,bank=bank['identity'] if bank else None,
+        checkpoint=checkpoint['sha256'],study=study,source=source,counts=counts,policy=evaluation_policy,
+        primary_attempts=attempts(evaluation_policy),raw_rescue_attempts=1,bank=bank['identity'] if bank else None,
         scientific_status='UNMEASURED',clock=evidence.clock_summary['identity'],**comparison))
     write(output/'evaluation.json',report);return report
