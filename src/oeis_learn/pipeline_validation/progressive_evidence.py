@@ -1,7 +1,8 @@
 """Initial terminal evidence with independent statuses and safe producer failures."""
 
-from pathlib import Path
 import traceback
+from pathlib import Path
+
 from oeis_learn.generalization.progressive.contracts import atomic_write, reference
 from oeis_learn.pipeline_validation.identity import seal
 
@@ -10,13 +11,13 @@ def safe_failure(exc, *, producer, traceback_ref=None, private_values=()):
     message = str(exc)
     for value in sorted({str(v) for v in private_values if str(v)}, key=len, reverse=True):
         message = message.replace(value, "[redacted]")
-    return dict(
-        type=type(exc).__name__,
-        message=message[:2048],
-        code=getattr(exc, "code", "PRODUCER_FAILURE"),
-        producer=producer,
-        local_traceback=traceback_ref,
-    )
+    return {
+        "type": type(exc).__name__,
+        "message": message[:2048],
+        "code": getattr(exc, "code", "PRODUCER_FAILURE"),
+        "producer": producer,
+        "local_traceback": traceback_ref,
+    }
 
 
 def publish(
@@ -60,26 +61,26 @@ def publish(
     }:
         raise ValueError("scientific state required")
     result = seal(
-        dict(
-            version="discovery-result/v1",
-            operation=operation,
-            campaign=campaign,
-            stage=stage,
-            task=task,
-            mechanical_status=mechanical_status,
-            scientific_status=scientific_status,
-            qualification_status=qualification_status,
-            claim_status=claim_status,
-            next_action=next_action,
-            target_policy=target_policy,
-            reason=reason,
-            evidence="result.json",
-            missing_evidence=list(missing),
-            producer_error=producer_error,
-            collector_errors=list(collector_errors),
-            metrics=metrics
+        {
+            "version": "discovery-result/v1",
+            "operation": operation,
+            "campaign": campaign,
+            "stage": stage,
+            "task": task,
+            "mechanical_status": mechanical_status,
+            "scientific_status": scientific_status,
+            "qualification_status": qualification_status,
+            "claim_status": claim_status,
+            "next_action": next_action,
+            "target_policy": target_policy,
+            "reason": reason,
+            "evidence": "result.json",
+            "missing_evidence": list(missing),
+            "producer_error": producer_error,
+            "collector_errors": list(collector_errors),
+            "metrics": metrics
             or {"device": None, "timing": None, "unavailable_reason": "not_measured"},
-        )
+        }
     )
     if output.exists() and (output / "result.json").exists():
         raise ValueError("terminal output already completed")
@@ -132,3 +133,62 @@ def private_values(value):
         for child in value:
             result.extend(private_values(child))
     return result
+
+
+def diversity_report(static, refreshed, *, decision=None):
+    """Preserve matched costs and negative decisions without inferring gain from loss."""
+    from oeis_learn.generalization.progressive.contracts import validate
+    from oeis_learn.pipeline_validation.identity import seal
+
+    for result, arm in ((static, "static"), (refreshed, "refreshed")):
+        if (
+            seal(result) != result
+            or result.get("version") != "progressive-diversity-acceptance/v1"
+            or result["arm"] != arm
+        ):
+            raise ValueError("sealed matched pilot results required")
+    if any(
+        static[k] != refreshed[k]
+        for k in ("initial_shard", "initial_weights", "matched_policy", "seed")
+    ):
+        raise ValueError("unmatched data/model/optimizer/allocation comparison")
+    reported = None
+    action = "RETAIN_BASELINE"
+    if decision is not None:
+        decision = validate("decision", decision)
+        reported = decision["payload"]["evidence_verdict"]
+        if decision["payload"]["next_action"] != "RETAIN_BASELINE":
+            action = "STOP_AFFECTED"
+    return seal(
+        {
+            "version": "progressive-diversity-report/v1",
+            "kind": "DIAGNOSTIC_ONLY",
+            "scientific_status": "UNMEASURED",
+            "qualified": False,
+            "static": static["identity"],
+            "refreshed": refreshed["identity"],
+            "comparable_initialization": True,
+            "reported_verdict": reported,
+            "decision": decision["identity"] if decision else None,
+            "decision_reconciliation": "verify against outcomes before research use",
+            "next_action": action,
+            "training_loss_is_not_capability": True,
+            "arms": {
+                arm: {
+                    k: r[k]
+                    for k in (
+                        "updates",
+                        "charged_tokens",
+                        "useful_tokens",
+                        "discarded_tokens",
+                        "elapsed_us",
+                        "equal_wall_tokens_per_second",
+                        "preparation_work_units",
+                        "preparation_elapsed_us",
+                    )
+                }
+                for arm, r in (("static", static), ("refreshed", refreshed))
+            },
+            "preparation_accounting": "shared preallocated shard production; do not add shared work twice",
+        }
+    )

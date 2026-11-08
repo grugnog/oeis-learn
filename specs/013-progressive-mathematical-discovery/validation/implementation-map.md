@@ -363,3 +363,35 @@ Validation: the complete roster initially passed 282 cases with four local nativ
 service skips; additional independent finite-signature, prefix/byte and purpose
 checks pass in the focused suite. No actual native/HIP qualification is claimed
 on this host. T035/T036 own the subsequent matched-learning acceptance.
+
+## T035–T036 matched support and real CPU learning acceptance
+
+Added the prospective 25M-token/two-seed diversity blueprint with explicitly
+unresolved live inputs, paired fresh initialization, shared initial shard/probes,
+fixed allocation and separate nominal target/maximum full-update allowance.
+PreparedSupport supplies static initial support or preallocated refreshed shards
+at declared update boundaries, with a fixed initial familiar pool and training
+probes excluded from gradient batches. No retained D warm-start is used.
+
+The bounded DIAGNOSTIC_ONLY acceptance adapter calls the existing bigint worker
+SFT step and GeneralizationCheckpointStore. It persists actual model/optimizer,
+all RNGs, pending batches, controller, cursor and charged token ledger. Unproven
+work after interruption stays charged and is classified as discarded; resuming
+repeats the same targets under a fresh debit. Full updates can cross a nominal
+target but cannot exceed the binding execution ceiling. Native-unverified rows
+are accepted only by an explicitly diagnostic acceptance path, never the normal
+load_shard learner gate. Broad research/24h dispatch remains with later task
+entitlement/acceptance owners; this does not launch research.
+
+CPU integration passed with actual finite parameter updates, matching initial
+models/shards, declared support changes and byte-identical final weights after
+interrupted preparation and consumption. Resumed target history/cursors match
+uninterrupted runs while spent/discarded tokens remain larger. Budget exhaustion
+cannot buy a resumed allowance. Reports preserve costs and baseline retention
+without treating training loss as a capability gain. Preparation total-time
+receipts and resumed whole-invocation timing are explicitly unavailable locally.
+The native-shard-to-real-CPU-update case is mandatory in container CI.
+
+Validation: full progressive/historical roster passed 286 tests with five local
+native-service skips before the additional overshoot/ceiling case; that case also
+passes. HIP remains in the shared later matrix.
