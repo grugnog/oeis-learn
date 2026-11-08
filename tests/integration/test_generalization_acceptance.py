@@ -295,6 +295,7 @@ def test_qualification_runner_owns_receipts_and_inspection_gets_fresh_child(tmp_
     from oeis_learn import container_validation
     from oeis_learn.pipeline_validation import generalization_qualification_io as io, supervision
     from oeis_learn.pipeline_validation.bundle import verify
+    from oeis_learn.pipeline_validation.generalization_preparation import reference
     calls=[]
     class Engine:
         def image(self,image):return image
@@ -316,6 +317,11 @@ def test_qualification_runner_owns_receipts_and_inspection_gets_fresh_child(tmp_
     out=tmp_path/'qualification'
     result=io.produce(host,workspace,out,images=['cpu-image','gpu-image'],contract={})
     assert result['status']=='FAIL'
+    failed={r['stage']:r for r in result['stages']}
+    assert failed['hip.preflight']['status']=='BLOCKED'
+    assert failed['image.gpu' if failure=='inspection' else 'cpu.semantic']['status']=='FAIL'
+    assert ('fixture inspection failure' if failure=='inspection' else 'fixture CPU stop before HIP') in json.dumps(result)
+    assert result['archive']==reference(out/'pipeline.zip',out)
     assert [c['image'] for c in calls]==['cpu-image','gpu-image']
     for name in ('image.qualification','image.gpu'):
         receipt=json.loads((out/'pipeline/stages'/name/'receipt.json').read_text())

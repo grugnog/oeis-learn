@@ -8,10 +8,10 @@ from pathlib import Path
 from .identity import seal,write,digest,confined
 from .generalization_preparation import reference
 from .selector_validation_commands import read,check_ref,source,envelope
-from oeis_learn.generalization.selector_fit_replay import timeout_targets,check_core
+from oeis_learn.generalization.selector_fit_replay import timeout_targets,check_core,core_amendment
 
 
-def inputs(workspace,probes):
+def inputs(workspace,probes,*,amendment=None):
     root=confined(workspace,probes)
     plan=read(root/'plan.json',sealed=True);result=read(root/'result.json',sealed=True)
     if (plan['phase']!='probes' or result['phase']!='probes' or result['status']!='PASS'
@@ -33,7 +33,7 @@ def inputs(workspace,probes):
     old_source=read(check_ref(qualification,authority['source_closure']))
     if digest(old_source)!=plan['source']:raise ValueError('original qualification source differs from probe source')
     from oeis_learn.experiments.source_snapshot import collect_snapshot
-    check_core(old_source,collect_snapshot(workspace))
+    check_core(old_source,collect_snapshot(workspace),amendment=amendment)
     resources=authority['resources']
     if resources['cpus']!=4 or resources['memory_bytes']!=16<<30 or resources['native_threads']!=1:
         raise ValueError('this diagnostic matrix requires the recorded four-CPU/16-GiB baseline')
@@ -53,25 +53,50 @@ def matrix(compare_cpus):
             dict(name='concurrent-larger-quota',cpus=compare_cpus,concurrency=4)]
 
 
+def load_baseline(workspace,path,data,repetitions):
+    root=confined(workspace,path);plan=read(root/'plan.json',sealed=True);report=read(root/'result.json',sealed=True)
+    if (plan['version']!='pac-fit-diagnostic-plan/v1' or report['version']!='pac-fit-diagnostic-report/v1'
+            or report['status']!='PASS' or report['plan']!=plan['identity'] or plan['repetitions']!=repetitions
+            or plan['memory_bytes']!=16<<30 or plan['workers']!=4 or plan['native_threads']!=1):
+        raise ValueError('original complete fixed-resource diagnostic baseline required')
+    for key in ('original_plan','original_result','original_scoring','generation','recipe_ref','targets'):
+        if plan['inputs'][key]!=data[key]:raise ValueError('engineering comparison changed original inputs: '+key)
+    rows=[row for row in report['runs'] if row['config']['cpus']==4 and row['config']['concurrency']==4]
+    if len(rows)!=1:raise ValueError('unique original four-CPU concurrent baseline required')
+    result=rows[0]['result']
+    if (seal(result)!=result or result['status']!='PASS' or result['integrity_failures']
+            or len(result['runs'])!=repetitions or result['concurrency']!=4):
+        raise ValueError('baseline native fit result changed')
+    return dict(plan=reference(root/'plan.json',workspace),report=reference(root/'result.json',workspace),
+                config=rows[0]['config'],result=result)
+
+
 def main(args,workspace,host_factory):
     from .engines import Images
     from .generalization_roles import project_and_invoke
     from oeis_learn.container_validation import _stages,inspect_current_image
-    workspace=Path(workspace);data=inputs(workspace,args.probes);configs=matrix(args.compare_cpus)
+    workspace=Path(workspace);policy=getattr(args,'core_policy',None);baseline_path=getattr(args,'baseline',None)
+    if bool(policy)!=bool(baseline_path):raise ValueError('--core-policy and --baseline must be supplied together')
+    amendment=core_amendment(policy) if policy else None
+    data=inputs(workspace,args.probes,amendment=amendment) if policy else inputs(workspace,args.probes)
+    configs=matrix(args.compare_cpus) if not policy else [dict(name='native-fastpaths-four-cpu',cpus=4,concurrency=4)]
     if type(args.repetitions) is not int or not 1<=args.repetitions<=5:raise ValueError('one to five repetitions required')
+    previous=load_baseline(workspace,baseline_path,data,args.repetitions) if policy else None
     output=confined(workspace,args.output,exists=False)
     if output.exists():raise ValueError('fresh fit diagnostic output required')
     baseline_args=copy.copy(args);baseline_args.cpus=4;baseline_args.memory_gib=16
     baseline=host_factory(baseline_args)
     hosts={4:baseline}
     # Check the larger quota before builds or measurements. Memory/workers stay fixed.
-    bigger_args=copy.copy(baseline_args);bigger_args.cpus=args.compare_cpus
-    hosts[args.compare_cpus]=host_factory(bigger_args)
+    for cpus in sorted({row['cpus'] for row in configs}-{4}):
+        bigger_args=copy.copy(baseline_args);bigger_args.cpus=cpus
+        hosts[cpus]=host_factory(bigger_args)
     if any(h.engine.name!=baseline.engine.name for h in hosts.values()):raise ValueError('same engine required')
     output.mkdir(parents=True);args._selector_output=output
     print('fit-diagnostics: verified '+str(len(data['targets']))+' timeout cases; no weights or GPU required',flush=True)
     image=Images(cap=43200).ensure(baseline,'qualification',output/'build',seconds=43200)
-    plan=seal(dict(version='pac-fit-diagnostic-plan/v1',source=source(workspace),image=image,engine=baseline.engine.name,
+    plan=seal(dict(**(dict(core_amendment=amendment,baseline={k:v for k,v in previous.items() if k!='result'}) if policy else {}),
+        version='pac-fit-diagnostic-plan/v2' if policy else 'pac-fit-diagnostic-plan/v1',source=source(workspace),image=image,engine=baseline.engine.name,
         inputs=data,matrix=configs,repetitions=args.repetitions,memory_bytes=16<<30,workers=4,
         native_threads=1,cache='fresh per repetition; four recorded warmups before each repetition',
         scientific_status='DIAGNOSTIC_ONLY',freeze_eligible=False,
@@ -95,6 +120,7 @@ def main(args,workspace,host_factory):
         {'mechanical_sources':[data['generation'],data['probes'],data['inventory']],'isolation_truth':[]},
         {'mechanical_sources':workspace},dict(generation=data['generation'],probes=data['probes'],inventory=data['inventory'],targets=data['targets']))
     views=output/'preparation/role';runs=[]
+    if previous and previous['result']['packet']!=prepared['packet']:raise ValueError('engineering comparison changed replay packet')
     # Complete the isolated baseline before any resource comparison. No original
     # score, checkpoint, probe result or freeze authorization is rewritten.
     for config in configs:
@@ -104,7 +130,14 @@ def main(args,workspace,host_factory):
                 recipe=data['recipe'],concurrency=config['concurrency'],repetitions=args.repetitions))
         if result['packet']!=prepared['packet']:raise ValueError('resource comparison changed the replay packet')
         runs.append(dict(config=config,result=result))
-    report=seal(dict(version='pac-fit-diagnostic-report/v1',status='PASS',scientific_status='DIAGNOSTIC_ONLY',
+    comparison={}
+    if previous:
+        old=previous['result']['runs'];new=runs[0]['result']['runs']
+        comparison=dict(visible_cases=prepared['visible_cases'],timeout_templates=prepared['timeout_templates'],core_comparison=dict(policy=policy,baseline=previous['report'],
+            original_wall_seconds=[r['wall_seconds'] for r in old],new_wall_seconds=[r['wall_seconds'] for r in new],
+            original_completed=[sum(a['complete'] for a in r['attempts']) for r in old],
+            new_completed=[sum(a['complete'] for a in r['attempts']) for r in new]))
+    report=seal(dict(**comparison,version='pac-fit-diagnostic-report/v2' if policy else 'pac-fit-diagnostic-report/v1',status='PASS',scientific_status='DIAGNOSTIC_ONLY',
         freeze_eligible=False,plan=plan['identity'],cases=prepared['cases'],attempts=prepared['attempts'],runs=runs,
         interpretation='fit completion and latency under controlled resources; no full-horizon scoring or repair of probe gate'))
     write(output/'result.json',report)
@@ -112,6 +145,11 @@ def main(args,workspace,host_factory):
         'Diagnostic only. Original probe result and structural freeze gate remain unchanged.','',
         '| Configuration | CPUs | Concurrent fits | Median fit workload seconds | Completed fits per repeat | Fully completed case searches per repeat |',
         '|---|---:|---:|---:|---|---|']
+    if previous:
+        old=previous['result']['runs']
+        lines.append('| Recorded original-core baseline | 4 | 4 | '+str(round(statistics.median(r['wall_seconds'] for r in old),3))+' | '+
+            ', '.join(str(sum(a['complete'] for a in r['attempts'])) for r in old)+' | '+
+            ', '.join(str(sum(c['fit_search_complete'] for c in r['cases'].values())) for r in old)+' |')
     for item in runs:
         config=item['config'];r=item['result']['runs']
         lines.append('| '+config['name']+' | '+str(config['cpus'])+' | '+str(config['concurrency'])+' | '+

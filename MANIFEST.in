@@ -35,3 +35,6 @@ include src/oeis_learn/synthesis/engine-policy.json
 recursive-include specs/012-parameterized-adaptive-curriculum/contracts *.md *.json
 recursive-include specs/012-parameterized-adaptive-curriculum/validation *.py
 recursive-include specs/011-controlled-generalization/validation *.py
+
+# Installed-source checks bind every versioned generalization policy.
+recursive-include src/oeis_learn/generalization/policies *.json

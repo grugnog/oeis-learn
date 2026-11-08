@@ -130,12 +130,18 @@ def produce(host,workspace,output,*,images,contract,pac_seconds=None):
         # The serial fallback archive preserves stdout, even when no authority
         # exists for the normal report. Keep the original stage reasons visible.
         from .receipts import read_terminal
+        failures=[]
         for stage in stages:
-            receipt=read_terminal(output/'pipeline/stages'/stage.id)
+            path=output/'pipeline/stages'/stage.id
+            receipt=read_terminal(path)
             if receipt['state']!='PASS':
-                print('QUALIFICATION '+json.dumps(dict(stage=stage.id,status=receipt['state'],
-                    reason=receipt.get('reason','')[:4096]),sort_keys=True),flush=True)
-        return dict(status='FAIL',reason='QUALIFICATION_FAILED',exit_code=code)
+                failure=dict(stage=stage.id,status=receipt['state'],reason=receipt.get('reason','')[:4096],
+                    receipt=reference(path/'receipt.json',output) if (path/'receipt.json').is_file() else None)
+                failures.append(failure)
+                print('QUALIFICATION '+json.dumps(failure,sort_keys=True),flush=True)
+        archive=output/'pipeline.zip'
+        return dict(status='FAIL',reason='QUALIFICATION_FAILED',exit_code=code,stages=failures,
+            archive=reference(archive,output) if archive.is_file() else None)
     write(output/'source.json',collect_snapshot(workspace));source_ref=reference(output/'source.json',output)
     names=['Dockerfile','pyproject.toml','uv.lock']
     names.extend(str(p.relative_to(workspace)) for p in sorted((workspace/'crates').rglob('Cargo.lock')))
