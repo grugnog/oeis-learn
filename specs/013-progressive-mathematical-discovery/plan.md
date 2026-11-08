@@ -4,7 +4,7 @@
 
 **Input**: `specs/013-progressive-mathematical-discovery/spec.md`
 
-**Status**: Phase 0 research and Phase 1 design complete. Runtime implementation, feature acceptance, source qualification and research execution remain pending. This document does not launch a campaign.
+**Status**: Phase 0 research and Phase 1 design complete; dependency-ordered [tasks.md](tasks.md) generated, including optional contingencies and [consolidated hardware validation](hardware-validation.md). Runtime implementation, feature acceptance, source qualification and research execution remain pending. This document does not launch a campaign.
 
 ## Summary
 
@@ -61,7 +61,8 @@ The constitution's historical Docker wording is implemented through the already 
 - `contracts/learning-discovery.md`: targets, OEIS admission, components, sources and claims.
 - `contracts/contingencies.md`: target classes, sensitivity, failure alternatives and bounded diagnostic reservations.
 - `checklists/requirements.md`: existing specification quality review.
-- `tasks.md`: produced by the subsequent tasks workflow, not by this planning pass.
+- `tasks.md`: implementation/acceptance work by user story, followed by explicitly optional research and contingency execution.
+- `hardware-validation.md`: consolidated qualification and scoped post-freeze acceptance, original-producer reuse and sustained-run evidence.
 
 ### Source Code (repository root)
 

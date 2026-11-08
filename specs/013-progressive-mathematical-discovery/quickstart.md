@@ -2,6 +2,8 @@
 
 **Planning artifact: the `discovery` commands below are proposed and unavailable until implementation. Do not paste the research commands into the current checkout expecting them to run.** This guide specifies the future end-to-end acceptance interface; it does not assert completed gates.
 
+Implementation order and optional branches are in [tasks.md](tasks.md). Follow [hardware-validation.md](hardware-validation.md) to batch actual-HIP validation after CPU/native checks: one consolidated qualification matrix, then reuse exact compatible producers and execute only missing post-freeze device cases. This reduces repeated qualification, not scientific training seeds. Changed source closure or an uncovered execution scope still requires matching validation.
+
 ## Prerequisites
 
 - Spec 013 implementation installed from the same checkout/source closure as its images; existing functional Docker/Podman and actual HIP workstation access.
