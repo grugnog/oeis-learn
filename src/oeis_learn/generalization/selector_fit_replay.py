@@ -55,8 +55,10 @@ def extract(records,prompts,targets):
 def core_amendment(name):
     import json
     from importlib.resources import files
-    if name!='native-fit-fastpaths/v1':raise ValueError('unknown native fit engineering policy')
-    value=json.loads(files('oeis_learn.generalization').joinpath('policies/fit-core-amendment.json').read_text())
+    policies={'native-fit-fastpaths/v1':'fit-core-amendment.json',
+              'native-fit-reliability/v2':'fit-reliability-amendment.json'}
+    if name not in policies:raise ValueError('unknown native fit engineering policy')
+    value=json.loads(files('oeis_learn.generalization').joinpath('policies/'+policies[name]).read_text())
     if (set(value)!={'version','name','files','identity'} or seal(value)!=value
             or value['version']!='pac-fit-core-amendment/v1' or value['name']!=name):
         raise ValueError('registered native core amendment changed')
@@ -74,7 +76,7 @@ def check_core(original,current,*,amendment=None):
     if amendment is not None:
         changed={k for k in set(old)|set(new) if old.get(k)!=new.get(k)}
         if (seal(amendment)!=amendment or amendment['version']!='pac-fit-core-amendment/v1'
-                or amendment['name']!='native-fit-fastpaths/v1' or changed!=set(amendment['files'])
+                or amendment['name'] not in {'native-fit-fastpaths/v1','native-fit-reliability/v2'} or changed!=set(amendment['files'])
                 or any(set(v)!={'parent','current'} or old.get(k)!=v['parent'] or new.get(k)!=v['current']
                        for k,v in amendment['files'].items())):
             raise ValueError('native core changes differ from registered engineering amendment')

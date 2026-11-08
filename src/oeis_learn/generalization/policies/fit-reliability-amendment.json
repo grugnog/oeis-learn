@@ -1,0 +1,27 @@
+{
+  "version": "pac-fit-core-amendment/v1",
+  "name": "native-fit-reliability/v2",
+  "files": {
+    "crates/oeis_synthesis_core/src/diagnostic.rs": {
+      "parent": "sha256:1955d066f632efe21f26824f422d6536e13ed6695009c896a7949e070c9f05a1",
+      "current": "sha256:ef4289299399d533086ba41362e904e7421f4b6f4144a26d7902fa9ad03fdffb"
+    },
+    "crates/oeis_synthesis_core/src/evidence.rs": {
+      "parent": "sha256:314cc8961fe34187d5df0cc3ccc0499f96a7416b658b0b7e96356f2156a3532c",
+      "current": "sha256:0ffa221bcb2aee7eb959e44e2288b1a20688b4a1b7e5aa2610132187fb367f21"
+    },
+    "crates/oeis_synthesis_core/src/fit.rs": {
+      "parent": "sha256:c2f069ef137e75102b58dd69990b850a6f2270f1838e6b42843df3664baea791",
+      "current": "sha256:12b308b163a4c6379babe7cf83e0f245c8795496a024498c76497da47dde0bd4"
+    },
+    "crates/oeis_synthesis_core/src/lib.rs": {
+      "parent": "sha256:55ebc8be86755b450065c4e259c12641bb9031d18686ffaa5a93cae8b78ce1a5",
+      "current": "sha256:b1a0578218e349ddecd235d7bbfe08370abdb3894b114e7e7519cead479e4d01"
+    },
+    "crates/oeis_synthesis_core/src/modular.rs": {
+      "parent": null,
+      "current": "sha256:7aae748f45475f518783326e81e04c2487eee645a7f1601fcc00183650e533f3"
+    }
+  },
+  "identity": "sha256:f1653e0c010e7e737f2586ec66c48cff0fca805b55c513784a21dd667591d5c7"
+}

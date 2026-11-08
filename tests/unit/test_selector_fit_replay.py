@@ -162,7 +162,7 @@ def test_registered_fastpath_hashes_match_checkout():
     from pathlib import Path
     from oeis_learn.generalization.selector_fit_replay import core_amendment,check_core
     from oeis_learn.pipeline_validation.identity import file_hash
-    policy=core_amendment('native-fit-fastpaths/v1');root=Path(__file__).resolve().parents[2]
+    policy=core_amendment('native-fit-reliability/v2');root=Path(__file__).resolve().parents[2]
     old={k:v['parent'] for k,v in policy['files'].items() if v['parent'] is not None}
     new={k:file_hash(root/k) for k in policy['files']}
     check_core(old,new,amendment=policy)
