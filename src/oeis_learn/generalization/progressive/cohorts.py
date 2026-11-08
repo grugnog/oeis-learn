@@ -215,3 +215,87 @@ def publish(root, output, cohort, *, exposure, other_cohorts=()):
     (target / "private").chmod(0o700)
     atomic_write(target / "cohort.json", c)
     return result
+
+
+def validate_frozen_panels(root, panels, exposures):
+    """Validate original cuts and detectable relations before any scoring.
+
+    Detector augmentation is private and ephemeral: it never rewrites the frozen
+    producer. All supplied history is retained, including access after a panel's
+    original census. Independent/forked registries cannot erase one another.
+    """
+    from .exposure import detect, validate_extension
+
+    for exposure in exposures.values():
+        previous = exposure["payload"]["previous"]
+        if previous is not None:
+            if previous not in exposures:
+                raise ValueError("missing original exposure cut ancestry")
+            validate_extension(exposures[previous], exposure)
+    augmented = []
+    for panel in panels:
+        p = panel["payload"]
+        if p["exposure"] not in exposures:
+            raise ValueError("missing original exposure cut")
+        validate_cohort(panel, exposure=exposures[p["exposure"]], other_cohorts=panels)
+        rows = []
+        for row in p["rows"]:
+            prompt, truth = [
+                json.loads(raw)
+                for raw in verify_refs(root, [row["visible"], row["truth"]], max_bytes=512 << 20)
+            ]
+            validate_prompt(prompt)
+            expected = [
+                str(i) for i in range(_integer(row["offset"]), _integer(row["offset"]) + 100)
+            ]
+            if (
+                set(truth) != {"id", "indices", "values"}
+                or truth["id"] != row["id"]
+                or prompt["id"] != row["id"]
+                or truth["indices"] != expected
+                or len(truth["values"]) != 100
+                or prompt["indices"] != expected[:20]
+                or prompt["values"] != truth["values"][:20]
+            ):
+                raise ValueError("frozen cohort source horizon/identity differs")
+            detected = detect(
+                [
+                    dict(
+                        truth,
+                        structure=row["structure"],
+                        composition=row["composition"],
+                        relations=[row["source"] + ":" + row["id"]],
+                    )
+                ]
+            )[0]["groups"]
+            # Parameter sharing permits structure alone, never identical/shifted
+            # finite values, source ancestry or declared relation groups.
+            if p["group_policy"] == "parameter_structure_sharing" and row["stratum"] == "parameter":
+                detected = [g for g in detected if not g.startswith(("structure:", "composition:"))]
+            effective = dict(row, groups=sorted(set(row["groups"]) | set(detected)))
+            if p["role"] in {"confirmation", "assessment"} and any(
+                exposed(
+                    e,
+                    g,
+                    endpoint=row["stratum"],
+                    role=p["role"],
+                    structure_sharing=p["group_policy"] == "parameter_structure_sharing",
+                )
+                for e in exposures.values()
+                for g in effective["groups"]
+            ):
+                raise ValueError("exposed group cannot become fresh")
+            rows.append(effective)
+        augmented.append(seal(dict(panel, payload=dict(p, rows=rows))))
+    for panel in augmented:
+        p = panel["payload"]
+        for other in augmented:
+            q = other["payload"]
+            if p["role"] != q["role"] or p["panel"] != q["panel"]:
+                if any(
+                    _linked(a, b, e, p["group_policy"])
+                    for a in p["rows"]
+                    for b in q["rows"]
+                    for e in exposures.values()
+                ):
+                    raise ValueError("cross-panel detectable related group leakage")

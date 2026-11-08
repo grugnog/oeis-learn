@@ -382,6 +382,7 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
         images = load(confined(root, item["artifact"]["path"]))
         if images != {"version": "discovery-images/v1", "images": scope["images"]}:
             raise ValueError("declared image pair differs")
+    panels, exposures = [], {}
     for item in grouped["groups"]:
         value = load(confined(root, item["artifact"]["path"]), maximum=512 << 20)
         kind = {"discovery-exposure/v1": "exposure", "discovery-cohort/v1": "cohort"}.get(
@@ -390,8 +391,15 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
         if kind is None:
             raise ValueError("closed grouping/exposure authority required")
         validate(kind, value)
-        if value["track"] != track:
-            raise ValueError("wrong grouping track")
+        if value["track"] != track or value["purpose"] != runtime["purpose"]:
+            raise ValueError("wrong grouping track/purpose")
+        if kind == "cohort":
+            panels.append(value)
+        else:
+            exposures[value["identity"]] = value
+    from .cohorts import validate_frozen_panels
+
+    validate_frozen_panels(root, panels, exposures)
     if len(recipes) != 1:
         raise ValueError("one resolved initial recipe required")
     if learner_packages:

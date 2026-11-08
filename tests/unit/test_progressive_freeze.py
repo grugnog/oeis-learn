@@ -309,3 +309,116 @@ assert not {'torch','optuna','jsonschema'} & set(sys.modules)
         capture_output=True,
     )
     assert proc.returncode == 0, proc.stderr
+
+
+def panel_inputs(root, monkeypatch, *, role="confirmation", second_role=None):
+    from tests.unit.test_progressive_cohorts import fixture
+
+    test_complete_diagnostic_freeze_binds_original_producer_and_task_roster(root, monkeypatch)
+    b = json.loads((root / "test-blueprint.json").read_text())
+    p = json.loads((root / "test-prepared.json").read_text())
+    c, e = fixture(root, role=role)
+    # Bind the original detector/exposure producer, not a fresh replacement cut.
+    e = json.loads((root / "groups.json").read_text())
+    c["payload"]["exposure"] = e["identity"]
+    panels = [seal(c)]
+    if second_role:
+        other = json.loads(json.dumps(c))
+        other["payload"].update(role=second_role, panel="other", decision="other")
+        panels.append(seal(other))
+    for i, panel in enumerate(panels):
+        path = root / f"panel-{i}.json"
+        path.write_text(json.dumps(panel))
+        p["payload"]["references"].append(
+            dict(name=f"panel-{i}", kind="groups", role="custodian", artifact=reference(root, path))
+        )
+    return b, seal(p), panels, e
+
+
+@pytest.mark.parametrize("other_role", ["confirmation", "development", "assessment"])
+def test_freeze_rejects_cross_panel_overlap(tmp_path, monkeypatch, other_role):
+    b, p, _, _ = panel_inputs(tmp_path, monkeypatch, second_role=other_role)
+    with pytest.raises(ValueError, match="cross-panel"):
+        freeze(tmp_path, b, p, qualification_root="qualification")
+
+
+def test_freeze_rejects_missing_exposure_producer(tmp_path, monkeypatch):
+    b, p, panels, _ = panel_inputs(tmp_path, monkeypatch)
+    panels[0]["payload"]["exposure"] = digest("missing original cut")
+    (tmp_path / "panel-0.json").write_text(json.dumps(seal(panels[0])))
+    p["payload"]["references"][-1]["artifact"] = reference(tmp_path, "panel-0.json")
+    with pytest.raises(ValueError, match="exposure cut"):
+        freeze(tmp_path, b, seal(p), qualification_root="qualification")
+
+
+def test_freeze_rejects_historical_exposure_hidden_by_new_group_name(tmp_path, monkeypatch):
+    b, p, panels, e = panel_inputs(tmp_path, monkeypatch)
+    from oeis_learn.generalization.progressive.exposure import append
+
+    row = panels[0]["payload"]["rows"][0]
+    truth = json.loads((tmp_path / row["truth"]["path"]).read_text())
+    newer = append(
+        e,
+        [
+            dict(
+                group="old-name",
+                relations=["window:" + digest(truth["values"][:20])],
+                role="development",
+                endpoint="parameter",
+                source="fresh-002",
+                access="truth",
+                campaign="historical",
+            )
+        ],
+        created_at=e["created_at"],
+    )
+    (tmp_path / "later-exposure.json").write_text(json.dumps(newer))
+    p["payload"]["references"].append(
+        dict(
+            name="later-exposure",
+            kind="groups",
+            role="custodian",
+            artifact=reference(tmp_path, "later-exposure.json"),
+        )
+    )
+    with pytest.raises(ValueError, match="exposed group"):
+        freeze(tmp_path, b, seal(p), qualification_root="qualification")
+
+
+def test_freeze_detects_value_overlap_despite_distinct_declared_fingerprints(tmp_path, monkeypatch):
+    from tests.unit.test_progressive_cohorts import fixture
+
+    b, p, _, e = panel_inputs(tmp_path, monkeypatch)
+    other, _ = fixture(tmp_path, role="development", panel="unrelated-label")
+    other["payload"]["exposure"] = e["identity"]
+    (tmp_path / "other.json").write_text(json.dumps(seal(other)))
+    p["payload"]["references"].append(
+        dict(
+            name="other",
+            kind="groups",
+            role="custodian",
+            artifact=reference(tmp_path, "other.json"),
+        )
+    )
+    with pytest.raises(ValueError, match="cross-panel"):
+        freeze(tmp_path, b, seal(p), qualification_root="qualification")
+
+
+def test_freeze_accepts_bound_single_panel_and_rejects_erased_history(tmp_path, monkeypatch):
+    from oeis_learn.generalization.progressive.exposure import append
+
+    b, p, _, e = panel_inputs(tmp_path, monkeypatch)
+    freeze(tmp_path, b, p, qualification_root="qualification")
+    changed = append(e, [], created_at=e["created_at"])
+    changed["payload"]["detector_limits"] = ["erased detector scope"]
+    (tmp_path / "history.json").write_text(json.dumps(seal(changed)))
+    p["payload"]["references"].append(
+        dict(
+            name="history",
+            kind="groups",
+            role="custodian",
+            artifact=reference(tmp_path, "history.json"),
+        )
+    )
+    with pytest.raises(ValueError, match="history cannot be erased"):
+        freeze(tmp_path, b, seal(p), qualification_root="qualification")
