@@ -62,6 +62,7 @@ def execute(operation, *, inputs=Path("/inputs"), output=Path("/output/discovery
 
         if resolve(recipe) != recipe:
             raise ValueError("resolved installed recipe required")
+        control = checkpoints[0].get("control", "retained_D")
         with SynthesisClient(digest(recipe)) as client:
             artifact = generate(
                 model_root,
@@ -70,7 +71,10 @@ def execute(operation, *, inputs=Path("/inputs"), output=Path("/output/discovery
                 recipe,
                 client=client,
                 output_root=output,
-                checkpoint=checkpoints[0]["artifact"],
+                checkpoint=None if control == "random" else checkpoints[0]["artifact"],
+                model_control=control,
+                reference_recipe=recipe if control == "earlier_checkpoint" else None,
+                seed=recipe["model"]["seed"] if control == "random" else None,
                 device="cuda",
             )
         return publish(

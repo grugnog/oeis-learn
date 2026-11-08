@@ -176,8 +176,15 @@ def _validate_channel(kind, data):
         number(data["value"])
         number(data["coordinate"])
     if kind in {"checkpoint", "recipe", "library", "full_state"}:
-        if not isinstance(data, dict) or set(data) != {"artifact", "compatibility", "profile"}:
+        if not isinstance(data, dict) or not {"artifact", "compatibility", "profile"} <= set(
+            data
+        ) <= {"artifact", "compatibility", "profile", "control"}:
             raise ValueError("closed model/state artifact metadata required")
+        if "control" in data and (
+            kind != "checkpoint"
+            or data["control"] not in {"retained_D", "earlier_checkpoint", "random"}
+        ):
+            raise ValueError("registered checkpoint control required")
         from .contracts import _check, schema
 
         _check(schema("common")["$defs"]["artifact"], data["artifact"], schema("common"))

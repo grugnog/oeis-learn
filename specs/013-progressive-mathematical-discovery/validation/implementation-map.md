@@ -315,3 +315,22 @@ independent native/reference scoring, and conventional visible fitting followed
 by hidden scoring; these tests are mandatory in the qualification image.
 Local full progressive/historical roster: 270 passed, three native-service skips.
 No native execution or actual HIP result is claimed on this host.
+
+## T028 capability readiness publication
+
+Added independent reconciliation of sealed cohort/exposure, witness coverage and
+candidate/scoring artifact pairs, with every transfer stratum and baseline method,
+fixed denominators, completion/censoring, historical exposure and measured costs.
+Missing panels, controls or coverage remain named deficits; representation
+classifications are separate from runtime/censoring outcomes. Installed generator
+metadata can explicitly select a frozen random or compatible earlier control.
+`publish_capability_inputs` joins the existing census/audit/evaluation outputs,
+and the stdlib `discovery report` path publishes a bounded public readiness ZIP.
+This capability-only export has no independent full-bundle verification authority
+(T080) and cannot grant qualification or scientific advancement.
+
+Three focused readiness tests and CLI/projection/packaging/traceability regressions
+pass. The new tests use test_discovery_readiness.py because the pre-existing
+test_progressive_readiness.py belongs to the legacy RL harness; that original
+file and its explicit inventory exclusion are preserved. The full pre-rename
+roster otherwise passed 272 cases with three local native-service skips.
