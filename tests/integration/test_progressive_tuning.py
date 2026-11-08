@@ -61,7 +61,10 @@ def test_real_cpu_proposal_learning_frozen_generation_and_native_score(tmp_path,
         methods=("correct",),
     )
     scored = score(tmp_path, candidates, truth, client=fitting_client, output="scored", seconds=30)
-    value = sum(r["correct"]["success"] for r in scored["outcomes"].values()) / 2
+    # "correct" is the conditioning mode; the primary scored portfolio is
+    # equal_budget (raw and rescue are separately reported diagnostics).
+    assert scored["denominator"] == len(truth)
+    value = sum(r["equal_budget"]["success"] for r in scored["outcomes"].values()) / len(truth)
     j.tell(
         0,
         {
