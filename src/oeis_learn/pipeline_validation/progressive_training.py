@@ -757,3 +757,42 @@ class RecoverableUpdate:
         except BaseException:
             self.failed = True
             raise
+
+
+class Progress:
+    """Bounded <=60s sampler; overlapping allocator counters are never summed."""
+    def __init__(self, output, *, interval=60):
+        if type(interval) not in (int,float) or not 0<interval<=60:
+            raise ValueError('progress interval must be at most sixty seconds')
+        self.output=Path(output);self.interval=interval;self.last=None;self.ordinal=0
+
+    def sample(self, *, committed,charged,discarded,remaining,phase,device='cpu',force=False):
+        import shutil
+        from oeis_learn.tracking.foundation_metrics import resource_metrics,sensor_metrics
+        now=time.monotonic()
+        if not force and self.last is not None and now-self.last<self.interval:return None
+        for n in (committed,charged,discarded):
+            if type(n) is not int or n<0:raise ValueError('exact nonnegative exposure required')
+        if committed+discarded>charged:raise ValueError('exposure accounting differs')
+        self.output.mkdir(parents=True,exist_ok=True)
+        disk=shutil.disk_usage(self.output)
+        value=seal(dict(version='progressive-progress/v1',phase=phase,committed=committed,
+            charged=charged,discarded=discarded,remaining=remaining,
+            resources=resource_metrics(device),sensors=sensor_metrics(device),
+            free_disk_bytes=disk.free,memory_accounting='overlapping counters reported separately',
+            generation_tail=None,queue=None,fit=None,unavailable_reason='requires generator/native producer clocks'))
+        if self.ordinal>=65536:raise ValueError('bounded progress inventory exhausted')
+        atomic_write(self.output/f'progress-{self.ordinal:05d}.json',value)
+        self.ordinal+=1;self.last=now
+        return value
+
+    def preflight(self, *, bytes_required,inodes_required,remaining_us,finalization_us,research):
+        import os
+        import shutil
+        if any(type(v) is not int or v<0 for v in (bytes_required,inodes_required,remaining_us,finalization_us)):
+            raise ValueError('bounded resource preflight required')
+        if research and finalization_us<1800000000:raise ValueError('research publication reserve below thirty minutes')
+        self.output.mkdir(parents=True,exist_ok=True)
+        fs=os.statvfs(self.output)
+        if shutil.disk_usage(self.output).free<bytes_required or fs.f_favail<inodes_required or remaining_us<=finalization_us:
+            raise TimeoutError('storage/inodes/finalization reserve insufficient')

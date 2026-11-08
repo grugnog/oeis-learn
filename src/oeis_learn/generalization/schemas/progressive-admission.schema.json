@@ -1,0 +1,167 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "discovery-admission/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "parents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "enum": [
+        "acceptance",
+        "research"
+      ]
+    },
+    "track": {
+      "enum": [
+        "synthetic_strict",
+        "oeis_derived",
+        "external_assisted"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "member": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "task": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "group": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "source_snapshot": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "source_hash": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "indices": {
+          "type": "array",
+          "items": {
+            "$ref": "progressive-common.schema.json#/$defs/decimal"
+          },
+          "minItems": 100,
+          "maxItems": 100
+        },
+        "values_hash": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "structure": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "tokens": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "minItems": 1,
+          "maxItems": 1024
+        },
+        "target_source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "target_disposition": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "native_verified": {
+          "const": true
+        },
+        "reference": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "limits": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "validity": {
+          "const": "finite_100_terms_only"
+        },
+        "membership": {
+          "const": "training"
+        },
+        "status": {
+          "const": "COMMITTED"
+        },
+        "native": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "visible_values": {
+          "type": "array",
+          "items": {
+            "$ref": "progressive-common.schema.json#/$defs/decimal"
+          },
+          "minItems": 20,
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "member",
+        "task",
+        "group",
+        "source_snapshot",
+        "source",
+        "source_hash",
+        "indices",
+        "values_hash",
+        "structure",
+        "tokens",
+        "target_source",
+        "target_disposition",
+        "native_verified",
+        "reference",
+        "limits",
+        "validity",
+        "membership",
+        "status",
+        "native",
+        "visible_values"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "created_at",
+    "parents",
+    "purpose",
+    "track",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-stream.schema.json"
+}

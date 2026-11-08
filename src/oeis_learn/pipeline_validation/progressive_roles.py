@@ -43,7 +43,7 @@ ROLE_POLICY = digest(
     }
 )
 IMPLEMENTED = frozenset(
-    {"census", "audit-language", "publish", "generate", "score", "prepare-stream", "propose-trial"}
+    {"census", "audit-language", "publish", "generate", "score", "prepare-stream", "propose-trial", "admit-training"}
 )
 
 

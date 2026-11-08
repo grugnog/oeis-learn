@@ -19,9 +19,7 @@ from oeis_learn.experiments.source_snapshot import source_snapshot
 
 # T048 includes an explicit third-seed routing specification for later T053.
 # Their independent gold/Torch/Optuna tests remain mandatory in CPU_TESTS.
-DEFERRED_SPECIFICATIONS = (
-    "tests/unit/test_progressive_contingency_specifications.py",
-)
+DEFERRED_SPECIFICATIONS = ()
 HISTORICAL_TESTS = (
     "tests/contract/test_generalization_authority.py",
     "tests/contract/test_generalization_roles.py",

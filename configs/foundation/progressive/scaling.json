@@ -1,0 +1,19 @@
+{
+  "version": "progressive-scaling/v1",
+  "executable": false,
+  "milestones": [
+    25000000,
+    100000000,
+    400000000
+  ],
+  "schedule_horizon_tokens": 400000000,
+  "warmup_tokens": 1250000,
+  "final_multiplier": 0.1,
+  "maximum_routine_slots": 8,
+  "routine_seconds": 604800,
+  "diagnostic_seconds": 86400,
+  "maximum_task_seconds": 86400,
+  "initializer": null,
+  "qualification": null,
+  "task_slots": null
+}

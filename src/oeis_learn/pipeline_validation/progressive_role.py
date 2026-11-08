@@ -35,6 +35,23 @@ def execute(operation, *, inputs=Path("/inputs"), output=Path("/output/discovery
             if seal(value) != value:
                 raise ValueError("installed channel identity mismatch")
             values.append(value)
+    if operation == "admit-training":
+        if any(v["kind"] not in {"candidate", "training_continuation"} for v in values):
+            raise ValueError("admission role received excluded truth")
+        candidates = [v["data"] for v in values if v["kind"] == "candidate"]
+        members = [v["data"] for v in values if v["kind"] == "training_continuation"]
+        if len(candidates) != 1 or len(members) != 1 or set(candidates[0]) != {"task", "source"} or candidates[0]["task"] != members[0]["id"]:
+            raise ValueError("one bound concrete candidate/training member required")
+        from oeis_learn.generalization.progressive.admission import admit
+        from oeis_learn.synthesis.client import SynthesisClient
+        from oeis_learn.pipeline_validation.identity import digest
+        import os
+        with SynthesisClient(digest(members[0])) as client:
+            admission = admit(members[0], candidates[0]["source"], client=client,
+                              purpose=os.environ.get("OEIS_DISCOVERY_PURPOSE", "acceptance"))
+        atomic_write(output / "admission.json", admission)
+        return publish(output, operation=operation, mechanical_status="COMPLETE",
+                       reason="FINITE_TRAINING_ADMISSION", metrics={"admission": admission["identity"]})
     if operation == "propose-trial":
         if len(values) != 1 or values[0]["kind"] != "search_space":
             raise ValueError("one closed scalar-history proposal request required")

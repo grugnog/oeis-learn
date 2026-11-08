@@ -46,7 +46,7 @@ def test_acceptance_has_explicit_software_and_future_specification_scopes(tmp_pa
     assert "tests/unit/test_progressive_models.py" in gate.TESTS
     assert "tests/unit/test_progressive_optimizer_specifications.py" in gate.TESTS
     assert "tests/unit/test_progressive_training_policy.py" in gate.TESTS
-    assert len(gate.DEFERRED_SPECIFICATIONS) == 1
+    assert len(gate.DEFERRED_SPECIFICATIONS) == 0
 
 
 @pytest.mark.parametrize(

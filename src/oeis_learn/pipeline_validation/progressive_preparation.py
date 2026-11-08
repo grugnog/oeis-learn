@@ -121,3 +121,129 @@ def prepare_stream(root, policy, *, client, shards=1, purpose="acceptance"):
         if state["draws"] >= policy["max_draws"] or state["work_units"] >= policy["max_work_units"]:
             break
     return result
+
+
+def prepare_oeis_pool(root, snapshot_ref, members, *, exposure, output, count=512):
+    """Custodian projection from an explicit immutable bulk indexed source cut.
+
+    The existing acquisition producer owns downloading/parsing. Missing exact
+    offsets are deficits; stripped terms alone never imply an offset of zero.
+    """
+    from oeis_learn.generalization.progressive.contracts import verify_refs, atomic_write, digest
+    from oeis_learn.generalization.progressive.admission import validate_member
+    from oeis_learn.generalization.progressive.exposure import exposed
+    from oeis_learn.pipeline_validation.identity import confined, seal
+    import json
+
+    if type(count) is not int or not 1 <= count <= 512:
+        raise ValueError("finite frozen training pool required")
+    payload = json.loads(verify_refs(root, [snapshot_ref], max_bytes=512 << 20)[0])
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != {"version", "release", "records"}
+        or payload["version"] != "indexed-source/v1"
+    ):
+        raise ValueError("existing indexed-source/v1 bulk producer required")
+    if not isinstance(members, list) or len(members) != count or len(set(members)) != count:
+        raise ValueError("outcome-blind exact member roster required")
+    from pathlib import Path
+    from oeis_learn.fresh.bulk import indexed_terms
+    from oeis_learn.pipeline_validation.identity import file_hash
+
+    base = confined(root, snapshot_ref["path"]).parent
+    records = {}
+    for entry in payload["records"]:
+        key = entry["record_id"]
+        if key in records:
+            raise ValueError("duplicate bulk member")
+        if key not in members:
+            continue
+        for field in ("terms", "metadata"):
+            if set(entry[field]) != {"path", "sha256"}:
+                raise ValueError("exact original source reference required")
+            if file_hash(confined(base, entry[field]["path"])) != entry[field]["sha256"]:
+                raise ValueError("bulk source changed")
+        metadata = json.loads(confined(base, entry["metadata"]["path"]).read_text())
+        offset = metadata.get("offset")
+        if type(offset) is not int or metadata.get("finite") or metadata.get("table"):
+            continue
+        values = indexed_terms(confined(base, entry["terms"]["path"]), offset, horizon=100)
+        if len(values) != 100:
+            continue
+        records[key] = dict(
+            id=key,
+            group=key,
+            indices=[str(offset + i) for i in range(100)],
+            values=[values[offset + i] for i in range(100)],
+        )
+    if records:
+        from oeis_learn.fresh.bigint_splits import overlap_groups
+
+        groups = overlap_groups(list(records.values()))
+        for key, r in records.items():
+            r["group"] = groups[key]
+    selected = []
+    missing = []
+    for key in members:
+        if key not in records:
+            missing.append(key)
+            continue
+        r = records[key]
+        if set(r) != {"id", "group", "indices", "values"}:
+            raise ValueError("bulk formula/metadata excluded from target preparation")
+        row = dict(r, role="training", source_snapshot=snapshot_ref["sha256"])
+        try:
+            validate_member(row)
+        except ValueError:
+            missing.append(key)
+            continue
+        if exposed(exposure, row["group"], endpoint="oeis", role="training"):
+            missing.append(key)
+            continue
+        selected.append(row)
+    if missing:
+        return seal(
+            dict(
+                version="progressive-oeis-preparation/v1",
+                status="INCOMPLETE",
+                missing=missing,
+                source=snapshot_ref,
+            )
+        )
+    folder = confined(root, output, exists=False)
+    if folder.exists():
+        raise ValueError("fresh preparation output required")
+    for row in selected:
+        name = digest(row["id"]).split(":")[1] + ".json"
+        atomic_write(
+            folder / "visible" / name,
+            seal(
+                dict(
+                    version="discovery-channel/v1",
+                    kind="visible_prompt",
+                    role="generator",
+                    data={k: row[k] for k in ("id", "indices", "values")}
+                    | {"indices": row["indices"][:20], "values": row["values"][:20]},
+                )
+            ),
+        )
+        atomic_write(
+            folder / "private-admission" / name,
+            seal(
+                dict(
+                    version="discovery-channel/v1",
+                    kind="training_continuation",
+                    role="admission",
+                    data=row,
+                )
+            ),
+        )
+    return seal(
+        dict(
+            version="progressive-oeis-preparation/v1",
+            status="COMPLETE",
+            members=members,
+            source=snapshot_ref,
+            claim="training_feedback_only",
+        )
+    )
