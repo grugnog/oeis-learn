@@ -1,4 +1,4 @@
-"""T037 executable contracts for the deliberately later T040 shared update."""
+"""Independent acceptance contracts for the shared logical optimizer update."""
 
 import copy
 
@@ -8,12 +8,6 @@ from torch import nn
 
 from oeis_learn.rl import sft_trainer
 from tests.unit.test_progressive_optimizer import fixture, independent_objective
-
-pytestmark = pytest.mark.xfail(
-    not hasattr(sft_trainer, "logical_update"),
-    strict=True,
-    reason="T040 shared accumulated update remains outside T025–T039",
-)
 
 
 class Counter:
@@ -101,4 +95,70 @@ def test_interrupted_microbatch_never_steps_optimizer_or_clocks(monkeypatch):
             allocation_clock=clock,
         )
     assert scheduler.count == clock.count == 0
+    assert all(torch.equal(a, b) for a, b in zip(before, [*e.parameters(), *d.parameters()]))
+
+
+@pytest.mark.parametrize("size", [1, 2, 3, 8])
+def test_partition_metrics_and_gradients_match_independent_batch(size):
+    e, d, x, t = fixture()
+    ge, gd = copy.deepcopy(e), copy.deepcopy(d)
+    loss = independent_objective(ge, gd, x, t)
+    loss.backward()
+    expected_norm = nn.utils.clip_grad_norm_([*ge.parameters(), *gd.parameters()], 1.0)
+    gold = torch.optim.SGD([*ge.parameters(), *gd.parameters()], lr=0.03)
+    gold.step()
+    opt = torch.optim.SGD([*e.parameters(), *d.parameters()], lr=0.03)
+    result = sft_trainer.logical_update(
+        e,
+        d,
+        opt,
+        x,
+        t,
+        device="cpu",
+        pad_id=0,
+        microbatch_size=size,
+        observe=False,
+        learning_metrics=True,
+    )
+    assert result["loss"] == pytest.approx(float(loss.detach()), abs=1e-6)
+    assert result["gradient_norm"] == pytest.approx(float(expected_norm), abs=1e-6)
+    assert result["token_metrics"]["tokens"] == 7
+    assert result["token_metrics"]["programs"] == 3
+    for a, b in zip([*e.parameters(), *d.parameters()], [*ge.parameters(), *gd.parameters()]):
+        assert torch.allclose(a, b, atol=1e-6, rtol=1e-6)
+
+
+def test_failed_backward_clears_partial_gradients_and_leaves_clocks(monkeypatch):
+    e, d, x, t = fixture()
+    opt = torch.optim.AdamW([*e.parameters(), *d.parameters()], lr=0.03)
+    scheduler, clock = Counter(), Counter()
+    original = d.forward
+    calls = []
+
+    def nonfinite(*args, **kwargs):
+        calls.append(1)
+        logits = original(*args, **kwargs)
+        # Finite forward, infinite backward on the second microbatch.
+        if len(calls) == 2:
+            logits.register_hook(lambda grad: grad * float("inf"))
+        return logits
+
+    monkeypatch.setattr(d, "forward", nonfinite)
+    before = [p.detach().clone() for p in [*e.parameters(), *d.parameters()]]
+    with pytest.raises(RuntimeError, match="non-finite"):
+        sft_trainer.logical_update(
+            e,
+            d,
+            opt,
+            x,
+            t,
+            device="cpu",
+            pad_id=0,
+            microbatch_size=2,
+            scheduler=scheduler,
+            allocation_clock=clock,
+        )
+    assert scheduler.count == clock.count == 0
+    assert not opt.state
+    assert all(p.grad is None for p in [*e.parameters(), *d.parameters()])
     assert all(torch.equal(a, b) for a, b in zip(before, [*e.parameters(), *d.parameters()]))

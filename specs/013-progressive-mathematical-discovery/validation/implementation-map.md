@@ -454,3 +454,19 @@ implementation metadata is refreshed with the original serializer.
 T025–T039 are marked complete at their stated software/specification scope.
 T040 onward, original-producer feature acceptance, actual HIP and research launches
 remain separate later tasks. No pre/post implementation hooks are registered.
+
+
+## T040 shared logical update (first increment)
+
+The canonical `sft_trainer.logical_update` accumulates example-weighted per-program
+means, releases each microbatch graph, then clips and steps once. The existing
+`supervised_step` interface delegates one complete batch without new scheduler or
+allocation behavior. Loss/gradient failures discard partial gradients and leave
+clocks unchanged; optimizer failures require restoring the prior complete cut.
+
+Seven independent specifications failed before implementation and now pass. The
+optimizer/CI selection passes 18 tests. Token-loss, foundation metrics, bootstrap
+learning and progressive stream regressions pass 46 tests with two local native
+service skips. Optimizer specifications now join mandatory no-skip container CI;
+only T041–T044 trial specifications remain deferred. The research policy adapter
+and final T040 completion follow in a separate increment. No HIP claim is made.
