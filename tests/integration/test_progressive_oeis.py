@@ -244,3 +244,19 @@ def test_frozen_cycle_rejects_changed_scope_before_work(tmp_path, change):
         p["panels"]["transfer"] = reference(tmp_path, "changed-panel.json")
     with pytest.raises(ValueError):
         validate_cycle(tmp_path, seal(c), seal(p))
+
+@pytest.mark.parametrize('change',['none','missing_plan','unreserved','foreign_policy'])
+def test_freeze_validates_closed_host_cycle_before_dispatch(tmp_path,change):
+    from tests.helpers.progressive_oeis_fixture import fixture
+    from oeis_learn.pipeline_validation.progressive_outputs import validate_requests
+    c, _, _, _ = fixture(tmp_path)
+    refs=c['payload']['references']
+    if change=='missing_plan':refs=[r for r in refs if r['name']!='cycle-plan']
+    if change=='unreserved':c['payload']['tasks'][0]['caps']['elapsed_us']=1
+    if change=='foreign_policy':c['payload']['tasks'][1]['policy']='sha256:'+'1'*64
+    args=dict(purpose=c['purpose'],track=c['track'])
+    if change=='none':
+        validate_requests(tmp_path,c['payload']['tasks'],refs,c['payload']['graph'],**args)
+    else:
+        with pytest.raises((ValueError,StopIteration)):
+            validate_requests(tmp_path,c['payload']['tasks'],refs,c['payload']['graph'],**args)

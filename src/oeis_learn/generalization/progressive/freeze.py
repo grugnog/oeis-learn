@@ -202,7 +202,7 @@ def freeze(
     from oeis_learn.pipeline_validation.progressive_calibration import validate_prepared
     validate_prepared(root, b, p)
     from oeis_learn.pipeline_validation.progressive_outputs import validate_requests
-    validate_requests(root,all_plans,refs,q["graph"])
+    validate_requests(root,all_plans,refs,q["graph"], purpose=b["purpose"], track=b["track"])
     from oeis_learn.pipeline_validation.progressive_study import validate_frozen as validate_studies
     validate_studies(root,dict(purpose=b['purpose'],track=b['track'],payload=dict(references=refs,tasks=q['task_plans'])))
     known_policies = {r["artifact"]["sha256"] for r in refs if r["kind"] == "policy"} | {

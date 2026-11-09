@@ -284,3 +284,38 @@ def test_efficiency_uses_measured_costs_instead_of_supplied_summary():
         reduce_outcomes(data, roster, [1, 2], design, costs=dict(baseline=100, candidate=90))[1]
         == "NO_MATERIAL_GAIN"
     )
+
+@pytest.mark.parametrize('change,expected', [('none','CONFIRMED_GAIN'),('censored','INCOMPLETE'),('regression','REGRESSION'),('seed','INCOMPLETE'),('retention','INCONCLUSIVE')])
+def test_oeis_endpoint_has_independent_paired_verdict(change, expected):
+    from oeis_learn.generalization.progressive.decisions import recompute
+    from oeis_learn.generalization.progressive.verify import reduce_outcomes
+    roster = [dict(task=digest(['oeis',g]),group=digest(['group',g]),stratum='oeis') for g in range(16)]
+    roster += [dict(task=digest('retention'),group=digest('retention-group'),stratum='retention')]
+    seeds = [1] if change == 'seed' else [1,2]
+    rows=[]
+    for seed in seeds:
+        for arm in ['baseline','candidate']:
+            for member in roster:
+                outcome='success' if member['stratum']=='retention' or arm=='candidate' else 'failure'
+                if change=='censored' and arm=='candidate': outcome='unresolved'
+                if change=='regression' and member['stratum']=='oeis':outcome='success' if arm=='baseline' else 'failure'
+                if change=='retention' and member['stratum']=='retention' and arm=='candidate':outcome='failure'
+                rows.append(dict(member,seed=seed,arm=arm,outcome=outcome))
+    design=dict(claim='capability',bootstrap_seed=13,comparisons=2,links=[],costs=None,primary=['oeis'])
+    assert recompute(rows,roster,seeds,design)[1]==expected
+    assert reduce_outcomes(rows,roster,seeds,design)[1]==expected
+
+
+def test_oeis_endpoint_roundtrips_bound_public_bundle(tmp_path):
+    request = fixture(tmp_path)
+    roster = [dict(task=digest(['oeis', g]), group=digest(['group', g]), stratum='oeis') for g in range(16)]
+    roster += [dict(task=digest('retention'),group=digest('retention-group'),stratum='retention')]
+    rows = [dict(r,seed=s,arm=a,outcome='success' if a=='candidate' or r['stratum']=='retention' else 'failure')
+            for r in roster for s in [1,2] for a in ['baseline','candidate']]
+    for name, data in [('roster',roster),('outcomes',rows)]:
+        (tmp_path/(name+'.json')).write_text(json.dumps(data))
+        request['tables'][name] = [reference(tmp_path,name+'.json')]
+    request['design']['primary'] = ['oeis']
+    request = bind_scope(tmp_path,seal(request),roster)
+    build(tmp_path,tmp_path/'oeis.zip',request)
+    assert verify(tmp_path/'oeis.zip')['decision']=='CONFIRMED_GAIN'

@@ -187,7 +187,7 @@ def resolve(root, store, task, request, output):
     return artifacts, authority
 
 
-def validate_requests(root, plans, refs, graph):
+def validate_requests(root, plans, refs, graph, *, purpose="acceptance", track="synthetic_strict"):
     policies = {r["artifact"]["sha256"]: r["artifact"] for r in refs if r["kind"] == "policy"}
     for plan in plans:
         ref = policies.get(plan["policy"])
@@ -198,6 +198,11 @@ def validate_requests(root, plans, refs, graph):
             continue
         from .progressive_roles import REGISTRY
 
+        if request.get("operation") == "oeis-cycle":
+            from .progressive_oeis import validate_frozen_request
+            validate_frozen_request(root, request, plans=plans, refs=refs, graph=graph,
+                                    purpose=purpose, track=track)
+            continue
         if (
             set(request) != {"operation", "artifacts", "image", "seconds", "reservation"}
             or request["operation"] not in REGISTRY

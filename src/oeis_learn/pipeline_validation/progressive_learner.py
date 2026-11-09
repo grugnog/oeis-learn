@@ -87,11 +87,12 @@ def validate_input(package, task, *, allow_pending=False):
         and task["payload"].get("stage") == "scaling"
         and (
             package["update_policy"]["schedule_horizon_tokens"] != 400000000
-            or package["update_policy"]["warmup_tokens"] != 1250000
-            or package["update_policy"]["schedule"] != "warmup_cosine"
+            or package["update_policy"]["warmup_tokens"] != (
+                1250000 if package["update_policy"]["schedule"] == "warmup_cosine" else 0
+            )
         )
     ):
-        raise ValueError("scaling must retain the frozen 400M schedule and 1.25M warmup")
+        raise ValueError("scaling must retain the frozen 400M trajectory and schedule-specific warmup")
     if "oeis_rules" in package:
         from oeis_learn.generalization.progressive.replay import RULE
 

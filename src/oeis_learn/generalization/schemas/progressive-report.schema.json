@@ -82,6 +82,17 @@
               "additionalProperties": false
             }
           ]
+        },
+        "primary": {
+          "enum": [
+            [
+              "composition",
+              "unseen_structure"
+            ],
+            [
+              "oeis"
+            ]
+          ]
         }
       },
       "required": [

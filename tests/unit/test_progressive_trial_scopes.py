@@ -53,3 +53,30 @@ def test_finite_choice_changes_scope_without_changing_task_allowance(tmp_path):
         store.choose_trial(
             seal(dict(study=digest("study"), ordinal=0, seed=p["seed"], parameters=BASELINE))
         )
+
+@pytest.mark.parametrize('schedule', ['constant', 'warmup_cosine'])
+def test_confirmation_policy_survives_scaling_and_rejects_changed_trajectory(tmp_path, schedule):
+    from oeis_learn.pipeline_validation.progressive_acceptance import fixture
+    from oeis_learn.pipeline_validation.progressive_training import resolve_update_policy
+    from oeis_learn.pipeline_validation.progressive_learner import compatibility, validate_input
+    from oeis_learn.generalization.progressive.contracts import load
+
+    _, tasks, _, _ = fixture(tmp_path, interrupt=False)
+    package = load(tmp_path/'training-input.json')
+    package['update_policy'] = resolve_update_policy(package['profile'], schedule_horizon_tokens=400000000,
+        schedule=schedule, warmup_tokens=1250000 if schedule == 'warmup_cosine' else 0)
+    package = seal(package)
+    task = copy.deepcopy(tasks[0])
+    task['purpose'] = 'research'
+    task['payload']['stage'] = 'scaling'
+    task['payload']['initializer']['compatibility'] = compatibility(package)
+    # Only input validation is exercised; these diagnostic rows grant no research authority.
+    package = seal(dict(package, scope='NATIVE_VERIFIED'))
+    package['shards'] = [[seal(dict(r, native_verified=True)) for r in shard] for shard in package['shards']]
+    package = seal(package)
+    task['payload']['initializer']['compatibility'] = compatibility(package)
+    validate_input(package, task)
+    bad = seal(dict(package, update_policy=resolve_update_policy(package['profile'],
+        schedule_horizon_tokens=25000000, schedule=schedule)))
+    with pytest.raises(ValueError, match='400M'):
+        validate_input(bad, task)

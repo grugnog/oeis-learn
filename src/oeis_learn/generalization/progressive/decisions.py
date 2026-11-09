@@ -20,8 +20,11 @@ def classify(
     claim,
     cost_reduction=None,
     stratum_lowers=None,
+    primary=("composition", "unseen_structure"),
 ):
     """Pure diagnostic classification. Only publish/verify produce authority."""
+    if tuple(primary) not in {("composition", "unseen_structure"), ("oeis",)}:
+        return "INVALID"
     if integrity is not True:
         return "INVALID"
     values = [
@@ -41,7 +44,7 @@ def classify(
         or minimum_groups < 16
         or len(seed_effects) < 2
         or len(retention_losses) != len(seed_effects)
-        or len(completion_by_arm_seed_stratum) != 4 * len(seed_effects)
+        or len(completion_by_arm_seed_stratum) != 2 * len(primary) * len(seed_effects)
         or any(not 0 <= x <= 1 for x in completion_by_arm_seed_stratum)
         or min(completion_by_arm_seed_stratum) < 0.95
     ):
@@ -121,7 +124,7 @@ COST_POLICY = {
 
 def recompute(rows, roster, seeds, design, *, costs=None):
     """Design is frozen independently of results; no supplied summary is trusted."""
-    if set(design) != {"claim", "bootstrap_seed", "comparisons", "links", "costs"}:
+    if set(design) - {"primary"} != {"claim", "bootstrap_seed", "comparisons", "links", "costs"}:
         raise ValueError("closed registered comparison design required")
     if design["claim"] not in {"capability", "efficiency"}:
         raise ValueError("registered claim required")
@@ -136,6 +139,9 @@ def recompute(rows, roster, seeds, design, *, costs=None):
             raise ValueError("positive measured total cost microseconds required")
     elif design["costs"] is not None or costs is not None:
         raise ValueError("capability design cannot retroactively select efficiency")
+    primary = tuple(design.get("primary", ("composition", "unseen_structure")))
+    if primary not in {("composition", "unseen_structure"), ("oeis",)} or (primary == ("oeis",) and design["claim"] != "capability"):
+        raise ValueError("registered comparison endpoint required")
     rows, roster, seeds = list(rows), list(roster), list(seeds)
     metrics = compare(
         rows,
@@ -144,6 +150,7 @@ def recompute(rows, roster, seeds, design, *, costs=None):
         seed=design["bootstrap_seed"],
         comparisons=design["comparisons"],
         links=design["links"],
+        primary=primary,
     )
     if metrics["support_status"] != "SUFFICIENT" or any(
         v is None for v in metrics["retention_losses"].values()
@@ -153,7 +160,7 @@ def recompute(rows, roster, seeds, design, *, costs=None):
         metrics["cells"][a][s][t]["completion"]
         for a in ("baseline", "candidate")
         for s in seeds
-        for t in ("composition", "unseen_structure")
+        for t in primary
     ]
     cost_reduction, stratum_lowers = None, None
     if design["claim"] == "efficiency":
@@ -192,6 +199,7 @@ def recompute(rows, roster, seeds, design, *, costs=None):
         claim=design["claim"],
         cost_reduction=cost_reduction,
         stratum_lowers=stratum_lowers,
+        primary=primary,
     )
     return metrics, verdict
 

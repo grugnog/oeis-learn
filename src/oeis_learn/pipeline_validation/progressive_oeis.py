@@ -216,6 +216,37 @@ def validate_cycle(root, campaign, plan):
     return pool, panels
 
 
+def validate_frozen_request(root, request, *, plans, refs, graph, purpose, track):
+    """A host orchestrator owns only its declared paired child slots."""
+    from oeis_learn.generalization.progressive.budgets import vector
+    if (set(request) != {"operation", "artifacts", "image", "seconds", "reservation"}
+            or request['operation'] != 'oeis-cycle'
+            or set(request['artifacts']) != {'cycle'}
+            or not isinstance(request['artifacts']['cycle'], list)
+            or len(request['artifacts']['cycle']) != 1
+            or not isinstance(request['artifacts']['cycle'][0], str)
+            or type(request['seconds']) is not int or not 0 < request['seconds'] <= 86400):
+        raise ValueError('closed frozen host-cycle request required')
+    vector(request['reservation'])
+    if any(request['reservation'].values()):
+        raise ValueError('host cycle must charge original child reservations, not duplicate them')
+    path=request['artifacts']['cycle'][0]
+    if reference(root,path) not in [r['artifact'] for r in refs]:
+        raise ValueError('original frozen cycle plan required')
+    plan=load(confined(root,path),maximum=256<<20)
+    campaign=dict(track=track,purpose=purpose,payload=dict(tasks=plans,references=refs,graph=graph))
+    validate_cycle(root,campaign,plan)
+    children=[p for p in plans if p['id'] in {e['task'] for e in plan['training']}]
+    policy=reference(root,next(r['artifact']['path'] for r in refs
+        if r['kind']=='policy' and _read(root,r['artifact'])==request))['sha256']
+    if any(p['policy']!=policy for p in children):
+        raise ValueError('one frozen cycle owner policy required')
+    if (request['seconds']*1000000 > children[0]['caps']['elapsed_us']
+            or plan['design']['maximum_total_us'] > sum(p['caps']['elapsed_us'] for p in children)):
+        raise ValueError('cycle exceeds frozen child elapsed reservations')
+    return plan
+
+
 class Cycle:
     def __init__(
         self,
@@ -834,6 +865,7 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
                     upper=metrics["upper"],
                     integrity=True,
                     claim="capability",
+                    primary=("oeis",),
                 )
             comparisons[label] = dict(metrics=metrics, verdict=verdict)
         total_us = time.monotonic_ns() // 1000 - self.started

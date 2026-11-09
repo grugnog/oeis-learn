@@ -51,7 +51,9 @@ def reduce_outcomes(rows, roster, seeds, design, *, costs=None):
                 cells[seed, arm, m["stratum"], m["group"]].append(
                     found.get((seed, arm, task), "unresolved")
                 )
-    primary = ("composition", "unseen_structure")
+    primary = tuple(design.get("primary", ("composition", "unseen_structure")))
+    if primary not in {("composition", "unseen_structure"), ("oeis",)} or (primary == ("oeis",) and design["claim"] != "capability"):
+        raise ValueError("unsupported frozen endpoint")
     vectors = {s: {} for s in primary}
     effects = []
     completion = []
@@ -83,7 +85,7 @@ def reduce_outcomes(rows, roster, seeds, design, *, costs=None):
                 completion.append(
                     1 - F(all_values.count("unresolved"), len(all_values)) if all_values else 0
                 )
-        effects.append(sum(seed_cells) / 2 if len(seed_cells) == 2 else None)
+        effects.append(sum(seed_cells) / len(primary) if len(seed_cells) == len(primary) else None)
         a, b = (
             [
                 v
@@ -159,7 +161,7 @@ def reduce_outcomes(rows, roster, seeds, design, *, costs=None):
                         total[i] += (
                             sum(weights[units[s + "/" + g]] * v[j] for g, v in vectors[s].items())
                             / den[s]
-                            / (1 if selected else 2)
+                            / (1 if selected else len(primary))
                         )
             lower.append(total[0])
             upper.append(total[1])

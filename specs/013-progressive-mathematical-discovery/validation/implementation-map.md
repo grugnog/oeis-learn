@@ -1632,3 +1632,16 @@ The reference profile uses a 218,103,808-byte (208 MiB) checkpoint bound; the la
 Validation: both reference and larger profiles completed **five real CPU updates across two linked tasks**, including Adam allocation and full-state successor restore (720 useful tokens after the first task, 1,200 after the second). The original reference case first reproduced PARTIAL/zero useful tokens before the fix. A 66-case CPU/native regression run passed with zero skips, covering native OEIS search/admission/updates/evaluation, component learning, four-term source recovery, calibration, handoff and storage deficits. Eight additional lifecycle cases and 16 asset/CI-inventory/packaging checks passed. The storage-exhaustion regression now uses a valid frozen storage graph with previously retained invocation bytes, and still requires rejection before the first checkpoint publication. New owner lint and whitespace checks pass.
 
 T126 and T127 are complete as software fixes. T128–T134 remain open. Actual HIP/sustained execution and current-source CI remain separate evidence requirements; no previous device/source receipt is promoted by these local checks.
+
+
+## T129–T130 — OEIS endpoint and compatible scaling schedules
+
+OEIS cycle classification now declares its one-stratum primary endpoint. The public comparison design can freeze `primary: ["oeis"]`; production recomputation and the independent Fraction-based offline reducer derive completion cardinality and bootstrap normalization from the endpoint. The default synthetic two-stratum design remains supported. Unknown endpoints and OEIS efficiency claims are rejected. Paired seeds, minimum independent support, completion, retention and simultaneous comparisons remain mandatory. A bound public bundle round-trips a sufficient positive OEIS result; censored, regressing, missing-seed and retention-loss cases agree between independent and production reductions.
+
+Scaling accepts a constant schedule with zero warmup or cosine with its frozen 1.25M warmup, both on the original 400M trajectory. Existing complete policy/learning compatibility and full-state restoration checks retain the selected optimizer/scheduler identity; horizon changes are rejected.
+
+Validation: 63 decision, public bundle, trial scope, actual optimizer/update/recovery, continuation and asset tests passed; the added positive OEIS bundle case separately passed. CPU diagnostics do not authorize HIP/research execution.
+
+## T128 — Closed host request validation (in progress)
+
+Freeze now recognizes the host-owned OEIS cycle outside the installed-role registry and validates its original plan, paired child channels and policies, finite elapsed reservations, independent panels and zero duplicate parent debit. Four positive/negative request-boundary tests passed. Full canonical freeze/run/resume acceptance and recovery from the cycle's existing one-attempt marker remain unfinished, so T128 stays unchecked.
