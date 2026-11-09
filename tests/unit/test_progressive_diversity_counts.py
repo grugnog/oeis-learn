@@ -50,3 +50,11 @@ def test_preparation_cost_uses_original_producers_not_guessed_elapsed(tmp_path):
         preparation_cost(tmp_path, [dict(identity=digest("other"))], [ref])
     with pytest.raises(ValueError):
         preparation_cost(tmp_path, [shard], [ref, ref])
+
+
+def test_completed_resume_receipt_does_not_invent_lost_preparation_time(tmp_path):
+    from oeis_learn.generalization.progressive.contracts import atomic_write,seal,reference
+    from oeis_learn.pipeline_validation.progressive_training import preparation_cost
+    shard=dict(identity=digest('interrupted-shard'),payload={'preparation_elapsed_us':None})
+    atomic_write(tmp_path/'completed.json',seal(dict(version='progressive-preparation-cost/v1',shards=[shard['identity']],elapsed_us=123,scope='observed completed invocation only')))
+    assert preparation_cost(tmp_path,[shard],[reference(tmp_path,'completed.json')]) is None

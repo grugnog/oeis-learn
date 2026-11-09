@@ -342,6 +342,11 @@ class Recovery:
             raise ValueError("terminal task cannot restart")
         with self.journal.lock():
             _, pending, _, _, _ = self.journal._read()
+        if set(authority)-{'work_end_us'}!={'reservation_key','boot','start_us','end_us'}:
+            raise ValueError('closed external supervisor clock required')
+        work_end=authority.get('work_end_us',authority['end_us'])
+        if type(work_end) is not int or not authority['start_us']<=work_end<=authority['end_us']:
+            raise ValueError('supervisor work deadline differs')
         key = authority["reservation_key"]
         if key not in pending or not key.startswith(self.p["id"] + "/train/"):
             raise ValueError("original supervisor training reservation required")
@@ -356,7 +361,7 @@ class Recovery:
             "key": key,
             "boot": e["boot"],
             "start": e["start_us"],
-            "end": authority["end_us"],
+            "end": work_end,
             "external": True,
         }
         self.append(status="RUNNING")

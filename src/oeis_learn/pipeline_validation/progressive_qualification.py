@@ -358,7 +358,10 @@ def calibrate_iteration(package,output,*,source,image,device='cuda'):
     from oeis_learn.generalization.budgets import Ledger
     from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
     from oeis_learn.decoder.bigint_codec import BOS_ID,PAD_ID
-    if device=='cuda':require_hip()
+    if device=='cuda':
+        require_hip()
+        from oeis_learn.experiments.source_snapshot import source_snapshot
+        if source!=digest(source_snapshot()) or os.environ.get('OEIS_QUALIFICATION_IMAGE')!=image:raise ValueError('current original calibration source/image required')
     elif device!='cpu':raise ValueError('explicit qualification device required')
     if seal(package)!=package:raise ValueError('original prepared calibration input required')
     output=Path(output)
@@ -390,6 +393,8 @@ def calibrate_iteration(package,output,*,source,image,device='cuda'):
         states=dict(weights=dict(encoder=runner.encoder.state_dict(),decoder=runner.decoder.state_dict()),optimizer=runner.state_dict(),scheduler={},data=dict(cursor=ledger.updates,pending_batch=None),replay={},history={},pins={},selection={},rng=dict(python=__import__('random').getstate(),numpy=__import__('numpy').random.get_state(),torch=torch.get_rng_state(),device=torch.cuda.get_rng_state_all() if device=='cuda' else []))
         ref=store.save(states,ledger);store.load(ref)
         measurements['checkpoint_us']=max(measurements['checkpoint_us'],now()-start)
-    result=seal(dict(version='progressive-iteration-calibration/v1',source=source,image=image,device='actual_HIP' if device=='cuda' else 'cpu',status='PASS',compatibility=compatibility(package),maximum_target_tokens=len(longest['tokens']),effective_batch=count,measurements={k:max(1,v) for k,v in measurements.items()},measurement_scope='two complete logical updates including initial Adam allocation; two probes; durable full-state save and verified restore; maximal prepared target and numeric input sizes'))
+    from oeis_learn.generalization.progressive.storage import checkpoint_size
+    checkpoint_bytes,checkpoint_inodes=checkpoint_size(output/'checkpoints',ref,checkpoint_root='.',research=True)
+    result=seal(dict(version='progressive-iteration-calibration/v1',checkpoint_bytes=checkpoint_bytes,checkpoint_inodes=checkpoint_inodes,source=source,image=image,device='actual_HIP' if device=='cuda' else 'cpu',status='PASS',compatibility=compatibility(package),maximum_target_tokens=len(longest['tokens']),effective_batch=count,measurements={k:max(1,v) for k,v in measurements.items()},measurement_scope='two complete logical updates including initial Adam allocation; two probes; durable full-state save and verified restore; maximal prepared target and numeric input sizes'))
     atomic_write(output/'producer.json',result)
     return result

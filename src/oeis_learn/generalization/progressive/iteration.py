@@ -31,6 +31,30 @@ def validate_producer(root, plan, runtime, references):
     source_identity = digest(source)
     producer = json.loads(verify_refs(root, [ref])[0])
     if producer.get("version") == "progressive-iteration-calibration/v1":
+        expected = {
+            "version",
+            "identity",
+            "source",
+            "image",
+            "device",
+            "status",
+            "compatibility",
+            "maximum_target_tokens",
+            "effective_batch",
+            "measurements",
+            "measurement_scope",
+            "checkpoint_bytes",
+            "checkpoint_inodes",
+        }
+        if (
+            set(producer) != expected
+            or set(producer["measurements"]) != {"update_us", "probe_us", "checkpoint_us"}
+            or any(
+                type(producer.get(k)) is not int or producer[k] <= 0
+                for k in ("checkpoint_bytes", "checkpoint_inodes")
+            )
+        ):
+            raise ValueError("closed measured iteration/storage calibration required")
         if (
             seal(producer) != producer
             or producer["source"] != source_identity
@@ -49,8 +73,10 @@ def validate_producer(root, plan, runtime, references):
             ):
                 raise ValueError("iteration phase below conservative measured bound")
         return producer
-    if runtime.get('purpose')=='research':
-        raise ValueError('research requires exact prepared iteration calibration; generic short-case timing is insufficient')
+    if runtime.get("purpose") == "research":
+        raise ValueError(
+            "research requires exact prepared iteration calibration; generic short-case timing is insufficient"
+        )
     if (
         seal(producer) != producer
         or producer.get("version") != "progressive-hip-case/v1"

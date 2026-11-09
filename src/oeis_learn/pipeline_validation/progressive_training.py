@@ -903,17 +903,17 @@ class Progress:
         return value
 
     def preflight(
-        self, *, bytes_required, inodes_required, remaining_us, finalization_us, research,work_us=0
+        self, *, bytes_required, inodes_required, remaining_us, finalization_us, research,work_us=0,shared_finalization_us=0
     ):
         import os
         import shutil
 
         if any(
             type(v) is not int or v < 0
-            for v in (bytes_required, inodes_required, remaining_us, finalization_us,work_us)
+            for v in (bytes_required, inodes_required, remaining_us, finalization_us,work_us,shared_finalization_us)
         ):
             raise ValueError("bounded resource preflight required")
-        if research and finalization_us < 1800000000:
+        if research and max(finalization_us,shared_finalization_us)<1800000000:
             raise ValueError("research publication reserve below thirty minutes")
         self.output.mkdir(parents=True, exist_ok=True)
         fs = os.statvfs(self.output)
@@ -1114,6 +1114,7 @@ def short_update(worker, targets, **transaction):
 
 def preparation_cost(root,shards,receipts):
     if not receipts:return None
+    interrupted=any(s.get('payload',{}).get('preparation_elapsed_us',0) is None for s in shards)
     if len({r["sha256"] for r in receipts})!=len(receipts):raise ValueError("preparation producer cost counted twice")
     covered=set();elapsed=0
     for blob in verify_refs(root,receipts,max_bytes=1<<20):
@@ -1122,4 +1123,4 @@ def preparation_cost(root,shards,receipts):
             raise ValueError('original preparation producer receipt required')
         covered.update(value['shards']);elapsed+=value['elapsed_us']
     if covered!={s['identity'] for s in shards}:raise ValueError('preparation receipt scope differs')
-    return elapsed
+    return None if interrupted else elapsed

@@ -327,7 +327,7 @@
             "additionalProperties": false
           },
           "minItems": 1,
-          "maxItems": 256
+          "maxItems": 512
         },
         "references": {
           "type": "array",

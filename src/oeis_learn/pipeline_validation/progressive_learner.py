@@ -455,8 +455,8 @@ def _run(
                 while True:
                     restored = recovery.restore()
                     if restored["ledger"].consumed >= t["payload"]["token_target"]:
-                        status = "COMPLETE"
-                        reason = "TOKEN_TARGET_REACHED"
+                        status='PARTIAL' if recovery.state['pending'] is not None else 'COMPLETE'
+                        reason='TARGET_REACHED_WITH_UNCOMMITTED_WORK' if status=='PARTIAL' else 'TOKEN_TARGET_REACHED'
                         break
                     if pause_file.exists():
                         request = load(pause_file)
@@ -483,6 +483,7 @@ def _run(
                         remaining_us=remaining_us,
                         finalization_us=t["payload"]["finalization_us"],
                         research=t["purpose"] == "research",
+                        shared_finalization_us=t['payload'].get('trial',{}).get('shared_finalization_us',0),
                         work_us=__import__("oeis_learn.generalization.progressive.iteration",fromlist=["margin"]).margin(t["payload"],research=t["purpose"]=="research"),
                     )
                     if controller.block_position == 8:

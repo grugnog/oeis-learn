@@ -14,7 +14,7 @@ class RunStore:
         self.campaign = validate_campaign(campaign)
         binding = self.root / "campaign.json"
         if binding.exists():
-            if load(binding) != self.campaign:
+            if load(binding,maximum=32<<20) != self.campaign:
                 raise ValueError("run campaign changed")
         else:
             from .storage import journal_write
@@ -74,7 +74,7 @@ class RunStore:
             plan=self.resolved_plan(original)
             if plan is None:continue
             status = self.state["tasks"].get(plan["id"])
-            if status in {"COMPLETE", "FAILED", "PARTIAL"}:
+            if status in {"COMPLETE", "FAILED", "PARTIAL",'SKIPPED'}:
                 continue
             node = nodes[plan["slot"]]
             deps = [
@@ -101,6 +101,7 @@ class RunStore:
             ):
                 continue
             certificates = self.state.get("decisions", {})
+            if any(e['action'] in {'RETAIN_BASELINE','DEFER_BRANCH','STOP_AFFECTED'} for e in edges):continue
             if any(
                 (
                     any(
@@ -174,6 +175,7 @@ class RunStore:
             training_seeds
             and not bundle["kwargs"].get("confirmation")
             and sorted(bundle["seeds"]) != training_seeds
+            and not (bundle['decision']['payload']['next_action'] in {'RETAIN_BASELINE','DEFER_BRANCH','STOP_AFFECTED'} and set(training_seeds)<=set(bundle['seeds']))
         ):
             raise ValueError("decision seed roster differs from frozen source tasks")
         decision = bundle["decision"]
@@ -194,7 +196,11 @@ class RunStore:
             None,
         )
         if edge is None:
-            raise ValueError("decision lacks a frozen edge")
+            no_work=decision['payload']['next_action'] in {'RETAIN_BASELINE','DEFER_BRANCH','STOP_AFFECTED'}
+            nodes={n['id']:n for n in self.campaign['payload']['graph']['nodes']}
+            if not no_work or bundle['target_slot'] not in nodes or bundle['source_slot'] not in nodes[bundle['target_slot']]['dependencies']:
+                raise ValueError("decision lacks a frozen edge")
+            edge=dict(action=decision['payload']['next_action'])
         if edge["action"] == "ADVANCE_REGISTERED" and any(
             self.state["tasks"].get(p["id"]) != "COMPLETE"
             for p in self.campaign["payload"]["tasks"]
@@ -367,12 +373,20 @@ class RunStore:
 
     def choose_trial(self,proposal):
         choices=dict(self.state.get('choices',{}))
+        selected_scopes=set()
         for plan in self.campaign['payload']['tasks']:
             trial=plan.get('trial')
-            if 'trial_choices' not in plan or trial['study']!=proposal['study'] or trial['ordinal']!=proposal['ordinal']:continue
+            if 'trial_choices' not in plan or trial['phase'] in {'confirmation','selection'} or trial['study']!=proposal['study'] or trial['ordinal']!=proposal['ordinal']:continue
             if plan['seed']!=proposal['seed']:raise ValueError('frozen trial proposal seed differs')
-            matching=[i for i,c in enumerate(plan['trial_choices']) if c['parameters']==proposal['parameters']]
+            matching=[i for i,c in enumerate(plan['trial_choices']) if dict(c['parameters'],shape=c['parameters'].get('shape','reference'))==dict(proposal['parameters'],shape=proposal['parameters'].get('shape','reference'))]
             if len(matching)!=1:raise ValueError('proposal lacks a frozen prequalified trial alternative')
             if plan['id'] in choices and choices[plan['id']]!=matching[0]:raise ValueError('trial choice cannot change on resume')
             choices[plan['id']]=matching[0]
+            if trial['phase']=='training':selected_scopes.add(plan['trial_choices'][matching[0]]['compatibility'])
+        if not selected_scopes:raise ValueError('proposal lacks a frozen prequalified trial alternative')
+        for plan in self.campaign['payload']['tasks']:
+            trial=plan.get('trial')
+            if trial and (trial['study'],trial['ordinal'],trial['phase'])==(proposal['study'],proposal['ordinal'],'generation'):
+                scope=plan['trial_choices'][choices[plan['id']]]['compatibility'] if 'trial_choices' in plan else plan['initializer']['compatibility']
+                if scope not in selected_scopes:raise ValueError('proposal lacks a frozen prequalified trial alternative')
         self.append(dict(self.state,choices=choices))

@@ -43,10 +43,14 @@ class LocalProcessEngine:
         )
         if self.pid:
             code += "Path(" + repr(str(self.pid)) + ").write_text(str(os.getpid()));"
-        code+='\nargs={k:Path(v) for k,v in '+repr(args)+'.items()}\n'
-        code+='try:\n r=execute('+repr(operation)+',**args)\n'
-        code+="except Exception as exc:\n from contextlib import nullcontext\n from oeis_learn.pipeline_validation.progressive_evidence import failure\n from oeis_learn.generalization.progressive.storage import owned_guard\n from oeis_learn.generalization.progressive.contracts import load\n guard=owned_guard(load(args['authority']),output=args['output'],state_root=args.get('state_root')) if 'authority' in args else None\n with guard.activate() if guard else nullcontext():r=failure(args['output'],"+repr(operation)+",exc,producer='installed-local-process')\n"
-        code+="raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical_status'] in {'PARTIAL','BLOCKED'} else 1)"
+        code += "\nargs={k:Path(v) for k,v in " + repr(args) + ".items()}\n"
+        code += "try:\n r=execute(" + repr(operation) + ",**args)\n"
+        code += (
+            "except Exception as exc:\n from contextlib import nullcontext\n from oeis_learn.pipeline_validation.progressive_evidence import failure\n from oeis_learn.generalization.progressive.storage import owned_guard\n from oeis_learn.generalization.progressive.contracts import load\n guard=owned_guard(load(args['authority'],maximum=32<<20),output=args['output'],state_root=args.get('state_root')) if 'authority' in args else None\n with guard.activate() if guard else nullcontext():r=failure(args['output'],"
+            + repr(operation)
+            + ",exc,producer='installed-local-process')\n"
+        )
+        code += "raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical_status'] in {'PARTIAL','BLOCKED'} else 1)"
         return [sys.executable, "-c", code]
 
     def remove(self, *args, **kwargs):

@@ -464,7 +464,7 @@ class RoleWorkBudget:
         from .campaign import validate_campaign, validate_task
 
         if (
-            set(authority) - {"storage"}
+            set(authority) - {"storage","work_end_us"}
             != {"version", "identity", "campaign", "task", "operation", "inputs", "reservation"}
             or authority["version"] != "progressive-role-budget/v1"
             or seal(authority) != authority
@@ -486,9 +486,11 @@ class RoleWorkBudget:
         need = role_work_requirements(operation, values)
         if any(self.caps[k] < need[k] or self.caps[k] > t["payload"]["caps"][k] for k in KEYS):
             raise ValueError("insufficient enclosing role work reservation")
-        self.deadline = (
-            reservation["start_us"] + self.caps["elapsed_us"] - t["payload"]["finalization_us"]
-        ) / 1e6
+        hard_end=reservation['start_us']+self.caps['elapsed_us']
+        work_end=authority.get('work_end_us',hard_end)
+        if type(work_end) is not int or not reservation['start_us']<=work_end<=hard_end:
+            raise ValueError('original bounded supervisor work deadline required')
+        self.deadline=(work_end-t['payload']['finalization_us'])/1e6
         if time.monotonic() >= self.deadline:
             raise TimeoutError("role work allowance exhausted before dispatch")
         self.used = dict.fromkeys(KEYS, 0)

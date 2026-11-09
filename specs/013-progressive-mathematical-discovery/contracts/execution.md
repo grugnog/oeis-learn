@@ -68,3 +68,14 @@ Progress <=60s includes phase, actual committed/charged exposure and remaining r
 `report` produces one closed-inventory archive, maximum 512 MiB uncompressed metadata, with member byte/hash seals, stage/trial receipts, exposure/metrics/gate inputs, clocks, qualification references, omissions and original producer error/traceback. Exclude weights, full private continuations, raw corpora and unrestricted logs. Required reconciliation tables cannot be dropped to fit: partition task tables deterministically or return REPORT_INCOMPLETE and preserve local output. Failure packaging must preserve the first failure as well as any collector error. A reference hash alone cannot make missing producer authority verified.
 
 Offline verification checks exact inventory, seals, reference closure, stage ancestry, qualification scope, budgets, cohort/counts, aggregate metric calculations and decision rules. `mechanical_status`, `scientific_status`, `qualification_status` and `claim_status` are independent fields. A successful process or package cannot upgrade research or proof status.
+
+Exact iteration calibration records (`progressive-iteration-calibration/v1`) bind
+the current source/image and prepared learning compatibility. They measure two
+complete logical updates, including initial Adam allocation, two boundary probes,
+and durable full-state save plus verified restore at maximal prepared target and
+numeric input sizes. Freeze requires at least twice each measured phase, and
+includes the measured tensor closure in peak-live storage. Research requires an
+actual-HIP calibration; CPU records remain diagnostic. Generic short-case timing
+cannot authorize an exact research iteration. Both learner preflight and the
+write-ahead debit refuse work unless the complete next iteration and finalization
+can fit. The independent supervisor hard deadline remains in force.

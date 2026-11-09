@@ -82,9 +82,9 @@ def validate_campaign(campaign):
             raise ValueError("training ceiling")
         if 'trial_choices' in plan:
             from .trial_scopes import variants
-            if plan.get('trial',{}).get('phase') not in {'training','generation','scoring','confirmation'}:
+            if plan.get('trial',{}).get('phase') not in {'training','generation','scoring','confirmation','retention'}:
                 raise ValueError('trial alternatives require a bound finite study phase')
-            identities=[v['parameters'] for v in plan['trial_choices']]
+            identities=[dict(v['parameters'],shape=v['parameters'].get('shape','reference')) for v in plan['trial_choices']]
             if len({json.dumps(v,sort_keys=True) for v in identities})!=len(identities):raise ValueError('duplicate trial alternative')
             variants(plan)
         init = plan["initializer"]

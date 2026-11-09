@@ -95,3 +95,20 @@ def test_actual_slow_update_and_checkpoint_calibration_bounds_next_work(tmp_path
         Progress(tmp_path/'progress').preflight(bytes_required=0,inodes_required=0,remaining_us=work+1000,finalization_us=1000,research=False,work_us=work)
         slow_update()
     assert calls==before
+
+
+def test_external_cleanup_window_bounds_the_learner_clock(tmp_path):
+    from tests.unit.test_progressive_recovery_transactions import setup
+    from tests.integration.test_progressive_recovery import states
+    from oeis_learn.generalization.progressive.recovery import Recovery
+    t,j,cuts=setup(tmp_path)
+    with Recovery(j,t,digest('learning')) as r:
+        r.initialize(states(),cuts)
+        debit=dict.fromkeys(t['payload']['caps'],0);debit['elapsed_us']=t['payload']['caps']['elapsed_us']
+        charge=j.reserve(t['payload']['id'],'train',0,debit,boot='b',monotonic_us=0)
+        r.attach(dict(reservation_key=charge['key'],boot='b',start_us=0,end_us=debit['elapsed_us'],work_end_us=2000000))
+        assert r.clock['end']==2000000
+        before=j.path.read_bytes()
+        with pytest.raises(ValueError,match='finalization'):
+            r.reserve(['too-late'],1,boot='b',monotonic_us=2000000-t['payload']['finalization_us'])
+        assert j.path.read_bytes()==before

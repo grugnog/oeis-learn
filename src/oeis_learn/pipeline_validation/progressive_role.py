@@ -49,7 +49,7 @@ def _execute(
     from oeis_learn.generalization.progressive.budgets import WORK_ROLES, RoleWorkBudget
 
     budget = (
-        RoleWorkBudget(load(authority), operation, values, output)
+        RoleWorkBudget(load(authority,maximum=32<<20), operation, values, output)
         if operation in WORK_ROLES
         else None
     )
@@ -70,7 +70,7 @@ def _execute(
             raise ValueError("typed training compatibility differs")
         return run(
             package,
-            load(authority),
+            load(authority,maximum=32<<20),
             accounting=accounting,
             control=control,
             output=output,
@@ -99,7 +99,7 @@ def _execute(
                 proposal,
                 request["member"],
                 client=client,
-                purpose=load(authority)["task"]["purpose"],
+                purpose=load(authority,maximum=32<<20)["task"]["purpose"],
                 budget=budget,
             )
         atomic_write(output / "component-target.json", target)
@@ -181,7 +181,7 @@ def _execute(
                     verify_refs(base, [child], max_bytes=4 << 20)
                     refs.append(reference(root, confined(base, child["path"])))
         refs = list({r["path"]: r for r in refs}.values())
-        authority_value = load(authority)
+        authority_value = load(authority,maximum=32<<20)
         store = LibraryStore(
             root,
             None,
@@ -250,8 +250,8 @@ def _execute(
             inputs / "dossier", dossiers[0], reviewers=reviewers, budget=budget
         )
         if (
-            value["purpose"] != load(authority)["task"]["purpose"]
-            or value["track"] != load(authority)["task"]["track"]
+            value["purpose"] != load(authority,maximum=32<<20)["task"]["purpose"]
+            or value["track"] != load(authority,maximum=32<<20)["task"]["track"]
         ):
             raise ValueError("dossier review task scope differs")
         with SynthesisClient(digest(value)) as client:
@@ -380,7 +380,7 @@ def _execute(
             _validate_channel("oeis_generation", mode_policy)
             if (
                 mode_policy["forced"] is not None
-                and load(authority)["task"]["purpose"] != "acceptance"
+                and load(authority,maximum=32<<20)["task"]["purpose"] != "acceptance"
             ):
                 raise ValueError("forced candidates are DIAGNOSTIC_ONLY")
         libraries = [v["data"] for v in values if v["kind"] == "library"]
@@ -400,7 +400,7 @@ def _execute(
                 load(confined(model_root, libraries[0]["artifact"]["path"]), maximum=256 << 20)
             )
             if (
-                load(authority)["task"]["purpose"] == "research"
+                load(authority,maximum=32<<20)["task"]["purpose"] == "research"
                 and component_library["library"]["purpose"] != "research"
             ):
                 raise ValueError("research requires a native research library")
@@ -420,7 +420,7 @@ def _execute(
                 model_control=control,
                 reference_recipe=recipe if control == "earlier_checkpoint" else None,
                 seed=recipe["model"]["seed"] if control == "random" else None,
-                device="cpu" if load(authority)["task"]["purpose"] == "acceptance" else "cuda",
+                device="cpu" if load(authority,maximum=32<<20)["task"]["purpose"] == "acceptance" else "cuda",
                 budget=budget,
                 component_library=component_library,
                 **(
@@ -457,7 +457,7 @@ def _execute(
             raise ValueError("one frozen candidate collection required")
         if operation == "assess":
             selections = [v["data"] for v in values if v["kind"] == "locked_selection"]
-            if len(selections) != 1 or candidates[0].get("checkpoint") != selections[0]["checkpoint"]["sha256"] or selections[0]["task"] != load(authority)["task"]:
+            if len(selections) != 1 or candidates[0].get("checkpoint") != selections[0]["checkpoint"]["sha256"] or selections[0]["task"] != load(authority,maximum=32<<20)["task"]:
                 raise ValueError("locked final assessment checkpoint/task differs")
         from oeis_learn.pipeline_validation.identity import digest
         from oeis_learn.synthesis.client import SynthesisClient
@@ -529,7 +529,7 @@ def _execute(
                     operator_class=value["operator_class"],
                     missing_operations=value["missing_operations"],
                     created_at=value["created_at"],
-                    purpose=load(authority)['task']['purpose'],track=load(authority)['task']['track'],
+                    purpose=load(authority,maximum=32<<20)['task']['purpose'],track=load(authority,maximum=32<<20)['task']['track'],
                 )
                 # Public summary excludes witness bytes and local path.
                 results.append(result)
@@ -626,7 +626,7 @@ def execute(operation, **kwargs):
     from oeis_learn.generalization.progressive.storage import owned_guard
 
     if operation in WORK_ROLES:
-        authority = load(kwargs.get("authority", Path("/authority/supervisor.json")))
+        authority = load(kwargs.get("authority", Path("/authority/supervisor.json")),maximum=32<<20)
         with owned_guard(
             authority,
             output=kwargs.get("output", Path("/output/discovery")),
@@ -675,7 +675,7 @@ def main(argv=None):
         authority_path = Path("/authority/supervisor.json")
         guard = (
             owned_guard(
-                load(authority_path),
+                load(authority_path,maximum=32<<20),
                 output=output,
                 state_root=Path("/learning-state") if args[0] == "train" else None,
             )

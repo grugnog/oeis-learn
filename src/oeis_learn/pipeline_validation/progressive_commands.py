@@ -69,7 +69,7 @@ def freeze_command(args, root):
     from oeis_learn.generalization.progressive.freeze import IncompleteFreeze, freeze
 
     b = load(confined(root, args.blueprint))
-    p = load(confined(root, args.prepared) / "prepared.json")
+    p = load(confined(root, args.prepared) / "prepared.json",maximum=32<<20)
     output = _output(root, args.output)
     try:
         campaign, runtime, tasks = freeze(root, b, p, qualification_root=args.qualification)
@@ -105,7 +105,7 @@ def status(args, root):
             raise ValueError("run manifest changed")
         from oeis_learn.generalization.progressive.lifecycle import RunStore
 
-        campaign = load(confined(root, manifest["campaign_path"]))
+        campaign = load(confined(root, manifest["campaign_path"]),maximum=32<<20)
         store = object.__new__(RunStore)
         store.root = confined(
             root,
@@ -412,7 +412,7 @@ def lifecycle_command(args, root, host_factory):
             raise ValueError("run manifest seal differs")
         campaign_path = manifest["campaign_path"]
         acceptance_path = manifest["acceptance_path"]
-    campaign = validate_campaign(load(confined(root, campaign_path)))
+    campaign = validate_campaign(load(confined(root, campaign_path),maximum=32<<20))
     folder = confined(
         root, "run-state/discovery-accounting/" + campaign["identity"].split(":")[1], exists=False
     )
@@ -563,18 +563,17 @@ def lifecycle_command(args, root, host_factory):
                 REGISTRY[request["operation"]].channels
             ):
                 raise ValueError("frozen exact role channel map required")
-            from .progressive_outputs import resolve as resolve_outputs
-            artifacts,derived = resolve_outputs(root,store,task,request,output/('task-input-'+task['identity'].split(':')[1]))
             from . import progressive_study as study
             trial=task['payload'].get('trial')
-            if trial and trial['phase']=='proposal':
-                artifacts,derived=study.prepare_proposal(root,store,task,artifacts,output/('study-input-'+str(store.ordinal)))
-            elif trial and trial['phase']=='selection':
-                artifacts,derived=study.prepare_selection(root,store,task,output/('study-selection-'+str(store.ordinal)))
-            study.before(root,store,task)
+            if trial:
+                artifacts,derived=study.prepare_inputs(root,store,task,request,output/('task-input-'+str(store.ordinal)),journal)
+            else:
+                from .progressive_outputs import resolve as resolve_outputs
+                artifacts,derived=resolve_outputs(root,store,task,request,output/('task-input-'+task['identity'].split(':')[1]))
             remaining = journal.task_remaining(task)
-            seconds = request["seconds"]
-            reservation = dict(request["reservation"])
+            seconds = min(request['seconds'],remaining['elapsed_us']/1000000) if trial else request['seconds']
+            reservation = dict(request['reservation'])
+            reservation['elapsed_us']=int(seconds*1000000)
             if request["operation"] == "train":
                 if (
                     not remaining["tokens"]
@@ -664,7 +663,7 @@ def lifecycle_command(args, root, host_factory):
             if store.state["status"] == "PAUSED" or (task_status == "FAILED" and not trial):
                 break
         done = all(
-            store.state["tasks"].get(t["id"]) == "COMPLETE" for t in campaign["payload"]["tasks"]
+            store.state["tasks"].get(t['id']) in {'COMPLETE','SKIPPED'} for t in campaign['payload']['tasks']
         )
         failed = store.state["status"] == "FAILED"
         paused = store.state["status"] == "PAUSED"
@@ -838,7 +837,7 @@ def assess_command(args, root, host_factory):
     from oeis_learn.generalization.progressive.projections import describe
     from .progressive_roles import invoke, current_runtime
 
-    campaign = load(confined(root, args.campaign))
+    campaign = load(confined(root, args.campaign),maximum=32<<20)
     selection = validate_selection(root, load(confined(root, args.selection)), campaign)
     acceptance = load(confined(root, args.acceptance) / "acceptance.json")
     if (

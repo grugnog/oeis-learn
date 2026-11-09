@@ -36,3 +36,67 @@ These are new CLI semantics; do not change existing generalization/PAC exit code
 ## Commands versus role operations
 
 Host commands dispatch explicit installed operations: census, prepare-stream, audit-language, propose-trial, train, generate, admit-training, score, extract-components, verify-components, source-pilot, review-claim and publish/verify. Each operation's input channel is defined by the execution contract. The host launches no model, imports no Optuna, and receives no private truth in ordinary reports. Arbitrary operation names or supplied Python callbacks are forbidden.
+
+### Installed predecessor outputs and bounded study alternatives
+
+A frozen request channel may contain a literal permitted envelope path or a closed
+producer slot, for example:
+
+```json
+{"task":"candidate-generate-1","operation":"generate","output":"candidates","kind":"candidate"}
+```
+
+Slots refer to earlier tasks in the same slot or declared ancestor slots. The host
+resolves only original committed outputs under that campaign and checks the
+paired seed, role, purpose, checkpoint and output type. Supported outputs include
+training `weights`/`checkpoint_record`, generated `candidates`/public `evaluation`,
+scored `scores`, census `census` and audit `coverage`. Public census deficits may
+be consumed as explicitly partial evidence. Private witnesses and continuations
+never become learner or generator channels. Public output envelopes retain their
+producer task and original artifact reference. A decision template binds task ids
+and derives its table from these original outputs; absent paired cells become
+unresolved and cannot authorize advancement.
+
+`prepare` consumes the blueprint's named `preparation_plan` reference, with version
+`progressive-preparation-plan/v1` and a closed prepared payload. Omit `blueprint`
+from that payload to avoid a circular identity: preparation inserts the enclosing
+blueprint identity. All runtime, qualification and input references are verified;
+unresolved names remain preparation deficits. This assembly never selects a
+cohort using model outcomes or manufactures a future producer.
+
+A `progressive-study-policy/v1` policy freezes screening caps, the 128-task
+outcome-blind development panel, startup/training/three-evaluation/finalization
+feasibility, original producer bindings for each evaluation, and separate
+confirmation panels/seeds. Task `trial` metadata binds its study, ordinal, phase
+and charged-token evaluation coordinate. `trial_choices` is a finite catalog of
+parameters, learning compatibility, operation policy and (when needed) exact
+runtime and iteration-calibration references. Proposals select from that catalog
+without changing any task id, resource ceiling or campaign allowance. Unsupported
+proposals terminate INFEASIBLE before learning; baseline and fixed controls retain
+their unpruned designation.
+
+A catalog can share a frozen training-only input template. The host expands only
+the registered model shape/seed/dropout and update-policy choices over unchanged
+rows, bins and stream law. Freeze verifies every resulting compatibility and
+qualified scope. There are at most 512 installed task plans, 648 alternatives per
+plan and 32 MiB in a campaign/prepared/supervisor envelope; other individual JSON
+limits remain unchanged. These limits accommodate the sixteen trials and their
+three separate learning/evaluation cuts without creating a general scheduler.
+
+Research screening children reserve one shared finalization envelope of at least
+30 minutes per logical trial, included once in the frozen slot and two-hour total;
+each child also retains its own operational finalization bound. The sampler sees
+only host-verified development scalar history. Original outcomes, retention,
+checkpoint and supervised phase costs remain in the durable study journal. Only
+completed eligible equal-token trials can win; partial, failed, pruned, infeasible
+and interrupted trials retain their charges. Pruning requires five completed
+comparable observations and never applies to the registered controls or sizing
+roster. Short pruning coordinates exist only in explicitly acceptance-purpose
+rehearsals and cannot enter research. Cancelled later tasks are owned SKIPPED
+slots with unused entitlement, never completed learning evidence.
+
+Finalist locking includes the feasible baseline and at most three distinct
+nonbaseline configurations. Confirmation uses separately frozen fresh model and
+optimizer starts, paired seeds and the 400M schedule horizon; its outcomes never
+enter sampler feedback. All actual-HIP calibration and qualification requirements
+remain separate from CPU/native software acceptance.

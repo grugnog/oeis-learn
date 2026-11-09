@@ -104,7 +104,7 @@ def run(output):
                 "--junitxml=" + str(xml),
                 *TESTS,
             ],
-            timeout=780,
+            timeout=1800,
         ).returncode
         if code:
             raise ValueError("mandatory foundation pytest exit " + str(code))

@@ -1,6 +1,5 @@
 """Finite prequalified trial alternatives share one immutable task entitlement."""
 
-import copy
 from .tuning import SPACE, SHAPES
 
 
@@ -15,7 +14,7 @@ def resolve(plan, index):
         or params.get("shape", "reference") not in SHAPES
     ):
         raise ValueError("registered trial search space required")
-    result = copy.deepcopy(plan)
+    result = dict(plan, initializer=dict(plan["initializer"]))
     result["trial_choice"] = index
     result["initializer"]["compatibility"] = choice["compatibility"]
     result["policy"] = choice["policy"]
@@ -32,3 +31,37 @@ def variants(plan):
         if "trial_choices" in plan
         else [plan]
     )
+
+
+def materialize(package, plan):
+    """Expand a finite frozen parameter choice over unchanged training-only data."""
+    if "trial_choice" not in plan:
+        return package
+    from .models import resolve_profile
+    from oeis_learn.pipeline_validation.progressive_training import resolve_update_policy
+    from oeis_learn.pipeline_validation.progressive_learner import compatibility
+    from .contracts import seal
+
+    params = plan["trial_choices"][plan["trial_choice"]]["parameters"]
+    profile = resolve_profile(
+        package["profile"]["base_recipe"],
+        shape=params.get("shape", "reference"),
+        seed=plan["seed"],
+        dropout=params["dropout"],
+    )
+    confirmation = plan["trial"]["phase"] == "confirmation"
+    horizon = 400000000 if confirmation else package["update_policy"]["schedule_horizon_tokens"]
+    policy = resolve_update_policy(
+        profile,
+        schedule_horizon_tokens=horizon,
+        lr_multiplier=params["lr_multiplier"],
+        schedule=params["schedule"],
+        effective_batch=params["effective_batch"],
+        weight_decay=params["weight_decay"],
+        microbatch_size=min(package["update_policy"]["microbatch_size"], params["effective_batch"]),
+        warmup_tokens=1250000 if confirmation and params["schedule"] == "warmup_cosine" else None,
+    )
+    result = seal(dict(package, profile=profile, update_policy=policy))
+    if compatibility(result) != plan["initializer"]["compatibility"]:
+        raise ValueError("finite trial choice differs from frozen learning compatibility")
+    return result

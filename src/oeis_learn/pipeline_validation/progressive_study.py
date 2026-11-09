@@ -35,7 +35,7 @@ def policy(root, campaign, study):
     if len(matches) != 1 or seal(matches[0]) != matches[0]:
         raise ValueError("one original frozen study policy required")
     p = matches[0]
-    if set(p) != {
+    if set(p) - {"diagnostic_pruning_coordinate"} != {
         "version",
         "identity",
         "token_cap",
@@ -47,6 +47,11 @@ def policy(root, campaign, study):
         "confirmation",
     }:
         raise ValueError("closed finite study policy required")
+    if "diagnostic_pruning_coordinate" in p and (
+        campaign["purpose"] != "acceptance"
+        or p["diagnostic_pruning_coordinate"] not in (1000000, 2000000)
+    ):
+        raise ValueError("short pruning coordinates are diagnostic-only")
     preflight(**p["screening"], cap_us=p["elapsed_cap_us"])
     if campaign["purpose"] == "research":
         if p["target_tokens"] != 4000000 or p["elapsed_cap_us"] != 7200000000:
@@ -101,7 +106,14 @@ def costs(journal, campaign, trial):
             "scoring": "verification",
             "retention": "verification",
         }[meta["phase"]]
-        total[category] += spent["elapsed_us"]
+        host_keys = {key for key in reservations if "/host-input/" in key}
+        host_us = sum(
+            e["cost"]["elapsed_us"]
+            for e in selected
+            if e["operation"] in host_keys and e["event"] == "COMMIT"
+        )
+        total["startup"] += host_us
+        total[category] += spent["elapsed_us"] - host_us
         tokens += spent["tokens"]
     return total, tokens
 
@@ -164,8 +176,28 @@ def original(root, store, task_id, operation, name):
         or cut["operation"] != operation
     ):
         raise ValueError("committed original trial producer required")
+    from oeis_learn.generalization.progressive.contracts import record
+
+    source = store.resolved_plan(
+        next(p for p in store.campaign["payload"]["tasks"] if p["id"] == task_id)
+    )
+    if source is None:
+        raise ValueError("original producer trial choice required")
+    expected = record(
+        "task",
+        dict(source, campaign=store.campaign["identity"]),
+        created_at=store.campaign["created_at"],
+        purpose=store.campaign["purpose"],
+        track=store.campaign["track"],
+    )
+    if cut["task"] != expected["identity"]:
+        raise ValueError("original producer task binding differs")
     result = json.loads(verify_refs(root, [cut["result"]])[0])
-    if seal(result) != result:
+    if (
+        seal(result) != result
+        or result.get("task") not in (None, expected["identity"])
+        or result.get("campaign") not in (None, store.campaign["identity"])
+    ):
         raise ValueError("trial producer changed")
     base = confined(root, cut["result"]["path"]).parent
     ref = result["metrics"][name]
@@ -182,6 +214,18 @@ def weight_ref(root, store, task_id):
         / store.campaign["identity"].split(":")[1]
         / state["payload"]["task"].split(":")[1]
         / "checkpoints"
+    )
+    from oeis_learn.generalization.progressive.state import restore
+
+    source = store.resolved_plan(
+        next(p for p in store.campaign["payload"]["tasks"] if p["id"] == task_id)
+    )
+    restore(
+        state,
+        root=base,
+        compatibility=source["initializer"]["compatibility"],
+        campaign=store.campaign["identity"],
+        task=store.state["outputs"][task_id]["task"],
     )
     full = json.loads(verify_refs(base, [state["payload"]["full_state"]], max_bytes=64 << 20)[0])
     ref = full["states"]["weights"]
@@ -214,7 +258,7 @@ def skip(store, meta):
             and t["phase"] not in {"proposal", "confirmation", "selection"}
             and tasks.get(p["id"]) not in {"COMPLETE", "FAILED", "PARTIAL"}
         ):
-            tasks[p["id"]] = "PARTIAL"
+            tasks[p["id"]] = "SKIPPED"
     store.append(dict(store.state, tasks=tasks))
 
 
@@ -233,7 +277,24 @@ def after(root, store, task, result, budget):
         actual = j.propose(ordinal, parameters=proposal["parameters"], seed=proposal["seed"])
         if actual != proposal:
             raise ValueError("proposal changed before dispatch")
-        store.choose_trial(proposal)
+        try:
+            store.choose_trial(proposal)
+        except ValueError as exc:
+            if str(exc) != "proposal lacks a frozen prequalified trial alternative":
+                raise
+            j.dispatch(ordinal)
+            timing, tokens = costs(budget, store.campaign, meta)
+            j.tell(
+                ordinal,
+                dict(
+                    status="INFEASIBLE",
+                    tokens=tokens,
+                    elapsed_us=sum(timing.values()),
+                    value=None,
+                    role="development",
+                ),
+            )
+            skip(store, meta)
         return
     timing, tokens = costs(budget, store.campaign, meta)
     elapsed = sum(timing.values())
@@ -359,6 +420,20 @@ def after(root, store, task, result, budget):
         skip(store, meta)
         return
     coordinate = meta["coordinate"]
+    if tokens < coordinate:
+        j.tell(
+            ordinal,
+            dict(
+                status="PARTIAL",
+                tokens=tokens,
+                elapsed_us=elapsed,
+                value=value,
+                role="development",
+                evidence=evidence,
+            ),
+        )
+        skip(store, meta)
+        return
     path = j.root / f"intermediate-{ordinal:02d}-{coordinate:012d}.json"
     observation = seal(
         dict(
@@ -387,7 +462,16 @@ def after(root, store, task, result, budget):
         if actual != value_record["value"]:
             raise ValueError("intermediate pruning feedback differs from original outcomes")
         references.append(value_record)
-    prune = pruning(ordinal=ordinal, value=value, coordinate=coordinate, references=references)
+    diagnostic = p.get("diagnostic_pruning_coordinate")
+    prune = pruning(
+        ordinal=ordinal,
+        value=value,
+        coordinate=diagnostic or coordinate,
+        references=[
+            dict(r, coordinate=diagnostic) if diagnostic and r["coordinate"] == coordinate else r
+            for r in references
+        ],
+    )
     if prune or coordinate >= p["target_tokens"]:
         status = "PRUNED" if prune else "COMPLETE" if tokens >= p["target_tokens"] else "PARTIAL"
         j.tell(
@@ -445,7 +529,19 @@ def prepare_selection(root, store, task, output):
         )
     from oeis_learn.generalization.progressive.selection import rank
 
-    count = min(4, len(rank(rows, target=p["target_tokens"], root=root)["ordered"]))
+    ordered = rank(rows, target=p["target_tokens"], root=root)["ordered"]
+    by_id = {r["id"]: r for r in rows}
+    seen = set()
+    count = 0
+    for name in ["0", *ordered]:
+        if name not in ordered:
+            continue
+        params = by_id[name]["parameters"]
+        key = json.dumps(dict(params, shape=params.get("shape", "reference")), sort_keys=True)
+        if key not in seen:
+            seen.add(key)
+            count += 1
+    count = min(4, count)
     selected = confirmation(
         rows,
         baseline="0",
@@ -492,7 +588,7 @@ def commit_selection(root, store, task, result):
             continue
         position = meta["ordinal"]
         if position >= len(selected["selected"]):
-            tasks[plan["id"]] = "PARTIAL"
+            tasks[plan["id"]] = "SKIPPED"
             continue
         if (
             plan["initializer"]["mode"] != "random"
@@ -503,7 +599,10 @@ def commit_selection(root, store, task, result):
             raise ValueError("fresh paired confirmation entitlement required")
         source = j.trials[selected["selected"][position]]["proposal"]["parameters"]
         matching = [
-            i for i, c in enumerate(plan.get("trial_choices", [])) if c["parameters"] == source
+            i
+            for i, c in enumerate(plan.get("trial_choices", []))
+            if dict(c["parameters"], shape=c["parameters"].get("shape", "reference"))
+            == dict(source, shape=source.get("shape", "reference"))
         ]
         if len(matching) != 1:
             raise ValueError("finalist lacks original prequalified confirmation scope")
@@ -550,10 +649,18 @@ def validate_frozen(root, campaign):
                 if t["trial"]["ordinal"] == ordinal
                 and t["trial"]["phase"] not in {"confirmation", "selection"}
             ]
-            if campaign['purpose']=='research' and (p['screening']['finalization_us']<1800000000 or any(t['trial'].get('shared_finalization_us')!=p['screening']['finalization_us'] for t in members)):
-                raise ValueError('one protected original trial finalization reserve required')
+            if campaign["purpose"] == "research" and (
+                p["screening"]["finalization_us"] < 1800000000
+                or any(
+                    t["trial"].get("shared_finalization_us") != p["screening"]["finalization_us"]
+                    for t in members
+                )
+            ):
+                raise ValueError("one protected original trial finalization reserve required")
             if (
-                sum(t["caps"]["elapsed_us"] for t in members)+(p['screening']['finalization_us'] if campaign['purpose']=='research' else 0) > p["elapsed_cap_us"]
+                sum(t["caps"]["elapsed_us"] for t in members)
+                + (p["screening"]["finalization_us"] if campaign["purpose"] == "research" else 0)
+                > p["elapsed_cap_us"]
                 or sum(t["caps"]["tokens"] for t in members) > p["token_cap"]
             ):
                 raise ValueError("trial children exceed original finite screening reservation")
@@ -568,12 +675,58 @@ def validate_frozen(root, campaign):
                     t["trial"]["coordinate"] for t in members if t["trial"]["phase"] == "scoring"
                 } != {1000000, 2000000, 4000000}:
                     raise ValueError("all three original screening looks must be reserved")
+        members_by_id = {t["id"]: t for t in plans}
+        for score_id, evaluation in p["evaluations"].items():
+            scored = members_by_id.get(score_id)
+            if scored is None or scored["trial"]["phase"] != "scoring":
+                raise ValueError("development tell requires its frozen scoring task")
+            ordinal = scored["trial"]["ordinal"]
+            expected = {
+                "generation_task": "generation",
+                "checkpoint_task": "training",
+                "retention_baseline_generation": "retention",
+                "retention_baseline_scoring": "retention",
+                "retention_candidate_generation": "retention",
+                "retention_candidate_scoring": "retention",
+            }
+            for name, phase in expected.items():
+                source = members_by_id.get(evaluation[name])
+                if (
+                    source is None
+                    or source["trial"]["ordinal"] != ordinal
+                    or source["trial"]["phase"] != phase
+                ):
+                    raise ValueError("trial feedback cannot consume another study or confirmation")
+            for source in [
+                scored,
+                *[
+                    members_by_id[evaluation[k]]
+                    for k in ("retention_baseline_scoring", "retention_candidate_scoring")
+                ],
+            ]:
+                request = json.loads(verify_refs(root, [refs[source["policy"]]])[0])
+                if request["operation"] != "score":
+                    raise ValueError("original development scorer required")
+                for path in request["artifacts"]["score_truth"]:
+                    if (
+                        not isinstance(path, str)
+                        or load(confined(root, path))["kind"] != "development_truth"
+                    ):
+                        raise ValueError("confirmation or assessment cannot feed the sampler")
+            if campaign["purpose"] == "research":
+                expected_roster = [
+                    dict(task=r["id"], group=r["group"], stratum=r["stratum"]) for r in p["panel"]
+                ]
+                if sorted(evaluation["roster"], key=lambda r: r["task"]) != sorted(
+                    expected_roster, key=lambda r: r["task"]
+                ):
+                    raise ValueError("the exact frozen 128-task panel is required")
         for plan in plans:
             meta = plan["trial"]
             if campaign["purpose"] == "research" and plan["stage"] != "tuning":
                 raise ValueError("separate finite tuning stage required")
             for variant in variants(plan):
-                if meta["phase"] not in {"training", "confirmation"}:
+                if meta["phase"] not in {"training", "confirmation"} or plan["kind"] != "training":
                     continue
                 if "trial_choice" not in variant:
                     raise ValueError("explicit frozen trial alternatives required")
@@ -620,3 +773,93 @@ def validate_frozen(root, campaign):
                         )
                     ):
                         raise ValueError("frozen fresh confirmation horizon differs")
+
+
+def project_variant(root, store, task, operation, artifacts, derived, output):
+    """Host-only expansion of a frozen finite law; never accepts runtime code."""
+    from oeis_learn.generalization.progressive.projections import describe
+    from oeis_learn.generalization.progressive.trial_scopes import materialize
+    from oeis_learn.generalization.progressive.models import resolve_profile
+    from .progressive_oeis import _Derived
+
+    plan = task["payload"]
+    if "trial_choice" not in plan or operation not in {"train", "generate"}:
+        return artifacts, derived
+    result = {k: list(v) for k, v in artifacts.items()}
+    refs = list(derived.artifacts) if derived is not None else []
+    for channel, items in result.items():
+        for i, item in enumerate(items):
+            envelope = json.loads(verify_refs(root, [item.ref])[0])
+            data = envelope["data"]
+            if operation == "train" and item.kind == "training_request":
+                package = json.loads(verify_refs(root, [data["artifact"]], max_bytes=256 << 20)[0])
+                expanded = materialize(package, plan)
+                path = output / "training-package.json"
+                atomic_write(path, expanded)
+                replacement = dict(
+                    data,
+                    artifact=reference(root, path),
+                    compatibility=plan["initializer"]["compatibility"],
+                )
+            elif operation == "generate" and item.kind == "recipe":
+                base = json.loads(verify_refs(root, [data["artifact"]])[0])
+                params = plan["trial_choices"][plan["trial_choice"]]["parameters"]
+                recipe = resolve_profile(
+                    base.get("base_recipe", base),
+                    shape=params.get("shape", "reference"),
+                    seed=plan["seed"],
+                    dropout=params["dropout"],
+                )
+                path = output / "model-profile.json"
+                atomic_write(path, recipe)
+                replacement = dict(
+                    data,
+                    artifact=reference(root, path),
+                    compatibility=plan["initializer"]["compatibility"],
+                )
+            else:
+                continue
+            path = output / (channel + "-" + str(i) + ".json")
+            atomic_write(path, seal(dict(envelope, data=replacement)))
+            descriptor = describe(root, reference(root, path)["path"])
+            items[i] = descriptor
+            refs.append(descriptor.ref)
+    return result, _Derived(
+        store.campaign["identity"], task["identity"], operation, plan["policy"], tuple(refs)
+    )
+
+
+def prepare_inputs(root, store, task, request, output, budget):
+    """Charge measured synchronous input/proposal preparation before role startup."""
+    import time
+    from .progressive_outputs import resolve
+
+    remaining = budget.task_remaining(task)
+    debit = dict.fromkeys(remaining, 0)
+    debit["elapsed_us"] = remaining["elapsed_us"]
+    if debit["elapsed_us"] <= task["payload"]["startup_us"] + task["payload"]["finalization_us"]:
+        raise TimeoutError("task input/finalization allowance exhausted")
+    boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    start = time.monotonic_ns() // 1000
+    charge = budget.reserve(
+        task["payload"]["id"], "host-input", store.ordinal, debit, boot=boot, monotonic_us=start
+    )
+    try:
+        artifacts, derived = resolve(root, store, task, request, output / "slots")
+        meta = task["payload"].get("trial")
+        if meta and meta["phase"] == "proposal":
+            artifacts, derived = prepare_proposal(root, store, task, artifacts, output / "proposal")
+        elif meta and meta["phase"] == "selection":
+            artifacts, derived = prepare_selection(root, store, task, output / "selection")
+        artifacts, derived = project_variant(
+            root, store, task, request["operation"], artifacts, derived, output / "variant"
+        )
+        before(root, store, task)
+        return artifacts, derived
+    finally:
+        budget.commit(
+            charge["key"],
+            boot=boot,
+            monotonic_us=time.monotonic_ns() // 1000,
+            termination_proven=True,
+        )

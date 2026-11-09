@@ -203,6 +203,7 @@ def freeze(
     }
     declared_checkpoints = [r["artifact"] for r in refs if r["kind"] == "checkpoint"]
     initializer_closure = {}
+    calibrated_bytes=calibrated_inodes=0
     for plan in all_plans:
         selected_runtime=trial_runtime(root,plan,runtime)
         if 'trial_runtime' in plan and not any(r['artifact']==plan['trial_runtime'] and r['kind']=='qualification' for r in refs):
@@ -211,7 +212,8 @@ def freeze(
         work=margin(plan,research=b['purpose']=='research' and plan['kind']=='training')
         if work:
             from .iteration import validate_producer
-            validate_producer(root,plan,selected_runtime,refs)
+            calibration=validate_producer(root,plan,selected_runtime,refs)
+            calibrated_bytes=max(calibrated_bytes,calibration.get('checkpoint_bytes',0));calibrated_inodes=max(calibrated_inodes,calibration.get('checkpoint_inodes',0))
         if work+plan['startup_us']+plan['finalization_us']>=plan['caps']['elapsed_us']:raise IncompleteFreeze(['complete_iteration:'+plan['id']])
         if (
             plan["policy"] not in known_policies
@@ -276,6 +278,7 @@ def freeze(
         checkpoint_root=q.get("checkpoint_root"),
         research=b["purpose"] == "research",
     )
+    measured=max(measured,calibrated_bytes);checkpoint_inodes=max(checkpoint_inodes,calibrated_inodes)
     task_store_bytes = sum(t["caps"]["disk_bytes"] for t in q["task_plans"])
     for plan in q["task_plans"]:
         if (
@@ -416,25 +419,25 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
             _validate_channel("training_request", data)
             raw = verify_refs(root, [data["artifact"]], max_bytes=256 << 20)[0]
             package = json.loads(raw)
-            validate_input(
-                package,
-                {
-                    "purpose": runtime["purpose"],
-                    "payload": {
-                        "seed": package["profile"]["model"]["seed"],
-                        "initializer": dict(compatibility=compatibility(package),mode='full_state' if 'full_state' in package else 'weights_only' if 'weights' in package else 'random',artifact=package.get('weights',package.get('full_state',{}).get('artifact'))),
-                    },
-                },
-                allow_pending=True,
-            )
-            if data["compatibility"] != compatibility(package):
-                raise ValueError("declared training compatibility differs")
-            from .supply import plan as supply_plan
-            for task_plan in task_plans:
-                if task_plan["kind"]=="training" and task_plan["initializer"]["compatibility"]==compatibility(package):
-                    try:supply_plan(package,task_plan["token_target"],arm=task_plan["arm"])
-                    except ValueError as exc:raise IncompleteFreeze([str(exc)]) from exc
-            learner_packages.append(package)
+            if data['compatibility']!=compatibility(package):raise ValueError('declared training compatibility differs')
+            from .trial_scopes import materialize
+            policies={r['artifact']['sha256']:r['artifact'] for r in refs if r['kind']=='policy'}
+            targets=[]
+            for plan in task_plans:
+                if plan['kind']!='training':continue
+                ref=policies.get(plan['policy'])
+                if ref is None:continue
+                request=json.loads(verify_refs(root,[ref])[0])
+                if request.get('operation')=='train' and item['artifact']['path'] in request.get('artifacts',{}).get('training',[]):targets.append(plan)
+            candidates=[materialize(package,plan) for plan in targets] or [package]
+            for expanded in {p['identity']:p for p in candidates}.values():
+                validate_input(expanded,{'purpose':runtime['purpose'],'payload':{'seed':expanded['profile']['model']['seed'],'initializer':dict(compatibility=compatibility(expanded),mode='full_state' if 'full_state' in expanded else 'weights_only' if 'weights' in expanded else 'random',artifact=expanded.get('weights',expanded.get('full_state',{}).get('artifact')))}},allow_pending=True)
+                from .supply import plan as supply_plan
+                for task_plan in targets:
+                    if task_plan['initializer']['compatibility']==compatibility(expanded):
+                        try:supply_plan(expanded,task_plan['token_target'],arm=task_plan['arm'])
+                        except ValueError as exc:raise IncompleteFreeze([str(exc)]) from exc
+                learner_packages.append(expanded)
     recipes = []
     for item in grouped["recipe"]:
         recipe = load(confined(root, item["artifact"]["path"]))

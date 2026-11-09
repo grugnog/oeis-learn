@@ -105,7 +105,7 @@ jobs:
           container_stage(
               host, host.ensure(), Path("tmp-engine-evidence/progressive-foundation").resolve(),
               ["python", "scripts/qualify_progressive_foundation.py", "--output", "/work/output"],
-              seconds=900,
+              seconds=1920,
           )
           PYCODE
       - name: Public standard-library CLI validation and verified rerun

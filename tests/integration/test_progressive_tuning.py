@@ -122,3 +122,52 @@ def test_actual_installed_study_preserves_negative_and_interrupted_trials(tmp_pa
     else:
         assert j.trials['0']['status']==mode.upper(),result
         assert not j.equal_token_eligible(target=p['target_tokens'])
+
+
+def test_installed_selection_runs_fresh_paired_confirmation_without_sampler_feedback(tmp_path,monkeypatch,fitting_client):
+    from types import SimpleNamespace
+    from tests.helpers.progressive_study import build
+    from oeis_learn.pipeline_validation import progressive_commands as commands,progressive_study as study
+    from oeis_learn.generalization.progressive.contracts import load
+    c,p,host,_=build(tmp_path,monkeypatch,confirmation=True)
+    token=commands._INVOCATION.set('fresh-confirmation')
+    try:result,code=commands.lifecycle_command(SimpleNamespace(operation='run',campaign='study-campaign.json',acceptance='accepted',output='confirmed'),tmp_path,lambda _:host)
+    finally:commands._INVOCATION.reset(token)
+    assert code==0,result
+    journal=study.journal(tmp_path,c,p)
+    assert set(journal.trials)=={'0'} and journal.trials['0']['result']['value']==1
+    locked=load(journal.root/'selection.json')
+    assert locked['selected']==['0'] and locked['seeds']==[17,19] and locked['sampler_feedback'] is False
+    trained=[];scored=[]
+    for path in (tmp_path/'confirmed').glob('task-*/role/result.json'):
+        value=load(path)
+        if value['operation']=='train' and value['metrics']['initialization']=='fresh_random':trained.append(value)
+        if value['operation']=='score':scored.append(load(path.parent/'scoring/scores.json'))
+    assert len(trained)==3 # screening plus two independently initialized seeds
+    assert len(scored)==5 # three screening/retention plus paired confirmation
+    assert all(not any(r['equal_budget']['success'] for r in s['outcomes'].values()) for s in scored if next(iter(s['outcomes'])).startswith('fresh-'))
+    assert study.journal(tmp_path,c,p).trials==journal.trials
+
+
+def test_real_six_trial_native_study_prunes_only_after_five_comparable_completions(tmp_path,monkeypatch,fitting_client):
+    """Short diagnostic coordinate; production retains its 1M/2M lower bounds."""
+    from types import SimpleNamespace
+    from tests.helpers.progressive_study import build
+    from oeis_learn.pipeline_validation import progressive_commands as commands,progressive_study as study
+    from oeis_learn.generalization.progressive.selection import rank
+    from oeis_learn.generalization.progressive.contracts import load
+    c,p,host,_=build(tmp_path,monkeypatch,trials=6)
+    token=commands._INVOCATION.set('six-native-trials')
+    try:result,code=commands.lifecycle_command(SimpleNamespace(operation='run',campaign='study-campaign.json',acceptance='accepted',output='six'),tmp_path,lambda _:host)
+    finally:commands._INVOCATION.reset(token)
+    assert code==0,result
+    j=study.journal(tmp_path,c,p)
+    assert [j.trials[str(i)]['status'] for i in range(6)]==['COMPLETE']*5+['PRUNED']
+    assert all(j.trials[str(i)]['result']['value']==1 for i in range(5))
+    assert j.trials['5']['result']['value']==0
+    assert result['metrics']['tasks']['t5-late-train']=='SKIPPED'
+    assert not any(load(p)['task']['payload']['id']=='t5-late-train' for p in (tmp_path/'six').glob('task-*/authority/supervisor.json'))
+    rows=[dict(s['result'],id=k) for k,s in j.trials.items()]
+    expected=[r['id'] for r in sorted(rows[:5],key=lambda r:(-r['value'],r['elapsed_us'],r['id']))]
+    assert rank(rows,target=p['target_tokens'],root=tmp_path)['ordered']==expected
+    assert study.journal(tmp_path,c,p).trials==j.trials

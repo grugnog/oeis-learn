@@ -1335,3 +1335,48 @@ Installed serial proposal execution now consumes host-verified development scala
 The canonical host invokes feasibility, original-producer eligibility, intermediate pruning, terminal ask/tell and finalist locking; read-only remaining-slot inspection no longer prematurely binds an unselected alternative. TPE remains installed-only. Screening/selection requests cannot inject a host-verified feedback channel. Completed development evidence is derived from committed learner/generator/scorer/retention outputs and supervisor intervals, including startup/cleanup enclosed in phase costs. Equal-token capability and equal-wall utility remain separate. Full published output cuts now route model weights, candidates, public coverage envelopes, readiness and registered decision tables without projecting private continuations into the learner/generator.
 
 A real canonical CPU/native trial completed and independently replayed its ask, update, generated candidates, scores, retention checks and tell (39.56 seconds). The focused scope/trial/freeze/DAG suite passed 57 tests (38.35 seconds); the bounded actual slow-update/slow-checkpoint calibration suite passed five tests (6.00 seconds). Additional negative, interruption and publication acceptance remains in progress; T117–T119 are not marked complete by this increment. Exact prepared iteration calibration records separately measure full logical updates (including initial Adam allocation), two probes and durable checkpoint save/restore. CPU calibration is diagnostic; research requires an original current actual-HIP calibration of the exact compatibility scope.
+
+### T117/T122/T124/T125 — installed publication and bounded work/supply
+
+Canonical installed CPU/native acceptance now runs preparation assembly, census,
+constructive language audit, actual learning, generation, scoring, readiness and a
+producer-derived decision through the host dispatcher. The native publication/DAG
+run passed 13 cases (58.98 seconds). Missing paired seed/retention support remains
+INCOMPLETE with RETAIN_BASELINE; no future result is manufactured to pass a gate.
+The independent original-producer checks still protect positive advancement.
+
+Each learner invocation now receives the supervisor's earlier work deadline,
+separate from its hard cleanup deadline. Native role counters honor the same
+boundary. Update admission requires the full measured update/probe/checkpoint
+margin plus operational finalization; the outer shared research-trial reserve
+remains held once in its frozen slot. Actual delayed update/checkpoint calibration,
+clock, journal and interruption boundary tests passed 36 cases (11.36 seconds).
+Research requires the exact current actual-HIP calibration and its measured
+checkpoint closure; CPU calibration never grants that qualification.
+
+Diversity publication counts original numeric variants, canonical structures,
+finite behavior clusters, compositions, syntax operations, independently exercised
+control events and fixed difficulty bands. Available support and committed consumed
+support are separate, including multiset exposure and excluded nonmechanical rows.
+The native stream/count/supply suite passed 11 cases (37.06 seconds). Preparation
+receipts bind measured completed invocations; an interrupted interval with unknown
+time keeps total preparation elapsed unavailable, even after a completed resume.
+Matched static/refreshed reports preserve negative and interrupted outcomes and
+never infer capability from training loss.
+
+Freeze checks the finite refreshed supply against the cumulative token horizon.
+The original eight-update/64-shard inventory fails the 25M default with an explicit
+preparation deficit; a prospectively selected adequate cadence can make the finite
+inventory feasible. Resumed and separately reserved compatible children use the
+same global cursor and original stream law. The last frontier shard stops at its
+boundary rather than resetting or falling back to static support. Every prepared
+draw, rejection and retry remains in the stream work cut.
+
+Further tuning acceptance uses a finite frozen parameter catalog over shared
+training-only templates. The host can expand only the registered model/update law;
+all resulting compatibilities and runtime scopes are checked before freeze. Fresh
+paired confirmation completed with deliberately negative native held-out outcomes
+(87.64 seconds), retaining the original screening feedback unchanged. The six-trial
+rehearsal has exercised five real completed native trials and a real lower-yield
+sixth trial; final pruning/cancellation and whole-foundation acceptance are being
+reconciled in the next increment.

@@ -208,6 +208,8 @@ def _invoke_reserved(
     projection_guard.reserve_bytes += (2 << 20) + metadata_bytes
     projection_guard.check(0, 64)
     target.mkdir(parents=True)
+    cleanup_seconds=min(30,seconds/5)
+    work_end_us=min(started_us+reservation['elapsed_us'],int(deadline*1000000))-int(cleanup_seconds*1000000)
     spec = REGISTRY[operation]
     views = target / "private-input"
     authorized = [r["artifact"] for r in c["payload"]["references"] if r["role"] == spec.role]
@@ -263,6 +265,7 @@ def _invoke_reserved(
                     "boot": boot,
                     "start_us": started_us,
                     "end_us": started_us + reservation["elapsed_us"],
+                    "work_end_us":work_end_us,
                 },
                 "invocation": invocation,
                 "storage": storage_proof,
@@ -326,6 +329,7 @@ def _invoke_reserved(
                     operation=operation,
                     inputs=digest(sorted(work_values, key=lambda v: v["identity"])),
                     reservation=reserved,
+                    work_end_us=work_end_us,
                     storage=storage_proof,
                 )
             ),
@@ -364,7 +368,7 @@ def _invoke_reserved(
             command,
             target,
             deadline=deadline,
-            cleanup_seconds=min(30, seconds / 5),
+            cleanup_seconds=cleanup_seconds,
             gpu=gpu,
             allowed_returncodes=(0, 1, 2),
         )

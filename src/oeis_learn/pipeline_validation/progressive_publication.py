@@ -75,8 +75,11 @@ def decision_from_outputs(values):
                     complete=complete,
                 )
             )
-    if cells != {(a, s) for a in ("baseline", "candidate") for s in template["seeds"]}:
-        raise ValueError("complete paired producer roster required")
+    for arm, seed in {(a, s) for a in ("baseline", "candidate") for s in template["seeds"]} - cells:
+        rows.extend(
+            dict(r, arm=arm, seed=seed, outcome="unresolved", complete=False)
+            for r in roster.values()
+        )
     data = dict(template)
     data.pop("producers")
     data["version"] = "progressive-decision-input/v1"

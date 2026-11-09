@@ -382,7 +382,8 @@ def verify_gate_producers(root, campaign, bundle,*,store=None):
     if not roster or canonical(roster) != canonical(bundle["roster"]):
         raise ValueError("decision must cover exact original frozen cohort/retention roster")
     members = {r["task"]: r for r in roster}
-    if len(members) != len(roster) or not any(r["stratum"] == "retention" for r in roster):
+    negative=(bundle['decision']['payload']['evidence_verdict']=='INCOMPLETE' and bundle['decision']['payload']['next_action'] in {'RETAIN_BASELINE','DEFER_BRANCH','STOP_AFFECTED'})
+    if len(members) != len(roster) or (not negative and not any(r["stratum"] == "retention" for r in roster)):
         raise ValueError("unique complete roster with frozen retention required")
     expected_cells = {(a, s) for a in ("baseline", "candidate") for s in registration["seeds"]}
     found, derived = set(), []
@@ -452,7 +453,7 @@ def verify_gate_producers(root, campaign, bundle,*,store=None):
                     complete=outcome["complete"],
                 )
             )
-    if found != expected_cells:
+    if found != expected_cells and not negative:
         raise ValueError("missing paired arm/seed producer")
     supplied, _, _ = _paired(bundle["rows"], roster, bundle["seeds"])
     original, _, _ = _paired(derived, roster, bundle["seeds"])
