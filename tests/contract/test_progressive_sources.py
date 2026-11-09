@@ -57,3 +57,21 @@ def test_source_is_immutable_explicit_and_grouped():
 def test_unsuitable_sources_cannot_be_admitted(key, value):
     with pytest.raises(ValueError):
         source(**{key: value})
+
+
+def test_suitability_distinguishes_facts_from_unresolved_inputs():
+    from oeis_learn.generalization.progressive.sources import suitability
+
+    s = suitability(
+        "LMFDB/Cremona",
+        facts=["Object labels need a task definition"],
+        references=["https://www.lmfdb.org/EllipticCurve/Q/"],
+        indexing=None,
+        representation="algebraic_or_approximate",
+        relations=None,
+        finite_support=None,
+        verification=None,
+        estimated_work=0,
+    )
+    assert s["disposition"] == "NEW_PROFILE_REQUIRED" and not s["executable"]
+    assert "approved_access_and_use_conditions" in s["unresolved"]

@@ -85,6 +85,18 @@
         "immutable review and rejected forged proof scope",
         "prepaid bounded symbolic work and retained failure charges"
       ]
+    },
+    {
+      "id": "progressive-four-input-update-restore-generation",
+      "device": "actual_HIP",
+      "status": "QUEUED",
+      "owner": "T082",
+      "obligations": [
+        "combinatorial-short/v1 four-input update",
+        "full restore",
+        "generation",
+        "nine-index native/reference score"
+      ]
     }
   ]
 }

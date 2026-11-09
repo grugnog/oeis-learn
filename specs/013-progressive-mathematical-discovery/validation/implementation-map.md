@@ -1158,3 +1158,35 @@ tests enforce nine authoritative terms, four visible positions, explicit masks
 and unchanged historical non-20-term rejection. 22 source/short/enumeration tests
 passed, including each budget and adversarial-source branch. Neural integration
 is owned by T075–T078 and is not asserted by this increment.
+
+
+### T075–T078 — real four-input source path
+
+Dedicated exact-length collation uses four input positions and explicit visibility
+masks; target-token padding uses the existing masked SFT objective. Historical
+20-input guards remain intact. Native/reference nine-term admission binds concrete
+programs, source truth and four visible terms. Training replays those bindings
+before passing tensors to the shared RecoverableUpdate/PolicyUpdate transaction;
+there is no second learner. Shared constrained sampling receives only visible
+prompts; the separate scorer receives all nine indices. Source-pilot adapters
+require an eligible frozen assisted roster, reject related sources across roles,
+reserve search costs before work, and use charged-token source mixing with
+whole-example overshoot. A bounded negative yield cannot expand source support.
+The non-executable source-pilot blueprint records paired arms, support thresholds,
+matched initializer/tokens/optimizer/inference and unresolved runtime inputs.
+
+The suitability producer/template distinguishes reviewed primary-source facts
+from missing snapshot/use/index/verification inputs for FindStat/Sage,
+LMFDB/Cremona and KnotInfo/Dartmouth. Nonintegral/approximate/finite-polynomial and
+arbitrary object-order data require another task profile; no bulk ingestion is
+performed. Four-input HIP update/restore/generation is registered once in the
+shared acceptance inventory and remains QUEUED until actual device evidence.
+
+Validation: 25 focused source/short/enumeration/native integration tests passed.
+The actual CPU path consumes complete permutation totals, admits a concrete program
+against native/reference execution, performs a finite parameter-changing update,
+restores complete optimizer/scheduler/weights and framework RNG, generates from
+four inputs, and checks correct/incorrect nine-term candidates. The pilot-cycle
+control executes through the same recoverable update with precharged generation;
+inadequate support and unsuitable-source branches fail explicitly. These are
+DIAGNOSTIC_ONLY software checks and establish no source utility or HIP readiness.

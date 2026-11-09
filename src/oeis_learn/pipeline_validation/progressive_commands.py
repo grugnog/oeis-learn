@@ -638,3 +638,65 @@ def oeis_cycle(root, output, campaign, manager, request, journal, **kwargs):
     from .progressive_oeis import run_cycle
 
     return run_cycle(root, output, campaign, manager, request, journal, **kwargs)
+
+
+def prepare_source_pilot(sources, roles):
+    """Outcome-blind custodian feasibility gate; never buys new source support."""
+    from oeis_learn.generalization.progressive.sources import pilot_support
+    return pilot_support(sources,roles)
+
+
+def source_pilot_cycle(worker, prompts, truth, *, client, seed, base_targets, arm,
+                       feasibility, sources, roles, transaction, seconds=4, max_tokens=64):
+    """Installed pilot adapter using shared sampler, admission, learner and scorer.
+
+    Invoke only inside the frozen assisted task. The generator receives prompts
+    alone; nine-term truth is passed solely to admission/scoring. Lack of accepted
+    yield is an explicit bounded outcome, never grounds for expanding the source.
+    """
+    from oeis_learn.generalization.progressive.contracts import digest
+    from oeis_learn.generalization.progressive.short_profile import admit
+    from oeis_learn.pipeline_validation.progressive_evaluation import generate_short,score_short
+    from oeis_learn.pipeline_validation.progressive_training import short_update
+    from oeis_learn.generalization.progressive.sources import pilot_support
+    if (feasibility!=pilot_support(sources,roles) or feasibility.get('status')!='ELIGIBLE'
+        or arm not in {'with_source','without_source'} or len(base_targets)!=16
+        or worker.recovery.task['track']!='external_assisted'):
+        raise ValueError('eligible frozen assisted pilot and matched support required')
+    if len(prompts)!=len(truth) or len(prompts)>8: raise ValueError('frozen short roster required')
+    permitted=[dict(indices=list(map(str,range(9))),values=s['values']) for s,r in zip(sources,roles) if r=='training']
+    from oeis_learn.generalization.progressive.short_profile import visible
+    if any(t not in permitted or p!=visible(t) for p,t in zip(prompts,truth)):
+        raise ValueError('pilot generation/admission restricted to frozen training sources')
+    from oeis_learn.generalization.progressive.budgets import KEYS
+    import time
+    charge=dict.fromkeys(KEYS,0)
+    charge.update(tokens=len(prompts)*max_tokens,draws=len(prompts),attempts=2*len(prompts),
+                  rejections=len(prompts),native_work=2*len(prompts))
+    remaining=worker.recovery.journal.task_remaining(worker.recovery.task)
+    if any(charge[k]>remaining[k] for k in KEYS): raise TimeoutError('source pilot work exhausted')
+    event=worker.recovery.journal.reserve(worker.recovery.p['id'],'source-pilot',worker.recovery.sequence(),
+        charge,boot=transaction['boot'],monotonic_us=transaction['monotonic_us'])
+    worker.recovery.journal.commit(event['key'])
+    generated=generate_short(worker.runner.encoder,worker.runner.decoder,prompts,
+                             seed=seed,seconds=seconds,max_tokens=max_tokens)
+    accepted=[];scores=[]
+    for i,c in enumerate(generated):
+        if c['complete'] and c['source']:
+            target=admit(c['source'],truth[i],member=digest(prompts[i]),client=client,
+                         purpose=worker.recovery.task['purpose'])
+            scores.append(score_short(c['source'],truth[i],client=client))
+            if target: accepted.append(target)
+    if arm=='with_source' and not accepted:
+        return seal(dict(version='progressive-source-cycle/v1',status='YIELD_DEFICIT',
+            candidates=generated,scores=scores,accepted=0,primary_scaling_eligible=False))
+    targets=list(base_targets)
+    if arm=='with_source':
+        for count in range(1,17):
+            chosen=[accepted[i%len(accepted)] for i in range(count)]
+            targets=chosen+list(base_targets[count:])
+            if 4*sum(len(t['tokens']) for t in chosen)>=sum(len(t['tokens']) for t in targets): break
+    result,_=short_update(worker,targets,**transaction)
+    return seal(dict(version='progressive-source-cycle/v1',status='COMPLETE',
+        candidates=generated,scores=scores,accepted=len(accepted),update=result,
+        primary_scaling_eligible=False))

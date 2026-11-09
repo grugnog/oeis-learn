@@ -67,10 +67,79 @@ def pilot_support(sources, roles):
     return seal(
         dict(
             version="progressive-source-feasibility/v1",
+            sources=digest(sources),
+            roles=list(roles),
             groups=counts,
             deficits=deficits,
             status="ELIGIBLE" if not any(deficits.values()) else "SOURCE_DEFICIT",
             primary_scaling_eligible=False,
+            track="external_assisted",
+        )
+    )
+
+
+def suitability(
+    family,
+    *,
+    facts,
+    references,
+    indexing,
+    representation,
+    relations,
+    finite_support,
+    verification,
+    estimated_work,
+    snapshot=None,
+    use_conditions=None,
+):
+    """Analysis-only decision producer; researched facts never fill runtime inputs."""
+    if family not in {"FindStat/Sage", "LMFDB/Cremona", "KnotInfo/Dartmouth"}:
+        raise ValueError("registered suitability family required")
+    if (
+        not facts
+        or not references
+        or any(type(s) is not str or not s.strip() for s in facts + references)
+        or any(not s.startswith("https://") for s in references)
+        or type(estimated_work) is not int
+        or estimated_work < 0
+    ):
+        raise ValueError("sourced facts and explicit verification cost required")
+    unresolved = []
+    if snapshot is None:
+        unresolved.append("immutable_snapshot_bytes_and_hash")
+    if not use_conditions:
+        unresolved.append("approved_access_and_use_conditions")
+    for k, v in [
+        ("indexing", indexing),
+        ("representation", representation),
+        ("relations", relations),
+        ("finite_support", finite_support),
+        ("independent_verification", verification),
+    ]:
+        if not v:
+            unresolved.append(k)
+    compatible = (
+        representation == "exact_integer_totals"
+        and indexing == "collection-size"
+        and family == "FindStat/Sage"
+    )
+    return seal(
+        dict(
+            version="progressive-source-suitability/v1",
+            family=family,
+            facts=facts,
+            references=references,
+            indexing=indexing,
+            representation=representation,
+            relations=relations,
+            finite_support=finite_support,
+            verification=verification,
+            estimated_work=estimated_work,
+            snapshot=snapshot,
+            use_conditions=use_conditions,
+            unresolved=unresolved,
+            disposition="CANDIDATE_PENDING_FREEZE" if compatible else "NEW_PROFILE_REQUIRED",
+            executable=False,
             track="external_assisted",
         )
     )
