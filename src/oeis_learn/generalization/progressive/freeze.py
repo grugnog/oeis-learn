@@ -438,7 +438,7 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
                 if request.get('operation')=='train' and item['artifact']['path'] in request.get('artifacts',{}).get('training',[]):targets.append(plan)
             candidates=[materialize(package,plan) for plan in targets] or [package]
             for expanded in {p['identity']:p for p in candidates}.values():
-                validate_input(expanded,{'purpose':runtime['purpose'],'payload':{'seed':expanded['profile']['model']['seed'],'initializer':dict(compatibility=compatibility(expanded),mode='full_state' if 'full_state' in expanded else 'weights_only' if 'weights' in expanded else 'random',artifact=expanded.get('weights',expanded.get('full_state',{}).get('artifact')))}},allow_pending=True)
+                validate_input(expanded,{'purpose':runtime['purpose'],'track':track,'payload':{'arm':next((p['arm'] for p in task_plans if p['initializer']['compatibility']==compatibility(expanded)),'without_source'),'seed':expanded['profile']['model']['seed'],'initializer':dict(compatibility=compatibility(expanded),mode='full_state' if 'full_state' in expanded else 'weights_only' if 'weights' in expanded else 'random',artifact=expanded.get('weights',expanded.get('full_state',{}).get('artifact')))}},allow_pending=True)
                 from .supply import plan as supply_plan
                 for task_plan in targets:
                     if task_plan['initializer']['compatibility']==compatibility(expanded):

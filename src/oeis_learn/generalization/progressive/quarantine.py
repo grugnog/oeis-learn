@@ -186,7 +186,7 @@ class Journal:
         # register rechecks closure while holding the write lock.
         self.register(pending)
 
-    def checkpoint(self, record, *, previous=None):
+    def checkpoint(self, record, *, previous=None, entries=(), weights=None):
         cuts = record["payload"]["cuts"]
         graph, _, _, _ = self.read()
         known = {n["id"] for n in graph}
@@ -206,11 +206,36 @@ class Journal:
             update = digest(["consumed_update", cuts["consumed"], sorted(parents)])
             nodes.append(dict(id=update, kind="consumed_update", parents=sorted(set(parents))))
             parents = [update]
+        known = {n['id'] for n in graph}
+        consumed = sorted(set(entries) & known)
+        if consumed:
+            update = digest(['exact-consumed-update',record['identity'],consumed])
+            nodes.append(dict(id=update,kind='consumed_update',parents=consumed))
+            parents.append(update)
         if previous is not None:
             parents.append(previous["identity"])
         self.require_clean(parents)
         nodes.append(dict(id=record["identity"], kind="checkpoint", parents=sorted(set(parents))))
         self.observe(nodes)
+        if weights is not None:
+            path=self.root/'weights'/weights[7:]/(record['identity'][7:]+'.json')
+            value=seal(dict(checkpoint=record['identity'],weights=weights))
+            if path.exists():
+                if load(path)!=value:raise ValueError('changed checkpoint weight binding')
+            else:
+                from .storage import StorageGuard
+                StorageGuard([self.root],max_bytes=64<<20,max_inodes=MAX_NODES*4).check(512,3)
+                atomic_write(path,value)
+
+    def weight_checkpoints(self, weights):
+        result=[]
+        for path in (self.root/'weights'/weights[7:]).glob('*.json'):
+            value=load(path)
+            if (set(value)!={'identity','checkpoint','weights'} or seal(value)!=value
+                    or value['weights']!=weights or path.stem!=value['checkpoint'][7:]):
+                raise ValueError('checkpoint weight binding differs')
+            result.append(value['checkpoint'])
+        return sorted(result)
 
     def training(self, package):
         nodes = []
@@ -218,10 +243,15 @@ class Journal:
         def add(identity, kind, parents=()):
             nodes.append(dict(id=identity, kind=kind, parents=sorted(set(parents))))
 
+        for shard in package.get('shards',[]):
+            for row in shard:
+                add(row['draw_identity'],'target')
+                self.bind_source(row['draw_identity'],row['source'],row['indices'])
         replay = package.get("oeis_replay")
         if replay and replay["archive"]:
             for a in replay["admissions"]:
                 add(a["identity"], "target")
+                self.bind_source(a['identity'],a['payload']['source'],a['payload']['indices'])
             add(
                 replay["archive"]["identity"],
                 "archive",
@@ -240,6 +270,7 @@ class Journal:
             add(lib["identity"], "library", origins)
             for t in component["targets"]:
                 add(t["identity"], "target", [lib["identity"]])
+                self.bind_source(t['identity'],t['row']['source'],t['row']['indices'])
             from .component_distillation import ComponentMixer
 
             add(
@@ -250,11 +281,38 @@ class Journal:
         self.observe(nodes)
         self.require_clean([n["id"] for n in nodes])
 
-    def dossier(self, value, *, checkpoints):
+    def dossier(self, value, *, checkpoints, library_identity=None):
         """Bind review artifacts to their declared checkpoint/library producers."""
         parents = list(checkpoints)
         library = value["payload"].get("library")
         if library is not None:
-            parents.append(library["sha256"])
+            parents.append(library_identity or library['sha256'])
         self.observe([dict(id=value["identity"], kind="dossier", parents=sorted(set(parents)))])
         return dict(dossier=value["identity"], invalidated=value["identity"] in self.read()[1])
+
+    def bind_source(self, identity, source, indices):
+        value=seal(dict(identity_key=identity,source=source,indices=indices))
+        path=self.root/'sources'/(digest(identity)[7:]+'.json')
+        if path.exists():
+            if load(path)!=value:raise ValueError('changed target source binding')
+        else:
+            from .storage import StorageGuard
+            import json
+            StorageGuard([self.root],max_bytes=64<<20,max_inodes=MAX_NODES*4).check(len(json.dumps(value).encode())+64,3)
+            atomic_write(path,value)
+
+    def refute_dossier(self, value, *, evidence):
+        counterexamples=value['payload']['counterexamples']
+        if not counterexamples:return None
+        indices={c['index'] for c in counterexamples}
+        roots=[value['identity']]
+        for path in sorted((self.root/'sources').glob('*.json')):
+            entry=load(path)
+            if seal(entry)!=entry:raise ValueError('target source binding differs')
+            if entry['source']==value['payload']['source'] and indices.intersection(entry['indices']):
+                roots.append(entry['identity_key'])
+        affected=set()
+        import json
+        for i in range(0,len(roots),256):
+            affected.update(self.refute(roots[i:i+256],reason=json.dumps(dict(evidence=evidence,dossier=value['identity'])))['affected'])
+        return dict(roots=sorted(roots),affected=sorted(affected))

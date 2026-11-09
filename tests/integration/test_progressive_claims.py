@@ -163,7 +163,7 @@ def native_review_inputs(root, client, *, already_proved=False, invalid=False):
 
 @pytest.mark.parametrize("already_proved", [False, True])
 def test_installed_wheel_replays_proof_with_native_execution_and_prepaid_work(
-    tmp_path, fitting_client, installed_lifecycle, already_proved
+    tmp_path, fitting_client, installed_lifecycle, already_proved  # noqa: F811
 ):
     from oeis_learn.generalization.progressive.contracts import load
     from oeis_learn.generalization.progressive.claims import validate_dossier
@@ -250,3 +250,58 @@ def test_proof_review_refuses_insufficient_reservation_before_dispatch(tmp_path,
         RoleWorkBudget(authority, "review-claim", values, tmp_path / "never")
     assert journal.path.read_bytes() == before
     assert not (tmp_path / "never").exists()
+
+
+def test_installed_counterexample_quarantines_consumed_checkpoint_and_dossier(tmp_path, fitting_client, monkeypatch):
+    from oeis_learn.pipeline_validation.progressive_acceptance import fixture,invoke_cpu
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.generalization.progressive.quarantine import Journal
+    from oeis_learn.generalization.progressive.claims import seal_candidate,create_dossier
+    from oeis_learn.generalization.progressive.projections import project
+    from oeis_learn.pipeline_validation.progressive_roles import REGISTRY
+    from tests.contract.test_progressive_roles import artifact
+    from tests.unit.test_progressive_budgets import role_authority
+    from oeis_learn.pipeline_validation.progressive_role import execute
+    from oeis_learn.pipeline_validation.progressive_quarantine_control import reconcile
+    from oeis_learn.generalization.progressive.recovery import Recovery
+    c,tasks,channel,_=fixture(tmp_path/'learn',interrupt=False)
+    result,out=invoke_cpu(tmp_path/'learn',c,tasks[0],channel,ordinal=0)
+    assert result['mechanical_status']=='COMPLETE'
+    journal_root=tmp_path/'learn/accounting'
+    q=Journal(journal_root)
+    binding=next((q.root/'sources').glob('*.json'))
+    source=load(binding)['source']
+    checkpoint=load(out/'role/checkpoint.json')
+    state=tmp_path/'learn/learning'/tasks[0]['identity'][7:]/'checkpoints'
+    full=load(state/checkpoint['payload']['full_state']['path'])
+    weights=full['states']['weights']['sha256']
+    review=tmp_path/'review';review.mkdir()
+    atomic_write(review/'snapshot.json',{'source':'explicit diagnostic counterexample panel'})
+    selection=seal(dict(version='discovery-candidates/v1',model=digest('model'),checkpoint=weights,
+        model_control='retained_D',recipe=digest('recipe'),methods=['correct'],prompts=digest('visible'),clock={},counts={},elapsed_us=1,
+        records={'candidate':dict(selections={'equal_budget':dict(selected=dict(source=source,verified=True))},costs={})}))
+    atomic_write(review/'selection.json',selection)
+    candidate=seal_candidate(review,reference(review,'selection.json'),'candidate',source_snapshot=reference(review,'snapshot.json'),offset='0',
+        budget={k:1 for k in c['payload']['caps']},output='candidate.json',purpose='acceptance',track='synthetic_strict')
+    dossier=create_dossier(review,candidate,indices=list(map(str,range(100))),expected=['0']*100,output='original.json',client=fitting_client)
+    values=[artifact(review,'dossier-channel.json','sealed_dossier','review',dossier),
+            artifact(review,'claim-channel.json','review_evidence','review',dict(claim=dossier['payload']['claim']))]
+    project(review,'inputs','review-claim',{'dossier':values},registry=REGISTRY)
+    authority,_,_=role_authority(review,'review-claim',[load(review/v.ref['path']) for v in values],useful_us=30000000)
+    atomic_write(review/'authority.json',authority)
+    reviewed=execute('review-claim',inputs=review/'inputs',output=review/'output',authority=review/'authority.json')
+    assert reviewed['mechanical_status']=='COMPLETE'
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    journal=BudgetJournal(journal_root,c['identity'],c['payload']['caps'])
+    before=journal.path.read_bytes()
+    overlay=reconcile(tmp_path,review/'output',reviewed,journal)
+    assert checkpoint['identity'] in overlay['affected']
+    graph,affected,_,_=q.read()
+    assert reviewed['metrics']['dossier'] in affected
+    assert all(n['id'] in affected for n in graph if n['kind']=='checkpoint' and checkpoint['identity'] in n['parents'])
+    with Recovery(journal,tasks[0],checkpoint['payload']['compatibility'],state_root=state.parent) as owner:
+        with pytest.raises(ValueError,match='quarantined'):owner.restore()
+    assert journal.path.read_bytes()==before
+    q.observe([dict(id='clean-ancestor',kind='checkpoint',parents=[])])
+    assert q.recovery([checkpoint['identity'],'clean-ancestor'],spent={'tokens':17})['checkpoint']=='clean-ancestor'
+    assert q.recovery([checkpoint['identity']],spent={'tokens':17})['status']=='CONTAMINATED'

@@ -415,7 +415,7 @@ def role_work_requirements(operation, values):
         n = validate_policy(policies[0])["max_work_units"]
         costs.update(draws=n, rejections=n, attempts=n, native_work=n)
     elif operation == "generate":
-        n = sum(v["kind"] == "visible_prompt" for v in values)
+        n = sum(v['kind'] in {'visible_prompt','short_prompt'} for v in values)
         if not n:
             raise ValueError("nonempty bounded generation roster required")
         components = any(v["kind"] == "library" for v in values)
@@ -443,13 +443,14 @@ def role_work_requirements(operation, values):
             # replay: each symbolic attempt has fixed node/coefficient/work caps.
             costs.update(attempts=5, rejections=5)
     elif operation in {"score", "assess"}:
-        n = sum(v["kind"] in {"development_truth", "confirmation_truth", "assessment_truth"} for v in values)
+        n = sum(v["kind"] in {"development_truth", "confirmation_truth", "assessment_truth", "short_score_truth"} for v in values)
         if not n:
             raise ValueError("nonempty bounded scoring roster required")
         costs.update(attempts=8 * n, rejections=8 * n, native_work=8 * n)
     elif operation == "admit-training":
-        costs.update(attempts=1, rejections=1, native_work=2)
-        if any(v["kind"] == "component_training_request" for v in values):
+        n=max(1,sum(v['kind']=='short_training_truth' for v in values))
+        costs.update(attempts=n, rejections=n, native_work=2*n)
+        if any(v['kind'] in {'component_training_request','component_proposal'} for v in values):
             from .component_search import EXPANSION_WORK
 
             costs["native_work"] += EXPANSION_WORK

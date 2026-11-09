@@ -53,6 +53,9 @@ def _execute(
         if operation in WORK_ROLES
         else None
     )
+    if operation in {'generate','admit-training','score'} and any(v['kind'].startswith('short_') for v in values):
+        from .progressive_short_roles import execute as short_execute
+        return short_execute(operation,inputs,output,values,authority,budget)
     if operation == 'source-pilot':
         from oeis_learn.generalization.progressive.sources import pilot_support
         if len(values) != 1 or values[0]['kind'] != 'source':
@@ -83,7 +86,8 @@ def _execute(
                        scientific_status=result['decision'],reason=result['status'],missing=result['missing'],
                        metrics={'verification':reference(output,'verification.json')})
     if operation == "train":
-        if len(values) != 1 or values[0]["kind"] != "training_request":
+        if (sum(v['kind']=='training_request' for v in values)!=1
+                or any(v['kind'] not in {'training_request','library','admitted_target'} for v in values)):
             raise ValueError("one frozen training-only request required")
         from oeis_learn.generalization.progressive.contracts import verify_refs
         from oeis_learn.generalization.progressive.projections import _validate_channel
@@ -91,12 +95,15 @@ def _execute(
 
         from .progressive_learner import compatibility, run
 
-        data = values[0]["data"]
+        data = next(v['data'] for v in values if v['kind']=='training_request')
         _validate_channel("training_request", data)
         verify_refs(inputs / "training", [data["artifact"]], max_bytes=256 << 20)
         package = load(confined(inputs / "training", data["artifact"]["path"]), maximum=256 << 20)
         if data["compatibility"] != compatibility(package):
             raise ValueError("typed training compatibility differs")
+        if len(values)>1:
+            from .progressive_component_flow import training_input
+            package=training_input(inputs/'training',package,values,load(authority,maximum=32<<20)['task'])
         return run(
             package,
             load(authority,maximum=32<<20),
@@ -107,6 +114,10 @@ def _execute(
             predecessor_state=predecessor_state,
             initializer_root=inputs / "training",
         )
+    if operation == "admit-training" and any(v['kind']=='component_proposal' for v in values):
+        if {v['kind'] for v in values} == {'component_proposal','training_continuation','library'} and len(values)==3:
+            from .progressive_component_flow import admission_request
+            values=admission_request(inputs/'admission_truth',values)
     if operation == "admit-training" and any(
         v["kind"] == "component_training_request" for v in values
     ):
@@ -137,7 +148,7 @@ def _execute(
             operation=operation,
             mechanical_status="COMPLETE",
             reason="FINITE_COMPONENT_TRAINING_ADMISSION",
-            metrics={"target": target["identity"]},
+            metrics={"target": reference(output,output/'component-target.json')},
         )
     if operation == "admit-training":
         if any(v["kind"] not in {"candidate", "training_continuation"} for v in values):
@@ -251,7 +262,7 @@ def _execute(
             if library["payload"]["components"]
             else "NO_SUPPORTED_COMPONENT",
             metrics=dict(
-                library=library["identity"],
+                library=reference(output,output/'search-library.json'),
                 components=len(library["payload"]["components"]),
                 scientific_status="UNMEASURED",
                 charged_mining_work=store.spent(),
@@ -296,22 +307,34 @@ def _execute(
             ):
                 raise ValueError("review native execution disagrees with original dossier")
         # Publication is separate from the read-only input root.
-        reviewed = review_dossier(
-            inputs / "dossier",
-            value,
-            requests[0]["claim"],
-            reviewers=reviewers,
-            output=None,
-            budget=budget,
-        )
+        review_error=None
+        try:
+            reviewed = review_dossier(inputs/'dossier',value,requests[0]['claim'],reviewers=reviewers,output=None,budget=budget)
+        except ValueError as exc:
+            if not value['payload']['counterexamples']:raise
+            reviewed=value
+            review_error=exc
+        from oeis_learn.pipeline_validation.identity import confined
+        from oeis_learn.generalization.progressive.claims import references
+        from oeis_learn.generalization.progressive.contracts import verify_refs
+        for ref in references(inputs/'dossier',reviewed):
+            raw=verify_refs(inputs/'dossier',[ref],max_bytes=512<<20)[0]
+            path=confined(output,ref['path'],exists=False)
+            path.parent.mkdir(parents=True,exist_ok=True)
+            if path.exists():
+                if path.read_bytes()!=raw:raise ValueError('review closure collision')
+            else:
+                with path.open('xb') as stream:stream.write(raw)
         atomic_write(output / "dossier.json", reviewed)
         return publish(
             output,
             operation=operation,
-            mechanical_status="COMPLETE",
-            reason="SCOPED_DOSSIER_REVIEW",
+            mechanical_status='FAILED' if review_error else 'COMPLETE',
+            reason='REFUTED_CLAIM_PROMOTION_DENIED' if review_error else 'SCOPED_DOSSIER_REVIEW',
+            producer_error=__import__('oeis_learn.pipeline_validation.progressive_evidence',fromlist=['safe_failure']).safe_failure(review_error,producer='review-claim') if review_error else None,
             metrics={
                 "dossier": reviewed["identity"],
+                "dossier_record": reference(output,output/'dossier.json'),
                 "statement": reviewed["payload"]["claim"]["statement"],
                 "novelty": reviewed["payload"]["claim"]["novelty"],
                 "training_eligible": False,
@@ -462,6 +485,8 @@ def _execute(
             )
         from .progressive_evidence import generation_timing
 
+        from .progressive_component_flow import generated_proposals
+        generated_proposals(output,load(confined(output,artifact['path']),maximum=512<<20),prompts,deadline=budget.deadline)
         timing = generation_timing(load(confined(output, artifact["path"]), maximum=512 << 20))
         atomic_write(output / "timing.json", timing)
         return publish(
@@ -469,7 +494,8 @@ def _execute(
             operation=operation,
             mechanical_status="COMPLETE",
             reason="SEALED_VISIBLE_CANDIDATES",
-            metrics={"candidates": artifact, "evaluation": artifact, "timing": reference(output, output / "timing.json")},
+            metrics={"candidates": artifact, "evaluation": artifact, "timing": reference(output, output / "timing.json"),
+                     "component_proposals": reference(output,output/'component-proposals.json')},
         )
     if operation in {"score", "assess"}:
         allowed = {"candidate", "assessment_truth", "locked_selection"} if operation == "assess" else {"candidate", "development_truth", "confirmation_truth"}

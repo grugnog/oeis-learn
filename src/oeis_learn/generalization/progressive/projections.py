@@ -27,11 +27,11 @@ CHANNELS = {
         "full_state",
         "library",
     },
-    "visible": {"visible_prompt"},
-    "model": {"checkpoint", "recipe", "library", "oeis_generation"},
-    "candidates": {"candidate", "component_proposal"},
-    "admission_truth": {"training_continuation", "component_training_request"},
-    "score_truth": {"development_truth", "confirmation_truth"},
+    "visible": {"visible_prompt", "short_prompt"},
+    "model": {"checkpoint", "recipe", "library", "oeis_generation", "short_policy"},
+    "candidates": {"candidate", "component_proposal", "short_candidates"},
+    "admission_truth": {"training_continuation", "component_training_request", "library", "short_training_truth"},
+    "score_truth": {"development_truth", "confirmation_truth", "short_score_truth"},
     "assessment_truth": {"assessment_truth"},
     "selection": {"locked_selection"},
     "search": {"search_space", "development_scalar"},
@@ -104,6 +104,7 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
             "checkpoint",
             "recipe",
             "training_request",
+            "admitted_target",
             "verified_training_archive",
             "typed_training_source",
             "library",
@@ -222,6 +223,7 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                     "checkpoint",
                     "recipe",
                     "training_request",
+                    "admitted_target",
                     "verified_training_archive",
                     "typed_training_source",
                     "library",
@@ -275,6 +277,10 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
 
 
 def _validate_channel(kind, data):
+    if kind in {'short_prompt','short_policy','short_candidates','short_training_truth','short_score_truth'}:
+        from oeis_learn.pipeline_validation.progressive_short_roles import validate_channel
+        validate_channel(kind,data)
+        return
     if kind == "component_policy":
         from .component_mining import validate_policy
         from .contracts import _check, schema

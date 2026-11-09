@@ -6,7 +6,7 @@ from pathlib import Path
 import zipfile
 from .contracts import digest, seal, verify_refs, _check, schema
 
-KINDS = ("roster", "outcomes", "accounting", "ancestry", "qualifications")
+KINDS = ("roster", "outcomes", "accounting", "ancestry", "qualifications", "observations", "comparisons", "authorities")
 MAX_BYTES = 512 << 20
 MAX_PART = 4 << 20
 MAX_ROWS = 262144
@@ -51,8 +51,17 @@ def validate_rows(kind, rows):
             "receipt",
         },
     }
+    if kind in {'observations','comparisons','authorities'}:
+        for row in rows:
+            expected={'observations':{'producer','data'},'comparisons':{'id','rows','roster','seeds','design','verdict','action'},'authorities':{'artifact','raw'}}[kind]
+            if not isinstance(row,dict) or set(row)!=expected:raise ValueError('closed public auxiliary row required')
+            if len(encoded(row))>MAX_PART:raise ValueError('public auxiliary row byte cap')
+            if kind=='observations':
+                _hash(row['producer'])
+                if not isinstance(row['data'],dict):raise ValueError('closed numeric observation required')
+        return rows
     for r in rows:
-        if type(r) is not dict or set(r) != fields[kind]:
+        if type(r) is not dict or set(r)-({'resources'} if kind=='accounting' else set()) != fields[kind]:
             raise ValueError("closed public table row required")
         for k in ("task", "group", "child", "parent", "identity", "source"):
             if k in r:
@@ -81,6 +90,10 @@ def validate_rows(kind, rows):
             or r["outcome"] not in {"success", "failure", "unresolved"}
         ):
             raise ValueError("unknown outcome")
+        if kind=='accounting' and 'resources' in r:
+            from .budgets import vector
+            if set(r['resources'])!={'spent','caps'}:raise ValueError('closed resource accounting required')
+            vector(r['resources']['spent']);vector(r['resources']['caps'])
         if kind == "accounting" and r["arm"] not in {"baseline", "candidate"}:
             raise ValueError("closed accounting arm required")
         if kind == "ancestry" and r["relation"] not in {
@@ -206,11 +219,19 @@ def build(root, destination, request, *, max_bytes=MAX_BYTES):
             docs[f"tables/{kind}-{i:04d}.json"] = encoded(part)
     if row_count > MAX_ROWS:
         raise ValueError("report total row budget")
+    trace_missing=[]
+    for e in [request['producer_error'],*request['collector_errors']]:
+        if not e or e['local_traceback'] is None:continue
+        ref=e['local_traceback']
+        try:
+            raw=verify_refs(root,[ref],max_bytes=64<<10)[0]
+            docs['errors/'+ref['sha256'][7:]+'.txt']=raw
+        except (ValueError,OSError):trace_missing.append('traceback:'+ref['sha256'])
     inventory = [
         dict(path=n, bytes=len(b), sha256="sha256:" + hashlib.sha256(b).hexdigest())
         for n, b in sorted(docs.items())
     ]
-    missing = sorted(set(request["scope"]["required"]) - set(request["tables"]))
+    missing = sorted((set(request['scope']['required'])-set(request['tables'])) | set(trace_missing))
     manifest = seal(
         dict(
             version="progressive-report/v1",
@@ -311,7 +332,7 @@ def validate_producer(value, row):
 
 def terminal_request(root, folder):
     """Preserve every terminal path even when scientific tables were never produced."""
-    from .contracts import load, reference, atomic_write
+    from .contracts import load
 
     result = load(Path(folder) / "result.json")
     if seal(result) != result:

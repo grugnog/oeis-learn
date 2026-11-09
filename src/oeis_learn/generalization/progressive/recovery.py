@@ -159,8 +159,7 @@ class Recovery:
         become preparation and cannot buy a fresh initialization or refund work.
         """
         if (
-            self.task["track"] != "oeis_derived"
-            or self.p["stage"] != "oeis"
+            (self.task['track'],self.p['stage']) not in {('oeis_derived','oeis'),('external_assisted','source_pilot')}
             or not getattr(self, "clock", {}).get("external")
         ):
             return False
@@ -265,7 +264,12 @@ class Recovery:
         self.store.load(record)  # verify complete reference/tensor closure before commit
         from .quarantine import Journal
 
-        Journal(self.journal.root).checkpoint(record, previous=self.state["checkpoint"])
+        pending=self.state.get('pending')
+        batch=pending['batch'] if pending else []
+        entries=batch.get('entries',[]) if isinstance(batch,dict) else batch
+        full=load(self.store.root/record['payload']['full_state']['path'])
+        Journal(self.journal.root).checkpoint(record, previous=self.state['checkpoint'],entries=entries,
+                                              weights=full['states']['weights']['sha256'])
         return record
 
     def restore(self):

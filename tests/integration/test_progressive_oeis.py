@@ -266,7 +266,6 @@ def test_cycle_resume_reuses_committed_native_phases_and_original_charges(tmp_pa
     from tests.helpers.progressive_oeis_fixture import fixture
     from oeis_learn.generalization.progressive.budgets import BudgetJournal
     from oeis_learn.pipeline_validation.progressive_oeis import Cycle, run_cycle
-    from oeis_learn.generalization.progressive.contracts import load
     c,m,request,_=fixture(tmp_path)
     j=BudgetJournal(tmp_path/'run-state/discovery-accounting'/c['identity'][7:],c['identity'],c['payload']['caps'])
     original=Cycle.phase
@@ -293,3 +292,25 @@ def test_cycle_resume_reuses_committed_native_phases_and_original_charges(tmp_pa
     final=j.path.read_bytes()
     assert run_cycle(tmp_path,tmp_path/'third',c,m,request,j)==result
     assert j.path.read_bytes()==final
+
+
+def test_canonical_prepare_freeze_run_resume_oeis_deficit(tmp_path,monkeypatch,fitting_client,capsys):
+    from tests.helpers.progressive_host_cycle import freeze_inputs,accept_prior_stages
+    from oeis_learn.pipeline_validation.progressive_commands import main
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.pipeline_validation import progressive_commands as commands
+    from oeis_learn.pipeline_validation.progressive_oeis import run_cycle
+    from types import SimpleNamespace
+    prefix=freeze_inputs(tmp_path,monkeypatch,low=True)
+    assert main(SimpleNamespace(operation='prepare',blueprint='cycle-blueprint.json',qualification='qualification',output='prepared-cycle'),tmp_path,None)==0
+    assert main(SimpleNamespace(operation='freeze',blueprint='cycle-blueprint.json',prepared='prepared-cycle',qualification='qualification',output='frozen-cycle'),tmp_path,None)==0
+    c=load(tmp_path/'frozen-cycle/campaign.json')
+    accept_prior_stages(tmp_path,c,prefix,monkeypatch)
+    monkeypatch.setattr(commands,'oeis_cycle',lambda root,output,campaign,manager,request,journal,**kw:run_cycle(root,output,campaign,manager,request,journal))
+    result=main(SimpleNamespace(operation='run',campaign='frozen-cycle/campaign.json',acceptance='accepted',output='run-cycle'),tmp_path,lambda a:object())
+    assert result==2
+    assert load(tmp_path/'run-cycle/result.json')['reason']=='OEIS_YIELD_DEFICIT'
+    journal=tmp_path/'run-state/discovery-accounting'/c['identity'][7:]/'budget.jsonl'
+    before=journal.read_bytes()
+    assert main(SimpleNamespace(operation='resume',run='run-cycle',output='resumed-cycle'),tmp_path,lambda a:object())==2
+    assert journal.read_bytes()==before

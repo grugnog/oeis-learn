@@ -115,10 +115,13 @@
               "outcomes",
               "accounting",
               "ancestry",
-              "qualifications"
+              "qualifications",
+              "observations",
+              "comparisons",
+              "authorities"
             ]
           },
-          "maxItems": 5,
+          "maxItems": 8,
           "uniqueItems": true
         },
         "qualification_scopes": {
@@ -178,6 +181,21 @@
           "maximum": 262144
         },
         "qualifications": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144
+        },
+        "observations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144
+        },
+        "comparisons": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144
+        },
+        "authorities": {
           "type": "integer",
           "minimum": 0,
           "maximum": 262144

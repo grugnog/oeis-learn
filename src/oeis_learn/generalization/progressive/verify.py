@@ -4,7 +4,6 @@ from collections import Counter, defaultdict
 from fractions import Fraction as F
 import hashlib
 import json
-import math
 from pathlib import Path
 import random
 import stat
@@ -236,7 +235,7 @@ def verify(path, *, max_bytes=MAX_BYTES):
             import re
 
             match = re.fullmatch(
-                r"tables/(roster|outcomes|accounting|ancestry|qualifications)-[0-9]{4}\.json", name
+                r"tables/(roster|outcomes|accounting|ancestry|qualifications|observations|comparisons|authorities)-[0-9]{4}\.json", name
             )
             if name == "authority/scope.json":
                 blob = z.read(name)
@@ -246,6 +245,11 @@ def verify(path, *, max_bytes=MAX_BYTES):
                 ):
                     raise ValueError("frozen scope bytes differ")
                 scope_authority = _json(blob)
+                continue
+            if re.fullmatch(r'errors/[0-9a-f]{64}\.txt',name):
+                raw=z.read(name)
+                if len(raw)>64<<10 or 'sha256:'+hashlib.sha256(raw).hexdigest()!=r['sha256'] or name!='errors/'+r['sha256'][7:]+'.txt':
+                    raise ValueError('original producer traceback differs')
                 continue
             producer_name = re.fullmatch(r"producers/[0-9a-f]{64}\.json", name)
             if (
@@ -262,11 +266,13 @@ def verify(path, *, max_bytes=MAX_BYTES):
             else:
                 tables[match[1]].extend(validate_rows(match[1], _json(blob)))
     if (
-        m["summary"] != {k: len(v) for k, v in tables.items()}
+        m["summary"] != {k:len(v) for k,v in tables.items() if k in m['summary'] or v}
         or sum(map(len, tables.values())) > 262144
     ):
         raise ValueError("forged table count")
     missing = list(m["missing"])
+    if m['collector_errors']:
+        missing.append('collector_errors')
     if m["campaign_record"] is None or m["scope_record"] is None or scope_authority is None:
         missing.append("frozen_public_scope_authority")
     else:
@@ -328,6 +334,10 @@ def verify(path, *, max_bytes=MAX_BYTES):
             or r["elapsed_cap_us"] != frozen_caps[r["task"]]["elapsed_us"]
         ):
             raise ValueError("accounting ceiling differs from frozen task")
+        if 'resources' in r:
+            resource=r['resources'];limits=frozen_caps[r['task']]
+            if resource['caps']!=limits or any(resource['spent'][k]>limits[k] for k in limits):raise ValueError('resource accounting differs from frozen caps')
+            if resource['spent']['tokens']!=r['tokens'] or resource['spent']['elapsed_us']!=r['elapsed_us']:raise ValueError('resource totals differ')
         accounting[r["task"]] = r
         measured_costs[r["arm"]] += r["elapsed_us"]
     missing.extend("accounting:" + t for t in m["scope"]["tasks"] if t not in accounting)
@@ -385,6 +395,24 @@ def verify(path, *, max_bytes=MAX_BYTES):
             m["design"],
             costs=measured_costs if all(measured_costs.values()) else None,
         )
+    authorities=[]
+    frozen_refs=[r['artifact'] for r in m['campaign_record']['payload']['references']] if m['campaign_record'] else []
+    for authority in tables['authorities']:
+        raw=authority['raw'].encode();ref=authority['artifact']
+        if ref not in frozen_refs or len(raw)!=ref['bytes'] or 'sha256:'+hashlib.sha256(raw).hexdigest()!=ref['sha256']:
+            raise ValueError('original public authority differs')
+        authorities.append(_json(raw))
+    for comparison in tables['comparisons']:
+        original=comparison['roster']
+        panels=[a for a in authorities if a.get('version')=='discovery-cohort/v1']
+        designs=[a for a in authorities if a==comparison['design']]
+        expected=[{'task':r['id'],'group':r['groups'][0],'stratum':r['stratum']} for p in panels for r in p['payload']['rows']]
+        if not designs or any(r not in expected for r in original):
+            missing.append('comparison_authority:'+comparison['id'])
+        _,classification=reduce_outcomes(comparison['rows'],original,comparison['seeds'],comparison['design'])
+        if classification!=comparison['verdict']:raise ValueError('comparison verdict differs from independent outcomes')
+        if comparison['action']=='ADVANCE_REGISTERED' and classification not in {'CONFIRMED_GAIN','CONFIRMED_EFFICIENCY'}:
+            raise ValueError('comparison cannot authorize advancement')
     for decision in m["decisions"]:
         if decision["verdict"] != verdict or (
             decision["action"] == "ADVANCE_REGISTERED"

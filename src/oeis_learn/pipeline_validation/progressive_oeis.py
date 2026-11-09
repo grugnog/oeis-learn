@@ -4,7 +4,6 @@ The host only handles sealed records and explicit projections. CPU subprocesses
 are acceptance-only; research uses the existing container supervisor and HIP.
 """
 
-import copy
 import json
 import os
 import subprocess
@@ -19,7 +18,6 @@ from oeis_learn.generalization.progressive.contracts import (
     load,
     reference,
     seal,
-    validate,
     record,
     verify_refs,
 )
@@ -285,7 +283,7 @@ class Cycle:
         if (
             len(refs) != 1
             or _read(root, refs[0]) != request
-            or request["operation"] != "oeis-cycle"
+            or request["operation"] not in {"oeis-cycle","source-cycle"}
             or set(request["artifacts"]) != {"cycle"}
             or len(request["artifacts"]["cycle"]) != 1
         ):
@@ -297,7 +295,10 @@ class Cycle:
             for r in campaign["payload"]["references"]
         ):
             raise ValueError("cycle policy was not frozen")
-        self.pool, self.panels = validate_cycle(root, campaign, self.plan)
+        if request['operation']=='source-cycle':
+            from .progressive_source_cycle import validate_plan
+            self.pool,self.panels=validate_plan(root,campaign,self.plan)
+        else:self.pool, self.panels = validate_cycle(root, campaign, self.plan)
         self.tasks = {
             p["id"]: validate_task(
                 record(
@@ -318,7 +319,7 @@ class Cycle:
             raise ValueError("one frozen owner for every cycle slot required")
         self.ordinal, self.elapsed, self.receipts = 0, 0, []
         self.started = time.monotonic_ns() // 1000
-        marker = journal.root / "oeis-cycle.json"
+        marker = journal.root / (request['operation']+'.json')
         self.replaying = marker.exists()
         if self.replaying:
             original = load(marker)
@@ -351,7 +352,7 @@ class Cycle:
         return str(path.relative_to(self.root))
 
     def phase(self, operation, artifacts, task=None):
-        from .progressive_roles import REGISTRY, invoke
+        from .progressive_roles import invoke
         from oeis_learn.generalization.progressive.projections import describe
 
         task = task or self.manager
@@ -374,11 +375,25 @@ class Cycle:
             self.started -= cut['elapsed_us']
             self.elapsed += cut['elapsed_us']
             self.receipts.append(cut['receipt'])
+            target=confined(self.root,cut['result']['path']).parent.parent
             return result, target, cut['elapsed_us']
-        if target.exists():
-            # An uncommitted phase cannot be assumed completed. The original
-            # supervisor's crash proof must first authorize learner recovery.
-            raise ValueError('uncommitted cycle phase requires supervisor recovery proof')
+        self.phase_attempt=0
+        original_target=target
+        while target.exists():
+            if operation!='train':
+                raise ValueError('uncommitted non-learning cycle phase has no replay authority')
+            previous=target/'role/result.json'
+            clean_pause=False
+            if previous.is_file():
+                observed=load(previous)
+                clean_pause=(seal(observed)==observed and observed.get('mechanical_status')=='PARTIAL' and observed.get('metrics',{}).get('task_status')=='PAUSED')
+            if not clean_pause:
+                from .progressive_interruption import recover
+                if recover(self.root,self.campaign,task,self.journal,target,RuntimeError('owned cycle interruption'))!='PAUSED':
+                    raise ValueError('uncommitted cycle phase requires supervisor recovery proof')
+            self.phase_attempt+=1
+            if self.phase_attempt>64:raise ValueError('finite cycle recovery attempts exhausted')
+            target=original_target.with_name(original_target.name+'-resume-'+str(self.phase_attempt))
         remaining = self.journal.task_remaining(task)
         seconds = min(
             self.plan["seconds"][operation],
@@ -418,7 +433,7 @@ class Cycle:
                 campaign=self.campaign,
                 task=task,
                 journal=self.journal,
-                ordinal=100000 + self.ordinal,
+                ordinal=100000 + 128*self.ordinal + getattr(self,'phase_attempt',0),
                 reservation=costs,
                 seconds=seconds,
                 runtime=self.runtime,
@@ -487,7 +502,7 @@ class Cycle:
         charge = self.journal.reserve(
             task["payload"]["id"],
             operation,
-            100000 + self.ordinal,
+            100000 + 128*self.ordinal + getattr(self,'phase_attempt',0),
             costs,
             boot=boot,
             monotonic_us=start,
@@ -555,7 +570,7 @@ from oeis_learn.pipeline_validation.progressive_role import execute
 from oeis_learn.pipeline_validation.progressive_evidence import failure
 p=Path(sys.argv[1])
 try:
- r=execute(sys.argv[2],inputs=p/'inputs',output=p/'role',authority=p/'authority.json',accounting=Path(sys.argv[3]),state_root=Path(sys.argv[4]),control=p/'control')
+ r=execute(sys.argv[2],inputs=p/'inputs',output=p/'role',authority=p/'authority.json',accounting=Path(sys.argv[3]),state_root=Path(sys.argv[4]),control=p/'control',component_state=p/'component-state')
 except Exception as exc:
  r=failure(p/'role',sys.argv[2],exc,producer='installed-'+sys.argv[2])
 raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical_status']=='PARTIAL' else 1)

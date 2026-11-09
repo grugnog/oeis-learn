@@ -15,6 +15,10 @@ from .progressive_oeis import _Derived
 
 SLOTS = {
     ("generate", "candidates"): "candidate",
+    ("extract-components", "library"): "library",
+    ("verify-components", "library"): "library",
+    ("generate", "component_proposals"): "component_proposal",
+    ("admit-training", "target"): "admitted_target",
     ("generate", "evaluation"): "public_evidence",
     ("train", "weights"): "checkpoint",
     ("score", "scores"): "public_evidence",
@@ -26,11 +30,13 @@ SLOTS = {
 def slot(value, *, plans, consumer, graph):
     if (
         type(value) is not dict
-        or set(value) != {"task", "operation", "output", "kind"}
+        or set(value) - {'member'} != {"task", "operation", "output", "kind"}
         or (value["operation"], value["output"]) not in SLOTS
         or SLOTS[value["operation"], value["output"]] != value["kind"]
     ):
         raise ValueError("closed typed predecessor output slot required")
+    if ('member' in value) != (value['kind']=='component_proposal') or ('member' in value and (type(value['member']) is not str or not value['member'])):
+        raise ValueError('frozen component proposal member selector required')
     source = next((p for p in plans if p["id"] == value["task"]), None)
     if (
         source is None
@@ -154,6 +160,19 @@ def resolve(root, store, task, request, output):
                     compatibility=p["compatibility"],
                     profile="bigint-body/v1",
                 )
+            if kind == 'library':
+                from oeis_learn.generalization.progressive.component_search import validate_input
+                validate_input(data)
+                if data['library']['purpose'] != task['purpose'] or data['library']['track'] != task['track']:
+                    raise ValueError('committed component library scope differs')
+                data=dict(artifact=reference(root,confined(base,ref['path'])),compatibility=task['payload']['initializer']['compatibility'],profile='progressive-component-search/v1')
+            if kind == 'admitted_target':
+                data=dict(membership='training',artifact=reference(root,confined(base,ref['path'])),profile='bigint-body/v1',compatibility=task['payload']['initializer']['compatibility'])
+            if kind == 'component_proposal':
+                if set(data) != {'version','identity','members'} or seal(data)!=data:
+                    raise ValueError('closed generated component proposal inventory required')
+                data=data['members'].get(value['member'])
+                if data is None:raise ValueError('no eligible component proposal for frozen member')
             if kind not in CHANNELS[channel]:
                 raise ValueError("producer output cannot enter this role channel")
             if kind=='public_evidence':
@@ -198,6 +217,10 @@ def validate_requests(root, plans, refs, graph, *, purpose="acceptance", track="
             continue
         from .progressive_roles import REGISTRY
 
+        if request.get('operation')=='source-cycle':
+            from .progressive_source_cycle import validate_request
+            validate_request(root,request,plans=plans,refs=refs,graph=graph,purpose=purpose,track=track)
+            continue
         if request.get("operation") == "oeis-cycle":
             from .progressive_oeis import validate_frozen_request
             validate_frozen_request(root, request, plans=plans, refs=refs, graph=graph,

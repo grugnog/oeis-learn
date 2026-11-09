@@ -270,8 +270,10 @@ def main(args, root, host_factory):
             from oeis_learn.generalization.progressive.report import build
 
             folder = confined(root, args.run)
-            from oeis_learn.generalization.progressive.report import terminal_request
-            request = load(folder / "public-report.json", maximum=32 << 20) if (folder / "public-report.json").is_file() else terminal_request(root,folder)
+            if (folder/'public-report.json').is_file():request=load(folder/'public-report.json',maximum=32<<20)
+            else:
+                from .progressive_report_collect import collect
+                request=collect(root,folder,confined(root,args.output+'.metadata',exists=False))
             manifest = build(root, confined(root, args.output, exists=False), request)
             complete = manifest['status']=='COMPLETE'
             result=seal(dict(version='discovery-result/v1',operation='report',campaign=manifest['campaign'],
@@ -396,7 +398,6 @@ def lifecycle_command(args, root, host_factory):
     from oeis_learn.generalization.progressive.campaign import validate_campaign
     from oeis_learn.generalization.progressive.contracts import verify_refs
     from oeis_learn.generalization.progressive.lifecycle import RunStore
-    from oeis_learn.generalization.progressive.projections import describe
 
     from .progressive_roles import current_runtime, invoke
 
@@ -525,8 +526,11 @@ def lifecycle_command(args, root, host_factory):
 
             if request["operation"] == "assess":
                 raise ValueError("assessment requires explicit locked assess command")
-            if request["operation"] == "oeis-cycle":
-                result = oeis_cycle(
+            if request['operation'] in {'oeis-cycle','source-cycle'}:
+                if request['operation']=='source-cycle':
+                    from .progressive_source_cycle import run_cycle as selected_cycle
+                else:selected_cycle=oeis_cycle
+                result = selected_cycle(
                     root,
                     output / ("task-" + task["identity"].split(":")[1]),
                     campaign,
@@ -549,9 +553,14 @@ def lifecycle_command(args, root, host_factory):
                 store.boundary(task, result["metrics"]["task_status"], _INVOCATION.get())
                 # A second cycle is a new study; do not let an unvisited paired
                 # slot silently rerun a low-yield first cycle.
-                if result["reason"] == "OEIS_YIELD_DEFICIT":
-                    store.append(dict(store.state, status="PARTIAL"))
-                    return result, 2
+                if result['reason'] in {'OEIS_YIELD_DEFICIT','SOURCE_YIELD_DEFICIT'}:
+                    for pending in campaign['payload']['tasks']:
+                        if pending['policy']==task['payload']['policy'] and pending['id']!=task['payload']['id'] and pending['id'] not in result['metrics']['completed_tasks']:
+                            child=record('task',dict(pending,campaign=campaign['identity']),created_at=campaign['created_at'],purpose=campaign['purpose'],track=campaign['track'])
+                            store.boundary(child,'PARTIAL',_INVOCATION.get())
+                    store.append(dict(store.state,status='PARTIAL'))
+                    from oeis_learn.generalization.progressive.contracts import reference
+                    return publish(output,operation=args.operation,mechanical_status='PARTIAL',scientific_status=result['scientific_status'],campaign=campaign['identity'],reason=result['reason'],metrics=dict(result['metrics'],cycle_result=reference(root,confined(root,load(folder/(request['operation']+'.json'))['output'])/'result.json'))),2
                 continue
             if request["operation"] not in IMPLEMENTED:
                 store.append(dict(store.state, status="PARTIAL"))
@@ -574,6 +583,8 @@ def lifecycle_command(args, root, host_factory):
             else:
                 from .progressive_outputs import resolve as resolve_outputs
                 artifacts,derived=resolve_outputs(root,store,task,request,output/('task-input-'+task['identity'].split(':')[1]))
+            from .progressive_quarantine_control import require_clean_inputs
+            require_clean_inputs(root,journal,artifacts)
             remaining = journal.task_remaining(task)
             seconds = min(request['seconds'],remaining['elapsed_us']/1000000) if trial else request['seconds']
             reservation = dict(request['reservation'])
@@ -649,6 +660,9 @@ def lifecycle_command(args, root, host_factory):
                 )
                 if (state_root / "binding.json").is_file():
                     finalize_learning(journal, task, state_root, role_output / "role")
+            if request['operation']=='review-claim':
+                from .progressive_quarantine_control import reconcile as reconcile_quarantine
+                reconcile_quarantine(root,role_output/'role',result,journal)
             task_status = result.get("metrics", {}).get("task_status", result["mechanical_status"])
             if task_status in {"INVALID", "BLOCKED"}:
                 task_status = "FAILED"
@@ -758,7 +772,6 @@ def source_pilot_cycle(
     if any(t not in permitted or p != visible(t) for p, t in zip(prompts, truth)):
         raise ValueError("pilot generation/admission restricted to frozen training sources")
     from oeis_learn.generalization.progressive.budgets import KEYS
-    import time
 
     charge = dict.fromkeys(KEYS, 0)
     charge.update(

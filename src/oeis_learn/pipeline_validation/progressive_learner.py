@@ -48,6 +48,9 @@ def compatibility(package):
         from oeis_learn.generalization.progressive.component_distillation import RULE
 
         value["component_policy"] = RULE
+    if 'task_profile' in package:
+        value['task_profile']=package['task_profile']
+        value['short_rules']=package.get('short_rules')
     return digest(value)
 
 
@@ -66,6 +69,7 @@ def validate_input(package, task, *, allow_pending=False):
             "oeis_rules",
             "component_distillation",
             "component_rules",
+            "task_profile", "short_rules", "short_rows",
         }
         != {
             "version",
@@ -93,6 +97,19 @@ def validate_input(package, task, *, allow_pending=False):
         )
     ):
         raise ValueError("scaling must retain the frozen 400M trajectory and schedule-specific warmup")
+    short=package.get('task_profile')=='combinatorial-short/v1'
+    if 'task_profile' in package or 'short_rules' in package or 'short_rows' in package:
+        from oeis_learn.generalization.progressive.short_learning import RULE
+        if (not short or task['track']!='external_assisted' or package.get('short_rules')!=RULE
+                or package['update_policy']['effective_batch']!=16
+                or 'oeis_rules' in package or 'component_rules' in package):
+            raise ValueError('separate frozen short-profile learning policy required')
+        if task['payload']['arm'] not in {'with_source','without_source'}:
+            raise ValueError('matched short source arms required')
+        if task['payload']['arm']=='without_source' and package.get('short_rows'):
+            raise ValueError('without-source control cannot receive source targets')
+        if task['payload']['arm']=='with_source' and not package.get('short_rows') and not allow_pending:
+            raise ValueError('short source admission cut missing')
     if "oeis_rules" in package:
         from oeis_learn.generalization.progressive.replay import RULE
 
@@ -179,7 +196,8 @@ def validate_input(package, task, *, allow_pending=False):
     ):
         raise ValueError("closed diagnostic fault coordinate required")
     seen = {}
-    for shard in package["shards"]:
+    shards=package['shards'] + ([package['short_rows']] if package.get('short_rows') else [])
+    for shard in shards:
         if not isinstance(shard, list) or not 1 <= len(shard) <= 4096:
             raise ValueError("bounded nonempty verified shard required")
         for row in shard:
@@ -215,8 +233,8 @@ def validate_input(package, task, *, allow_pending=False):
             if package["scope"] == "NATIVE_VERIFIED" and row.get("native_verified") is not True:
                 raise ValueError("native verification missing")
             if (
-                len(row["values"]) != 100
-                or len(row["indices"]) != 100
+                len(row["values"]) != (4 if short else 100)
+                or len(row["indices"]) != (4 if short else 100)
                 or encode_body(row["target_source"]) != row["tokens"]
             ):
                 raise ValueError("complete target/codec binding required")
@@ -274,10 +292,10 @@ def _run(
     journal = BudgetJournal(accounting, c["identity"], c["payload"]["caps"])
     from oeis_learn.generalization.progressive.quarantine import Journal
 
-    Journal(journal.root).training(package)
+    Journal(journal.root).training(dict(package,shards=[]))
     if t["purpose"] == "research" and (not torch.version.hip or not torch.cuda.is_available()):
         raise RuntimeError("actual HIP required; no CPU fallback")
-    lookup = {r["draw_identity"]: r for shard in package["shards"] for r in shard}
+    lookup = {r['draw_identity']:r for shard in package['shards'] + ([package['short_rows']] if package.get('short_rows') else []) for r in shard}
     probe_ids = {p["id"] for p in package["layout"]["probes"].values()}
 
     def row_bin(r):
@@ -286,7 +304,7 @@ def _run(
     def batch_for(controller):
         b = controller.select()["bin"]
         from oeis_learn.generalization.progressive.supply import shard_index
-        index=shard_index(t['payload']['arm'],b,controller.updates,package['refresh_updates'],len(package['shards']))
+        index=shard_index('static' if package.get('task_profile')=='combinatorial-short/v1' else t['payload']['arm'],b,controller.updates,package['refresh_updates'],len(package['shards']))
         rows = [
             r
             for r in package["shards"][index]
@@ -294,10 +312,11 @@ def _run(
         ]
         if not rows:
             raise TimeoutError("frozen training bin support deficit")
-        return [
-            rows[(controller.cursor + i) % len(rows)]
-            for i in range(package["update_policy"]["effective_batch"])
-        ], index
+        batch=[rows[(controller.cursor+i)%len(rows)] for i in range(package['update_policy']['effective_batch'])]
+        if package.get('short_rows'):
+            from oeis_learn.generalization.progressive.short_learning import mixture
+            batch=mixture(batch,package['short_rows'],cursor=controller.cursor)
+        return batch,index
 
     progress = Progress(output / "progress")
     status = "PAUSED"
@@ -494,7 +513,7 @@ def _run(
                         measured = observe_targets(
                             worker.runner.encoder,
                             worker.runner.decoder,
-                            [dict(probe, values=probe["values"][:20])],
+                            [dict(probe, values=probe['values'][:4 if package.get('task_profile')=='combinatorial-short/v1' else 20])],
                             device=device,
                         )
                         before = context["scheduler"]["pre_loss"]
@@ -520,7 +539,7 @@ def _run(
                         observed = observe_targets(
                             worker.runner.encoder,
                             worker.runner.decoder,
-                            [dict(probe, values=probe["values"][:20])],
+                            [dict(probe, values=probe['values'][:4 if package.get('task_profile')=='combinatorial-short/v1' else 20])],
                             device=device,
                         )
                         context["scheduler"]["pre_loss"] = observed["loss_sum"] / observed["tokens"]
@@ -557,8 +576,9 @@ def _run(
                         phase="UPDATE_IN_PROGRESS",
                         remaining={**journal.task_remaining(t), "elapsed_us": max(0, remaining_us)},
                     )
+                    Journal(journal.root).training({'shards':[rows]})
                     worker.step(
-                        [list(map(int, r["values"][:20])) for r in rows],
+                        [list(map(int, r['values'][:4 if package.get('task_profile')=='combinatorial-short/v1' else 20])) for r in rows],
                         tokens,
                         entries=[r["draw_identity"] for r in rows],
                         update=restored["ledger"].updates + 1,

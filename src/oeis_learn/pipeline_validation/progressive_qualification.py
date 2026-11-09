@@ -1,6 +1,5 @@
 """Serial actual-HIP qualification of exact selected model/input/update scopes."""
 
-import copy
 import os
 from pathlib import Path
 import time
@@ -376,7 +375,7 @@ def calibrate_iteration(package,output,*,source,image,device='cuda',checkpoint_b
     output.mkdir(parents=True)
     rows=[r for shard in package['shards'] for r in shard]
     longest=max(rows,key=lambda r:len(r['tokens']))
-    sequence=[int(max((r['values'][i] for r in rows),key=lambda v:(abs(int(v)).bit_length(),abs(int(v))))) for i in range(20)]
+    sequence=[int(max((r['values'][i] for r in rows),key=lambda v:(abs(int(v)).bit_length(),abs(int(v))))) for i in range(4 if package.get('task_profile')=='combinatorial-short/v1' else 20)]
     count=package['update_policy']['effective_batch']
     ids=[BOS_ID,*longest['tokens']]
     tokens=torch.tensor([ids]*count,device=device)
