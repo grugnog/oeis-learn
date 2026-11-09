@@ -86,7 +86,7 @@ def test_installed_cpu_replay_and_control_update_restore(tmp_path):
 
 
 @pytest.mark.parametrize("low", [False, True])
-def test_real_native_search_admit_update_evaluate_cycle(tmp_path, fitting_client, low):
+def test_real_native_search_admit_update_evaluate_cycle(tmp_path, fitting_client, low, monkeypatch):
     from tests.helpers.progressive_oeis_fixture import fixture
     from oeis_learn.generalization.progressive.budgets import BudgetJournal
     from oeis_learn.generalization.progressive.contracts import load
@@ -98,6 +98,33 @@ def test_real_native_search_admit_update_evaluate_cycle(tmp_path, fitting_client
         c["identity"],
         c["payload"]["caps"],
     )
+    from oeis_learn.pipeline_validation.progressive_oeis import Cycle
+
+    original_phase = Cycle.phase
+    trained_tasks = set()
+    original_evaluate = Cycle.evaluate
+
+    def phase(self, operation, artifacts, task=None):
+        if operation == "train":
+            remaining = self.journal.task_remaining(task)
+            assert all(
+                remaining[k] == task["payload"]["caps"][k] for k in remaining if k != "elapsed_us"
+            )
+        value = original_phase(self, operation, artifacts, task)
+        if operation == "train":
+            trained_tasks.add(task["identity"])
+        return value
+
+    def evaluate(self, task, model, *, label):
+        if label == "baseline":
+            assert task["identity"] in trained_tasks
+            # Score the unchanged frozen initializer, never the trained output.
+            entry = next(e for e in plan["training"] if e["task"] == task["payload"]["id"])
+            assert model == entry["model"]
+        return original_evaluate(self, task, model, label=label)
+
+    monkeypatch.setattr(Cycle, "phase", phase)
+    monkeypatch.setattr(Cycle, "evaluate", evaluate)
     result = oeis_cycle(tmp_path, tmp_path / "cycle", c, m, request, journal)
     assert result["mechanical_status"] == "COMPLETE", result
     audit = load(tmp_path / "cycle/host/yield-audit.json")["payload"]

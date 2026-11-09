@@ -177,54 +177,6 @@ def test_missing_archive_fails_before_engine_launch(engine_calls, tmp_path):
     assert not engine_calls
 
 
-def test_recipe_diff_includes_build_inputs_and_fails_closed(monkeypatch):
-    calls = []
-    code = 0
-
-    def run(argv):
-        calls.append(argv)
-        return SimpleNamespace(returncode=code)
-
-    monkeypatch.setattr(images.subprocess, "run", run)
-    assert images.recipe_changed("base", "head") is False
-    code = 1
-    assert images.recipe_changed("base", "head") is True
-    assert calls[0][:6] == ["git", "diff", "--quiet", "base", "head", "--"]
-    assert {
-        "Dockerfile",
-        ".dockerignore",
-        "uv.lock",
-        "docker/dev",
-        "crates",
-    } <= set(calls[0])
-    code = 128
-    with pytest.raises(RuntimeError, match="build changes"):
-        images.recipe_changed("missing-base", "head")
-
-
-def test_real_git_diff_distinguishes_code_from_recipe(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-
-    def git(*args):
-        return subprocess.check_output(["git", *args], text=True).strip()
-
-    git("init", "--quiet")
-    git("config", "user.name", "CI test")
-    git("config", "user.email", "ci-test@example.invalid")
-    (tmp_path / "Dockerfile").write_text("FROM scratch\n")
-    git("add", ".")
-    git("commit", "--quiet", "-m", "base")
-    base = git("rev-parse", "HEAD")
-    (tmp_path / "source.py").write_text("pass\n")
-    git("add", ".")
-    git("commit", "--quiet", "-m", "code")
-    assert images.recipe_changed(base, "HEAD") is False
-    (tmp_path / "Dockerfile").write_text("FROM scratch\nLABEL test=true\n")
-    git("add", ".")
-    git("commit", "--quiet", "-m", "recipe")
-    assert images.recipe_changed(base, "HEAD") is True
-
-
 def docker_stage_inputs():
     """Conservatively follow COPY/FROM inputs in the actual Docker build graph.
 
@@ -300,3 +252,18 @@ def test_format_and_dependency_cache_finish_before_source_build():
     assert builds[1]["with"]["outputs"] == "type=cacheonly"
     assert builds[1]["with"]["cache-to"] == "${{ steps.plan.outputs.native_cache_to }}"
     assert builds[2]["with"]["cache-to"] == "${{ steps.plan.outputs.cache_to }}"
+
+
+def test_ci_runs_docker_without_duplicate_podman_jobs():
+    import yaml
+
+    workflow = yaml.safe_load((ROOT / ".github/workflows/foundation.yml").read_text())
+    jobs = workflow["jobs"]
+    assert "podman-build" not in jobs
+    for name in ("portable-engines", "bigint-qualification"):
+        matrix = jobs[name]["strategy"]["matrix"]
+        assert matrix["engine"] == ["docker"]
+        assert all(row.get("engine", "docker") == "docker" for row in matrix.get("include", []))
+    assert "Spec 013 mandatory CPU and native foundation acceptance" in {
+        s.get("name") for s in jobs["portable-engines"]["steps"]
+    }

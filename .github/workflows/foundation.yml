@@ -45,16 +45,6 @@ jobs:
       packages: write
     uses: ./.github/workflows/ci-image.yml
 
-  podman-build:
-    needs: image
-    if: needs.image.outputs.podman_build == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify Podman can build changed container inputs
-        run: podman build --target qualification -t oeis-podman-build-ci .
-
   portable-engines:
     needs: image
     runs-on: ubuntu-24.04
@@ -62,7 +52,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        engine: [docker, podman]
+        engine: [docker]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/load-ci-image
@@ -260,9 +250,6 @@ jobs:
       matrix:
         partition: [arithmetic, fitting, containment, performance, runtime-profile]
         engine: [docker]
-        include:
-          - partition: containment
-            engine: podman
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/load-ci-image

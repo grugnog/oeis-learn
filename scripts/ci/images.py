@@ -8,16 +8,6 @@ import re
 import subprocess
 
 TARGETS = ("qualification", "gpu")
-BUILD_INPUTS = (
-    "Dockerfile",
-    ".dockerignore",
-    "docker/dev",
-    "pyproject.toml",
-    "uv.lock",
-    "setup.py",
-    "MANIFEST.in",
-    "crates",
-)
 
 
 def plan(env, event):
@@ -71,13 +61,6 @@ def plan(env, event):
         cache_to=cache_to,
         native_cache_to=native_cache_to,
     )
-
-
-def recipe_changed(base, revision):
-    result = subprocess.run(["git", "diff", "--quiet", base, revision, "--", *BUILD_INPUTS])
-    if result.returncode not in (0, 1):
-        raise RuntimeError("cannot determine container build changes")
-    return result.returncode == 1
 
 
 def load_image(engine, transport, reference, alias, revision, archive=None, token=None):
@@ -162,10 +145,6 @@ def main():
         return
     event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
     value = plan(os.environ, event)
-    changed = True
-    if os.environ["GITHUB_EVENT_NAME"] == "pull_request":
-        changed = recipe_changed(event["pull_request"]["base"]["sha"], os.environ["GITHUB_SHA"])
-    value["podman_build"] = str(changed).lower()
     with Path(os.environ["GITHUB_OUTPUT"]).open("a") as stream:
         for key, item in value.items():
             stream.write(f"{key}<<OEIS_OUTPUT\n{item}\nOEIS_OUTPUT\n")

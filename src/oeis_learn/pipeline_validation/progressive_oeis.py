@@ -737,8 +737,6 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
         completed = []
         for entry in self.plan["training"]:
             task = self.tasks[entry["task"]]
-            if task["payload"]["arm"] == "replay":
-                all_rows["starting"] += self.evaluate(task, entry["model"], label="baseline")
             original = load(confined(self.root, entry["channel"]))
             base = _read(self.root, original["data"]["artifact"])
             if base.get("oeis_rules") != RULE:
@@ -755,6 +753,11 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
                 dict(original["data"], artifact=reference(self.root, path)),
             )
             trained, _, _ = self.phase("train", dict(training=[channel]), task)
+            # Baseline generation/scoring spends this same task's allowances.
+            # Initialize learning first; evaluate the original frozen initializer
+            # afterwards so inference cannot make a new learner look reopened.
+            if task["payload"]["arm"] == "replay":
+                all_rows["starting"] += self.evaluate(task, entry["model"], label="baseline")
             state = (
                 self.root
                 / "run-state/discovery-learning"
