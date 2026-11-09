@@ -49,10 +49,12 @@ producer slot, for example:
 Slots refer to earlier tasks in the same slot or declared ancestor slots. The host
 resolves only original committed outputs under that campaign and checks the
 paired seed, role, purpose, checkpoint and output type. Supported outputs include
-training `weights`/`checkpoint_record`, generated `candidates`/public `evaluation`,
+training `weights`, generated `candidates`/public `evaluation`,
 scored `scores`, census `census` and audit `coverage`. Public census deficits may
 be consumed as explicitly partial evidence. Private witnesses and continuations
-never become learner or generator channels. Public output envelopes retain their
+never become learner or generator channels. Full-state continuation uses the
+frozen parent-task/slot initializer or the verified full-state input closure; a
+checkpoint metadata receipt is not an additional learner input. Public output envelopes retain their
 producer task and original artifact reference. A decision template binds task ids
 and derives its table from these original outputs; absent paired cells become
 unresolved and cannot authorize advancement.

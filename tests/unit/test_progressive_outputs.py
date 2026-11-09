@@ -17,3 +17,9 @@ def test_only_declared_ancestor_slots_can_supply_typed_outputs():
     ]:
         with pytest.raises(ValueError):
             slot(ref | change, plans=plans, consumer=plans[1], graph=g)
+
+
+def test_full_state_metadata_is_not_a_second_learner_input():
+    c=campaign();plans=c['payload']['tasks']
+    with pytest.raises(ValueError,match='typed'):
+        slot(dict(task='first',operation='train',output='checkpoint_record',kind='full_state'),plans=plans,consumer=plans[1],graph=c['payload']['graph'])

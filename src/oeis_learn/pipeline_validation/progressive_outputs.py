@@ -20,7 +20,6 @@ SLOTS = {
     ("score", "scores"): "public_evidence",
     ("census", "census"): "public_evidence",
     ("audit-language", "coverage"): "public_evidence",
-    ("train", "checkpoint_record"): "full_state",
 }
 
 
