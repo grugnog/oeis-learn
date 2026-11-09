@@ -35,7 +35,7 @@ CHANNELS = {
     "assessment_truth": {"assessment_truth"},
     "selection": {"locked_selection"},
     "search": {"search_space", "development_scalar"},
-    "archive": {"verified_training_archive", "typed_training_source"},
+    "archive": {"verified_training_archive", "typed_training_source", "component_policy"},
     "dossier": {"sealed_dossier", "review_evidence"},
     "public": {"public_evidence"},
 }
@@ -78,13 +78,32 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
     all_artifacts = [a for channel in artifacts.values() for a in channel]
     refs = [a.ref for a in all_artifacts]
     nested = []
+    archive_children = {}
     for descriptor in all_artifacts:
-        if descriptor.kind in {"checkpoint", "recipe", "training_request"}:
+        if descriptor.kind in {
+            "checkpoint",
+            "recipe",
+            "training_request",
+            "verified_training_archive",
+            "typed_training_source",
+        }:
             data = load(confined(root, descriptor.ref["path"]))["data"]
             _validate_channel(descriptor.kind, data)
             if descriptor.kind == "training_request" and data["artifact"]["bytes"] > 256 << 20:
                 raise ValueError("bounded training package required")
             nested.append(data["artifact"])
+            if descriptor.kind == "verified_training_archive":
+                from .contracts import validate
+
+                cut = validate("archive", load(confined(root, data["artifact"]["path"])))
+                base = confined(root, data["artifact"]["path"]).parent
+                archive_children[descriptor.identity] = []
+                for child in cut["payload"]["entries"]:
+                    candidate = reference(root, confined(base, child["path"]))
+                    if any(candidate[k] != child[k] for k in ("bytes", "sha256")):
+                        raise ValueError("original archive source bytes differ")
+                    nested.append(candidate)
+                    archive_children[descriptor.identity].append(candidate)
             if descriptor.kind == "training_request":
                 package = load(confined(root, data["artifact"]["path"]), maximum=256 << 20)
                 if package.get("weights") is not None:
@@ -167,14 +186,32 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                 target = folder / (item.identity.removeprefix("sha256:") + ".json")
                 copy_file(confined(root, item.ref["path"]), target)
                 target.chmod(0o444)
-                if item.kind in {"checkpoint", "recipe", "training_request"}:
+                if item.kind in {
+                    "checkpoint",
+                    "recipe",
+                    "training_request",
+                    "verified_training_archive",
+                    "typed_training_source",
+                }:
                     ref = load(confined(root, item.ref["path"]))["data"]["artifact"]
                     raw = confined(folder, ref["path"], exists=False)
                     if raw.exists():
-                        raise ValueError("duplicate projected payload path")
-                    raw.parent.mkdir(parents=True, exist_ok=True)
-                    copy_file(confined(root, ref["path"]), raw)
-                    raw.chmod(0o444)
+                        if item.kind not in {"verified_training_archive", "typed_training_source"}:
+                            raise ValueError("duplicate projected payload path")
+                        verify_refs(folder, [ref], max_bytes=256 << 20)
+                    else:
+                        raw.parent.mkdir(parents=True, exist_ok=True)
+                        copy_file(confined(root, ref["path"]), raw)
+                        raw.chmod(0o444)
+                    if item.kind == "verified_training_archive":
+                        for child in archive_children[item.identity]:
+                            copied = confined(folder, child["path"], exists=False)
+                            if copied.exists():
+                                verify_refs(folder, [child], max_bytes=256 << 20)
+                            else:
+                                copied.parent.mkdir(parents=True, exist_ok=True)
+                                copy_file(confined(root, child["path"]), copied)
+                                copied.chmod(0o444)
                     if item.kind == "training_request":
                         package = load(confined(root, ref["path"]), maximum=256 << 20)
                         if package.get("weights") is not None:
@@ -205,6 +242,27 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
 
 
 def _validate_channel(kind, data):
+    if kind == "component_policy":
+        from .component_mining import validate_policy
+        from .contracts import _check, schema
+
+        if not isinstance(data, dict) or set(data) - {"generation_policies"} != {
+            "policy",
+            "previous",
+        }:
+            raise ValueError("closed component publication request required")
+        validate_policy(data["policy"])
+        policies = data.get("generation_policies", {})
+        if not isinstance(policies, dict) or len(policies) > 64:
+            raise ValueError("bounded frozen mechanical source policies required")
+        from .generator import validate_policy as validate_generation
+        from .contracts import digest
+
+        for identity, law in policies.items():
+            if identity != digest(validate_generation(law)):
+                raise ValueError("mechanical source law differs from its identity")
+        if data["previous"] is not None:
+            _check(schema("common")["$defs"]["hash"], data["previous"], schema("common"))
     if kind == "oeis_generation":
         if (
             set(data) != {"methods", "forced"}

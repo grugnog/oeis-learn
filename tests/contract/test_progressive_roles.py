@@ -217,3 +217,68 @@ def test_installed_admission_keeps_native_work_charged(tmp_path, monkeypatch, fa
     assert events[-1]["used"]["native_work"] == 1
     assert journal.task_remaining(task)["native_work"] == task["payload"]["caps"]["native_work"] - 2
     assert not (tmp_path / "out/admission.json").exists()
+
+
+def test_component_projection_copies_only_bound_training_archive_closure(tmp_path):
+    from oeis_learn.generalization.progressive.archive import Archive
+    from oeis_learn.generalization.progressive.component_mining import policy
+    from oeis_learn.generalization.progressive.contracts import (
+        atomic_write,
+        reference,
+        seal,
+        load,
+        verify_refs,
+    )
+    from oeis_learn.generalization.progressive.projections import describe, project
+    from oeis_learn.pipeline_validation.progressive_roles import REGISTRY
+    from tests.unit.test_progressive_archive import admitted
+
+    archive = Archive(tmp_path / "training")
+    cut = archive.publish([admitted("a", "first"), admitted("b", "second")])
+    atomic_write(tmp_path / "training/cut.json", cut)
+    next_cut = archive.publish([], previous=cut)
+    atomic_write(tmp_path / "training/next.json", next_cut)
+    paths = []
+    for name, kind, data in [
+        (
+            "archive",
+            "verified_training_archive",
+            dict(
+                membership="training",
+                artifact=reference(tmp_path, "training/cut.json"),
+                profile="bigint-body/v1",
+                compatibility="sha256:" + "a" * 64,
+            ),
+        ),
+        (
+            "next-archive",
+            "verified_training_archive",
+            dict(
+                membership="training",
+                artifact=reference(tmp_path, "training/next.json"),
+                profile="bigint-body/v1",
+                compatibility="sha256:" + "a" * 64,
+            ),
+        ),
+        ("policy", "component_policy", dict(policy=policy(), previous=None)),
+    ]:
+        path = name + ".json"
+        paths.append(path)
+        atomic_write(
+            tmp_path / path,
+            seal(dict(version="discovery-channel/v1", role="component", kind=kind, data=data)),
+        )
+    items = [describe(tmp_path, p) for p in paths]
+    result = project(
+        tmp_path,
+        "projected",
+        "extract-components",
+        {"archive": items},
+        registry=REGISTRY,
+        authorized=[v.ref for v in items],
+    )
+    projected = result["archive"] / "training"
+    assert load(projected / "cut.json") == cut
+    assert load(projected / "next.json") == next_cut
+    assert len(verify_refs(projected, cut["payload"]["entries"])) == 2
+    assert not (result["archive"] / "private").exists()

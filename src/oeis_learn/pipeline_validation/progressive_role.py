@@ -20,6 +20,7 @@ def _execute(
     control=Path("/control"),
     state_root=Path("/learning-state"),
     predecessor_state=Path("/predecessor-state"),
+    component_state=Path("/component-state"),
 ):
     if operation not in IMPLEMENTED:
         raise ValueError("unsupported discovery operation")
@@ -111,6 +112,87 @@ def _execute(
             mechanical_status="COMPLETE",
             reason="FINITE_TRAINING_ADMISSION",
             metrics={"admission": admission["identity"]},
+        )
+    if operation in {"extract-components", "verify-components"}:
+        from oeis_learn.generalization.progressive.component_mining import LibraryStore
+        from oeis_learn.generalization.progressive.contracts import verify_refs
+        import time
+        from oeis_learn.generalization.progressive.projections import _validate_channel
+        from oeis_learn.pipeline_validation.identity import confined, digest
+        from oeis_learn.synthesis.client import SynthesisClient
+
+        requests = [v["data"] for v in values if v["kind"] == "component_policy"]
+        if len(requests) != 1 or any(
+            v["kind"]
+            not in {"component_policy", "typed_training_source", "verified_training_archive"}
+            for v in values
+        ):
+            raise ValueError("training-only component source channels required")
+        request = requests[0]
+        _validate_channel("component_policy", request)
+        root = inputs / "archive"
+        refs = []
+        for value in values:
+            if value["kind"] == "component_policy":
+                continue
+            _validate_channel(value["kind"], value["data"])
+            original = value["data"]["artifact"]
+            verify_refs(root, [original], max_bytes=256 << 20)
+            if value["kind"] == "typed_training_source":
+                refs.append(original)
+            else:
+                from oeis_learn.generalization.progressive.contracts import validate
+
+                cut = validate("archive", load(confined(root, original["path"])))
+                base = confined(root, original["path"]).parent
+                for child in cut["payload"]["entries"]:
+                    verify_refs(base, [child], max_bytes=4 << 20)
+                    refs.append(reference(root, confined(base, child["path"])))
+        refs = list({r["path"]: r for r in refs}.values())
+        authority_value = load(authority)
+        store = LibraryStore(
+            root,
+            None,
+            store_root=component_state,
+            purpose=authority_value["task"]["purpose"],
+            track=authority_value["task"]["track"],
+            selected=request["policy"],
+            generation_policies=request.get("generation_policies", {}),
+            max_bytes=min(512 << 20, authority_value["task"]["payload"]["caps"]["archive_bytes"]),
+            max_inodes=authority_value.get("storage", {}).get(
+                "max_inodes", authority_value["campaign"]["payload"]["storage"]["required_inodes"]
+            ),
+        )
+        previous = None
+        if request["previous"] is not None:
+            found = [v for v in store.committed() if v["identity"] == request["previous"]]
+            if len(found) != 1:
+                raise ValueError("original committed parent library required")
+            previous = found[0]
+        with SynthesisClient(digest(request)) as client:
+            budget.client(client)
+            library = store.publish(
+                refs,
+                client=client,
+                previous=previous,
+                seconds=min(21600, max(0.001, budget.deadline - time.monotonic())),
+                budget=budget,
+            )
+        atomic_write(output / "library.json", library)
+        return publish(
+            output,
+            operation=operation,
+            mechanical_status="COMPLETE",
+            reason="VERIFIED_COMPONENT_LIBRARY"
+            if library["payload"]["components"]
+            else "NO_SUPPORTED_COMPONENT",
+            metrics=dict(
+                library=library["identity"],
+                components=len(library["payload"]["components"]),
+                scientific_status="UNMEASURED",
+                charged_mining_work=store.spent(),
+                native_requests=budget.used["native_work"],
+            ),
         )
     if operation == "propose-trial":
         if len(values) != 1 or values[0]["kind"] != "search_space":
@@ -399,7 +481,11 @@ def execute(operation, **kwargs):
     if operation in WORK_ROLES:
         authority = load(kwargs.get("authority", Path("/authority/supervisor.json")))
         with owned_guard(
-            authority, output=kwargs.get("output", Path("/output/discovery"))
+            authority,
+            output=kwargs.get("output", Path("/output/discovery")),
+            state_root=kwargs.get("component_state", Path("/component-state"))
+            if operation in {"extract-components", "verify-components"}
+            else None,
         ).activate():
             return _execute(operation, **kwargs)
     return _execute(operation, **kwargs)

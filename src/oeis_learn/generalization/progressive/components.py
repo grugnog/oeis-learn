@@ -299,6 +299,11 @@ def make_library(
         parser=digest(Path(parser.__file__).read_text()),
         proofs=[],
     )
+    if (
+        verification["status"] == "NATIVE_VERIFIED"
+        and (verification["native"] is None or (normalized and not verification["proofs"]))
+    ) or (verification["status"] == "DIAGNOSTIC_ONLY" and verification["native"] is not None):
+        raise ValueError("original native producer and full expansion proofs required")
     if purpose == "research" and verification["status"] != "NATIVE_VERIFIED":
         raise ValueError("native component publication required for research")
     return record(
@@ -332,6 +337,12 @@ def validate_library(library, *, limits=None):
         or _templates(normalized, bounds, limits or ResourceProfile()) != p["components"]
     ):
         raise ValueError("expanded component template binding differs")
+    verification = p["verification"]
+    if (
+        verification["status"] == "NATIVE_VERIFIED"
+        and (verification["native"] is None or (p["components"] and not verification["proofs"]))
+    ) or (verification["status"] == "DIAGNOSTIC_ONLY" and verification["native"] is not None):
+        raise ValueError("original native component proof binding missing")
     if value["purpose"] == "research" and p["verification"]["status"] != "NATIVE_VERIFIED":
         raise ValueError("research library lacks original native verification")
     return value
@@ -346,7 +357,12 @@ def expand(library, expression, *, limits=None):
     worker = _Expansion(_table(p["components"], p["bounds"]), p["bounds"], limits)
     ast, kind = worker.expand(expression)
     source = _source(ast, kind)
-    nodes = _count(["program", ["return", ast]])
+    parsed = parse(source, limits)
+
+    def json_ast(node):
+        return [json_ast(c) for c in node] if isinstance(node, tuple) else node
+
+    nodes = _count(["program", ["return", json_ast(parsed.result)]])
     if nodes > min(p["bounds"]["expanded_nodes"], limits.ast_nodes) or len(source.encode()) > min(
         p["bounds"]["expanded_bytes"], limits.source_bytes
     ):

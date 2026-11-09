@@ -356,7 +356,16 @@ class TaskLease:
         self.stream.close()
 
 
-WORK_ROLES = frozenset({"generate", "score", "prepare-stream", "admit-training"})
+WORK_ROLES = frozenset(
+    {
+        "generate",
+        "score",
+        "prepare-stream",
+        "admit-training",
+        "extract-components",
+        "verify-components",
+    }
+)
 
 
 def role_work_requirements(operation, values):
@@ -367,7 +376,17 @@ def role_work_requirements(operation, values):
     dispatch; rejections, cache hits and interrupted work never refund that debit.
     """
     costs = dict.fromkeys(KEYS, 0)
-    if operation == "prepare-stream":
+    if operation in {"extract-components", "verify-components"}:
+        from .component_mining import validate_policy
+
+        policies = [v["data"] for v in values if v["kind"] == "component_policy"]
+        if len(policies) != 1:
+            raise ValueError("one frozen component work policy required")
+        p = validate_policy(policies[0]["policy"])
+        costs.update(
+            attempts=p["maximum_work"], rejections=p["maximum_work"], native_work=p["maximum_work"]
+        )
+    elif operation == "prepare-stream":
         from .generator import validate_policy
 
         policies = [v["data"] for v in values if v["kind"] == "generation_policy"]

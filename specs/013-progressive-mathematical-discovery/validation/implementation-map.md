@@ -842,3 +842,61 @@ resource debit and storage regressions passed, including actual optimizer growth
 and repeated archive replacement. Syntax/undefined-name checks and `git diff --check`
 passed. No native-container, HIP, sustained-duration or research acceptance is inferred
 from the local CPU results. T117–T125 remain separate convergence work.
+
+### OEIS cycle and component foundations T060–T066
+
+- **T060:** the bounded yield audit verifies original selected candidates and
+  admission provenance, counts distinct groups/structures, and publishes missing
+  admissions, rejection reasons, deficits and active search/admission costs.
+  The production policy retains the 512-task, eight-attempt, 60-second portfolio,
+  12-hour audit and 32-group/16-structure/rate gates. Lower diagnostic thresholds
+  cannot establish autonomous discovery or research advancement.
+- **T061:** replay binds an immutable archive cut and uses charged target tokens
+  for deterministic 25% OEIS/75% synthetic mixing with whole-example overshoot.
+  Original membership is checked before consumption. Complete checkpoints and
+  the irreversible journal reconcile mixture charges after failed updates;
+  continued-synthetic controls receive no discovery archive.
+- **T062:** the fixed host coordinator runs one search/admit/update/evaluate
+  cycle with four frozen paired-seed/arm tasks, matching initializers, token
+  milestones and inference budgets. It separates OEIS, transfer and retention
+  results, reports discovery cost, defers on insufficient yield and requires a new
+  reserved study for another cycle. It reuses installed generation, learning,
+  scoring, recovery and native admission. CPU acceptance performs actual updates
+  and restore; forced candidates remain diagnostic fixtures. Native positive and
+  low-yield end-to-end cases are registered for mandatory container acceptance.
+- **T063/T065:** typed pure-expression components preserve operand order and
+  alpha-normalize holes without capture. Closed library validation rejects
+  recursion, dependency cycles, nontraining origins and insufficient support;
+  runtime and expanded-program node/byte/work limits include emitted wrappers.
+  Native/research provenance and finite verification scope remain explicit.
+- **T064:** seven independent prospective tests cover source-bound polynomial
+  identities, wrong coefficients, unsupported loops, finite machine limitations,
+  spoofed review/novelty and transitive refutation. They conditionally expect
+  missing modules while T069–T071 are unimplemented, and are excluded from the
+  mandatory passing acceptance roster. The packaged inventory marks this owner
+  pending. This task authors contracts; it does not implement or certify proofs.
+- **T066:** deterministic connected-subtree mining requires three independently
+  verified training structures across two groups and preserves expression order.
+  Original admissions or verified training rows supply the only source closure;
+  research mechanical rows must reproduce their bound frozen generator law and
+  avoid forbidden structures, behaviors and visible prefixes. Durable work debits
+  precede mining and native requests. An owned reserve/verify/commit store binds
+  implementation/policy, exact source references, full expansions and independent
+  parser/reference/native checks. Interrupted work stays charged without exposing
+  an uncommitted library. Previous cuts remain readable, and repeated verification
+  reuses a compatible committed cut. Installed extraction/verification roles use
+  the same bounded dispatcher and owned persistent state. Projection tests cover
+  shared original entry closures across multiple archive cuts.
+
+Validation: the complete registered progressive/historical roster returned
+**488 passed, 11 local native-service skips** (199.54s), including installed-wheel
+learning and real CPU replay/control updates. After final source/projection
+provenance tightening, **50 focused tests passed, two native-service cases skipped**;
+both historical implementation-binding checks passed against the refreshed
+`experiment_runner.implementation_identity()` hash. The seven prospective T064
+tests remain expected failures until their later production owners exist.
+Blocking syntax/undefined-name checks and `git diff --check` passed. Native skips
+are failures in mandatory native-image mode. No actual native-container, HIP,
+sustained-duration, mathematical-proof or scientific-gain claim follows from these
+CPU results. Requirements checklist remains 16/16; no implementation extension
+hooks are registered. Changes are published incrementally without waiting for CI.

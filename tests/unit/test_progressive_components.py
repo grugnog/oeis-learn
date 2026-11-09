@@ -128,3 +128,15 @@ def test_dependency_depth_and_lower_runtime_limits_take_precedence():
             ["call", "subtract", ["int", "3"], ["int", "8"]],
             limits=ResourceProfile(source_bytes=20),
         )
+
+
+def test_unverified_library_cannot_acquire_a_native_or_research_label():
+    from oeis_learn.generalization.progressive.components import make_library, validate_library
+    from oeis_learn.generalization.progressive.contracts import seal
+
+    with pytest.raises(ValueError, match="native"):
+        make_library([definition()], purpose="research", track="synthetic_strict")
+    forged = library(definition())
+    forged["payload"]["verification"]["status"] = "NATIVE_VERIFIED"
+    with pytest.raises(ValueError, match="native"):
+        validate_library(seal(forged))

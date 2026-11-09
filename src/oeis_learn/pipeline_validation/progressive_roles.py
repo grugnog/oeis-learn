@@ -53,6 +53,8 @@ IMPLEMENTED = frozenset(
         "propose-trial",
         "admit-training",
         "train",
+        "extract-components",
+        "verify-components",
     }
 )
 
@@ -184,7 +186,11 @@ def _invoke_reserved(
     storage_proof = register_invocation(root, c, t, journal.root, target)
     own_state = (
         root
-        / "run-state/discovery-learning"
+        / (
+            "run-state/discovery-components"
+            if operation in {"extract-components", "verify-components"}
+            else "run-state/discovery-learning"
+        )
         / c["identity"].split(":")[1]
         / t["identity"].split(":")[1]
     )
@@ -287,6 +293,9 @@ def _invoke_reserved(
             (str(journal.root), "/accounting", True),
             (str(control), "/control", False),
         ]
+    if operation in {"extract-components", "verify-components"}:
+        own_state.mkdir(parents=True, exist_ok=True)
+        mounted.append((str(own_state), "/component-state", True))
     if operation in WORK_ROLES:
         authority_dir = target / "authority"
         authority_dir.mkdir()

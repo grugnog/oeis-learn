@@ -109,9 +109,25 @@ def projection_size(root, refs):
         value = load(confined(root, ref["path"]), maximum=256 << 20)
         if not isinstance(value, dict) or value.get("version") != "discovery-channel/v1":
             continue
-        if value.get("kind") not in {"checkpoint", "recipe", "training_request"}:
+        if value.get("kind") not in {
+            "checkpoint",
+            "recipe",
+            "training_request",
+            "verified_training_archive",
+            "typed_training_source",
+        }:
             continue
         nested = [value["data"]["artifact"]]
+        if value["kind"] == "verified_training_archive":
+            from .contracts import validate, reference
+
+            cut = validate("archive", load(confined(root, nested[0]["path"])))
+            base = confined(root, nested[0]["path"]).parent
+            for child in cut["payload"]["entries"]:
+                rebound = reference(root, confined(base, child["path"]))
+                if any(rebound[k] != child[k] for k in ("bytes", "sha256")):
+                    raise ValueError("original archive closure differs")
+                nested.append(rebound)
         if value["kind"] == "training_request":
             package = load(confined(root, nested[0]["path"]), maximum=256 << 20)
             if package.get("weights") is not None:
