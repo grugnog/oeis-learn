@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-trial-evidence.schema.json",
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "role": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "checkpoint": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "qualification": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "scope": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "roster": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "task": {
+                "type": "string",
+                "maxLength": 1024
+              },
+              "group": {
+                "type": "string",
+                "maxLength": 1024
+              },
+              "stratum": {
+                "type": "string",
+                "maxLength": 1024
+              }
+            },
+            "required": [
+              "task",
+              "group",
+              "stratum"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 4096
+        },
+        "outcomes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "task": {
+                "type": "string",
+                "maxLength": 1024
+              },
+              "group": {
+                "type": "string",
+                "maxLength": 1024
+              },
+              "stratum": {
+                "type": "string",
+                "maxLength": 1024
+              },
+              "outcome": {
+                "type": "string",
+                "maxLength": 1024
+              }
+            },
+            "required": [
+              "task",
+              "group",
+              "stratum",
+              "outcome"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 4096
+        },
+        "retention": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "task": {
+                "type": "string",
+                "maxLength": 1024
+              },
+              "baseline": {
+                "type": "string",
+                "maxLength": 1024
+              },
+              "candidate": {
+                "type": "string",
+                "maxLength": 1024
+              }
+            },
+            "required": [
+              "task",
+              "baseline",
+              "candidate"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 4096
+        },
+        "generator": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "scorer": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "costs": {
+          "type": "object",
+          "properties": {
+            "startup": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            },
+            "training": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            },
+            "inference": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            },
+            "search": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            },
+            "verification": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            }
+          },
+          "required": [
+            "startup",
+            "training",
+            "inference",
+            "search",
+            "verification"
+          ],
+          "additionalProperties": false
+        },
+        "identity": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "producer_refs": {
+          "type": "object",
+          "properties": {
+            "generation": {
+              "$ref": "progressive-common.schema.json#/$defs/artifact"
+            },
+            "scoring": {
+              "$ref": "progressive-common.schema.json#/$defs/artifact"
+            },
+            "checkpoint": {
+              "$ref": "progressive-common.schema.json#/$defs/artifact"
+            },
+            "qualification": {
+              "$ref": "progressive-common.schema.json#/$defs/artifact"
+            },
+            "retention_baseline_generation": {
+              "$ref": "progressive-common.schema.json#/$defs/artifact"
+            },
+            "retention_baseline_scoring": {
+              "$ref": "progressive-common.schema.json#/$defs/artifact"
+            },
+            "retention_candidate_generation": {
+              "$ref": "progressive-common.schema.json#/$defs/artifact"
+            },
+            "retention_candidate_scoring": {
+              "$ref": "progressive-common.schema.json#/$defs/artifact"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "role",
+        "checkpoint",
+        "qualification",
+        "scope",
+        "roster",
+        "outcomes",
+        "retention",
+        "generator",
+        "scorer",
+        "costs",
+        "identity"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$ref": "#/$defs/evidence"
+}

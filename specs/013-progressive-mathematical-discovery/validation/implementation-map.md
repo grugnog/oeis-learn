@@ -1268,3 +1268,20 @@ research finding. Mandatory actual-HIP execution was attempted and failed on the
 explicit missing-runtime gate; it produced no qualifying receipt. T071–T081 are
 complete; T082's code is committed but its required actual-device producers remain
 externally blocked. CI is not awaited after pushing.
+
+### T119 — trial eligibility core (study integration continues in T118)
+
+Ranking and COMPLETE sampler feedback now derive the objective from the complete
+bound development roster, retain unresolved outcomes in denominators, require
+95% completion and <=2% conservative retention loss, and check the complete
+startup/training/inference/search/verification cost decomposition. Missing or
+inconsistent evidence cannot rank or become COMPLETE feedback, including replayed
+journal history. Research evidence additionally requires original confined
+checkpoint/qualification/generator/scorer and paired-retention producer closure;
+diagnostic fixture labels cannot be relabeled NATIVE_VERIFIED. Historical scalar
+pruning remains diagnostic; the installed study caller must supply eligible
+production outcomes (T118 integration remains in progress).
+
+Independent missing/filtered/low-completion/retention/scalar/provenance cases and
+actual Optuna replay passed: 32 focused trial/ranking/historical-schema cases.
+The trial schema's erroneous duplicate stream identifier was also corrected.

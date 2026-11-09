@@ -76,6 +76,7 @@ CPU_TESTS = (
     "tests/unit/test_progressive_training_policy.py",
     "tests/unit/test_progressive_trials.py",
     "tests/unit/test_progressive_tuning.py",
+    "tests/unit/test_progressive_trial_eligibility.py",
     "tests/unit/test_progressive_contingencies.py",
     "tests/unit/test_progressive_contingency_specifications.py",
     "tests/integration/test_progressive_tuning.py",

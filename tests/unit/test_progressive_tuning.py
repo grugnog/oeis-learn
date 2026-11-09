@@ -1,3 +1,4 @@
+from tests.helpers.progressive_trial import evidence
 import pytest
 
 from oeis_learn.generalization.progressive.selection import confirmation, rank
@@ -24,6 +25,7 @@ def test_serial_actual_optuna_replay_controls_and_all_outcomes(tmp_path):
                 "tokens": 4000000 if status == "COMPLETE" else 1,
                 "elapsed_us": 100,
                 "value": 0.3 if status == "COMPLETE" else None,
+                "evidence": evidence(0.3) if status == "COMPLETE" else None,
                 "role": "development",
             },
         )
@@ -70,6 +72,7 @@ def test_independent_ranking_cost_ties_and_fresh_panels():
             "tokens": 4000000,
             "status": "COMPLETE",
             "role": "development",
+            "evidence": evidence(v, elapsed=c),
         }
         for k, v, c in [("baseline", 0.2, 30), ("b", 0.3, 20), ("a", 0.3, 20)]
     ]
@@ -127,7 +130,14 @@ def test_full_trial_roster_and_sizing_controls_are_bounded(tmp_path):
         j.dispatch(i)
         j.tell(
             i,
-            dict(status="COMPLETE", tokens=4000000, elapsed_us=100, value=0.25, role="development"),
+            dict(
+                status="COMPLETE",
+                tokens=4000000,
+                elapsed_us=100,
+                value=0.25,
+                role="development",
+                evidence=evidence(0.25),
+            ),
         )
     with pytest.raises(ValueError):
         propose(j, 16, selected_learning=BASELINE)

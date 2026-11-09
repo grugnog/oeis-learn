@@ -190,6 +190,16 @@
                 },
                 "role": {
                   "const": "development"
+                },
+                "evidence": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "progressive-trial-evidence.schema.json#/$defs/evidence"
+                    }
+                  ]
                 }
               },
               "required": [
@@ -227,5 +237,5 @@
   ],
   "additionalProperties": false,
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "progressive-stream.schema.json"
+  "$id": "progressive-trial.schema.json"
 }

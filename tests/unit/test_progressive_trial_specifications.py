@@ -1,7 +1,8 @@
+from tests.helpers.progressive_trial import evidence
+
 """T038 contracts for T041–T044 durable proposal/trial/pruning implementation."""
 
 import pytest
-
 
 
 def test_proposal_is_durable_before_dispatch_and_reused_after_interruption(tmp_path):
@@ -29,6 +30,7 @@ def test_conflicting_tell_and_confirmation_sampler_feedback_are_rejected(tmp_pat
         "tokens": 4000000,
         "elapsed_us": 1000000,
         "value": 0.2,
+        "evidence": evidence(0.2, elapsed=1000000),
         "role": "development",
     }
     assert j.tell(0, result) == j.tell(0, result)

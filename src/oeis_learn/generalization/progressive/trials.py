@@ -109,6 +109,10 @@ class TrialJournal:
                 or str(e["state"]["proposal"]["ordinal"]) != e["ordinal"]
             ):
                 raise ValueError("trial study or ordinal differs")
+            if e["state"]["status"] == "COMPLETE":
+                from .trial_evidence import eligible
+                if eligible(e["state"]["result"],root=self.root) is None:
+                    raise ValueError("journal contains ineligible complete feedback")
             self.tip = e["identity"]
             self.trials[e["ordinal"]] = e["state"]
         self.count = len(events)
@@ -221,7 +225,7 @@ class TrialJournal:
 
     def tell(self, ordinal, result):
         if (
-            set(result) != {"status", "tokens", "elapsed_us", "value", "role"}
+            set(result) - {"evidence"} != {"status", "tokens", "elapsed_us", "value", "role"}
             or result["status"] not in TERMINAL
             or result["role"] != "development"
         ):
@@ -230,6 +234,10 @@ class TrialJournal:
             scalar(result["value"])
         if result["status"] == "COMPLETE" and result["value"] is None:
             raise ValueError("complete trial needs measured capability")
+        from .trial_evidence import eligible
+
+        if result["status"] == "COMPLETE" and eligible(result, root=self.root) is None:
+            raise ValueError("complete trial lacks eligible bound development evidence")
         with self.lock():
             self.read()
             s = copy.deepcopy(self.trials[str(ordinal)])
@@ -252,8 +260,12 @@ class TrialJournal:
     def equal_token_eligible(self, *, target):
         integer(target, 1)
         self.read()
+        from .trial_evidence import eligible
+
         return [
             int(k)
             for k, s in self.trials.items()
-            if s["status"] == "COMPLETE" and s["tokens"] >= target
+            if s["status"] == "COMPLETE"
+            and s["tokens"] >= target
+            and eligible(s["result"], root=self.root) is not None
         ]

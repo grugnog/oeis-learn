@@ -3,10 +3,11 @@
 from oeis_learn.pipeline_validation.identity import seal
 
 from .trials import integer, scalar
+from .trial_evidence import eligible as eligible_value
 from .tuning import ranking_uncertainty
 
 
-def rank(rows, *, target=4000000):
+def rank(rows, *, target=4000000, root=None):
     integer(target, 1)
     if len({r["id"] for r in rows}) != len(rows):
         raise ValueError("duplicate candidate")
@@ -18,7 +19,11 @@ def rank(rows, *, target=4000000):
             raise ValueError("development ranking only")
         if r["value"] is not None:
             scalar(r["value"])
-        if r["status"] == "COMPLETE" and r["tokens"] >= target and r["value"] is not None:
+        if (
+            r["status"] == "COMPLETE"
+            and r["tokens"] >= target
+            and eligible_value(r, root=root) is not None
+        ):
             eligible.append(r)
     ordered = sorted(eligible, key=lambda r: (-r["value"], r["elapsed_us"], r["id"]))
     frontier = [
@@ -44,8 +49,8 @@ def rank(rows, *, target=4000000):
     }
 
 
-def confirmation(rows, *, baseline, panels, seeds, target=4000000):
-    ranking = rank(rows, target=target)
+def confirmation(rows, *, baseline, panels, seeds, target=4000000, root=None):
+    ranking = rank(rows, target=target, root=root)
     if baseline not in ranking["ordered"]:
         raise ValueError("feasible baseline required")
     selected = [baseline] + [i for i in ranking["ordered"] if i != baseline][:3]
