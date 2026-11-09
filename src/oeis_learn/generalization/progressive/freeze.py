@@ -199,6 +199,8 @@ def freeze(
         track=b["track"],
         task_plans=all_plans,
     )
+    from oeis_learn.pipeline_validation.progressive_calibration import validate_prepared
+    validate_prepared(root, b, p)
     from oeis_learn.pipeline_validation.progressive_outputs import validate_requests
     validate_requests(root,all_plans,refs,q["graph"])
     from oeis_learn.pipeline_validation.progressive_study import validate_frozen as validate_studies

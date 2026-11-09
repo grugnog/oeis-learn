@@ -369,6 +369,7 @@ its original producer-relative reference namespace.
 | Named reference | Closed plan fields in addition to `identity` |
 | --- | --- |
 | `qualification_plan` in blueprint references | `version: progressive-qualification-plan/v1`, `matrix`, `base_qualification`, `seconds`; optional `original_cases` array |
+| `iteration_calibration_plan` in blueprint references | `version: progressive-calibration-plan/v1`, `seconds`, `caps`, `checkpoint_bytes`, `maximum_inodes` |
 | `acceptance_plan` in campaign references | `version: progressive-acceptance-plan/v1`, `qualification`, `seconds` |
 | `preflight_plan` in retained-input references read by init | `version: progressive-preflight-plan/v1`, `cohorts`, `exposure`, `sensitivity` |
 
@@ -388,6 +389,41 @@ bytes are reused; the remaining bounded delta retains original execution costs
 separately from new elapsed time. Original case files survive failures for a
 compatible new output/plan; do not overwrite earlier outputs. No additional pool
 is created.
+
+For a training campaign, add `iteration_calibration_plan` before running the
+existing `discovery prepare` command. Preparation first resolves the immutable
+learner channels and every finite trial choice, then runs the exact-input
+calibration serially inside the qualified GPU image. It measures two complete
+updates (including initial Adam allocation), two boundary probes and full-state
+publication/restore at the maximal prepared input/target sizes. Identical
+learning compatibility across continuation tasks shares one original measurement;
+generic Q cases do not substitute for this calibration.
+
+The plan's `caps` is the closed resource vector used by campaign budgets. Its
+`elapsed_us` must equal `seconds * 1000000`; `seconds` is at most 3,600 including
+inspection and cleanup. Calibration caps **plus** the prepared campaign caps must
+fit the blueprint's proposed caps. Reserve at least the two-update token charge
+for every distinct compatible input, two checkpoint generations per input, copied
+input packages and 16 MiB metadata headroom. `checkpoint_bytes` bounds one complete
+generation (including conservative optimizer growth); `maximum_inodes` bounds the
+whole calibration tree and must cover at least 64 per input plus 256 metadata
+entries. There are at most 48 distinct input cases. Insufficient reservations
+return a deficit before device dispatch; they are never enlarged automatically.
+
+Retain `prepared/calibration-input.json`, `prepared/calibration/request.json`,
+the per-input `cases/*/producer.json`, the aggregate calibration producer and the
+original debit under `run-state/discovery-calibration`. The final `prepared.json`
+binds these originals and records twice each measured phase in each task/choice's
+iteration budget. Freeze independently replays the setup closure and includes the
+measured checkpoint size in its storage graph. CPU measurements remain diagnostic;
+research preparation requires actual HIP on the matching source/image/device.
+
+The calibration reservation is consumed before dispatch and is tied to the
+blueprint, not the output directory. On timeout or failure, retain the original
+error and debit; a sibling output cannot retry with a fresh allowance. Reuse a
+successful prepared output, or prospectively revise the blueprint and its setup
+reservation after examining a failed attempt. Research preparation without the
+required plan reports `iteration_calibration_plan` as a deficit.
 
 Acceptance builds/probes a wheel and runs all 22 CPU/native cases first. It then
 reinspects the frozen runtime and executes the five registered device scenarios

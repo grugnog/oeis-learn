@@ -1612,3 +1612,12 @@ Both receipts explicitly have `qualified=false`; actual HIP qualification,
 post-freeze device acceptance, research freeze/execution and sustained observations
 remain pending their own original producers. The earlier pending-CI entries above
 are historical and superseded by this verified result.
+
+
+## T126 — Prepared-input calibration through the portable workflow
+
+The existing `discovery prepare` route now resolves every original training channel and finite trial choice, checks the separate prospective setup reservation, and dispatches one serial, supervised actual-HIP calibration stage after qualification. Matching continuation compatibility reuses one measurement. Time, tokens, generation bytes, total storage and inodes are bounded before dispatch/publication. A blueprint-bound write-ahead debit prevents retries in sibling output directories from resetting setup cost. Failed or stale/CPU-only/missing producers cannot publish a prepared launch input.
+
+Preparation retains the original input, device request, per-case timing/full-checkpoint measurements, aggregate producer and debit, and fills conservative task/choice iteration budgets. Freeze independently replays that original closure. The host stays standard-library-only; the unchanged portable launcher owns the GPU, isolation and hard deadline. The quickstart documents the named finite calibration plan and failure/reuse behavior.
+
+Validation: **77 passed, zero skips** across calibration, iteration, handoff, CLI, freeze, trial scopes, qualification and asset/packaging checks, using the local native binaries where required. This includes a real CPU subprocess calibration and storage/deadline rejection, explicitly simulated host-device orchestration through prepare/freeze, stale/CPU/missing/overspend/timeout rejection, and durable no-retry accounting. Boundary fixtures are labeled diagnostic and are not HIP receipts. Actual device and sustained validation remain pending; these source changes invalidate earlier current-source qualifications.

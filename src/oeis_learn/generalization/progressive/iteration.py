@@ -15,10 +15,58 @@ def margin(payload, *, research=False):
     return sum(phases)
 
 
+def measured_producer(producer, *, source, images, compatibility):
+    from .contracts import seal
+
+    fields = {
+        "version",
+        "identity",
+        "source",
+        "image",
+        "device",
+        "status",
+        "compatibility",
+        "maximum_target_tokens",
+        "effective_batch",
+        "measurements",
+        "measurement_scope",
+        "checkpoint_bytes",
+        "checkpoint_inodes",
+    }
+    if (
+        set(producer) != fields
+        or producer.get("version") != "progressive-iteration-calibration/v1"
+        or not isinstance(producer["measurements"], dict)
+        or set(producer["measurements"]) != {"update_us", "probe_us", "checkpoint_us"}
+        or any(
+            type(producer[k]) is not int or producer[k] <= 0
+            for k in (
+                "maximum_target_tokens",
+                "effective_batch",
+                "checkpoint_bytes",
+                "checkpoint_inodes",
+            )
+        )
+        or any(type(v) is not int or v <= 0 for v in producer["measurements"].values())
+    ):
+        raise ValueError("closed measured iteration/storage calibration required")
+    if (
+        seal(producer) != producer
+        or producer["source"] != source
+        or producer["image"] not in images
+        or producer["device"] != "actual_HIP"
+        or producer["status"] != "PASS"
+        or producer["compatibility"] != compatibility
+    ):
+        raise ValueError("current exact prepared iteration calibration required")
+    return producer
+
+
 def validate_producer(root, plan, runtime, references):
     """Bind the conservative margin to a current, frozen original HIP case."""
     import json
-    from .contracts import verify_refs, seal, digest
+
+    from .contracts import digest, seal, verify_refs
 
     ref = plan["iteration_budget"]["producer"]
     if not any(r["artifact"] == ref and r["kind"] == "qualification" for r in references):
@@ -31,39 +79,12 @@ def validate_producer(root, plan, runtime, references):
     source_identity = digest(source)
     producer = json.loads(verify_refs(root, [ref])[0])
     if producer.get("version") == "progressive-iteration-calibration/v1":
-        expected = {
-            "version",
-            "identity",
-            "source",
-            "image",
-            "device",
-            "status",
-            "compatibility",
-            "maximum_target_tokens",
-            "effective_batch",
-            "measurements",
-            "measurement_scope",
-            "checkpoint_bytes",
-            "checkpoint_inodes",
-        }
-        if (
-            set(producer) != expected
-            or set(producer["measurements"]) != {"update_us", "probe_us", "checkpoint_us"}
-            or any(
-                type(producer.get(k)) is not int or producer[k] <= 0
-                for k in ("checkpoint_bytes", "checkpoint_inodes")
-            )
-        ):
-            raise ValueError("closed measured iteration/storage calibration required")
-        if (
-            seal(producer) != producer
-            or producer["source"] != source_identity
-            or producer["image"] not in runtime["payload"]["scope"]["images"]
-            or producer["device"] != "actual_HIP"
-            or producer["status"] != "PASS"
-            or producer["compatibility"] != plan["initializer"]["compatibility"]
-        ):
-            raise ValueError("current exact prepared iteration calibration required")
+        measured_producer(
+            producer,
+            source=source_identity,
+            images=runtime["payload"]["scope"]["images"],
+            compatibility=plan["initializer"]["compatibility"],
+        )
         for phase in ("update_us", "probe_us", "checkpoint_us"):
             measured = producer["measurements"].get(phase)
             if (

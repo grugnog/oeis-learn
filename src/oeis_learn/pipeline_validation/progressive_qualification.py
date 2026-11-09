@@ -345,12 +345,19 @@ def hardware_facts():
     )
 
 
-def calibrate_iteration(package,output,*,source,image,device='cuda'):
+def calibrate_iteration(package,output,*,source,image,device='cuda',checkpoint_bytes=1 << 30,seconds=600):
     """Measure exact prepared logical-update/probe/publication scope before freeze.
 
     The caller's qualification supervisor owns the deadline. CPU receipts remain
     diagnostic and cannot satisfy the research iteration-margin validator.
     """
+    if (type(seconds) not in (int, float) or not 0 < seconds <= 3600
+            or type(checkpoint_bytes) is not int or not 0 < checkpoint_bytes <= 64 << 30):
+        raise ValueError('finite calibration time/checkpoint allowance required')
+    deadline = time.monotonic() + seconds
+    def within_deadline():
+        if time.monotonic() >= deadline:
+            raise TimeoutError('calibration deadline exhausted')
     import torch
     from oeis_learn.pipeline_validation.progressive_learner import compatibility
     from oeis_learn.pipeline_validation.progressive_training import PolicyUpdate
@@ -374,6 +381,7 @@ def calibrate_iteration(package,output,*,source,image,device='cuda'):
     ids=[BOS_ID,*longest['tokens']]
     tokens=torch.tensor([ids]*count,device=device)
     charge=int(tokens[:,1:].ne(PAD_ID).sum())
+    within_deadline()
     runner=PolicyUpdate(package['profile'],package['update_policy'],device=device)
     measurements=dict(update_us=0,probe_us=0,checkpoint_us=0)
     def now():
@@ -381,7 +389,9 @@ def calibrate_iteration(package,output,*,source,image,device='cuda'):
         return time.monotonic_ns()//1000
     ledger=Ledger(3*charge)
     store=GeneralizationCheckpointStore(output/'checkpoints',compatibility(package),3*charge)
+    store.MAX_BYTES = 2 * checkpoint_bytes
     for iteration in range(2):
+        within_deadline()
         start=now()
         _,ledger=runner.update([sequence]*count,tokens,ledger=ledger.reserve(str(iteration),charge))
         measurements['update_us']=max(measurements['update_us'],now()-start)
@@ -391,10 +401,28 @@ def calibrate_iteration(package,output,*,source,image,device='cuda'):
         measurements['probe_us']=max(measurements['probe_us'],now()-start)
         start=now()
         states=dict(weights=dict(encoder=runner.encoder.state_dict(),decoder=runner.decoder.state_dict()),optimizer=runner.state_dict(),scheduler={},data=dict(cursor=ledger.updates,pending_batch=None),replay={},history={},pins={},selection={},rng=dict(python=__import__('random').getstate(),numpy=__import__('numpy').random.get_state(),torch=torch.get_rng_state(),device=torch.cuda.get_rng_state_all() if device=='cuda' else []))
+        # Bound the complete serialized generation before the first tensor write.
+        # The additional weights allowance matches checkpoint_size's conservative
+        # optimizer-growth headroom, even after Adam has allocated its moments.
+        pieces = [v for k,v in states.items() if k not in {'rng','data'}] + list(states['rng'].values())
+        measured = sum(len(store._encode(v)) for v in pieces) + 2*len(store._encode(states['weights'])) + (128 << 10)
+        if measured > checkpoint_bytes:
+            raise TimeoutError('calibration checkpoint exceeds prospective storage allowance')
+        from oeis_learn.generalization.progressive.storage import preflight
+        preflight(measured, len(pieces)+4)
+        within_deadline()
         ref=store.save(states,ledger);store.load(ref)
         measurements['checkpoint_us']=max(measurements['checkpoint_us'],now()-start)
     from oeis_learn.generalization.progressive.storage import checkpoint_size
     checkpoint_bytes,checkpoint_inodes=checkpoint_size(output/'checkpoints',ref,checkpoint_root='.',research=True)
     result=seal(dict(version='progressive-iteration-calibration/v1',checkpoint_bytes=checkpoint_bytes,checkpoint_inodes=checkpoint_inodes,source=source,image=image,device='actual_HIP' if device=='cuda' else 'cpu',status='PASS',compatibility=compatibility(package),maximum_target_tokens=len(longest['tokens']),effective_batch=count,measurements={k:max(1,v) for k,v in measurements.items()},measurement_scope='two complete logical updates including initial Adam allocation; two probes; durable full-state save and verified restore; maximal prepared target and numeric input sizes'))
+    within_deadline()
     atomic_write(output/'producer.json',result)
+    # Release owned tensors between serial prepared-input cases.
+    del runner, states, tokens, pieces
+    if device == 'cuda':
+        import gc
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
     return result

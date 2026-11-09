@@ -252,7 +252,7 @@ def main(args, root, host_factory):
             result,code=acceptance_command(args,root,host_factory)
         elif args.operation == 'prepare':
             from .progressive_capability import prepare
-            result,code=prepare(args,root)
+            result,code=prepare(args,root,host_factory)
         elif args.operation == "freeze":
             result, code = freeze_command(args, root)
         elif (

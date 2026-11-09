@@ -14,7 +14,7 @@ from oeis_learn.generalization.progressive.contracts import (
 from .progressive_evidence import publish
 
 
-def prepare(args, root):
+def prepare(args, root, host_factory=None):
     from .progressive_commands import _output
 
     blueprint = validate("blueprint", load(confined(root, args.blueprint)))
@@ -66,6 +66,11 @@ def prepare(args, root):
         raise ValueError("preparation cannot enlarge reservation")
     if deficits:
         prepared = seal(dict(prepared, payload=dict(payload, deficits=sorted(set(deficits)))))
+    else:
+        from .progressive_calibration import prepare as calibrate
+
+        prepared = calibrate(root, blueprint, prepared, output, args, host_factory)
+        deficits = prepared['payload']['deficits']
     atomic_write(output / "prepared.json", prepared)
     return publish(
         output,
