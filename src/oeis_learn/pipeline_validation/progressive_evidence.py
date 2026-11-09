@@ -248,9 +248,18 @@ def finalize_learning(journal, task, state_root, output):
     remaining = journal.task_remaining(task)
     charged = base["tokens"] + task["payload"]["caps"]["tokens"] - remaining["tokens"]
     elapsed = task["payload"]["caps"]["elapsed_us"] - remaining["elapsed_us"]
+    tip=binding['identity']
+    cut=None
+    for i,path in enumerate(sorted(state_root.glob('event-*.json'))):
+        event=load(path)
+        if path.name!=f'event-{i:05d}.json' or seal(event)!=event or event['previous']!=tip:
+            raise ValueError('original recovery chain required for final accounting')
+        tip=event['identity'];cut=event['state']
     report = seal(
         {
             "version": "progressive-final-accounting/v1",
+            "checkpoint":cut['checkpoint']['identity'] if cut and cut['checkpoint'] else None,
+            "useful_tokens":cut['useful_tokens'] if cut else 0,
             "task": task["identity"],
             "milestone": milestone(
                 charged,

@@ -15,6 +15,8 @@ from .progressive_oeis import _Derived
 
 SLOTS = {
     ("generate", "candidates"): "candidate",
+    ("generate", "evaluation"): "public_evidence",
+    ("train", "weights"): "checkpoint",
     ("score", "scores"): "public_evidence",
     ("census", "census"): "public_evidence",
     ("audit-language", "coverage"): "public_evidence",
@@ -34,7 +36,10 @@ def slot(value, *, plans, consumer, graph):
     if (
         source is None
         or source["id"] == consumer["id"]
-        or (value["kind"]!="public_evidence" and (source["arm"] != consumer["arm"] or source["seed"] != consumer["seed"]))
+        or (
+            value["kind"] != "public_evidence"
+            and (source["arm"] != consumer["arm"] or source["seed"] != consumer["seed"])
+        )
     ):
         raise ValueError("paired original predecessor task required")
     nodes = {n["id"]: n for n in graph["nodes"]}
@@ -120,6 +125,33 @@ def resolve(root, store, task, request, output):
             base = confined(root, cut["result"]["path"]).parent
             data = json.loads(verify_refs(base, [ref], max_bytes=512 << 20)[0])
             kind = value["kind"]
+            if kind == "checkpoint":
+                from oeis_learn.generalization.progressive.state import restore
+
+                state_root = (
+                    root
+                    / "run-state/discovery-learning"
+                    / store.campaign["identity"].split(":")[1]
+                    / cut["task"].split(":")[1]
+                    / "checkpoints"
+                )
+                p = restore(
+                    data,
+                    root=state_root,
+                    compatibility=source["initializer"]["compatibility"],
+                    campaign=store.campaign["identity"],
+                    task=cut["task"],
+                )
+                if p["compatibility"] != task["payload"]["initializer"]["compatibility"]:
+                    raise ValueError("evaluation checkpoint compatibility differs")
+                full = json.loads(verify_refs(state_root, [p["full_state"]], max_bytes=64 << 20)[0])
+                weights = full["states"]["weights"]
+                verify_refs(state_root, [weights], max_bytes=64 << 30)
+                data = dict(
+                    artifact=reference(root, confined(state_root, weights["path"])),
+                    compatibility=p["compatibility"],
+                    profile="bigint-body/v1",
+                )
             if kind not in CHANNELS[channel]:
                 raise ValueError("producer output cannot enter this role channel")
             # Preserve original content and binding; candidate wrapper gains no
@@ -151,18 +183,28 @@ def resolve(root, store, task, request, output):
     return artifacts, authority
 
 
-def validate_requests(root,plans,refs,graph):
-    policies={r['artifact']['sha256']:r['artifact'] for r in refs if r['kind']=='policy'}
+def validate_requests(root, plans, refs, graph):
+    policies = {r["artifact"]["sha256"]: r["artifact"] for r in refs if r["kind"] == "policy"}
     for plan in plans:
-        ref=policies.get(plan['policy'])
-        if ref is None:continue
-        request=json.loads(verify_refs(root,[ref])[0])
-        if type(request) is not dict or 'operation' not in request:continue
+        ref = policies.get(plan["policy"])
+        if ref is None:
+            continue
+        request = json.loads(verify_refs(root, [ref])[0])
+        if type(request) is not dict or "operation" not in request:
+            continue
         from .progressive_roles import REGISTRY
-        if set(request)!={'operation','artifacts','image','seconds','reservation'} or request['operation'] not in REGISTRY or set(request['artifacts'])!=set(REGISTRY[request['operation']].channels):
-            raise ValueError('closed frozen installed request required')
-        for channel,items in request['artifacts'].items():
-            if not isinstance(items,list) or len(items)>4096:raise ValueError('bounded frozen channel slots required')
+
+        if (
+            set(request) != {"operation", "artifacts", "image", "seconds", "reservation"}
+            or request["operation"] not in REGISTRY
+            or set(request["artifacts"]) != set(REGISTRY[request["operation"]].channels)
+        ):
+            raise ValueError("closed frozen installed request required")
+        for channel, items in request["artifacts"].items():
+            if not isinstance(items, list) or len(items) > 4096:
+                raise ValueError("bounded frozen channel slots required")
             for value in items:
-                if isinstance(value,dict):slot(value,plans=plans,consumer=plan,graph=graph)
-                elif not isinstance(value,str):raise ValueError('literal artifact path or typed predecessor slot required')
+                if isinstance(value, dict):
+                    slot(value, plans=plans, consumer=plan, graph=graph)
+                elif not isinstance(value, str):
+                    raise ValueError("literal artifact path or typed predecessor slot required")

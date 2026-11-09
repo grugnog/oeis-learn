@@ -60,6 +60,7 @@ def validate_input(package, task, *, allow_pending=False):
         set(package)
         - {
             "weights",
+            "full_state",
             "origin",
             "oeis_replay",
             "oeis_rules",
@@ -142,6 +143,11 @@ def validate_input(package, task, *, allow_pending=False):
         and package.get("weights") is not None
     ):
         raise ValueError("unexpected imported weights on a fresh/full-state task")
+    if initializer.get('mode')=='full_state' and initializer['artifact'] is not None:
+        if package.get('full_state',{}).get('artifact')!=initializer['artifact']:
+            raise ValueError('direct full-state initializer must bind original source closure')
+    elif 'full_state' in package:
+        raise ValueError('unexpected full-state input')
     validate_profile(package["profile"])
     validate_update_policy(package["profile"], package["update_policy"])
     if (
@@ -277,13 +283,8 @@ def _run(
 
     def batch_for(controller):
         b = controller.select()["bin"]
-        index = (
-            0
-            if t["payload"]["arm"] == "static" or b == "familiar"
-            else controller.updates // package["refresh_updates"]
-        )
-        if index >= len(package["shards"]):
-            raise TimeoutError("reserved refreshed support exhausted")
+        from oeis_learn.generalization.progressive.supply import shard_index
+        index=shard_index(t['payload']['arm'],b,controller.updates,package['refresh_updates'],len(package['shards']))
         rows = [
             r
             for r in package["shards"][index]
@@ -335,6 +336,8 @@ def _run(
                 journal, parent, compatibility(package), state_root=predecessor_state
             ) as previous:
                 recovery.initialize_from(previous, campaign=c)
+        if recovery.state['checkpoint'] is None and init['mode']=='full_state' and init['artifact'] is not None:
+            recovery.initialize_import(initializer_root,package['full_state'])
         was_resumed = recovery.state["checkpoint"] is not None
         worker = RecoverableUpdate(
             recovery, package["profile"], package["update_policy"], device=device
@@ -640,6 +643,7 @@ def _run(
                 "task_status": status,
                 "checkpoint": recovery.state["checkpoint"]["identity"],
                 "checkpoint_record":__import__("oeis_learn.generalization.progressive.contracts",fromlist=["reference"]).reference(output,output/"checkpoint.json"),
+                "weights":__import__("oeis_learn.generalization.progressive.contracts",fromlist=["reference"]).reference(output,output/"checkpoint.json"),
                 "charged_tokens": current["ledger"].consumed,
                 "useful_tokens": recovery.state["useful_tokens"],
                 "discarded_tokens": current["discarded_tokens"],

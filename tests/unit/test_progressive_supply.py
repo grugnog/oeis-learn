@@ -22,3 +22,12 @@ def test_prospective_cadence_makes_same_finite_inventory_feasible():
     assert p["maximum_updates"] == 512 and p["required_shards"] == 64
     with pytest.raises(ValueError):
         plan(package(), 81921)
+
+
+def test_final_frontier_shard_boundary_restores_without_reuse():
+    from oeis_learn.generalization.progressive.supply import shard_index
+    assert shard_index('refreshed','frontier',511,8,64)==63
+    assert shard_index('refreshed','familiar',512,8,64)==0
+    import pytest
+    with pytest.raises(TimeoutError,match='no static fallback'):
+        shard_index('refreshed','frontier',512,8,64)

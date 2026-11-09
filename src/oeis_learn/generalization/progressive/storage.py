@@ -141,6 +141,9 @@ def projection_size(root, refs):
             package = load(confined(root, nested[0]["path"]), maximum=256 << 20)
             if package.get("weights") is not None:
                 nested.append(package["weights"])
+            if package.get('full_state') is not None:
+                from .import_state import inspect
+                nested.extend(inspect(root,package['full_state'])[-1])
             if package.get("origin") is not None:
                 from .campaign import initializer_origin
 
@@ -149,7 +152,7 @@ def projection_size(root, refs):
                 _, closure = initializer_origin(
                     root,
                     dict(
-                        mode="weights_only", artifact=package["weights"], origin=package["origin"]
+                        mode="full_state" if 'full_state' in package else "weights_only", artifact=package['full_state']['artifact'] if 'full_state' in package else package["weights"], origin=package["origin"]
                     ),
                     track="synthetic_strict",
                     purpose=purpose,

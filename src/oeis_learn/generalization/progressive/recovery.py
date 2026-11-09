@@ -232,6 +232,23 @@ class Recovery:
         self.read()
         return self.initialize(restored["states"], restored["cuts"])
 
+    def initialize_import(self, source_root, source):
+        from .import_state import restore
+        state, costs, restored = restore(source_root, source, self.task)
+        if self.state['checkpoint'] is not None or self.state['status'] not in {'NEW','RUNNING'}:
+            raise ValueError('fresh child entitlement required for direct import')
+        base = dict(tokens=costs['milestone']['tokens'], updates=restored['ledger'].updates,
+                    useful=costs['useful_tokens'],
+                    ancestor_cost_us=costs['milestone']['total_cost_us'])
+        value=seal(dict(task=self.task['identity'], compatibility=self.compatibility,
+            parent=state['identity'], ancestor_cost_available=costs['ancestor_cost_available'], base=base))
+        path=self.root/'lineage.json'
+        if path.exists() and load(path)!=value:
+            raise ValueError('conflicting imported ancestor cut')
+        if not path.exists():atomic_write(path,value)
+        self.read()
+        return self.initialize(restored['states'],state['payload']['cuts'])
+
     def save(self, states, ledger, cuts):
         if not self.owned:
             raise ValueError("exclusive task lease required")

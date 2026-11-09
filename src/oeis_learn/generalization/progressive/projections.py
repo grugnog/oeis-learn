@@ -121,14 +121,17 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                 package = load(confined(root, data["artifact"]["path"]), maximum=256 << 20)
                 if package.get("weights") is not None:
                     nested.append(package["weights"])
+                if package.get('full_state') is not None:
+                    from .import_state import inspect
+                    nested.extend(inspect(root,package['full_state'])[-1])
                 if package.get("origin") is not None:
                     from .campaign import initializer_origin
 
                     _, closure = initializer_origin(
                         root,
                         dict(
-                            mode="weights_only",
-                            artifact=package["weights"],
+                            mode="full_state" if 'full_state' in package else "weights_only",
+                            artifact=package['full_state']['artifact'] if 'full_state' in package else package["weights"],
                             origin=package["origin"],
                         ),
                         track="synthetic_strict",
@@ -244,7 +247,7 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                             target_weights.parent.mkdir(parents=True, exist_ok=True)
                             copy_file(confined(root, weights["path"]), target_weights)
                             target_weights.chmod(0o444)
-                        if package.get("origin") is not None:
+                        if package.get("origin") is not None or package.get('full_state') is not None:
                             for child in unique_nested.values():
                                 destination_child = confined(folder, child["path"], exists=False)
                                 if destination_child.exists():

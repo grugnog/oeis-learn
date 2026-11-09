@@ -315,12 +315,13 @@ def _execute(
             budget.client(client)
             import os
 
-            shards = prepare_stream(
+            shards,preparation = prepare_stream(
                 output / "stream",
                 policies[0],
                 client=client,
                 purpose=os.environ.get("OEIS_DISCOVERY_PURPOSE", "acceptance"),
                 budget=budget,
+                return_receipt=True,
             )
         complete = bool(shards) and all(s["payload"]["native_verified"] for s in shards)
         return publish(
@@ -328,7 +329,7 @@ def _execute(
             operation=operation,
             mechanical_status="COMPLETE" if complete else "PARTIAL",
             reason="SEALED_STRUCTURAL_STREAM",
-            metrics={"shards": [s["identity"] for s in shards]},
+            metrics={"shards": [s["identity"] for s in shards],"preparation":reference(output,output/'stream'/preparation['path'])},
         )
     if operation == "generate":
         if any(
@@ -435,7 +436,7 @@ def _execute(
             operation=operation,
             mechanical_status="COMPLETE",
             reason="SEALED_VISIBLE_CANDIDATES",
-            metrics={"candidates": artifact, "timing": reference(output, output / "timing.json")},
+            metrics={"candidates": artifact, "evaluation": artifact, "timing": reference(output, output / "timing.json")},
         )
     if operation in {"score", "assess"}:
         allowed = {"candidate", "assessment_truth", "locked_selection"} if operation == "assess" else {"candidate", "development_truth", "confirmation_truth"}
@@ -533,7 +534,10 @@ def _execute(
     if operation == "publish":
         if any(v["kind"] != "public_evidence" for v in values):
             raise ValueError("public-only publication")
-        if len(values) == 1 and values[0]["data"].get("version") == "progressive-decision-input/v1":
+        if any(isinstance(v['data'],dict) and v['data'].get('version')=='discovery-cohort/v1' for v in values):
+            from .progressive_capability import publish_readiness
+            return publish_readiness(values,output)
+        if len(values) == 1 and isinstance(values[0]['data'],dict) and values[0]["data"].get("version") == "progressive-decision-input/v1":
             from oeis_learn.generalization.progressive.decisions import publish as decide
             from oeis_learn.pipeline_validation.identity import seal
 

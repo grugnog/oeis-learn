@@ -1313,3 +1313,9 @@ finalization reserve; research requires original measured qualification producer
 CPU stream update/recovery selection passed four cases (two native-only skips in
 that invocation). No task completion marker or hardware authority is inferred from
 these repair cores; remaining canonical end-to-end paths are still being integrated.
+
+### T120 — installed direct full-state initializer
+
+The learner imports the original verified tensor closure through the read-only training projection, checks state/task/compatibility/track/purpose and strict origin, and copies optimizer, scheduler, RNG, controller/data and dynamic cuts into a separately entitled child. Original final accounting binds the exact checkpoint and useful/charged exposure; inherited charges and ancestor elapsed remain cumulative. The source journal is never mounted writable or modified. Installed wheel acceptance covers the child, incompatible imports, missing tensors and unchanged historical parent budgets. The focused import/lifecycle/supply run passed 17 tests (150.67 seconds), on CPU; no HIP qualification is claimed.
+
+The same increment adds canonical host crash reconciliation and capability assembly/output adapters, with their remaining integration acceptance tracked under T117/T121. No completion is claimed for those tasks by this increment.

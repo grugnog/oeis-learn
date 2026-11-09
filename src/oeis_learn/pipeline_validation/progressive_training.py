@@ -76,13 +76,8 @@ class PreparedSupport:
 
     def batch(self, controller, count):
         selected = controller.select()["bin"]
-        index = (
-            0
-            if self.arm == "static" or selected == "familiar"
-            else controller.updates // self.refresh_updates
-        )
-        if index >= len(self.rows):
-            raise TimeoutError("preallocated refreshed shards exhausted")
+        from oeis_learn.generalization.progressive.supply import shard_index
+        index=shard_index(self.arm,selected,controller.updates,self.refresh_updates,len(self.rows))
         available = [
             r
             for r in self.rows[index]

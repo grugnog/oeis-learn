@@ -58,13 +58,9 @@ def test_run_pause_resume_status_keep_original_caps_and_new_outputs(
         )
         journal.commit(r["key"])
         status = "PAUSED" if len(called) == 1 else "COMPLETE"
-        return seal(
-            {
-                "version": "discovery-result/v1",
-                "mechanical_status": "PARTIAL" if status == "PAUSED" else "COMPLETE",
-                "metrics": {"task_status": status},
-            }
-        )
+        result=seal(dict(version='discovery-result/v1',operation='train',mechanical_status='PARTIAL' if status=='PAUSED' else 'COMPLETE',metrics={'task_status':status}))
+        atomic_write(tmp_path/kw['output']/'role/result.json',result)
+        return result
 
     monkeypatch.setattr(roles, "invoke", invoke)
 

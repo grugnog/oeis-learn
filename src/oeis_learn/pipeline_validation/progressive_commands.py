@@ -233,6 +233,9 @@ def main(args, root, host_factory):
     try:
         if args.operation == "init":
             result, code = init(args, root)
+        elif args.operation == 'prepare':
+            from .progressive_capability import prepare
+            result,code=prepare(args,root)
         elif args.operation == "freeze":
             result, code = freeze_command(args, root)
         elif (
@@ -610,8 +613,14 @@ def lifecycle_command(args, root, host_factory):
                     runtime=checked,
                     derived=derived,
                 )
-            except (OSError, RuntimeError, ValueError):
-                store.boundary(task, "FAILED", _INVOCATION.get())
+            except (OSError, RuntimeError, ValueError, KeyboardInterrupt) as exc:
+                from .progressive_interruption import recover
+                recovered=recover(root,campaign,task,journal,role_output,exc) if request['operation']=='train' else None
+                store.boundary(task, recovered or "FAILED", _INVOCATION.get())
+                if recovered:
+                    store.append(dict(store.state,status='PAUSED' if recovered=='PAUSED' else 'PARTIAL'))
+                    return publish(output,operation=args.operation,mechanical_status='PARTIAL',campaign=campaign['identity'],
+                        reason='OWNED_INTERRUPTION_'+recovered,metrics={'task_status':recovered}),2
                 raise
             if request["operation"] == "train":
                 from .progressive_evidence import finalize_learning

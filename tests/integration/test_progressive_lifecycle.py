@@ -422,3 +422,107 @@ def test_resume_storage_counts_retained_invocation_outputs(tmp_path):
     with guard.activate(), pytest.raises(TimeoutError, match="storage"):
         atomic_write(tmp_path / "resumed" / "new.json", {"value": "x" * 2000})
     assert not (tmp_path / "resumed").exists()
+
+
+def test_installed_direct_full_state_child_preserves_parent_allowance(tmp_path, installed_lifecycle):
+    from oeis_learn.pipeline_validation.progressive_acceptance import fixture, invoke_cpu
+    from oeis_learn.generalization.progressive.contracts import atomic_write,load,reference,record
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.generalization.progressive.projections import project,describe
+    from oeis_learn.pipeline_validation.progressive_roles import REGISTRY
+    c,tasks,channel,charge=fixture(tmp_path,interrupt=False,weights_only=True)
+    package=load(tmp_path/'training-input.json')
+    origin=load(tmp_path/'origin.json')
+    # Rebind the original full-state producer, never manufacture tensors/state.
+    origin['checkpoint']=origin['state']
+    atomic_write(tmp_path/'full-origin.json',seal(origin))
+    package.pop('weights')
+    package['origin']=reference(tmp_path,'full-origin.json')
+    package['full_state']=dict(artifact=origin['state'],state_root=origin['state_root'],
+        accounting=reference(tmp_path,tmp_path/'ancestor/invocation-0/role/accounting-final.json'))
+    atomic_write(tmp_path/'full-input.json',seal(package))
+    channel['data']['artifact']=reference(tmp_path,'full-input.json')
+    channel=seal(channel);atomic_write(tmp_path/'full-channel.json',channel)
+    init=c['payload']['tasks'][0]['initializer']
+    init.update(mode='full_state',artifact=origin['state'],origin=package['origin'])
+    c=seal(c)
+    task=record('task',dict(c['payload']['tasks'][0],campaign=c['identity']),created_at=c['created_at'],purpose=c['purpose'],track=c['track'])
+    parent_journal=tmp_path/'ancestor/accounting/budget.jsonl'
+    before=parent_journal.read_bytes()
+    result,out=invoke_cpu(tmp_path,c,task,channel,ordinal=0,pythonpath=installed_lifecycle,channel_path='full-channel.json')
+    assert result['mechanical_status']=='COMPLETE',result
+    assert load(out/'role/accounting-final.json')['ancestor_cost_available']
+    assert load(out/'role/accounting-final.json')['milestone']['total_cost_us']>load(out/'role/accounting-final.json')['milestone']['new_cost_us']
+    assert parent_journal.read_bytes()==before
+    assert BudgetJournal(tmp_path/'accounting',c['identity'],c['payload']['caps']).task_remaining(task)['tokens']==task['payload']['caps']['tokens']-3*charge
+    # Projection verifies the closure before decoding any trusted torch file.
+    from oeis_learn.generalization.progressive.import_state import restore
+    bad=seal(dict(task,payload=dict(task['payload'],initializer=dict(init,compatibility='sha256:'+'f'*64))))
+    with pytest.raises(ValueError,match='incompatible'):
+        restore(tmp_path,package['full_state'],bad)
+    full=load(tmp_path/origin['state_root']/load(tmp_path/origin['state']['path'])['payload']['full_state']['path'])
+    missing=tmp_path/origin['state_root']/full['states']['rng']['python']['path']
+    missing.unlink()
+    with pytest.raises((ValueError,FileNotFoundError)):
+        project(tmp_path,tmp_path/'missing-closure','train',{'training':[describe(tmp_path,'full-channel.json')]},registry=REGISTRY)
+
+
+@pytest.mark.parametrize('point',['committed','pending'])
+def test_canonical_run_resume_after_real_owned_process_kill(tmp_path,monkeypatch,installed_lifecycle,point):
+    """Local process engine exercises the host/installed path; no container/HIP claim."""
+    import os,signal,sys,threading,time,json
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import progressive_commands as commands,progressive_roles as roles
+    from oeis_learn.pipeline_validation.progressive_acceptance import fixture
+    from oeis_learn.generalization.progressive.contracts import atomic_write,load,reference
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    c,tasks,_,charge=fixture(tmp_path,interrupt=False)
+    atomic_write(tmp_path/'producer/qualification.json',{'covered_capabilities':['progressive-lifecycle']})
+    atomic_write(tmp_path/'runtime.json',{'payload':{'qualification':[reference(tmp_path,'producer/qualification.json')]}})
+    atomic_write(tmp_path/'accepted/acceptance.json',seal(dict(version='discovery-acceptance/v1',scope='progressive-lifecycle',qualified=True,campaign=c['identity'],runtime=c['payload']['runtime'],status='COMPLETE')))
+    runtime=SimpleNamespace(execution_ready=True,identity=c['payload']['runtime'],purpose='acceptance',track=c['track'],payload={'operations':['train'],'scope':{'images':['sha256:'+'a'*64]}},producers=())
+    monkeypatch.setattr(roles,'current_runtime',lambda *a,**kw:runtime)
+    monkeypatch.setenv('PYTHONPATH',str(installed_lifecycle))
+    class Engine:
+        def command(self,**kw):
+            mounts={dest:source for source,dest,_ in kw['mounts']}
+            args={k:mounts.get(v,str(tmp_path/'absent')) for k,v in dict(inputs='/inputs',output='/output/discovery',authority='/authority',accounting='/accounting',control='/control',state_root='/learning-state',predecessor_state='/predecessor-state').items()}
+            args['authority']=str(__import__('pathlib').Path(args['authority'])/'supervisor.json')
+            args['inputs']=str(__import__('pathlib').Path(mounts['/inputs/training']).parent)
+            code="from pathlib import Path;import os;from oeis_learn.pipeline_validation.progressive_role import execute;Path("+repr(str(tmp_path/'owned-pid'))+").write_text(str(os.getpid()));r=execute('train',**{k:Path(v) for k,v in "+repr(args)+".items()});raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2)"
+            return [sys.executable,'-c',code]
+        def remove(self,*a,**kw):pass
+    host=SimpleNamespace(engine=Engine(),policy=dict(memory_bytes=1<<30,cpus=2))
+    state=tmp_path/'run-state/discovery-learning'/c['identity'].split(':')[1]/tasks[0]['identity'].split(':')[1]
+    killed=[];errors=[]
+    def killer():
+        deadline=time.monotonic()+45
+        while time.monotonic()<deadline:
+            events=sorted(state.glob('event-*.json'))
+            if events:
+                cut=load(events[-1])['state']
+                if cut['checkpoint'] and cut['checkpoint']['payload']['model_update']>=1 and (point=='committed' or cut['pending'] is not None):
+                    os.kill(int((tmp_path/'owned-pid').read_text()),signal.SIGKILL)
+                    killed.append(cut);return
+            time.sleep(.002)
+        errors.append('no committed kill coordinate')
+    thread=threading.Thread(target=killer,daemon=True);thread.start()
+    def run(operation,**kw):
+        token=commands._INVOCATION.set(operation)
+        try:return commands.lifecycle_command(SimpleNamespace(operation=operation,**kw),tmp_path,lambda _:host)
+        finally:commands._INVOCATION.reset(token)
+    first,code=run('run',campaign='campaign.json',acceptance='accepted',output='killed')
+    thread.join(timeout=1)
+    assert killed and not errors
+    assert first['reason']=='OWNED_INTERRUPTION_PAUSED',first
+    journal=BudgetJournal(tmp_path/'run-state/discovery-accounting'/c['identity'].split(':')[1],c['identity'],c['payload']['caps'])
+    left=journal.task_remaining(tasks[0])
+    assert 0<left['elapsed_us']<tasks[0]['payload']['caps']['elapsed_us']
+    assert left['tokens']<=tasks[0]['payload']['caps']['tokens']-charge
+    binding=list(journal.root.glob('task-binding-*'))[0].read_bytes()
+    resumed,code=run('resume',run='killed',output='resumed')
+    assert code==0,resumed
+    assert list(journal.root.glob('task-binding-*'))[0].read_bytes()==binding
+    final=load(next((tmp_path/'resumed').glob('task-*/role/accounting-final.json')))
+    assert final['milestone']['tokens']>=3*charge
+    if point=='pending':assert final['milestone']['tokens']>final['useful_tokens']
