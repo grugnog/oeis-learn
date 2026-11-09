@@ -121,7 +121,7 @@ def _invoke_reserved(
     if operation != "assess" and exposure_path.exists():
         raise ValueError("assessment exposed; adaptive operations forbidden")
     if (
-        c["payload"]["runtime"] != runtime.identity
+        (not _trial_runtime_matches(root,c,t,runtime) if 'trial_runtime' in t['payload'] else c["payload"]["runtime"] != runtime.identity)
         or runtime.track != t["track"]
         or runtime.purpose != t["purpose"]
     ):
@@ -444,3 +444,12 @@ def invoke(host, image, root, operation, artifacts, **kwargs):
         raise ValueError("canonical campaign journal required; output cannot reset allowance")
     with TaskLease(Path(root) / "run-state/discovery-leases", kwargs["task"]):
         return _invoke_reserved(host, image, root, operation, artifacts, **kwargs)
+
+
+def _trial_runtime_matches(root,campaign,task,runtime):
+    from oeis_learn.generalization.progressive.contracts import verify_refs
+    import json
+    ref=task['payload']['trial_runtime']
+    if not any(r['artifact']==ref and r['kind']=='qualification' for r in campaign['payload']['references']):return False
+    value=json.loads(verify_refs(root,[ref])[0])
+    return value['identity']==runtime.identity

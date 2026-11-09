@@ -121,6 +121,41 @@
         "confirmation": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "runtime": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "diagnostic": {
+          "type": "object",
+          "properties": {
+            "failure_class": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "information_goal": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "observations": {
+              "$ref": "progressive-common.schema.json#/$defs/hash"
+            },
+            "terminal_action": {
+              "enum": [
+                "RETAIN_BASELINE",
+                "DEFER_BRANCH",
+                "STOP_AFFECTED"
+              ]
+            }
+          },
+          "required": [
+            "failure_class",
+            "information_goal",
+            "observations",
+            "terminal_action"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

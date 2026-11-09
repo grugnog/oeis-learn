@@ -213,6 +213,7 @@ def publish(
     visited=(),
     costs=None,
     confirmation=None,
+    runtime=None,
 ):
     validate_policy(policy)
     if not policy["payload"]["selected"]:
@@ -254,7 +255,7 @@ def publish(
         )
         if branch is None:
             raise ValueError("diagnostic trigger absent")
-        validate_trigger(branch, metrics=metrics, remaining=remaining, visited=visited)
+        validate_trigger(branch, metrics=metrics, remaining=remaining, visited=visited,runtime=runtime)
     validate_action(
         policy,
         target_id,
@@ -282,6 +283,15 @@ def publish(
         "target_id": target_id,
         "trigger": trigger,
     }
+    if action=='EXPLORE_RESERVED':
+        questions={'seed_disagreement':'Does an additional paired seed distinguish unstable gains?',
+                   'support_deficit':'Does the reserved independent panel resolve missing support?',
+                   'heldout_yield':'Does the registered intervention change held-out capability?',
+                   'runtime_bottleneck':'Does the registered intervention resolve measured runtime cost?'}
+        payload['diagnostic']=dict(failure_class=branch['failure_class'],information_goal=questions[branch['signal']],
+            observations=digest(dict(metrics=normalized,runtime=runtime)),terminal_action=branch['terminal_action'])
+    if runtime is not None:
+        payload['runtime']=digest(runtime)
     if confirmation is not None:
         payload["confirmation"] = digest(confirmation)
     return record("decision", payload, created_at=created_at, purpose=purpose, track=track)

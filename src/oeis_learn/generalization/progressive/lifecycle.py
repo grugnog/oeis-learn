@@ -200,14 +200,23 @@ class RunStore:
         ):
             raise ValueError("incomplete source learning cannot authorize confirmed expansion")
         kwargs = bundle["kwargs"]
-        if set(kwargs) - {"target_id", "action", "trigger", "costs", "confirmation"}:
+        if set(kwargs) - {"target_id", "action", "trigger", "costs", "confirmation", "runtime"}:
             raise ValueError("closed decision arguments required")
-        if edge["action"] != "EXPLORE_RESERVED":
+        if edge["action"] != "EXPLORE_RESERVED" or self.campaign['purpose']=='research':
             from .decisions import verify_gate_producers
 
             verify_gate_producers(
                 self.root if evidence_root is None else evidence_root, self.campaign, bundle
             )
+        observation=kwargs.get('runtime')
+        if observation is not None:
+            from .contracts import verify_refs
+            import json
+            matches=[r['artifact'] for r in self.campaign['payload']['references'] if r['artifact']==observation.get('producer')]
+            if len(matches)!=1:raise ValueError('original frozen runtime producer required')
+            original=json.loads(verify_refs(self.root if evidence_root is None else evidence_root,matches)[0])
+            if original.get('measurements')!=observation.get('measurements') or seal(original)!=original:
+                raise ValueError('runtime measurements differ from original producer')
         visited = [
             v["failure_class"]
             for v in self.state.get("decisions", {}).values()

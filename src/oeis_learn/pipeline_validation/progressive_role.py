@@ -555,7 +555,7 @@ def _execute(
                 "kwargs",
             }:
                 raise ValueError("closed decision producer request required")
-            if set(data["kwargs"]) - {"target_id", "action", "trigger", "costs", "confirmation"}:
+            if set(data["kwargs"]) - {"target_id", "action", "trigger", "costs", "confirmation", "runtime"}:
                 raise ValueError("closed comparison arguments required")
             policy = data["policy"]
             decision = decide(

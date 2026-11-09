@@ -31,3 +31,18 @@ def test_complete_update_probe_publication_margin_precedes_work(tmp_path):
         assert j.path.read_bytes() == before
     with pytest.raises(ValueError):
         margin({}, research=True)
+
+
+@pytest.mark.parametrize('slow_phase',['update','checkpoint'])
+def test_slow_iteration_is_refused_before_any_debit_or_slow_work(tmp_path,slow_phase):
+    import time
+    from oeis_learn.pipeline_validation.progressive_training import Progress
+    p=Progress(tmp_path/'progress')
+    called=[]
+    def slow():called.append(slow_phase);time.sleep(.02)
+    # The measured conservative bound includes both phases and the probe;
+    # admission occurs before any update, checkpoint or token reservation.
+    with pytest.raises(TimeoutError):
+        p.preflight(bytes_required=0,inodes_required=0,remaining_us=4999,finalization_us=1000,research=False,work_us=4000)
+        slow()
+    assert not called

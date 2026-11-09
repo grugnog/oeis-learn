@@ -240,3 +240,17 @@ def test_paired_gain_cannot_claim_false_seed_disagreement():
             purpose="acceptance",
             track="synthetic_strict",
         )
+
+
+def test_runtime_trigger_needs_original_observation_and_excludes_loss():
+    from oeis_learn.generalization.progressive.contingencies import validate_trigger
+    from oeis_learn.generalization.progressive.contracts import digest,seal
+    import pytest
+    ref=dict(path='timing.json',bytes=1,sha256=digest('timing'))
+    branch=dict(id='runtime',signal='runtime_bottleneck',failure_class='slow',trigger='measured-slow',design=digest('design'),panel='diagnostic',task_slots=['runtime-task'],reservation={'elapsed_us':100},maximum_visits=1,terminal_action='DEFER_BRANCH',runtime_rule=dict(producer=ref,metric='elapsed_us',ceiling_us=50))
+    kwargs=dict(metrics={},remaining={'runtime':{'elapsed_us':100}})
+    for runtime in (None,{'training_loss':.1},seal(dict(version='progressive-runtime-observation/v1',producer=ref,measurements={'elapsed_us':10},scope='observed execution; training loss excluded'))):
+        with pytest.raises(ValueError,match='trigger'):
+            validate_trigger(branch,runtime=runtime,**kwargs)
+    runtime=seal(dict(version='progressive-runtime-observation/v1',producer=ref,measurements={'elapsed_us':51},scope='observed execution; training loss excluded'))
+    assert validate_trigger(branch,runtime=runtime,**kwargs)['terminal']=='DEFER_BRANCH'

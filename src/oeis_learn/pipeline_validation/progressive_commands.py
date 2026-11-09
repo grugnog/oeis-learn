@@ -596,6 +596,10 @@ def lifecycle_command(args, root, host_factory):
                 seconds = min(seconds, remaining["elapsed_us"] / 1000000)
                 reservation["elapsed_us"] = int(seconds * 1000000)
             role_output = output / ("task-" + task["identity"].split(":")[1])
+            task_runtime=checked
+            if 'trial_runtime' in task['payload']:
+                selected=json.loads(verify_refs(root,[task['payload']['trial_runtime']])[0])
+                task_runtime=current_runtime(host,root,output/('trial-runtime-'+str(store.ordinal)),selected,producer_root=confined(root,selected['payload']['qualification'][0]['path']).parent)
             try:
                 result = invoke(
                     host,
@@ -610,7 +614,7 @@ def lifecycle_command(args, root, host_factory):
                     ordinal=store.ordinal,
                     reservation=reservation,
                     seconds=seconds,
-                    runtime=checked,
+                    runtime=task_runtime,
                     derived=derived,
                 )
             except (OSError, RuntimeError, ValueError, KeyboardInterrupt) as exc:

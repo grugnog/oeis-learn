@@ -177,7 +177,7 @@ def confirm(rows, roster, seeds, design, *, confirmation, policy, remaining):
     return metrics, result["evidence_verdict"]
 
 
-def validate_trigger(branch, *, metrics, remaining, visited=()):
+def validate_trigger(branch, *, metrics, remaining, visited=(),runtime=None):
     """Recompute scientific triggers; a requested label is never evidence."""
     effects = list(metrics.get("seed_effects", {}).values())
     effects = [v for v in effects if v is not None]
@@ -193,9 +193,16 @@ def validate_trigger(branch, *, metrics, remaining, visited=()):
             or metrics.get("lower") is None
             or metrics["lower"] <= 0
         )
+    elif signal=='runtime_bottleneck':
+        rule=branch.get('runtime_rule')
+        observed=(rule is not None and isinstance(runtime,dict) and seal(runtime)==runtime
+            and set(runtime)=={'version','identity','producer','measurements','scope'}
+            and runtime['version']=='progressive-runtime-observation/v1'
+            and runtime['producer']==rule['producer']
+            and runtime['scope']=='observed execution; training loss excluded'
+            and type(runtime['measurements'].get(rule['metric'])) is int
+            and runtime['measurements'][rule['metric']]>rule['ceiling_us'])
     else:
-        # Until an original runtime producer is supplied through the frozen
-        # study boundary, neither a string nor training loss can establish it.
         observed = False
     legacy = dict(
         id=branch["id"],

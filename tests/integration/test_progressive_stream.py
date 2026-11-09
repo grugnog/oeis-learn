@@ -82,6 +82,8 @@ def test_real_cpu_updates_cross_shards_and_restore_spent_pending_work(tmp_path):
     assert resumed["discarded_tokens"] > 0
     assert resumed["useful_tokens"] == uninterrupted["charged_tokens"]
     assert resumed["history"] == uninterrupted["history"]
+    assert resumed['diversity']==uninterrupted['diversity']
+    assert resumed['preparation_elapsed_us'] is None
     assert resumed["qualified"] is False and resumed["kind"] == "DIAGNOSTIC_ONLY"
     assert resumed["initial_weights"] != resumed["final_weights"]
 
@@ -115,6 +117,8 @@ def test_matched_static_refresh_have_same_initial_model_and_support(tmp_path):
     from oeis_learn.pipeline_validation.progressive_evidence import diversity_report
 
     report = diversity_report(*values)
+    assert report['arms']['static']['diversity']['consumed']['canonical_structures']<=report['arms']['refreshed']['diversity']['available']['canonical_structures']
+    assert report['arms']['static']['diversity']!=report['arms']['refreshed']['diversity']
     assert report["next_action"] == "RETAIN_BASELINE"
     assert report["scientific_status"] == "UNMEASURED"
     assert report["training_loss_is_not_capability"] is True
@@ -125,7 +129,7 @@ def test_native_shards_feed_actual_canonical_cpu_update(tmp_path, fitting_client
     from oeis_learn.pipeline_validation.progressive_training import acceptance_pilot
 
     p = default_policy(seed=13) | {"shard_rows": 16, "max_draws": 16}
-    shards = prepare_stream(tmp_path, p, client=fitting_client)
+    shards,cost = prepare_stream(tmp_path, p, client=fitting_client,return_receipt=True)
     result = acceptance_pilot(
         tmp_path,
         "run",
@@ -134,7 +138,11 @@ def test_native_shards_feed_actual_canonical_cpu_update(tmp_path, fitting_client
         arm="static",
         seed=2,
         updates=1,
+        preparation_receipts=[cost],
     )
+    assert result['preparation_elapsed_us']>0
+    assert result['diversity']['consumed']['examples']==2
+    assert result['accepted_rows']==16
     assert result["updates"] == 1
     assert result["initial_weights"] != result["final_weights"]
     assert result["charged_tokens"] > 0 and result["discarded_tokens"] == 0

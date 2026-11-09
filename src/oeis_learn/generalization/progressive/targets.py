@@ -57,6 +57,8 @@ def validate_policy(policy, *, reservations=None):
     failures = set()
     slots = set()
     for d in p["diagnostics"]:
+        if (d['signal']=='runtime_bottleneck') != ('runtime_rule' in d):
+            raise ValueError('runtime diagnostic requires its frozen measured rule')
         if not d["reservation"]["elapsed_us"]:
             raise ValueError("positive diagnostic reservation required")
         if d["failure_class"] in failures or slots.intersection(d["task_slots"]):

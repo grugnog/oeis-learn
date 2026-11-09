@@ -152,6 +152,9 @@
                   "producer"
                 ],
                 "additionalProperties": false
+              },
+              "trial_runtime": {
+                "$ref": "progressive-common.schema.json#/$defs/artifact"
               }
             },
             "required": [

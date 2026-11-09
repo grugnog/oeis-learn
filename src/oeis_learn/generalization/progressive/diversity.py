@@ -8,7 +8,7 @@ def summarize(rows, consumed):
     if len(rows) > 262144 or len(consumed) > 1000000:
         raise ValueError("bounded diversity inventory required")
     table = {r["draw_identity"]: r for r in rows}
-    if len(table) != len(rows) or any(i not in table for i in consumed):
+    if any(table[r['draw_identity']]!=r for r in rows) or any(i not in table for i in consumed):
         raise ValueError("consumed row outside original support")
 
     def count(selected):
@@ -53,7 +53,7 @@ def summarize(rows, consumed):
         )
 
     return dict(
-        available=count(rows),
+        available=count(list(table.values())),
         consumed=count([table[i] for i in consumed]),
         unique_consumed=len(set(consumed)),
         behavior_scope="finite_100_terms_only",

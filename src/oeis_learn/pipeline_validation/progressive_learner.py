@@ -624,6 +624,15 @@ def _run(
             ancestor_cost_us=recovery.base["ancestor_cost_us"],
             new_cost_us=elapsed,
         )
+        from oeis_learn.generalization.progressive.diversity import summarize
+        committed={}
+        for path in sorted(recovery.root.glob('event-*.json')):
+            event=load(path)['state']
+            last=event['last']
+            if last is not None:committed[last['update']]=last['batch']['entries']
+        consumed=[i for entries in committed.values() for i in entries if i in lookup]
+        diversity=summarize(list(lookup.values()),consumed)
+        atomic_write(output/'diversity.json',seal(dict(version='progressive-consumed-diversity/v1',task=t['identity'],checkpoint=recovery.state['checkpoint']['identity'],counts=diversity,excluded_nonmechanical_entries=sum(i not in lookup for entries in committed.values() for i in entries))))
         atomic_write(output / "checkpoint.json", recovery.state["checkpoint"])
         atomic_write(output / "milestone.json", m)
         return publish(
@@ -644,6 +653,7 @@ def _run(
                 "checkpoint": recovery.state["checkpoint"]["identity"],
                 "checkpoint_record":__import__("oeis_learn.generalization.progressive.contracts",fromlist=["reference"]).reference(output,output/"checkpoint.json"),
                 "weights":__import__("oeis_learn.generalization.progressive.contracts",fromlist=["reference"]).reference(output,output/"checkpoint.json"),
+                "diversity":__import__('oeis_learn.generalization.progressive.contracts',fromlist=['reference']).reference(output,output/'diversity.json'),
                 "charged_tokens": current["ledger"].consumed,
                 "useful_tokens": recovery.state["useful_tokens"],
                 "discarded_tokens": current["discarded_tokens"],

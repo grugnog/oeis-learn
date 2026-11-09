@@ -200,18 +200,21 @@ def freeze(
     declared_checkpoints = [r["artifact"] for r in refs if r["kind"] == "checkpoint"]
     initializer_closure = {}
     for plan in q["task_plans"]:
+        selected_runtime=trial_runtime(root,plan,runtime)
+        if 'trial_runtime' in plan and not any(r['artifact']==plan['trial_runtime'] and r['kind']=='qualification' for r in refs):
+            raise ValueError('per-trial runtime must be frozen in original references')
         from .iteration import margin
         work=margin(plan,research=b['purpose']=='research' and plan['kind']=='training')
         if work:
             ref=plan['iteration_budget']['producer']
-            if ref not in runtime['payload']['qualification']:raise ValueError('original iteration qualification producer required')
+            if ref not in selected_runtime['payload']['qualification']:raise ValueError('original iteration qualification producer required')
             measured=json.loads(verify_refs(root,[ref])[0]).get('measurements',{}).get('elapsed_us')
             if type(measured) is not int or measured<=0 or any(plan['iteration_budget'][k]<2*measured for k in ('update_us','probe_us','checkpoint_us')):
                 raise ValueError('iteration bounds must cover conservative original measured work')
         if work+plan['startup_us']+plan['finalization_us']>=plan['caps']['elapsed_us']:raise IncompleteFreeze(['complete_iteration:'+plan['id']])
         if (
             plan["policy"] not in known_policies
-            or plan["initializer"]["compatibility"] != compatibility
+            or plan["initializer"]["compatibility"] not in compatibility
         ):
             raise ValueError("unresolved task policy or incompatible initializer")
         initializer = plan["initializer"]
@@ -224,7 +227,7 @@ def freeze(
         ):
             candidate = validate("state", load(confined(root, initializer["artifact"]["path"])))
             if (
-                candidate["payload"]["compatibility"] != compatibility
+                candidate["payload"]["compatibility"] != plan["initializer"]["compatibility"]
                 or candidate["payload"]["kind"] != "full_state"
             ):
                 raise ValueError("incompatible discovery full-state initializer")
@@ -418,7 +421,7 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
                     "purpose": runtime["purpose"],
                     "payload": {
                         "seed": package["profile"]["model"]["seed"],
-                        "initializer": {"compatibility": compatibility(package)},
+                        "initializer": dict(compatibility=compatibility(package),mode='full_state' if 'full_state' in package else 'weights_only' if 'weights' in package else 'random',artifact=package.get('weights',package.get('full_state',{}).get('artifact'))),
                     },
                 },
                 allow_pending=True,
@@ -447,8 +450,14 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
             if learner_packages
             else {model}
         )
-        if qualified_models != {scope["model"]}:
-            raise ValueError("recipe/model qualification differs")
+        for package in learner_packages:
+            matched=[p for p in task_plans if p['initializer']['compatibility']==compatibility(package)]
+            scopes=[trial_runtime(root,p,runtime)['payload']['scope'] for p in matched] or [scope]
+            model_id=digest({k:v for k,v in package['profile']['model'].items() if k!='seed'})
+            if any(model_id!=candidate['model'] or candidate['language']!=scope['language'] or candidate['source']!=scope['source'] for candidate in scopes):
+                raise ValueError('per-trial model/update qualification differs')
+        if not learner_packages and qualified_models != {scope['model']}:
+            raise ValueError('recipe/model qualification differs')
         if any(p["profile"]["base_recipe"] != recipe for p in learner_packages):
             raise ValueError("research profiles require the declared resolved base recipe")
         if track == "synthetic_strict" and recipe["track"]["kind"] != "generic_only":
@@ -480,10 +489,8 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
         raise ValueError("one resolved initial recipe required")
     if learner_packages:
         identities = {compatibility(p) for p in learner_packages}
-        if len(identities) != 1:
-            raise ValueError("one frozen compatible learning trajectory required")
-        return identities.pop()
-    return learning_compatibility(recipes[0], refs, scope, track)
+        return identities
+    return {learning_compatibility(recipes[0], refs, scope, track)}
 
 
 def learning_compatibility(recipe, refs, scope, track):
@@ -507,3 +514,17 @@ class IncompleteFreeze(ValueError):
     def __init__(self, deficits):
         self.deficits = list(deficits)
         super().__init__("freeze prerequisites incomplete: " + ", ".join(self.deficits))
+
+
+def trial_runtime(root,plan,default):
+    ref=plan.get('trial_runtime')
+    if ref is None:return default
+    value=validate('runtime',json.loads(verify_refs(root,[ref])[0]))
+    if value['purpose']!=default['purpose'] or value['track']!=default['track']:
+        raise ValueError('per-trial runtime purpose/track differs')
+    from oeis_learn.generalization.qualification import FACTS
+    producers=[json.loads(blob) for blob in verify_refs(root,value['payload']['qualification'])]
+    if not producers or any(not FACTS<=set(q) for q in producers):
+        raise ValueError('original per-trial qualification required')
+    validate_runtime(value,root=root,current_facts={k:producers[0][k] for k in FACTS})
+    return value

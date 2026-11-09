@@ -214,6 +214,34 @@
               "design": {
                 "type": "string",
                 "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "runtime_rule": {
+                "type": "object",
+                "properties": {
+                  "producer": {
+                    "$ref": "progressive-common.schema.json#/$defs/artifact"
+                  },
+                  "metric": {
+                    "enum": [
+                      "elapsed_us",
+                      "training_us",
+                      "inference_us",
+                      "verification_us",
+                      "checkpoint_us"
+                    ]
+                  },
+                  "ceiling_us": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 86400000000
+                  }
+                },
+                "required": [
+                  "producer",
+                  "metric",
+                  "ceiling_us"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
