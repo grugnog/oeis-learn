@@ -8,7 +8,6 @@ from oeis_learn.generalization.progressive.contracts import (
     load,
     seal,
     digest,
-    record,
 )
 from oeis_learn.pipeline_validation.progressive_acceptance import fixture
 from oeis_learn.pipeline_validation.progressive_learner import compatibility
@@ -722,14 +721,37 @@ def build(
         )
         plans[-1].pop("trial")
 
+    from oeis_learn.pipeline_validation.progressive_acceptance_limits import measure, storage
+
+    measured = measure(profile)
+    for plan in plans:
+        plan["caps"]["disk_bytes"] = (
+            measured["task_bytes"]
+            if plan["kind"] == "training"
+            else 2 * measured["weight_bytes"] + (16 << 20)
+        )
     cap = {k: sum(p["caps"][k] for p in plans) for k in plans[0]["caps"]}
     c["payload"].update(tasks=plans, references=refs, caps={k: 2 * v for k, v in cap.items()})
     c["payload"]["graph"]["nodes"][0]["caps"] = cap
     c["payload"]["graph"]["nodes"][1]["caps"] = dict.fromkeys(cap, 0)
-    c["payload"]["storage"]["checkpoint_bytes"] = 256 << 20
-    c["payload"]["storage"]["required_bytes"] = 517 << 20
-    c["payload"]["storage"]["required_inodes"] = 16384
-    c["payload"]["storage"]["available_inodes"] = 32768
+    limits = storage(root, measured, tasks=1)
+    limits["task_store_bytes"] = cap["disk_bytes"]
+    limits["projection_bytes"] = len(plans) * (4 << 20)
+    limits["required_inodes"] = 16384 + len(plans) * 1024
+    limits["required_bytes"] = sum(
+        limits[k]
+        for k in (
+            "task_store_bytes",
+            "projection_bytes",
+            "journal_bytes",
+            "shard_bytes",
+            "package_bytes",
+        )
+    )
+    c["payload"]["storage"] = limits
+    c["payload"]["caps"]["disk_bytes"] = max(
+        c["payload"]["caps"]["disk_bytes"], limits["required_bytes"]
+    )
     c = seal(c)
     atomic_write(root / "study-campaign.json", c)
     atomic_write(

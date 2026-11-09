@@ -347,6 +347,26 @@ def test_canonical_prepare_freeze_run_resume_short_source_cycle(
     )
     assert journal.read_bytes() == before
 
+    from oeis_learn.generalization.progressive.lifecycle import RunStore
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.pipeline_validation.progressive_outputs import commit_host_training
+    store=RunStore(tmp_path/'run-state/discovery-control'/c['identity'][7:],c)
+    expected={p['id'] for p in c['payload']['tasks'] if p['stage']=='source_pilot'}
+    assert set(store.state['outputs'])==expected
+    assert all(cut['operation']=='train' for cut in store.state['outputs'].values())
+    j=BudgetJournal(journal.parent,c['identity'],c['payload']['caps'])
+    marker=load(j.root/'source-cycle.json')
+    owner=tmp_path/marker['output']
+    step=next(load(p) for p in (owner/'host/steps').glob('*.json') if load(p)['receipt']['operation']=='train')
+    original_result=load(tmp_path/step['result']['path'])
+    atomic_write(tmp_path/'foreign/result.json',original_result)
+    step['result']=reference(tmp_path,'foreign/result.json')
+    step['receipt']['result']=step['result']
+    atomic_write(owner/'host/steps/999.json',seal(step))
+    with pytest.raises(ValueError,match='foreign host child'):
+        commit_host_training(tmp_path,store,load(tmp_path/'short-request.json'),j,sorted(expected))
+    assert journal.read_bytes()==before
+
 
 def test_installed_short_learner_resumes_updates_after_owned_pause(tmp_path, fitting_client):
     import threading

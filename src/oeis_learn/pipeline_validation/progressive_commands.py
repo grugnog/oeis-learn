@@ -540,6 +540,8 @@ def lifecycle_command(args, root, host_factory):
                     host=host,
                     runtime=checked,
                 )
+                from .progressive_outputs import commit_host_training
+                commit_host_training(root,store,request,journal,result['metrics']['completed_tasks'])
                 for task_id in result["metrics"]["completed_tasks"]:
                     plan = next(p for p in campaign["payload"]["tasks"] if p["id"] == task_id)
                     child = record(

@@ -472,7 +472,7 @@ def test_installed_direct_full_state_child_preserves_parent_allowance(tmp_path, 
 @pytest.mark.parametrize('point',['committed','pending'])
 def test_canonical_run_resume_after_real_owned_process_kill(tmp_path,monkeypatch,installed_lifecycle,point):
     """Local process engine exercises the host/installed path; no container/HIP claim."""
-    import os,signal,sys,threading,time,json
+    import os,signal,sys,threading,time
     from types import SimpleNamespace
     from oeis_learn.pipeline_validation import progressive_commands as commands,progressive_roles as roles
     from oeis_learn.pipeline_validation.progressive_acceptance import fixture
@@ -521,10 +521,10 @@ def test_canonical_run_resume_after_real_owned_process_kill(tmp_path,monkeypatch
     left=journal.task_remaining(tasks[0])
     assert 0<left['elapsed_us']<tasks[0]['payload']['caps']['elapsed_us']
     assert left['tokens']<=tasks[0]['payload']['caps']['tokens']-charge
-    binding=list(journal.root.glob('task-binding-*'))[0].read_bytes()
+    bindings={p.name:p.read_bytes() for p in journal.root.glob('task-binding-*')}
     resumed,code=run('resume',run='killed',output='resumed')
     assert code==0,resumed
-    assert list(journal.root.glob('task-binding-*'))[0].read_bytes()==binding
+    assert all((journal.root/name).read_bytes()==value for name,value in bindings.items())
     final=load(next((tmp_path/'resumed').glob('task-*/role/accounting-final.json')))
     assert final['milestone']['tokens']>=3*charge
     if point=='pending':assert final['milestone']['tokens']>final['useful_tokens']

@@ -243,10 +243,16 @@ class Journal:
         def add(identity, kind, parents=()):
             nodes.append(dict(id=identity, kind=kind, parents=sorted(set(parents))))
 
+        known=None
         for shard in package.get('shards',[]):
             for row in shard:
                 add(row['draw_identity'],'target')
-                self.bind_source(row['draw_identity'],row['source'],row['indices'])
+                if 'source' in row and 'indices' in row:
+                    self.bind_source(row['draw_identity'],row['source'],row['indices'])
+                else:
+                    if known is None:known={n['id'] for n in self.read()[0] if n['kind']=='target'}
+                    if row['draw_identity'] not in known:
+                        raise ValueError('consumed target lacks its original registered source binding')
         replay = package.get("oeis_replay")
         if replay and replay["archive"]:
             for a in replay["admissions"]:

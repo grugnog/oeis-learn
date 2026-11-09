@@ -213,8 +213,8 @@ def test_real_native_search_admit_update_evaluate_cycle(tmp_path, fitting_client
             result["scientific_status"] == "INCOMPLETE"
         )  # tiny panel never passes a research gate
     before = journal.path.read_bytes()
-    with pytest.raises(ValueError, match="already attempted"):
-        oeis_cycle(tmp_path, tmp_path / "second-cycle", c, m, request, journal)
+    assert oeis_cycle(tmp_path, tmp_path / "second-cycle", c, m, request, journal)==result
+    assert not (tmp_path/'second-cycle/host').exists()
     assert journal.path.read_bytes() == before
 
 

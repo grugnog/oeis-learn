@@ -90,6 +90,45 @@ def commit(root, store, task, role_output, operation):
     store.append(dict(store.state, outputs=outputs))
 
 
+def commit_host_training(root,store,request,journal,completed):
+    """Expose only original completed cycle children as predecessor slots."""
+    if not completed:return
+    campaign=store.campaign
+    plan=load(confined(root,request['artifacts']['cycle'][0]),maximum=32<<20)
+    expected=set(completed)
+    if not expected<={e['task'] for e in plan['training']}:
+        raise ValueError('completed host child is outside frozen cycle')
+    marker=load(journal.root/(request['operation']+'.json'))
+    if seal(marker)!=marker or marker['campaign']!=campaign['identity'] or marker['policy']!=plan['identity']:
+        raise ValueError('original host output ownership differs')
+    owner=confined(root,marker['output'])
+    tasks={}
+    for p in campaign['payload']['tasks']:
+        if p['id'] in expected:
+            task=record('task',dict(p,campaign=campaign['identity']),created_at=campaign['created_at'],purpose=campaign['purpose'],track=campaign['track'])
+            tasks[task['identity']]=task
+    steps=sorted((owner/'host/steps').glob('*.json'))
+    if len(steps)>4096:raise ValueError('bounded host output ledger required')
+    found={}
+    for path in steps:
+        step=load(path)
+        if seal(step)!=step or step['result']!=step['receipt']['result']:
+            raise ValueError('original host step differs')
+        receipt=step['receipt']
+        if receipt['operation']!='train' or receipt['task'] not in tasks:continue
+        target=confined(root,step['result']['path'])
+        if not target.is_relative_to(owner) or target.name!='result.json' or target.parent.name!='role':
+            raise ValueError('foreign host child output')
+        value=json.loads(verify_refs(root,[step['result']],max_bytes=32<<20)[0])
+        if seal(value)!=value or value['operation']!='train' or value.get('metrics',{}).get('task_status')!='COMPLETE':
+            raise ValueError('host child has no completed original training output')
+        if receipt['task'] in found and found[receipt['task']]!=target.parent:
+            raise ValueError('ambiguous original host child output')
+        found[receipt['task']]=target.parent
+    if set(found)!=set(tasks):raise ValueError('completed host child output is missing')
+    for identity,task in tasks.items():commit(root,store,task,found[identity],'train')
+
+
 def resolve(root, store, task, request, output):
     from .progressive_roles import REGISTRY
     from oeis_learn.generalization.progressive.projections import describe, CHANNELS
