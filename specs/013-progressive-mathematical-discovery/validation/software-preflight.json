@@ -1,0 +1,110 @@
+{
+  "cpu_inventory": "sha256:ba70f53efac4ab5417cf4f4354ceab78603253e265e56761bd6d31103b3db11a",
+  "engines": {
+    "docker": {
+      "exit_code": 1,
+      "reason": "docker CLI is unavailable; select an installed container engine",
+      "status": "BLOCKED"
+    },
+    "podman": {
+      "exit_code": 1,
+      "reason": "podman CLI is unavailable; select an installed container engine",
+      "status": "BLOCKED"
+    }
+  },
+  "hardware_matrix": {
+    "checks": [
+      "finite_update",
+      "parameter_change",
+      "full_restore",
+      "deterministic_continuation",
+      "generation",
+      "native_reference_score",
+      "cleanup"
+    ],
+    "dropout": [
+      0,
+      0.1,
+      0.2
+    ],
+    "effective_batch": 16,
+    "executable": false,
+    "image_identity_environment": "OEIS_QUALIFICATION_IMAGE",
+    "input_lengths": [
+      4,
+      20
+    ],
+    "mandatory_device_mode": "OEIS_REQUIRE_PROGRESSIVE_HIP=1",
+    "maximum_cases": 48,
+    "microbatches": [
+      7,
+      16
+    ],
+    "precision": "float32",
+    "reuse": "original producer with exact current source/image/engine/model/input/update scope",
+    "serial_gpu_owner": true,
+    "shapes": [
+      "reference",
+      "smaller_width",
+      "shallower",
+      "larger"
+    ],
+    "unresolved": [
+      "selected_model_profiles",
+      "current_source",
+      "pinned_image",
+      "selected_engine",
+      "actual_HIP_runtime"
+    ],
+    "version": "progressive-acceptance-blueprint/v1"
+  },
+  "identity": "sha256:4be9a3b704923fd2d18ac223513b57c99541822dd5e207cfd74bc8db4279baf8",
+  "image": null,
+  "lock": "sha256:87c7380365b20a1650271fb50ae6d2ac7f95bebc28738542da878b0351b40158",
+  "missing_commands": [
+    "discovery qualify",
+    "discovery acceptance"
+  ],
+  "missing_roles": [
+    "source-pilot",
+    "verify"
+  ],
+  "next_action": "complete missing production handlers; verify current-source Docker CI and workstation portability before HIP; do not launch research",
+  "package": "sha256:79b08afa7bdce2e624f5033f0b3d08afc620c1b816858103a52e6d197978e1fb",
+  "qualified": false,
+  "requirements": "All FR-001\u2013041 and SC-001\u2013011 retain the task-to-test ownership in tasks.md; coverage mapping is not a passing implementation verdict",
+  "scope": "local CPU/native/installed-wheel/isolation and affected 011/012; container and HIP unavailable",
+  "software_commit": "f9a9f5525ce602d955084c77a219ba3f40de1309",
+  "source": "sha256:f0a5c21f3d7b7dd94b9eaa631a24c35af82f784fbb6b8d58604f958e109b8859",
+  "status": "BLOCKED",
+  "tests": [
+    {
+      "name": "focused",
+      "passed": 45,
+      "producer": {
+        "bytes": 7052,
+        "path": "run-state/t084-t087/focused.xml",
+        "sha256": "sha256:7d3daf428a897e49e50273bd6996ccca2f8ae72f5feaea4366cd41eb5427c3f6"
+      }
+    },
+    {
+      "name": "registration-native",
+      "passed": 51,
+      "producer": {
+        "bytes": 7701,
+        "path": "run-state/t084-t087/registration-native.xml",
+        "sha256": "sha256:ab1ec2a88e5fb864463706df757ca0e9c1b97529b3b48c3f323f342722044358"
+      }
+    },
+    {
+      "name": "historical",
+      "passed": 154,
+      "producer": {
+        "bytes": 23052,
+        "path": "run-state/t084-t087/historical.xml",
+        "sha256": "sha256:a98d76dd3e2c27d5774ed8ffc0a9e904b37ee16646a9292c25f6b7b62a9cb21c"
+      }
+    }
+  ],
+  "version": "progressive-software-preflight/v1"
+}

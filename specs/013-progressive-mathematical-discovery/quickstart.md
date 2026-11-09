@@ -1,6 +1,6 @@
 # Validation and workstation handoff
 
-**Planning artifact: the `discovery` commands below are proposed and unavailable until implementation. Do not paste the research commands into the current checkout expecting them to run.** This guide specifies the future end-to-end acceptance interface; it does not assert completed gates.
+**Incomplete workstation handoff: `discovery qualify` and `discovery acceptance` still return `NOT_IMPLEMENTED`.** Init/status and the separately tested preparation/freeze/lifecycle/report adapters exist, but the consolidated research sequence below cannot yet complete. Source-pilot and verifier role dispatch also remain unfinished. Required local container verification is BLOCKED because neither Docker nor Podman is installed in this workspace. Keep research and actual-HIP gates pending.
 
 Implementation order and optional branches are in [tasks.md](tasks.md). Follow [hardware-validation.md](hardware-validation.md) to batch actual-HIP validation after CPU/native checks: one consolidated qualification matrix, then reuse exact compatible producers and execute only missing post-freeze device cases. This reduces repeated qualification, not scientific training seeds. Changed source closure or an uncovered execution scope still requires matching validation.
 
@@ -302,3 +302,49 @@ at most 900 seconds. Current source/image/engine/HIP facts must match. Reusing Q
 capabilities does not cover the campaign-dependent lifecycle/target-consumption
 cases or sustained observations required by T090/T091. No current HIP result is
 claimed by these CPU/native diagnostic results.
+
+
+## Diagnostic templates and current preflight disposition (T084–T087)
+
+`configs/foundation/progressive/diagnostics.json` contains all 16 contingency rows,
+including sparse-support redesign and integrity quarantine. All templates start
+disabled with unresolved immutable data/policy/design references, task/panel slots
+and caps. Resolve them prospectively using
+`oeis_learn.generalization.progressive.diagnostic_blueprints.resolve`; READY is a
+pre-freeze proposal, never launch authority. The existing campaign freeze and
+original evidence/gate remain binding. Selection reserves task and ancillary costs
+from the existing pool (at most four tasks, 12h each, 24h aggregate); exposed panels
+and repeated failure classes cannot acquire another episode. Integrity failure
+stops affected execution without a diagnostic-budget waiver.
+
+Verified public stdlib commands are `python3 -S scripts/foundation_run.py --help`,
+`discovery init --reference-campaign PATH --output NEW_DIR` and
+`discovery status --run DIR`. Init with missing original inputs returns a
+non-executable blueprint and explicit deficits; status is read-only. The CLI
+contract suite exercises parsing and invalid/failure states. These checks grant
+no qualification. `--engine docker image ensure` and
+`--engine podman image ensure` both returned exit 1 with the exact missing-CLI
+reason. Install/use the workstation's existing engine, then verify its current
+image/source facts before using the future sequence above. Local Podman support
+remains; duplicate Podman CI jobs remain disabled.
+
+Retain these artifacts together at their original owned workspace locations:
+
+| Evidence | Required original artifacts |
+| --- | --- |
+| Software preflight | Source closure, uv.lock/package/image digests, engine facts, mandatory foundation receipt, JUnit, `progressive-acceptance.zip` |
+| Diagnostic choice | Template inventory, selected immutable data/policy/design refs, task/panel slots, task and ancillary reservations, original failed decision |
+| Qualification Q | Resolved selected matrix, hardware facts, original per-case `producer.json`, `qualification.json`, inspected engine/image/native identities |
+| Preparation/freeze | Original retained inputs/exposure, prospective cohorts, measured preparation/iteration/storage records, blueprint, prepared manifest, campaign/runtime/tasks |
+| Acceptance A | Exact original reuse plan, copied original producers, bounded delta cases/receipts and omissions, integrated campaign device evidence |
+| Execution/recovery | Append-only task/campaign budgets and clocks, consumed/exposure cuts, full optimizer/scheduler/RNG checkpoints and ancestry, first failure plus collector diagnostics |
+| Public handoff | One campaign `diagnostics.zip`, complete closed inventory and independent verification result; retain weights/private truth locally |
+
+The small software-only ZIP is a CI diagnostic artifact, not the campaign's
+research launch receipt. The selected hardware matrix is still unresolved (at
+most 48 exact shape/dropout/input-length/microbatch cases); no fabricated
+workstation/image/profile selection substitutes for original facts. Hardware and
+sustained observations stay BLOCKED/PENDING until their original producers exist.
+Unchecked optional research tasks mean unselected/not-triggered/deferred work, not
+missing mandatory software. T085–T087 themselves remain unchecked because the
+required container verification and no-placeholder audit have not passed.

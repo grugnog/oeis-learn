@@ -1468,3 +1468,48 @@ The HIP matrix test exercises exact original-byte reuse without a second device
 batch; this marked test remains unexecuted locally because HIP is unavailable.
 The shared launcher supplies the inspected engine identity for current-scope
 validation, and Podman remains supported locally without adding duplicate CI jobs.
+
+
+### T084–T087 — diagnostic inventory, registration and blocked preflight
+
+T084 is complete: all 16 contract rows have disabled, non-executable templates
+with explicit compared arms, questions, distinguishing observations, terminal
+rules and unresolved data/policy/design/slot/cap references. Preflight verifies
+original bytes, shared reservations including ancillary work, at most four tasks,
+12h/task and 24h aggregate, unique unexposed panels and one episode per failure
+class. It never grants launch authority or changes the failed evidence verdict.
+Selected/disabled/untriggered/exhausted/unresolved and forbidden branches are
+covered. Integrity failure stops affected execution even without pool allowance.
+
+T085 registration is implemented: the mandatory CPU inventory includes the new
+contract tests, packaging checks compare installed and source templates, sdist
+checks retain config/tests, and mandatory historical CI now includes spec 012
+support-audit/structural-publication cases alongside spec 011. Existing foundation
+CI consumes that inventory and retains the bounded ZIP; no duplicate Podman jobs
+were added. Discovery operations belong to `progressive_role.py`, not the unrelated
+legacy pipeline engineering dispatcher `pipeline_validation/role.py`; no new
+legacy role mode or parallel execution authority was introduced.
+
+Validation: 27 initial template/contingency cases passed; after exposed-panel
+refusal, 45 template/CLI/isolation/contingency cases passed (12.15s), 51 current
+registration/native/installed-wheel/012 cases passed (24.30s), and 154 historical
+011/012/foundation cases passed (17.09s). No skips. The historical implementation
+identity was refreshed using its owning serializer. Exact source, lock, package,
+JUnits and unresolved selected matrix are in [software-preflight.json](software-preflight.json).
+
+T086 is not complete. The public engine preflight returned exit 1 for both
+Docker and Podman: neither CLI is installed. Container isolation/portability and
+image identity therefore remain externally BLOCKED; no current-source container
+or HIP PASS is claimed. The no-placeholder audit also finds `discovery qualify`,
+`discovery acceptance`, and declared `source-pilot`/`verify` role operations still
+unimplemented. The FR-001–041/SC-001–011 ownership mappings in tasks.md remain
+intact, but cannot establish complete production delivery with those gaps.
+
+T087 documentation is updated with verified stdlib init/status/help commands,
+the exact retained-artifact inventory and unresolved hardware matrix. Its final
+workstation verification remains pending T086; the unavailable-command warning
+is retained and narrowed to the actual missing operations. Optional unchecked
+research is distinct from these mandatory software gaps. Source changes invalidate
+prior qualification under the existing whole-source closure; the stable source
+group was pushed before any expensive HIP work. Full new-source CI verification
+is left to the mandatory pipeline without waiting after push, as requested.
