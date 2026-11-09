@@ -85,6 +85,14 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
     archive_children = {}
     review_children = {}
     for descriptor in all_artifacts:
+        if descriptor.kind == 'public_evidence':
+            data = load(confined(root, descriptor.ref['path']))['data']
+            if isinstance(data, dict) and data.get('version') == 'progressive-bundle-input/v1':
+                if set(data) != {'version', 'artifact'}:
+                    raise ValueError('closed public bundle request required')
+                verify_refs(root, [data['artifact']], max_bytes=512 << 20)
+                review_children[descriptor.identity] = [data['artifact']]
+                nested.append(data['artifact'])
         if descriptor.kind in {"sealed_dossier", "review_evidence", "reviewer_registry"}:
             from .claims import review_references
 

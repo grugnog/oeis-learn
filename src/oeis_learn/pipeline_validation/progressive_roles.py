@@ -44,6 +44,8 @@ ROLE_POLICY = digest(
 )
 IMPLEMENTED = frozenset(
     {
+        "source-pilot",
+        "verify",
         "census",
         "audit-language",
         "publish",

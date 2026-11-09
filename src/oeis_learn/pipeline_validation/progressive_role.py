@@ -53,6 +53,35 @@ def _execute(
         if operation in WORK_ROLES
         else None
     )
+    if operation == 'source-pilot':
+        from oeis_learn.generalization.progressive.sources import pilot_support
+        if len(values) != 1 or values[0]['kind'] != 'source':
+            raise ValueError('one frozen source roster required')
+        data = values[0]['data']
+        if set(data) != {'version', 'sources', 'roles'} or data['version'] != 'progressive-source-pilot-input/v1':
+            raise ValueError('closed source pilot roster required')
+        result = pilot_support(data['sources'], data['roles'])
+        atomic_write(output/'feasibility.json', result)
+        return publish(output, operation=operation,
+                       mechanical_status='COMPLETE' if result['status']=='ELIGIBLE' else 'PARTIAL',
+                       reason=result['status'], missing=[k for k,v in result['deficits'].items() if v],
+                       metrics={'feasibility': reference(output, 'feasibility.json')})
+    if operation == 'verify':
+        from oeis_learn.generalization.progressive.contracts import verify_refs
+        from oeis_learn.pipeline_validation.identity import confined
+        from oeis_learn.generalization.progressive.verify import verify
+        if len(values) != 1 or values[0]['kind'] != 'public_evidence':
+            raise ValueError('one public archive required')
+        data=values[0]['data']
+        if set(data) != {'version','artifact'} or data['version'] != 'progressive-bundle-input/v1':
+            raise ValueError('closed verifier archive request required')
+        verify_refs(inputs/'public', [data['artifact']], max_bytes=512 << 20)
+        result=verify(confined(inputs/'public',data['artifact']['path']))
+        atomic_write(output/'verification.json',result)
+        return publish(output,operation=operation,
+                       mechanical_status='COMPLETE' if result['status']=='VERIFIED' else 'PARTIAL',
+                       scientific_status=result['decision'],reason=result['status'],missing=result['missing'],
+                       metrics={'verification':reference(output,'verification.json')})
     if operation == "train":
         if len(values) != 1 or values[0]["kind"] != "training_request":
             raise ValueError("one frozen training-only request required")

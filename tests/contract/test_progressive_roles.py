@@ -173,7 +173,7 @@ def test_installed_admission_keeps_native_work_charged(tmp_path, monkeypatch, fa
     for channel, value in zip(("candidates", "admission_truth"), values):
         atomic_write(tmp_path / "inputs" / channel / (value["identity"][7:] + ".json"), value)
     a, journal, task = role_authority(
-        tmp_path, "admit-training", values, useful_us=100_000 if failure == "late" else 5_000_000
+        tmp_path, "admit-training", values, useful_us=1_000_000 if failure == "late" else 5_000_000
     )
     atomic_write(tmp_path / "authority.json", a)
     calls = []
