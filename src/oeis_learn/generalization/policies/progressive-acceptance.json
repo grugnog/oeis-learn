@@ -197,5 +197,19 @@
         "node": "tests/contract/test_progressive_bundle.py::test_bounded_closed_export_and_independent_incomplete_verdict"
       }
     ]
+  },
+  "integrated_hip": {
+    "version": "progressive-integrated-device-roster/v1",
+    "owner": "T090",
+    "status": "PENDING_DEVICE",
+    "maximum_seconds": 1800,
+    "nodes": [
+      "tests/integration/test_progressive_lifecycle.py::test_actual_installed_role_interrupt_resume_and_successor",
+      "tests/integration/test_progressive_oeis.py::test_real_native_search_admit_update_evaluate_cycle[False]",
+      "tests/integration/test_progressive_components.py::test_installed_learner_binds_component_cut_and_rejects_changed_resume[1-library]",
+      "tests/integration/test_progressive_sources.py::test_actual_short_update_restore_generation_and_native_score",
+      "tests/integration/test_progressive_handoff.py::test_installed_refreshed_learner_consumes_native_verified_new_structure"
+    ],
+    "scope": "exact selected model/dropout and paired diagnostic seeds; Q covers 4/20 inputs and accumulation"
   }
 }

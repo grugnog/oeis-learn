@@ -58,7 +58,7 @@ def _execute(
         if len(values) != 1 or values[0]['kind'] != 'source':
             raise ValueError('one frozen source roster required')
         data = values[0]['data']
-        if set(data) != {'version', 'sources', 'roles'} or data['version'] != 'progressive-source-pilot-input/v1':
+        if not isinstance(data,dict) or set(data) != {'version', 'sources', 'roles'} or data['version'] != 'progressive-source-pilot-input/v1':
             raise ValueError('closed source pilot roster required')
         result = pilot_support(data['sources'], data['roles'])
         atomic_write(output/'feasibility.json', result)
@@ -73,7 +73,7 @@ def _execute(
         if len(values) != 1 or values[0]['kind'] != 'public_evidence':
             raise ValueError('one public archive required')
         data=values[0]['data']
-        if set(data) != {'version','artifact'} or data['version'] != 'progressive-bundle-input/v1':
+        if not isinstance(data,dict) or set(data) != {'version','artifact'} or data['version'] != 'progressive-bundle-input/v1':
             raise ValueError('closed verifier archive request required')
         verify_refs(inputs/'public', [data['artifact']], max_bytes=512 << 20)
         result=verify(confined(inputs/'public',data['artifact']['path']))
@@ -449,7 +449,7 @@ def _execute(
                 model_control=control,
                 reference_recipe=recipe if control == "earlier_checkpoint" else None,
                 seed=recipe["model"]["seed"] if control == "random" else None,
-                device="cpu" if load(authority,maximum=32<<20)["task"]["purpose"] == "acceptance" else "cuda",
+                device=__import__("oeis_learn.pipeline_validation.progressive_device_acceptance",fromlist=["device"]).device(load(authority,maximum=32<<20)["task"]["purpose"]),
                 budget=budget,
                 component_library=component_library,
                 **(
@@ -638,16 +638,8 @@ def _execute(
                 reason="RECOMPUTED_REGISTERED_DECISION",
                 metrics={"decision_bundle": reference(output, output / "decision-bundle.json")},
             )
-        # Initial collection only, not T080 independent bundle verification.
-        atomic_write(output / "inventory.json", [v["identity"] for v in values])
-        return publish(
-            output,
-            operation=operation,
-            mechanical_status="PARTIAL",
-            reason="INITIAL_COLLECTION_ONLY",
-            missing=["independent_reconciliation"],
-        )
-    raise ValueError("unimplemented discovery role")
+        raise ValueError('unrecognized closed public evidence variant')
+    raise ValueError('operation has no matching closed input variant')
 
 
 def execute(operation, **kwargs):

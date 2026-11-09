@@ -164,9 +164,10 @@ def test_installed_learner_binds_component_cut_and_rejects_changed_resume(tmp_pa
     from oeis_learn.generalization.progressive.models import resolve_profile
     from oeis_learn.pipeline_validation.progressive_training import resolve_update_policy
 
-    profile = resolve_profile(
+    from oeis_learn.pipeline_validation.progressive_device_acceptance import selected_profile
+    profile = selected_profile(resolve_profile(
         package["profile"]["base_recipe"], shape="smaller_width", seed=seed, dropout=0.1
-    )
+    ))
     update_policy = resolve_update_policy(
         profile, schedule_horizon_tokens=400000000, schedule="constant", microbatch_size=7
     )

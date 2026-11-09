@@ -389,6 +389,8 @@ def fixture(root, *, interrupt=True, first_cap_updates=8, weights_only=False, fa
     p = resolve_profile(
         resolve({"version": "bigint-bootstrap/v1"}), shape="smaller_width", seed=13, dropout=0.1
     )
+    from .progressive_device_acceptance import selected_profile
+    p = selected_profile(p)
     policy = resolve_update_policy(
         p, schedule_horizon_tokens=400000000, schedule="constant", microbatch_size=7
     )

@@ -114,7 +114,7 @@ def simulate(scenario, *, seed):
     return rows, roster, [1, 2]
 
 
-def run(design):
+def validate_design(design):
     if not isinstance(design, dict) or set(design) != {"seed", "repeats", "scenarios"}:
         raise ValueError("only prospective synthetic assumptions permitted")
     _seed(design["seed"])
@@ -127,6 +127,11 @@ def run(design):
         raise ValueError("finite sensitivity reservation required")
     for s in design["scenarios"]:
         _scenario(s)
+    return design
+
+
+def run(design):
+    design = validate_design(design)
     results = []
     for ordinal, s in enumerate(design["scenarios"]):
         counts = Counter()

@@ -35,7 +35,9 @@ def test_actual_short_update_restore_generation_and_native_score(tmp_path, fitti
         )
         is None
     )
-    p = profile(0.1)
+    from oeis_learn.pipeline_validation.progressive_device_acceptance import device, selected_profile
+    p = selected_profile(profile(0.1))
+    execution_device = device("acceptance")
     cfg = policy(p)
     from oeis_learn.generalization.progressive.contracts import seal
 
@@ -57,7 +59,7 @@ def test_actual_short_update_restore_generation_and_native_score(tmp_path, fitti
         )
     }
     with Recovery(j, t, digest([p, cfg, "combinatorial-short/v1"])) as r:
-        w = RecoverableUpdate(r, p, cfg, device="cpu")
+        w = RecoverableUpdate(r, p, cfg, device=execution_device)
         w.initialize(context, cuts)
         before = [v.detach().clone() for v in w.runner.encoder.parameters()]
         r.begin(boot="boot", monotonic_us=0)
@@ -67,20 +69,20 @@ def test_actual_short_update_restore_generation_and_native_score(tmp_path, fitti
         assert metrics["loss"] > 0
         assert any(not torch.equal(a, b) for a, b in zip(before, w.runner.encoder.parameters()))
         saved = r.restore()["states"]
-        restored = RecoverableUpdate(r, p, cfg, device="cpu")
+        restored = RecoverableUpdate(r, p, cfg, device=execution_device)
         for name, model in [
             ("encoder", restored.runner.encoder),
             ("decoder", restored.runner.decoder),
         ]:
             assert all(
-                torch.equal(v, saved["weights"][name][k]) for k, v in model.state_dict().items()
+                torch.equal(v.cpu(), saved["weights"][name][k].cpu()) for k, v in model.state_dict().items()
             )
         assert restored.runner.state_dict()["scheduler"] == w.runner.state_dict()["scheduler"]
         assert torch.equal(torch.get_rng_state(), saved["rng"]["torch"])
 
         def equal(a, b):
             if isinstance(a, torch.Tensor):
-                assert torch.equal(a, b)
+                assert torch.equal(a.cpu(), b.cpu())
             elif isinstance(a, dict):
                 assert a.keys() == b.keys()
                 for k in a:

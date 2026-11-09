@@ -348,6 +348,9 @@ def _invoke_reserved(
         operation,
     ]
     environment = private_runtime_environment(role_output, destination="/output/discovery")
+    if gpu:
+        from .generalization_execution import startup_environment
+        environment.update(startup_environment())
     environment["OEIS_DISCOVERY_PURPOSE"] = t["purpose"]
     environment['OEIS_DISCOVERY_TRACK']=t['track']
     command = host.engine.command(
@@ -441,6 +444,17 @@ def current_runtime(host, root, output, runtime, *, producer_root):
         build_refs=q["build_dependencies"],
         producer_root=producer_root,
     )
+    if not r['payload']['fixture']:
+        from .progressive_handoff import stage, validate_device_proofs
+        from oeis_learn.generalization.progressive.contracts import digest
+        from oeis_learn.experiments.source_snapshot import collect_snapshot
+        request,_=validate_device_proofs(producer_root,q,source=digest(collect_snapshot(root)),
+                                        image=q['images'][1],engine=host.engine.name)
+        probe=Path(output)/'selected-device'
+        code="from pathlib import Path;from oeis_learn.pipeline_validation.progressive_qualification import hardware_facts;from oeis_learn.generalization.progressive.contracts import atomic_write;atomic_write(Path('/work/output/hardware.json'),hardware_facts())"
+        stage(host,root,q['images'][1],probe,['python','-c',code],gpu=True,seconds=120)
+        if load(probe/'hardware.json')!=request['hardware']:
+            raise ValueError('current exact selected HIP device differs')
     return validate_runtime(r, root=root, current_facts=facts, inspected=True)
 
 

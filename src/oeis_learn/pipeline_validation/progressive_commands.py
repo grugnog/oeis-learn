@@ -56,6 +56,17 @@ def init(args, root):
     )
     atomic_write(output / "blueprint.json", blueprint)
     atomic_write(output / "inputs.json", audit)
+    selected=[r['artifact'] for r in audit['references'] if r['name']=='preflight_plan']
+    if selected:
+        from oeis_learn.generalization.progressive.contracts import verify_refs
+        from oeis_learn.generalization.progressive.preflight import prepare as preflight
+        if len(selected)!=1:
+            raise ValueError('one original outcome-blind preflight plan required')
+        plan=json.loads(verify_refs(root,selected,max_bytes=4<<20)[0])
+        if not isinstance(plan,dict) or set(plan)!={'version','identity','cohorts','exposure','sensitivity'} or plan['version']!='progressive-preflight-plan/v1' or seal(plan)!=plan:
+            raise ValueError('closed original preflight plan required')
+        design=json.loads(verify_refs(root,[plan['sensitivity']],max_bytes=4<<20)[0])
+        atomic_write(output/'preparation-preflight.json',preflight(root,cohorts=plan['cohorts'],exposure=plan['exposure'],sensitivity_design=design))
     return publish(
         output,
         operation="init",
@@ -233,6 +244,12 @@ def main(args, root, host_factory):
     try:
         if args.operation == "init":
             result, code = init(args, root)
+        elif args.operation == 'qualify':
+            from .progressive_handoff import qualify_command
+            result,code=qualify_command(args,root,host_factory)
+        elif args.operation == 'acceptance':
+            from .progressive_handoff import acceptance_command
+            result,code=acceptance_command(args,root,host_factory)
         elif args.operation == 'prepare':
             from .progressive_capability import prepare
             result,code=prepare(args,root)
@@ -278,27 +295,7 @@ def main(args, root, host_factory):
                 metrics=dict(verification=original['identity'],recomputed=original['metrics']))
             code=0 if verified else 2
         else:
-            # Later task owners must replace these explicit blocked endpoints;
-            # no engine is contacted or research launched by a placeholder.
-            result = seal(
-                {
-                    "version": "discovery-result/v1",
-                    "operation": args.operation,
-                    "campaign": None,
-                    "stage": None,
-                    "task": None,
-                    "mechanical_status": "BLOCKED",
-                    "scientific_status": "UNMEASURED",
-                    "qualification_status": "PENDING",
-                    "claim_status": "UNREVIEWED",
-                    "next_action": "STOP_AFFECTED",
-                    "target_policy": None,
-                    "reason": "NOT_IMPLEMENTED:" + args.operation,
-                    "evidence": None,
-                    "missing_evidence": ["implementation"],
-                }
-            )
-            code = 2
+            raise ValueError('unknown discovery operation: '+args.operation)
     except KeyboardInterrupt as exc:
         caught = exc
         result = seal(
@@ -470,11 +467,18 @@ def lifecycle_command(args, root, host_factory):
     ):
         raise ValueError("acceptance campaign/runtime/status differs")
     runtime = load(confined(root, campaign_path).parent / "runtime.json")
+    feature_verified=False
+    if {'software','device','request'}<=set(receipt):
+        from .progressive_device_acceptance import consume_receipt
+        consume_receipt(receipt_path.parent,receipt)
+        feature_verified=True
+    elif campaign['purpose']=='research':
+        raise ValueError('original installed feature producers required')
     producers = verify_refs(root, runtime["payload"]["qualification"])
-    if not producers or any(
+    if not feature_verified and (not producers or any(
         "progressive-lifecycle" not in json.loads(p).get("covered_capabilities", [])
         for p in producers
-    ):
+    )):
         return publish(
             output,
             operation=args.operation,
@@ -850,6 +854,11 @@ def assess_command(args, root, host_factory):
         or acceptance.get("status") != "COMPLETE"
     ):
         raise ValueError("compatible final assessment acceptance required")
+    if {'software','device','request'}<=set(acceptance):
+        from .progressive_device_acceptance import consume_receipt
+        consume_receipt(confined(root,args.acceptance),acceptance)
+    elif campaign['purpose']=='research':
+        raise ValueError('original final-assessment feature producers required')
     runtime = load(confined(root, args.campaign).parent / "runtime.json")
     verify_refs(root, runtime["payload"]["qualification"])
     output = _output(root, args.output)

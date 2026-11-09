@@ -68,19 +68,24 @@ def inventory(root, reference_campaign):
     from oeis_learn.generalization.contracts import artifact_refs
 
     seen = {r["artifact"]["path"] for r in refs}
-    queue = [r["artifact"] for r in refs]
+    queue = [(r["artifact"], base) for r in refs]
     while queue:
-        ref = queue.pop(0)
+        ref, namespace = queue.pop(0)
         if len(seen) > 10000:
             raise ValueError("retained input inventory cap")
         try:
             value = json.loads(verify_refs(root, [ref])[0])
         except (ValueError, UnicodeError):
             continue
+        if isinstance(value,dict):
+            if value.get('version') in {'progressive-qualification-plan/v1','progressive-acceptance-plan/v1','progressive-preflight-plan/v1'}:
+                namespace=Path(root)
+            elif value.get('version')=='generalization-qualification/v2':
+                namespace=confined(root,ref['path']).parent
         for child in artifact_refs(value):
             # Retained producers use paths relative to their campaign directory.
             try:
-                path = confined(base, child["path"])
+                path = confined(namespace, child["path"])
                 resolved = reference(root, path)
                 if any(resolved[k] != child[k] for k in ("bytes", "sha256")):
                     raise ValueError("retained identity changed")
@@ -88,7 +93,7 @@ def inventory(root, reference_campaign):
                     continue
                 verify_refs(root, [resolved])
                 seen.add(resolved["path"])
-                queue.append(resolved)
+                queue.append((resolved, namespace))
                 refs.append(
                     {
                         "name": resolved["path"],

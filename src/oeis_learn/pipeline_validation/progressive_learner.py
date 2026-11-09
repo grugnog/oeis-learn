@@ -266,7 +266,8 @@ def _run(
     if init.get("origin") != package.get("origin") and init["artifact"] is not None:
         raise ValueError("initializer origin package differs from frozen task")
     origin, _ = initializer_origin(initializer_root, init, track=t["track"], purpose=t["purpose"])
-    device = "cuda" if t["purpose"] == "research" else "cpu"
+    from .progressive_device_acceptance import device as execution_device
+    device = execution_device(t["purpose"])
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     journal = BudgetJournal(accounting, c["identity"], c["payload"]["caps"])

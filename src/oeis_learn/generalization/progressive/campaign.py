@@ -256,6 +256,13 @@ def validate_runtime(runtime, *, root, current_facts, required_capabilities=(), 
         requested = ["model:" + scope["model"], "language:" + scope["language"]]
         if not set(requested) <= set(q["covered_capabilities"]):
             raise ValueError("model/language scope uncovered")
+        producer = json.loads(verify_refs(producer_root,[q['producer']['receipt']])[0])
+        if not p['fixture']:
+            from oeis_learn.pipeline_validation.progressive_handoff import validate_device_proofs
+            from .contracts import digest
+            source=json.loads(verify_refs(producer_root,[q['source_closure']],max_bytes=64<<20)[0])
+            validate_device_proofs(producer_root,q,source=digest(source),image=current_facts['images'][1],
+                                   engine=current_facts['engine_security']['engine'])
         producers.append(original)
     if set(p["operations"]) - set(
         __import__(

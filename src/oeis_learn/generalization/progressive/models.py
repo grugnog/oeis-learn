@@ -108,6 +108,9 @@ def construct(profile, *, device):
         raise ValueError("explicit research device required")
     if device == "cuda" and (not torch.version.hip or not torch.cuda.is_available()):
         raise RuntimeError("actual HIP required; CPU fallback prohibited")
+    if device == "cuda":
+        from oeis_learn.pipeline_validation.generalization_execution import verify_execution
+        verify_execution()
     if torch.get_default_dtype() != torch.float32:
         raise ValueError("FP32 default required for seeded construction")
     m = p["model"]

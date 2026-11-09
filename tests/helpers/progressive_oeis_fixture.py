@@ -148,9 +148,10 @@ def fixture(root, *, low=False):
     for seed in (1, 2):
         for arm in ("replay", "continued_synthetic"):
             p = copy.deepcopy(base)
-            p["profile"] = resolve_profile(
+            from oeis_learn.pipeline_validation.progressive_device_acceptance import selected_profile
+            p["profile"] = selected_profile(resolve_profile(
                 p["profile"]["base_recipe"], shape="smaller_width", seed=seed, dropout=0
-            )
+            ))
             p["update_policy"] = resolve_update_policy(
                 p["profile"],
                 schedule_horizon_tokens=400000000,
