@@ -109,6 +109,14 @@ def projection_size(root, refs):
         value = load(confined(root, ref["path"]), maximum=256 << 20)
         if not isinstance(value, dict) or value.get("version") != "discovery-channel/v1":
             continue
+        if value.get("kind") in {"sealed_dossier", "review_evidence", "reviewer_registry"}:
+            from .claims import review_references
+
+            for child in review_references(root, value["kind"], value["data"]):
+                verify_refs(root, [child], max_bytes=512 << 20)
+                total += child["bytes"]
+                inodes += len(Path(child["path"]).parts) + 2
+            continue
         if value.get("kind") not in {
             "checkpoint",
             "recipe",

@@ -40,7 +40,7 @@ CHANNELS = {
         "typed_training_source",
         "component_policy",
     },
-    "dossier": {"sealed_dossier", "review_evidence"},
+    "dossier": {"sealed_dossier", "review_evidence", "reviewer_registry"},
     "public": {"public_evidence"},
 }
 
@@ -83,7 +83,15 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
     refs = [a.ref for a in all_artifacts]
     nested = []
     archive_children = {}
+    review_children = {}
     for descriptor in all_artifacts:
+        if descriptor.kind in {"sealed_dossier", "review_evidence", "reviewer_registry"}:
+            from .claims import review_references
+
+            data = load(confined(root, descriptor.ref["path"]))["data"]
+            children = review_references(root, descriptor.kind, data)
+            review_children[descriptor.identity] = children
+            nested.extend(children)
         if descriptor.kind in {
             "checkpoint",
             "recipe",
@@ -191,6 +199,14 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                 target = folder / (item.identity.removeprefix("sha256:") + ".json")
                 copy_file(confined(root, item.ref["path"]), target)
                 target.chmod(0o444)
+                for child in review_children.get(item.identity, []):
+                    copied = confined(folder, child["path"], exists=False)
+                    if copied.exists():
+                        verify_refs(folder, [child], max_bytes=512 << 20)
+                    else:
+                        copied.parent.mkdir(parents=True, exist_ok=True)
+                        copy_file(confined(root, child["path"]), copied)
+                        copied.chmod(0o444)
                 if item.kind in {
                     "checkpoint",
                     "recipe",
@@ -269,6 +285,23 @@ def _validate_channel(kind, data):
                 raise ValueError("mechanical source law differs from its identity")
         if data["previous"] is not None:
             _check(schema("common")["$defs"]["hash"], data["previous"], schema("common"))
+    if kind == "sealed_dossier":
+        from .contracts import validate
+
+        validate("dossier", data)
+    if kind == "reviewer_registry":
+        from .claims import validate_reviewers
+
+        if set(data) != {"reviewers"}:
+            raise ValueError("closed reviewer registry required")
+        validate_reviewers(data["reviewers"])
+    if kind == "review_evidence":
+        from .contracts import _check, schema
+
+        if set(data) != {"claim"}:
+            raise ValueError("closed requested claim required")
+        doc = schema("dossier")
+        _check(doc["properties"]["payload"]["properties"]["claim"], data["claim"], doc)
     if kind == "component_training_request":
         if set(data) != {"member", "library"}:
             raise ValueError("closed component admission request required")

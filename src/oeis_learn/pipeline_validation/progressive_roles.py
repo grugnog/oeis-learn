@@ -55,6 +55,7 @@ IMPLEMENTED = frozenset(
         "train",
         "extract-components",
         "verify-components",
+        "review-claim",
     }
 )
 

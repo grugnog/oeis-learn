@@ -364,6 +364,7 @@ WORK_ROLES = frozenset(
         "admit-training",
         "extract-components",
         "verify-components",
+        "review-claim",
     }
 )
 
@@ -411,6 +412,8 @@ def role_work_requirements(operation, values):
 
             costs["native_work"] += 8 * EXPANSION_WORK * n
             costs["tokens"] = 4 * SLOT_TOKENS * n
+    elif operation == "review-claim":
+        costs.update(attempts=1, rejections=1, native_work=1)
     elif operation == "score":
         n = sum(v["kind"] in {"development_truth", "confirmation_truth"} for v in values)
         if not n:

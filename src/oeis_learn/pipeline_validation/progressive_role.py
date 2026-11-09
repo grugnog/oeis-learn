@@ -229,6 +229,58 @@ def _execute(
                 native_requests=budget.used["native_work"],
             ),
         )
+    if operation == "review-claim":
+        if any(
+            v["kind"] not in {"sealed_dossier", "review_evidence", "reviewer_registry"}
+            for v in values
+        ):
+            raise ValueError("closed review-only channels required")
+        dossiers = [v["data"] for v in values if v["kind"] == "sealed_dossier"]
+        requests = [v["data"] for v in values if v["kind"] == "review_evidence"]
+        registries = [v["data"] for v in values if v["kind"] == "reviewer_registry"]
+        if len(dossiers) != 1 or len(requests) != 1 or len(registries) > 1:
+            raise ValueError("one original dossier and requested scoped claim required")
+        from oeis_learn.generalization.progressive.claims import validate_dossier, review_dossier
+        from oeis_learn.pipeline_validation.identity import digest
+        from oeis_learn.synthesis.client import SynthesisClient
+
+        budget.consume(attempts=1, rejections=1)
+        reviewers = registries[0]["reviewers"] if registries else {}
+        value = validate_dossier(inputs / "dossier", dossiers[0], reviewers=reviewers)
+        if (
+            value["purpose"] != load(authority)["task"]["purpose"]
+            or value["track"] != load(authority)["task"]["track"]
+        ):
+            raise ValueError("dossier review task scope differs")
+        with SynthesisClient(digest(value)) as client:
+            budget.client(client)
+            checked = client.execute(
+                value["payload"]["source"],
+                value["payload"]["tested"]["indices"],
+                deadline=budget.deadline,
+            )
+            if (
+                checked.get("outcome") != "ok"
+                or checked.get("values") != value["payload"]["tested"]["observed"]
+            ):
+                raise ValueError("review native execution disagrees with original dossier")
+        # Publication is separate from the read-only input root.
+        reviewed = review_dossier(
+            inputs / "dossier", value, requests[0]["claim"], reviewers=reviewers, output=None
+        )
+        atomic_write(output / "dossier.json", reviewed)
+        return publish(
+            output,
+            operation=operation,
+            mechanical_status="COMPLETE",
+            reason="SCOPED_DOSSIER_REVIEW",
+            metrics={
+                "dossier": reviewed["identity"],
+                "statement": reviewed["payload"]["claim"]["statement"],
+                "novelty": reviewed["payload"]["claim"]["novelty"],
+                "training_eligible": False,
+            },
+        )
     if operation == "propose-trial":
         if len(values) != 1 or values[0]["kind"] != "search_space":
             raise ValueError("one closed scalar-history proposal request required")

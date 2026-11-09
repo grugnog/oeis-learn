@@ -51,13 +51,26 @@
       "device": "cpu",
       "scope": "DIAGNOSTIC_ONLY",
       "status": "PENDING_IMPLEMENTATION",
-      "owner": "T069-T071",
+      "owner": "T070-T071",
       "test": "tests/unit/test_progressive_claims.py",
       "obligations": [
         "source-bound polynomial certificate",
         "separate machine safety",
-        "independent novelty review",
         "transitive refutation"
+      ]
+    },
+    {
+      "id": "progressive-scoped-dossier-review",
+      "device": "cpu",
+      "scope": "DIAGNOSTIC_ONLY",
+      "status": "IMPLEMENTED",
+      "owner": "T069",
+      "test": "tests/unit/test_progressive_dossiers.py",
+      "obligations": [
+        "original sealed candidate",
+        "finite independent execution",
+        "candidate-bound reviewer policy",
+        "training-ineligible review output"
       ]
     }
   ]

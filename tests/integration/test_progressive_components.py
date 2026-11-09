@@ -305,6 +305,10 @@ def test_installed_learner_binds_component_cut_and_rejects_changed_resume(tmp_pa
             purpose=c["purpose"],
             track=c["track"],
         )
+        atomic_write(
+            tmp_path / "control" / ("pause-" + digest("invocation-2")[7:] + ".json"),
+            seal(dict(campaign=c["identity"], requested=True)),
+        )
         third, _ = invoke_cpu(
             tmp_path,
             c,
@@ -313,7 +317,7 @@ def test_installed_learner_binds_component_cut_and_rejects_changed_resume(tmp_pa
             ordinal=2,
             channel_path="successor-channel.json",
         )
-        assert third["mechanical_status"] == "COMPLETE", third
+        assert third["mechanical_status"] == "PARTIAL", third
         with Recovery(
             j,
             successor,
@@ -322,6 +326,23 @@ def test_installed_learner_binds_component_cut_and_rejects_changed_resume(tmp_pa
         ) as owner:
             assert owner.restore()["cuts"]["library"] == next_library["identity"]
             assert owner.base["tokens"] == second["metrics"]["charged_tokens"]
+            from oeis_learn.pipeline_validation.progressive_training import RecoverableUpdate
+
+            worker = RecoverableUpdate(owner, profile, update_policy, device="cpu")
+            assert owner.restore()["ledger"].consumed == owner.base["tokens"]
+            before = owner.state["checkpoint"]
+            with pytest.raises(ValueError, match="boundary"):
+                worker.adopt_component_cut(package["component_distillation"])
+            assert owner.state["checkpoint"] == before
+        fourth, _ = invoke_cpu(
+            tmp_path,
+            c,
+            successor,
+            successor_channel,
+            ordinal=3,
+            channel_path="successor-channel.json",
+        )
+        assert fourth["mechanical_status"] == "COMPLETE", fourth
 
 
 def test_more_expensive_library_without_harder_task_yield_retains_baseline():

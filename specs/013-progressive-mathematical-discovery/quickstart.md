@@ -128,6 +128,40 @@ expansion work, model-scoring tokens and native requests consume the frozen role
 allowance. Original discovery work and per-prompt downstream costs are reported
 separately. Freeze the paired no-library generator with `oeis_generation` data
 `{"methods":["correct"],"forced":null}` and no library to give it eight ordinary
-attempts under the same portfolio limit. Pairing, distillation, complete model/library
-cuts and usefulness gates remain T068; this search capability alone is not a finding
-of improved capability or efficiency.
+attempts under the same portfolio limit. T068 supplies distillation, complete model/library cuts and matched usefulness diagnostics;
+search capability alone is not a finding of improved capability or efficiency.
+
+### Component distillation and scoped dossiers (T068–T069)
+
+`components.json` is a non-executable paired two-seed blueprint. Resolve its original
+initializer, library, training pool, harder/retention panels, qualification and task
+slots before freezing. In the installed admission role, pair a `component_proposal`
+candidate with a `component_training_request` continuation containing the original
+committed library input and training member. Successful independent admission emits
+`component-target.json`. Freeze at most 64 targets through
+`component_distillation.freeze_distillation`, place that package in the learner's
+`component_distillation` field, and bind the same `component_rules` before resolving
+online targets. The control package uses `arm="no_library"`, `library=null` and no
+targets. OEIS and component mixtures are separate profiles. Complete checkpoints
+embed the component input and bind both library and target identities. Changing
+those cuts during a task is rejected. A predeclared unspent successor may adopt a
+new committed cut atomically; ancestor model state and charges survive.
+
+`claims.seal_candidate` binds an original generator selection, exact source,
+source snapshot/offset, library and generation budget before literature review.
+`create_dossier` independently executes its 100 declared terms and publishes a
+separate original execution record, counterexamples, assumptions, known comparisons
+and explicit untested scope. Native execution is mandatory for research. Reference-
+only fixtures are diagnostic. The source remains confined to the review channel.
+
+The installed `review-claim` operation accepts one `sealed_dossier`, one
+`review_evidence` request and optionally a frozen `reviewer_registry`. The registry
+is an explicit trust input naming independent reviewers and their exact scoped,
+candidate-bound prior-work artifacts. A supplied model name or evidence digest does
+not register a reviewer. Projection copies and verifies the complete original
+candidate/execution/review closure, and the installed role independently repeats
+native execution. Review publishes a new dossier with the original as parent;
+it never rewrites evidence or creates a training target. Proof and novelty have
+separate statuses. Until T070 installs its registered checker, proof promotion is
+rejected; finite agreement, counterexamples and incomplete novelty review remain
+useful outputs. Unbounded checked-machine safety remains explicitly unverified.

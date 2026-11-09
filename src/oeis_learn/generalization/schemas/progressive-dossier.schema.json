@@ -1,0 +1,337 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "discovery-dossier/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "parents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "enum": [
+        "acceptance",
+        "research"
+      ]
+    },
+    "track": {
+      "enum": [
+        "synthetic_strict",
+        "oeis_derived",
+        "external_assisted"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "candidate": {
+          "$ref": "progressive-common.schema.json#/$defs/artifact"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "source_hash": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "selection": {
+          "type": "object",
+          "properties": {
+            "artifact": {
+              "$ref": "progressive-common.schema.json#/$defs/artifact"
+            },
+            "task": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "method": {
+              "const": "equal_budget"
+            }
+          },
+          "required": [
+            "artifact",
+            "task",
+            "method"
+          ],
+          "additionalProperties": false
+        },
+        "source_snapshot": {
+          "$ref": "progressive-common.schema.json#/$defs/artifact"
+        },
+        "offset": {
+          "type": "string",
+          "pattern": "^(0|-?[1-9][0-9]*)$",
+          "maxLength": 10000
+        },
+        "library": {
+          "oneOf": [
+            {
+              "$ref": "progressive-common.schema.json#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "generation_budget": {
+          "$ref": "progressive-common.schema.json#/$defs/caps"
+        },
+        "tested": {
+          "type": "object",
+          "properties": {
+            "indices": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(0|-?[1-9][0-9]*)$",
+                "maxLength": 10000
+              },
+              "minItems": 100,
+              "maxItems": 100
+            },
+            "expected": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(0|-?[1-9][0-9]*)$",
+                "maxLength": 10000
+              },
+              "minItems": 100,
+              "maxItems": 100
+            },
+            "observed": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(0|-?[1-9][0-9]*)$",
+                "maxLength": 10000
+              },
+              "minItems": 100,
+              "maxItems": 100
+            },
+            "agreement": {
+              "type": "boolean"
+            },
+            "native": {
+              "oneOf": [
+                {
+                  "$ref": "progressive-common.schema.json#/$defs/hash"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reference": {
+              "$ref": "progressive-common.schema.json#/$defs/hash"
+            },
+            "scope": {
+              "const": "finite_100_terms_only"
+            },
+            "execution": {
+              "$ref": "progressive-common.schema.json#/$defs/artifact"
+            }
+          },
+          "required": [
+            "indices",
+            "expected",
+            "observed",
+            "agreement",
+            "native",
+            "reference",
+            "scope",
+            "execution"
+          ],
+          "additionalProperties": false
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "known_baselines": {
+          "type": "array",
+          "items": {
+            "$ref": "progressive-common.schema.json#/$defs/artifact"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "counterexamples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "index": {
+                "type": "string",
+                "pattern": "^(0|-?[1-9][0-9]*)$",
+                "maxLength": 10000
+              },
+              "expected": {
+                "type": "string",
+                "pattern": "^(0|-?[1-9][0-9]*)$",
+                "maxLength": 10000
+              },
+              "observed": {
+                "type": "string",
+                "pattern": "^(0|-?[1-9][0-9]*)$",
+                "maxLength": 10000
+              }
+            },
+            "required": [
+              "index",
+              "expected",
+              "observed"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "untested_scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "minItems": 1,
+          "maxItems": 32
+        },
+        "training_eligible": {
+          "const": false
+        },
+        "claim": {
+          "type": "object",
+          "properties": {
+            "statement": {
+              "enum": [
+                "finite_agreement",
+                "conjecture",
+                "bounded_verified",
+                "proved"
+              ]
+            },
+            "novelty": {
+              "enum": [
+                "not_reviewed",
+                "known",
+                "uncertain",
+                "potentially_novel",
+                "independently_confirmed"
+              ]
+            },
+            "proof": {
+              "oneOf": [
+                {
+                  "$ref": "progressive-common.schema.json#/$defs/artifact"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "review": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "reviewer": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    },
+                    "evidence": {
+                      "$ref": "progressive-common.schema.json#/$defs/artifact"
+                    },
+                    "candidate": {
+                      "$ref": "progressive-common.schema.json#/$defs/hash"
+                    },
+                    "scope": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 4096
+                    }
+                  },
+                  "required": [
+                    "reviewer",
+                    "evidence",
+                    "candidate",
+                    "scope"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "statement",
+            "novelty",
+            "proof",
+            "review"
+          ],
+          "additionalProperties": false
+        },
+        "machine_safety": {
+          "const": "finite_execution_only_no_unbounded_safety"
+        }
+      },
+      "required": [
+        "candidate",
+        "source",
+        "source_hash",
+        "selection",
+        "source_snapshot",
+        "offset",
+        "library",
+        "generation_budget",
+        "tested",
+        "assumptions",
+        "known_baselines",
+        "counterexamples",
+        "untested_scope",
+        "training_eligible",
+        "claim",
+        "machine_safety"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "created_at",
+    "parents",
+    "purpose",
+    "track",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-dossier.schema.json"
+}

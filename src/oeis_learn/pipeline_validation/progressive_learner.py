@@ -336,8 +336,11 @@ def _run(
         if (
             worker.context is not None
             and "component_distillation" in package
-            and worker.context["selection"].get("component_input")
-            != package["component_distillation"]
+            and (
+                worker.context["selection"].get("component_input")
+                != package["component_distillation"]
+                or worker.context["selection"].get("component_boundary_task") != t["identity"]
+            )
         ):
             worker.adopt_component_cut(package["component_distillation"])
         if worker.context is None:

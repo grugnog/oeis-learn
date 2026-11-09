@@ -722,6 +722,7 @@ class RecoverableUpdate:
     def initialize(self, context, cuts):
         if "component_input" in context["selection"]:
             check_component_cut(context, cuts, context["selection"]["component_input"])
+            context["selection"]["component_boundary_task"] = self.recovery.task["identity"]
         record = self.recovery.initialize(self.capture(context), cuts)
         self.context = context
         return record
@@ -737,9 +738,12 @@ class RecoverableUpdate:
             not ({"parent_slot", "parent_task"} & set(init))
             or not (self.recovery.root / "lineage.json").exists()
             or restored["ledger"].consumed != self.recovery.base["tokens"]
+            or restored["states"]["selection"].get("component_boundary_task")
+            == self.recovery.task["identity"]
         ):
             raise ValueError("component adoption requires an unspent declared successor boundary")
         context, cuts = bind_component_cut(self.context, restored["cuts"], package)
+        context["selection"]["component_boundary_task"] = self.recovery.task["identity"]
         record = self.recovery.save(self.capture(context), restored["ledger"], cuts)
         self.recovery.append(checkpoint=record)
         self.context = context
@@ -779,7 +783,11 @@ class RecoverableUpdate:
         if "component_input" in context["selection"]:
             selected = context["selection"]["component_input"]
             check_component_cut(context, cuts, selected)
-            if self.context["selection"].get("component_input") != selected:
+            if (
+                self.context["selection"].get("component_input") != selected
+                or context["selection"].get("component_boundary_task")
+                != self.recovery.task["identity"]
+            ):
                 raise ValueError("library updates require a new declared task boundary")
         prior = self.recovery.completed(update, batch)
         if prior is not None:

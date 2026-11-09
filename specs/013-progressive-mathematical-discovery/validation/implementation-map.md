@@ -972,3 +972,48 @@ T068 focused validation: **52 passed, one local native-service skip** (45.79s),
 including both historical implementation-binding checks and checkpoint/recovery,
 role, budget and installed-asset regressions. Final native-producer/type and
 actual-component-call tightening passes the targeted admission regression.
+
+### Scoped discovery dossiers T069
+
+The new closed `progressive-dossier.schema.json` and `claims.py` bind the exact
+original generator selection, source, source snapshot/offset, library and generation
+budget before novelty analysis. Independent finite execution is stored as an original
+immutable receipt with observed/expected values, native/reference producer identity,
+all detected counterexamples, explicit assumptions, original baseline comparisons
+and untested range. The 100-term scope and lack of unbounded machine-safety proof are
+explicit. Research requires actual native execution; reference-only CPU fixtures
+remain diagnostic. Conflicting references, altered seals/source/offset/range and
+missing untested scope fail validation.
+
+Claim category and novelty are independent. An authorized named reviewer must have
+an original frozen registry entry and exact candidate-bound scoped prior-work evidence
+for `independently_confirmed`; a model name or a digest cannot register that authority.
+Finite counterexamples prevent finite/bounded agreement promotion. Proof promotion
+replays only the registered source-bound polynomial checker; until T070 provides it,
+proof labels (including legacy certificates) are rejected. Six prospective proof and
+quarantine cases remain owned by T070–T071. T064's novelty-axis case now runs in the
+passing dossier suite, without admitting expected failures into mandatory CI.
+
+The installed `review-claim` operation verifies a read-only projection containing the
+complete original candidate/execution/review closure, repeats actual native execution
+and publishes a new dossier with its parent identity. It preserves original bytes and
+never emits a training-eligible target. Projection storage and pre-dispatch work
+reservations include the exact nested inputs. The full public CLI roster and local
+Podman support are unchanged; duplicate Podman CI jobs remain disabled as requested.
+
+Final recovery review also closes a T068 edge: a successor's first component cut is
+bound to that task in the complete checkpoint. Even a pause before its first update
+cannot reopen the adoption boundary or replace the committed library. The installed
+rehearsal pauses there, rejects a second adoption without changing the checkpoint,
+and resumes actual learning with the selected new library.
+
+Validation: complete registered CPU/historical roster **515 passed, 15 local native
+service skips** (179.32s). Final focused admission/dossier/packaging/identity/recovery
+checks cover later provenance and one-time boundary tightening. Native execution,
+HIP, mathematical proof and research utility are not inferred from CPU results.
+Requirements checklist remains 16/16; no implementation extension hooks exist.
+Final focused tightening: **19 passed, two local native skips** (19.04s), plus
+**seven component learning/recovery tests passed, one native skip** (38.65s).
+Both historical implementation-binding checks pass against the final source hash.
+Blocking syntax/undefined-name and whitespace checks pass. Changes are committed
+and pushed incrementally without waiting for CI.

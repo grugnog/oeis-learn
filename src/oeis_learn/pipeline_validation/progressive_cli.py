@@ -51,6 +51,7 @@ CPU_TESTS = (
     "tests/unit/test_progressive_yield_audit.py",
     "tests/unit/test_progressive_replay.py",
     "tests/unit/test_progressive_components.py",
+    "tests/unit/test_progressive_dossiers.py",
     "tests/unit/test_progressive_component_mining.py",
     "tests/unit/test_progressive_component_search.py",
     "tests/integration/test_progressive_oeis.py",
