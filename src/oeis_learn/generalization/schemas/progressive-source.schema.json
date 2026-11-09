@@ -1,0 +1,119 @@
+{
+  "type": "object",
+  "properties": {
+    "family": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "access": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "use_conditions": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "indexing": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "offset": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "representation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "objects": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "transformation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "verification": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "track": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "version": {
+      "const": "progressive-source/v1"
+    },
+    "identity": {
+      "$ref": "progressive-common.schema.json#/$defs/hash"
+    },
+    "snapshot": {
+      "$ref": "progressive-common.schema.json#/$defs/hash"
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      },
+      "minItems": 1,
+      "maxItems": 256,
+      "uniqueItems": true
+    },
+    "finite_support": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9
+    },
+    "values": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 1235,
+        "pattern": "^(0|-?[1-9][0-9]*)$"
+      },
+      "minItems": 9,
+      "maxItems": 9
+    },
+    "code": {
+      "type": "null"
+    }
+  },
+  "required": [
+    "family",
+    "revision",
+    "access",
+    "use_conditions",
+    "indexing",
+    "offset",
+    "representation",
+    "objects",
+    "transformation",
+    "verification",
+    "track",
+    "version",
+    "identity",
+    "snapshot",
+    "relations",
+    "finite_support",
+    "values",
+    "code"
+  ],
+  "additionalProperties": false
+}

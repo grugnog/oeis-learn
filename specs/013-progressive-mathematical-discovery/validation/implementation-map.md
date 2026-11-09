@@ -1136,3 +1136,25 @@ lifecycle/component regression selection passed 44 cases (one native-only skip i
 that non-native invocation). A real checkpoint test verifies restore rejection and
 unchanged spent-token journal. Dossier-overlay and invalid-graph tests preserve
 original input bytes. Broader native acceptance will run after the source additions.
+
+
+### T072–T074 — finite external-source contracts and bounded permutation preparation
+
+Source records bind revision/hash, access/use conditions, indexing, object and
+relation semantics, exact transformation, verification and external-assisted track.
+Unknown/approximate/nonintegral values, unresolved terms, missing offsets, arbitrary
+object order, finite-polynomial zero padding and downloaded code are rejected.
+Outcome-blind relation closure groups related statistics/maps and exact duplicate
+finite series across sources. The pilot-support reducer rejects role overlap and
+reports missing independent groups explicitly.
+
+The local adapter permits eight reviewed permutation statistics (within the cap of
+32), moment orders one/two and complete n=0..8 collections. It reserves 46,234
+objects and conservative work before enumeration, checks factorial cardinalities,
+empty-collection conventions, alternate insertion enumeration through n=5, and
+independent inversion/fixed-point total formulas. Preparation publishes immutable
+custodian output and never imports source-provided code. Short-profile contract
+tests enforce nine authoritative terms, four visible positions, explicit masks
+and unchanged historical non-20-term rejection. 22 source/short/enumeration tests
+passed, including each budget and adversarial-source branch. Neural integration
+is owned by T075–T078 and is not asserted by this increment.
