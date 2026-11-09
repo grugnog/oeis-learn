@@ -1642,6 +1642,65 @@ Scaling accepts a constant schedule with zero warmup or cosine with its frozen 1
 
 Validation: 63 decision, public bundle, trial scope, actual optimizer/update/recovery, continuation and asset tests passed; the added positive OEIS bundle case separately passed. CPU diagnostics do not authorize HIP/research execution.
 
-## T128 — Closed host request validation (in progress)
+## T128 — Initial host request validation (superseded below)
 
 Freeze now recognizes the host-owned OEIS cycle outside the installed-role registry and validates its original plan, paired child channels and policies, finite elapsed reservations, independent panels and zero duplicate parent debit. Four positive/negative request-boundary tests passed. Full canonical freeze/run/resume acceptance and recovery from the cycle's existing one-attempt marker remain unfinished, so T128 stays unchecked.
+
+## T128, T131–T134 — Canonical cycles and original terminal evidence
+
+The closed host validators bind OEIS/source plans to their original child tasks,
+model/training channels, independent panels, zero duplicate parent debit and
+finite resource reservations before freeze. Canonical preparation/freeze/run/resume
+covers a native OEIS deficit and a successful short-source cycle. Committed phase
+receipts replay from the original owned output; learning interruptions need
+supervisor recovery proof. Another invocation cannot reset discovery costs or
+start a second sibling cycle after a yield deficit. Completed child training
+results also become original owned predecessor slots. Missing, ambiguous or
+foreign receipts are rejected before publishing those cuts.
+
+The installed short profile uses four feature values, separate nine-term training
+admission and held-out scoring channels, two matched with/without-source seed
+pairs, independent support and bounded original inputs. Both arms restore full
+state before evaluation; an installed learner also pauses after useful work and
+continues updates after restore. Results remain ineligible for primary scaling.
+Exact-input calibration resolves OEIS/source children and component templates
+before their admitted cuts exist; research additions must fit the original
+calibrated token/numeric envelope.
+
+Typed committed slots now connect original extracted/verified library artifacts,
+newly generated member proposals and independently admitted expanded targets to
+learning. The complete library/target cut is adopted at the original recoverable
+boundary. The no-library control constructs its empty cut without future artifacts.
+Canonical freeze/extract/generate/admit/train/score/resume acceptance does not
+prebuild a library or manufacture consumer inputs. Restart does not remine;
+foreign outputs and refuted-library adoption are rejected. The component-enabled
+portfolio bounds neural decoding to the first half of the same 60-second
+budget so slow decoding cannot starve all component slots. Historical portfolios
+retain their existing deadlines. A deterministic expired-neural-prefix regression
+and real native component pipeline acceptance cover this boundary.
+
+Training registers actual consumed mechanical targets and exact update parents,
+with sealed original-weight/checkpoint bindings. Installed review retains native
+and independently checked counterexamples and original dossiers before a denied
+promotion fails. Host reconciliation independently validates this closure and
+appends transitive quarantine. Affected checkpoint restore, generator/library
+adoption and positive review consume the overlay. Installed post-learning
+refutation tests check checkpoint/dossier descendants, clean-ancestor and
+unrecoverable branches, and unchanged budget journal bytes, both with and without
+a denied promotion.
+
+Reporting automatically collects original frozen campaign/scope/cohort metadata,
+owned outputs and host-cycle summaries, original qualification-case producers,
+checkpoint identities, ancestry, outcomes, all resource caps/spend, decisions and
+available observations. It retains original first-producer tracebacks and later
+collector errors without exporting weights, private continuations or raw corpora.
+Offline verification reconciles original public authorities and all accounting
+axes and independently reduces outcomes. Canonical complete negative, partial
+and failed reports are covered; the complete paired negative yields
+NO_MATERIAL_GAIN. Altered caps are invalid; missing authority, collector errors
+and oversized required evidence remain explicit deficits.
+
+Actual HIP qualification, sustained training and conditional research execution
+are separate evidence requirements. No earlier device/source receipt is promoted
+by these software changes. T082 and T088–T111 remain subject to their original
+physical prerequisites, campaign selection and optional triggers.

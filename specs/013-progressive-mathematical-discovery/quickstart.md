@@ -220,8 +220,9 @@ until snapshot, permission, grouping, initializer, runtime and reservations are
 resolved. Related/duplicate statistics cannot cross roles; insufficient independent
 groups yield a deficit. See [source-suitability.md](validation/source-suitability.md).
 
-`discovery report --run DIR --output FILE.zip` packages explicit public tables from
-`public-report.json`. `progressive_evidence.public_report_input` seals this request.
+`discovery report --run DIR --output FILE.zip` automatically collects original
+owned campaign evidence. An explicit `public-report.json` remains supported;
+`progressive_evidence.public_report_input` seals the closed table request.
 Required tables are roster, outcomes, accounting, ancestry and qualification
 producers; exact requirements belong to the frozen public scope. No recursive
 workspace export or weight/private-continuation/raw-corpus table is available.
@@ -468,3 +469,76 @@ interval <=60s, >=30min finalization per task, a declared useful-work interrupti
 and explicit memory/disk/thermal/throughput availability or missing reasons. It
 checks the existing total allowance and returns `PENDING_ACTUAL_DURATION` with
 `actual_elapsed_us=null`; it launches no soak or research.
+
+### Closed host cycles and newly produced component inputs
+
+Use the existing `prepare`, `freeze`, `run` and `resume` commands. A frozen task
+request can select `oeis-cycle` or `source-cycle`: `artifacts.cycle` contains one
+original declared plan path, `image` is immutable, `seconds` is finite, and
+`reservation` is the zero resource vector. The host orchestrator spends only its
+named child tasks' original allowances; it is not an installed arbitrary role.
+Training, model and plan channels must be declared before freeze. Exact-input
+calibration resolves the child templates before future admitted cuts exist.
+Research targets outside the calibrated token/numeric envelope are rejected.
+
+OEIS cycles retain the original output owner, phase receipts, search/admission
+costs, archive cut and learner packages. Resume reuses committed phases and full
+learning state; a sibling output cannot reset costs or buy a second cycle.
+Uncommitted learning needs supervisor recovery proof. An uncommitted search
+without replay authority fails explicitly. Yield deficits retain spent search
+costs and prevent an unvisited paired slot from restarting the cycle. Completed
+child training results are registered as original predecessor outputs; missing or
+foreign cycle receipts cannot supply later checkpoint slots.
+
+An assisted `progressive-source-cycle/v1` plan binds `roster` (original `sources`
+and corresponding `roles`), four `training` entries (`task`, `channel`, `model`),
+per-role `seconds`, and `generation`. Select two matched with/without-source seed
+pairs with fresh initialization. Each model has one recipe/checkpoint pair.
+Independent source support is mandatory; this bounded pilot permits at most 128
+training and 128 evaluation members. Generation and learning see four features;
+admission and held-out scoring independently check nine terms through separate
+truth channels. Full restore preserves the short profile and mixture. These
+results remain ineligible for primary scaling; forced candidates are diagnostic.
+
+Component requests can consume original committed predecessor outputs, for example:
+
+```json
+{"task":"mine","operation":"extract-components","output":"library","kind":"library"}
+```
+
+Generation publishes `component_proposals` with a frozen `member` selector;
+admission publishes `target` with kind `admitted_target`. Training combines those
+slots with its original training request at a complete recoverable task boundary.
+Do not prebuild the future library or copy unowned output paths into a request.
+Campaign/task, arm, seed, dependency, profile and compatibility checks apply. The
+no-library control resolves its empty cut without receiving discoveries. The
+component-enabled portfolio bounds neural decoding to the first half so its
+four component slots remain reachable within the same 60-second ceiling;
+historical eight-neural portfolios retain their original policy.
+
+Installed review retains independently checked counterexamples and original
+dossiers before reporting a denied promotion. Host reconciliation appends
+transitive target/library/update/checkpoint/dossier quarantine without rewriting
+history or refunding cost. Resume, generation, library adoption and positive
+review reject affected lineage. Recovery needs a known clean ancestor under its
+original authority; otherwise retain the explicit contamination result.
+
+### Automatic terminal evidence collection
+
+`discovery report --run DIR --output NEW.zip` automatically collects the original
+campaign, frozen public scope/cohort metadata, committed role and host-cycle
+results, qualification-case producers, checkpoint identities, ancestry, outcomes,
+resource vectors, decisions and available observations. Explicit
+`public-report.json` requests remain supported. Collection follows the owned
+invocation/output inventory rather than recursively exporting workspace files.
+Private continuations, weights and raw corpora are excluded; bounded original
+producer tracebacks and subsequent collector errors remain attributable.
+
+Freeze one `progressive-public-scope/v1` authority with the full comparison
+roster, paired seeds/design, required tables, qualification producers and accounted
+tasks. `verify-bundle` independently reconciles those originals. A complete
+negative result can yield `NO_MATERIAL_GAIN`; partial/failed work retains spent
+costs and unresolved denominators. Missing scope, qualification, required evidence
+or collector errors prevent verified status. Altered caps or unsupported gates
+are invalid. Required evidence that cannot fit the frozen package allowance and
+512 MiB metadata ceiling remains explicitly incomplete with local originals kept.
