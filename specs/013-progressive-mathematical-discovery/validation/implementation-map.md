@@ -1395,3 +1395,22 @@ integration cases passed with zero skips (314.96s), including all 17 CI failures
 Added regression coverage for schema synchronization, all four mixture-arm
 cursors, exhaustion, and unknown-arm rejection. Full verification is delegated
 to CI at the user's request; no full-suite or Docker/HIP pass is claimed locally.
+
+### T018, T118–T119 — successful Docker CI/native acceptance
+
+Verified [container/native CI run 42654376036](https://github.com/grugnog/oeis-learn/actions/runs/42654376036)
+on `08a0c5a5e8f826ab0008c584c9b25ffd77bef443`: all jobs passed. The original
+`portable-docker` artifact `13692788937` contains the sealed foundation receipt
+`sha256:e4b00b305030a5d28cc4b00377dc3e692bfd914c25b28bd74bda518294d37163`
+and JUnit `sha256:73c00476bab002812231bc80b14779ddc23fb2a765b466b94a83e8d1b231e690`.
+The tested source closure is
+`sha256:8eda9ea4a4f4d8f48d4ef7f37185da36f8f605defe18d31dd48d627b1af91945`.
+
+Result: **708 passed, zero failures/errors/skips, 903.027 seconds**. This includes
+real installed completed/pruned/failed/partial/interrupted trials, six-trial
+pruning after five comparable completions, fresh paired confirmation without
+sampler feedback, and completion/retention/provenance ranking counterexamples.
+It closes T018's original CPU/native CI requirement and the outstanding final
+acceptance for T118–T119. The independent foundation-review workflow also passed.
+The producer explicitly has `qualified=false`: CPU/native acceptance does not
+provide actual-HIP authority, sustained-duration evidence or scientific gains.
