@@ -115,6 +115,7 @@ def projection_size(root, refs):
             "training_request",
             "verified_training_archive",
             "typed_training_source",
+            "library",
         }:
             continue
         nested = [value["data"]["artifact"]]

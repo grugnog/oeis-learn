@@ -108,3 +108,26 @@ Final assessment is a distinct `discovery assess` invocation with the frozen sel
 | Refuted target/proof | Descendant quarantine and honest claim status |
 | Soft target missed / hard invariant violated | A pre-reserved diagnostic may inspect the first; the second stops/quarantines affected work. No failed gate becomes PASS |
 | Missing/truncated required report evidence | INCOMPLETE/invalid verification; original producer failure preserved |
+
+### Bounded component search (T067)
+
+The installed `extract-components`/`verify-components` role exports
+`search-library.json` alongside its immutable library. This self-contained input
+binds the committed library bytes, original expansion proofs and spent mining work;
+it does not contain training source solutions. Freeze its original reference in a
+`library` model-channel envelope with profile `progressive-component-search/v1`
+and the same compatibility identity as the recipe/checkpoint. Research requires a
+native-verified research library. The generator accepts exactly one such library.
+
+Library generation runs one correct-conditioning portfolio: ordinary neural draws
+occupy slots 0–3 and typed component proposals occupy slots 4–7. Each component slot
+expands and scores at most two deterministic typed AST proposals with the unchanged
+decoder, then fits only the selected full source. All eight slots share the existing
+60-second deadline; late scoring is discarded. Expanded codec tokens, conservative
+expansion work, model-scoring tokens and native requests consume the frozen role
+allowance. Original discovery work and per-prompt downstream costs are reported
+separately. Freeze the paired no-library generator with `oeis_generation` data
+`{"methods":["correct"],"forced":null}` and no library to give it eight ordinary
+attempts under the same portfolio limit. Pairing, distillation, complete model/library
+cuts and usefulness gates remain T068; this search capability alone is not a finding
+of improved capability or efficiency.

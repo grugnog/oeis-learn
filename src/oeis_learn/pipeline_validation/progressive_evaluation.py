@@ -39,6 +39,7 @@ def generate(
     budget=None,
     methods=("correct", "shuffled", "absent", "template", "polynomial", "linear_recurrence"),
     forced=None,
+    component_library=None,
 ):
     import torch
 
@@ -63,6 +64,12 @@ def generate(
         )
     ):
         raise ValueError("frozen registered method roster required")
+    if component_library is not None:
+        from oeis_learn.generalization.progressive.component_search import validate_input
+
+        validate_input(component_library)
+        if methods != ("correct",) or forced is not None:
+            raise ValueError("component comparison requires one ordinary matched portfolio")
     prompts = list(prompts)
     for p in prompts:
         validate_prompt(p)
@@ -167,6 +174,16 @@ def generate(
                 # asking the model for another draw. No second scheduler.
                 if budget:
                     budget.consume(draws=8, attempts=8, rejections=8)
+                proposals = None
+                if component_library is not None:
+                    from oeis_learn.generalization.progressive.component_search import Proposals
+
+                    proposals = Proposals(
+                        component_library["library"],
+                        decoder=decoder,
+                        memory=memories[mode],
+                        charge=budget.consume if budget else None,
+                    )
                 value = portfolio(
                     decoder,
                     memories.get(mode),
@@ -180,12 +197,20 @@ def generate(
                     snapshot=snapshot,
                     evidence=evidence,
                     evaluation_policy=DRAIN,
+                    component_proposals=proposals,
                 )
                 for name in ("raw", "rescue", "equal_budget") if mode == "correct" else (mode,):
                     key = name if mode == "correct" else "equal_budget"
                     record["selections"][name] = value[key]
                     record["arm_evidence"][name] = value["arm_evidence"][key]
                 record["costs"][mode] = value
+                if proposals is not None:
+                    record["costs"]["components"] = dict(
+                        proposals.report,
+                        discovery_work=component_library["discovery_work"],
+                        commit=component_library["commit"],
+                        cost_scope="discovery_plus_search",
+                    )
             visible = VisiblePrompt(tuple(p["indices"]), tuple(p["values"]))
             for method in ("polynomial", "linear_recurrence"):
                 portfolio_budget = Portfolio()

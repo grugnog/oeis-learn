@@ -94,3 +94,61 @@ def test_scorer_rejects_unsealed_or_mutated_candidate_bytes(tmp_path):
     with pytest.raises(ValueError, match="sealed generator"):
         score(tmp_path, reference(tmp_path, "fake.json"), [], client=None, output="out")
     assert not (tmp_path / "out").exists()
+
+
+def test_component_generation_uses_committed_cut_and_records_scoring_cost(tmp_path, monkeypatch):
+    """Real CPU model scoring with a controlled portfolio boundary; no native claim."""
+    from tests.unit.test_progressive_component_mining import sources
+    from oeis_learn.generalization.progressive.component_mining import LibraryStore
+    from oeis_learn.generalization.progressive.component_search import search_input
+    from oeis_learn.generalization.progressive.contracts import load
+    import oeis_learn.fresh.bigint_diagnostics as driver
+
+    store = LibraryStore(tmp_path, "library", purpose="acceptance", track="synthetic_strict")
+    bundle = search_input(store, store.publish(sources(tmp_path)))
+    seen = []
+
+    def portfolio(decoder, memory, prompt, recipe, client, **kwargs):
+        import time
+
+        proposal = kwargs["component_proposals"]
+        seen.append(proposal(4, min(kwargs["deadline"], time.monotonic() + 60)))
+        assert kwargs["attempt_count"] == 8
+        return dict(
+            raw=None,
+            rescue=None,
+            equal_budget=None,
+            arm_evidence={
+                k: dict(complete=False, reason="DIAGNOSTIC_ONLY")
+                for k in ("raw", "rescue", "equal_budget")
+            },
+        )
+
+    monkeypatch.setattr(driver, "portfolio", portfolio)
+    recipe = resolve({"version": "bigint-bootstrap/v1"})
+    prompts = [
+        dict(
+            id="heldout",
+            indices=list(map(str, range(20))),
+            values=[str(2 * i + 1) for i in range(20)],
+        )
+    ]
+    ref = generate(
+        tmp_path,
+        "generated",
+        prompts,
+        recipe,
+        client=None,
+        model_control="random",
+        seed=13,
+        methods=("correct",),
+        component_library=bundle,
+    )
+    result = load(tmp_path / ref["path"])
+    cost = result["records"]["heldout"]["costs"]["components"]
+    assert seen[0]["complete"] and cost["scoring_tokens"] > 0
+    assert cost["library"] == bundle["library"]["identity"]
+    assert cost["discovery_work"] == bundle["discovery_work"]
+    assert cost["commit"] == bundle["commit"]
+    with pytest.raises(ValueError, match="one ordinary"):
+        generate(tmp_path, "bad", prompts, recipe, client=None, component_library=bundle)

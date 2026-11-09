@@ -282,3 +282,49 @@ def test_component_projection_copies_only_bound_training_archive_closure(tmp_pat
     assert load(projected / "next.json") == next_cut
     assert len(verify_refs(projected, cut["payload"]["entries"])) == 2
     assert not (result["archive"] / "private").exists()
+
+
+def test_committed_search_library_projection_copies_exact_payload_without_sources(tmp_path):
+    from tests.unit.test_progressive_component_mining import sources
+    from oeis_learn.generalization.progressive.component_mining import LibraryStore
+    from oeis_learn.generalization.progressive.component_search import search_input
+    from oeis_learn.generalization.progressive.contracts import reference, digest, load
+    from oeis_learn.generalization.progressive.budgets import role_work_requirements
+
+    store = LibraryStore(tmp_path, "library", purpose="acceptance", track="synthetic_strict")
+    value = store.publish(sources(tmp_path))
+    bundle = search_input(store, value)
+    atomic_write(tmp_path / "search-library.json", bundle)
+    lib = artifact(
+        tmp_path,
+        "envelope.json",
+        "library",
+        "generator",
+        dict(
+            artifact=reference(tmp_path, "search-library.json"),
+            compatibility=digest("model"),
+            profile="progressive-component-search/v1",
+        ),
+    )
+    prompt = artifact(
+        tmp_path,
+        "prompt.json",
+        "visible_prompt",
+        "generator",
+        dict(id="heldout", indices=list(map(str, range(20))), values=list(map(str, range(20)))),
+    )
+    views = project(
+        tmp_path, "projection", "generate", {"model": [lib], "visible": [prompt]}, registry=REGISTRY
+    )
+    assert load(views["model"] / "search-library.json") == bundle
+    assert not list((tmp_path / "projection").rglob("source-*.json"))
+    values = [load(tmp_path / x.ref["path"]) for x in (lib, prompt)]
+    costs = role_work_requirements("generate", values)
+    assert costs["attempts"] == costs["draws"] == 8
+    assert costs["tokens"] == 16384
+    assert costs["native_work"] > 64
+    (tmp_path / "search-library.json").write_text("{}")
+    with pytest.raises(ValueError):
+        project(
+            tmp_path, "bad", "generate", {"model": [lib], "visible": [prompt]}, registry=REGISTRY
+        )

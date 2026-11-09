@@ -398,13 +398,19 @@ def role_work_requirements(operation, values):
         n = sum(v["kind"] == "visible_prompt" for v in values)
         if not n:
             raise ValueError("nonempty bounded generation roster required")
-        oeis = any(v["kind"] == "oeis_generation" for v in values)
+        components = any(v["kind"] == "library" for v in values)
+        oeis = components or any(v["kind"] == "oeis_generation" for v in values)
         costs.update(
             draws=(8 if oeis else 32) * n,
             attempts=(8 if oeis else 48) * n,
             rejections=(8 if oeis else 48) * n,
             native_work=64 * n,
         )
+        if components:
+            from .component_search import EXPANSION_WORK, SLOT_TOKENS
+
+            costs["native_work"] += 8 * EXPANSION_WORK * n
+            costs["tokens"] = 4 * SLOT_TOKENS * n
     elif operation == "score":
         n = sum(v["kind"] in {"development_truth", "confirmation_truth"} for v in values)
         if not n:

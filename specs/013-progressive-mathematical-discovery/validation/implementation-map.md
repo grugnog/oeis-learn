@@ -900,3 +900,43 @@ are failures in mandatory native-image mode. No actual native-container, HIP,
 sustained-duration, mathematical-proof or scientific-gain claim follows from these
 CPU results. Requirements checklist remains 16/16; no implementation extension
 hooks are registered. Changes are published incrementally without waiting for CI.
+
+### Bounded component-guided proposals T067
+
+`component_search.py::Proposals` composes mined pure expressions with deterministic
+ordinary typed operands/wrappers in operand order. Each of slots 4–7 considers at
+most two expansions and ranks their existing-codec token sequences using the
+unchanged decoder's teacher-forced log probability. The canonical portfolio driver
+continues to own all eight attempts, the shared 60-second deadline, final-source
+fitting, independent admission and selection. Slots 0–3 remain ordinary neural
+draws; the no-library arm retains all eight ordinary draws. Empty, invalid or late
+proposals cannot add attempts or bypass fitting. No library tokens or embeddings
+are introduced.
+
+Installed extraction exports an immutable search bundle binding the committed cut,
+original expansion proofs and irreversible discovery work. The generator projects
+that exact artifact under frozen model authority, checks model compatibility and
+requires native research provenance for research. It never mounts source solutions
+through the library channel. Expansion and scoring reserve conservative work/token
+maxima before execution; rejected expansions and interrupted inference remain
+charged. Reports retain expanded nodes/tokens, scoring tokens, expansion reservation,
+original discovery work and native search/execution costs rather than treating a
+short component name as free work. Package identity and nested projection storage
+include the actual input bytes.
+
+Tests cover exact codec/source identity, typed expansion, four/eight attempt counts,
+expired and repeated slots, real CPU decoder scoring, committed proof/cost tampering,
+original payload projection and generator cost reporting. The native acceptance
+case mines a three-structure library and sends a component-generated `2n + 1` source
+through the original native fitter. Its ordinary draws are deliberately incomplete
+mechanical fixtures, so this is a routing/semantics check, not an improvement claim.
+T068 still owns distillation, atomic model/library cuts and matched usefulness gates.
+
+Validation: **357 registered tests passed, 12 native-service skips** (138.05s);
+**66 historical diagnostics/implementation-binding tests passed, one native skip**
+(56.12s). Focused generator/projection/search checks returned **21 passed, three
+native skips**, including the new real CPU scoring integration. The latter check
+was added after the registered run began and passed separately. Blocking
+syntax/undefined-name checks and `git diff --check` passed. No local native/HIP or
+research superiority is claimed. The mandatory native-image mode fails unavailable
+native cases rather than silently accepting skips. No implementation hooks exist.

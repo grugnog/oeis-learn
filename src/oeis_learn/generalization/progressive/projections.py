@@ -35,7 +35,11 @@ CHANNELS = {
     "assessment_truth": {"assessment_truth"},
     "selection": {"locked_selection"},
     "search": {"search_space", "development_scalar"},
-    "archive": {"verified_training_archive", "typed_training_source", "component_policy"},
+    "archive": {
+        "verified_training_archive",
+        "typed_training_source",
+        "component_policy",
+    },
     "dossier": {"sealed_dossier", "review_evidence"},
     "public": {"public_evidence"},
 }
@@ -86,6 +90,7 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
             "training_request",
             "verified_training_archive",
             "typed_training_source",
+            "library",
         }:
             data = load(confined(root, descriptor.ref["path"]))["data"]
             _validate_channel(descriptor.kind, data)
@@ -192,6 +197,7 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                     "training_request",
                     "verified_training_archive",
                     "typed_training_source",
+                    "library",
                 }:
                     ref = load(confined(root, item.ref["path"]))["data"]["artifact"]
                     raw = confined(folder, ref["path"], exists=False)
@@ -325,7 +331,9 @@ def _validate_channel(kind, data):
 
         _check(schema("common")["$defs"]["artifact"], data["artifact"], schema("common"))
         _check(schema("common")["$defs"]["hash"], data["compatibility"], schema("common"))
-        if data["profile"] != "bigint-body/v1":
+        if data["profile"] != (
+            "progressive-component-search/v1" if kind == "library" else "bigint-body/v1"
+        ):
             raise ValueError("unregistered model language")
     if kind in {
         "mechanical_shard",

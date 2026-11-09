@@ -179,6 +179,9 @@ def _execute(
                 budget=budget,
             )
         atomic_write(output / "library.json", library)
+        from oeis_learn.generalization.progressive.component_search import search_input
+
+        atomic_write(output / "search-library.json", search_input(store, library))
         return publish(
             output,
             operation=operation,
@@ -238,7 +241,8 @@ def _execute(
         )
     if operation == "generate":
         if any(
-            v["kind"] not in {"checkpoint", "recipe", "visible_prompt", "oeis_generation"}
+            v["kind"]
+            not in {"checkpoint", "recipe", "visible_prompt", "oeis_generation", "library"}
             for v in values
         ):
             raise ValueError("closed generation types required")
@@ -283,6 +287,29 @@ def _execute(
                 and load(authority)["task"]["purpose"] != "acceptance"
             ):
                 raise ValueError("forced candidates are DIAGNOSTIC_ONLY")
+        libraries = [v["data"] for v in values if v["kind"] == "library"]
+        if len(libraries) > 1:
+            raise ValueError("one frozen component library required")
+        component_library = None
+        if libraries:
+            from oeis_learn.generalization.progressive.component_search import validate_input
+
+            if (
+                libraries[0]["compatibility"] != recipes[0]["compatibility"]
+                or libraries[0]["profile"] != "progressive-component-search/v1"
+            ):
+                raise ValueError("compatible committed component search input required")
+            verify_refs(model_root, [libraries[0]["artifact"]], max_bytes=256 << 20)
+            component_library = validate_input(
+                load(confined(model_root, libraries[0]["artifact"]["path"]), maximum=256 << 20)
+            )
+            if (
+                load(authority)["task"]["purpose"] == "research"
+                and component_library["library"]["purpose"] != "research"
+            ):
+                raise ValueError("research requires a native research library")
+            if mode_policy is not None:
+                raise ValueError("component and OEIS policies cannot be combined")
         control = checkpoints[0].get("control", "retained_D")
         with SynthesisClient(digest(recipe)) as client:
             budget.client(client)
@@ -299,9 +326,12 @@ def _execute(
                 seed=recipe["model"]["seed"] if control == "random" else None,
                 device="cpu" if load(authority)["task"]["purpose"] == "acceptance" else "cuda",
                 budget=budget,
+                component_library=component_library,
                 **(
                     {"methods": tuple(mode_policy["methods"]), "forced": mode_policy["forced"]}
                     if mode_policy
+                    else {"methods": ("correct",)}
+                    if component_library
                     else {}
                 ),
             )
