@@ -246,12 +246,18 @@ class Recovery:
             maximum_bytes=self.checkpoint_bytes,
         )
         self.store.load(record)  # verify complete reference/tensor closure before commit
+        from .quarantine import Journal
+
+        Journal(self.journal.root).checkpoint(record, previous=self.state["checkpoint"])
         return record
 
     def restore(self):
         self.read()
         if self.state["checkpoint"] is None:
             raise ValueError("no committed checkpoint")
+        from .quarantine import Journal
+
+        Journal(self.journal.root).require_clean([self.state["checkpoint"]["identity"]])
         restored = self.store.load(self.state["checkpoint"])
         remaining = self.journal.task_remaining(self.task)
         consumed = self.base["tokens"] + self.p["caps"]["tokens"] - remaining["tokens"]

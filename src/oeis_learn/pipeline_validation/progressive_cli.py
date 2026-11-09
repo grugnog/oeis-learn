@@ -53,6 +53,8 @@ CPU_TESTS = (
     "tests/unit/test_progressive_components.py",
     "tests/unit/test_progressive_dossiers.py",
     "tests/unit/test_progressive_polynomial_certificate.py",
+    "tests/unit/test_progressive_quarantine.py",
+    "tests/unit/test_progressive_claims.py",
     "tests/unit/test_progressive_component_mining.py",
     "tests/unit/test_progressive_component_search.py",
     "tests/integration/test_progressive_oeis.py",

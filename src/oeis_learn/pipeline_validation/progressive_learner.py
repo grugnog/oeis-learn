@@ -261,6 +261,9 @@ def _run(
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     journal = BudgetJournal(accounting, c["identity"], c["payload"]["caps"])
+    from oeis_learn.generalization.progressive.quarantine import Journal
+
+    Journal(journal.root).training(package)
     if t["purpose"] == "research" and (not torch.version.hip or not torch.cuda.is_available()):
         raise RuntimeError("actual HIP required; no CPU fallback")
     lookup = {r["draw_identity"]: r for shard in package["shards"] for r in shard}

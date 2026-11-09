@@ -1,0 +1,135 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "progressive-quarantine-event/v1"
+    },
+    "identity": {
+      "type": "string"
+    },
+    "previous": {
+      "type": "string"
+    },
+    "operation": {
+      "enum": [
+        "register",
+        "refute"
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "kind": {
+            "enum": [
+              "target",
+              "archive",
+              "library",
+              "consumed_update",
+              "checkpoint",
+              "dossier"
+            ]
+          },
+          "parents": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "maxItems": 65536,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "parents"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 65536,
+      "uniqueItems": true
+    },
+    "roots": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "maxItems": 256,
+      "uniqueItems": true
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 4096
+    },
+    "overlay": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "const": "progressive-quarantine/v1"
+            },
+            "identity": {
+              "type": "string"
+            },
+            "graph": {
+              "type": "string"
+            },
+            "roots": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "maxItems": 256,
+              "uniqueItems": true
+            },
+            "affected": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "maxItems": 65536,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "version",
+            "identity",
+            "graph",
+            "roots",
+            "affected"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "previous",
+    "operation",
+    "nodes",
+    "roots",
+    "reason",
+    "overlay"
+  ],
+  "additionalProperties": false
+}

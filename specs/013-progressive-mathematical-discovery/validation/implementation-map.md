@@ -1116,3 +1116,23 @@ created by the container launcher. This is local software evidence, not a Docker
 or HIP qualification receipt, sustained-duration evidence or a research result.
 Blocking E9/F63/F7/F82 lint and `git diff --check` passed. T070 is complete; T071 and
 later tasks remain pending. No post-implementation extension hooks are registered.
+
+
+### T071 — append-only quarantine
+
+Closed typed dependency DAGs reject missing parents, cycles, duplicate identities
+and changed ancestry under node/edge/journal bounds. Immutable chained refutation
+overlays enumerate every descendant; late consumers inherit earlier refutations.
+The campaign accounting root owns the quarantine journal. Real checkpoint save
+records archive/library/consumed-update/previous-checkpoint dependencies; restore
+and component adoption refuse affected lineage. Training binds admitted targets,
+archive cuts, library origins and expanded targets before work. Explicit dossier
+registration links review records without rewriting original claims. Recovery
+selection retains supplied spent costs and labels absence of a clean checkpoint
+CONTAMINATED; actual retraining uses the existing separately charged successor path.
+
+Validation: 30 quarantine/claim/continuation/recovery tests passed; the installed
+lifecycle/component regression selection passed 44 cases (one native-only skip in
+that non-native invocation). A real checkpoint test verifies restore rejection and
+unchanged spent-token journal. Dossier-overlay and invalid-graph tests preserve
+original input bytes. Broader native acceptance will run after the source additions.

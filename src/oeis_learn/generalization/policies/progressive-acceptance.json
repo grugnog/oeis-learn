@@ -50,7 +50,7 @@
       "id": "progressive-claims-prospective-contracts",
       "device": "cpu",
       "scope": "DIAGNOSTIC_ONLY",
-      "status": "PENDING_IMPLEMENTATION",
+      "status": "IMPLEMENTED",
       "owner": "T071",
       "test": "tests/unit/test_progressive_claims.py",
       "obligations": [

@@ -732,6 +732,9 @@ class RecoverableUpdate:
         from oeis_learn.generalization.progressive.component_distillation import ComponentMixer
 
         ComponentMixer(package)
+        from oeis_learn.generalization.progressive.quarantine import Journal
+
+        Journal(self.recovery.journal.root).training({"component_distillation": package})
         restored = self.recovery.restore()
         init = self.recovery.p["initializer"]
         if (
