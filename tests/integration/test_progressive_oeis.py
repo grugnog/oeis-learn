@@ -23,7 +23,8 @@ def test_role_input_override_is_not_a_json_permission(tmp_path):
         check_derived(dict(campaign="fake"), campaign={}, task={}, operation="train")
 
 
-def test_installed_cpu_replay_and_control_update_restore(tmp_path):
+@pytest.mark.parametrize("preparation", [False, True])
+def test_installed_cpu_replay_and_control_update_restore(tmp_path, preparation):
     """Precommitted diagnostic admissions exercise real updates, not native acceptance."""
     from tests.helpers.progressive_oeis_fixture import fixture
     from tests.unit.test_progressive_archive import admitted
@@ -60,6 +61,15 @@ def test_installed_cpu_replay_and_control_update_restore(tmp_path):
         routed = cycle.channel(
             "training_request", "learner", dict(channel["data"], artifact=reference(tmp_path, path))
         )
+        if preparation:
+            # Mechanical accounting fixture, not a native-search acceptance claim.
+            costs = dict.fromkeys(task["payload"]["caps"], 0)
+            costs.update(draws=2, attempts=2, native_work=3, elapsed_us=100)
+            event = journal.reserve(
+                task["payload"]["id"], "generate", 0, costs, boot="fixture", monotonic_us=0
+            )
+            journal.commit(event["key"])
+            prepared_remaining = journal.task_remaining(task)
         result = cycle.cpu_phase(
             "train",
             {"training": [describe(tmp_path, routed)]},
@@ -68,6 +78,11 @@ def test_installed_cpu_replay_and_control_update_restore(tmp_path):
             90,
         )
         assert result["mechanical_status"] == "COMPLETE", result
+        if preparation:
+            remaining = journal.task_remaining(task)
+            assert all(
+                remaining[k] == prepared_remaining[k] for k in ("draws", "attempts", "native_work")
+            )
         state = tmp_path / "run-state/discovery-learning" / c["identity"][7:] / task["identity"][7:]
         with Recovery(journal, task, compatibility(p), state_root=state) as owner:
             restored = owner.restore()
@@ -107,9 +122,10 @@ def test_real_native_search_admit_update_evaluate_cycle(tmp_path, fitting_client
     def phase(self, operation, artifacts, task=None):
         if operation == "train":
             remaining = self.journal.task_remaining(task)
-            assert all(
-                remaining[k] == task["payload"]["caps"][k] for k in remaining if k != "elapsed_us"
-            )
+            assert remaining["tokens"] == task["payload"]["caps"]["tokens"]
+            if task["identity"] == m["identity"]:
+                assert remaining["attempts"] < task["payload"]["caps"]["attempts"]
+                assert remaining["native_work"] < task["payload"]["caps"]["native_work"]
         value = original_phase(self, operation, artifacts, task)
         if operation == "train":
             trained_tasks.add(task["identity"])

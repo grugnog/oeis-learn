@@ -1017,3 +1017,23 @@ Final focused tightening: **19 passed, two local native skips** (19.04s), plus
 Both historical implementation-binding checks pass against the final source hash.
 Blocking syntax/undefined-name and whitespace checks pass. Changes are committed
 and pushed incrementally without waiting for CI.
+
+### OEIS first-task preparation accounting CI repair
+
+Native CI on `f9bba36` returned 530 passing cases and one OEIS-cycle failure. The
+first OEIS learner task also owns bounded discovery/admission, so its non-token
+allowances are already charged before initialization. The prior pristine-resource
+assertion incorrectly rejected that required path. Recovery now permits only
+completed zero-token `oeis-host`/`generate`/`admit-training` reservations in the
+OEIS-derived stage under the current original supervisor training reservation.
+All charges remain spent. Any token debit, unfinished preparation, previous
+training/update attempt, foreign stage/track or existing checkpoint still blocks
+fresh initialization. Baseline evaluation continues to use the original initializer
+after the learner's initial update, without changing task budget attribution.
+
+Regression validation: **28 passed, two local native-only skips** (26.15s), including
+actual installed replay/control updates and full restore with precharged discovery
+work, seven preparation/learning-debit boundary cases, and optimizer/crash recovery.
+Both historical implementation-binding checks passed after refreshing the source
+hash. Blocking syntax/undefined-name and whitespace checks passed. Native end-to-end
+acceptance remains mandatory in Docker CI; local CPU evidence does not replace it.

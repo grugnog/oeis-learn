@@ -137,3 +137,61 @@ def test_clock_can_cover_fresh_model_startup_and_failed_startup_cannot_reset(tmp
         # Power loss before initializer publication: no end proof, no free retry.
     with Recovery(j, t, digest("learning")) as r, pytest.raises(ValueError, match="exhausted"):
         r.begin(boot="reboot", monotonic_us=0)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "none",
+        "tokens",
+        "current_train_tokens",
+        "pending",
+        "prior_train",
+        "wrong_stage",
+        "wrong_track",
+    ],
+)
+def test_first_oeis_initialization_retains_only_completed_preparation_charges(tmp_path, change):
+    from oeis_learn.generalization.progressive.contracts import seal
+
+    t, j, cuts = setup(tmp_path)
+    t = seal(dict(t, track="oeis_derived", payload=dict(t["payload"], stage="oeis")))
+    if change == "wrong_stage":
+        t = seal(dict(t, payload=dict(t["payload"], stage="components")))
+    if change == "wrong_track":
+        t = seal(dict(t, track="synthetic_strict"))
+    cost = dict.fromkeys(t["payload"]["caps"], 0)
+    cost.update(draws=2, attempts=2, native_work=3, elapsed_us=100)
+    if change == "tokens":
+        cost["tokens"] = 1
+    prep = j.reserve(
+        t["payload"]["id"],
+        "train" if change == "prior_train" else "generate",
+        0,
+        cost,
+        boot="boot",
+        monotonic_us=0,
+    )
+    if change != "pending":
+        j.commit(prep["key"])
+    train_cost = dict.fromkeys(cost, 0)
+    train_cost["elapsed_us"] = 5000000
+    if change == "current_train_tokens":
+        train_cost["tokens"] = 1
+    train = j.reserve(t["payload"]["id"], "train", 1, train_cost, boot="boot", monotonic_us=100)
+    with Recovery(j, t, digest("learning")) as owner:
+        owner.attach(dict(reservation_key=train["key"], boot="boot", start_us=100, end_us=5000100))
+        before = j.snapshot()
+        if change != "none":
+            with pytest.raises(ValueError, match="spent task"):
+                owner.initialize(states(), cuts)
+            assert owner.state["checkpoint"] is None
+        else:
+            owner.initialize(states(), cuts)
+            assert owner.restore()["ledger"].consumed == 0
+            assert owner.restore()["ledger"].updates == 0
+            with pytest.raises(ValueError, match="existing task"):
+                owner.initialize(states(), cuts)
+        assert j.snapshot() == before
+        assert j.task_remaining(t)["attempts"] == t["payload"]["caps"]["attempts"] - 2
+        assert j.task_remaining(t)["native_work"] == t["payload"]["caps"]["native_work"] - 3

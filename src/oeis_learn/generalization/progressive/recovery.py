@@ -126,10 +126,13 @@ class Recovery:
         if self.state["checkpoint"] is not None:
             raise ValueError("existing task must restore its committed cut")
         remaining = self.journal.task_remaining(self.task)
-        if any(
-            self.p["caps"][k] != remaining[k]
-            for k in KEYS
-            if k != "elapsed_us" or not hasattr(self, "clock")
+        if (
+            any(
+                self.p["caps"][k] != remaining[k]
+                for k in KEYS
+                if k != "elapsed_us" or not hasattr(self, "clock")
+            )
+            and not self._completed_oeis_preparation()
         ):
             raise ValueError("spent task cannot be initialized again")
         if ({"parent_slot", "parent_task"} & set(self.p["initializer"])) and not (
@@ -147,6 +150,38 @@ class Recovery:
             status="RUNNING" if hasattr(self, "clock") else "PAUSED",
         )
         return record
+
+    def _completed_oeis_preparation(self):
+        """The first OEIS task pays for search/admission before its first update.
+
+        Only completed, zero-token preparation is eligible. The current external
+        train reservation remains pending; earlier train/update reservations never
+        become preparation and cannot buy a fresh initialization or refund work.
+        """
+        if (
+            self.task["track"] != "oeis_derived"
+            or self.p["stage"] != "oeis"
+            or not getattr(self, "clock", {}).get("external")
+        ):
+            return False
+        if self.journal.task_remaining(self.task)["tokens"] != self.p["caps"]["tokens"]:
+            return False
+        prefix = self.p["id"] + "/"
+        with self.journal.lock():
+            events, _, finished, _, _ = self.journal._read()
+        prior = [
+            e
+            for e in events
+            if e["event"] == "RESERVE"
+            and e["operation"].startswith(prefix)
+            and e["operation"] != self.clock["key"]
+        ]
+        return bool(prior) and all(
+            e["operation"].split("/")[1] in {"oeis-host", "generate", "admit-training"}
+            and e["operation"] in finished
+            and e["cost"]["tokens"] == 0
+            for e in prior
+        )
 
     def initialize_from(self, parent, *, campaign):
         from .campaign import validate_campaign
