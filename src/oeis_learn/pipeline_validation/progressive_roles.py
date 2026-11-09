@@ -56,6 +56,7 @@ IMPLEMENTED = frozenset(
         "extract-components",
         "verify-components",
         "review-claim",
+        "assess",
     }
 )
 
@@ -116,6 +117,9 @@ def _invoke_reserved(
 
     c = validate_campaign(campaign)
     t = validate_task(task, campaign=c)
+    exposure_path = Path(root)/"run-state/discovery-control"/c["identity"].split(":")[1]/"assessment-exposure.json"
+    if operation != "assess" and exposure_path.exists():
+        raise ValueError("assessment exposed; adaptive operations forbidden")
     if (
         c["payload"]["runtime"] != runtime.identity
         or runtime.track != t["track"]
@@ -208,9 +212,12 @@ def _invoke_reserved(
     views = target / "private-input"
     authorized = [r["artifact"] for r in c["payload"]["references"] if r["role"] == spec.role]
     if derived is not None:
-        from .progressive_oeis import check_derived
+        if operation == "assess":
+            from oeis_learn.generalization.progressive.assessment import check_derived
+        else:
+            from .progressive_oeis import check_derived
 
-        authorized.extend(check_derived(derived, campaign=c, task=t, operation=operation))
+        authorized.extend(check_derived(derived, campaign=c, task=t, operation=operation, **({"root":root} if operation=="assess" else {})))
     with projection_guard.activate():
         channels = project(
             root,

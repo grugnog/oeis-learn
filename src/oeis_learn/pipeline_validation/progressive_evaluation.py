@@ -386,31 +386,63 @@ def generate_short(encoder, decoder, prompts, *, seed, seconds=4, max_tokens=64)
     """Visible-only four-input generation through the shared constrained sampler."""
     import torch
     from oeis_learn.generalization.progressive.short_profile import collate
-    from oeis_learn.decoder.bigint_generation import GenerationRequest,sample_batch
-    if type(seconds) not in (int,float) or not 0<seconds<=60 or type(max_tokens) is not int or not 1<=max_tokens<=1024:
-        raise ValueError('bounded short generation required')
-    if not 1<=len(prompts)<=8: raise ValueError('short prompt bucket 1..8 required')
-    rows=collate(prompts)
-    encoder.eval();decoder.eval()
+    from oeis_learn.decoder.bigint_generation import GenerationRequest, sample_batch
+
+    if (
+        type(seconds) not in (int, float)
+        or not 0 < seconds <= 60
+        or type(max_tokens) is not int
+        or not 1 <= max_tokens <= 1024
+    ):
+        raise ValueError("bounded short generation required")
+    if not 1 <= len(prompts) <= 8:
+        raise ValueError("short prompt bucket 1..8 required")
+    rows = collate(prompts)
+    encoder.eval()
+    decoder.eval()
     with torch.no_grad():
-        memory=encoder.forward_from_sequences([[int(v) for v in r] for r in rows['values']],device=next(encoder.parameters()).device)
-    if memory.shape[1]!=4: raise ValueError('short encoder input positions differ')
-    deadline=time.monotonic()+seconds
-    requests=[GenerationRequest(memory[i:i+1],seed+i,0.8,deadline,max_tokens) for i in range(len(prompts))]
-    return sample_batch(decoder,requests)
+        memory = encoder.forward_from_sequences(
+            [[int(v) for v in r] for r in rows["values"]], device=next(encoder.parameters()).device
+        )
+    if memory.shape[1] != 4:
+        raise ValueError("short encoder input positions differ")
+    deadline = time.monotonic() + seconds
+    requests = [
+        GenerationRequest(memory[i : i + 1], seed + i, 0.8, deadline, max_tokens)
+        for i in range(len(prompts))
+    ]
+    return sample_batch(decoder, requests)
 
 
 def score_short(source, truth, *, client):
     """Separate nine-term scorer; truth is never an input to generation."""
     from oeis_learn.generalization.progressive.short_profile import validate_terms
     from oeis_learn.synthesis.reference import evaluate
+
     validate_terms(truth)
-    if client is None: raise ValueError('native short score required')
-    deadline=time.monotonic()+4
-    reference_result=evaluate(source,truth['indices'],deadline=deadline)
-    native=client.execute(source,truth['indices'],deadline=deadline)
-    if native.get('outcome')=='ok' and reference_result.outcome=='ok' and native['values']!=list(reference_result.values):
-        raise ValueError('short scorer native/reference disagreement')
-    agreed=native.get('outcome')=='ok' and reference_result.outcome=='ok' and native['values']==truth['values']
-    return seal(dict(version='progressive-short-score/v1',source=digest(source),truth=digest(truth),
-        tested_indices=truth['indices'],agreement=agreed,primary_scaling_eligible=False))
+    if client is None:
+        raise ValueError("native short score required")
+    deadline = time.monotonic() + 4
+    reference_result = evaluate(source, truth["indices"], deadline=deadline)
+    native = client.execute(source, truth["indices"], deadline=deadline)
+    if (
+        native.get("outcome") == "ok"
+        and reference_result.outcome == "ok"
+        and native["values"] != list(reference_result.values)
+    ):
+        raise ValueError("short scorer native/reference disagreement")
+    agreed = (
+        native.get("outcome") == "ok"
+        and reference_result.outcome == "ok"
+        and native["values"] == truth["values"]
+    )
+    return seal(
+        dict(
+            version="progressive-short-score/v1",
+            source=digest(source),
+            truth=digest(truth),
+            tested_indices=truth["indices"],
+            agreement=agreed,
+            primary_scaling_eligible=False,
+        )
+    )

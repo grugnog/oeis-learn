@@ -81,3 +81,19 @@ def test_dossier_overlay_retains_original_claim(tmp_path):
     assert dossier == before
     with pytest.raises(ValueError):
         j.require_clean(["review"])
+
+
+def test_null_archive_and_library_sentinels_are_not_false_dependencies(tmp_path):
+    from tests.unit.test_progressive_recovery_transactions import setup
+    from tests.integration.test_progressive_recovery import states
+    from oeis_learn.generalization.progressive.recovery import Recovery
+    from oeis_learn.generalization.progressive.contracts import digest
+
+    t, budget, cuts = setup(tmp_path)
+    cuts = {k: digest(None) for k in cuts}
+    with Recovery(budget, t, digest("learning")) as recovery:
+        record = recovery.initialize(states(), cuts)
+        assert recovery.restore()["ledger"].consumed == 0
+        graph, affected, _, _ = Journal(tmp_path).read()
+        assert graph == [dict(id=record["identity"], kind="checkpoint", parents=[])]
+        assert affected == set()

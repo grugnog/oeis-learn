@@ -437,18 +437,23 @@ def _execute(
             reason="SEALED_VISIBLE_CANDIDATES",
             metrics={"candidates": artifact, "timing": reference(output, output / "timing.json")},
         )
-    if operation == "score":
+    if operation in {"score", "assess"}:
+        allowed = {"candidate", "assessment_truth", "locked_selection"} if operation == "assess" else {"candidate", "development_truth", "confirmation_truth"}
         if any(
-            v["kind"] not in {"candidate", "development_truth", "confirmation_truth"}
+            v["kind"] not in allowed
             for v in values
         ):
             raise ValueError("closed scorer inputs required")
         candidates = [v["data"] for v in values if v["kind"] == "candidate"]
         truth = [
-            v["data"] for v in values if v["kind"] in {"development_truth", "confirmation_truth"}
+            v["data"] for v in values if v["kind"] in ({"assessment_truth"} if operation == "assess" else {"development_truth", "confirmation_truth"})
         ]
         if len(candidates) != 1:
             raise ValueError("one frozen candidate collection required")
+        if operation == "assess":
+            selections = [v["data"] for v in values if v["kind"] == "locked_selection"]
+            if len(selections) != 1 or candidates[0].get("checkpoint") != selections[0]["checkpoint"]["sha256"] or selections[0]["task"] != load(authority)["task"]:
+                raise ValueError("locked final assessment checkpoint/task differs")
         from oeis_learn.pipeline_validation.identity import digest
         from oeis_learn.synthesis.client import SynthesisClient
 

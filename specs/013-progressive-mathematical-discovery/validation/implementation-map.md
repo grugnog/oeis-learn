@@ -1190,3 +1190,81 @@ four inputs, and checks correct/incorrect nine-term candidates. The pilot-cycle
 control executes through the same recoverable update with precharged generation;
 inadequate support and unsuitable-source branches fail explicitly. These are
 DIAGNOSTIC_ONLY software checks and establish no source utility or HIP readiness.
+
+### T079–T081 — bounded evidence, independent verification and assessment lock
+
+The public report schema and producer use closed table inventories and deterministic
+partitions under a 512 MiB uncompressed metadata cap. Weights, private continuations
+and raw corpora have no export type. Terminal fallbacks preserve original statuses,
+first producer failure and collector errors while remaining REPORT_INCOMPLETE when
+required tables are missing. Original qualification producer bytes, requested/
+executed cases, measurement flags and exact scope are replayed from the ZIP.
+
+The stdlib verifier independently reconstructs paired outcome cells, unresolved
+rows, family weights, 10,000 conditional bootstrap draws (including linked groups),
+completion, retention and capability/efficiency verdicts. It checks inventory,
+hashes, counts, ancestry cycles and cost decomposition/caps. Required public scope,
+roster digest, seeds, design and original producer identities are bound by a sealed
+public-scope artifact referenced from the frozen campaign. Resealing a report cannot
+weaken those obligations. A missing frozen authority or producer prevents VERIFIED;
+correct negative or incomplete scientific verdicts remain unchanged. The canonical
+report/verify-bundle commands work without model/native/Optuna dependencies.
+
+Final assessment requires the frozen panel, reserved task, compatible acceptance,
+current runtime and selected checkpoint/library bindings. Selection and conservative
+panel exposure are durable before dispatch. Separate assessment projections reject
+ordinary learner/proposer/review/scorer access. Exposure denies adaptive continuation
+and repeat assessment; final-source assessment uses the existing native/reference
+scorer under prepaid work. A real native contract test generates checkpoint-bound
+candidates, locks the selection, scores them through the installed assessment role
+and preserves original candidate bytes.
+
+Broad integration exposed two concrete regressions: shared null archive/library
+sentinels incorrectly became duplicate lineage parents, and new schema files lacked
+identifiers expected by the historical registry. Both were repaired with regression
+coverage. The corrected broad CPU/native roster passed 666 tests, zero skips;
+subsequent focused source/assessment/report/schema/historical checks passed 48 tests.
+Further focused tests cover frozen-scope weakening, terminal metadata preservation
+and dropping a selected component library. Final full-roster evidence follows below.
+
+### T082 — qualification software and external device block
+
+The serial scope matrix, acceptance blueprint and mandatory GPU test are present.
+Cases bind current source, original image, engine and actual hardware/runtime facts,
+selected model/dropout, four/20-input path and uneven/full microbatch path. The
+actual-device runner uses the shared logical update and tensor checkpoint store,
+checks parameter changes, full optimizer/scheduler/framework/device RNG restore,
+exact continued-update equality, real constrained generation, native scoring and
+owned tensor cleanup, and persists immutable reusable per-case producers. Missing
+resolved image/device/output inputs cannot produce a receipt. Matrix success cannot
+be inferred from skipped or empty case inventories.
+
+**External block**: executing mandatory device mode in this workspace fails with
+`actual HIP build/runtime required; CPU fallback forbidden`. No HIP receipt was
+created. T082 therefore remains unchecked pending execution on the selected HIP
+workstation/image; the exact request/output environment is documented in quickstart.
+CPU scope/deduplication and unavailable-device contracts pass, but do not qualify
+hardware. No new host dependency, driver change, Sage learner dependency, sustained
+run or research result is claimed. No extension hooks are registered.
+
+
+### T071–T082 final software validation
+
+The clean final registered acceptance run passed **670 tests, zero failures,
+zero errors and zero skips**, in 288.60 seconds. This includes actual native
+workers, installed-wheel/source inventory, original historical authority and
+implementation-identity checks, short-source updates/restore/generation/scoring,
+locked native assessment and independent bundle verification. Focused final
+checks also passed 44 cases after strengthening frozen report scope, measured
+per-arm efficiency costs, original task ceilings and selected-library binding.
+Offline report/verify imports were checked under Python `-S` without Torch,
+Optuna or jsonschema. Blocking E9/F63/F7/F82 lint and whitespace checks passed.
+The implementation identity was refreshed with the established serializer.
+
+Native software checks used the previously recovered CI worker/driver/bigint/
+solver binaries and LLVM 19 libraries; no native sources changed. This local run
+is not a Docker receipt, HIP qualification, sustained-duration evidence or a
+research finding. Mandatory actual-HIP execution was attempted and failed on the
+explicit missing-runtime gate; it produced no qualifying receipt. T071–T081 are
+complete; T082's code is committed but its required actual-device producers remain
+externally blocked. CI is not awaited after pushing.

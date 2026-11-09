@@ -67,6 +67,8 @@ class RunStore:
         return self.read()
 
     def next_task(self):
+        if (self.root / "assessment-exposure.json").exists():
+            raise ValueError("assessment exposed; adaptive continuation forbidden")
         nodes = {n["id"]: n for n in self.campaign["payload"]["graph"]["nodes"]}
         for plan in self.campaign["payload"]["tasks"]:
             status = self.state["tasks"].get(plan["id"])

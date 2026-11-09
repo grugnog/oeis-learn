@@ -200,3 +200,82 @@ work and wall time. Optional `Limits` may only tighten these caps. Installed rev
 pre-reserves five attempts/rejections and one native dispatch, charges each symbolic
 replay before work and retains spent charges on failure. The new dossier records the
 checker identity and exact proof scope, and validation replays the certificate.
+
+## Refutations, short sources, public reports and final assessment
+
+The campaign accounting root owns `quarantine/`. Register exact target/archive/
+library/update/checkpoint/dossier dependencies before consumption. Refutations
+append immutable overlays; checkpoint restore and component adoption reject
+marked descendants, including consumers registered later. `Journal.recovery`
+selects only a registered clean checkpoint and preserves the supplied spent-cost
+record; a missing clean ancestor is `CONTAMINATED`. Actual retraining still uses a
+separately reserved successor. Never erase exposure to recover eligibility.
+
+The external-source adapter supports complete permutation collections n=0..8,
+first/second moment totals and the separate `combinatorial-short/v1` profile.
+Source definitions stay in custodian preparation. The generator sees four terms;
+admission/scoring independently check nine. `short_update` uses the canonical
+recoverable learner transaction. The source-pilot blueprint stays non-executable
+until snapshot, permission, grouping, initializer, runtime and reservations are
+resolved. Related/duplicate statistics cannot cross roles; insufficient independent
+groups yield a deficit. See [source-suitability.md](validation/source-suitability.md).
+
+`discovery report --run DIR --output FILE.zip` packages explicit public tables from
+`public-report.json`. `progressive_evidence.public_report_input` seals this request.
+Required tables are roster, outcomes, accounting, ancestry and qualification
+producers; exact requirements belong to the frozen public scope. No recursive
+workspace export or weight/private-continuation/raw-corpus table is available.
+Without scientific tables, terminal export remains `REPORT_INCOMPLETE` and retains
+the original terminal statuses, first producer error and collector error references.
+
+Before freezing a campaign, publish a sealed `progressive-public-scope/v1` record
+with `source`, `scope`, `seeds`, `design`, `roster` (canonical public-roster digest)
+and `qualification_producers` (scope-to-original-producer identity). Include its
+artifact reference in the campaign with verifier role. The report request carries
+that original reference as `scope_record` and the complete sealed `campaign_record`.
+Verification checks their byte/hash closure and refuses a resealed narrower roster,
+seed set, decision design or required evidence scope. Missing frozen authority
+prevents `VERIFIED`. The ZIP is bounded to 512 MiB uncompressed metadata with
+canonical partitions; a required record that cannot fit is explicitly incomplete.
+
+`discovery verify-bundle --archive FILE.zip --output NEW_DIR` runs without Torch,
+Optuna, native workers or private truth. It independently reduces outcome cells,
+censoring, family weights, conditional paired-seed bootstrap bounds, decisions,
+ancestry and charged/useful/discarded accounting, and verifies exact qualification
+producer inventory/bytes. A verified negative scientific result remains negative.
+
+`discovery assess` requires a sealed `progressive-locked-selection/v1` containing
+campaign identity, reserved packaging task, final checkpoint reference, optional
+library reference, frozen assessment-panel channel references and sealed candidate
+channel reference. Candidate checkpoint/library bindings must match. Compatible
+feature acceptance and a currently inspected qualified runtime remain mandatory.
+The explicit command durably locks selection and marks panel exposure before
+assessment dispatch; interruption cannot make that panel untouched. Ordinary run,
+resume and adaptive installed operations reject an exposed campaign. Assessment
+truth has its own channel and cannot enter learner/proposer/review/scoring channels.
+
+## Actual HIP qualification handoff
+
+T082 software is installed, but actual qualification is pending in this workspace:
+mandatory device mode fails because no HIP build/runtime is available. CPU/native
+checks do not satisfy this gate. `configs/foundation/progressive/acceptance.json`
+is a non-executable blueprint; resolve selected profiles, source/image identities,
+engine, actual device facts and persistent output in the pinned image first.
+
+Inside the selected Docker/Podman HIP image, construct the request with
+`progressive_qualification.matrix(profiles, source=..., image=..., engine=...,
+hardware=hardware_facts())`. `source` is the canonical digest of the installed
+`source_snapshot()`, and `image` must match `OEIS_QUALIFICATION_IMAGE`. The matrix
+covers only exact selected profile/dropout/input-length/microbatch paths and runs
+serially; there is no wildcard qualification of changed settings or hardware.
+
+Set `OEIS_REQUIRE_PROGRESSIVE_HIP=1`, `OEIS_PROGRESSIVE_HIP_MATRIX` to the sealed
+request file, and `OEIS_PROGRESSIVE_HIP_OUTPUT` to persistent workspace output, then
+run `python -m pytest -q tests/integration/test_progressive_gpu.py` inside that image.
+The mandatory test rejects absent HIP, absent resolved scope/output, CPU fallback,
+nonfinite updates, unchanged parameters, failed full restore/deterministic
+continuation, missing generation/native scoring or unreclaimed owned tensors.
+Original per-case producers persist and can be reused only under identical current
+source/image/engine/hardware/model/input/update scope. A completed compatible matrix
+can be replayed without overwriting original receipts. No actual HIP receipt or
+sustained-duration claim has been produced here.

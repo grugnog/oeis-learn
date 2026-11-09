@@ -365,6 +365,7 @@ WORK_ROLES = frozenset(
         "extract-components",
         "verify-components",
         "review-claim",
+        "assess",
     }
 )
 
@@ -423,8 +424,8 @@ def role_work_requirements(operation, values):
             # Original validation, review revalidation, new check and publication
             # replay: each symbolic attempt has fixed node/coefficient/work caps.
             costs.update(attempts=5, rejections=5)
-    elif operation == "score":
-        n = sum(v["kind"] in {"development_truth", "confirmation_truth"} for v in values)
+    elif operation in {"score", "assess"}:
+        n = sum(v["kind"] in {"development_truth", "confirmation_truth", "assessment_truth"} for v in values)
         if not n:
             raise ValueError("nonempty bounded scoring roster required")
         costs.update(attempts=8 * n, rejections=8 * n, native_work=8 * n)

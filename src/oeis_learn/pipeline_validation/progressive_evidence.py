@@ -326,3 +326,50 @@ def generation_timing(value):
             "accounting": "phase clocks may overlap; do not add their totals to wall time",
         }
     )
+
+
+def public_report_input(
+    output,
+    *,
+    campaign,
+    source,
+    seeds,
+    design,
+    scope,
+    tables,
+    decisions=(),
+    producer_error=None,
+    collector_errors=(),
+    campaign_record=None,
+    scope_record=None,
+    terminal=None,
+):
+    """Seal an explicit public inventory; raw corpora and weights have no table type."""
+    from oeis_learn.generalization.progressive.report import _error
+
+    def project_error(e):
+        if e is None:
+            return None
+        public = {k: e[k] for k in ("type", "code", "producer", "local_traceback")}
+        _error(public)
+        return public
+
+    value = seal(
+        dict(
+            version="progressive-public-report-input/v1",
+            campaign_record=campaign_record,
+            scope_record=scope_record,
+            terminal=terminal,
+            campaign=campaign,
+            source=source,
+            seeds=list(seeds),
+            design=design,
+            scope=scope,
+            tables=tables,
+            decisions=list(decisions),
+            producer_error=project_error(producer_error),
+            collector_errors=[project_error(e) for e in collector_errors],
+        )
+    )
+    atomic_write(Path(output) / "public-report.json", value)
+    return value

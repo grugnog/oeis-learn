@@ -242,8 +242,38 @@ def main(args, root, host_factory):
             result, code = capability_report(args, root)
         elif args.operation in {"run", "resume", "pause"}:
             result, code = lifecycle_command(args, root, host_factory)
+        elif args.operation == "assess":
+            result, code = assess_command(args, root, host_factory)
         elif args.operation == "status":
             result, code = status(args, root)
+        elif args.operation == "report":
+            from oeis_learn.generalization.progressive.report import build
+
+            folder = confined(root, args.run)
+            from oeis_learn.generalization.progressive.report import terminal_request
+            request = load(folder / "public-report.json", maximum=32 << 20) if (folder / "public-report.json").is_file() else terminal_request(root,folder)
+            manifest = build(root, confined(root, args.output, exists=False), request)
+            complete = manifest['status']=='COMPLETE'
+            result=seal(dict(version='discovery-result/v1',operation='report',campaign=manifest['campaign'],
+                mechanical_status='COMPLETE' if complete else 'PARTIAL',scientific_status='UNMEASURED',
+                qualification_status='PENDING',claim_status='UNREVIEWED',next_action='STOP_AFFECTED',
+                reason=manifest['status'],evidence=args.output,missing_evidence=manifest['missing'],
+                producer_error=manifest['producer_error'],collector_errors=manifest['collector_errors'],
+                metrics=dict(report=manifest['identity'],counts=manifest['summary'])))
+            code=0 if complete else 2
+        elif args.operation == "verify-bundle":
+            from oeis_learn.generalization.progressive.verify import verify
+
+            output = _output(root, args.output)
+            result = verify(confined(root, args.archive))
+            atomic_write(output / "verification.json", result)
+            verified=result['status']=='VERIFIED'
+            original=result
+            result=publish(output,operation='verify-bundle',mechanical_status='COMPLETE' if verified else 'PARTIAL',
+                scientific_status=original['decision'],reason=original['status'],missing=original['missing'],
+                producer_error=original['producer_error'],collector_errors=original['collector_errors'],
+                metrics=dict(verification=original['identity'],recomputed=original['metrics']))
+            code=0 if verified else 2
         else:
             # Later task owners must replace these explicit blocked endpoints;
             # no engine is contacted or research launched by a placeholder.
@@ -486,6 +516,8 @@ def lifecycle_command(args, root, host_factory):
                 raise ValueError("closed installed task request required")
             from .progressive_roles import IMPLEMENTED, REGISTRY
 
+            if request["operation"] == "assess":
+                raise ValueError("assessment requires explicit locked assess command")
             if request["operation"] == "oeis-cycle":
                 result = oeis_cycle(
                     root,
@@ -643,11 +675,26 @@ def oeis_cycle(root, output, campaign, manager, request, journal, **kwargs):
 def prepare_source_pilot(sources, roles):
     """Outcome-blind custodian feasibility gate; never buys new source support."""
     from oeis_learn.generalization.progressive.sources import pilot_support
-    return pilot_support(sources,roles)
+
+    return pilot_support(sources, roles)
 
 
-def source_pilot_cycle(worker, prompts, truth, *, client, seed, base_targets, arm,
-                       feasibility, sources, roles, transaction, seconds=4, max_tokens=64):
+def source_pilot_cycle(
+    worker,
+    prompts,
+    truth,
+    *,
+    client,
+    seed,
+    base_targets,
+    arm,
+    feasibility,
+    sources,
+    roles,
+    transaction,
+    seconds=4,
+    max_tokens=64,
+):
     """Installed pilot adapter using shared sampler, admission, learner and scorer.
 
     Invoke only inside the frozen assisted task. The generator receives prompts
@@ -656,47 +703,188 @@ def source_pilot_cycle(worker, prompts, truth, *, client, seed, base_targets, ar
     """
     from oeis_learn.generalization.progressive.contracts import digest
     from oeis_learn.generalization.progressive.short_profile import admit
-    from oeis_learn.pipeline_validation.progressive_evaluation import generate_short,score_short
+    from oeis_learn.pipeline_validation.progressive_evaluation import generate_short, score_short
     from oeis_learn.pipeline_validation.progressive_training import short_update
     from oeis_learn.generalization.progressive.sources import pilot_support
-    if (feasibility!=pilot_support(sources,roles) or feasibility.get('status')!='ELIGIBLE'
-        or arm not in {'with_source','without_source'} or len(base_targets)!=16
-        or worker.recovery.task['track']!='external_assisted'):
-        raise ValueError('eligible frozen assisted pilot and matched support required')
-    if len(prompts)!=len(truth) or len(prompts)>8: raise ValueError('frozen short roster required')
-    permitted=[dict(indices=list(map(str,range(9))),values=s['values']) for s,r in zip(sources,roles) if r=='training']
+
+    if (
+        feasibility != pilot_support(sources, roles)
+        or feasibility.get("status") != "ELIGIBLE"
+        or arm not in {"with_source", "without_source"}
+        or len(base_targets) != 16
+        or worker.recovery.task["track"] != "external_assisted"
+    ):
+        raise ValueError("eligible frozen assisted pilot and matched support required")
+    if len(prompts) != len(truth) or len(prompts) > 8:
+        raise ValueError("frozen short roster required")
+    permitted = [
+        dict(indices=list(map(str, range(9))), values=s["values"])
+        for s, r in zip(sources, roles)
+        if r == "training"
+    ]
     from oeis_learn.generalization.progressive.short_profile import visible
-    if any(t not in permitted or p!=visible(t) for p,t in zip(prompts,truth)):
-        raise ValueError('pilot generation/admission restricted to frozen training sources')
+
+    if any(t not in permitted or p != visible(t) for p, t in zip(prompts, truth)):
+        raise ValueError("pilot generation/admission restricted to frozen training sources")
     from oeis_learn.generalization.progressive.budgets import KEYS
     import time
-    charge=dict.fromkeys(KEYS,0)
-    charge.update(tokens=len(prompts)*max_tokens,draws=len(prompts),attempts=2*len(prompts),
-                  rejections=len(prompts),native_work=2*len(prompts))
-    remaining=worker.recovery.journal.task_remaining(worker.recovery.task)
-    if any(charge[k]>remaining[k] for k in KEYS): raise TimeoutError('source pilot work exhausted')
-    event=worker.recovery.journal.reserve(worker.recovery.p['id'],'source-pilot',worker.recovery.sequence(),
-        charge,boot=transaction['boot'],monotonic_us=transaction['monotonic_us'])
-    worker.recovery.journal.commit(event['key'])
-    generated=generate_short(worker.runner.encoder,worker.runner.decoder,prompts,
-                             seed=seed,seconds=seconds,max_tokens=max_tokens)
-    accepted=[];scores=[]
-    for i,c in enumerate(generated):
-        if c['complete'] and c['source']:
-            target=admit(c['source'],truth[i],member=digest(prompts[i]),client=client,
-                         purpose=worker.recovery.task['purpose'])
-            scores.append(score_short(c['source'],truth[i],client=client))
-            if target: accepted.append(target)
-    if arm=='with_source' and not accepted:
-        return seal(dict(version='progressive-source-cycle/v1',status='YIELD_DEFICIT',
-            candidates=generated,scores=scores,accepted=0,primary_scaling_eligible=False))
-    targets=list(base_targets)
-    if arm=='with_source':
-        for count in range(1,17):
-            chosen=[accepted[i%len(accepted)] for i in range(count)]
-            targets=chosen+list(base_targets[count:])
-            if 4*sum(len(t['tokens']) for t in chosen)>=sum(len(t['tokens']) for t in targets): break
-    result,_=short_update(worker,targets,**transaction)
-    return seal(dict(version='progressive-source-cycle/v1',status='COMPLETE',
-        candidates=generated,scores=scores,accepted=len(accepted),update=result,
-        primary_scaling_eligible=False))
+
+    charge = dict.fromkeys(KEYS, 0)
+    charge.update(
+        tokens=len(prompts) * max_tokens,
+        draws=len(prompts),
+        attempts=2 * len(prompts),
+        rejections=len(prompts),
+        native_work=2 * len(prompts),
+    )
+    remaining = worker.recovery.journal.task_remaining(worker.recovery.task)
+    if any(charge[k] > remaining[k] for k in KEYS):
+        raise TimeoutError("source pilot work exhausted")
+    event = worker.recovery.journal.reserve(
+        worker.recovery.p["id"],
+        "source-pilot",
+        worker.recovery.sequence(),
+        charge,
+        boot=transaction["boot"],
+        monotonic_us=transaction["monotonic_us"],
+    )
+    worker.recovery.journal.commit(event["key"])
+    generated = generate_short(
+        worker.runner.encoder,
+        worker.runner.decoder,
+        prompts,
+        seed=seed,
+        seconds=seconds,
+        max_tokens=max_tokens,
+    )
+    accepted = []
+    scores = []
+    for i, c in enumerate(generated):
+        if c["complete"] and c["source"]:
+            target = admit(
+                c["source"],
+                truth[i],
+                member=digest(prompts[i]),
+                client=client,
+                purpose=worker.recovery.task["purpose"],
+            )
+            scores.append(score_short(c["source"], truth[i], client=client))
+            if target:
+                accepted.append(target)
+    if arm == "with_source" and not accepted:
+        return seal(
+            dict(
+                version="progressive-source-cycle/v1",
+                status="YIELD_DEFICIT",
+                candidates=generated,
+                scores=scores,
+                accepted=0,
+                primary_scaling_eligible=False,
+            )
+        )
+    targets = list(base_targets)
+    if arm == "with_source":
+        for count in range(1, 17):
+            chosen = [accepted[i % len(accepted)] for i in range(count)]
+            targets = chosen + list(base_targets[count:])
+            if 4 * sum(len(t["tokens"]) for t in chosen) >= sum(len(t["tokens"]) for t in targets):
+                break
+    result, _ = short_update(worker, targets, **transaction)
+    return seal(
+        dict(
+            version="progressive-source-cycle/v1",
+            status="COMPLETE",
+            candidates=generated,
+            scores=scores,
+            accepted=len(accepted),
+            update=result,
+            primary_scaling_eligible=False,
+        )
+    )
+
+
+def assess_command(args, root, host_factory):
+    from oeis_learn.generalization.progressive.assessment import validate_selection, expose
+    from oeis_learn.generalization.progressive.contracts import verify_refs, reference
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal, role_work_requirements
+    from oeis_learn.generalization.progressive.projections import describe
+    from .progressive_roles import invoke, current_runtime
+
+    campaign = load(confined(root, args.campaign))
+    selection = validate_selection(root, load(confined(root, args.selection)), campaign)
+    acceptance = load(confined(root, args.acceptance) / "acceptance.json")
+    if (
+        seal(acceptance) != acceptance
+        or acceptance.get("version") != "discovery-acceptance/v1"
+        or acceptance.get("scope") != "progressive-lifecycle"
+        or acceptance.get("campaign") != campaign["identity"]
+        or acceptance.get("runtime") != campaign["payload"]["runtime"]
+        or not acceptance.get("qualified")
+        or acceptance.get("status") != "COMPLETE"
+    ):
+        raise ValueError("compatible final assessment acceptance required")
+    runtime = load(confined(root, args.campaign).parent / "runtime.json")
+    verify_refs(root, runtime["payload"]["qualification"])
+    output = _output(root, args.output)
+    host = host_factory(args)
+    checked = current_runtime(
+        host,
+        root,
+        output,
+        runtime,
+        producer_root=confined(root, runtime["payload"]["qualification"][0]["path"]).parent,
+    )
+    expose(root, campaign, selection)
+    channel = seal(
+        dict(
+            version="discovery-channel/v1",
+            kind="locked_selection",
+            role="assessment",
+            data=selection,
+        )
+    )
+    atomic_write(output / "selection-channel.json", channel)
+    artifacts = dict(
+        candidates=[describe(root, selection["candidates"]["path"])],
+        assessment_truth=[describe(root, r["path"]) for r in selection["panel"]],
+        selection=[describe(root, reference(root, output / "selection-channel.json")["path"])],
+    )
+    values = [load(confined(root, a.ref["path"])) for items in artifacts.values() for a in items]
+    cost = role_work_requirements("assess", values)
+    task = selection["task"]
+    seconds = min(3600, task["payload"]["caps"]["elapsed_us"] / 1e6)
+    cost["elapsed_us"] = int(seconds * 1e6)
+    journal = BudgetJournal(
+        root / "run-state/discovery-accounting" / campaign["identity"].split(":")[1],
+        campaign["identity"],
+        campaign["payload"]["caps"],
+    )
+    derived = seal(
+        dict(
+            version="progressive-assessment-derived/v1",
+            selection=selection,
+            artifacts=[a.ref for items in artifacts.values() for a in items],
+        )
+    )
+    image = runtime["payload"]["scope"]["images"][0]
+    result = invoke(
+        host,
+        image,
+        root,
+        "assess",
+        artifacts,
+        output=str((output / "assessment").relative_to(root)),
+        campaign=campaign,
+        task=task,
+        journal=journal,
+        ordinal=0,
+        reservation=cost,
+        seconds=seconds,
+        runtime=checked,
+        derived=derived,
+    )
+    atomic_write(
+        output / "assessment-complete.json",
+        seal(dict(selection=selection["identity"], result=result)),
+    )
+    return result, 0 if result["mechanical_status"] == "COMPLETE" else 2

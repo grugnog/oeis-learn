@@ -1104,6 +1104,7 @@ def check_component_cut(context, cuts, package):
 def short_update(worker, targets, **transaction):
     """Four-input adapter over the canonical recoverable logical update."""
     from oeis_learn.generalization.progressive.short_profile import training_batch
-    sequences,tokens=training_batch(targets,device=worker.runner.device)
-    transaction['entries']=[t['identity'] for t in targets]
-    return worker.step(sequences,tokens,**transaction)
+
+    sequences, tokens = training_batch(targets, device=worker.runner.device)
+    transaction["entries"] = [t["identity"] for t in targets]
+    return worker.step(sequences, tokens, **transaction)

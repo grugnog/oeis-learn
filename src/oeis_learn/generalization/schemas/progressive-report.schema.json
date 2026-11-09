@@ -1,0 +1,668 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "progressive-report/v1"
+    },
+    "identity": {
+      "$ref": "progressive-common.schema.json#/$defs/hash"
+    },
+    "campaign": {
+      "$ref": "progressive-common.schema.json#/$defs/hash"
+    },
+    "source": {
+      "$ref": "progressive-common.schema.json#/$defs/hash"
+    },
+    "seeds": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 4294967295
+      },
+      "maxItems": 32,
+      "uniqueItems": true
+    },
+    "design": {
+      "type": "object",
+      "properties": {
+        "claim": {
+          "enum": [
+            "capability",
+            "efficiency"
+          ]
+        },
+        "bootstrap_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "comparisons": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "maxItems": 2,
+            "uniqueItems": true
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "costs": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "const": "total_active_us"
+                },
+                "scope": {
+                  "const": "preparation_search_training"
+                },
+                "amortization": {
+                  "const": "none"
+                }
+              },
+              "required": [
+                "metric",
+                "scope",
+                "amortization"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "claim",
+        "bootstrap_seed",
+        "comparisons",
+        "links",
+        "costs"
+      ],
+      "additionalProperties": false
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "roster",
+              "outcomes",
+              "accounting",
+              "ancestry",
+              "qualifications"
+            ]
+          },
+          "maxItems": 5,
+          "uniqueItems": true
+        },
+        "qualification_scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "maxItems": 4096,
+          "uniqueItems": true
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "progressive-common.schema.json#/$defs/hash"
+          },
+          "maxItems": 65536,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "required",
+        "qualification_scopes",
+        "tasks"
+      ],
+      "additionalProperties": false
+    },
+    "inventory": {
+      "type": "array",
+      "items": {
+        "$ref": "progressive-common.schema.json#/$defs/artifact"
+      },
+      "maxItems": 4096,
+      "uniqueItems": true
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "roster": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144
+        },
+        "outcomes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144
+        },
+        "accounting": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144
+        },
+        "ancestry": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144
+        },
+        "qualifications": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144
+        }
+      },
+      "required": [
+        "roster",
+        "outcomes",
+        "accounting",
+        "ancestry",
+        "qualifications"
+      ],
+      "additionalProperties": false
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "verdict": {
+            "enum": [
+              "INVALID",
+              "INCOMPLETE",
+              "REGRESSION",
+              "CONFIRMED_GAIN",
+              "CONFIRMED_EFFICIENCY",
+              "NO_MATERIAL_GAIN",
+              "INCONCLUSIVE"
+            ]
+          },
+          "action": {
+            "enum": [
+              "RETAIN_BASELINE",
+              "STOP_AFFECTED",
+              "DEFER_BRANCH",
+              "ADVANCE_REGISTERED"
+            ]
+          }
+        },
+        "required": [
+          "verdict",
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 4096,
+      "uniqueItems": true
+    },
+    "producer_error": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "code": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "producer": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "local_traceback": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "progressive-common.schema.json#/$defs/artifact"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "code",
+            "producer",
+            "local_traceback"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "collector_errors": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "null"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "maxLength": 4096
+              },
+              "code": {
+                "type": "string",
+                "maxLength": 4096
+              },
+              "producer": {
+                "type": "string",
+                "maxLength": 4096
+              },
+              "local_traceback": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "progressive-common.schema.json#/$defs/artifact"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "code",
+              "producer",
+              "local_traceback"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "maxItems": 256,
+      "uniqueItems": true
+    },
+    "missing": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 4096
+      },
+      "maxItems": 256,
+      "uniqueItems": true
+    },
+    "status": {
+      "enum": [
+        "COMPLETE",
+        "REPORT_INCOMPLETE"
+      ]
+    },
+    "campaign_record": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "const": "discovery-campaign/v1"
+            },
+            "identity": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time",
+              "maxLength": 64
+            },
+            "parents": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "minItems": 0,
+              "maxItems": 64,
+              "uniqueItems": true
+            },
+            "purpose": {
+              "enum": [
+                "acceptance",
+                "research"
+              ]
+            },
+            "track": {
+              "enum": [
+                "synthetic_strict",
+                "oeis_derived",
+                "external_assisted"
+              ]
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "blueprint": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "runtime": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "graph": {
+                  "$ref": "progressive-common.schema.json#/$defs/graph"
+                },
+                "tasks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$"
+                      },
+                      "stage": {
+                        "enum": [
+                          "capability",
+                          "diversity",
+                          "tuning",
+                          "scaling",
+                          "oeis",
+                          "components",
+                          "source_pilot"
+                        ]
+                      },
+                      "kind": {
+                        "enum": [
+                          "training",
+                          "preparation",
+                          "evaluation",
+                          "qualification",
+                          "packaging"
+                        ]
+                      },
+                      "arm": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024
+                      },
+                      "seed": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9223372036854775807
+                      },
+                      "initializer": {
+                        "$ref": "progressive-common.schema.json#/$defs/initializer"
+                      },
+                      "token_target": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9223372036854775807
+                      },
+                      "caps": {
+                        "$ref": "progressive-common.schema.json#/$defs/caps"
+                      },
+                      "startup_us": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9223372036854775807
+                      },
+                      "finalization_us": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9223372036854775807
+                      },
+                      "policy": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "slot": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$"
+                      },
+                      "output": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024,
+                        "pattern": "^(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "stage",
+                      "kind",
+                      "arm",
+                      "seed",
+                      "initializer",
+                      "token_target",
+                      "caps",
+                      "startup_us",
+                      "finalization_us",
+                      "policy",
+                      "slot",
+                      "output"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "minItems": 1,
+                  "maxItems": 256
+                },
+                "references": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "progressive-common.schema.json#/$defs/reference"
+                  },
+                  "minItems": 1,
+                  "maxItems": 4096
+                },
+                "caps": {
+                  "$ref": "progressive-common.schema.json#/$defs/caps"
+                },
+                "storage": {
+                  "type": "object",
+                  "properties": {
+                    "checkpoint_bytes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9223372036854775807
+                    },
+                    "atomic_generations": {
+                      "const": 2
+                    },
+                    "milestone_pins": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9223372036854775807
+                    },
+                    "shard_bytes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9223372036854775807
+                    },
+                    "package_bytes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9223372036854775807
+                    },
+                    "required_bytes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9223372036854775807
+                    },
+                    "available_bytes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9223372036854775807
+                    },
+                    "required_inodes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9223372036854775807
+                    },
+                    "available_inodes": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9223372036854775807
+                    },
+                    "task_store_bytes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9223372036854775807
+                    },
+                    "projection_bytes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9223372036854775807
+                    },
+                    "journal_bytes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9223372036854775807
+                    },
+                    "checkpoint_inodes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9223372036854775807
+                    }
+                  },
+                  "required": [
+                    "checkpoint_bytes",
+                    "atomic_generations",
+                    "milestone_pins",
+                    "shard_bytes",
+                    "package_bytes",
+                    "required_bytes",
+                    "available_bytes",
+                    "required_inodes",
+                    "available_inodes"
+                  ],
+                  "additionalProperties": false
+                },
+                "target_policy": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "blueprint",
+                "runtime",
+                "graph",
+                "tasks",
+                "references",
+                "caps",
+                "storage",
+                "target_policy"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "version",
+            "identity",
+            "created_at",
+            "parents",
+            "purpose",
+            "track",
+            "payload"
+          ],
+          "additionalProperties": false,
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "progressive-campaign.schema.json"
+        }
+      ]
+    },
+    "scope_record": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "progressive-common.schema.json#/$defs/artifact"
+        }
+      ]
+    },
+    "terminal": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "$ref": "progressive-common.schema.json#/$defs/hash"
+            },
+            "mechanical_status": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "scientific_status": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "qualification_status": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "claim_status": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "identity",
+            "mechanical_status",
+            "scientific_status",
+            "qualification_status",
+            "claim_status"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "campaign",
+    "source",
+    "seeds",
+    "design",
+    "scope",
+    "inventory",
+    "summary",
+    "decisions",
+    "producer_error",
+    "collector_errors",
+    "missing",
+    "status",
+    "campaign_record",
+    "scope_record",
+    "terminal"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-report.schema.json"
+}

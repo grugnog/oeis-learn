@@ -283,6 +283,7 @@ def prepare_combinatorial(root, output, statistics, **limits):
     from oeis_learn.generalization.progressive.combinatorial import prepare
     from oeis_learn.generalization.progressive.contracts import atomic_write
     from oeis_learn.pipeline_validation.identity import confined
-    value=prepare(statistics,**limits)
-    atomic_write(confined(root,output,exists=False),value)
+
+    value = prepare(statistics, **limits)
+    atomic_write(confined(root, output, exists=False), value)
     return value

@@ -197,14 +197,14 @@ class Journal:
             ("library", "library"),
         ]:
             identity = cuts.get(key)
-            if identity is not None:
+            if identity is not None and identity != digest(None):
                 if identity not in known:
                     nodes.append(dict(id=identity, kind=kind, parents=[]))
                     known.add(identity)
                 parents.append(identity)
-        if cuts.get("consumed") is not None:
+        if cuts.get("consumed") is not None and cuts["consumed"] != digest(None):
             update = digest(["consumed_update", cuts["consumed"], sorted(parents)])
-            nodes.append(dict(id=update, kind="consumed_update", parents=sorted(parents)))
+            nodes.append(dict(id=update, kind="consumed_update", parents=sorted(set(parents))))
             parents = [update]
         if previous is not None:
             parents.append(previous["identity"])
