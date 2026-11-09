@@ -247,6 +247,7 @@ def container_stage(host, image, output, argv, *, gpu=False, seconds=3600):
             "OEIS_REQUIRE_BIGINT_BUILD": "1",
             "OEIS_REQUIRE_NATIVE": "1",
             "OEIS_QUALIFICATION_IMAGE": image,
+            "OEIS_QUALIFICATION_ENGINE": host.engine.name,
         },
     )
     try:

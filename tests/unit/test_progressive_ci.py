@@ -79,3 +79,22 @@ def test_runner_requires_real_native_mode_before_execution(tmp_path, monkeypatch
     result = json.loads((tmp_path / "progressive-foundation.json").read_text())
     assert result["status"] == "FAIL" and result["qualified"] is False
     assert "mandatory native image mode" in result["error"]["message"]
+
+
+def test_passing_test_roster_without_retained_integrated_package_fails_ci(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("OEIS_REQUIRE_NATIVE", "1")
+    monkeypatch.setenv("OEIS_REQUIRE_BIGINT_BUILD", "1")
+
+    def run(argv, **kwargs):
+        assert kwargs["env"]["OEIS_PROGRESSIVE_ACCEPTANCE_EXPORT"] == str(tmp_path / "progressive-acceptance.zip")
+        junit(tmp_path / "progressive-foundation.xml")
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(gate.subprocess, "run", run)
+    assert gate.run(tmp_path) == 1
+    result = json.loads((tmp_path / "progressive-foundation.json").read_text())
+    assert result["status"] == "FAIL" and result["counts"]["tests"] > 0
+    assert result["error"]["type"] in {"ValueError", "FileNotFoundError"}

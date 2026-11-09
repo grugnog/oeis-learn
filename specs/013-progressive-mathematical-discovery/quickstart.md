@@ -265,7 +265,9 @@ engine, actual device facts and persistent output in the pinned image first.
 Inside the selected Docker/Podman HIP image, construct the request with
 `progressive_qualification.matrix(profiles, source=..., image=..., engine=...,
 hardware=hardware_facts())`. `source` is the canonical digest of the installed
-`source_snapshot()`, and `image` must match `OEIS_QUALIFICATION_IMAGE`. The matrix
+`source_snapshot()`, and `image` must match `OEIS_QUALIFICATION_IMAGE`. Set
+`OEIS_QUALIFICATION_ENGINE` to the inspected engine (`docker` or `podman`), matching
+the request; the portable container-stage launcher supplies both identities. The matrix
 covers only exact selected profile/dropout/input-length/microbatch paths and runs
 serially; there is no wildcard qualification of changed settings or hardware.
 
@@ -279,3 +281,24 @@ Original per-case producers persist and can be reused only under identical curre
 source/image/engine/hardware/model/input/update scope. A completed compatible matrix
 can be replayed without overwriting original receipts. No actual HIP receipt or
 sustained-duration claim has been produced here.
+
+
+## Installed integrated diagnostic acceptance (T083)
+
+The mandatory CPU/native CI inventory includes
+`tests/integration/test_progressive_acceptance.py`. It builds one wheel, verifies
+the installed source closure and executes 22 fixed production-path scenarios,
+including positive and negative diagnostic branches, without depending on research
+yield. CI retains `progressive-acceptance.zip` beside the foundation receipt. Its
+sealed public records distinguish software COMPLETE from `qualified=false`,
+scientific UNMEASURED and hardware/sustained PENDING. Private logs, truth and model
+state are excluded. The `discovery acceptance` command warning above still applies.
+
+The selected HIP matrix test also verifies reuse of its original producer bytes
+without repeating the device matrix. `progressive_acceptance.hardware_plan` exposes
+exact reused and missing capability cases; `run_hardware_delta` executes only the
+missing cases serially in a fresh owned directory, with an explicit allowance of
+at most 900 seconds. Current source/image/engine/HIP facts must match. Reusing Q
+capabilities does not cover the campaign-dependent lifecycle/target-consumption
+cases or sustained observations required by T090/T091. No current HIP result is
+claimed by these CPU/native diagnostic results.

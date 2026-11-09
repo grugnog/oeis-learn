@@ -35,3 +35,12 @@ def test_serial_selected_actual_hip_matrix(tmp_path):
         )
     assert result["status"] == "PASS" and result["requested"] == result["executed"]
     assert result["device"] == "actual_HIP"
+    from oeis_learn.generalization.progressive.contracts import reference
+    from oeis_learn.pipeline_validation.progressive_acceptance import run_hardware_delta
+
+    root = Path(output) if output else tmp_path / "qualification"
+    producers = [reference(root, c["identity"].split(":")[1] + "/producer.json") for c in request["cases"]]
+    reused = run_hardware_delta(root, request, producers, tmp_path / "acceptance-reuse", seconds=60)
+    assert reused["status"] == "PASS" and not reused["executed"] and not reused["omitted"]
+    assert len(reused["reused"]) == len(producers)
+    assert not reused["qualified"] and reused["campaign_device_status"] == "PENDING"

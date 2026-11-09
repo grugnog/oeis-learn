@@ -62,7 +62,7 @@ def reconcile_suite(path):
         seen.add(node)
         try:
             seconds = float(entry.get("time", ""))
-            if not math.isfinite(seconds) or seconds < 0:
+            if not math.isfinite(seconds) or not 0 <= seconds <= inventory()["integrated"]["timeout_seconds"]:
                 raise ValueError("invalid duration")
         except ValueError:
             invalid.append(node)
@@ -72,8 +72,9 @@ def reconcile_suite(path):
                           outcomes=outcomes, elapsed_us=int(seconds * 1e6)))
     missing = sorted(set(registered) - seen)
     # Collection errors are sometimes emitted outside a testcase.
-    if len(list(tree.iter("error"))) > sum(c["outcomes"].count("error") for c in cases):
-        invalid.append("collection-error")
+    for outcome in ("error", "failure", "skipped"):
+        if len(list(tree.iter(outcome))) > sum(c["outcomes"].count(outcome) for c in cases):
+            invalid.append("unattributed-" + outcome)
     return seal(dict(version="progressive-integrated-cases/v1",
                      status="PASS" if not missing and not invalid and all(c["status"] == "PASS" for c in cases) else "FAIL",
                      stages=sorted(set(registered.values())), cases=cases, missing=missing, invalid=invalid))
@@ -111,8 +112,8 @@ def run_suite(source_root, output):
     Independent mechanical fixtures force useful positive and negative paths even
     when a real campaign cannot freeze. This never issues a research launch receipt.
     """
-    import json
     import zipfile
+    import xml.etree.ElementTree as ET
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from oeis_learn.pipeline_validation.identity import file_hash
 
@@ -165,7 +166,7 @@ def run_suite(source_root, output):
             raise ValueError("installed case roster failed")
         if digest(collect_snapshot(root)) != source:
             raise ValueError("source changed during acceptance")
-    except (OSError, ValueError, TimeoutError) as error:
+    except (OSError, ValueError, TimeoutError, ET.ParseError) as error:
         # Public metadata excludes tracebacks, tensor data and truth-bearing logs.
         first_error = type(error).__name__
     if cases is None:
@@ -188,12 +189,30 @@ def run_suite(source_root, output):
     return result
 
 
+def retain_suite(output, destination):
+    """Retain the bounded public ZIP before successful pytest temp cleanup."""
+    import zipfile
+
+    source = Path(output) / "diagnostics.zip"
+    cap = inventory()["integrated"]["maximum_export_bytes"]
+    if source.is_symlink() or source.stat().st_size > cap:
+        raise ValueError("bounded diagnostic archive required")
+    with zipfile.ZipFile(source) as archive:
+        names = archive.namelist()
+        if (len(names) != 2 or set(names) != {"acceptance.json", "cases.json"}
+                or sum(info.file_size for info in archive.infolist()) > cap):
+            raise ValueError("public acceptance members only")
+    with Path(destination).open("xb") as stream:
+        stream.write(source.read_bytes())
+
+
 HARDWARE_CHECKS = ("finite_update", "parameter_change", "full_restore", "deterministic_continuation",
                    "generation", "native_reference_score", "cleanup")
 
 
 def hardware_plan(root, request, producers):
     """Only original exact Q capabilities can be reused, never campaign authority."""
+    import json
     from oeis_learn.generalization.progressive.contracts import verify_refs
     from oeis_learn.pipeline_validation.identity import validate
     from .progressive_qualification import matrix
@@ -207,10 +226,18 @@ def hardware_plan(root, request, producers):
         microbatches=tuple(sorted({c["microbatch"] for c in request["cases"]})))
     if request != expected or len(producers) > 48:
         raise ValueError("exact bounded current matrix required")
-    verify_refs(root, producers, max_bytes=4 << 20)
+    payloads = verify_refs(root, producers, max_bytes=4 << 20)
     by_scope = {}
-    for ref in producers:
-        producer = load(Path(root) / ref["path"])
+
+    def unique_keys(items):
+        value = dict(items)
+        if len(value) != len(items):
+            raise ValueError("duplicate original producer key")
+        return value
+
+    for ref, payload in zip(producers, payloads):
+        # Parse the verified original bytes, never a second mutable file read.
+        producer = json.loads(payload, object_pairs_hook=unique_keys)
         validate(producer, ("version", "source", "scope", "device", "status", "requested", "executed", "measurements"),
                  "progressive-hip-case/v1")
         if (producer["device"] != "actual_HIP" or producer["status"] != "PASS"
@@ -247,8 +274,9 @@ def _current_hardware(request):
 
     require_hip()
     if (request["source"] != digest(source_snapshot()) or request["hardware"] != hardware_facts()
-            or request["image"] != os.environ.get("OEIS_QUALIFICATION_IMAGE")):
-        raise ValueError("current source/image/HIP runtime differs from requested acceptance")
+            or request["image"] != os.environ.get("OEIS_QUALIFICATION_IMAGE")
+            or request["engine"] != os.environ.get("OEIS_QUALIFICATION_ENGINE")):
+        raise ValueError("current source/image/engine/HIP runtime differs from requested acceptance")
 
 
 def run_hardware_delta(root, request, producers, output, *, seconds=900):
@@ -297,7 +325,8 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
             )
             status = _bounded_process(
                 [sys.executable, "-c", code, str(output / "request.json"), case["identity"], str(target)],
-                cwd=output, env=dict(os.environ), log=target / "process.log", seconds=remaining, maximum=4 << 20)
+                cwd=output, env=dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[2])),
+                log=target / "process.log", seconds=remaining, maximum=4 << 20)
             if status:
                 raise ValueError("hardware delta subprocess failed")
             producer = reference(output, target / "producer.json")

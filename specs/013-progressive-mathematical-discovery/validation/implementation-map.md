@@ -1,6 +1,6 @@
 # Spec 013 implementation map
 
-Scope: T001–T059 software/specification tasks, with T018 acceptance pending. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
+Current scope: T001–T081, T083 and T112–T125 software are implemented; T018 and T118–T119 have successful mandatory Docker/native CI evidence. T082 has software but remains blocked on actual HIP. The latest T083 work and validation are recorded below. Earlier entries retain their historical validation scope. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
 quickstart.md, hardware-validation.md, planning-review.md, all five contracts,
 the requirements checklist and adopted constitution in full before implementation.
 Requirements checklist: 16 checked, zero unchecked. No extension hooks registered.
@@ -1414,3 +1414,57 @@ It closes T018's original CPU/native CI requirement and the outstanding final
 acceptance for T118–T119. The independent foundation-review workflow also passed.
 The producer explicitly has `qualified=false`: CPU/native acceptance does not
 provide actual-HIP authority, sustained-duration evidence or scientific gains.
+
+
+### T083 — installed integrated acceptance and original hardware evidence
+
+The installed policy now fixes 22 cases covering capability, static/refreshed
+diversity, proposal/confirmation and interrupted trials, two-task recovery and
+scaling decisions, actual OEIS admission/replay/control updates, native-verified
+mined-component consumption, four-term updates/restoration/generation/nine-index
+scoring, public evidence and truth projection. Independent mechanical fixtures
+exercise positive, negative and low-yield paths without requiring research success.
+The component learner now consumes a target verified by the actual native worker.
+
+`progressive_acceptance.run_suite` builds and probes a wheel outside the source
+tree, checks its full source closure, runs the fixed roster against that installed
+package, and reconciles every individual JUnit result. Missing, extra, duplicate,
+skipped or failed cases cannot pass. The subprocess has a 900-second suite
+allowance plus a separate 120-second build allowance; logs and the diagnostic ZIP
+are bounded. The public ZIP contains only the sealed acceptance and case records;
+raw truth, weights, checkpoints and private failure logs remain local. Success is
+DIAGNOSTIC_ONLY, `qualified=false`, with scientific status UNMEASURED and hardware
+and sustained evidence PENDING.
+
+`hardware_plan` verifies original artifact bytes and exact source/image/engine/
+hardware/profile/dropout/input/microbatch/update scope. It requires every named
+check and successful original measurements, rejects duplicate or invalid
+producers, and counts reused original execution once. `run_hardware_delta`
+revalidates the current source/image/HIP runtime, copies reused producers without
+resealing them, and executes only missing capability cases serially within one
+finite allowance. Failures retain omissions and cannot become PASS. An empty Q
+capability delta is not complete campaign acceptance: integrated campaign-device
+and sustained evidence remain explicitly pending.
+
+The new module is in the mandatory CPU/native CI inventory. The portable
+`discovery acceptance` command remains unavailable pending the later command/
+workstation handoff; these diagnostic helpers do not bypass that gate or issue a
+`discovery-acceptance/v1` research-launch receipt. T082/T090 actual HIP execution
+remains externally blocked in this workspace. No GPU, container-containment,
+sustained-duration or scientific result is inferred from local CPU subprocesses.
+
+Validation: the initial missing-API test failed before implementation. The full
+installed rehearsal at `240bd90` passed **22 cases in 597.63 seconds**, and its
+owning integration module passed **24 tests in 605.34 seconds**. After CI archive
+retention and failure-boundary hardening, **71 focused tests passed in 4.45 seconds**
+(integrated boundaries, assets/packaging, qualification/CI contracts, shared
+container-stage regressions and affected historical implementation bindings).
+That final focused run deliberately excludes the ten-minute nested rehearsal;
+full current-source verification is delegated to CI without waiting after push.
+
+CI now requires and uploads `progressive-acceptance.zip` outside pytest's temporary
+cleanup, so a passing roster with an absent integrated package fails the gate.
+The HIP matrix test exercises exact original-byte reuse without a second device
+batch; this marked test remains unexecuted locally because HIP is unavailable.
+The shared launcher supplies the inspected engine identity for current-scope
+validation, and Podman remains supported locally without adding duplicate CI jobs.

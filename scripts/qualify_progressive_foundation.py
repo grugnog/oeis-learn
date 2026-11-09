@@ -105,11 +105,13 @@ def run(output):
                 *TESTS,
             ],
             timeout=1800,
+            env=dict(os.environ, OEIS_PROGRESSIVE_ACCEPTANCE_EXPORT=str(output / "progressive-acceptance.zip")),
         ).returncode
         if code:
             raise ValueError("mandatory foundation pytest exit " + str(code))
         report["counts"] = reconcile(xml)
         report["junit"] = reference(output, xml)
+        report["integrated"] = reference(output, "progressive-acceptance.zip")
         report["status"] = "PASS"
     except (OSError, ValueError, ET.ParseError, subprocess.TimeoutExpired) as exc:
         report["error"] = dict(type=type(exc).__name__, message=str(exc))

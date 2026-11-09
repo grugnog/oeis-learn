@@ -56,8 +56,11 @@ def test_actual_installed_all_stage_suite_and_bounded_export(tmp_path, fitting_c
     from pathlib import Path
     import zipfile
     import json
+    import os
 
     result = acceptance.run_suite(Path(__file__).resolve().parents[2], tmp_path / "suite")
+    if destination := os.environ.get("OEIS_PROGRESSIVE_ACCEPTANCE_EXPORT"):
+        acceptance.retain_suite(tmp_path / "suite", destination)
     assert result["status"] == "COMPLETE", result
     assert not result["qualified"]
     assert result["hardware_status"] == "PENDING"
@@ -117,7 +120,7 @@ def test_hardware_reuse_requires_exact_current_scope(tmp_path, field):
     assert plan["original_execution_us"] == 0
 
 
-@pytest.mark.parametrize("change", ["missing", "tampered", "cpu", "omitted", "measurement", "duplicate"])
+@pytest.mark.parametrize("change", ["missing", "tampered", "cpu", "omitted", "measurement", "duplicate", "duplicate_keys"])
 def test_missing_or_invalid_hardware_producers_never_supply_reuse(tmp_path, change):
     request, producer, ref = hardware_fixture(tmp_path)
     if change == "missing":
@@ -125,6 +128,10 @@ def test_missing_or_invalid_hardware_producers_never_supply_reuse(tmp_path, chan
     elif change == "tampered":
         (tmp_path / "original.json").unlink()
         atomic_write(tmp_path / "original.json", dict(producer, status="FAIL"))
+    elif change == "duplicate_keys":
+        path = tmp_path / "original.json"
+        path.write_text(path.read_text().replace('"status": "PASS"', '"status": "FAIL", "status": "PASS"'))
+        ref = reference(tmp_path, "original.json")
     elif change != "duplicate":
         if change == "cpu":
             producer["device"] = "cpu"
@@ -186,3 +193,60 @@ def test_installed_failure_still_exports_bounded_public_diagnostics(tmp_path, mo
     assert result["first_error"] == "ValueError" and result["installed"] is None
     with zipfile.ZipFile(tmp_path / "failed/diagnostics.zip") as archive:
         assert set(archive.namelist()) == {"acceptance.json", "cases.json"}
+    retained = tmp_path / "retained.zip"
+    acceptance.retain_suite(tmp_path / "failed", retained)
+    assert retained.read_bytes() == (tmp_path / "failed/diagnostics.zip").read_bytes()
+    with pytest.raises(FileExistsError):
+        acceptance.retain_suite(tmp_path / "failed", retained)
+    with zipfile.ZipFile(tmp_path / "failed/diagnostics.zip", "a") as archive:
+        archive.writestr("private-truth.json", "not a public projection")
+    with pytest.raises(ValueError, match="public acceptance"):
+        acceptance.retain_suite(tmp_path / "failed", tmp_path / "forbidden.zip")
+
+
+@pytest.mark.parametrize("duration", ["-1", "nan", "inf", "1e308", "invalid"])
+def test_invalid_case_duration_never_becomes_acceptance(tmp_path, duration):
+    report = tmp_path / "junit.xml"
+    junit(report, acceptance.suite_nodes())
+    tree = ET.parse(report)
+    tree.getroot()[0][0].set("time", duration)
+    tree.write(report)
+    assert acceptance.reconcile_suite(report)["status"] == "FAIL"
+
+
+def test_unattributed_collection_failure_never_becomes_acceptance(tmp_path):
+    report = tmp_path / "junit.xml"
+    junit(report, acceptance.suite_nodes())
+    tree = ET.parse(report)
+    ET.SubElement(tree.getroot()[0], "error")
+    tree.write(report)
+    assert acceptance.reconcile_suite(report)["status"] == "FAIL"
+
+
+def test_real_acceptance_subprocess_timeout_is_bounded(tmp_path):
+    import os
+    import sys
+    import time
+
+    began = time.monotonic()
+    with pytest.raises(TimeoutError, match="deadline"):
+        acceptance._bounded_process([sys.executable, "-c", "import time; time.sleep(60)"],
+            cwd=tmp_path, env=dict(os.environ), log=tmp_path / "timeout.log", seconds=0.1, maximum=1024)
+    assert time.monotonic() - began < 5
+
+
+def test_current_engine_must_match_even_when_capability_bytes_match(tmp_path, monkeypatch):
+    from oeis_learn.pipeline_validation import progressive_qualification as qualification
+    from oeis_learn.experiments import source_snapshot
+
+    request, _, _ = hardware_fixture(tmp_path)
+    request = seal(dict(request, source=digest({"current": "source"})))
+    monkeypatch.setattr(qualification, "require_hip", lambda: None)
+    monkeypatch.setattr(qualification, "hardware_facts", lambda: request["hardware"])
+    monkeypatch.setattr(source_snapshot, "source_snapshot", lambda: {"current": "source"})
+    monkeypatch.setenv("OEIS_QUALIFICATION_IMAGE", request["image"])
+    monkeypatch.setenv("OEIS_QUALIFICATION_ENGINE", "podman")
+    with pytest.raises(ValueError, match="engine"):
+        acceptance._current_hardware(request)
+    monkeypatch.setenv("OEIS_QUALIFICATION_ENGINE", "docker")
+    acceptance._current_hardware(request)
