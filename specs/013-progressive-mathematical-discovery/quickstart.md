@@ -1,6 +1,6 @@
 # Validation and workstation handoff
 
-**Software handoff implemented; physical validation pending.** The twelve discovery command routes and every registered installed role now have concrete handlers. Qualification and feature acceptance require immutable plans and matching original producers; missing inputs return explicit deficits. Full current-source Docker CI and actual HIP/sustained results remain pending. No research or device PASS is inferred from CPU checks.
+**Software handoff implemented; physical validation pending.** The twelve discovery command routes and every registered installed role now have concrete handlers. Qualification and feature acceptance require immutable plans and matching original producers; missing inputs return explicit deficits. Current-source Docker/native CI passed on `e6362ff` (799 mandatory cases, zero failures/errors/skips). Actual HIP/sustained results remain pending. No research or device PASS is inferred from CPU checks.
 
 Implementation order and optional branches are in [tasks.md](tasks.md). Follow [hardware-validation.md](hardware-validation.md) to batch actual-HIP validation after CPU/native checks: one consolidated qualification matrix, then reuse exact compatible producers and execute only missing post-freeze device cases. This reduces repeated qualification, not scientific training seeds. Changed source closure or an uncovered execution scope still requires matching validation.
 
@@ -346,7 +346,7 @@ most 48 exact shape/dropout/input-length/microbatch cases); no fabricated
 workstation/image/profile selection substitutes for original facts. Hardware and
 sustained observations stay BLOCKED/PENDING until their original producers exist.
 Unchecked optional research tasks mean unselected/not-triggered/deferred work, not
-missing mandatory software. T085–T086 remain unchecked pending full current-source container verification.
+missing mandatory software. T085–T086 are complete with current-source Docker/native CI evidence.
 T087 documentation is complete; the former missing command/role handlers are implemented.
 
 

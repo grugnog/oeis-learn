@@ -48,6 +48,32 @@
       42669063210
     ]
   },
+  "ci_verified": {
+    "artifact": 13702828874,
+    "artifact_sha256": "sha256:be089492af9bbd879616580e3abd47e09da08eaa7735cd2368583fe1d4f4a49f",
+    "commit": "e6362ff4b93ad20f3a96909d9bdd6f2ec2c8934f",
+    "container_run": 42679232463,
+    "counts": {
+      "error": 0,
+      "failure": 0,
+      "skipped": 0,
+      "tests": 799
+    },
+    "elapsed_seconds": 882.705,
+    "engine_scope": "Docker CPU/native; duplicate Podman CI disabled by user",
+    "foundation_receipt": "sha256:62354dafde960b8e15e5806b64fb212833ba3817fa4a4349d896ad4ceacbe271",
+    "integrated_archive_sha256": "sha256:a38bebfa807f7e33953848fbed541dff13682bccfe79136f1fc9bb5794bd57da",
+    "integrated_cases": 22,
+    "integrated_elapsed_us": 264649956,
+    "integrated_receipt": "sha256:63577374151ccbd2f1219985077c435057ebc2a8a2c5666fd86fd7d8552ecbdc",
+    "junit": {
+      "bytes": 119509,
+      "path": "progressive-foundation.xml",
+      "sha256": "sha256:f867bfa713523c78e4e9f573922c7a0291b5d68f97ee025a5c0b749dd0a273bd"
+    },
+    "review_run": 42679232358,
+    "source": "sha256:4db51e6475fc729d31502c45b96a50f21e3c10cefe14701c0d86517827a582dd"
+  },
   "hardware_matrix": {
     "device_cases": [
       "tests/integration/test_progressive_lifecycle.py::test_actual_installed_role_interrupt_resume_and_successor",
@@ -86,8 +112,8 @@
     "status": "PENDING_ORIGINAL_PHYSICAL_FACTS",
     "version": "selected-runtime-required"
   },
-  "identity": "sha256:e716c3c69a7c12046834396801289cd646c2998de4eb1dedc2848f038daf63dc",
-  "image": null,
+  "identity": "sha256:6b37d57a548ad1a885c0c2e7a4bb792b31198a0810311e2f484191e4e88479b8",
+  "image": "sha256:b30cb6517dffbfd6a51804bf46ba2a826e956c8fc9aabc2211f2924d8d48e11c",
   "implementation": "sha256:ed5eeefa895d7ee85b9057b8ac0f579ed2f50de771ab5b9169c7083bcd2d9188",
   "local_engines": {
     "docker": null,
@@ -96,7 +122,7 @@
   "lock": "sha256:87c7380365b20a1650271fb50ae6d2ac7f95bebc28738542da878b0351b40158",
   "missing_commands": [],
   "missing_roles": [],
-  "next_action": "full current-source Docker CI; resolve original artifacts and selected matrix; consolidated workstation qualification and acceptance; retain pending physical/sustained labels",
+  "next_action": "resolve original artifacts and selected hardware matrix; consolidated workstation qualification and acceptance; physical/sustained evidence remains pending",
   "package": "sha256:79b08afa7bdce2e624f5033f0b3d08afc620c1b816858103a52e6d197978e1fb",
   "preparatory_scope": {
     "T089": "original input/exposure census and sensitivity-design validation only; no execution/freeze",
@@ -106,7 +132,7 @@
   "qualified": false,
   "software_commit": "5cc2f00a5f912d53973e50b616b3371374dbec60",
   "source": "sha256:4db51e6475fc729d31502c45b96a50f21e3c10cefe14701c0d86517827a582dd",
-  "status": "PENDING_CURRENT_SOURCE_CI_AND_DEVICE",
-  "supersedes": "sha256:4be9a3b704923fd2d18ac223513b57c99541822dd5e207cfd74bc8db4279baf8",
+  "status": "PASS_CPU_NATIVE_DEVICE_PENDING",
+  "supersedes": "sha256:e716c3c69a7c12046834396801289cd646c2998de4eb1dedc2848f038daf63dc",
   "version": "progressive-software-preflight/v1"
 }

@@ -1,6 +1,6 @@
 # Spec 013 implementation map
 
-Current scope: T001–T081, T083–T084, T087 and T112–T125 software are implemented. T085/T086 software gaps are repaired; full current-source CI verification remains pending. T082/T088–T091 physical evidence remains unexecuted. The T089 input/design and T090/T091 orchestration/protocol preparation is implemented. Earlier entries retain their historical validation scope; the latest handoff section supersedes their unavailable-command findings. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
+Current scope: T001–T081, T083–T087 and T112–T125 software are implemented. T085/T086 are closed by the successful current-source Docker/native and independent review workflows. T082/T088–T091 physical evidence remains unexecuted. The T089 input/design and T090/T091 orchestration/protocol preparation is implemented. Earlier entries retain their historical validation scope; the latest handoff section supersedes their unavailable-command findings. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
 quickstart.md, hardware-validation.md, planning-review.md, all five contracts,
 the requirements checklist and adopted constitution in full before implementation.
 Requirements checklist: 16 checked, zero unchecked. No extension hooks registered.
@@ -1578,3 +1578,37 @@ current-source CI/container gate; local Docker/Podman are absent and final CI is
 not awaited after push. T089's actual source preparation/simulation/freeze, T090's
 physical acceptance and T091's sustained evidence remain unchecked. No HIP run,
 research result, scientific gain or actual long-duration observation is claimed.
+
+
+### T085–T086 — verified passing CI on the stable source
+
+Verified both workflows on `e6362ff4b93ad20f3a96909d9bdd6f2ec2c8934f`:
+[container/native run 42679232463](https://github.com/grugnog/oeis-learn/actions/runs/42679232463)
+and [foundation-review run 42679232358](https://github.com/grugnog/oeis-learn/actions/runs/42679232358)
+completed successfully. Every container/native job passed, including actual Docker
+worker isolation/reclamation, native qualification, installed artifacts, arithmetic,
+fitting, containment, performance and runtime profiling.
+
+The original `portable-docker` artifact `13702828874` has digest
+`sha256:be089492af9bbd879616580e3abd47e09da08eaa7735cd2368583fe1d4f4a49f`.
+Its mandatory foundation receipt is
+`sha256:62354dafde960b8e15e5806b64fb212833ba3817fa4a4349d896ad4ceacbe271`:
+**799 passed, zero failures/errors/skips, 882.705 seconds**. Original JUnit is
+`sha256:f867bfa713523c78e4e9f573922c7a0291b5d68f97ee025a5c0b749dd0a273bd`.
+The retained installed acceptance completed all 22 cases in 264.649956 seconds;
+its receipt is `sha256:63577374151ccbd2f1219985077c435057ebc2a8a2c5666fd86fd7d8552ecbdc`
+and ZIP is `sha256:a38bebfa807f7e33953848fbed541dff13682bccfe79136f1fc9bb5794bd57da`.
+
+The tested source closure
+`sha256:4db51e6475fc729d31502c45b96a50f21e3c10cefe14701c0d86517827a582dd`
+matches this workspace. The inspected CPU image is
+`sha256:b30cb6517dffbfd6a51804bf46ba2a826e956c8fc9aabc2211f2924d8d48e11c`.
+This documentation-only completion update changes no mapped source/test/lock bytes.
+It closes T085/T086, including the repaired historical implementation bindings.
+Docker is the verified CI engine; duplicate Podman jobs remain disabled as requested.
+Local Podman support is retained without claiming a Podman or HIP validation pass.
+
+Both receipts explicitly have `qualified=false`; actual HIP qualification,
+post-freeze device acceptance, research freeze/execution and sustained observations
+remain pending their own original producers. The earlier pending-CI entries above
+are historical and superseded by this verified result.
