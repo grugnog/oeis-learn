@@ -1,4 +1,4 @@
-"""T064 prospective contracts for T069/T070/T071; no proof authority yet.
+"""T064 contracts for T069/T070; only T071 quarantine remains prospective.
 
 These tests fail for the absent owners before implementation. Expected failures
 are conditional solely on those modules being absent; any installed owner must

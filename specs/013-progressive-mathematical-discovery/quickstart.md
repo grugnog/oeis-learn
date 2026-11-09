@@ -162,6 +162,41 @@ not register a reviewer. Projection copies and verifies the complete original
 candidate/execution/review closure, and the installed role independently repeats
 native execution. Review publishes a new dossier with the original as parent;
 it never rewrites evidence or creates a training target. Proof and novelty have
-separate statuses. Until T070 installs its registered checker, proof promotion is
-rejected; finite agreement, counterexamples and incomplete novelty review remain
-useful outputs. Unbounded checked-machine safety remains explicitly unverified.
+separate statuses. A `proved` request must reference a source-bound
+`progressive-polynomial-certificate/v1` artifact. The registered checker independently
+normalizes a pure return using integer literals, `$index`, `add`, `sub` and `mul`.
+Its coefficients are canonical decimal strings in ascending degree, with no trailing
+zeros (the zero polynomial is `["0"]`). For example:
+
+```python
+from oeis_learn.generalization.progressive.contracts import digest
+from oeis_learn.generalization.progressive.polynomial_certificate import check
+
+source = "(program (return (mul (add $index (int 1)) (add $index (int 1)))))"
+certificate = {
+    "version": "progressive-polynomial-certificate/v1",
+    "source": digest(source),
+    "coefficients": ["1", "2", "1"],
+    "arithmetic": "mathematical_integers",
+    "assumptions": [],
+    "machine_domain": {"lower": "-100", "upper": "100"},
+}
+checked = check(source, certificate)
+assert checked["scope"] == "program_equals_polynomial_only"
+assert checked["machine_safety"] == "finite_numeric_range_verified"
+assert checked["sequence_law"] == "unproved"
+```
+
+Use `machine_domain: null` for mathematical identity alone. A finite domain also
+requires a conservative interval argument for every original intermediate and the
+fixed input/output limits; cancellation does not erase unsafe intermediate work.
+Neither case establishes fuel, memory or deadline sufficiency, unbounded machine
+safety, an unknown sequence law or novelty. Recurrences, loops, asymptotic claims,
+nonempty assumptions and legacy IR proof labels cannot promote a claim. Unsupported
+claims can retain finite/conjectural status. Counterexamples block proof promotion.
+
+The checker caps source size, nodes, nesting, degree, coefficient bits, arithmetic
+work and wall time. Optional `Limits` may only tighten these caps. Installed review
+pre-reserves five attempts/rejections and one native dispatch, charges each symbolic
+replay before work and retains spent charges on failure. The new dossier records the
+checker identity and exact proof scope, and validation replays the certificate.

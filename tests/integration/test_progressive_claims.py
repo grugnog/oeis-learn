@@ -1,11 +1,16 @@
 """Replayable polynomial promotion through immutable dossier review."""
 
 import copy
+import json
+import os
+import subprocess
+import sys
 
 import pytest
 
 from oeis_learn.generalization.progressive.contracts import atomic_write, digest, reference, seal
 from tests.unit.test_progressive_dossiers import SOURCE, dossier, selected
+from tests.integration.test_progressive_lifecycle import installed_lifecycle  # noqa: F401
 
 
 def proof(root, **changes):
@@ -131,3 +136,117 @@ def test_failed_promotion_preserves_original_dossier(tmp_path, change):
         )
     assert (tmp_path / "dossier.json").read_bytes() == before
     assert not (tmp_path / "forbidden.json").exists()
+
+
+def native_review_inputs(root, client, *, already_proved=False, invalid=False):
+    from oeis_learn.generalization.progressive.claims import review_dossier
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.generalization.progressive.projections import project
+    from oeis_learn.pipeline_validation.progressive_roles import REGISTRY
+    from tests.contract.test_progressive_roles import artifact
+
+    value = dossier(root, client)
+    claim = dict(
+        value["payload"]["claim"],
+        statement="proved",
+        proof=proof(root, coefficients=["2", "1"] if invalid else ["1", "1"]),
+    )
+    if already_proved:
+        value = review_dossier(root, value, claim, reviewers={}, output="proved.json")
+    descriptors = [
+        artifact(root, "dossier-channel.json", "sealed_dossier", "review", value),
+        artifact(root, "review-channel.json", "review_evidence", "review", dict(claim=claim)),
+    ]
+    project(root, "projection", "review-claim", {"dossier": descriptors}, registry=REGISTRY)
+    return value, [load(root / d.ref["path"]) for d in descriptors]
+
+
+@pytest.mark.parametrize("already_proved", [False, True])
+def test_installed_wheel_replays_proof_with_native_execution_and_prepaid_work(
+    tmp_path, fitting_client, installed_lifecycle, already_proved
+):
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.generalization.progressive.claims import validate_dossier
+    from tests.unit.test_progressive_budgets import role_authority
+
+    value, values = native_review_inputs(tmp_path, fitting_client, already_proved=already_proved)
+    before = (tmp_path / "dossier.json").read_bytes()
+    authority, journal, task = role_authority(
+        tmp_path, "review-claim", values, useful_us=30_000_000
+    )
+    assert authority["reservation"]["cost"]["attempts"] == 5
+    atomic_write(tmp_path / "authority.json", authority)
+    script = """
+import sys
+from pathlib import Path
+from oeis_learn.generalization.progressive import polynomial_certificate
+from oeis_learn.pipeline_validation.progressive_role import execute
+assert Path(polynomial_certificate.__file__).is_relative_to(Path(sys.argv[1]))
+root = Path.cwd()
+result = execute('review-claim', inputs=root/'projection', output=root/'result',
+                 authority=root/'authority.json')
+assert result['mechanical_status'] == 'COMPLETE', result
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script, str(installed_lifecycle)],
+        cwd=tmp_path,
+        env=dict(os.environ, PYTHONPATH=str(installed_lifecycle)),
+        text=True,
+        capture_output=True,
+        timeout=45,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    reviewed = load(tmp_path / "result/dossier.json")
+    assert validate_dossier(tmp_path / "projection/dossier", reviewed) == reviewed
+    assert reviewed["parents"] == [value["identity"]]
+    assert reviewed["payload"]["claim"]["statement"] == "proved"
+    assert reviewed["payload"]["claim"]["novelty"] == "not_reviewed"
+    assert reviewed["payload"]["proof_check"]["sequence_law"] == "unproved"
+    assert not reviewed["payload"]["training_eligible"]
+    assert (tmp_path / "dossier.json").read_bytes() == before
+    used = json.loads((tmp_path / "result/work-debits.jsonl").read_text().splitlines()[-1])["used"]
+    assert used["attempts"] == used["rejections"] == (5 if already_proved else 3)
+    assert used["native_work"] == 1
+    assert journal.task_remaining(task)["attempts"] == task["payload"]["caps"]["attempts"] - 5
+
+
+def test_native_invalid_proof_retains_debits_without_publishing(tmp_path, fitting_client):
+    from oeis_learn.pipeline_validation.progressive_role import execute
+    from tests.unit.test_progressive_budgets import role_authority
+
+    _, values = native_review_inputs(tmp_path, fitting_client, invalid=True)
+    before = (tmp_path / "dossier.json").read_bytes()
+    authority, journal, task = role_authority(
+        tmp_path, "review-claim", values, useful_us=30_000_000
+    )
+    atomic_write(tmp_path / "authority.json", authority)
+    with pytest.raises(ValueError, match="coefficients"):
+        execute(
+            "review-claim",
+            inputs=tmp_path / "projection",
+            output=tmp_path / "result",
+            authority=tmp_path / "authority.json",
+        )
+    assert not (tmp_path / "result/dossier.json").exists()
+    assert (tmp_path / "dossier.json").read_bytes() == before
+    used = json.loads((tmp_path / "result/work-debits.jsonl").read_text().splitlines()[-1])["used"]
+    assert used["attempts"] == used["rejections"] == 2
+    assert used["native_work"] == 1
+    assert journal.task_remaining(task)["attempts"] == task["payload"]["caps"]["attempts"] - 5
+
+
+@pytest.mark.parametrize("axis", ["attempts", "rejections", "native_work"])
+def test_proof_review_refuses_insufficient_reservation_before_dispatch(tmp_path, axis):
+    from oeis_learn.generalization.progressive.budgets import RoleWorkBudget, role_work_requirements
+    from tests.unit.test_progressive_budgets import role_authority
+
+    _, values = native_review_inputs(tmp_path, None)
+    costs = role_work_requirements("review-claim", values)
+    costs[axis] -= 1
+    authority, journal, _ = role_authority(tmp_path, "review-claim", values, costs=costs)
+    before = journal.path.read_bytes()
+    with pytest.raises(ValueError, match="insufficient enclosing"):
+        RoleWorkBudget(authority, "review-claim", values, tmp_path / "never")
+    assert journal.path.read_bytes() == before
+    assert not (tmp_path / "never").exists()

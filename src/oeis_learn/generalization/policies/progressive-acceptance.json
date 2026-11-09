@@ -51,11 +51,9 @@
       "device": "cpu",
       "scope": "DIAGNOSTIC_ONLY",
       "status": "PENDING_IMPLEMENTATION",
-      "owner": "T070-T071",
+      "owner": "T071",
       "test": "tests/unit/test_progressive_claims.py",
       "obligations": [
-        "source-bound polynomial certificate",
-        "separate machine safety",
         "transitive refutation"
       ]
     },
@@ -71,6 +69,21 @@
         "finite independent execution",
         "candidate-bound reviewer policy",
         "training-ineligible review output"
+      ]
+    },
+    {
+      "id": "progressive-polynomial-proof-review",
+      "device": "cpu",
+      "scope": "DIAGNOSTIC_ONLY",
+      "status": "IMPLEMENTED",
+      "owner": "T070",
+      "test": "tests/integration/test_progressive_claims.py",
+      "obligations": [
+        "installed wheel and native replay",
+        "source-bound independent polynomial identity",
+        "separate finite numeric safety and unproved sequence law",
+        "immutable review and rejected forged proof scope",
+        "prepaid bounded symbolic work and retained failure charges"
       ]
     }
   ]

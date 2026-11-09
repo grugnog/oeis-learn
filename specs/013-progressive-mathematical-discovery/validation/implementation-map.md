@@ -1090,3 +1090,29 @@ First increment: 78 focused polynomial/dossier/schema cases passed; two existing
 native-only cases skipped in that CPU invocation. The five original T064 proof
 cases now pass; only the T071 quarantine specification remains expected-failing.
 Installed native review and full-roster validation follow before T070 completion.
+
+
+### T070 — installed proof review and completion
+
+The installed-wheel integration now exercises both finite-to-proved promotion and
+re-review of an already proved dossier through the actual native worker. Both
+preserve original dossier bytes, retain unreviewed novelty and training
+ineligibility, and replay the source-bound certificate from the projected closure.
+Independent expected work counts are three symbolic/review attempts for first
+promotion and five for re-review, with one native dispatch. The host conservatively
+pre-reserves five attempts/rejections; invalid coefficients retain all reserved
+charges without publishing a dossier. Underfunded attempts, rejections or native
+work are rejected before dispatch. The acceptance inventory and quickstart now
+record the implemented proof scope separately from pending T071 quarantine.
+
+Validation: **91 focused tests passed with no skips**, including installed-wheel
+native review, invalid-proof publication refusal and budget accounting. The full
+registered CPU/native software acceptance runner then passed **608 tests, zero
+failures/errors/skips**, in 277.71 seconds, including the historical authority and
+package-identity checks. Mandatory native mode used the previously recovered CI
+worker/driver/bigint/solver binaries with their LLVM 19 runtime libraries; no native
+sources changed. The local launch supplied the runtime scratch directory normally
+created by the container launcher. This is local software evidence, not a Docker
+or HIP qualification receipt, sustained-duration evidence or a research result.
+Blocking E9/F63/F7/F82 lint and `git diff --check` passed. T070 is complete; T071 and
+later tasks remain pending. No post-implementation extension hooks are registered.
