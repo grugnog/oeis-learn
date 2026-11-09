@@ -252,7 +252,8 @@ def test_proof_review_refuses_insufficient_reservation_before_dispatch(tmp_path,
     assert not (tmp_path / "never").exists()
 
 
-def test_installed_counterexample_quarantines_consumed_checkpoint_and_dossier(tmp_path, fitting_client, monkeypatch):
+@pytest.mark.parametrize('promote', [False, True])
+def test_installed_counterexample_quarantines_consumed_checkpoint_and_dossier(tmp_path, fitting_client, monkeypatch, promote):
     from oeis_learn.pipeline_validation.progressive_acceptance import fixture,invoke_cpu
     from oeis_learn.generalization.progressive.contracts import load
     from oeis_learn.generalization.progressive.quarantine import Journal
@@ -284,13 +285,15 @@ def test_installed_counterexample_quarantines_consumed_checkpoint_and_dossier(tm
     candidate=seal_candidate(review,reference(review,'selection.json'),'candidate',source_snapshot=reference(review,'snapshot.json'),offset='0',
         budget={k:1 for k in c['payload']['caps']},output='candidate.json',purpose='acceptance',track='synthetic_strict')
     dossier=create_dossier(review,candidate,indices=list(map(str,range(100))),expected=['0']*100,output='original.json',client=fitting_client)
+    requested=dict(dossier['payload']['claim'])
+    if promote:requested['statement']='proved'
     values=[artifact(review,'dossier-channel.json','sealed_dossier','review',dossier),
-            artifact(review,'claim-channel.json','review_evidence','review',dict(claim=dossier['payload']['claim']))]
+            artifact(review,'claim-channel.json','review_evidence','review',dict(claim=requested))]
     project(review,'inputs','review-claim',{'dossier':values},registry=REGISTRY)
     authority,_,_=role_authority(review,'review-claim',[load(review/v.ref['path']) for v in values],useful_us=30000000)
     atomic_write(review/'authority.json',authority)
     reviewed=execute('review-claim',inputs=review/'inputs',output=review/'output',authority=review/'authority.json')
-    assert reviewed['mechanical_status']=='COMPLETE'
+    assert reviewed['mechanical_status']==('FAILED' if promote else 'COMPLETE')
     from oeis_learn.generalization.progressive.budgets import BudgetJournal
     journal=BudgetJournal(journal_root,c['identity'],c['payload']['caps'])
     before=journal.path.read_bytes()

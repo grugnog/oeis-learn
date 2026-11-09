@@ -142,3 +142,18 @@ def validate_producer(root, plan, runtime, references):
         if plan["iteration_budget"][phase] < 8 * measured:
             raise ValueError("iteration phase below conservative measured bound")
     return producer
+
+
+def require_input_envelope(package, rows):
+    """Newly admitted targets must fit the original calibrated tensor shape."""
+    if not rows:
+        return
+    base = [row for shard in package["shards"] for row in shard]
+    width = 4 if package.get("task_profile") == "combinatorial-short/v1" else 20
+    if max(len(row["tokens"]) for row in rows) > max(len(row["tokens"]) for row in base):
+        raise ValueError("admitted target exceeds frozen calibrated token envelope")
+    for index in range(width):
+        if max(abs(int(row["values"][index])).bit_length() for row in rows) > max(
+            abs(int(row["values"][index])).bit_length() for row in base
+        ):
+            raise ValueError("admitted feature exceeds frozen calibrated numeric envelope")

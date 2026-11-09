@@ -21,6 +21,10 @@ from .progressive_evidence import publish
 
 
 def validate_channel(kind, data):
+    if kind in {"short_prompt", "short_training_truth", "short_score_truth"} and (
+        type(data.get("id")) is not str or not 1 <= len(data["id"]) <= 256
+    ):
+        raise ValueError("bounded short member identity required")
     if kind == "short_prompt":
         if set(data) != {"id", "indices", "values"}:
             raise ValueError("closed short prompt required")
@@ -54,6 +58,7 @@ def validate_channel(kind, data):
         if (
             set(data) != {"seed", "max_tokens", "seconds", "forced"}
             or type(data["seed"]) is not int
+            or not 0 <= data["seed"] < 2**63
             or type(data["max_tokens"]) is not int
             or not 1 <= data["max_tokens"] <= 1024
             or type(data["seconds"]) is not int
@@ -62,6 +67,14 @@ def validate_channel(kind, data):
             raise ValueError("finite short generation policy required")
         if data["forced"] is not None and not isinstance(data["forced"], dict):
             raise ValueError("diagnostic short candidates required")
+        if data["forced"] is not None and (
+            len(data["forced"]) > 128
+            or any(
+                type(k) is not str or len(k) > 256 or type(v) is not str or len(v) > 65536
+                for k, v in data["forced"].items()
+            )
+        ):
+            raise ValueError("bounded diagnostic short candidate inventory required")
 
 
 def execute(operation, inputs, output, values, authority, budget):

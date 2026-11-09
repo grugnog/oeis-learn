@@ -500,3 +500,38 @@ def test_canonical_freeze_component_slots_then_resume_without_remining(
     store.state["outputs"]["mine"] = dict(original, task=digest("foreign-task"))
     with pytest.raises(ValueError):
         resolve(tmp_path, store, task, request, tmp_path / "foreign-resolved")
+
+
+def test_installed_no_library_control_resolves_pending_rules_without_future_library(tmp_path):
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.generalization.progressive.projections import describe
+    from oeis_learn.pipeline_validation.progressive_oeis import Cycle
+
+    c, _requests, _ = fixture(tmp_path, None)
+    plan = next(p for p in c["payload"]["tasks"] if p["id"] == "train")
+    plan["arm"] = "no_library"
+    c = seal(c)
+    task = record(
+        "task",
+        dict(plan, campaign=c["identity"]),
+        created_at=c["created_at"],
+        purpose=c["purpose"],
+        track=c["track"],
+    )
+    cycle = Cycle.__new__(Cycle)
+    cycle.root = tmp_path
+    cycle.campaign = c
+    cycle.ordinal = 0
+    cycle.pythonpath = None
+    cycle.journal = BudgetJournal(tmp_path / "accounting", c["identity"], c["payload"]["caps"])
+    result = cycle.cpu_phase(
+        "train",
+        {"training": [describe(tmp_path, "training.json")]},
+        tmp_path / "no-library",
+        task,
+        90,
+    )
+    assert result["mechanical_status"] == "COMPLETE", result
+    checkpoint = load(tmp_path / "no-library/role/checkpoint.json")
+    assert checkpoint["payload"]["cuts"]["library"] is None
+    assert not (tmp_path / "mine").exists()

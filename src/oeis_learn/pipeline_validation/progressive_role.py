@@ -45,6 +45,9 @@ def _execute(
 
             if seal(value) != value:
                 raise ValueError("installed channel identity mismatch")
+            if value['kind'] in {'checkpoint','library'}:
+                from .progressive_quarantine_control import require_clean_values
+                require_clean_values(folder,accounting,[value])
             values.append(value)
     from oeis_learn.generalization.progressive.budgets import WORK_ROLES, RoleWorkBudget
 
@@ -101,7 +104,7 @@ def _execute(
         package = load(confined(inputs / "training", data["artifact"]["path"]), maximum=256 << 20)
         if data["compatibility"] != compatibility(package):
             raise ValueError("typed training compatibility differs")
-        if len(values)>1:
+        if len(values)>1 or ('component_rules' in package and 'component_distillation' not in package):
             from .progressive_component_flow import training_input
             package=training_input(inputs/'training',package,values,load(authority,maximum=32<<20)['task'])
         return run(

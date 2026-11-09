@@ -14,20 +14,24 @@ from oeis_learn.pipeline_validation.identity import confined
 
 
 def require_clean_inputs(root, journal, artifacts):
-    identities = []
     for group in artifacts.values():
         for descriptor in group:
             value = load(confined(root, descriptor.ref["path"]))
-            if value["kind"] == "checkpoint":
-                ref = value["data"].get("artifact")
-                if ref:
-                    identities.extend(Journal(journal.root).weight_checkpoints(ref["sha256"]))
-            if value["kind"] == "library":
-                data = json.loads(
-                    verify_refs(root, [value["data"]["artifact"]], max_bytes=256 << 20)[0]
-                )
-                identities.append(data["library"]["identity"])
-    Journal(journal.root).require_clean(identities)
+            require_clean_values(root, journal.root, [value])
+
+
+def require_clean_values(root, accounting, values):
+    q = Journal(accounting)
+    identities = []
+    for value in values:
+        if value["kind"] == "checkpoint" and value["data"].get("artifact"):
+            identities.extend(q.weight_checkpoints(value["data"]["artifact"]["sha256"]))
+        if value["kind"] == "library":
+            data = json.loads(
+                verify_refs(root, [value["data"]["artifact"]], max_bytes=256 << 20)[0]
+            )
+            identities.append(data["library"]["identity"])
+    q.require_clean(identities)
 
 
 def reconcile(root, output, result, journal):

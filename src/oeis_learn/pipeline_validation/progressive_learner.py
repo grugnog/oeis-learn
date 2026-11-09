@@ -248,6 +248,12 @@ def validate_input(package, task, *, allow_pending=False):
     if "token_target" in task["payload"]:
         from oeis_learn.generalization.progressive.supply import plan
         plan(package,task["payload"]["token_target"],arm=task["payload"]["arm"])
+    if task['purpose']=='research':
+        from oeis_learn.generalization.progressive.iteration import require_input_envelope
+        additional=list(package.get('short_rows',[]))
+        additional.extend(t['row'] for t in package.get('component_distillation',{}).get('targets',[]))
+        additional.extend(dict(tokens=a['payload']['tokens'],values=a['payload']['visible_values']) for a in package.get('oeis_replay',{}).get('admissions',[]))
+        require_input_envelope(package,additional)
     return package
 
 

@@ -369,3 +369,48 @@ def test_calibration_deficit_stops_before_engine_or_debit(tmp_path, monkeypatch,
     )
     assert not (tmp_path / "out/prepared.json").exists()
     assert not (tmp_path / "run-state/discovery-calibration").exists()
+
+
+@pytest.mark.parametrize("source", [False, True])
+def test_calibration_resolves_closed_host_cycle_children(tmp_path, source):
+    from oeis_learn.pipeline_validation.progressive_calibration import selected_inputs
+
+    if source:
+        from tests.integration.test_progressive_short_cycle import fixture
+
+        campaign, _, _ = fixture(tmp_path)
+    else:
+        from tests.helpers.progressive_oeis_fixture import fixture
+
+        campaign, _, _, _ = fixture(tmp_path)
+    prepared = {
+        "purpose": campaign["purpose"],
+        "track": campaign["track"],
+        "payload": {
+            "task_plans": campaign["payload"]["tasks"],
+            "references": campaign["payload"]["references"],
+        },
+    }
+    selected, bindings = selected_inputs(tmp_path, prepared)
+    assert len(selected) == 1 and len(bindings) == 4
+
+
+def test_calibration_resolves_component_template_before_owned_targets_exist(
+    tmp_path, fitting_client
+):
+    from oeis_learn.pipeline_validation.progressive_calibration import selected_inputs
+    from tests.integration.test_progressive_component_flow import fixture
+
+    campaign, _, _ = fixture(tmp_path, fitting_client)
+    prepared = {
+        "purpose": campaign["purpose"],
+        "track": campaign["track"],
+        "payload": {
+            "task_plans": campaign["payload"]["tasks"],
+            "references": campaign["payload"]["references"],
+        },
+    }
+    selected, bindings = selected_inputs(tmp_path, prepared)
+    assert len(selected) == len(bindings) == 1
+    assert selected[0]["package"]["component_rules"]
+    assert not (tmp_path / "mine").exists()

@@ -346,3 +346,65 @@ def test_canonical_prepare_freeze_run_resume_short_source_cycle(
         == 0
     )
     assert journal.read_bytes() == before
+
+
+def test_installed_short_learner_resumes_updates_after_owned_pause(tmp_path, fitting_client):
+    import threading
+    import time
+
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.generalization.progressive.recovery import Recovery
+    from oeis_learn.pipeline_validation.progressive_acceptance import invoke_cpu
+
+    c, _, _ = fixture(tmp_path)
+    plan = next(p for p in c["payload"]["tasks"] if p["arm"] == "without_source")
+    plan["token_target"] = 8000
+    c = seal(c)
+    task = record(
+        "task",
+        dict(plan, campaign=c["identity"]),
+        created_at=c["created_at"],
+        purpose=c["purpose"],
+        track=c["track"],
+    )
+    source = load(tmp_path / "short-plan.json")
+    entry = next(e for e in source["training"] if e["task"] == plan["id"])
+    channel = load(tmp_path / entry["channel"])
+    state = tmp_path / "learning" / task["identity"][7:]
+    errors = []
+    done = threading.Event()
+
+    def pause():
+        try:
+            deadline = time.monotonic() + 60
+            while not done.is_set() and time.monotonic() < deadline:
+                events = sorted(state.glob("event-*.json"))
+                if events and load(events[-1])["state"]["useful_tokens"] > 0:
+                    atomic_write(
+                        tmp_path / "control" / ("pause-" + digest("invocation-0")[7:] + ".json"),
+                        seal({"campaign": c["identity"], "requested": True}),
+                    )
+                    return
+                time.sleep(0.02)
+            if not done.is_set():
+                raise TimeoutError("first committed short update absent")
+        except (OSError, ValueError, TimeoutError) as exc:
+            errors.append(exc)
+
+    monitor = threading.Thread(target=pause, daemon=True)
+    monitor.start()
+    try:
+        first, _ = invoke_cpu(tmp_path, c, task, channel, ordinal=0, channel_path=entry["channel"])
+    finally:
+        done.set()
+        monitor.join(timeout=2)
+    assert not errors, errors
+    assert first["metrics"]["task_status"] == "PAUSED", first
+    j = BudgetJournal(tmp_path / "accounting", c["identity"], c["payload"]["caps"])
+    with Recovery(j, task, plan["initializer"]["compatibility"], state_root=state) as owner:
+        prior = owner.restore()["ledger"].updates
+    resumed, _ = invoke_cpu(tmp_path, c, task, channel, ordinal=1, channel_path=entry["channel"])
+    assert resumed["mechanical_status"] == "COMPLETE", resumed
+    assert resumed["metrics"]["initialization"] == "resume"
+    with Recovery(j, task, plan["initializer"]["compatibility"], state_root=state) as owner:
+        assert owner.restore()["ledger"].updates > prior

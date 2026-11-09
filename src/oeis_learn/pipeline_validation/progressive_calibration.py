@@ -41,11 +41,13 @@ def selected_inputs(root, prepared):
                 raise ValueError("original prepared training policy required for calibration")
             request = json.loads(verify_refs(root, [policies[plan["policy"]]])[0])
             paths = request.get("artifacts", {}).get("training", [])
-            if request.get('operation')=='source-cycle':
+            if request.get('operation')=='train':
+                paths=[path for path in paths if isinstance(path,str) and path in channels and json.loads(verify_refs(root,[channels[path]['artifact']])[0]).get('kind')=='training_request']
+            if request.get('operation') in {'source-cycle','oeis-cycle'}:
                 frozen=json.loads(verify_refs(root,[reference(root,request['artifacts']['cycle'][0])],max_bytes=32<<20)[0])
                 paths=[e['channel'] for e in frozen['training'] if e['task']==plan['id']]
             if (
-                request.get('operation') not in {'train','source-cycle'}
+                request.get('operation') not in {'train','source-cycle','oeis-cycle'}
                 or len(paths) != 1
                 or not isinstance(paths[0], str)
                 or paths[0] not in channels

@@ -226,6 +226,8 @@ def validate_frozen_request(root, request, *, plans, refs, graph, purpose, track
             or type(request['seconds']) is not int or not 0 < request['seconds'] <= 86400):
         raise ValueError('closed frozen host-cycle request required')
     vector(request['reservation'])
+    from oeis_learn.generalization.progressive.contracts import _check,schema
+    _check(schema('common')['$defs']['hash'],request['image'],schema('common'))
     if any(request['reservation'].values()):
         raise ValueError('host cycle must charge original child reservations, not duplicate them')
     path=request['artifacts']['cycle'][0]

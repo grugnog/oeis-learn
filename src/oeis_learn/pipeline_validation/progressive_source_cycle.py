@@ -55,7 +55,11 @@ def validate_plan(root, campaign, plan):
         ids.add(entry["task"])
         p = tasks[entry["task"]]
         slots.add(p["slot"])
-        if p["stage"] != "source_pilot" or p["arm"] not in {"with_source", "without_source"}:
+        if (
+            p["kind"] != "training"
+            or p["stage"] != "source_pilot"
+            or p["arm"] not in {"with_source", "without_source"}
+        ):
             raise ValueError("short source stage/arm required")
         if (
             reference(root, entry["channel"]) not in allowed
@@ -102,10 +106,16 @@ def validate_plan(root, campaign, plan):
         raise ValueError("paired short source tasks required")
     for pair in pairs.values():
         a, b = pair.values()
-        if a["initializer"] != b["initializer"] or a["token_target"] != b["token_target"]:
+        if (
+            a["initializer"] != b["initializer"]
+            or a["token_target"] != b["token_target"]
+            or a["caps"] != b["caps"]
+        ):
             raise ValueError("matched short initialization/exposure required")
     training = [s for s, r in zip(roster["sources"], roster["roles"]) if r == "training"]
     evaluation = [s for s, r in zip(roster["sources"], roster["roles"]) if r == "evaluation"]
+    if len(training) > 128 or len(evaluation) > 128:
+        raise ValueError("finite source cycle supports at most 128 members per role")
     return training, evaluation
 
 
@@ -119,6 +129,8 @@ def validate_request(root, request, *, plans, refs, graph, purpose, track):
     ):
         raise ValueError("closed source host request required")
     vector(request["reservation"])
+    from oeis_learn.generalization.progressive.contracts import _check,schema
+    _check(schema('common')['$defs']['hash'],request['image'],schema('common'))
     if (
         any(request["reservation"].values())
         or type(request["seconds"]) is not int

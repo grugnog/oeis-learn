@@ -72,12 +72,24 @@ def collect(root, folder, output):
             "local_traceback": None,
         }
 
+    def qualification(value, artifact):
+        if seal(value) != value:
+            raise ValueError("original qualification case differs")
+        row = {
+            k: value[k]
+            for k in ("identity", "source", "scope", "device", "status", "requested", "executed")
+        }
+        row["receipt"] = artifact
+        if not any(r["identity"] == row["identity"] for r in tables["qualifications"]):
+            tables["qualifications"].append(row)
+
     for ref in campaign["payload"]["references"]:
         if ref["kind"] not in {"policy", "groups", "qualification"}:
             continue
         try:
             value = json.loads(verify_refs(root, [ref["artifact"]], max_bytes=32 << 20)[0])
-            if not isinstance(value,dict):continue
+            if not isinstance(value, dict):
+                continue
             if value.get("version") == "discovery-cohort/v1" or set(value) - {"primary"} == {
                 "claim",
                 "bootstrap_seed",
@@ -99,21 +111,26 @@ def collect(root, folder, output):
             }:
                 cohorts.append(value)
             if value.get("version") == "progressive-hip-case/v1":
-                row = {
-                    k: value[k]
-                    for k in (
-                        "identity",
-                        "source",
-                        "scope",
-                        "device",
-                        "status",
-                        "requested",
-                        "executed",
-                    )
-                }
-                row["receipt"] = ref["artifact"]
-                tables["qualifications"].append(row)
+                qualification(value, ref["artifact"])
                 source = value["source"]
+            if value.get("version") == "generalization-qualification/v2":
+                base = confined(root, ref["artifact"]["path"]).parent
+                artifacts = value["producer"]["artifacts"]
+                if len(artifacts) > 4096:
+                    raise ValueError("bounded original qualification inventory required")
+                for original in artifacts:
+                    if not original["path"].endswith(".json") or original["bytes"] > 4 << 20:
+                        continue
+                    raw = verify_refs(base, [original], max_bytes=4 << 20)[0]
+                    case = json.loads(raw)
+                    if isinstance(case, dict) and case.get("version") == "progressive-hip-case/v1":
+                        qualification(
+                            case,
+                            dict(
+                                original,
+                                path=str(confined(base, original["path"]).relative_to(root)),
+                            ),
+                        )
         except (ValueError, OSError, KeyError, TypeError) as exc:
             errors.append(error(exc, ref["name"]))
     if len(scopes) > 1:
@@ -124,6 +141,10 @@ def collect(root, folder, output):
             raise ValueError("frozen public scope seal differs")
         scope_record = scopes[0][0]
         source = frozen["source"]
+        selected = set(frozen["qualification_producers"].values())
+        tables["qualifications"] = [
+            q for q in tables["qualifications"] if q["identity"] in selected
+        ]
     rosters = []
     for cohort in cohorts:
         rosters.append(
@@ -436,7 +457,11 @@ def collect(root, folder, output):
                         tables["observations"].append(
                             {"producer": original["identity"], "data": original}
                         )
-                if metrics.get("scores") and path in owners:
+                if (
+                    value.get("mechanical_status") == "COMPLETE"
+                    and metrics.get("scores")
+                    and path in owners
+                ):
                     plan = task_records.get(owners[path])
                     if plan is None:
                         raise ValueError("owned score task is outside frozen campaign")

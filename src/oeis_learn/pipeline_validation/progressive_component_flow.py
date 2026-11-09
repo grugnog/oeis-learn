@@ -42,6 +42,12 @@ def training_input(root, package, values, task):
     ]
     if package.get("component_rules") != RULE or "component_distillation" in package:
         raise ValueError("original frozen component update rule required")
+    if task["payload"]["arm"] == "no_library":
+        if libraries or targets:
+            raise ValueError("no-library control cannot consume library targets")
+        return seal(
+            dict(package, component_distillation=freeze_distillation(None, [], arm="no_library"))
+        )
     if task["payload"]["arm"] != "library" or len(libraries) != 1 or not 1 <= len(targets) <= 64:
         raise ValueError("one library and finite expanded target cut required")
     if libraries[0]["compatibility"] != compatibility(package):
