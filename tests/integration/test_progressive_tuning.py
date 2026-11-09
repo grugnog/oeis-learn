@@ -166,7 +166,7 @@ def test_real_six_trial_native_study_prunes_only_after_five_comparable_completio
     assert all(j.trials[str(i)]['result']['value']==1 for i in range(5))
     assert j.trials['5']['result']['value']==0
     assert result['metrics']['tasks']['t5-late-train']=='SKIPPED'
-    assert not any(load(p)['task']['payload']['id']=='t5-late-train' for p in (tmp_path/'six').glob('task-*/authority/supervisor.json'))
+    assert not any(load(p,maximum=32<<20)['task']['payload']['id']=='t5-late-train' for p in (tmp_path/'six').glob('task-*/authority/supervisor.json'))
     rows=[dict(s['result'],id=k) for k,s in j.trials.items()]
     expected=[r['id'] for r in sorted(rows[:5],key=lambda r:(-r['value'],r['elapsed_us'],r['id']))]
     assert rank(rows,target=p['target_tokens'],root=tmp_path)['ordered']==expected
