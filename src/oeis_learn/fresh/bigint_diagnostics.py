@@ -178,7 +178,10 @@ def _portfolio(
     evidence=None,
     evaluation_policy=None,
     retain_selector_candidates=False,
+    component_proposals=None,
 ):
+    if component_proposals is not None and (attempt_count != 8 or portfolio_seconds != 60 or template or mode != "correct"):
+        raise ValueError("component search requires the matched eight-attempt/60s portfolio")
     if evaluation_policy is not None:
         from oeis_learn.pipeline_validation.pilot_clocks import validate_portfolio
         validate_portfolio(evaluation_policy,mode,attempt_count,portfolio_seconds)
@@ -215,7 +218,11 @@ def _portfolio(
         complete = False
         tokens = []
         generated = 0.0
-        if template:
+        if component_proposals is not None and position >= 4:
+            result = component_proposals(position, deadline)
+            source, complete, tokens = result["source"], result["complete"], result["tokens"]
+            generated = result["generation_seconds"]
+        elif template:
             source, tokens = _template_candidate(position)
             complete = True
         else:
