@@ -29,8 +29,8 @@ CHANNELS = {
     },
     "visible": {"visible_prompt"},
     "model": {"checkpoint", "recipe", "library", "oeis_generation"},
-    "candidates": {"candidate"},
-    "admission_truth": {"training_continuation"},
+    "candidates": {"candidate", "component_proposal"},
+    "admission_truth": {"training_continuation", "component_training_request"},
     "score_truth": {"development_truth", "confirmation_truth"},
     "assessment_truth": {"assessment_truth"},
     "selection": {"locked_selection"},
@@ -269,6 +269,28 @@ def _validate_channel(kind, data):
                 raise ValueError("mechanical source law differs from its identity")
         if data["previous"] is not None:
             _check(schema("common")["$defs"]["hash"], data["previous"], schema("common"))
+    if kind == "component_training_request":
+        if set(data) != {"member", "library"}:
+            raise ValueError("closed component admission request required")
+        from .admission import validate_member
+        from .component_search import validate_input
+
+        validate_member(data["member"])
+        validate_input(data["library"])
+    if kind == "component_proposal":
+        if not isinstance(data, dict) or not {"source", "expression"} <= set(data) <= {
+            "source",
+            "expression",
+            "position",
+            "variant",
+            "component",
+            "expanded_nodes",
+            "expanded_bytes",
+            "expanded_tokens",
+            "model_score",
+            "status",
+        }:
+            raise ValueError("closed component proposal required")
     if kind == "oeis_generation":
         if (
             set(data) != {"methods", "forced"}

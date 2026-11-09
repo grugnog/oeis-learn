@@ -418,6 +418,10 @@ def role_work_requirements(operation, values):
         costs.update(attempts=8 * n, rejections=8 * n, native_work=8 * n)
     elif operation == "admit-training":
         costs.update(attempts=1, rejections=1, native_work=2)
+        if any(v["kind"] == "component_training_request" for v in values):
+            from .component_search import EXPANSION_WORK
+
+            costs["native_work"] += EXPANSION_WORK
     return vector(costs)
 
 

@@ -940,3 +940,35 @@ was added after the registered run began and passed separately. Blocking
 syntax/undefined-name checks and `git diff --check` passed. No local native/HIP or
 research superiority is claimed. The mandatory native-image mode fails unavailable
 native cases rather than silently accepting skips. No implementation hooks exist.
+
+### Component distillation and full cuts T068
+
+Component proposals enter a separate training-only admission channel. The installed
+admission role expands the original typed expression, preserves codec/source identity,
+and checks all 100 mechanical training terms with the independent reference and
+native service. It rejects confirmation/assessment members, altered proposals and
+incorrect grounding. Reference-only fixtures remain acceptance-only. Successful
+admission emits an immutable expanded target, not a new decoder vocabulary.
+
+The learner's component adapter reuses charged-token, whole-example replay and its
+irreversible journal reconciliation. The no-library arm receives neither library
+nor targets. Compatibility binds the update rule while complete checkpoints bind
+the actual target/library cut and embedded definitions/proofs. Mid-task cut changes
+are rejected; an explicitly declared, unspent successor can atomically adopt a new
+cut while retaining optimizer, RNG and ancestor charges. Failed publication preserves
+the preceding model/library generation. `components.json` declares the paired two-seed
+library/no-library blueprint, matched synthetic/token/inference allowances, fixed
+harder held-out panel and separate discovery/validation/downstream costs.
+
+Acceptance mines a real three-structure component, produces a new expanded candidate,
+checks its terms, performs actual CPU model updates and restores the complete cut.
+The installed subprocess rehearsal covers both arms and two seeds, interruption with
+retained discarded charges, and declared-successor adoption of a new library version.
+A negative harder-panel/cost example retains the baseline; syntax compression alone
+never establishes utility. The native distillation case is mandatory in native CI
+and skips locally without the service. No HIP or scientific improvement is claimed.
+
+T068 focused validation: **52 passed, one local native-service skip** (45.79s),
+including both historical implementation-binding checks and checkpoint/recovery,
+role, budget and installed-asset regressions. Final native-producer/type and
+actual-component-call tightening passes the targeted admission regression.

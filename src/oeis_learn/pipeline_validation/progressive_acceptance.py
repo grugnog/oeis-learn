@@ -309,7 +309,9 @@ def fixture(root, *, interrupt=True, first_cap_updates=8, weights_only=False, fa
     return c, tasks, channel, charge
 
 
-def invoke_cpu(root, campaign, task, channel, *, ordinal, pythonpath=None):
+def invoke_cpu(
+    root, campaign, task, channel, *, ordinal, pythonpath=None, channel_path="training-channel.json"
+):
     """Real isolated Python process calls the same installed role dispatcher."""
     from oeis_learn.generalization.progressive.budgets import BudgetJournal
     from oeis_learn.generalization.progressive.projections import describe, project
@@ -347,9 +349,9 @@ def invoke_cpu(root, campaign, task, channel, *, ordinal, pythonpath=None):
             root,
             output / "inputs",
             "train",
-            {"training": [describe(root, "training-channel.json")]},
+            {"training": [describe(root, channel_path)]},
             registry=REGISTRY,
-            authorized=[reference(root, "training-channel.json")],
+            authorized=[reference(root, channel_path)],
         )
     boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
     start = time.monotonic_ns() // 1000

@@ -50,6 +50,8 @@ def validate_charge(value):
 
 
 class Mixer:
+    rule = RULE
+
     def __init__(self, package):
         if (
             not isinstance(package, dict)
@@ -95,7 +97,7 @@ class Mixer:
         return seal(
             dict(
                 version="progressive-replay-state/v1",
-                policy=digest(RULE),
+                policy=digest(self.rule),
                 archive=self.archive,
                 oeis_tokens=0,
                 synthetic_tokens=0,
@@ -142,15 +144,7 @@ class Mixer:
                 rng = random.Random(int(digest([self.archive, totals["oeis_examples"]])[7:], 16))
                 task = rng.choice(sorted(self.groups))
                 a = rng.choice(self.groups[task])
-                p = Archive.validate_entry(a)["payload"]
-                row = dict(
-                    draw_identity=a["identity"],
-                    task=task,
-                    group=p["group"],
-                    values=p["visible_values"],
-                    tokens=p["tokens"],
-                    membership=p["membership"],
-                )
+                row = self.target_row(a, task)
             else:
                 row = copy.deepcopy(synthetic[i % len(synthetic)])
             if row["membership"] != "training" or not row["tokens"]:
@@ -161,6 +155,17 @@ class Mixer:
             rows.append(row)
         charge = dict(archive=self.archive, **{k: totals[k] - state[k] for k in totals})
         return rows, validate_charge(charge)
+
+    def target_row(self, a, task):
+        p = Archive.validate_entry(a)["payload"]
+        return dict(
+            draw_identity=a["identity"],
+            task=task,
+            group=p["group"],
+            values=p["visible_values"],
+            tokens=p["tokens"],
+            membership=p["membership"],
+        )
 
     def reconcile(self, state, events, *, task):
         value = dict(self.check(state))

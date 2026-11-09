@@ -78,6 +78,38 @@ def _execute(
             predecessor_state=predecessor_state,
             initializer_root=inputs / "training",
         )
+    if operation == "admit-training" and any(
+        v["kind"] == "component_training_request" for v in values
+    ):
+        if len(values) != 2 or {v["kind"] for v in values} != {
+            "component_training_request",
+            "component_proposal",
+        }:
+            raise ValueError("one isolated component proposal/training continuation required")
+        request = next(v["data"] for v in values if v["kind"] == "component_training_request")
+        proposal = next(v["data"] for v in values if v["kind"] == "component_proposal")
+        from oeis_learn.pipeline_validation.progressive_training import distill_component
+        from oeis_learn.synthesis.client import SynthesisClient
+        from oeis_learn.pipeline_validation.identity import digest
+
+        with SynthesisClient(digest(request)) as client:
+            budget.client(client)
+            target = distill_component(
+                request["library"],
+                proposal,
+                request["member"],
+                client=client,
+                purpose=load(authority)["task"]["purpose"],
+                budget=budget,
+            )
+        atomic_write(output / "component-target.json", target)
+        return publish(
+            output,
+            operation=operation,
+            mechanical_status="COMPLETE",
+            reason="FINITE_COMPONENT_TRAINING_ADMISSION",
+            metrics={"target": target["identity"]},
+        )
     if operation == "admit-training":
         if any(v["kind"] not in {"candidate", "training_continuation"} for v in values):
             raise ValueError("admission role received excluded truth")

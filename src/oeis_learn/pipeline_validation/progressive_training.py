@@ -720,7 +720,28 @@ class RecoverableUpdate:
         return result
 
     def initialize(self, context, cuts):
+        if "component_input" in context["selection"]:
+            check_component_cut(context, cuts, context["selection"]["component_input"])
         record = self.recovery.initialize(self.capture(context), cuts)
+        self.context = context
+        return record
+
+    def adopt_component_cut(self, package):
+        """A declared successor starts a new data/library cut without resetting model state."""
+        from oeis_learn.generalization.progressive.component_distillation import ComponentMixer
+
+        ComponentMixer(package)
+        restored = self.recovery.restore()
+        init = self.recovery.p["initializer"]
+        if (
+            not ({"parent_slot", "parent_task"} & set(init))
+            or not (self.recovery.root / "lineage.json").exists()
+            or restored["ledger"].consumed != self.recovery.base["tokens"]
+        ):
+            raise ValueError("component adoption requires an unspent declared successor boundary")
+        context, cuts = bind_component_cut(self.context, restored["cuts"], package)
+        record = self.recovery.save(self.capture(context), restored["ledger"], cuts)
+        self.recovery.append(checkpoint=record)
         self.context = context
         return record
 
@@ -755,6 +776,11 @@ class RecoverableUpdate:
         }
         if replay is not None:
             batch["replay"] = replay
+        if "component_input" in context["selection"]:
+            selected = context["selection"]["component_input"]
+            check_component_cut(context, cuts, selected)
+            if self.context["selection"].get("component_input") != selected:
+                raise ValueError("library updates require a new declared task boundary")
         prior = self.recovery.completed(update, batch)
         if prior is not None:
             # Historical receipts remain immutable after tensor generations are
@@ -955,7 +981,7 @@ class Heartbeat:
 def replay_batch(package, synthetic, state):
     from oeis_learn.generalization.progressive.replay import Mixer
 
-    mixer = Mixer(package)
+    mixer = replay_mixer(package)
     return mixer.plan(synthetic, state, count=len(synthetic))
 
 
@@ -964,4 +990,101 @@ def reconcile_replay(package, state, journal, task):
 
     with journal.lock():
         events = journal._read()[0]
-    return Mixer(package).reconcile(state, events, task=task)
+    return replay_mixer(package).reconcile(state, events, task=task)
+
+
+def distill_component(library, proposal, member, *, client=None, purpose="research", budget=None):
+    """Admission role: expand own proposal and independently check training terms."""
+    from oeis_learn.generalization.progressive.admission import validate_member
+    from oeis_learn.generalization.progressive.component_search import validate_input
+    from oeis_learn.generalization.progressive.components import expand
+    from oeis_learn.generalization.progressive.component_distillation import validate_target, RULE
+    from oeis_learn.decoder.bigint_codec import encode_body, decode_body
+    from oeis_learn.generalization.progressive.generator import structure_id
+    from oeis_learn.synthesis.admission import reference_identity
+    from .progressive_preparation import verify_draw
+
+    if budget:
+        from oeis_learn.generalization.progressive.component_search import EXPANSION_WORK
+
+        budget.consume(attempts=1, rejections=1, native_work=EXPANSION_WORK)
+    from oeis_learn.generalization.progressive.projections import _validate_channel
+
+    _validate_channel("component_proposal", proposal)
+    validate_input(library)
+    validate_member(member)
+    if member["indices"] != list(map(str, range(100))):
+        raise ValueError("initial mechanical component profile requires zero-based exact indices")
+    if purpose == "research" and client is None:
+        raise ValueError("actual native component admission required")
+    source = decode_body(encode_body(expand(library["library"], proposal["expression"])["source"]))
+    if proposal["source"] != source:
+        raise ValueError("proposal is not its original hygienic expansion")
+    row, reason = verify_draw(
+        dict(
+            source=source,
+            ordinal=0,
+            draw_identity=digest([library["library"]["identity"], proposal, member]),
+            source_policy=digest(RULE),
+            structure=structure_id(source),
+            detector_limit="finite training-only component distillation; no novelty claim",
+        ),
+        client=client,
+        budget=budget,
+    )
+    if row is None or row["values"] != member["values"]:
+        raise ValueError("expanded training continuation rejected: " + str(reason))
+    target = seal(
+        dict(
+            version="progressive-component-target/v1",
+            library=library["library"]["identity"],
+            proposal=proposal,
+            member=member,
+            row=row,
+            purpose=purpose,
+            native=client.runtime_identity("bigint-body/v1") if client else None,
+            reference=reference_identity(),
+        )
+    )
+    return validate_target(target, library)
+
+
+def replay_mixer(package):
+    if package.get("version") == "progressive-component-input/v1":
+        from oeis_learn.generalization.progressive.component_distillation import ComponentMixer
+
+        return ComponentMixer(package)
+    from oeis_learn.generalization.progressive.replay import Mixer
+
+    return Mixer(package)
+
+
+def bind_component_cut(context, cuts, package):
+    import copy
+    from oeis_learn.generalization.progressive.component_distillation import ComponentMixer
+
+    mixer = ComponentMixer(package)
+    context = copy.deepcopy(context)
+    context["selection"]["component_input"] = copy.deepcopy(package)
+    context["replay"] = mixer.initial()
+    cuts = dict(
+        cuts,
+        library=package["library"]["library"]["identity"] if package["library"] else None,
+        archive=mixer.archive,
+    )
+    check_component_cut(context, cuts, package)
+    return context, cuts
+
+
+def check_component_cut(context, cuts, package):
+    from oeis_learn.generalization.progressive.component_distillation import ComponentMixer
+
+    mixer = ComponentMixer(package)
+    if (
+        context["selection"].get("component_input") != package
+        or cuts["library"]
+        != (package["library"]["library"]["identity"] if package["library"] else None)
+        or cuts["archive"] != mixer.archive
+    ):
+        raise ValueError("complete checkpoint component/model/target cut differs")
+    mixer.check(context["replay"])

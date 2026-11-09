@@ -44,6 +44,10 @@ def compatibility(package):
         from oeis_learn.generalization.progressive.replay import RULE
 
         value["replay_policy"] = RULE
+    if "component_distillation" in package or "component_rules" in package:
+        from oeis_learn.generalization.progressive.component_distillation import RULE
+
+        value["component_policy"] = RULE
     return digest(value)
 
 
@@ -53,7 +57,15 @@ def validate_input(package, task, *, allow_pending=False):
     from oeis_learn.pipeline_validation.progressive_training import validate_update_policy
 
     if (
-        set(package) - {"weights", "origin", "oeis_replay", "oeis_rules"}
+        set(package)
+        - {
+            "weights",
+            "origin",
+            "oeis_replay",
+            "oeis_rules",
+            "component_distillation",
+            "component_rules",
+        }
         != {
             "version",
             "identity",
@@ -94,6 +106,31 @@ def validate_input(package, task, *, allow_pending=False):
             or any(a["purpose"] != task["purpose"] for a in mixer.package["admissions"])
         ):
             raise ValueError("separate paired OEIS-derived replay authority required")
+    if "component_rules" in package or "component_distillation" in package:
+        from oeis_learn.generalization.progressive.component_distillation import (
+            RULE,
+            ComponentMixer,
+        )
+
+        if "oeis_rules" in package or "oeis_replay" in package:
+            raise ValueError("separate component/OEIS training profiles required")
+        if package.get("component_rules", RULE) != RULE or (
+            "component_distillation" not in package and not allow_pending
+        ):
+            raise ValueError("frozen component policy requires its committed task cut")
+        if "component_distillation" in package:
+            selected = package["component_distillation"]
+            ComponentMixer(selected)
+            if (
+                task["payload"]["stage"] != "components"
+                or task["payload"]["arm"] != selected["arm"]
+            ):
+                raise ValueError("paired component arm/task authority differs")
+            if selected["library"] is not None and (
+                selected["library"]["library"]["track"] != task["track"]
+                or selected["library"]["library"]["purpose"] != task["purpose"]
+            ):
+                raise ValueError("component library track/purpose differs")
     initializer = task["payload"]["initializer"]
     if (
         initializer.get("mode") == "weights_only"
@@ -296,6 +333,13 @@ def _run(
         worker = RecoverableUpdate(
             recovery, package["profile"], package["update_policy"], device=device
         )
+        if (
+            worker.context is not None
+            and "component_distillation" in package
+            and worker.context["selection"].get("component_input")
+            != package["component_distillation"]
+        ):
+            worker.adopt_component_cut(package["component_distillation"])
         if worker.context is None:
             mode = t["payload"]["initializer"]["mode"]
             if mode == "weights_only":
@@ -328,10 +372,11 @@ def _run(
             elif mode != "random":
                 raise ValueError("unresolved imported initializer")
             controller = Controller(package["layout"], seed=t["payload"]["seed"])
-            from oeis_learn.generalization.progressive.replay import Mixer
+            from .progressive_training import replay_mixer
 
+            replay_input = package.get("component_distillation", package.get("oeis_replay"))
             initial_replay = (
-                Mixer(package["oeis_replay"]).initial() if "oeis_replay" in package else {}
+                replay_mixer(replay_input).initial() if replay_input is not None else {}
             )
             context = {
                 "scheduler": {"controller": controller.snapshot(), "pre_loss": None},
@@ -361,9 +406,17 @@ def _run(
             }
             if "oeis_replay" in package:
                 cuts["archive"] = context["replay"]["archive"]
+            if "component_distillation" in package:
+                from .progressive_training import bind_component_cut
+
+                context, cuts = bind_component_cut(context, cuts, package["component_distillation"])
             worker.initialize(context, cuts)
         restored = recovery.restore()
         context = copy.deepcopy(worker.context)
+        if "component_distillation" in package:
+            from .progressive_training import check_component_cut
+
+            check_component_cut(context, restored["cuts"], package["component_distillation"])
         controller = Controller.restore(context["scheduler"]["controller"], package["layout"])
         missing = restored["discarded_tokens"] - controller.discarded_tokens
         if missing < 0:
@@ -434,11 +487,13 @@ def _run(
                         context["scheduler"]["pre_loss"] = None
                     rows, index = batch_for(controller)
                     replay_debit = None
-                    if "oeis_replay" in package:
+                    if "oeis_replay" in package or "component_distillation" in package:
                         from .progressive_training import replay_batch
 
                         rows, replay_debit = replay_batch(
-                            package["oeis_replay"], rows, context["replay"]
+                            package.get("component_distillation", package.get("oeis_replay")),
+                            rows,
+                            context["replay"],
                         )
                     if controller.block_position == 0 and context["scheduler"]["pre_loss"] is None:
                         probe = lookup[package["layout"]["probes"][controller.pending["bin"]]["id"]]
@@ -494,7 +549,9 @@ def _run(
                         allocation=controller_cut,
                         progress=heartbeat,
                         replay=replay_debit,
-                        replay_package=package.get("oeis_replay"),
+                        replay_package=package.get(
+                            "component_distillation", package.get("oeis_replay")
+                        ),
                         fault_after_reserve=(
                             package["diagnostic_fault"] is not None
                             and package["diagnostic_fault"]["slot"] == t["payload"]["slot"]
