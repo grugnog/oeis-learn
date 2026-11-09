@@ -270,7 +270,7 @@ def register_invocation(root, campaign, task, journal_root, output):
         item = load(path)
         if seal(item) != item or item["campaign"] != campaign["identity"]:
             raise ValueError("original storage inventory required")
-        if item["task"] == task["identity"]:
+        if item["task"] == task["identity"] and item['output'] != str(output.relative_to(root)):
             entries.append(confined(root, item["output"], exists=False))
     prior_bytes, prior_inodes = usage(entries)
     if prior_bytes >= task["payload"]["caps"]["disk_bytes"]:
@@ -282,7 +282,10 @@ def register_invocation(root, campaign, task, journal_root, output):
             output=str(output.relative_to(root)),
         )
     )
-    journal_write(journal_root, index / (digest(value)[7:] + ".json"), value)
+    binding = index / (digest(value)[7:] + '.json')
+    if binding.exists():
+        if load(binding)!=value:raise ValueError('original storage output binding changed')
+    else:journal_write(journal_root,binding,value)
     return dict(
         prior_bytes=prior_bytes,
         prior_inodes=prior_inodes,

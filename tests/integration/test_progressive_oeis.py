@@ -260,3 +260,36 @@ def test_freeze_validates_closed_host_cycle_before_dispatch(tmp_path,change):
     else:
         with pytest.raises((ValueError,StopIteration)):
             validate_requests(tmp_path,c['payload']['tasks'],refs,c['payload']['graph'],**args)
+
+
+def test_cycle_resume_reuses_committed_native_phases_and_original_charges(tmp_path, fitting_client, monkeypatch):
+    from tests.helpers.progressive_oeis_fixture import fixture
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.pipeline_validation.progressive_oeis import Cycle, run_cycle
+    from oeis_learn.generalization.progressive.contracts import load
+    c,m,request,_=fixture(tmp_path)
+    j=BudgetJournal(tmp_path/'run-state/discovery-accounting'/c['identity'][7:],c['identity'],c['payload']['caps'])
+    original=Cycle.phase
+    interrupted=[]
+    def interrupt(self,operation,artifacts,task=None):
+        value=original(self,operation,artifacts,task)
+        if operation=='train' and not interrupted:
+            interrupted.append(True)
+            raise InterruptedError('after complete durable learner phase')
+        return value
+    monkeypatch.setattr(Cycle,'phase',interrupt)
+    with pytest.raises(InterruptedError):run_cycle(tmp_path,tmp_path/'first',c,m,request,j)
+    before=j.path.read_bytes()
+    old_steps={p:p.read_bytes() for p in (tmp_path/'first/host/steps').glob('*.json')}
+    monkeypatch.setattr(Cycle,'phase',original)
+    result=run_cycle(tmp_path,tmp_path/'second',c,m,request,j)
+    assert result['mechanical_status']=='COMPLETE'
+    assert all(p.read_bytes()==raw for p,raw in old_steps.items())
+    assert j.path.read_bytes().startswith(before)
+    events=[__import__('json').loads(v) for v in j.path.read_text().splitlines()]
+    debits=[e['operation'] for e in events if e['event']=='RESERVE']
+    assert len(debits)==len(set(debits))
+    assert not (tmp_path/'second/host').exists()
+    final=j.path.read_bytes()
+    assert run_cycle(tmp_path,tmp_path/'third',c,m,request,j)==result
+    assert j.path.read_bytes()==final

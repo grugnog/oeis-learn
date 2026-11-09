@@ -319,28 +319,29 @@ class Cycle:
         self.ordinal, self.elapsed, self.receipts = 0, 0, []
         self.started = time.monotonic_ns() // 1000
         marker = journal.root / "oeis-cycle.json"
-        if marker.exists():
-            raise ValueError(
-                "cycle already attempted; recovery must use its original cuts, never a second cycle"
-            )
-        atomic_write(
-            marker,
-            seal(
-                dict(
-                    campaign=campaign["identity"],
-                    policy=self.plan["identity"],
-                    output=str(self.output.relative_to(self.root)),
-                )
-            ),
-        )
+        self.replaying = marker.exists()
+        if self.replaying:
+            original = load(marker)
+            if (seal(original) != original or original['campaign'] != campaign['identity']
+                    or original['policy'] != self.plan['identity']):
+                raise ValueError('original cycle recovery binding differs')
+            self.output = confined(self.root, original['output'])
+            self.host_root = self.output / 'host'
+        else:
+            atomic_write(marker, seal(dict(campaign=campaign['identity'], policy=self.plan['identity'],
+                                          output=str(self.output.relative_to(self.root)))))
         self.overhead_us = min(60_000_000, journal.task_remaining(manager)["elapsed_us"] // 10)
-        cost = dict.fromkeys(journal.binding["caps"], 0)
-        cost["elapsed_us"] = self.overhead_us
-        boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
-        charge = journal.reserve(
-            manager["payload"]["id"], "oeis-host", 0, cost, boot=boot, monotonic_us=self.started
-        )
-        journal.commit(charge["key"])  # conservative non-refundable host work reserve
+        if (self.output/'result.json').exists():
+            self.overhead_us = 0
+        else:
+            cost = dict.fromkeys(journal.binding["caps"], 0)
+            cost['elapsed_us'] = self.overhead_us
+            boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+            with journal.lock():
+                ordinal = sum(e['event']=='RESERVE' and e['operation'].startswith(manager['payload']['id']+'/oeis-host/')
+                              for e in journal._read()[0])
+            charge=journal.reserve(manager['payload']['id'],'oeis-host',ordinal,cost,boot=boot,monotonic_us=self.started)
+            journal.commit(charge['key'])
 
     def channel(self, kind, role, data):
         value = seal(dict(version="discovery-channel/v1", kind=kind, role=role, data=data))
@@ -361,6 +362,23 @@ class Cycle:
         )
         target = self.output / f"phase-{self.ordinal:05d}-{operation}"
         self.ordinal += 1
+        step = self.host_root / 'steps' / (str(self.ordinal-1)+'.json')
+        binding = digest(dict(operation=operation, task=task['identity'], inputs=sorted(refs,key=lambda r:r['path'])))
+        if step.exists():
+            cut = load(step)
+            if seal(cut) != cut or cut['binding'] != binding:
+                raise ValueError('original cycle step inputs changed')
+            result = json.loads(verify_refs(self.root,[cut['result']])[0])
+            if seal(result) != result:
+                raise ValueError('original cycle step result changed')
+            self.started -= cut['elapsed_us']
+            self.elapsed += cut['elapsed_us']
+            self.receipts.append(cut['receipt'])
+            return result, target, cut['elapsed_us']
+        if target.exists():
+            # An uncommitted phase cannot be assumed completed. The original
+            # supervisor's crash proof must first authorize learner recovery.
+            raise ValueError('uncommitted cycle phase requires supervisor recovery proof')
         remaining = self.journal.task_remaining(task)
         seconds = min(
             self.plan["seconds"][operation],
@@ -438,6 +456,8 @@ class Cycle:
             raise RuntimeError(
                 "cycle producer failed: " + str(result.get("producer_error") or result["reason"])
             )
+        atomic_write(step, seal(dict(binding=binding, result=reference(self.root,target/'role/result.json'),
+                                     elapsed_us=duration, receipt=self.receipts[-1])))
         return result, target, duration
 
     def cpu_phase(self, operation, artifacts, target, task, seconds):
@@ -654,6 +674,11 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
         from .progressive_evidence import publish
         from .progressive_learner import compatibility
 
+        if (self.output/'result.json').exists():
+            result = load(self.output/'result.json')
+            if seal(result) != result or result.get('campaign') != self.campaign['identity']:
+                raise ValueError('original completed cycle result differs')
+            return result
         attempts, admissions = [], []
         search_us = admission_us = 0
         initial = self.plan["training"][0]
@@ -723,11 +748,14 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
                         )
                     )
         package_start = time.monotonic_ns() // 1000
-        atomic_write(
-            self.host_root / "search-ledger.json",
-            seal(dict(attempts=attempts, receipts=self.receipts)),
-        )
-        package_us = max(1, time.monotonic_ns() // 1000 - package_start)
+        ledger = seal(dict(attempts=attempts, receipts=self.receipts))
+        if (self.host_root/'search-ledger.json').exists():
+            if load(self.host_root/'search-ledger.json') != ledger:
+                raise ValueError('original cycle search ledger differs')
+        else:
+            atomic_write(self.host_root/'search-ledger.json', ledger)
+        package_us = (load(self.host_root/'yield-audit.json')['payload']['costs']['package_us']
+                      if (self.host_root/'yield-audit.json').exists() else max(1,time.monotonic_ns()//1000-package_start))
         report = audit(
             self.pool,
             admissions,
@@ -739,7 +767,9 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
             purpose=self.campaign["purpose"],
             scope="DIAGNOSTIC_ONLY" if forced is not None else "CHECKPOINT_NATIVE",
         )
-        atomic_write(self.host_root / "yield-audit.json", report)
+        if (self.host_root/'yield-audit.json').exists():
+            if load(self.host_root/'yield-audit.json') != report:raise ValueError('original yield audit differs')
+        else:atomic_write(self.host_root/'yield-audit.json',report)
         if not report["payload"]["eligible"]:
             return publish(
                 self.output,
@@ -763,7 +793,9 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
             max_bytes=min(self.manager["payload"]["caps"]["archive_bytes"], 512 << 20),
         )
         cut = archive.publish(admissions)
-        atomic_write(self.host_root / "archive.json", cut)
+        if (self.host_root/'archive.json').exists():
+            if load(self.host_root/'archive.json') != cut:raise ValueError('original archive cut differs')
+        else:atomic_write(self.host_root/'archive.json',cut)
         all_rows = {"starting": [], "continued_synthetic": [], "replay": []}
         completed = []
         for entry in self.plan["training"]:
@@ -777,7 +809,9 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
             if compatibility(package) != task["payload"]["initializer"]["compatibility"]:
                 raise ValueError("replay changed the frozen learning compatibility")
             path = self.host_root / "packages" / (task["identity"][7:] + ".json")
-            atomic_write(path, package)
+            if path.exists():
+                if load(path)!=package:raise ValueError('original cycle training package differs')
+            else:atomic_write(path,package)
             channel = self.channel(
                 "training_request",
                 "learner",
