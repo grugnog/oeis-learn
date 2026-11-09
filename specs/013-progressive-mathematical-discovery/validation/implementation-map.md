@@ -1037,3 +1037,33 @@ work, seven preparation/learning-debit boundary cases, and optimizer/crash recov
 Both historical implementation-binding checks passed after refreshing the source
 hash. Blocking syntax/undefined-name and whitespace checks passed. Native end-to-end
 acceptance remains mandatory in Docker CI; local CPU evidence does not replace it.
+
+### OEIS starting versus trained baseline assertion repair
+
+CI run `42598584420` on `7d5e800` passed 538 of 539 registered cases. The remaining
+failure was the native OEIS-cycle test observer: it treated every `baseline` label
+as the frozen initializer. FR-030 requires two comparisons, and the continued
+synthetic arm correctly evaluates its trained checkpoint under that same metric
+label. Production cycle routing and the metric labels remain unchanged.
+
+The observer now distinguishes the starting comparison from both trained arms,
+checks each trained checkpoint against that task's committed recovery weights and
+completed optimizer update, and requires all six evaluations across both seeds.
+The low-yield case still requires no training or evaluation. The native fixture
+honors the existing `OEIS_SYNTHESIS_WORKER` override used by the production client;
+the default CI path and mandatory missing-worker failure remain unchanged.
+
+The exact prior assertion failure was reproduced locally using the actual worker
+and WASM guest from this CI run's `phase7-native-qualification` artifact, with
+LLVM 19 runtime libraries extracted into scratch. After the repair, all 12 OEIS
+tests passed, including both native end-to-end cases, with no skips (69.38s).
+This local native execution is not a Docker isolation, HIP or research-gain claim.
+
+The complete registered CPU/native/historical roster then passed: **539 passed,
+zero failures, zero errors, zero skips** (277.84s), with both mandatory-native
+environment flags enabled. The qualification script reconciled the complete JUnit
+inventory, actual native witness and installed-wheel coverage successfully. The
+local launch supplied the runtime scratch directory normally created by the
+container launcher. Blocking syntax/undefined-name lint and whitespace checks
+passed. No runtime package code or historical implementation hash changed. T018
+still awaits a successful container CI receipt; CI is not awaited after pushing.

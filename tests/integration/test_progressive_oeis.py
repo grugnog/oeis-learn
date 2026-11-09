@@ -118,6 +118,7 @@ def test_real_native_search_admit_update_evaluate_cycle(tmp_path, fitting_client
     original_phase = Cycle.phase
     trained_tasks = set()
     original_evaluate = Cycle.evaluate
+    evaluated_models = []
 
     def phase(self, operation, artifacts, task=None):
         if operation == "train":
@@ -132,11 +133,51 @@ def test_real_native_search_admit_update_evaluate_cycle(tmp_path, fitting_client
         return value
 
     def evaluate(self, task, model, *, label):
-        if label == "baseline":
-            assert task["identity"] in trained_tasks
-            # Score the unchanged frozen initializer, never the trained output.
-            entry = next(e for e in plan["training"] if e["task"] == task["payload"]["id"])
+        from oeis_learn.generalization.progressive.contracts import reference, verify_refs
+        from oeis_learn.generalization.progressive.recovery import Recovery
+        from oeis_learn.pipeline_validation.progressive_learner import compatibility
+
+        assert task["identity"] in trained_tasks
+        entry = next(e for e in plan["training"] if e["task"] == task["payload"]["id"])
+        arm = task["payload"]["arm"]
+        if arm == "replay" and label == "baseline":
+            # The starting-checkpoint comparison scores the frozen initializer.
             assert model == entry["model"]
+            comparison = "starting"
+        else:
+            # Both learned arms use their own committed weights. Continued
+            # synthetic training is a baseline too, not the starting checkpoint.
+            assert label == ("candidate" if arm == "replay" else "baseline")
+            channels = [load(tmp_path / path) for path in model]
+            assert len(channels) == 2
+            assert {v["kind"] for v in channels} == {"checkpoint", "recipe"}
+            original_recipe = next(
+                load(tmp_path / path)
+                for path in entry["model"]
+                if load(tmp_path / path)["kind"] == "recipe"
+            )
+            assert next(v for v in channels if v["kind"] == "recipe") == original_recipe
+            checkpoint = next(v["data"] for v in channels if v["kind"] == "checkpoint")
+            assert "control" not in checkpoint
+            training = load(tmp_path / entry["channel"])
+            package = load(tmp_path / training["data"]["artifact"]["path"])
+            state = (
+                tmp_path / "run-state/discovery-learning" / c["identity"][7:] / task["identity"][7:]
+            )
+            with Recovery(journal, task, compatibility(package), state_root=state) as owner:
+                restored = owner.restore()
+                assert restored["ledger"].updates == 1
+                assert restored["ledger"].consumed > 0
+                full = load(
+                    state / "checkpoints" / owner.state["checkpoint"]["payload"]["full_state"]["path"]
+                )
+                weights = full["states"]["weights"]
+                verify_refs(state / "checkpoints", [weights])
+                assert checkpoint["artifact"] == reference(
+                    tmp_path, state / "checkpoints" / weights["path"]
+                )
+            comparison = arm
+        evaluated_models.append((entry["task"], comparison))
         return original_evaluate(self, task, model, label=label)
 
     monkeypatch.setattr(Cycle, "phase", phase)
@@ -150,8 +191,19 @@ def test_real_native_search_admit_update_evaluate_cycle(tmp_path, fitting_client
         assert result["reason"] == "OEIS_YIELD_DEFICIT"
         assert result["next_action"] == "DEFER_BRANCH"
         assert not list((tmp_path / "cycle").glob("phase-*-train"))
+        assert not trained_tasks and not evaluated_models
     else:
         assert len(result["metrics"]["completed_tasks"]) == 4
+        assert len(trained_tasks) == 4
+        assert evaluated_models == [
+            (f"{arm}-{seed}", comparison)
+            for seed in (1, 2)
+            for arm, comparison in (
+                ("replay", "starting"),
+                ("replay", "replay"),
+                ("continued_synthetic", "continued_synthetic"),
+            )
+        ]
         assert audit["accepted_groups"] == 2 and audit["invalid_admissions"] == 0
         assert any("hundred-term" in key for key in audit["rejections"])
         cycle = load(tmp_path / "cycle/host/cycle.json")
