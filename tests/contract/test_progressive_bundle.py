@@ -8,6 +8,16 @@ from oeis_learn.generalization.progressive.report import build
 from oeis_learn.generalization.progressive.verify import verify
 
 
+def test_report_campaign_reference_and_embedded_record_follow_their_contracts():
+    from oeis_learn.generalization.progressive.contracts import schema
+
+    properties = schema("report")["properties"]
+    assert properties["campaign"] == {"$ref": "progressive-common.schema.json#/$defs/hash"}
+    assert properties["campaign_record"]["oneOf"] == [
+        {"type": "null"}, schema("campaign")
+    ]
+
+
 def fixture(root):
     roster = [dict(task=digest("task"), group=digest("group"), stratum="composition")]
     rows = [

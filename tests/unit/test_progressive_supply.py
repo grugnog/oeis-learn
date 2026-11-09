@@ -31,3 +31,20 @@ def test_final_frontier_shard_boundary_restores_without_reuse():
     import pytest
     with pytest.raises(TimeoutError,match='no static fallback'):
         shard_index('refreshed','frontier',512,8,64)
+
+
+@pytest.mark.parametrize("arm", ["replay", "continued_synthetic", "library", "no_library"])
+def test_paired_mixture_arms_preserve_refreshed_synthetic_cursor(arm):
+    from oeis_learn.generalization.progressive.supply import shard_index
+
+    assert shard_index(arm, "frontier", 8, 8, 2) == 1
+    assert shard_index(arm, "familiar", 16, 8, 2) == 0
+    with pytest.raises(TimeoutError, match="no static fallback"):
+        shard_index(arm, "frontier", 16, 8, 2)
+
+
+def test_unknown_arm_cannot_select_support():
+    from oeis_learn.generalization.progressive.supply import shard_index
+
+    with pytest.raises(ValueError, match="support cursor"):
+        shard_index("unknown", "familiar", 0, 8, 2)

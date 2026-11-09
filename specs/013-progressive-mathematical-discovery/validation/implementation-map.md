@@ -1380,3 +1380,18 @@ paired confirmation completed with deliberately negative native held-out outcome
 rehearsal has exercised five real completed native trials and a real lower-yield
 sixth trial; final pruning/cancellation and whole-foundation acceptance are being
 reconciled in the next increment.
+
+### CI regression repair after T117–T125 implementation
+
+The failing `portable-engines (docker)` job on `151f449` reported 17 failures
+and 685 passes. Restore the report's `campaign` hash contract and update the
+nullable `campaign_record` schema with the current frozen campaign contract.
+Preserve refreshed synthetic-support cursors for the paired `replay`,
+`continued_synthetic`, `library`, and `no_library` arms, including exhaustion
+refusal; their separate replay/component mixers remain unchanged.
+
+Validation: all 41 focused supply, report-bundle, OEIS-cycle, and component
+integration cases passed with zero skips (314.96s), including all 17 CI failures.
+Added regression coverage for schema synchronization, all four mixture-arm
+cursors, exhaustion, and unknown-arm rejection. Full verification is delegated
+to CI at the user's request; no full-suite or Docker/HIP pass is claimed locally.

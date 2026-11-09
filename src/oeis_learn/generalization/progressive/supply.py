@@ -39,7 +39,9 @@ def plan(package, target, *, arm=None):
 
 def shard_index(arm, bin_name, updates, cadence, count):
     if (
-        arm not in {"static", "refreshed"}
+        # Replay and component arms retain the same refreshed synthetic support
+        # cursor; their separate mixers select the additional training rows.
+        arm not in {"static", "refreshed", "replay", "continued_synthetic", "library", "no_library"}
         or type(updates) is not int
         or updates < 0
         or type(cadence) is not int
