@@ -152,3 +152,25 @@ def test_component_generation_uses_committed_cut_and_records_scoring_cost(tmp_pa
     assert cost["commit"] == bundle["commit"]
     with pytest.raises(ValueError, match="one ordinary"):
         generate(tmp_path, "bad", prompts, recipe, client=None, component_library=bundle)
+
+
+def test_expired_diagnostic_fit_remains_charged_and_unresolved(tmp_path):
+    import time
+    from oeis_learn.generalization.progressive.models import resolve_profile
+    from oeis_learn.generalization.progressive.contracts import load
+    class Budget:
+        deadline=time.monotonic()+30
+        used=[]
+        def consume(self,**cost):self.used.append(cost)
+    class Client:
+        def fit(self,*args,**kw):raise TimeoutError('late native work remains charged')
+    budget=Budget()
+    recipe=resolve_profile(resolve({'version':'bigint-bootstrap/v1'}),shape='smaller_width',seed=13,dropout=0)
+    prompts=[dict(id='expired',indices=list(map(str,range(20))),values=list(map(str,range(20))))]
+    candidate=generate(tmp_path,'expired',prompts,recipe,client=Client(),model_control='random',seed=13,methods=('correct',),forced={'expired':['(program (return $index))']},budget=budget)
+    row=load(tmp_path/candidate['path'])['records']['expired']
+    assert budget.used==[dict(draws=1,attempts=1,rejections=1)]
+    assert row['selections']['equal_budget'] is None
+    assert row['arm_evidence']['equal_budget']['complete'] is False
+    assert row['costs']['diagnostic']['expired_fits']==1
+    assert row['costs']['diagnostic']['autonomous_discoveries']==0

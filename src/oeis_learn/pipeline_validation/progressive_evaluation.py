@@ -135,15 +135,23 @@ def generate(
             if forced is not None:
                 visible = VisiblePrompt(tuple(p["indices"]), tuple(p["values"]))
                 admitted = []
+                complete=True
+                expired=0
                 for source in forced[p["id"]]:
                     if budget:
                         budget.consume(draws=1, attempts=1, rejections=1)
-                    result = client.fit(
-                        source,
-                        visible,
-                        policy=fitting_policy(source),
-                        deadline=min(deadline, time.monotonic() + 4),
-                    )
+                    fit_deadline=min(deadline,time.monotonic()+4)
+                    try:
+                        result = client.fit(source,visible,policy=fitting_policy(source),deadline=fit_deadline)
+                    except TimeoutError:
+                        complete=False
+                        expired+=1
+                        continue
+                    if time.monotonic()>=fit_deadline:
+                        complete=False
+                        expired+=1
+                        continue
+                    complete &= result.get('complete') is True
                     admitted.extend(result.get("admitted", []))
                 chosen = _seal(admitted, visible, cost=0)
                 for method in (
@@ -159,9 +167,9 @@ def generate(
                     selected = method in {"raw", "rescue", "equal_budget"}
                     record["selections"][method] = chosen if selected else None
                     record["arm_evidence"][method] = dict(
-                        complete=selected, reason="DIAGNOSTIC_ONLY"
+                        complete=selected and complete, reason="DIAGNOSTIC_ONLY" if complete else "NATIVE_SERVICE_INCOMPLETE"
                     )
-                record["costs"]["diagnostic"] = dict(autonomous_discoveries=0)
+                record["costs"]["diagnostic"] = dict(autonomous_discoveries=0,expired_fits=expired)
                 rows[p["id"]] = record
                 continue
             for mode in ("correct", "shuffled", "absent", "template"):
