@@ -1,6 +1,6 @@
 # Spec 013 implementation map
 
-Current scope: T001–T081, T083–T087 and T112–T125 software are implemented. T085/T086 are closed by the successful current-source Docker/native and independent review workflows. T082/T088–T091 physical evidence remains unexecuted. The T089 input/design and T090/T091 orchestration/protocol preparation is implemented. Earlier entries retain their historical validation scope; the latest handoff section supersedes their unavailable-command findings. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
+Current scope: T001–T081, T083–T087 and T112–T134 software are implemented. T085/T086 record earlier successful Docker/native and independent review workflows; current local verification is recorded in the latest section below. T082/T088–T091 physical evidence remains unexecuted. The T089 input/design and T090/T091 orchestration/protocol preparation is implemented. Earlier entries retain their historical validation scope; the latest handoff section supersedes their unavailable-command findings. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
 quickstart.md, hardware-validation.md, planning-review.md, all five contracts,
 the requirements checklist and adopted constitution in full before implementation.
 Requirements checklist: 16 checked, zero unchecked. No extension hooks registered.
@@ -1631,7 +1631,7 @@ The reference profile uses a 218,103,808-byte (208 MiB) checkpoint bound; the la
 
 Validation: both reference and larger profiles completed **five real CPU updates across two linked tasks**, including Adam allocation and full-state successor restore (720 useful tokens after the first task, 1,200 after the second). The original reference case first reproduced PARTIAL/zero useful tokens before the fix. A 66-case CPU/native regression run passed with zero skips, covering native OEIS search/admission/updates/evaluation, component learning, four-term source recovery, calibration, handoff and storage deficits. Eight additional lifecycle cases and 16 asset/CI-inventory/packaging checks passed. The storage-exhaustion regression now uses a valid frozen storage graph with previously retained invocation bytes, and still requires rejection before the first checkpoint publication. New owner lint and whitespace checks pass.
 
-T126 and T127 are complete as software fixes. T128–T134 remain open. Actual HIP/sustained execution and current-source CI remain separate evidence requirements; no previous device/source receipt is promoted by these local checks.
+At that checkpoint T126 and T127 were complete as software fixes and T128–T134 remained open; the final closure below supersedes that status. Actual HIP/sustained execution and current-source CI remain separate evidence requirements; no previous device/source receipt is promoted by these local checks.
 
 
 ## T129–T130 — OEIS endpoint and compatible scaling schedules
@@ -1704,3 +1704,48 @@ Actual HIP qualification, sustained training and conditional research execution
 are separate evidence requirements. No earlier device/source receipt is promoted
 by these software changes. T082 and T088–T111 remain subject to their original
 physical prerequisites, campaign selection and optional triggers.
+
+
+### Final software verification and remaining external work
+
+T128 and T131–T134 are complete. The 851-case mandatory roster is accounted
+for across passing CPU/native runs: the initial 74-case prefix, the final
+776-case regression remainder, and the separately executed installed-acceptance
+wrapper. The remainder had **776 passed, zero failures/errors/skips**, with only
+the separately run wrapper deselected (1,188.23 seconds). The unchanged selected
+profile/calibration boundaries in the prefix passed earlier; final cycle ownership
+changes also passed dedicated canonical acceptance. The final installed wheel
+passed **all 22 original native/CPU cases**, with zero failures/errors/skips
+(467.71 seconds; wrapper 471.56 seconds), including original source-closure
+verification. No test outcome is inferred from a supplied qualified bit.
+
+Additional focused verification passed: ten component-search/native data-flow
+cases (including the deterministic slow-decoder deadline regression), eight
+preparation/tuning/process-kill cases, 26 OEIS/quarantine cases, the canonical
+source-cycle child-output/foreign-receipt check, and the diagnostic native-timeout
+regression. Every fix preserves the original four-second service limit, 60-second
+portfolio limit, resource debits and historical task dispositions. Review found
+and repaired stale test storage partitions, directory-order-dependent binding
+assertions, stale second-cycle expectations, missing sparse-replay lineage reuse,
+and missing publication of completed cycle children as owned predecessor outputs.
+Expired diagnostic fits now retain their charge, admit nothing and remain
+unresolved rather than becoming a fatal producer failure or completed evidence.
+
+Actual HIP is still externally unavailable: Torch has no HIP build, no accelerator
+is available, and `/dev/kfd` is absent. The installed receipt remains
+`qualified=false`; hardware and sustained status remain PENDING. T082 and
+T088–T111 are not marked executed. Their original physical, concrete campaign,
+source/permission and optional-trigger prerequisites still apply. No research
+freeze, sustained duration, device PASS or scientific gain is claimed. Changes
+were committed and pushed incrementally; CI is not awaited after the final push.
+
+The final installed source is
+`sha256:4e2c6cea89c6ab6ab083aed60bbfb1de0a53c8b622e316b44455b8d05743f96d`,
+matching the current checkout. Its original diagnostic receipt is
+`sha256:51c9adb1b72209c079a920091abf8c1363becf8d6ecfa46a27e796848338aea6`
+and bounded archive is
+`sha256:0d6a926ce3d8c2b2710e5955229826b086208ad97160ff06818bb58387f4cc13`.
+The canonical implementation serializer gives
+`sha256:4f94486346042f6ef8bb629887d7373d27ccdd434a2cc84f0195ffcab911c487`;
+all 68 historical disposition item/task states remain unchanged. These are local
+CPU/native diagnostic producers, not new CI or actual HIP receipts.
