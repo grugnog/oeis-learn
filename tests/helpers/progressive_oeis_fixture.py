@@ -31,6 +31,8 @@ def fixture(root, *, low=False):
     if base is None:
         channel = load(root / "base/training-channel.json")
         base = load(root / "base" / channel["data"]["artifact"]["path"])
+    from oeis_learn.pipeline_validation.progressive_acceptance_limits import storage
+    measured = load(root / 'base/acceptance-limits.json')
 
     def channel(name, kind, role, data):
         p = root / name
@@ -44,7 +46,7 @@ def fixture(root, *, low=False):
         attempts=4096,
         native_work=65536,
         elapsed_us=600_000_000,
-        disk_bytes=256 << 20,
+        disk_bytes=measured['task_bytes'],
         archive_bytes=32 << 20,
     )
     pool = []
@@ -297,6 +299,7 @@ def fixture(root, *, low=False):
                     artifact=reference(root, p),
                 )
             )
+    storage_limits = storage(root, measured, tasks=len(tasks))
     campaign = record(
         "campaign",
         dict(
@@ -305,18 +308,8 @@ def fixture(root, *, low=False):
             graph=dict(selected_stages=stages, nodes=nodes, edges=edges, diagnostic_pool=zero),
             tasks=tasks,
             references=refs,
-            caps={k: v * 8 for k, v in task_caps.items()},
-            storage=dict(
-                checkpoint_bytes=64 << 20,
-                atomic_generations=2,
-                milestone_pins=0,
-                shard_bytes=1 << 20,
-                package_bytes=4 << 20,
-                required_bytes=133 << 20,
-                required_inodes=16384,
-                available_bytes=2 << 30,
-                available_inodes=32768,
-            ),
+            caps={k: v * 8 for k, v in task_caps.items()} | {'disk_bytes': storage_limits['required_bytes']},
+            storage=storage_limits,
             target_policy=digest("targets"),
         ),
         created_at="2026-11-08T00:00:00Z",

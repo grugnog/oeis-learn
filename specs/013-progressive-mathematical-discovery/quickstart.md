@@ -1,6 +1,6 @@
 # Validation and workstation handoff
 
-**Software handoff implemented; physical validation pending.** The twelve discovery command routes and every registered installed role now have concrete handlers. Qualification and feature acceptance require immutable plans and matching original producers; missing inputs return explicit deficits. Current-source Docker/native CI passed on `e6362ff` (799 mandatory cases, zero failures/errors/skips). Actual HIP/sustained results remain pending. No research or device PASS is inferred from CPU checks.
+**Convergence fixes in progress; physical validation pending.** The full audit recorded the remaining software gaps in T126–T134. Exact-input preparation calibration and selected-model acceptance storage are now implemented; T128–T134 remain open. Qualification and feature acceptance require immutable plans and matching original producers; missing inputs return explicit deficits. Docker/native CI passed on the earlier source `e6362ff` (799 mandatory cases, zero failures/errors/skips); the convergence changes require new source-bound verification. Actual HIP/sustained results remain pending. No research or device PASS is inferred from CPU checks.
 
 Implementation order and optional branches are in [tasks.md](tasks.md). Follow [hardware-validation.md](hardware-validation.md) to batch actual-HIP validation after CPU/native checks: one consolidated qualification matrix, then reuse exact compatible producers and execute only missing post-freeze device cases. This reduces repeated qualification, not scientific training seeds. Changed source closure or an uncovered execution scope still requires matching validation.
 
@@ -433,6 +433,18 @@ and native-verified refreshed structure consumption. Q requires matching 4/20
 input and accumulation scopes. The inspected image/device/numerical policy must
 still match; CPU fallback, skipped/missing cases and stale producers fail closed.
 The installed HIP numerical startup flags are set before Python starts.
+
+Acceptance measures the selected profile's actual parameter and persistent-buffer
+sizes on CPU before learner dispatch. Its finite diagnostic checkpoint envelope
+includes weights, both Adam moments, serialization/context headroom and a second
+allowance; it is rounded upward rather than retaining the small fixture's 64 MiB
+limit. Task disk partitions cover simultaneous generations, imported/projected
+predecessors and retained outputs. The campaign graph additionally reserves all
+task partitions, projections, journals and packaging, checking real free bytes
+and inodes before publishing the fixture. OEIS and four-term source fixtures use
+the same bounds. `acceptance-limits.json` records the profile and measurements.
+These are diagnostic resource bounds, not substitutes for exact research timing
+or actual HIP qualification. No task time ceiling is enlarged by this sizing.
 
 Retain the original CPU suite receipt/cases/JUnit, device request/producer/JUnit,
 Q reuse plan, frozen campaign/runtime, and qualification closure. Acceptance

@@ -391,6 +391,10 @@ def fixture(root, *, interrupt=True, first_cap_updates=8, weights_only=False, fa
     )
     from .progressive_device_acceptance import selected_profile
     p = selected_profile(p)
+    from .progressive_acceptance_limits import measure, storage
+    measured = measure(p)
+    storage_limits = storage(root, measured, tasks=2)
+    atomic_write(root / 'acceptance-limits.json', measured)
     policy = resolve_update_policy(
         p, schedule_horizon_tokens=400000000, schedule="constant", microbatch_size=7
     )
@@ -481,7 +485,7 @@ def fixture(root, *, interrupt=True, first_cap_updates=8, weights_only=False, fa
             "attempts": 0,
             "native_work": 0,
             "elapsed_us": seconds * 1000000,
-            "disk_bytes": 1 << 30,
+            "disk_bytes": measured['task_bytes'],
             "archive_bytes": 0,
         }
 
@@ -601,18 +605,8 @@ def fixture(root, *, interrupt=True, first_cap_updates=8, weights_only=False, fa
                     "artifact": reference(root, "training-channel.json"),
                 }
             ],
-            "caps": caps(16 * charge, 240) | {"disk_bytes": 2 << 30},
-            "storage": {
-                "checkpoint_bytes": 64 << 20,
-                "atomic_generations": 2,
-                "milestone_pins": 0,
-                "shard_bytes": 1 << 20,
-                "package_bytes": 4 << 20,
-                "required_bytes": (133 << 20),
-                "required_inodes": 1024,
-                "available_bytes": 2 << 30,
-                "available_inodes": 4096,
-            },
+            "caps": caps(16 * charge, 240) | {"disk_bytes": storage_limits['required_bytes']},
+            "storage": storage_limits,
             "target_policy": digest("diagnostic-no-scientific-authority"),
         },
         created_at="2026-11-08T00:00:00Z",

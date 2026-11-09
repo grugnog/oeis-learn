@@ -40,9 +40,15 @@ def test_actual_short_update_restore_generation_and_native_score(tmp_path, fitti
     execution_device = device("acceptance")
     cfg = policy(p)
     from oeis_learn.generalization.progressive.contracts import seal
+    from oeis_learn.pipeline_validation.progressive_acceptance_limits import measure, storage
+    from oeis_learn.generalization.progressive.storage import StorageGuard
 
-    t = seal(dict(task(caps=caps(tokens=10000, elapsed_us=60000000)), track="external_assisted"))
-    j = BudgetJournal(tmp_path, t["payload"]["campaign"], caps(tokens=10000, elapsed_us=60000000))
+    measured = measure(p)
+    storage(tmp_path, measured, tasks=1)
+    task_caps = caps(tokens=10000, elapsed_us=60000000, disk_bytes=measured['task_bytes'])
+
+    t = seal(dict(task(caps=task_caps), track="external_assisted"))
+    j = BudgetJournal(tmp_path, t["payload"]["campaign"], task_caps)
     context = {k: {} for k in ("scheduler", "data", "replay", "history", "pins", "selection")}
     context["data"] = {"cursor": 0, "pending_batch": None}
     cuts = {
@@ -58,7 +64,9 @@ def test_actual_short_update_restore_generation_and_native_score(tmp_path, fitti
             "consumed",
         )
     }
-    with Recovery(j, t, digest([p, cfg, "combinatorial-short/v1"])) as r:
+    guard = StorageGuard([tmp_path], max_bytes=measured['task_bytes'], max_inodes=2048)
+    with guard.activate(), Recovery(j, t, digest([p, cfg, "combinatorial-short/v1"]),
+                                   checkpoint_bytes=measured['checkpoint_bytes']) as r:
         w = RecoverableUpdate(r, p, cfg, device=execution_device)
         w.initialize(context, cuts)
         before = [v.detach().clone() for v in w.runner.encoder.parameters()]

@@ -374,8 +374,6 @@ def test_installed_initial_checkpoint_preflights_storage(tmp_path):
     from oeis_learn.pipeline_validation.progressive_learner import run
 
     c, _, _, _ = fixture(tmp_path, interrupt=False)
-    c["payload"]["tasks"][0]["caps"]["disk_bytes"] = c["payload"]["storage"]["package_bytes"] - 1
-    c = seal(c)
     t = record(
         "task",
         dict(c["payload"]["tasks"][0], campaign=c["identity"]),
@@ -385,7 +383,11 @@ def test_installed_initial_checkpoint_preflights_storage(tmp_path):
     )
     authority = seal(
         dict(
-            version="progressive-supervisor/v1", campaign=c, task=t, clock={}, invocation="no-room"
+            version="progressive-supervisor/v1", campaign=c, task=t, clock={}, invocation="no-room",
+            # Keep the frozen simultaneous storage graph valid. Previously
+            # retained invocation bytes leave too little room for finalization.
+            storage=dict(prior_bytes=t['payload']['caps']['disk_bytes']-c['payload']['storage']['package_bytes']+1,
+                         prior_inodes=0, max_inodes=c['payload']['storage']['required_inodes']),
         )
     )
     with pytest.raises(TimeoutError, match="storage"):

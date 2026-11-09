@@ -18,6 +18,7 @@ COMMANDS = {
 # Explicit inventory avoids the unrelated legacy rl/progressive harness whose
 # tests also begin with test_progressive_. New cases remain in source closure.
 CPU_TESTS = (
+    "tests/integration/test_progressive_acceptance_profiles.py",
     "tests/integration/test_progressive_calibration.py",
     "tests/integration/test_progressive_handoff.py",
     "tests/contract/test_progressive_diagnostic_blueprints.py",
