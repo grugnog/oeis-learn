@@ -144,7 +144,7 @@ def test_native_component_distillation_matches_original_hundred_terms(tmp_path, 
 
 @pytest.mark.parametrize("arm", ["library", "no_library"])
 @pytest.mark.parametrize("seed", [1, 2])
-def test_installed_learner_binds_component_cut_and_rejects_changed_resume(tmp_path, arm, seed):
+def test_installed_learner_binds_component_cut_and_rejects_changed_resume(tmp_path, arm, seed, fitting_client):
     from oeis_learn.pipeline_validation.progressive_acceptance import fixture, invoke_cpu
     from oeis_learn.pipeline_validation.progressive_learner import compatibility
     from oeis_learn.generalization.progressive.component_distillation import freeze_distillation
@@ -158,7 +158,8 @@ def test_installed_learner_binds_component_cut_and_rejects_changed_resume(tmp_pa
     c, tasks, channel, _ = fixture(tmp_path, interrupt=True)
     source_root = tmp_path / "mining"
     source_root.mkdir()
-    bundle, target = prepared(source_root)
+    bundle, target = prepared(source_root, fitting_client)
+    assert target["row"]["native_verified"]
     package = load(tmp_path / "training-input.json")
     from oeis_learn.generalization.progressive.models import resolve_profile
     from oeis_learn.pipeline_validation.progressive_training import resolve_update_policy

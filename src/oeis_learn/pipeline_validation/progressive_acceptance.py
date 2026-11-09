@@ -1,4 +1,7 @@
-"""Short installed CPU lifecycle rehearsal. Never hardware/research authority."""
+"""Bounded installed all-stage rehearsal and exact original HIP capability reuse.
+
+Software diagnostics, device capability and research authority remain separate.
+"""
 
 import os
 import subprocess
@@ -28,6 +31,296 @@ def inventory():
 
 
 GPU_CASES = tuple(c["id"] for c in inventory()["cases"] if c["device"] == "actual_HIP")
+
+
+def suite_nodes():
+    """Fixed, source-closed roster; never accept an arbitrary command or test list."""
+    return tuple(c["node"] for c in inventory()["integrated"]["cases"])
+
+
+def reconcile_suite(path):
+    """Replay individual outcomes, not pytest's caller-supplied summary counts."""
+    import math
+    import xml.etree.ElementTree as ET
+
+    registered = {c["node"]: c["stage"] for c in inventory()["integrated"]["cases"]}
+    path = Path(path)
+    if path.is_symlink() or path.stat().st_size > inventory()["integrated"]["maximum_junit_bytes"]:
+        raise ValueError("bounded regular JUnit required")
+    raw = path.read_bytes()
+    if b"<!DOCTYPE" in raw or b"<!ENTITY" in raw:
+        raise ValueError("JUnit declarations forbidden")
+    tree = ET.fromstring(raw)
+    if tree.tag not in {"testsuites", "testsuite"}:
+        raise ValueError("JUnit suite required")
+    cases, invalid, seen = [], [], set()
+    for entry in tree.iter("testcase"):
+        node = entry.get("classname", "").replace(".", "/") + ".py::" + entry.get("name", "")
+        if node not in registered or node in seen:
+            invalid.append(node)
+            continue
+        seen.add(node)
+        try:
+            seconds = float(entry.get("time", ""))
+            if not math.isfinite(seconds) or seconds < 0:
+                raise ValueError("invalid duration")
+        except ValueError:
+            invalid.append(node)
+            seconds = 0
+        outcomes = [child.tag for child in entry if child.tag in {"failure", "error", "skipped"}]
+        cases.append(dict(node=node, stage=registered[node], status="FAIL" if outcomes else "PASS",
+                          outcomes=outcomes, elapsed_us=int(seconds * 1e6)))
+    missing = sorted(set(registered) - seen)
+    # Collection errors are sometimes emitted outside a testcase.
+    if len(list(tree.iter("error"))) > sum(c["outcomes"].count("error") for c in cases):
+        invalid.append("collection-error")
+    return seal(dict(version="progressive-integrated-cases/v1",
+                     status="PASS" if not missing and not invalid and all(c["status"] == "PASS" for c in cases) else "FAIL",
+                     stages=sorted(set(registered.values())), cases=cases, missing=missing, invalid=invalid))
+
+
+def _bounded_process(argv, *, cwd, env, log, seconds, maximum):
+    """Own the subprocess group through timeout/failure; keep local bounded logs."""
+    import signal
+
+    began = time.monotonic()
+    with Path(log).open("xb") as stream:
+        process = subprocess.Popen(argv, cwd=cwd, env=env, stdout=stream, stderr=stream,
+                                   start_new_session=True)
+        try:
+            while process.poll() is None:
+                if time.monotonic() - began >= seconds:
+                    raise TimeoutError("acceptance subprocess deadline")
+                if Path(log).stat().st_size > maximum:
+                    raise ValueError("acceptance subprocess log cap")
+                time.sleep(0.1)
+            if Path(log).stat().st_size > maximum:
+                raise ValueError("acceptance subprocess log cap")
+            return process.returncode
+        finally:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=5)
+
+
+def run_suite(source_root, output):
+    """Build once, run the fixed native/CPU cases installed, export public summaries.
+
+    Independent mechanical fixtures force useful positive and negative paths even
+    when a real campaign cannot freeze. This never issues a research launch receipt.
+    """
+    import json
+    import zipfile
+    from oeis_learn.experiments.source_snapshot import collect_snapshot
+    from oeis_learn.pipeline_validation.identity import file_hash
+
+    root, output = Path(source_root).resolve(strict=True), Path(output).absolute()
+    output.mkdir(parents=True, exist_ok=False)
+    policy = inventory()["integrated"]
+    source = digest(collect_snapshot(root))
+    began = time.monotonic()
+    installed, first_error, cases, code = None, None, None, None
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", OEIS_REQUIRE_NATIVE="1",
+               OEIS_REQUIRE_BIGINT_BUILD="1", PYTEST_DISABLE_PLUGIN_AUTOLOAD="1")
+    try:
+        (output / "metadata").mkdir()
+        build = [sys.executable, "setup.py", "egg_info", "--egg-base", str(output / "metadata"),
+                 "build", "--build-base", str(output / "build"), "bdist_wheel", "--bdist-dir",
+                 str(output / "bdist"), "--dist-dir", str(output / "dist")]
+        if _bounded_process(build, cwd=root, env=env, log=output / "build.log",
+                            seconds=policy["build_timeout_seconds"], maximum=policy["maximum_log_bytes"]):
+            raise ValueError("wheel build failed")
+        [wheel] = (output / "dist").glob("*.whl")
+        package = output / "installed"
+        with zipfile.ZipFile(wheel) as archive:
+            archive.extractall(package)
+        env["PYTHONPATH"] = os.pathsep.join((str(package), str(root)))
+        # Probe from outside the checkout. Its exact installed closure must match
+        # the current checkout, including tests, locks, contracts and native code.
+        probe = (
+            "from pathlib import Path; import oeis_learn; "
+            "from oeis_learn.experiments.source_snapshot import source_snapshot; "
+            "from oeis_learn.generalization.progressive.contracts import atomic_write,digest; "
+            "import sys; p=Path(oeis_learn.__file__).resolve(); "
+            "assert p.is_relative_to(Path(sys.argv[1])); "
+            "atomic_write(Path(sys.argv[2]),dict(source=digest(source_snapshot()),package=str(p)))"
+        )
+        if _bounded_process([sys.executable, "-c", probe, str(package), str(output / "installed.json")],
+                            cwd=output, env=env, log=output / "probe.log", seconds=30,
+                            maximum=policy["maximum_log_bytes"]):
+            raise ValueError("installed package probe failed")
+        installed = load(output / "installed.json")
+        if installed["source"] != source:
+            raise ValueError("installed source closure mismatch")
+        installed = dict(source=installed["source"], wheel_sha256=file_hash(wheel))
+        code = _bounded_process(
+            [sys.executable, "-m", "pytest", "-q", "-o", "addopts=", "-p", "no:cacheprovider",
+             "--basetemp", str(output / "work"), "--junitxml", str(output / "junit.xml"), *suite_nodes()],
+            cwd=root, env=env, log=output / "suite.log", seconds=policy["timeout_seconds"],
+            maximum=policy["maximum_log_bytes"])
+        cases = reconcile_suite(output / "junit.xml")
+        if code != 0 or cases["status"] != "PASS":
+            raise ValueError("installed case roster failed")
+        if digest(collect_snapshot(root)) != source:
+            raise ValueError("source changed during acceptance")
+    except (OSError, ValueError, TimeoutError) as error:
+        # Public metadata excludes tracebacks, tensor data and truth-bearing logs.
+        first_error = type(error).__name__
+    if cases is None:
+        cases = seal(dict(version="progressive-integrated-cases/v1", status="FAIL", cases=[],
+                          stages=[], missing=list(suite_nodes()), invalid=["incomplete-execution"]))
+    atomic_write(output / "cases.json", cases)
+    result = seal(dict(version="progressive-integrated-acceptance/v1", source=source,
+                       scope="DIAGNOSTIC_ONLY", status="COMPLETE" if first_error is None else "FAILED",
+                       qualified=False, hardware_status="PENDING", sustained_status="PENDING",
+                       scientific_status="UNMEASURED", installed=installed, cases=reference(output, "cases.json"),
+                       exit_code=code, first_error=first_error, actual_elapsed_us=int((time.monotonic()-began)*1e6),
+                       limits=policy, junit=reference(output, "junit.xml") if (output / "junit.xml").is_file() else None))
+    atomic_write(output / "acceptance.json", result)
+    with zipfile.ZipFile(output / "diagnostics.zip", "x", compression=zipfile.ZIP_DEFLATED) as archive:
+        for name in ("acceptance.json", "cases.json"):
+            raw = (output / name).read_bytes()
+            if len(raw) > policy["maximum_export_bytes"] // 2:
+                raise ValueError("diagnostic export cap")
+            archive.writestr(name, raw)
+    return result
+
+
+HARDWARE_CHECKS = ("finite_update", "parameter_change", "full_restore", "deterministic_continuation",
+                   "generation", "native_reference_score", "cleanup")
+
+
+def hardware_plan(root, request, producers):
+    """Only original exact Q capabilities can be reused, never campaign authority."""
+    from oeis_learn.generalization.progressive.contracts import verify_refs
+    from oeis_learn.pipeline_validation.identity import validate
+    from .progressive_qualification import matrix
+
+    validate(request, ("version", "source", "image", "engine", "serial", "hardware", "cases"),
+             "progressive-hip-matrix/v1")
+    expected = matrix(
+        list({c["profile"]["identity"]: c["profile"] for c in request["cases"]}.values()),
+        source=request["source"], image=request["image"], engine=request["engine"], hardware=request["hardware"],
+        input_lengths=tuple(sorted({c["input_length"] for c in request["cases"]})),
+        microbatches=tuple(sorted({c["microbatch"] for c in request["cases"]})))
+    if request != expected or len(producers) > 48:
+        raise ValueError("exact bounded current matrix required")
+    verify_refs(root, producers, max_bytes=4 << 20)
+    by_scope = {}
+    for ref in producers:
+        producer = load(Path(root) / ref["path"])
+        validate(producer, ("version", "source", "scope", "device", "status", "requested", "executed", "measurements"),
+                 "progressive-hip-case/v1")
+        if (producer["device"] != "actual_HIP" or producer["status"] != "PASS"
+                or producer["requested"] != list(HARDWARE_CHECKS) or producer["executed"] != list(HARDWARE_CHECKS)
+                or producer["scope"] in by_scope):
+            raise ValueError("original complete unique HIP case required")
+        measures = producer["measurements"]
+        numeric = ("parameters", "peak_allocated_bytes", "cleanup_allocated_bytes", "baseline_allocated_bytes", "elapsed_us")
+        if (set(measures) != set(HARDWARE_CHECKS) | set(numeric)
+                or any(measures.get(k) is not True for k in HARDWARE_CHECKS)
+                or any(type(measures.get(k)) is not int or measures[k] < 0 for k in numeric)
+                or not measures["parameters"] or not measures["elapsed_us"]
+                or measures["cleanup_allocated_bytes"] > measures["baseline_allocated_bytes"]):
+            raise ValueError("original successful HIP measurements required")
+        by_scope[producer["scope"]] = (producer, ref)
+    reused, delta, elapsed = [], [], 0
+    for case in request["cases"]:
+        scope = digest([request[k] for k in ("source", "image", "engine", "hardware")] + [case])
+        pair = by_scope.get(scope)
+        if pair is None or pair[0]["source"] != request["source"]:
+            delta.append(case)
+        else:
+            producer, ref = pair
+            reused.append(dict(case=case["identity"], scope=scope, producer=ref))
+            elapsed += producer["measurements"]["elapsed_us"]
+    return seal(dict(version="progressive-hardware-reuse/v1", matrix=request["identity"],
+                     scope="model-update-capability-only", qualified=False, reused=reused, delta=delta,
+                     original_execution_us=elapsed, campaign_device_status="PENDING", sustained_status="PENDING"))
+
+
+def _current_hardware(request):
+    from oeis_learn.experiments.source_snapshot import source_snapshot
+    from .progressive_qualification import require_hip, hardware_facts
+
+    require_hip()
+    if (request["source"] != digest(source_snapshot()) or request["hardware"] != hardware_facts()
+            or request["image"] != os.environ.get("OEIS_QUALIFICATION_IMAGE")):
+        raise ValueError("current source/image/HIP runtime differs from requested acceptance")
+
+
+def run_hardware_delta(root, request, producers, output, *, seconds=900):
+    """One finite serial batch; reuse original bytes, execute only absent Q cases.
+
+    This capability delta deliberately cannot authorize campaign launch. Integrated
+    device lifecycle/target consumption and sustained runs retain their own owners.
+    """
+    import shutil
+
+    if type(seconds) is not int or not 1 <= seconds <= 900:
+        raise ValueError("bounded hardware delta allowance required")
+    began = time.monotonic()
+    plan = hardware_plan(root, request, producers)
+    _current_hardware(request)
+    output = Path(output).absolute()
+    output.mkdir(parents=True, exist_ok=False)
+    atomic_write(output / "request.json", request)
+    atomic_write(output / "plan.json", plan)
+    originals = []
+    # Copy exactly, retaining origin reference and identity; do not reseal PASS.
+    for item in plan["reused"]:
+        destination = output / "reused" / item["case"].split(":")[1] / "producer.json"
+        destination.parent.mkdir(parents=True)
+        shutil.copyfile(Path(root) / item["producer"]["path"], destination)
+        copied = reference(output, destination)
+        if {k: copied[k] for k in ("sha256", "bytes")} != {k: item["producer"][k] for k in ("sha256", "bytes")}:
+            raise ValueError("original hardware bytes changed during reuse")
+        originals.append(copied)
+    executed, first_error = [], None
+    for case in plan["delta"]:
+        try:
+            remaining = seconds - (time.monotonic() - began)
+            if remaining <= 0:
+                raise TimeoutError("hardware delta allowance exhausted")
+            target = output / "delta" / case["identity"].split(":")[1]
+            target.mkdir(parents=True)
+            code = (
+                "from pathlib import Path;import sys;"
+                "from oeis_learn.generalization.progressive.contracts import load,digest;"
+                "from oeis_learn.pipeline_validation.progressive_qualification import run_case;"
+                "from oeis_learn.synthesis.client import SynthesisClient;"
+                "r=load(sys.argv[1]);c=next(c for c in r['cases'] if c['identity']==sys.argv[2]);"
+                "\nwith SynthesisClient(digest('progressive-acceptance-delta/v1')) as client:"
+                "run_case(r,c,Path(sys.argv[3]),client=client)"
+            )
+            status = _bounded_process(
+                [sys.executable, "-c", code, str(output / "request.json"), case["identity"], str(target)],
+                cwd=output, env=dict(os.environ), log=target / "process.log", seconds=remaining, maximum=4 << 20)
+            if status:
+                raise ValueError("hardware delta subprocess failed")
+            producer = reference(output, target / "producer.json")
+            # Reconcile new originals through the same validator as reused cases.
+            check = hardware_plan(output, request, [producer])
+            if [c["case"] for c in check["reused"]] != [case["identity"]]:
+                raise ValueError("delta producer does not cover requested case")
+            originals.append(producer)
+            executed.append(case["identity"])
+        except (OSError, ValueError, TimeoutError) as error:
+            first_error = type(error).__name__
+            break
+    coverage = hardware_plan(output, request, originals)
+    result = seal(dict(version="progressive-hardware-delta/v1", matrix=request["identity"],
+                       status="PASS" if not first_error and not coverage["delta"] else "FAIL",
+                       scope="model-update-capability-only", qualified=False,
+                       campaign_device_status="PENDING", sustained_status="PENDING",
+                       reused=plan["reused"], executed=executed, producers=originals,
+                       omitted=[c["identity"] for c in coverage["delta"]], first_error=first_error,
+                       original_execution_us=plan["original_execution_us"],
+                       actual_elapsed_us=int((time.monotonic()-began)*1e6), allowance_seconds=seconds))
+    atomic_write(output / "delta.json", result)
+    return result
 
 
 def fixture(root, *, interrupt=True, first_cap_updates=8, weights_only=False, fail=False):

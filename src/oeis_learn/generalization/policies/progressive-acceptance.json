@@ -98,5 +98,104 @@
         "nine-index native/reference score"
       ]
     }
-  ]
+  ],
+  "integrated": {
+    "version": "progressive-integrated-suite/v1",
+    "scope": "DIAGNOSTIC_ONLY",
+    "timeout_seconds": 900,
+    "build_timeout_seconds": 120,
+    "maximum_log_bytes": 4194304,
+    "maximum_junit_bytes": 4194304,
+    "maximum_export_bytes": 1048576,
+    "cases": [
+      {
+        "stage": "capability",
+        "node": "tests/integration/test_progressive_preparation.py::test_canonical_host_routes_native_owned_outputs_to_public_readiness"
+      },
+      {
+        "stage": "diversity",
+        "node": "tests/integration/test_progressive_stream.py::test_matched_static_refresh_have_same_initial_model_and_support"
+      },
+      {
+        "stage": "diversity",
+        "node": "tests/integration/test_progressive_stream.py::test_native_shards_feed_actual_canonical_cpu_update"
+      },
+      {
+        "stage": "tuning",
+        "node": "tests/integration/test_progressive_tuning.py::test_canonical_installed_study_asks_learns_scores_and_tells_originals"
+      },
+      {
+        "stage": "tuning",
+        "node": "tests/integration/test_progressive_tuning.py::test_actual_installed_study_preserves_negative_and_interrupted_trials[failed]"
+      },
+      {
+        "stage": "tuning",
+        "node": "tests/integration/test_progressive_tuning.py::test_actual_installed_study_preserves_negative_and_interrupted_trials[partial]"
+      },
+      {
+        "stage": "tuning",
+        "node": "tests/integration/test_progressive_tuning.py::test_actual_installed_study_preserves_negative_and_interrupted_trials[interrupted]"
+      },
+      {
+        "stage": "tuning",
+        "node": "tests/integration/test_progressive_tuning.py::test_installed_selection_runs_fresh_paired_confirmation_without_sampler_feedback"
+      },
+      {
+        "stage": "scaling",
+        "node": "tests/integration/test_progressive_lifecycle.py::test_actual_installed_role_interrupt_resume_and_successor"
+      },
+      {
+        "stage": "scaling",
+        "node": "tests/integration/test_progressive_lifecycle.py::test_installed_eligible_diagnostic_and_complete_partial_failed_exports"
+      },
+      {
+        "stage": "scaling",
+        "node": "tests/integration/test_progressive_lifecycle.py::test_canonical_run_resume_after_real_owned_process_kill[pending]"
+      },
+      {
+        "stage": "oeis",
+        "node": "tests/integration/test_progressive_oeis.py::test_real_native_search_admit_update_evaluate_cycle[False]"
+      },
+      {
+        "stage": "oeis",
+        "node": "tests/integration/test_progressive_oeis.py::test_real_native_search_admit_update_evaluate_cycle[True]"
+      },
+      {
+        "stage": "components",
+        "node": "tests/integration/test_progressive_components.py::test_installed_learner_binds_component_cut_and_rejects_changed_resume[1-library]"
+      },
+      {
+        "stage": "components",
+        "node": "tests/integration/test_progressive_components.py::test_installed_learner_binds_component_cut_and_rejects_changed_resume[1-no_library]"
+      },
+      {
+        "stage": "components",
+        "node": "tests/integration/test_progressive_components.py::test_training_only_distillation_rejects_exposure_mismatch_and_fake_source"
+      },
+      {
+        "stage": "components",
+        "node": "tests/integration/test_progressive_components.py::test_more_expensive_library_without_harder_task_yield_retains_baseline"
+      },
+      {
+        "stage": "source_pilot",
+        "node": "tests/integration/test_progressive_sources.py::test_actual_short_update_restore_generation_and_native_score"
+      },
+      {
+        "stage": "source_pilot",
+        "node": "tests/integration/test_progressive_sources.py::test_source_deficit_and_unsuitable_are_explicit"
+      },
+      {
+        "stage": "evidence",
+        "node": "tests/integration/test_progressive_claims.py::test_installed_wheel_replays_proof_with_native_execution_and_prepaid_work[False]"
+      },
+      {
+        "stage": "evidence",
+        "node": "tests/contract/test_progressive_roles.py::test_visible_envelope_cannot_smuggle_witness"
+      },
+      {
+        "stage": "evidence",
+        "node": "tests/contract/test_progressive_bundle.py::test_bounded_closed_export_and_independent_incomplete_verdict"
+      }
+    ]
+  }
 }
