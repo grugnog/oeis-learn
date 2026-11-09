@@ -21,6 +21,8 @@ from oeis_learn.experiments.source_snapshot import source_snapshot
 # Their independent gold/Torch/Optuna tests remain mandatory in CPU_TESTS.
 DEFERRED_SPECIFICATIONS = ()
 HISTORICAL_TESTS = (
+    "tests/unit/test_pac_support_audit.py",
+    "tests/integration/test_pac_structural_publication.py",
     "tests/contract/test_generalization_authority.py",
     "tests/contract/test_generalization_roles.py",
     "tests/contract/test_foundation_packaging.py",

@@ -37,3 +37,23 @@ def test_cpu_inventory_covers_new_tests_without_legacy_name_collision():
     assert len(CPU_TESTS) == len(set(CPU_TESTS))
     root = Path(__file__).resolve().parents[2]
     assert all((root / path).is_file() for path in CPU_TESTS)
+
+
+def test_diagnostic_templates_ship_identically_and_all_feature_tests_are_registered():
+    import json
+    from oeis_learn.generalization.progressive.diagnostic_blueprints import inventory
+    from oeis_learn.pipeline_validation.progressive_cli import CPU_TESTS
+    from oeis_learn.experiments.source_snapshot import collect_snapshot
+
+    root = Path(__file__).resolve().parents[2]
+    blueprint = root / 'configs/foundation/progressive/diagnostics.json'
+    assert inventory() == json.loads(blueprint.read_text())
+    snapshot = collect_snapshot(root)
+    assert 'configs/foundation/progressive/diagnostics.json' in snapshot
+    assert 'src/oeis_learn/generalization/policies/progressive-diagnostics.json' in snapshot
+    excluded = {'tests/integration/test_progressive_gpu.py',
+                'tests/unit/test_progressive_readiness.py',
+                'tests/contract/test_progressive_harness_contract.py'}
+    actual = {str(p.relative_to(root)) for p in (root/'tests').rglob('test_progressive*.py')}
+    assert actual == set(CPU_TESTS).intersection(actual) | excluded
+    assert not set(CPU_TESTS).intersection(excluded)

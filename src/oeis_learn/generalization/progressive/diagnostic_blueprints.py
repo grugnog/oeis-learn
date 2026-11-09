@@ -20,7 +20,7 @@ def _caps(value):
     return value
 
 
-def resolve(root, book, *, observed, visited, pool):
+def resolve(root, book, *, observed, visited, pool, exposed_panels=()):
     canonical = inventory()
     if set(book) != set(canonical) or any(book[k] != canonical[k] for k in canonical if k != 'branches'):
         raise ValueError('non-executable registered diagnostic inventory required')
@@ -46,7 +46,7 @@ def resolve(root, book, *, observed, visited, pool):
                     slots = branch[key]
                     if not isinstance(slots, list) or not slots or any(type(s) is not str or not s for s in slots) or len(set(slots)) != len(slots):
                         raise ValueError('unique concrete task/panel slots required')
-                if tasks.intersection(branch['task_slots']) or panels.intersection(branch['panel_slots']) or branch['failure_class'] in classes:
+                if tasks.intersection(branch['task_slots']) or (panels | set(exposed_panels)).intersection(branch['panel_slots']) or branch['failure_class'] in classes:
                     raise ValueError('diagnostic slot/panel/failure-class reuse forbidden')
                 tasks.update(branch['task_slots']); panels.update(branch['panel_slots']); classes.add(branch['failure_class'])
                 if len(tasks) > 4:

@@ -73,3 +73,10 @@ def test_integrity_failure_stops_affected_lineage_without_pool_or_training(tmp_p
     result = db.resolve(tmp_path, book, observed=[b['trigger']], visited=[], pool=caps(elapsed_us=0))
     assert next(r for r in result['branches'] if r['id']==b['id'])['status'] == 'STOP_AFFECTED'
     assert not result['executable']
+
+
+def test_exposed_confirmation_panel_cannot_be_reserved_again(tmp_path):
+    book, branch = concrete(tmp_path)
+    with pytest.raises(ValueError, match='panel'):
+        db.resolve(tmp_path, book, observed=[branch['trigger']], visited=[],
+                   pool=caps(**{k:v*4 for k,v in caps().items()}), exposed_panels=['independent'])
