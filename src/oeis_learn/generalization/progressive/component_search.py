@@ -24,6 +24,7 @@ class Proposals:
             raise ValueError("model scoring requires decoder and visible memory together")
         self.used = set()
         self.report = dict(
+            slot_clock_policy="four-neural-first-half-then-four-components/v1",
             library=library["identity"],
             proposals=[],
             expanded_nodes=0,

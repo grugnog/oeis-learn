@@ -138,3 +138,52 @@ def test_native_mined_component_reaches_original_fitter(tmp_path, fitting_client
     ordinary, proposals, result = _drive(value, fitting_client)
     assert ordinary == 4 and proposals.used == {4, 5, 6, 7}
     assert result["equal_budget"] is not None
+
+
+def test_slow_neural_decode_preserves_component_slots_inside_same_portfolio(monkeypatch):
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.fresh.bigint_diagnostics import _portfolio
+    from oeis_learn.decoder.bigint_generation import GenerationRequest
+
+    clock = [1000.0]
+    monkeypatch.setattr(time, "monotonic", lambda: clock[0])
+    recipe = resolve({"version": "bigint-bootstrap/v1"})
+    recipe.pop("pipeline", None)
+    prompt = dict(
+        id="slow-prefix",
+        indices=list(map(str, range(20))),
+        values=[str(2 * i + 1) for i in range(20)],
+    )
+    proposals = Proposals(library(definition()))
+
+    class Client:
+        def fit(self, *args, **kwargs):
+            return dict(admitted=[], complete=True, outcome="unsat")
+
+    stream = _portfolio(
+        None, None, prompt, recipe, Client(), deadline=1060, component_proposals=proposals
+    )
+    requests = []
+    response = None
+    while True:
+        try:
+            request = stream.send(response)
+        except StopIteration:
+            break
+        assert isinstance(request, GenerationRequest)
+        requests.append(request)
+        # A neural attempt consumes its whole allowance; later component work
+        # must remain reachable without increasing the 60-second ceiling.
+        clock[0] = max(clock[0], request.deadline + 0.1)
+        response = dict(
+            source="",
+            complete=False,
+            tokens=[],
+            generation_seconds=30.0,
+            generation_batch_size=1,
+            failure="deadline",
+        )
+    assert len(requests) == 4
+    assert all(request.deadline == 1030 for request in requests)
+    assert proposals.used == {4, 5, 6, 7}
+    assert clock[0] < 1060
