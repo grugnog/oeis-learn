@@ -13,9 +13,11 @@ from .contracts import atomic_write, digest, load, record, reference, seal, vali
 
 STATEMENTS = {"finite_agreement", "conjecture", "bounded_verified", "proved"}
 NOVELTY = {"not_reviewed", "known", "uncertain", "potentially_novel", "independently_confirmed"}
+MAX_PROOF_BYTES = 256 << 10
 
 
-def validate_claim(claim, *, reviewers, source=None, candidate=None, proof=None):
+def _validate_claim(claim, *, reviewers, source=None, candidate=None, proof=None, budget=None):
+    checked = None
     validate_reviewers(reviewers)
     if (
         not isinstance(claim, dict)
@@ -31,7 +33,7 @@ def validate_claim(claim, *, reviewers, source=None, candidate=None, proof=None)
             from .polynomial_certificate import check
         except ImportError:
             raise ValueError("registered bigint polynomial checker unavailable") from None
-        checked = check(source, proof if proof is not None else claim["proof"])
+        checked = check(source, proof if proof is not None else claim["proof"], budget=budget)
         if checked["statement"] != "proved":
             raise ValueError("unsupported proof promotion")
     elif claim["proof"] is not None:
@@ -62,7 +64,22 @@ def validate_claim(claim, *, reviewers, source=None, candidate=None, proof=None)
             raise ValueError("original independent reviewer policy differs")
     elif review is not None:
         raise ValueError("review authority is reserved for independently confirmed scoped novelty")
-    return copy.deepcopy(claim)
+    return copy.deepcopy(claim), checked
+
+
+def validate_claim(claim, *, reviewers, source=None, candidate=None, proof=None, budget=None):
+    return _validate_claim(
+        claim, reviewers=reviewers, source=source, candidate=candidate, proof=proof, budget=budget
+    )[0]
+
+
+def _proof_ref(ref):
+    from .contracts import _check, schema
+
+    _check(schema("common")["$defs"]["artifact"], ref, schema("common"))
+    if ref["bytes"] > MAX_PROOF_BYTES:
+        raise ValueError("polynomial certificate byte limit")
+    return ref
 
 
 def _selected(root, selection):
@@ -320,7 +337,7 @@ def references(root, dossier):
     if c["library"] is not None:
         refs.append(c["library"])
     if p["claim"]["proof"] is not None:
-        refs.append(p["claim"]["proof"])
+        refs.append(_proof_ref(p["claim"]["proof"]))
     if p["claim"]["review"] is not None:
         refs.append(p["claim"]["review"]["evidence"])
     paths = {}
@@ -331,7 +348,7 @@ def references(root, dossier):
     return list(paths.values())
 
 
-def validate_dossier(root, value, *, reviewers=None):
+def validate_dossier(root, value, *, reviewers=None, budget=None):
     from oeis_learn.synthesis.reference import evaluate
     from oeis_learn.synthesis.admission import reference_identity
 
@@ -397,8 +414,11 @@ def validate_dossier(root, value, *, reviewers=None):
     ]
     if expected != p["counterexamples"] or t["agreement"] != (not expected):
         raise ValueError("complete counterexample inventory differs")
-    if p["claim"]["statement"] in {"finite_agreement", "bounded_verified"} and not t["agreement"]:
-        raise ValueError("counterexample cannot establish finite/bounded agreement")
+    if (
+        p["claim"]["statement"] in {"finite_agreement", "bounded_verified", "proved"}
+        and not t["agreement"]
+    ):
+        raise ValueError("counterexample cannot establish finite/bounded/proved agreement")
     if p["claim"]["statement"] == "bounded_verified" and t["native"] is None:
         raise ValueError("bounded verification requires independent native evidence")
     if v["purpose"] == "research" and t["native"] is None:
@@ -408,17 +428,23 @@ def validate_dossier(root, value, *, reviewers=None):
     refs = references(root, v)
     verify_refs(root, refs, max_bytes=512 << 20)
     proof = (
-        json.loads(verify_refs(root, [p["claim"]["proof"]])[0])
+        json.loads(verify_refs(root, [p["claim"]["proof"]], max_bytes=MAX_PROOF_BYTES)[0])
         if p["claim"]["proof"] is not None
         else None
     )
-    validate_claim(
+    _, checked = _validate_claim(
         p["claim"],
         reviewers=reviewers or {},
         source=p["source"],
         candidate=p["candidate"]["sha256"],
         proof=proof,
+        budget=budget,
     )
+    if checked is not None:
+        if p.get("proof_check") != checked or p["assumptions"] != checked["assumptions"]:
+            raise ValueError("replayed polynomial proof scope/assumptions differ")
+    elif "proof_check" in p:
+        raise ValueError("proof scope requires a replayed proved claim")
     if p["claim"]["review"] is not None:
         evidence = json.loads(verify_refs(root, [p["claim"]["review"]["evidence"]])[0])
         if evidence.get("candidate") != p["candidate"]["sha256"] or not evidence.get("prior_work"):
@@ -426,11 +452,27 @@ def validate_dossier(root, value, *, reviewers=None):
     return v
 
 
-def review_dossier(root, dossier, claim, *, reviewers, output):
+def review_dossier(root, dossier, claim, *, reviewers, output, budget=None):
     # Revalidate the original with the same frozen trust policy; never rewrite it.
-    original = validate_dossier(root, dossier, reviewers=reviewers)
+    original = validate_dossier(root, dossier, reviewers=reviewers, budget=budget)
     p = copy.deepcopy(original["payload"])
     p["claim"] = copy.deepcopy(claim)
+    p.pop("proof_check", None)
+    proof = (
+        json.loads(verify_refs(root, [_proof_ref(claim["proof"])], max_bytes=MAX_PROOF_BYTES)[0])
+        if claim.get("proof") is not None
+        else None
+    )
+    _, checked = _validate_claim(
+        claim,
+        reviewers=reviewers,
+        source=p["source"],
+        candidate=p["candidate"]["sha256"],
+        proof=proof,
+        budget=budget,
+    )
+    if checked is not None:
+        p["proof_check"] = checked
     value = record(
         "dossier",
         p,
@@ -439,7 +481,7 @@ def review_dossier(root, dossier, claim, *, reviewers, output):
         purpose=original["purpose"],
         track=original["track"],
     )
-    validate_dossier(root, value, reviewers=reviewers)
+    validate_dossier(root, value, reviewers=reviewers, budget=budget)
     from oeis_learn.pipeline_validation.identity import confined
 
     if output is not None:
@@ -487,7 +529,7 @@ def review_references(root, kind, data):
         _check(doc["properties"]["payload"]["properties"]["claim"], data["claim"], doc)
         refs = []
         if data["claim"]["proof"] is not None:
-            refs.append(data["claim"]["proof"])
+            refs.append(_proof_ref(data["claim"]["proof"]))
         if data["claim"]["review"] is not None:
             refs.append(data["claim"]["review"]["evidence"])
         return refs

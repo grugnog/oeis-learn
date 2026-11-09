@@ -1067,3 +1067,26 @@ local launch supplied the runtime scratch directory normally created by the
 container launcher. Blocking syntax/undefined-name lint and whitespace checks
 passed. No runtime package code or historical implementation hash changed. T018
 still awaits a successful container CI receipt; CI is not awaited after pushing.
+
+### T070 — bounded polynomial proof core
+
+The independent reference parser supplies syntax/types to a new exact coefficient
+normalizer; no production lowering, arithmetic evaluator, fitter, sampled values
+or legacy proof label supplies proof authority. Supported expressions are one pure
+return over index/integer/add/sub/mul. Limits cap source, nodes, nesting, degree,
+coefficient bits, symbolic work and deadline; callers may only tighten them.
+Optional inclusive finite-domain interval arithmetic checks every original
+intermediate, including expressions that algebraically cancel, against the fixed
+bigint numeric profile. It does not establish fuel/memory/deadline sufficiency.
+
+Certificates bind exact source bytes. Dossier promotion publishes a new immutable
+record with a replayed checker/certificate identity and the explicit theorem scope
+`program_equals_polynomial_only`. The sequence law, novelty and unbounded machine
+safety remain unproved/unreviewed. Refuted finite expectations and unsupported
+assumptions cannot acquire a proved label. Review reserves up to four bounded
+symbolic replay attempts before dispatch and retains failed-attempt charges.
+
+First increment: 78 focused polynomial/dossier/schema cases passed; two existing
+native-only cases skipped in that CPU invocation. The five original T064 proof
+cases now pass; only the T071 quarantine specification remains expected-failing.
+Installed native review and full-roster validation follow before T070 completion.

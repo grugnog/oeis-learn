@@ -246,7 +246,9 @@ def _execute(
 
         budget.consume(attempts=1, rejections=1)
         reviewers = registries[0]["reviewers"] if registries else {}
-        value = validate_dossier(inputs / "dossier", dossiers[0], reviewers=reviewers)
+        value = validate_dossier(
+            inputs / "dossier", dossiers[0], reviewers=reviewers, budget=budget
+        )
         if (
             value["purpose"] != load(authority)["task"]["purpose"]
             or value["track"] != load(authority)["task"]["track"]
@@ -266,7 +268,12 @@ def _execute(
                 raise ValueError("review native execution disagrees with original dossier")
         # Publication is separate from the read-only input root.
         reviewed = review_dossier(
-            inputs / "dossier", value, requests[0]["claim"], reviewers=reviewers, output=None
+            inputs / "dossier",
+            value,
+            requests[0]["claim"],
+            reviewers=reviewers,
+            output=None,
+            budget=budget,
         )
         atomic_write(output / "dossier.json", reviewed)
         return publish(

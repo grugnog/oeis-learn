@@ -414,6 +414,15 @@ def role_work_requirements(operation, values):
             costs["tokens"] = 4 * SLOT_TOKENS * n
     elif operation == "review-claim":
         costs.update(attempts=1, rejections=1, native_work=1)
+        if any(
+            v["data"].get("claim", v["data"].get("payload", {}).get("claim", {})).get("proof")
+            is not None
+            for v in values
+            if v["kind"] in {"sealed_dossier", "review_evidence"}
+        ):
+            # Original validation, review revalidation, new check and publication
+            # replay: each symbolic attempt has fixed node/coefficient/work caps.
+            costs.update(attempts=5, rejections=5)
     elif operation == "score":
         n = sum(v["kind"] in {"development_truth", "confirmation_truth"} for v in values)
         if not n:

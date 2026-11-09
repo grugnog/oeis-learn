@@ -299,6 +299,9 @@
         },
         "machine_safety": {
           "const": "finite_execution_only_no_unbounded_safety"
+        },
+        "proof_check": {
+          "$ref": "progressive-polynomial-certificate.schema.json#/$defs/check"
         }
       },
       "required": [
