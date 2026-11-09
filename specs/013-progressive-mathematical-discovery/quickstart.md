@@ -1,6 +1,6 @@
 # Validation and workstation handoff
 
-**Incomplete workstation handoff: `discovery qualify` and `discovery acceptance` still return `NOT_IMPLEMENTED`.** Init/status and the separately tested preparation/freeze/lifecycle/report adapters exist, but the consolidated research sequence below cannot yet complete. Source-pilot and verifier role dispatch also remain unfinished. Required local container verification is BLOCKED because neither Docker nor Podman is installed in this workspace. Keep research and actual-HIP gates pending.
+**Software handoff implemented; physical validation pending.** The twelve discovery command routes and every registered installed role now have concrete handlers. Qualification and feature acceptance require immutable plans and matching original producers; missing inputs return explicit deficits. Full current-source Docker CI and actual HIP/sustained results remain pending. No research or device PASS is inferred from CPU checks.
 
 Implementation order and optional branches are in [tasks.md](tasks.md). Follow [hardware-validation.md](hardware-validation.md) to batch actual-HIP validation after CPU/native checks: one consolidated qualification matrix, then reuse exact compatible producers and execute only missing post-freeze device cases. This reduces repeated qualification, not scientific training seeds. Changed source closure or an uncovered execution scope still requires matching validation.
 
@@ -24,7 +24,7 @@ These check document prerequisites/whitespace, not scientific correctness or run
 
 ## Implemented acceptance to require before research
 
-The implementation task list must create the named progressive tests before these commands are used:
+The named progressive tests are registered in the mandatory foundation inventory:
 
 ```bash
 uv run pytest tests/unit/test_progressive_*.py tests/contract/test_progressive_*.py
@@ -33,7 +33,7 @@ uv run pytest tests/integration/test_progressive_*.py -m 'not gpu and not docker
 
 Include meaningful cases for every row in plan.md's traceability table. Required real tests: logical-batch accumulation equality, immutable draw/reject replay, complete state after interrupted update, trial idempotency, cross-role truth rejection, prefix-overfit admission failure, component expansion/refutation and independently recomputed gates. Container/native and actual-HIP coverage comes through `discovery qualify` and `acceptance`; local CPU tests do not substitute for them.
 
-## Proposed consolidated workstation sequence
+## Consolidated workstation sequence (execution remains gated)
 
 The examples use workspace-local original paths from the prior workflow. The operator's actual producer refs must be verified by `init`; no copied sample hashes or unrelated qualification receipts are accepted. Select a fresh output suffix for each new campaign.
 
@@ -292,7 +292,7 @@ including positive and negative diagnostic branches, without depending on resear
 yield. CI retains `progressive-acceptance.zip` beside the foundation receipt. Its
 sealed public records distinguish software COMPLETE from `qualified=false`,
 scientific UNMEASURED and hardware/sustained PENDING. Private logs, truth and model
-state are excluded. The `discovery acceptance` command warning above still applies.
+state are excluded. The command is implemented; its device phase still requires actual HIP and current original qualification.
 
 The selected HIP matrix test also verifies reuse of its original producer bytes
 without repeating the device matrix. `progressive_acceptance.hardware_plan` exposes
@@ -346,5 +346,77 @@ most 48 exact shape/dropout/input-length/microbatch cases); no fabricated
 workstation/image/profile selection substitutes for original facts. Hardware and
 sustained observations stay BLOCKED/PENDING until their original producers exist.
 Unchecked optional research tasks mean unselected/not-triggered/deferred work, not
-missing mandatory software. T085–T087 themselves remain unchecked because the
-required container verification and no-placeholder audit have not passed.
+missing mandatory software. T085–T086 remain unchecked pending full current-source container verification.
+T087 documentation is complete; the former missing command/role handlers are implemented.
+
+
+## Immutable command plans and verified software routes
+
+The command arguments in the sequence above are active. CPU acceptance tests
+exercise command parsing, source/engine/profile/ref matching, missing-plan exit 2,
+contract rejection exit 3, preserved engine failure exit 1 and successful bounded
+orchestration. A valid qualification plan also reaches the engine boundary under
+`python -S` without Torch, NumPy, Optuna or jsonschema. These tests do not claim a
+physical HIP execution. `source-pilot` is the custodian's feasibility operation;
+`verify` projects a bounded original public archive into the independent verifier.
+
+Plans live under owned `run-state`, outside mapped source/build inputs, and use
+workspace-relative byte/hash/path artifact references. Seal them with
+`oeis_learn.generalization.progressive.contracts.seal` before adding their references to a blueprint or
+campaign. Do not edit them after freeze. The separate base qualification retains
+its original producer-relative reference namespace.
+
+| Named reference | Closed plan fields in addition to `identity` |
+| --- | --- |
+| `qualification_plan` in blueprint references | `version: progressive-qualification-plan/v1`, `matrix`, `base_qualification`, `seconds`; optional `original_cases` array |
+| `acceptance_plan` in campaign references | `version: progressive-acceptance-plan/v1`, `qualification`, `seconds` |
+| `preflight_plan` in retained-input references read by init | `version: progressive-preflight-plan/v1`, `cohorts`, `exposure`, `sensitivity` |
+
+The matrix is the sealed selected request produced by
+`progressive_qualification.matrix`: actual source/image/engine/device facts,
+resolved profiles, input lengths and microbatches. Obtain the base v2 qualification
+through the existing foundation producer first, using the same unchanged source
+and immutable image pair. Discovery qualification freshly inspects that original
+authority and adds actual selected device-case proofs; it neither rewrites the
+base PASS nor reuses an unrelated/stale source receipt. The base qualification's
+CPU/native stage includes the discovery test inventory and precedes its HIP work.
+
+`seconds` is finite (at most 3,600 per command plan) and must fit the selected
+prospective/campaign allowance. The qualification wrapper subtracts inspection
+time from its device deadline. With `original_cases`, only exact matching producer
+bytes are reused; the remaining bounded delta retains original execution costs
+separately from new elapsed time. Original case files survive failures for a
+compatible new output/plan; do not overwrite earlier outputs. No additional pool
+is created.
+
+Acceptance builds/probes a wheel and runs all 22 CPU/native cases first. It then
+reinspects the frozen runtime and executes the five registered device scenarios
+in one owned GPU stage using the selected Q profile: two linked tasks/recovery,
+OEIS admission/replay, mined-component use, four-term source updates/generation,
+and native-verified refreshed structure consumption. Q requires matching 4/20
+input and accumulation scopes. The inspected image/device/numerical policy must
+still match; CPU fallback, skipped/missing cases and stale producers fail closed.
+The installed HIP numerical startup flags are set before Python starts.
+
+Retain the original CPU suite receipt/cases/JUnit, device request/producer/JUnit,
+Q reuse plan, frozen campaign/runtime, and qualification closure. Acceptance
+replays the original case results and writes one bounded `diagnostics.zip` with
+metadata only. `acceptance.json` becomes visible only after packaging succeeds.
+`run`, `resume` and `assess` replay these original feature producers and freshly
+inspect runtime facts; a supplied qualified bit alone grants no research launch.
+The later study `report`/`verify-bundle` route remains the independent statistical
+reconciliation interface for the final campaign report.
+
+The init preflight can inventory original cohorts/exposure and validate a
+prospective sensitivity design without model scores or qualification. It reports
+`VALIDATED_UNEXECUTED` for the design: running the simulations still needs its
+separately frozen preparation allowance. No final research/diagnostic freeze is
+claimed before Q. The source-support and report APIs retain explicit deficits.
+
+For T091 software preparation,
+`oeis_learn.generalization.progressive.preflight.sustained(plan, allowance_us=...)` requires
+two named linked tasks with finite active durations <=24h each, an observation
+interval <=60s, >=30min finalization per task, a declared useful-work interruption
+and explicit memory/disk/thermal/throughput availability or missing reasons. It
+checks the existing total allowance and returns `PENDING_ACTUAL_DURATION` with
+`actual_elapsed_us=null`; it launches no soak or research.

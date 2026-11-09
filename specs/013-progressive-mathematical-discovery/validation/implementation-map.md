@@ -1,6 +1,6 @@
 # Spec 013 implementation map
 
-Current scope: T001–T081, T083 and T112–T125 software are implemented; T018 and T118–T119 have successful mandatory Docker/native CI evidence. T082 has software but remains blocked on actual HIP. The latest T083 work and validation are recorded below. Earlier entries retain their historical validation scope. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
+Current scope: T001–T081, T083–T084, T087 and T112–T125 software are implemented. T085/T086 software gaps are repaired; full current-source CI verification remains pending. T082/T088–T091 physical evidence remains unexecuted. The T089 input/design and T090/T091 orchestration/protocol preparation is implemented. Earlier entries retain their historical validation scope; the latest handoff section supersedes their unavailable-command findings. Read spec.md, plan.md, tasks.md, research.md, data-model.md,
 quickstart.md, hardware-validation.md, planning-review.md, all five contracts,
 the requirements checklist and adopted constitution in full before implementation.
 Requirements checklist: 16 checked, zero unchecked. No extension hooks registered.
@@ -1513,3 +1513,68 @@ research is distinct from these mandatory software gaps. Source changes invalida
 prior qualification under the existing whole-source closure; the stable source
 group was pushed before any expensive HIP work. Full new-source CI verification
 is left to the mandatory pipeline without waiting after push, as requested.
+
+
+### Completed pre-HIP handoff software and remaining evidence gates
+
+Stable source group: `5cc2f00a5f912d53973e50b616b3371374dbec60`. The requirements
+checklist remains 16/16; no extension hooks are registered. All twelve discovery
+commands and all registered operations have concrete handlers. The four missing
+routes from the prior audit are repaired, and the initial publication placeholder
+now rejects unknown closed input variants instead of returning a synthetic
+partial success. No generic PAC/legacy execution guard was enlarged.
+
+- `source-pilot` projects the frozen source roster to the existing custodian
+  feasibility reducer. `verify` copies only a hash-verified public bundle and
+  invokes the independent verifier. Both execute in actual subprocess tests.
+- `qualify` requires a sealed named plan, original current base qualification,
+  inspected engine/images and exact selected matrix. It uses the existing
+  socket-free launcher/GPU lease, retains original base bytes, produces selected
+  scope proofs and extends model/language coverage only after complete matching
+  cases. Optional original case refs execute only their missing bounded delta;
+  original costs remain separate from new elapsed time. Changed source, image,
+  hardware or case cannot be credited as reuse.
+- `acceptance` runs the installed 22-case CPU/native suite, freshly checks the
+  frozen runtime and exact device, and runs the five registered HIP mechanics
+  cases using the selected profile. It covers linked-task recovery, real native
+  OEIS target consumption, mined components, the short profile, and refreshed
+  verified new structure. The separate original Q capability coverage is reused.
+  Skips, missing cases, stale scope or CPU fallback cannot issue acceptance.
+- Model construction and GPU launch now enforce the declared numerical startup
+  flags before Python/model work. Research run/resume/assessment consumes the
+  original CPU/device producers and reconciles their individual cases; a supplied
+  qualified bit alone cannot pass. The launch receipt is published only after
+  the complete bounded metadata package succeeds. Weights and private work
+  trees are excluded.
+- Init can bind original cohort/exposure refs and validate a prospective
+  sensitivity design without model scores or physical qualification. Execution
+  remains separately reserved; the design is labeled VALIDATED_UNEXECUTED.
+  Versioned plan refs use workspace routing while the original v2 producer
+  closure retains its producer-root routing. No path search was added.
+- Sustained-plan validation checks two named finite tasks, <=24h each, <=60s
+  observations, >=30min finalization, a useful-work interruption, explicit
+  sensor/missing reasons and the existing allowance. It reports no actual elapsed
+  duration and launches no soak.
+
+Validation: **121 focused CPU/native/contract/installed-wheel checks passed**
+(45.73s), **154 affected 011/012/foundation checks passed** (17.26s), and **10
+real learner/recovery/OEIS/component/source integration cases passed** (270.53s).
+The new native refreshed-structure case also passed, including actual installed
+learning and consumed-diversity checks. Three additional qualification-orchestration
+checks passed after adding the valid-plan `python -S` probe; it verifies no Torch,
+NumPy, Optuna or jsonschema host dependency. Boundary-only simulated producers
+are explicitly fixtures and supply no physical qualification evidence.
+
+Ordinary CI review found that the earlier `5109bc4` source had only the two
+historical implementation serializer mismatches in the portable receipt, also
+causing native/foundation failures. Regenerate the record using its owning
+serializer; both exact failing assertions now pass. Docker image construction,
+containment, arithmetic, fitting and native preparation succeeded on that earlier
+source. They do not qualify this newer source. Exact hashes, original local JUnit
+refs and pending matrix fields are in [software-preflight.json](software-preflight.json).
+
+T087 documentation is complete. T085/T086 remain unchecked for the full
+current-source CI/container gate; local Docker/Podman are absent and final CI is
+not awaited after push. T089's actual source preparation/simulation/freeze, T090's
+physical acceptance and T091's sustained evidence remain unchecked. No HIP run,
+research result, scientific gain or actual long-duration observation is claimed.

@@ -1,110 +1,112 @@
 {
-  "cpu_inventory": "sha256:ba70f53efac4ab5417cf4f4354ceab78603253e265e56761bd6d31103b3db11a",
-  "engines": {
-    "docker": {
-      "exit_code": 1,
-      "reason": "docker CLI is unavailable; select an installed container engine",
-      "status": "BLOCKED"
+  "checks": [
+    {
+      "errors": 0,
+      "failures": 0,
+      "junit": {
+        "bytes": 18260,
+        "path": "run-state/handoff-implementation/final-contracts.xml",
+        "sha256": "sha256:3d614ecb749e405a8ea5a37f4e0f81a8543ba698bbfa6054a63377c4937a28dc"
+      },
+      "name": "final-contracts",
+      "skips": 0,
+      "tests": 121
     },
-    "podman": {
-      "exit_code": 1,
-      "reason": "podman CLI is unavailable; select an installed container engine",
-      "status": "BLOCKED"
+    {
+      "errors": 0,
+      "failures": 0,
+      "junit": {
+        "bytes": 1822,
+        "path": "run-state/handoff-implementation/native-learning.xml",
+        "sha256": "sha256:e8d56fa302a5147bc07cc13c5e78504ffb4db5ebc49084f8dd8901782a46e218"
+      },
+      "name": "native-learning",
+      "skips": 0,
+      "tests": 10
+    },
+    {
+      "errors": 0,
+      "failures": 0,
+      "junit": {
+        "bytes": 23052,
+        "path": "run-state/handoff-implementation/historical.xml",
+        "sha256": "sha256:f78dc5a9987dcfd367ac214bd0f43cba8323e2fc56e6a7b00c09ef7373187f8d"
+      },
+      "name": "historical",
+      "skips": 0,
+      "tests": 154
     }
+  ],
+  "ci_repair": {
+    "commit": "5109bc4cc3beadb335461a0857d6efc5890025c1",
+    "failures": [
+      "historical implementation binding"
+    ],
+    "repair": "regenerated with owning serializer; both binding tests pass locally",
+    "runs": [
+      42669063046,
+      42669063210
+    ]
   },
   "hardware_matrix": {
-    "checks": [
-      "finite_update",
-      "parameter_change",
-      "full_restore",
-      "deterministic_continuation",
-      "generation",
-      "native_reference_score",
-      "cleanup"
+    "device_cases": [
+      "tests/integration/test_progressive_lifecycle.py::test_actual_installed_role_interrupt_resume_and_successor",
+      "tests/integration/test_progressive_oeis.py::test_real_native_search_admit_update_evaluate_cycle[False]",
+      "tests/integration/test_progressive_components.py::test_installed_learner_binds_component_cut_and_rejects_changed_resume[1-library]",
+      "tests/integration/test_progressive_sources.py::test_actual_short_update_restore_generation_and_native_score",
+      "tests/integration/test_progressive_handoff.py::test_installed_refreshed_learner_consumes_native_verified_new_structure"
     ],
-    "dropout": [
-      0,
-      0.1,
-      0.2
-    ],
-    "effective_batch": 16,
-    "executable": false,
-    "image_identity_environment": "OEIS_QUALIFICATION_IMAGE",
-    "input_lengths": [
-      4,
-      20
-    ],
-    "mandatory_device_mode": "OEIS_REQUIRE_PROGRESSIVE_HIP=1",
-    "maximum_cases": 48,
-    "microbatches": [
-      7,
-      16
-    ],
-    "precision": "float32",
-    "reuse": "original producer with exact current source/image/engine/model/input/update scope",
-    "serial_gpu_owner": true,
-    "shapes": [
-      "reference",
-      "smaller_width",
-      "shallower",
-      "larger"
-    ],
-    "unresolved": [
-      "selected_model_profiles",
-      "current_source",
-      "pinned_image",
-      "selected_engine",
-      "actual_HIP_runtime"
-    ],
-    "version": "progressive-acceptance-blueprint/v1"
+    "domain": {
+      "dropout": [
+        0,
+        0.1,
+        0.2
+      ],
+      "input_lengths": [
+        4,
+        20
+      ],
+      "maximum_cases": 48,
+      "microbatches": [
+        7,
+        16
+      ],
+      "shapes": [
+        "reference",
+        "smaller_width",
+        "shallower",
+        "larger"
+      ]
+    },
+    "engine": null,
+    "hardware": null,
+    "images": null,
+    "profiles": null,
+    "source": "current whole-source closure",
+    "status": "PENDING_ORIGINAL_PHYSICAL_FACTS",
+    "version": "selected-runtime-required"
   },
-  "identity": "sha256:4be9a3b704923fd2d18ac223513b57c99541822dd5e207cfd74bc8db4279baf8",
+  "identity": "sha256:e716c3c69a7c12046834396801289cd646c2998de4eb1dedc2848f038daf63dc",
   "image": null,
+  "implementation": "sha256:ed5eeefa895d7ee85b9057b8ac0f579ed2f50de771ab5b9169c7083bcd2d9188",
+  "local_engines": {
+    "docker": null,
+    "podman": null
+  },
   "lock": "sha256:87c7380365b20a1650271fb50ae6d2ac7f95bebc28738542da878b0351b40158",
-  "missing_commands": [
-    "discovery qualify",
-    "discovery acceptance"
-  ],
-  "missing_roles": [
-    "source-pilot",
-    "verify"
-  ],
-  "next_action": "complete missing production handlers; verify current-source Docker CI and workstation portability before HIP; do not launch research",
+  "missing_commands": [],
+  "missing_roles": [],
+  "next_action": "full current-source Docker CI; resolve original artifacts and selected matrix; consolidated workstation qualification and acceptance; retain pending physical/sustained labels",
   "package": "sha256:79b08afa7bdce2e624f5033f0b3d08afc620c1b816858103a52e6d197978e1fb",
+  "preparatory_scope": {
+    "T089": "original input/exposure census and sensitivity-design validation only; no execution/freeze",
+    "T090": "five-case installed selected-profile HIP driver and original-proof consumption; no device PASS",
+    "T091": "prospective duration/interruption/sensor/allowance validation; actual elapsed null"
+  },
   "qualified": false,
-  "requirements": "All FR-001\u2013041 and SC-001\u2013011 retain the task-to-test ownership in tasks.md; coverage mapping is not a passing implementation verdict",
-  "scope": "local CPU/native/installed-wheel/isolation and affected 011/012; container and HIP unavailable",
-  "software_commit": "f9a9f5525ce602d955084c77a219ba3f40de1309",
-  "source": "sha256:f0a5c21f3d7b7dd94b9eaa631a24c35af82f784fbb6b8d58604f958e109b8859",
-  "status": "BLOCKED",
-  "tests": [
-    {
-      "name": "focused",
-      "passed": 45,
-      "producer": {
-        "bytes": 7052,
-        "path": "run-state/t084-t087/focused.xml",
-        "sha256": "sha256:7d3daf428a897e49e50273bd6996ccca2f8ae72f5feaea4366cd41eb5427c3f6"
-      }
-    },
-    {
-      "name": "registration-native",
-      "passed": 51,
-      "producer": {
-        "bytes": 7701,
-        "path": "run-state/t084-t087/registration-native.xml",
-        "sha256": "sha256:ab1ec2a88e5fb864463706df757ca0e9c1b97529b3b48c3f323f342722044358"
-      }
-    },
-    {
-      "name": "historical",
-      "passed": 154,
-      "producer": {
-        "bytes": 23052,
-        "path": "run-state/t084-t087/historical.xml",
-        "sha256": "sha256:a98d76dd3e2c27d5774ed8ffc0a9e904b37ee16646a9292c25f6b7b62a9cb21c"
-      }
-    }
-  ],
+  "software_commit": "5cc2f00a5f912d53973e50b616b3371374dbec60",
+  "source": "sha256:4db51e6475fc729d31502c45b96a50f21e3c10cefe14701c0d86517827a582dd",
+  "status": "PENDING_CURRENT_SOURCE_CI_AND_DEVICE",
+  "supersedes": "sha256:4be9a3b704923fd2d18ac223513b57c99541822dd5e207cfd74bc8db4279baf8",
   "version": "progressive-software-preflight/v1"
 }
