@@ -47,10 +47,11 @@ def should_prune(*, value, coordinate, references, control=False):
 
 
 class TrialJournal:
-    def __init__(self, root, *, study, token_cap=4000000, elapsed_cap_us=7200000000):
+    def __init__(self, root, *, study, token_cap=4000000, elapsed_cap_us=7200000000,provenance_root=None):
         if not isinstance(study, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", study) is None:
             raise ValueError("sealed study identity required")
         self.root = Path(root)
+        self.provenance_root=Path(provenance_root) if provenance_root is not None else self.root
         if self.root.is_symlink():
             raise ValueError("journal symlink")
         self.root.mkdir(parents=True, exist_ok=True)
@@ -111,7 +112,7 @@ class TrialJournal:
                 raise ValueError("trial study or ordinal differs")
             if e["state"]["status"] == "COMPLETE":
                 from .trial_evidence import eligible
-                if eligible(e["state"]["result"],root=self.root) is None:
+                if eligible(e["state"]["result"],root=self.provenance_root) is None:
                     raise ValueError("journal contains ineligible complete feedback")
             self.tip = e["identity"]
             self.trials[e["ordinal"]] = e["state"]
@@ -236,7 +237,7 @@ class TrialJournal:
             raise ValueError("complete trial needs measured capability")
         from .trial_evidence import eligible
 
-        if result["status"] == "COMPLETE" and eligible(result, root=self.root) is None:
+        if result["status"] == "COMPLETE" and eligible(result, root=self.provenance_root) is None:
             raise ValueError("complete trial lacks eligible bound development evidence")
         with self.lock():
             self.read()
@@ -267,5 +268,5 @@ class TrialJournal:
             for k, s in self.trials.items()
             if s["status"] == "COMPLETE"
             and s["tokens"] >= target
-            and eligible(s["result"], root=self.root) is not None
+            and eligible(s["result"], root=self.provenance_root) is not None
         ]

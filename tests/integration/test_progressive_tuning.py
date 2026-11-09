@@ -76,3 +76,49 @@ def test_real_cpu_proposal_learning_frozen_generation_and_native_score(tmp_path,
         },
     )
     assert not j.equal_token_eligible(target=4000000)
+
+
+def test_canonical_installed_study_asks_learns_scores_and_tells_originals(tmp_path,monkeypatch,fitting_client):
+    from types import SimpleNamespace
+    from tests.helpers.progressive_study import build
+    from oeis_learn.pipeline_validation import progressive_commands as commands,progressive_study as study
+    from oeis_learn.generalization.progressive.selection import rank
+    c,p,host,charge=build(tmp_path,monkeypatch)
+    token=commands._INVOCATION.set('native-study')
+    try:result,code=commands.lifecycle_command(SimpleNamespace(operation='run',campaign='study-campaign.json',acceptance='accepted',output='study-run'),tmp_path,lambda _:host)
+    finally:commands._INVOCATION.reset(token)
+    assert code==0,result
+    journal=study.journal(tmp_path,c,p)
+    assert journal.trials['0']['status']=='COMPLETE'
+    result=journal.trials['0']['result']
+    assert result['value']==1 and result['tokens']==charge
+    assert rank([dict(result,id='0')],target=charge,root=tmp_path)['ordered']==['0']
+    assert study.journal(tmp_path,c,p).trials==journal.trials
+
+
+import pytest
+
+
+@pytest.mark.parametrize('mode',['failed','partial','interrupted'])
+def test_actual_installed_study_preserves_negative_and_interrupted_trials(tmp_path,monkeypatch,fitting_client,mode):
+    from types import SimpleNamespace
+    from tests.helpers.progressive_study import build
+    from oeis_learn.pipeline_validation import progressive_commands as commands,progressive_study as study
+    c,p,host,charge=build(tmp_path,monkeypatch,fail=mode=='failed',partial=mode=='partial',interrupt=mode=='interrupted')
+    def run(operation,**kw):
+        token=commands._INVOCATION.set(operation)
+        try:return commands.lifecycle_command(SimpleNamespace(operation=operation,**kw),tmp_path,lambda _:host)
+        finally:commands._INVOCATION.reset(token)
+    result,code=run('run',campaign='study-campaign.json',acceptance='accepted',output='one')
+    j=study.journal(tmp_path,c,p)
+    if mode=='interrupted':
+        assert j.trials['0']['recovery_pending'],result
+        before=j.trials['0']['tokens']
+        result,code=run('resume',run='one',output='two')
+        assert code==0,result
+        j=study.journal(tmp_path,c,p)
+        assert j.trials['0']['status']=='COMPLETE'
+        assert j.trials['0']['tokens']>before>0
+    else:
+        assert j.trials['0']['status']==mode.upper(),result
+        assert not j.equal_token_eligible(target=p['target_tokens'])

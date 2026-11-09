@@ -16,8 +16,10 @@ def validate_task(task, *, campaign=None, track=None, compatibility=None):
         raise ValueError("24 hour task ceiling")
     if p["startup_us"] + p["finalization_us"] >= p["caps"]["elapsed_us"]:
         raise ValueError("no useful work after reserves")
-    if task["purpose"] == "research" and p["finalization_us"] < 1_800_000_000:
-        raise ValueError("research finalization reserve below 30 minutes")
+    trial=p.get('trial')
+    shared=trial is not None and trial['phase'] not in {'confirmation','selection'}
+    if task['purpose']=='research' and p['finalization_us']<1800000000 and not (shared and trial.get('shared_finalization_us',0)>=1800000000):
+        raise ValueError('research finalization reserve below 30 minutes')
     from .iteration import margin
     work=margin(p,research=task["purpose"]=="research" and p["kind"]=="training")
     if work+p["startup_us"]+p["finalization_us"]>=p["caps"]["elapsed_us"]:raise ValueError("complete iteration cannot fit frozen task")
@@ -55,8 +57,11 @@ def validate_task(task, *, campaign=None, track=None, compatibility=None):
         if any(p["caps"][k] > slots[p["slot"]]["caps"][k] for k in p["caps"]):
             raise ValueError("task exceeds frozen child ceiling")
         plan = {k: v for k, v in p.items() if k != "campaign"}
-        if plan not in c["payload"]["tasks"]:
-            raise ValueError("task is absent from frozen roster")
+        if plan not in c['payload']['tasks']:
+            from .trial_scopes import resolve
+            templates=[t for t in c['payload']['tasks'] if t['id']==plan['id']]
+            if len(templates)!=1 or 'trial_choice' not in plan or resolve(templates[0],plan['trial_choice'])!=plan:
+                raise ValueError('task is absent from frozen finite choice roster')
     return task
 
 
@@ -75,6 +80,13 @@ def validate_campaign(campaign):
             raise ValueError("unresolved task slot")
         if plan["kind"] == "training" and plan["caps"]["elapsed_us"] > 86_400_000_000:
             raise ValueError("training ceiling")
+        if 'trial_choices' in plan:
+            from .trial_scopes import variants
+            if plan.get('trial',{}).get('phase') not in {'training','generation','scoring','confirmation'}:
+                raise ValueError('trial alternatives require a bound finite study phase')
+            identities=[v['parameters'] for v in plan['trial_choices']]
+            if len({json.dumps(v,sort_keys=True) for v in identities})!=len(identities):raise ValueError('duplicate trial alternative')
+            variants(plan)
         init = plan["initializer"]
         if (
             c["track"] == "synthetic_strict"
@@ -122,10 +134,19 @@ def validate_campaign(campaign):
                 raise ValueError("one compatible paired predecessor required")
         elif not future and init["mode"] != "random" and init["artifact"] is None:
             raise ValueError("missing initializer")
+    held={}
+    if c['purpose']=='research':
+        for plan in plans:
+            trial=plan.get('trial')
+            if trial and trial['phase'] not in {'confirmation','selection'}:
+                key=trial['study'],trial['ordinal']
+                value=(plan['slot'],trial.get('shared_finalization_us',0))
+                if value[1]<1800000000 or (key in held and held[key]!=value):raise ValueError('one shared frozen trial finalization envelope required')
+                held[key]=value
     for slot in slots:
         children = [t for t in plans if t["slot"] == slot]
         if any(
-            sum(t["caps"][k] for t in children) > slots[slot]["caps"][k]
+            sum(t["caps"][k] for t in children)+(sum(n for selected,n in held.values() if selected==slot) if k=='elapsed_us' else 0) > slots[slot]["caps"][k]
             for k in slots[slot]["caps"]
         ):
             raise ValueError("task child sums exceed slot")

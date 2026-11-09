@@ -141,7 +141,7 @@ def test_native_shards_feed_actual_canonical_cpu_update(tmp_path, fitting_client
         preparation_receipts=[cost],
     )
     assert result['preparation_elapsed_us']>0
-    assert result['diversity']['consumed']['examples']==2
+    assert result['diversity']['consumed']['examples']==1
     assert result['accepted_rows']==16
     assert result["updates"] == 1
     assert result["initial_weights"] != result["final_weights"]

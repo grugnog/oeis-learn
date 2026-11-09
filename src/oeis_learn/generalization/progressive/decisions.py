@@ -314,7 +314,7 @@ def verify(decision, rows, roster, seeds, design, **kwargs):
     return expected
 
 
-def verify_gate_producers(root, campaign, bundle):
+def verify_gate_producers(root, campaign, bundle,*,store=None):
     """Reconcile an ordinary gate against original, frozen producer references.
 
     Registrations are policy inputs, never supplied by the decision publisher.
@@ -386,7 +386,25 @@ def verify_gate_producers(root, campaign, bundle):
         raise ValueError("unique complete roster with frozen retention required")
     expected_cells = {(a, s) for a in ("baseline", "candidate") for s in registration["seeds"]}
     found, derived = set(), []
-    for producer in registration["producers"]:
+    for original_producer in registration["producers"]:
+        producer=dict(original_producer)
+        dynamic=False
+        for name in ('checkpoint','candidates','scores'):
+            value=producer.get(name)
+            if isinstance(value,dict) and 'operation' in value:
+                if store is None:raise ValueError('committed owned gate output required')
+                from oeis_learn.pipeline_validation.progressive_study import original,weight_ref
+                plans=campaign['payload']['tasks']
+                source=next((p for p in plans if p['id']==value['task']),None)
+                if source is None or source['seed']!=producer['seed']:raise ValueError('gate producer paired seed differs')
+                if name=='checkpoint':
+                    if (value['operation'],value['output'],value['kind'])!=('train','weights','checkpoint'):raise ValueError('closed gate checkpoint slot required')
+                    producer[name]=weight_ref(root,store,value['task'])
+                else:
+                    expected=('generate','candidates','candidate') if name=='candidates' else ('score','scores','public_evidence')
+                    if (value['operation'],value['output'],value['kind'])!=expected:raise ValueError('closed gate evaluation slot required')
+                    producer[name]=original(root,store,value['task'],value['operation'],value['output'])
+                dynamic=True
         if set(producer) != {"arm", "seed", "checkpoint", "model", "candidates", "scores"}:
             raise ValueError("closed generator/scorer producer registration required")
         cell = producer["arm"], producer["seed"]
@@ -399,7 +417,7 @@ def verify_gate_producers(root, campaign, bundle):
             seal(generated) != generated
             or generated.get("version") != "discovery-candidates/v1"
             or generated.get("checkpoint") != producer["checkpoint"]["sha256"]
-            or generated.get("model") != producer["model"]
+            or (generated.get('model')!=producer['model'] and not (dynamic and producer['model'] is None))
             or set(generated["records"]) != set(members)
             or seal(scored) != scored
             or scored.get("version") != "discovery-scoring/v1"

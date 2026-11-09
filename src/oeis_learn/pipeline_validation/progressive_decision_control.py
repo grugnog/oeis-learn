@@ -41,7 +41,7 @@ def remaining_slots(journal, campaign, policy):
             purpose=campaign["purpose"],
             track=campaign["track"],
         )
-        left = journal.task_remaining(task)
+        left = journal.plan_remaining(plan)
         for k in left:
             remaining[plan["slot"]][k] += left[k]
             spent[plan["slot"]][k] += plan["caps"][k] - left[k]
@@ -99,7 +99,7 @@ def reconcile_decision(root, role_output, result, store, journal, task):
             purpose=store.campaign["purpose"],
             track=store.campaign["track"],
         )
-        elapsed = plan["caps"]["elapsed_us"] - journal.task_remaining(t)["elapsed_us"]
+        elapsed = plan["caps"]["elapsed_us"] - journal.plan_remaining(plan)["elapsed_us"]
         if plan["slot"] == source:
             costs[plan["id"]] = elapsed
         elif plan["slot"] in ancestors:

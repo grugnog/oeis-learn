@@ -325,9 +325,13 @@ def _run(
             ]
             from oeis_learn.generalization.progressive.contracts import record
 
+            parent_plan=plans[0]
+            if 'trial_choices' in parent_plan:
+                from oeis_learn.generalization.progressive.trial_scopes import resolve
+                parent_plan=resolve(parent_plan,t['payload']['trial_choice'])
             parent = record(
                 "task",
-                dict(plans[0], campaign=c["identity"]),
+                dict(parent_plan, campaign=c["identity"]),
                 created_at=c["created_at"],
                 purpose=c["purpose"],
                 track=c["track"],
@@ -630,7 +634,8 @@ def _run(
             event=load(path)['state']
             last=event['last']
             if last is not None:committed[last['update']]=last['batch']['entries']
-        consumed=[i for entries in committed.values() for i in entries if i in lookup]
+        from collections import Counter
+        consumed=Counter(i for entries in committed.values() for i in entries if i in lookup)
         diversity=summarize(list(lookup.values()),consumed)
         atomic_write(output/'diversity.json',seal(dict(version='progressive-consumed-diversity/v1',task=t['identity'],checkpoint=recovery.state['checkpoint']['identity'],counts=diversity,excluded_nonmechanical_entries=sum(i not in lookup for entries in committed.values() for i in entries))))
         atomic_write(output / "checkpoint.json", recovery.state["checkpoint"])

@@ -190,6 +190,9 @@
             }
           },
           "additionalProperties": false
+        },
+        "cost_scope": {
+          "const": "supervised task intervals; startup and cleanup enclosed in phase costs"
         }
       },
       "required": [

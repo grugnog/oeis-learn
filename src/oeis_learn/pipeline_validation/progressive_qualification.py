@@ -343,3 +343,53 @@ def hardware_facts():
             driver_unavailable_reason=None if driver else "amdgpu module version not exposed",
         )
     )
+
+
+def calibrate_iteration(package,output,*,source,image,device='cuda'):
+    """Measure exact prepared logical-update/probe/publication scope before freeze.
+
+    The caller's qualification supervisor owns the deadline. CPU receipts remain
+    diagnostic and cannot satisfy the research iteration-margin validator.
+    """
+    import torch
+    from oeis_learn.pipeline_validation.progressive_learner import compatibility
+    from oeis_learn.pipeline_validation.progressive_training import PolicyUpdate
+    from oeis_learn.pipeline_validation.generalization_curriculum import observe_targets
+    from oeis_learn.generalization.budgets import Ledger
+    from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
+    from oeis_learn.decoder.bigint_codec import BOS_ID,PAD_ID
+    if device=='cuda':require_hip()
+    elif device!='cpu':raise ValueError('explicit qualification device required')
+    if seal(package)!=package:raise ValueError('original prepared calibration input required')
+    output=Path(output)
+    if output.exists():raise ValueError('fresh iteration calibration output required')
+    output.mkdir(parents=True)
+    rows=[r for shard in package['shards'] for r in shard]
+    longest=max(rows,key=lambda r:len(r['tokens']))
+    sequence=[int(max((r['values'][i] for r in rows),key=lambda v:(abs(int(v)).bit_length(),abs(int(v))))) for i in range(20)]
+    count=package['update_policy']['effective_batch']
+    ids=[BOS_ID,*longest['tokens']]
+    tokens=torch.tensor([ids]*count,device=device)
+    charge=int(tokens[:,1:].ne(PAD_ID).sum())
+    runner=PolicyUpdate(package['profile'],package['update_policy'],device=device)
+    measurements=dict(update_us=0,probe_us=0,checkpoint_us=0)
+    def now():
+        if device=='cuda':torch.cuda.synchronize()
+        return time.monotonic_ns()//1000
+    ledger=Ledger(3*charge)
+    store=GeneralizationCheckpointStore(output/'checkpoints',compatibility(package),3*charge)
+    for iteration in range(2):
+        start=now()
+        _,ledger=runner.update([sequence]*count,tokens,ledger=ledger.reserve(str(iteration),charge))
+        measurements['update_us']=max(measurements['update_us'],now()-start)
+        start=now()
+        # An allocation boundary can perform both the old and new block probe.
+        for _ in range(2):observe_targets(runner.encoder,runner.decoder,[dict(longest,values=[str(v) for v in sequence])],device=device)
+        measurements['probe_us']=max(measurements['probe_us'],now()-start)
+        start=now()
+        states=dict(weights=dict(encoder=runner.encoder.state_dict(),decoder=runner.decoder.state_dict()),optimizer=runner.state_dict(),scheduler={},data=dict(cursor=ledger.updates,pending_batch=None),replay={},history={},pins={},selection={},rng=dict(python=__import__('random').getstate(),numpy=__import__('numpy').random.get_state(),torch=torch.get_rng_state(),device=torch.cuda.get_rng_state_all() if device=='cuda' else []))
+        ref=store.save(states,ledger);store.load(ref)
+        measurements['checkpoint_us']=max(measurements['checkpoint_us'],now()-start)
+    result=seal(dict(version='progressive-iteration-calibration/v1',source=source,image=image,device='actual_HIP' if device=='cuda' else 'cpu',status='PASS',compatibility=compatibility(package),maximum_target_tokens=len(longest['tokens']),effective_batch=count,measurements={k:max(1,v) for k,v in measurements.items()},measurement_scope='two complete logical updates including initial Adam allocation; two probes; durable full-state save and verified restore; maximal prepared target and numeric input sizes'))
+    atomic_write(output/'producer.json',result)
+    return result

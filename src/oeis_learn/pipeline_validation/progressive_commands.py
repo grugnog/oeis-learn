@@ -565,6 +565,13 @@ def lifecycle_command(args, root, host_factory):
                 raise ValueError("frozen exact role channel map required")
             from .progressive_outputs import resolve as resolve_outputs
             artifacts,derived = resolve_outputs(root,store,task,request,output/('task-input-'+task['identity'].split(':')[1]))
+            from . import progressive_study as study
+            trial=task['payload'].get('trial')
+            if trial and trial['phase']=='proposal':
+                artifacts,derived=study.prepare_proposal(root,store,task,artifacts,output/('study-input-'+str(store.ordinal)))
+            elif trial and trial['phase']=='selection':
+                artifacts,derived=study.prepare_selection(root,store,task,output/('study-selection-'+str(store.ordinal)))
+            study.before(root,store,task)
             remaining = journal.task_remaining(task)
             seconds = request["seconds"]
             reservation = dict(request["reservation"])
@@ -592,6 +599,7 @@ def lifecycle_command(args, root, host_factory):
                     ) as recovery:
                         recovery.append(status="PARTIAL")
                     store.boundary(task, "PARTIAL", _INVOCATION.get())
+                    study.after(root,store,task,dict(mechanical_status='PARTIAL',metrics={'task_status':'PARTIAL'}),journal)
                     continue
                 seconds = min(seconds, remaining["elapsed_us"] / 1000000)
                 reservation["elapsed_us"] = int(seconds * 1000000)
@@ -622,6 +630,7 @@ def lifecycle_command(args, root, host_factory):
                 recovered=recover(root,campaign,task,journal,role_output,exc) if request['operation']=='train' else None
                 store.boundary(task, recovered or "FAILED", _INVOCATION.get())
                 if recovered:
+                    study.after(root,store,task,dict(mechanical_status='PARTIAL',metrics={'task_status':recovered}),journal)
                     store.append(dict(store.state,status='PAUSED' if recovered=='PAUSED' else 'PARTIAL'))
                     return publish(output,operation=args.operation,mechanical_status='PARTIAL',campaign=campaign['identity'],
                         reason='OWNED_INTERRUPTION_'+recovered,metrics={'task_status':recovered}),2
@@ -642,12 +651,17 @@ def lifecycle_command(args, root, host_factory):
                 task_status = "FAILED"
             from .progressive_decision_control import reconcile_decision
 
+            if request['operation']=='census' and task_status=='PARTIAL':
+                from .progressive_outputs import commit as commit_output
+                commit_output(root,store,task,role_output/'role',request['operation'])
             if task_status == "COMPLETE":
                 from .progressive_outputs import commit as commit_output
                 commit_output(root,store,task,role_output/"role",request["operation"])
                 reconcile_decision(root, role_output / "role", result, store, journal, task)
             store.boundary(task, task_status, _INVOCATION.get())
-            if store.state["status"] == "PAUSED" or task_status == "FAILED":
+            study.after(root,store,task,result,journal)
+            if trial and trial['phase']=='selection' and task_status=='COMPLETE':study.commit_selection(root,store,task,result)
+            if store.state["status"] == "PAUSED" or (task_status == "FAILED" and not trial):
                 break
         done = all(
             store.state["tasks"].get(t["id"]) == "COMPLETE" for t in campaign["payload"]["tasks"]

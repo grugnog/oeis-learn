@@ -291,6 +291,19 @@ class BudgetJournal:
                 self.commit(event["key"])
         return self.snapshot()
 
+    def plan_remaining(self,plan):
+        """Read-only frozen-plan remainder; does not bind an unselected trial variant."""
+        with self.lock():events=self._read()[0]
+        totals=dict.fromkeys(KEYS,0)
+        reservations={e['operation']:e for e in events if e['event']=='RESERVE'}
+        for event in events:
+            if not event['operation'].startswith(plan['id']+'/'):continue
+            if event['event']=='RESERVE':
+                for k,n in event['cost'].items():totals[k]+=n
+            else:totals['elapsed_us']-=reservations[event['operation']]['cost']['elapsed_us']-event['cost']['elapsed_us']
+        if any(totals[k]>plan['caps'][k] for k in KEYS):raise ValueError('task allowance exceeded')
+        return {k:plan['caps'][k]-totals[k] for k in KEYS}
+
     def task_remaining(self, task):
         from .campaign import validate_task
 
@@ -361,6 +374,7 @@ WORK_ROLES = frozenset(
         "generate",
         "score",
         "prepare-stream",
+        "audit-language",
         "admit-training",
         "extract-components",
         "verify-components",
@@ -388,6 +402,10 @@ def role_work_requirements(operation, values):
         costs.update(
             attempts=p["maximum_work"], rejections=p["maximum_work"], native_work=p["maximum_work"]
         )
+    elif operation=='audit-language':
+        n=sum(v['kind']=='coverage_witness' for v in values)
+        if not n:raise ValueError('bounded constructive witness roster required')
+        costs.update(attempts=n,rejections=n,native_work=n)
     elif operation == "prepare-stream":
         from .generator import validate_policy
 

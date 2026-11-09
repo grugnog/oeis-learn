@@ -182,6 +182,8 @@ def freeze(
     validate_policy(policy)
     if not policy["payload"]["selected"]:
         raise ValueError("proposed target defaults cannot execute")
+    from .trial_scopes import variants
+    all_plans=[variant for plan in q['task_plans'] for variant in variants(plan)]
     compatibility = _scope_inputs(
         root,
         refs,
@@ -190,27 +192,26 @@ def freeze(
         checkpoint=q["checkpoint"],
         target_policy=q["target_policy"],
         track=b["track"],
-        task_plans=q["task_plans"],
+        task_plans=all_plans,
     )
     from oeis_learn.pipeline_validation.progressive_outputs import validate_requests
-    validate_requests(root,q["task_plans"],refs,q["graph"])
+    validate_requests(root,all_plans,refs,q["graph"])
+    from oeis_learn.pipeline_validation.progressive_study import validate_frozen as validate_studies
+    validate_studies(root,dict(purpose=b['purpose'],track=b['track'],payload=dict(references=refs,tasks=q['task_plans'])))
     known_policies = {r["artifact"]["sha256"] for r in refs if r["kind"] == "policy"} | {
         policy["identity"]
     }
     declared_checkpoints = [r["artifact"] for r in refs if r["kind"] == "checkpoint"]
     initializer_closure = {}
-    for plan in q["task_plans"]:
+    for plan in all_plans:
         selected_runtime=trial_runtime(root,plan,runtime)
         if 'trial_runtime' in plan and not any(r['artifact']==plan['trial_runtime'] and r['kind']=='qualification' for r in refs):
             raise ValueError('per-trial runtime must be frozen in original references')
         from .iteration import margin
         work=margin(plan,research=b['purpose']=='research' and plan['kind']=='training')
         if work:
-            ref=plan['iteration_budget']['producer']
-            if ref not in selected_runtime['payload']['qualification']:raise ValueError('original iteration qualification producer required')
-            measured=json.loads(verify_refs(root,[ref])[0]).get('measurements',{}).get('elapsed_us')
-            if type(measured) is not int or measured<=0 or any(plan['iteration_budget'][k]<2*measured for k in ('update_us','probe_us','checkpoint_us')):
-                raise ValueError('iteration bounds must cover conservative original measured work')
+            from .iteration import validate_producer
+            validate_producer(root,plan,selected_runtime,refs)
         if work+plan['startup_us']+plan['finalization_us']>=plan['caps']['elapsed_us']:raise IncompleteFreeze(['complete_iteration:'+plan['id']])
         if (
             plan["policy"] not in known_policies

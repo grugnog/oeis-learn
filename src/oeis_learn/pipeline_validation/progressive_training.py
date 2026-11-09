@@ -281,7 +281,8 @@ def acceptance_pilot(
         save()
     elapsed = time.monotonic() - began
     from oeis_learn.generalization.progressive.diversity import summarize as diversity_counts
-    diversity=diversity_counts([r for shard in support.rows for r in shard],[i for h in state["history"].values() for i in h["consumed"]])
+    from collections import Counter
+    diversity=diversity_counts([r for shard in support.rows for r in shard],Counter(i for h in state["history"].values() for i in h["consumed"]))
     result = seal(
         {
             "version": "progressive-diversity-acceptance/v1",

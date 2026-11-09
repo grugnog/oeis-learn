@@ -33,9 +33,9 @@ def prepare(args, root):
     plan = json.loads(verify_refs(root, selected, max_bytes=32 << 20)[0])
     if set(plan) != {"version", "payload"} or plan["version"] != "progressive-preparation-plan/v1":
         raise ValueError("closed prospective preparation plan required")
-    if 'blueprint' in plan['payload']:
-        raise ValueError('preparation plan must avoid circular blueprint identity')
-    payload = dict(plan["payload"],blueprint=blueprint['identity'])
+    if "blueprint" in plan["payload"]:
+        raise ValueError("preparation plan must avoid circular blueprint identity")
+    payload = dict(plan["payload"], blueprint=blueprint["identity"])
     prepared = record(
         "prepared",
         payload,
@@ -44,12 +44,13 @@ def prepare(args, root):
         track=blueprint["track"],
     )
     validate("prepared", prepared)
-    verify_refs(
-        root,
-        [r["artifact"] for r in payload["references"]]
-        + [payload[k] for k in ("runtime", "checkpoint", "target_policy")],
-        max_bytes=64 << 30,
-    )
+    refs = [r["artifact"] for r in payload["references"]] + [
+        payload[k] for k in ("runtime", "checkpoint", "target_policy")
+    ]
+    unique = {r["path"]: r for r in refs}
+    if any(unique[r["path"]] != r for r in refs):
+        raise ValueError("conflicting preparation reference")
+    verify_refs(root, list(unique.values()), max_bytes=64 << 30)
     runtime = validate("runtime", load(confined(root, payload["runtime"]["path"])))
     producer = reference(root, confined(root, args.qualification) / "qualification.json")
     if producer not in runtime["payload"]["qualification"]:
@@ -79,7 +80,7 @@ def prepare(args, root):
 def publish_readiness(values, output):
     from oeis_learn.generalization.progressive.readiness import from_request
 
-    data = [v["data"] for v in values]
+    data = [v['data']['record'] if isinstance(v['data'],dict) and v['data'].get('version')=='discovery-owned-output/v1' else v['data'] for v in values]
 
     def one(version):
         rows = [v for v in data if isinstance(v, dict) and v.get("version") == version]

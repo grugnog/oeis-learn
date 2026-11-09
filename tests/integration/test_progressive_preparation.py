@@ -32,7 +32,7 @@ def test_prepare_assembles_original_prospective_inputs_without_engine(tmp_path):
     from tests.helpers.progressive_fixture import blueprint,envelope
     from tests.unit.test_progressive_freeze import prepared
     b=blueprint();p=prepared(tmp_path,b)
-    runtime=envelope('runtime',dict(scope=dict(source='sha256:'+'a'*64,images=['sha256:'+'a'*64],model='sha256:'+'b'*64,language='bigint-body/v1',precision='fp32',device='cpu',execution_policy='sha256:'+'c'*64),qualification=[reference(tmp_path,'qualification.json')],operations=['census'],role_policy='sha256:'+'d'*64,fixture=True))
+    runtime=envelope('runtime',dict(scope=dict(source='sha256:'+'a'*64,images=['sha256:'+'a'*64,'sha256:'+'b'*64],model='sha256:'+'b'*64,language='bigint-body/v1',precision='fp32',device='cpu',execution_policy='sha256:'+'c'*64),qualification=[reference(tmp_path,'qualification.json')],operations=['census'],role_policy='sha256:'+'d'*64,fixture=True))
     atomic_write(tmp_path/'assembled-runtime.json',runtime)
     payload=dict(p['payload'],runtime=reference(tmp_path,'assembled-runtime.json'));payload.pop('blueprint')
     atomic_write(tmp_path/'plan.json',dict(version='progressive-preparation-plan/v1',payload=payload))

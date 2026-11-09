@@ -293,14 +293,18 @@ def _execute(
             raise ValueError("one closed scalar-history proposal request required")
         from oeis_learn.generalization.progressive.tuning import propose_request
 
-        proposal = propose_request(values[0]["data"], output / "journal")
+        data=values[0]['data']
+        if data.get('version')=='progressive-verified-proposal/v1':
+            from oeis_learn.generalization.progressive.tuning import propose_verified_history
+            proposal=propose_verified_history(data)
+        else:proposal = propose_request(data, output / "journal")
         atomic_write(output / "proposal.json", proposal)
         return publish(
             output,
             operation=operation,
             mechanical_status="COMPLETE",
             reason="PROPOSAL_DURABLE_BEFORE_DISPATCH",
-            metrics={"proposal": proposal["identity"]},
+            metrics={"proposal": reference(output,output/'proposal.json')},
         )
     if operation == "prepare-stream":
         policies = [v["data"] for v in values if v["kind"] == "generation_policy"]
@@ -511,7 +515,9 @@ def _execute(
         private.mkdir(exist_ok=True)
         private.chmod(0o700)
         with SynthesisClient(digest("discovery-coverage/v1")) as client:
+            budget.client(client)
             for ordinal, value in enumerate(witnesses):
+                budget.consume(attempts=1,rejections=1)
                 witness = {k: value[k] for k in ("source", "indices", "values")}
                 path = private / (str(ordinal) + ".json")
                 atomic_write(path, witness)
@@ -523,6 +529,7 @@ def _execute(
                     operator_class=value["operator_class"],
                     missing_operations=value["missing_operations"],
                     created_at=value["created_at"],
+                    purpose=load(authority)['task']['purpose'],track=load(authority)['task']['track'],
                 )
                 # Public summary excludes witness bytes and local path.
                 results.append(result)
@@ -534,7 +541,15 @@ def _execute(
     if operation == "publish":
         if any(v["kind"] != "public_evidence" for v in values):
             raise ValueError("public-only publication")
-        if any(isinstance(v['data'],dict) and v['data'].get('version')=='discovery-cohort/v1' for v in values):
+        if any(isinstance(v['data'],dict) and v['data'].get('version')=='progressive-decision-template/v1' for v in values):
+            from .progressive_publication import decision_from_outputs
+            values=decision_from_outputs(values)
+        if len(values)==1 and isinstance(values[0]['data'],dict) and values[0]['data'].get('version')=='progressive-finalists/v1':
+            selected=values[0]['data']
+            if seal(selected)!=selected or selected['sampler_feedback'] is not False:raise ValueError('locked independent finalists required')
+            atomic_write(output/'finalists.json',selected)
+            return publish(output,operation='publish',mechanical_status='COMPLETE',reason='LOCKED_FRESH_CONFIRMATION',metrics={'finalists':reference(output,output/'finalists.json')})
+        if any(isinstance(v['data'],dict) and (v['data'].get('version')=='discovery-cohort/v1' or (v['data'].get('version')=='discovery-owned-output/v1' and isinstance(v['data'].get('record'),dict) and v['data']['record'].get('version')=='discovery-cohort/v1')) for v in values):
             from .progressive_capability import publish_readiness
             return publish_readiness(values,output)
         if len(values) == 1 and isinstance(values[0]['data'],dict) and values[0]["data"].get("version") == "progressive-decision-input/v1":

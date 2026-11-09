@@ -56,7 +56,7 @@ class RunStore:
     def append(self, state):
         if self.ordinal >= 4096:
             raise ValueError("transition allowance exhausted")
-        state = dict(state, outputs=state.get("outputs",self.state.get("outputs",{})), decisions=state.get("decisions", self.state.get("decisions", {})))
+        state = dict(state, choices=state.get('choices',self.state.get('choices',{})), outputs=state.get("outputs",self.state.get("outputs",{})), decisions=state.get("decisions", self.state.get("decisions", {})))
         from .storage import journal_write
 
         journal_write(
@@ -70,7 +70,9 @@ class RunStore:
         if (self.root / "assessment-exposure.json").exists():
             raise ValueError("assessment exposed; adaptive continuation forbidden")
         nodes = {n["id"]: n for n in self.campaign["payload"]["graph"]["nodes"]}
-        for plan in self.campaign["payload"]["tasks"]:
+        for original in self.campaign["payload"]["tasks"]:
+            plan=self.resolved_plan(original)
+            if plan is None:continue
             status = self.state["tasks"].get(plan["id"])
             if status in {"COMPLETE", "FAILED", "PARTIAL"}:
                 continue
@@ -206,7 +208,7 @@ class RunStore:
             from .decisions import verify_gate_producers
 
             verify_gate_producers(
-                self.root if evidence_root is None else evidence_root, self.campaign, bundle
+                self.root if evidence_root is None else evidence_root, self.campaign, bundle,store=self
             )
         observation=kwargs.get('runtime')
         if observation is not None:
@@ -355,3 +357,22 @@ class RunStore:
                 "invocation": invocation,
             }
         )
+
+    def resolved_plan(self,plan):
+        if 'trial_choices' not in plan:return plan
+        index=self.state.get('choices',{}).get(plan['id'])
+        if index is None:return None
+        from .trial_scopes import resolve
+        return resolve(plan,index)
+
+    def choose_trial(self,proposal):
+        choices=dict(self.state.get('choices',{}))
+        for plan in self.campaign['payload']['tasks']:
+            trial=plan.get('trial')
+            if 'trial_choices' not in plan or trial['study']!=proposal['study'] or trial['ordinal']!=proposal['ordinal']:continue
+            if plan['seed']!=proposal['seed']:raise ValueError('frozen trial proposal seed differs')
+            matching=[i for i,c in enumerate(plan['trial_choices']) if c['parameters']==proposal['parameters']]
+            if len(matching)!=1:raise ValueError('proposal lacks a frozen prequalified trial alternative')
+            if plan['id'] in choices and choices[plan['id']]!=matching[0]:raise ValueError('trial choice cannot change on resume')
+            choices[plan['id']]=matching[0]
+        self.append(dict(self.state,choices=choices))

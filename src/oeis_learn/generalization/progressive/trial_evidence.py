@@ -8,7 +8,7 @@ from .contracts import seal
 def objective(evidence, *, elapsed_us, root=None):
     if (
         type(evidence) is not dict
-        or set(evidence) - {"producer_refs"}
+        or set(evidence) - {"producer_refs","cost_scope"}
         != {
             "version",
             "identity",
@@ -29,7 +29,9 @@ def objective(evidence, *, elapsed_us, root=None):
         or evidence["scope"] not in {"DIAGNOSTIC_ONLY", "NATIVE_VERIFIED"}
     ):
         raise ValueError("bound development execution evidence required")
-    if evidence["scope"] == "NATIVE_VERIFIED":
+    if evidence['scope']=='NATIVE_VERIFIED' and evidence.get('cost_scope')!='supervised task intervals; startup and cleanup enclosed in phase costs':
+        raise ValueError('original enclosed startup/cleanup cost scope required')
+    if evidence["scope"] == "NATIVE_VERIFIED" or 'producer_refs' in evidence:
         verify_producers(root, evidence)
     import re
 
@@ -150,7 +152,7 @@ def verify_producers(root, evidence):
     if (
         q.get("identity") != evidence["qualification"]
         or q.get("status") not in {"PASS", "COMPLETE"}
-        or q.get("device") != "actual_HIP"
+        or (q.get('device')!='actual_HIP' if evidence['scope']=='NATIVE_VERIFIED' else q.get('device') not in {'actual_HIP','cpu'})
     ):
         raise ValueError("compatible actual research qualification required")
     for prefix in ("", "retention_baseline_", "retention_candidate_"):

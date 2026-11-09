@@ -163,3 +163,21 @@ def propose_request(request, output):
         elif journal.trials[str(ordinal)]["result"] != entry["result"]:
             raise ValueError("history result changed")
     return propose(journal, request["ordinal"], selected_learning=request["selected_learning"])
+
+
+def propose_verified_history(request):
+    """Installed sampler over host-verified scalar feedback; no truth/tensors."""
+    from .contracts import seal
+    if set(request)!={'version','study','ordinal','history','selected_learning'} or request['version']!='progressive-verified-proposal/v1':
+        raise ValueError('closed verified development history required')
+    if len(request['history'])!=request['ordinal']:raise ValueError('ordered finite feedback required')
+    class History:
+        binding={'study':request['study']}
+        trials={str(i):entry for i,entry in enumerate(request['history'])}
+        def read(self):pass
+        def propose(self,ordinal,*,parameters,seed):
+            return seal(dict(study=request['study'],ordinal=ordinal,parameters=parameters,seed=seed))
+    for entry in request['history']:
+        if set(entry)!={'proposal','status','result'} or entry['status'] not in {'COMPLETE','PRUNED','FAILED','PARTIAL','INFEASIBLE'} or entry['result']['role']!='development':
+            raise ValueError('verified terminal development history only')
+    return propose(History(),request['ordinal'],selected_learning=request['selected_learning'])

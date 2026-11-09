@@ -53,7 +53,28 @@ def confirmation(rows, *, baseline, panels, seeds, target=4000000, root=None):
     ranking = rank(rows, target=target, root=root)
     if baseline not in ranking["ordered"]:
         raise ValueError("feasible baseline required")
-    selected = [baseline] + [i for i in ranking["ordered"] if i != baseline][:3]
+    candidates = {r["id"]: r for r in rows}
+
+    def config(name):
+        params = candidates[name].get("parameters")
+        return (
+            __import__("json").dumps(
+                dict(params, shape=params.get("shape", "reference")), sort_keys=True
+            )
+            if params is not None
+            else name
+        )
+
+    selected = [baseline]
+    seen = {config(baseline)}
+    for name in ranking["ordered"]:
+        key = config(name)
+        if key in seen:
+            continue
+        selected.append(name)
+        seen.add(key)
+        if len(selected) == 4:
+            break
     if len(seeds) != 2 or len(set(seeds)) != 2:
         raise ValueError("two paired confirmation seeds required")
     for seed in seeds:

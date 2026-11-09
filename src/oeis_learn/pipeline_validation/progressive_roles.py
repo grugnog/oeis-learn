@@ -287,6 +287,9 @@ def _invoke_reserved(
                 and p["arm"] == t["payload"]["arm"]
                 and p["seed"] == t["payload"]["seed"]
             )
+            if 'trial_choices' in plan:
+                from oeis_learn.generalization.progressive.trial_scopes import resolve
+                plan=resolve(plan,t['payload']['trial_choice'])
             parent = record(
                 "task",
                 dict(plan, campaign=c["identity"]),
@@ -340,6 +343,7 @@ def _invoke_reserved(
     ]
     environment = private_runtime_environment(role_output, destination="/output/discovery")
     environment["OEIS_DISCOVERY_PURPOSE"] = t["purpose"]
+    environment['OEIS_DISCOVERY_TRACK']=t['track']
     command = host.engine.command(
         image=image,
         name=name,

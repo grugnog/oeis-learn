@@ -52,7 +52,8 @@ def slot(value, *, plans, consumer, graph):
                 walk(p)
 
     walk(consumer["slot"])
-    if source["slot"] not in ancestors:
+    same_slot=(source['slot']==consumer['slot'] and next(i for i,p in enumerate(plans) if p['id']==source['id'])<next(i for i,p in enumerate(plans) if p['id']==consumer['id']))
+    if source["slot"] not in ancestors and not same_slot:
         raise ValueError("output producer is not a frozen ancestor")
     return source
 
@@ -63,7 +64,7 @@ def commit(root, store, task, role_output, operation):
     if (
         seal(result) != result
         or result.get("operation") != operation
-        or result.get("mechanical_status") != "COMPLETE"
+        or (result.get('mechanical_status')!='COMPLETE' and not (operation=='census' and result.get('mechanical_status')=='PARTIAL'))
     ):
         raise ValueError("completed original producer result required")
     if result.get("task") not in (None, task["identity"]) or result.get("campaign") not in (
@@ -102,7 +103,9 @@ def resolve(root, store, task, request, output):
                 consumer=task["payload"],
                 graph=store.campaign["payload"]["graph"],
             )
-            if store.state["tasks"].get(source["id"]) != "COMPLETE":
+            source=store.resolved_plan(source)
+            if source is None:raise ValueError('producer trial choice has not committed')
+            if store.state["tasks"].get(source["id"]) not in ({'COMPLETE','PARTIAL'} if value['kind']=='public_evidence' else {'COMPLETE'}):
                 raise ValueError("output predecessor has not committed")
             cut = store.state.get("outputs", {}).get(source["id"])
             if cut is None or cut["operation"] != value["operation"]:
@@ -117,7 +120,7 @@ def resolve(root, store, task, request, output):
             if cut["task"] != expected["identity"]:
                 raise ValueError("original output task differs")
             result = json.loads(verify_refs(root, [cut["result"]])[0])
-            if seal(result) != result or result["mechanical_status"] != "COMPLETE":
+            if seal(result) != result or result['mechanical_status'] not in ({'COMPLETE','PARTIAL'} if value['kind']=='public_evidence' else {'COMPLETE'}):
                 raise ValueError("committed producer changed")
             ref = result["metrics"].get(value["output"])
             if type(ref) is not dict:
@@ -154,6 +157,8 @@ def resolve(root, store, task, request, output):
                 )
             if kind not in CHANNELS[channel]:
                 raise ValueError("producer output cannot enter this role channel")
+            if kind=='public_evidence':
+                data=seal(dict(version='discovery-owned-output/v1',task=source['id'],task_record=cut['task'],operation=value['operation'],output=value['output'],artifact=reference(root,confined(base,ref['path'])),record=data))
             # Preserve original content and binding; candidate wrapper gains no
             # permission to expose scorer/assessment truth to another role.
             wrapped = seal(
@@ -206,5 +211,8 @@ def validate_requests(root, plans, refs, graph):
             for value in items:
                 if isinstance(value, dict):
                     slot(value, plans=plans, consumer=plan, graph=graph)
+                elif isinstance(value,str) and request['operation']=='propose-trial':
+                    envelope=json.loads(verify_refs(root,[reference(root,value)])[0])
+                    if envelope.get('data',{}).get('version')=='progressive-verified-proposal/v1':raise ValueError('verified feedback must come from owned study journal')
                 elif not isinstance(value, str):
                     raise ValueError("literal artifact path or typed predecessor slot required")
