@@ -99,12 +99,14 @@ def verify_draw(value, *, client=None, budget=None):
     return row, None
 
 
-def prepare_stream(root, policy, *, client, shards=1, purpose="acceptance", budget=None):
+def prepare_stream(root, policy, *, client, shards=1, purpose="acceptance", budget=None, return_receipt=False):
     """Bounded native custodian producer; every rejected draw remains charged."""
     from oeis_learn.generalization.progressive.stream import StreamStore
 
     if client is None or type(shards) is not int or not 1 <= shards <= 64:
         raise ValueError("native client and finite shard reservation required")
+    import time
+    began=time.monotonic_ns()
     store = StreamStore(root, policy, purpose=purpose)
     result = []
     for _ in range(shards):
@@ -120,6 +122,15 @@ def prepare_stream(root, policy, *, client, shards=1, purpose="acceptance", budg
             result.append(store.seal_shard())
         if state["draws"] >= policy["max_draws"] or state["work_units"] >= policy["max_work_units"]:
             break
+    if return_receipt:
+        from oeis_learn.generalization.progressive.contracts import seal,atomic_write,reference
+        import uuid
+        from pathlib import Path
+        receipt=seal(dict(version='progressive-preparation-cost/v1',shards=[s['identity'] for s in result],
+            elapsed_us=(time.monotonic_ns()-began)//1000,scope='observed producer invocation; host startup/cleanup accounted separately'))
+        path=Path(root)/('preparation-'+uuid.uuid4().hex+'.json')
+        atomic_write(path,receipt)
+        return result,reference(root,path)
     return result
 
 

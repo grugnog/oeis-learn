@@ -560,10 +560,8 @@ def lifecycle_command(args, root, host_factory):
                 REGISTRY[request["operation"]].channels
             ):
                 raise ValueError("frozen exact role channel map required")
-            artifacts = {
-                channel: [describe(root, p) for p in paths]
-                for channel, paths in request["artifacts"].items()
-            }
+            from .progressive_outputs import resolve as resolve_outputs
+            artifacts,derived = resolve_outputs(root,store,task,request,output/('task-input-'+task['identity'].split(':')[1]))
             remaining = journal.task_remaining(task)
             seconds = request["seconds"]
             reservation = dict(request["reservation"])
@@ -610,6 +608,7 @@ def lifecycle_command(args, root, host_factory):
                     reservation=reservation,
                     seconds=seconds,
                     runtime=checked,
+                    derived=derived,
                 )
             except (OSError, RuntimeError, ValueError):
                 store.boundary(task, "FAILED", _INVOCATION.get())
@@ -631,6 +630,8 @@ def lifecycle_command(args, root, host_factory):
             from .progressive_decision_control import reconcile_decision
 
             if task_status == "COMPLETE":
+                from .progressive_outputs import commit as commit_output
+                commit_output(root,store,task,role_output/"role",request["operation"])
                 reconcile_decision(root, role_output / "role", result, store, journal, task)
             store.boundary(task, task_status, _INVOCATION.get())
             if store.state["status"] == "PAUSED" or task_status == "FAILED":

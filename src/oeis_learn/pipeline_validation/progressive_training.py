@@ -111,6 +111,7 @@ def acceptance_pilot(
     fault=None,
     diagnostic_shards=False,
     target_tokens=None,
+    preparation_receipts=(),
 ):
     """Real CPU SFT + exact full-state recovery, explicitly DIAGNOSTIC_ONLY."""
     began = time.monotonic()
@@ -284,6 +285,8 @@ def acceptance_pilot(
     if pointer is None:
         save()
     elapsed = time.monotonic() - began
+    from oeis_learn.generalization.progressive.diversity import summarize as diversity_counts
+    diversity=diversity_counts([r for shard in support.rows for r in shard],[i for h in state["history"].values() for i in h["consumed"]])
     result = seal(
         {
             "version": "progressive-diversity-acceptance/v1",
@@ -320,8 +323,11 @@ def acceptance_pilot(
             else 0,
             "nominal_target_tokens": target_tokens,
             "preparation_work_units": shards[-1]["payload"]["work_units"],
-            "preparation_elapsed_us": None,
-            "preparation_timing_reason": "role-level preparation receipt required for total cost",
+            "diversity":diversity,
+            "accepted_rows":sum(s["payload"]["accepted"] for s in shards),
+            "rejected_draws":sum(s["payload"]["rejected"] for s in shards),
+            "preparation_elapsed_us": preparation_cost(root,shards,preparation_receipts),
+            "preparation_timing_reason": "unproven interrupted preparation intervals remain unavailable; measured completed work only",
             "missing": missing,
             "counts": counts,
             "history": state["history"],
@@ -901,14 +907,14 @@ class Progress:
         return value
 
     def preflight(
-        self, *, bytes_required, inodes_required, remaining_us, finalization_us, research
+        self, *, bytes_required, inodes_required, remaining_us, finalization_us, research,work_us=0
     ):
         import os
         import shutil
 
         if any(
             type(v) is not int or v < 0
-            for v in (bytes_required, inodes_required, remaining_us, finalization_us)
+            for v in (bytes_required, inodes_required, remaining_us, finalization_us,work_us)
         ):
             raise ValueError("bounded resource preflight required")
         if research and finalization_us < 1800000000:
@@ -918,7 +924,7 @@ class Progress:
         if (
             shutil.disk_usage(self.output).free < bytes_required
             or fs.f_favail < inodes_required
-            or remaining_us <= finalization_us
+            or remaining_us <= finalization_us + work_us
         ):
             raise TimeoutError("storage/inodes/finalization reserve insufficient")
 
@@ -1108,3 +1114,16 @@ def short_update(worker, targets, **transaction):
     sequences, tokens = training_batch(targets, device=worker.runner.device)
     transaction["entries"] = [t["identity"] for t in targets]
     return worker.step(sequences, tokens, **transaction)
+
+
+def preparation_cost(root,shards,receipts):
+    if not receipts:return None
+    if len({r["sha256"] for r in receipts})!=len(receipts):raise ValueError("preparation producer cost counted twice")
+    covered=set();elapsed=0
+    for blob in verify_refs(root,receipts,max_bytes=1<<20):
+        value=json.loads(blob)
+        if set(value)!={'version','identity','shards','elapsed_us','scope'} or seal(value)!=value or value['version']!='progressive-preparation-cost/v1' or type(value['elapsed_us']) is not int or value['elapsed_us']<0:
+            raise ValueError('original preparation producer receipt required')
+        covered.update(value['shards']);elapsed+=value['elapsed_us']
+    if covered!={s['identity'] for s in shards}:raise ValueError('preparation receipt scope differs')
+    return elapsed

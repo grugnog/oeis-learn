@@ -175,3 +175,43 @@ def confirm(rows, roster, seeds, design, *, confirmation, policy, remaining):
         comparisons=design["comparisons"],
     )
     return metrics, result["evidence_verdict"]
+
+
+def validate_trigger(branch, *, metrics, remaining, visited=()):
+    """Recompute scientific triggers; a requested label is never evidence."""
+    effects = list(metrics.get("seed_effects", {}).values())
+    effects = [v for v in effects if v is not None]
+    signal = branch["signal"]
+    if signal == "seed_disagreement":
+        observed = len(effects) >= 2 and min(effects) <= 0 < max(effects)
+    elif signal == "support_deficit":
+        observed = metrics.get("support_status") == "INCOMPLETE"
+    elif signal == "heldout_yield":
+        observed = metrics.get("mean_gain") is not None and (
+            metrics["mean_gain"] < 0.02
+            or any(v <= 0 for v in effects)
+            or metrics.get("lower") is None
+            or metrics["lower"] <= 0
+        )
+    else:
+        # Until an original runtime producer is supplied through the frozen
+        # study boundary, neither a string nor training loss can establish it.
+        observed = False
+    legacy = dict(
+        id=branch["id"],
+        failure_class=branch["failure_class"],
+        trigger=branch["trigger"],
+        design=branch["design"],
+        panel=branch["panel"],
+        task=branch["task_slots"][0],
+        reservation=branch["id"],
+        maximum_visits=branch["maximum_visits"],
+        terminal=branch["terminal_action"],
+    )
+    return validate_branch(
+        legacy,
+        evidence={branch["trigger"]: observed},
+        remaining={k: v["elapsed_us"] for k, v in remaining.items()},
+        visited=visited,
+        exposed_panels=(),
+    )

@@ -1285,3 +1285,31 @@ production outcomes (T118 integration remains in progress).
 Independent missing/filtered/low-completion/retention/scalar/provenance cases and
 actual Optuna replay passed: 32 focused trial/ranking/historical-schema cases.
 The trial schema's erroneous duplicate stream identifier was also corrected.
+
+### T117/T122–T125 — integration repair cores (work continues)
+
+Committed predecessor output slots now have a typed ancestor/operation/output/kind
+contract and an append-only RunStore output registry. Freeze checks slot templates;
+canonical dispatch resolves only completed owned producers and uses the existing
+host-only derived authority. Generator/scorer/census/coverage outputs expose exact
+artifact references, and coverage retains the schema envelope required by readiness.
+Preparation/readiness and trial orchestration integration remain in progress.
+
+Diagnostic publication derives seed-disagreement, held-out deficit and sparse-
+support triggers from recomputed outcome metrics before authorizing an episode.
+Unbound runtime labels fail closed. Full original runtime producer routing remains
+part of the integration work. Structural reports now count numeric variants,
+canonical structures, finite behavior clusters, operator compositions/coverage and
+fixed syntax difficulty bands, separating available from consumed rows. Producer
+preparation receipts provide measured invocation cost; interrupted/legacy intervals
+remain explicitly unavailable and duplicate producer costs are rejected.
+
+Prospective refreshed-support preflight compares the frozen milestone, batch/token
+law, cadence and finite shard inventory; the 25M/eight-update default correctly
+reports a preparation deficit rather than falling back to static support. Complete
+iteration margins include update, probe and checkpoint work before the protected
+finalization reserve; research requires original measured qualification producers.
+47 focused trigger/diversity/supply/deadline/freeze/schema cases passed, and the
+CPU stream update/recovery selection passed four cases (two native-only skips in
+that invocation). No task completion marker or hardware authority is inferred from
+these repair cores; remaining canonical end-to-end paths are still being integrated.

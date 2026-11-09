@@ -181,6 +181,9 @@ def diversity_report(static, refreshed, *, decision=None):
                 arm: {
                     k: r[k]
                     for k in (
+                        "diversity",
+                        "accepted_rows",
+                        "rejected_draws",
                         "updates",
                         "charged_tokens",
                         "useful_tokens",

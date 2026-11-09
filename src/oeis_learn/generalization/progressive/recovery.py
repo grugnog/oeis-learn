@@ -382,7 +382,9 @@ class Recovery:
             or boot != self.clock["boot"]
         ):
             raise ValueError("owned current-boot invocation required")
-        if not self.clock["start"] <= monotonic_us < self.clock["end"] - self.p["finalization_us"]:
+        from .iteration import margin
+        work=margin(self.p,research=self.task["purpose"]=="research")
+        if not self.clock["start"] <= monotonic_us < self.clock["end"] - self.p["finalization_us"] - work:
             raise ValueError("protected finalization or elapsed allowance exhausted")
         if self.state["pending"] is not None and self.state["pending"]["batch"] != batch:
             raise ValueError("retry must consume the exact pending batch and data cut")

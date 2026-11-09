@@ -190,13 +190,25 @@ def freeze(
         checkpoint=q["checkpoint"],
         target_policy=q["target_policy"],
         track=b["track"],
+        task_plans=q["task_plans"],
     )
+    from oeis_learn.pipeline_validation.progressive_outputs import validate_requests
+    validate_requests(root,q["task_plans"],refs,q["graph"])
     known_policies = {r["artifact"]["sha256"] for r in refs if r["kind"] == "policy"} | {
         policy["identity"]
     }
     declared_checkpoints = [r["artifact"] for r in refs if r["kind"] == "checkpoint"]
     initializer_closure = {}
     for plan in q["task_plans"]:
+        from .iteration import margin
+        work=margin(plan,research=b['purpose']=='research' and plan['kind']=='training')
+        if work:
+            ref=plan['iteration_budget']['producer']
+            if ref not in runtime['payload']['qualification']:raise ValueError('original iteration qualification producer required')
+            measured=json.loads(verify_refs(root,[ref])[0]).get('measurements',{}).get('elapsed_us')
+            if type(measured) is not int or measured<=0 or any(plan['iteration_budget'][k]<2*measured for k in ('update_us','probe_us','checkpoint_us')):
+                raise ValueError('iteration bounds must cover conservative original measured work')
+        if work+plan['startup_us']+plan['finalization_us']>=plan['caps']['elapsed_us']:raise IncompleteFreeze(['complete_iteration:'+plan['id']])
         if (
             plan["policy"] not in known_policies
             or plan["initializer"]["compatibility"] != compatibility
@@ -362,7 +374,7 @@ def freeze(
     return campaign, runtime, tasks
 
 
-def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target_policy, track):
+def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target_policy, track,task_plans=()):
     """A valid file hash alone cannot substitute for its declared input scope."""
     scope = runtime["payload"]["scope"]
     grouped = {kind: [r for r in refs if r["kind"] == kind] for kind in {r["kind"] for r in refs}}
@@ -413,6 +425,11 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
             )
             if data["compatibility"] != compatibility(package):
                 raise ValueError("declared training compatibility differs")
+            from .supply import plan as supply_plan
+            for task_plan in task_plans:
+                if task_plan["kind"]=="training" and task_plan["initializer"]["compatibility"]==compatibility(package):
+                    try:supply_plan(package,task_plan["token_target"],arm=task_plan["arm"])
+                    except ValueError as exc:raise IncompleteFreeze([str(exc)]) from exc
             learner_packages.append(package)
     recipes = []
     for item in grouped["recipe"]:

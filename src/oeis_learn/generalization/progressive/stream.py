@@ -67,6 +67,8 @@ class StreamStore:
                 "shards": [],
                 "rows": [],
                 "rejected": 0,
+                "preparation_elapsed_us": 0,
+                "preparation_timing_complete": True,
             }
         if info is not None:
             if info.st_size > 64 << 20:
@@ -85,12 +87,19 @@ class StreamStore:
                         state["draws"] += 1
                         state["work_units"] += 1
                     elif e["kind"] == "replay":
+                        state["preparation_timing_complete"] = False
                         if state["pending"] != e["ordinal"]:
                             raise ValueError("replay has no reservation")
                         state["work_units"] += 1
                     elif e["kind"] == "result":
                         if state["pending"] != e["ordinal"]:
                             raise ValueError("unreserved draw result")
+                        if "elapsed_us" not in e:
+                            state["preparation_timing_complete"] = False
+                        elapsed = e.get("elapsed_us", 0)
+                        if type(elapsed) is not int or elapsed < 0:
+                            raise ValueError("invalid measured preparation time")
+                        state["preparation_elapsed_us"] += elapsed
                         state["pending"] = None
                         if e["row"] is not None:
                             state["rows"].append(e["row"])
@@ -171,6 +180,9 @@ class StreamStore:
                 and s["draws"] >= p["max_draws"]
             ):
                 raise TimeoutError("frozen draw/work/shard allowance exhausted")
+            import time
+
+            began = time.monotonic_ns()
             ordinal = s["pending"] if s["pending"] is not None else s["draws"]
             if budget:
                 budget.consume(draws=1, attempts=1, rejections=1)
@@ -203,7 +215,13 @@ class StreamStore:
                 else:
                     atomic_write(path, row)
                 ref = reference(self.root, path)
-            self._append("result", ordinal, row=ref, reason=reason)
+            self._append(
+                "result",
+                ordinal,
+                row=ref,
+                reason=reason,
+                elapsed_us=(time.monotonic_ns() - began) // 1000,
+            )
             return {
                 "ordinal": ordinal,
                 "status": "accepted" if ref else "rejected",
@@ -222,6 +240,9 @@ class StreamStore:
                 raise ValueError("registered diagnostic fault required")
             rows = [load(confined(self.root, r["path"])) for r in s["rows"]]
             payload = {
+                "preparation_elapsed_us": s["preparation_elapsed_us"]
+                if s["preparation_timing_complete"]
+                else None,
                 "source_policy": digest(self.policy),
                 "rows": s["rows"],
                 "draw_high": s["draws"],

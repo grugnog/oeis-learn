@@ -241,6 +241,20 @@ def publish(
             policy=policy,
             remaining=remaining,
         )
+    if action == "EXPLORE_RESERVED":
+        from .contingencies import validate_trigger
+
+        branch = next(
+            (
+                d
+                for d in policy["payload"]["diagnostics"]
+                if d["trigger"] == trigger and d["id"] == target["budget_ref"]
+            ),
+            None,
+        )
+        if branch is None:
+            raise ValueError("diagnostic trigger absent")
+        validate_trigger(branch, metrics=metrics, remaining=remaining, visited=visited)
     validate_action(
         policy,
         target_id,

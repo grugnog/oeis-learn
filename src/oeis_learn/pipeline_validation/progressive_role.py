@@ -475,7 +475,7 @@ def _execute(
             operation=operation,
             mechanical_status="COMPLETE",
             reason="FINITE_SCORING_COMPLETE",
-            metrics={"scores": result["identity"]},
+            metrics={"scores": reference(output,output/"scoring/scores.json")},
         )
     if operation == "census":
         cohorts = [v["data"] for v in values if v["kind"] == "cohort"]
@@ -492,6 +492,7 @@ def _execute(
             mechanical_status="COMPLETE" if result["status"] == "COMPLETE" else "PARTIAL",
             scientific_status="UNMEASURED",
             reason="OUTCOME_BLIND_CENSUS",
+            metrics={"census":reference(output,output/"census.json")},
             missing=[
                 s for s, v in result["strata"].items() if v["task_deficit"] or v["group_deficit"]
             ],
@@ -523,10 +524,11 @@ def _execute(
                     created_at=value["created_at"],
                 )
                 # Public summary excludes witness bytes and local path.
-                results.append({k: v for k, v in result["payload"].items() if k != "witness"})
+                results.append(result)
         atomic_write(output / "coverage.json", results)
         return publish(
-            output, operation=operation, mechanical_status="COMPLETE", reason="FINITE_WITNESS_AUDIT"
+            output, operation=operation, mechanical_status="COMPLETE", reason="FINITE_WITNESS_AUDIT",
+            metrics={"coverage":reference(output,output/"coverage.json")}
         )
     if operation == "publish":
         if any(v["kind"] != "public_evidence" for v in values):

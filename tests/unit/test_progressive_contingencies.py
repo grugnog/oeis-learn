@@ -212,3 +212,31 @@ def test_third_seed_authority_recomputes_all_outcomes_and_preserves_failed_gate(
         **(kwargs | {"action": "RETAIN_BASELINE"}),
     )
     assert result["payload"]["evidence_verdict"] == "INCOMPLETE"
+
+
+def test_paired_gain_cannot_claim_false_seed_disagreement():
+    from tests.unit.test_progressive_contingencies import third_seed_fixture
+    from oeis_learn.generalization.progressive.decisions import publish
+
+    data, roster, design, policy, *rest = third_seed_fixture()
+    data = [r for r in data if r["seed"] in (1, 2)]
+    # The existing diagnostic fixture is modified to a uniformly successful arm.
+    for r in data:
+        if r["arm"] == "candidate":
+            r["outcome"] = "success"
+    branch = policy["payload"]["diagnostics"][0]
+    with pytest.raises(ValueError, match="trigger"):
+        publish(
+            data,
+            roster,
+            [1, 2],
+            design,
+            policy=policy,
+            target_id="gain",
+            action="EXPLORE_RESERVED",
+            trigger=branch["trigger"],
+            remaining={branch["id"]: branch["reservation"]},
+            created_at="2026-11-08T00:00:00Z",
+            purpose="acceptance",
+            track="synthetic_strict",
+        )

@@ -88,6 +88,18 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 268435456
+        },
+        "preparation_elapsed_us": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            }
+          ]
         }
       },
       "required": [

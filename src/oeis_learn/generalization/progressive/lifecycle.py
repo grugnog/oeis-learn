@@ -56,7 +56,7 @@ class RunStore:
     def append(self, state):
         if self.ordinal >= 4096:
             raise ValueError("transition allowance exhausted")
-        state = dict(state, decisions=state.get("decisions", self.state.get("decisions", {})))
+        state = dict(state, outputs=state.get("outputs",self.state.get("outputs",{})), decisions=state.get("decisions", self.state.get("decisions", {})))
         from .storage import journal_write
 
         journal_write(

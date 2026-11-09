@@ -220,6 +220,9 @@ def validate_input(package, task, *, allow_pending=False):
     if not probe_ids <= set(seen):
         raise ValueError("complete frozen training probes required")
     Controller(package["layout"], seed=task["payload"]["seed"])
+    if "token_target" in task["payload"]:
+        from oeis_learn.generalization.progressive.supply import plan
+        plan(package,task["payload"]["token_target"],arm=task["payload"]["arm"])
     return package
 
 
@@ -473,6 +476,7 @@ def _run(
                         remaining_us=remaining_us,
                         finalization_us=t["payload"]["finalization_us"],
                         research=t["purpose"] == "research",
+                        work_us=__import__("oeis_learn.generalization.progressive.iteration",fromlist=["margin"]).margin(t["payload"],research=t["purpose"]=="research"),
                     )
                     if controller.block_position == 8:
                         key = package["layout"]["probes"][controller.pending["bin"]]["id"]
@@ -635,6 +639,7 @@ def _run(
             metrics={
                 "task_status": status,
                 "checkpoint": recovery.state["checkpoint"]["identity"],
+                "checkpoint_record":__import__("oeis_learn.generalization.progressive.contracts",fromlist=["reference"]).reference(output,output/"checkpoint.json"),
                 "charged_tokens": current["ledger"].consumed,
                 "useful_tokens": recovery.state["useful_tokens"],
                 "discarded_tokens": current["discarded_tokens"],

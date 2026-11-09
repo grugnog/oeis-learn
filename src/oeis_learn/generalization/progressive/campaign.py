@@ -18,6 +18,9 @@ def validate_task(task, *, campaign=None, track=None, compatibility=None):
         raise ValueError("no useful work after reserves")
     if task["purpose"] == "research" and p["finalization_us"] < 1_800_000_000:
         raise ValueError("research finalization reserve below 30 minutes")
+    from .iteration import margin
+    work=margin(p,research=task["purpose"]=="research" and p["kind"]=="training")
+    if work+p["startup_us"]+p["finalization_us"]>=p["caps"]["elapsed_us"]:raise ValueError("complete iteration cannot fit frozen task")
     init = p["initializer"]
     if (
         task["track"] == "synthetic_strict"
