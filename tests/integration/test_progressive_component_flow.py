@@ -396,7 +396,11 @@ def test_canonical_freeze_component_slots_then_resume_without_remining(
         == 0
     )
     c = load(tmp_path / "frozen-cycle/campaign.json")
+    from oeis_learn.generalization.progressive import contracts
+
+    original_verifier = contracts.verify_refs
     accept_prior_stages(tmp_path, c, prefix, monkeypatch)
+    assert contracts.verify_refs is original_verifier
     calls = []
 
     def invoke(

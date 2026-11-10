@@ -1839,3 +1839,40 @@ contract tests. `python3 -S` dry-run verified the stdlib-only host route without
 builds or execution; `git diff --check` passed. No container image was built here,
 no HIP/sustained/research run was performed, and CI was not awaited. T082 and
 T088–T111 retain their original pending status and evidence requirements.
+
+## Workstation rehearsal 002: CPU gate repair
+
+The operator's second rehearsal archive
+(`sha256:e260791728352c057290a36e53391df5f3d2accb6a57af4e2329196479394c0c`)
+passed its collection integrity checks: all 67 manifest members matched their
+recorded sizes and hashes, with no omissions. Both container images built, the
+eight assessment contract tests passed, and asset preparation completed. The
+base qualification then stopped at the CPU/native semantic gate: **2,303 passed,
+seven failed, ten deselected**. HIP qualification and dependent stages did not
+run. This is failure evidence, not hardware qualification. The tested source
+closure was `sha256:a0ecab5147d60548813d960c8d99b39c8dad3d3a2ac2a0bf567b0c026e69ef98`.
+
+Six failures traced to the diagnostic host-cycle helper replacing the shared
+artifact verifier. Modules first imported during that patch retained the
+callback after teardown; it later attempted to read a previous test's removed
+runtime file. Reporting caught that exception and consequently omitted expected
+producer bindings. The helper now constructs and seals its acceptance-purpose
+lifecycle capability before campaign freeze, without replacing the verifier.
+An explicit regression checks that accepting prior stages preserves verifier
+identity. Production verification and research qualification requirements are
+unchanged. The seventh failure was the spec-007 current-dispositions serializer
+digest, refreshed to the actual implementation without changing historical
+dispositions or completion claims.
+
+The retained B/D input-resolution manifest and its limitations are recorded in
+[research-inputs.md](research-inputs.md). Registration, complete exposure import,
+current research qualification/calibration and the concrete research blueprint
+remain pending. Rehearsal 003 must qualify the repaired source; T082 and
+T088–T111 retain their original pending evidence requirements.
+
+Repair validation passed **52/52** focused tests with native and bigint build
+requirements enabled: component flow, preparation, reporting, DAG decisions,
+pipeline contracts, short-source cycles and OEIS cycles. All **18/18** workstation
+regressions also passed. No tests failed or skipped in either focused run. The
+full 2,310-test CPU gate and actual HIP stages still require the new workstation
+rehearsal. No image was built locally and CI was not awaited.

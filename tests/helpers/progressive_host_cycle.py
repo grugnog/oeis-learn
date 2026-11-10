@@ -68,6 +68,7 @@ def freeze_inputs(root, monkeypatch, *, source=False, low=False, build=None):
     producer["capabilities"] = q["covered_capabilities"] = [
         "model:" + model,
         "language:bigint-body/v1",
+        "progressive-lifecycle",
     ]
     put(root / "qualification/producer.json", seal(producer))
     q["producer"]["receipt"] = reference(root / "qualification", "producer.json")
@@ -207,23 +208,10 @@ def accept_prior_stages(root, campaign, prefix, monkeypatch):
             }
         ),
     )
-    # The unit authority is deliberately limited to acceptance purpose. Real
-    # research still requires the original installed device producers.
-    q = load(root / "qualification/qualification.json")
-    q["covered_capabilities"].append("progressive-lifecycle")
-    # Runtime lookup's lightweight feature check is the only mocked producer read.
-    original_verify = __import__(
-        "oeis_learn.generalization.progressive.contracts", fromlist=["verify_refs"]
-    ).verify_refs
-    from oeis_learn.generalization.progressive import contracts
-
-    def verify(root_, refs, **kw):
-        values = original_verify(root_, refs, **kw)
-        if refs == load(root / "runtime.json")["payload"]["qualification"]:
-            return [json.dumps(q).encode()]
-        return values
-
-    monkeypatch.setattr(contracts, "verify_refs", verify)
+    # The sealed acceptance-purpose authority was constructed before freeze.
+    # Never patch the shared artifact verifier: modules first imported while a
+    # patch is active can retain it after pytest restores the original module.
+    # Real research still requires original installed device producers.
     monkeypatch.setattr(
         roles, "current_runtime", lambda *a, **kw: SimpleNamespace(execution_ready=True)
     )
