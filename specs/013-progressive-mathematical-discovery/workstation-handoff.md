@@ -137,3 +137,57 @@ check their original output hashes; interrupted/failed stages are retained rathe
 than silently retried with fresh budgets. After a code fix, preserve the old ZIP
 and use a new session name for requalification. A dry preview is available with
 `--dry-run` before the phase; it performs no build, device launch or file writes.
+
+## Research input registration after rehearsal 007
+
+The original B/D manifest is committed at
+`validation/research-input-resolution.json`. A separate `register-inputs` phase
+verifies those actual workstation files, all checkpoint sidecars and ledger
+bindings; imports all supplied original cells/probes/observed fresh-002 exposure
+into a private SQLite index in the CPU qualification container; and inventories
+existing indexed OEIS source manifests. Independent checks continue after a
+missing original or source. It neither loads tensors nor starts GPU work.
+
+```sh
+git switch 013-progressive-mathematical-discovery &&
+git pull --ff-only origin 013-progressive-mathematical-discovery &&
+python3 -S scripts/discovery_hip_handoff.py \
+  --engine podman \
+  --session run-state/discovery/013-research-inputs-001 \
+  register-inputs \
+  --reference-campaign run-state/generalization/pac-012-bcd-r1-002 \
+  --input-manifest specs/013-progressive-mathematical-discovery/validation/research-input-resolution.json
+```
+
+Share `run-state/discovery/013-research-inputs-001/share/register-inputs.zip`,
+including when the command exits 2. The shared manifest does not identify the
+immutable indexed OEIS snapshot for fresh transfer panels. The first invocation
+therefore records `ORIGINAL_SOURCE_SELECTION_REQUIRED` while completing the
+independent original-data checks/import. The ZIP lists existing candidates under
+`data`, `downloads` and `run-state`, with a finite scan limit and explicit
+truncation. No source is downloaded or selected automatically.
+
+Once an exact existing source is selected, repeat the same command with
+`--oeis-snapshot WORKSPACE_RELATIVE_MANIFEST_PATH`. Completed imports are reused
+only after their original hashes still match; the source choice cannot replace a
+completed projection. Projection preserves exact offsets, validates original
+term/metadata hashes, selects a fixed outcome-blind reservoir, excludes formulas,
+and retains missing/corrupt members without substituting later candidates. Its
+600-second/1-GiB source-read and 128-MiB candidate-output ceilings are explicit.
+Exposure import is limited to two hours and an 8-GiB private index. The CPU image
+build has a separate 3,650-second ceiling. Private terms, index and tensors stay
+local; summaries, exact references, failure details and container inspection are
+packaged on failure as well as success.
+
+**Registration is not research preparation.** Even exit 0 means only
+`INPUTS_REGISTERED`, with `research_ready=false`. The emitted fixed-reference
+capability/diversity proposal remains non-executable. Automatic fresh panel/support
+construction, a concrete scientific task graph, measured sensitivity/feasibility,
+and its connection to exact calibration/freeze are still outstanding. The existing
+`prepare-research --blueprint` route requires those concrete original inputs; the
+registration proposal must not be passed as that blueprint. T089 remains open.
+
+These software changes alter the source closure. Preserve rehearsal 007 as the
+original successful diagnostic result; it cannot qualify this new closure or the
+retained research architecture. Registration requires no repeat HIP run. Finish
+the remaining research construction software before the next hardware handoff.

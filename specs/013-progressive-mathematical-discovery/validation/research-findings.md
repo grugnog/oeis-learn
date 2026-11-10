@@ -29,3 +29,26 @@ campaign. Keep session `run-state/discovery/013-hip-007` and its original output
 no further tiny rehearsal is needed while its source/resource scope remains
 unchanged. The next work is research input/design preparation, not another
 mechanical validation loop.
+
+## Original input registration software
+
+The `register-inputs` workstation phase now verifies the committed D/B manifest
+against original bytes, checkpoint closure and charged/update ledger state. It
+builds the complete supplied exposure index privately in a read-only-input CPU
+container and inventories existing indexed OEIS snapshots. Explicit source
+projection preserves indices and original member identities without downloading
+or consulting model scores. See [the command and limits](../workstation-handoff.md#research-input-registration-after-rehearsal-007).
+
+Local validation: 45 focused registration/workstation/CLI tests passed, including
+missing/corrupt original continuation, exposure windows/structure matching,
+container mount inspection, source projection bounds, ZIP privacy, and reuse after
+supplying the source without repeating import. Standard-library import isolation
+also passed. No workstation registration, container build, HIP execution, fresh
+research census or scientific result is claimed by these local tests.
+
+Remaining software is explicit: outcome-blind fresh panel/support materialization,
+concrete research task-graph construction and connection to canonical calibration,
+freeze and acceptance. The prospective design is not an executable blueprint.
+The reviewed inputs do not identify an immutable OEIS snapshot; the registration
+ZIP is the next evidence needed to resolve that workstation input. The retained
+private input files are not available in the implementation workspace.

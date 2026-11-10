@@ -16,7 +16,7 @@ import time
 from .identity import confined, seal
 from .progressive_workstation_state import Session, Blocked, write, read, telemetry
 
-PHASES=('rehearse','prepare-research','run-research','assess','collect')
+PHASES=('register-inputs','rehearse','prepare-research','run-research','assess','collect')
 
 
 def parser():
@@ -31,6 +31,8 @@ def parser():
     p.add_argument('--reference-campaign')
     p.add_argument('--blueprint',help='original concrete research blueprint; never a template with guessed inputs')
     p.add_argument('--selection',help='original locked assessment selection')
+    p.add_argument('--input-manifest', help='reviewed research input-resolution manifest for register-inputs')
+    p.add_argument('--oeis-snapshot', help='explicit existing indexed-source/v1 manifest for register-inputs')
     return p
 
 
@@ -198,6 +200,109 @@ class Workflow:
         self.run_command('acceptance','acceptance',campaign=str((self.base/'frozen/campaign.json').relative_to(self.root)),
             output=str((self.base/'acceptance').relative_to(self.root)),dependencies=('prepare-research/freeze',),seconds=3700)
 
+    def register_research(self):
+        """Local original-data gate before GPU qualification or scientific work.
+
+        The manifest is an audit input, not an execution blueprint. Keep this
+        distinct from the existing explicit-blueprint preparation route.
+        """
+        from .progressive_research_inputs import audit, validate_manifest, checked_file, source_candidates
+        from oeis_learn.generalization.progressive.contracts import load, reference
+        from .progressive_research_design import construct
+        manifest = validate_manifest(load(confined(self.root, self.args.input_manifest)))
+        def inventory():
+            value = source_candidates(self.root)
+            write(self.base / 'source-candidates.json', value)
+            return value, [self.base / 'source-candidates.json']
+        candidates = self.s.step('source-inventory', inventory)
+        previous = self.s.journal['steps'].get('register-inputs/project-source', {})
+        if previous.get('status') == 'COMPLETE':
+            selected = getattr(self.args, 'oeis_snapshot', None)
+            if selected and reference(self.root, selected) != previous['value']['snapshot']:
+                raise ValueError('selected original source changed; retain prior projection and use a new session')
+        def source():
+            from .progressive_research_source import project
+            path = getattr(self.args, 'oeis_snapshot', None)
+            if not path:
+                write(self.base / 'deficits.json', dict(reason='ORIGINAL_SOURCE_SELECTION_REQUIRED',
+                    required=['explicit immutable indexed-source/v1 source manifest for fresh OEIS transfer panels'],
+                    candidates=candidates, research_ready=False, training_started=False))
+                raise Blocked('Select an original source snapshot from source-candidates.json; no source was downloaded or inferred')
+            result = project(self.root, path, self.base / 'source')
+            if result['status'] != 'COMPLETE':
+                raise Blocked('Original source projection has integrity deficits; see source-projection.json')
+            originals = {ref['path']: confined(self.root, ref['path'])
+                         for ref in [result['snapshot'], *result['originals']]}
+            return result, [self.base / 'source/source-projection.json',
+                            self.base / 'source/private/oeis-candidates.json', *originals.values()]
+        self.s.step('project-source', source)
+        registration_root = self.base / 'registration'
+        def register():
+            value = audit(self.root, manifest, registration_root)
+            if value['status'] != 'COMPLETE':
+                raise Blocked('Original research input verification has deficits; see registration.json')
+            originals = {row['workspace_artifact']['path']: confined(self.root, row['workspace_artifact']['path'])
+                         for row in value['checks'] if row.get('status') == 'PASS'}
+            return value, [registration_root / 'registration.json',
+                           registration_root / 'retained-inputs.json', *originals.values()]
+        registration = self.s.step('register-originals', register)
+        if registration is not None and registration['manifest'] != manifest['identity']:
+            raise ValueError('registered original input manifest changed')
+        def proposal():
+            value = construct(self.root, self.base / 'design', manifest, registration)
+            return str((self.base / 'design/blueprint.json').relative_to(self.root)), sorted((self.base / 'design').glob('*.json'))
+        self.s.step('prospective-design', proposal, dependencies=('register-inputs/register-originals',))
+        # CPU exposure assembly is independent of HIP and of fresh-data deficits.
+        def image():
+            from .supervision import launch
+            output = self.base / 'image-qualification'
+            code = ('import sys;sys.path.insert(0,sys.argv[1]);'
+                    'from oeis_learn.container_runtime import Engine;'
+                    'from oeis_learn.pipeline_validation.progressive_workstation_state import write;'
+                    'write(sys.argv[4],dict(image=Engine(sys.argv[2]).build(sys.argv[3],target="qualification",tag="oeis-learn:discovery-qualification")))')
+            launch([sys.executable, '-S', '-c', code, str(self.root / 'src'), self.args.engine,
+                    str(self.root), str(output / 'image.json')], output / 'logs',
+                   seconds=3650, stream_cap=4 << 20)
+            value = json.loads((output / 'image.json').read_bytes())['image']
+            return value, [output / 'image.json']
+        selected_image = self.s.step('research-custodian-image', image,
+            dependencies=('register-inputs/register-originals',))
+        def exposure():
+            import runpy
+            from .supervision import diagnostic_program
+            runner = runpy.run_path(str(self.root / 'scripts/qualify_bigint_phase5.py'))
+            output = self.base / 'exposure'
+            write(output / 'registration.json', registration)
+            write(output / 'input-resolution.json', manifest)
+            names = {'original.' + item['name'] for item in manifest['prior_inputs']['originals']}
+            names.update({'prior.probes', 'prior.observed', 'fresh-002.targets', 'fresh-002.roster'})
+            refs = {row['workspace_artifact']['path']: row['workspace_artifact']
+                    for row in registration['checks'] if row.get('status') == 'PASS' and row['name'] in names}
+            mounts = [(checked_file(self.root, ref), '/work/inputs/' + ref['path']) for ref in refs.values()]
+            body = ("from oeis_learn.pipeline_validation.progressive_research_inputs import import_exposure;"
+                    "from oeis_learn.generalization.progressive.contracts import load;"
+                    "r=import_exposure('/work/inputs',load('/work/output/input-resolution.json'),"
+                    "load('/work/output/registration.json'),'/work/output',seconds=7100);"
+                    "raise SystemExit(0 if r['status']=='COMPLETE' else 2)")
+            runner['container_stage'](self.host(), selected_image, output,
+                ['python', '-c', diagnostic_program(body, 'research-exposure')], seconds=7200,
+                readonly_inputs=mounts)
+            return str(output.relative_to(self.root)), [output / 'exposure-import.json', output / 'private/exposure.sqlite']
+        self.s.step('import-exposure', exposure,
+            dependencies=('register-inputs/register-originals','register-inputs/research-custodian-image'))
+        def report():
+            value = seal(dict(version='progressive-research-registration-status/v1',
+                status='INPUTS_REGISTERED', research_ready=False, executable=False,
+                next_required=['fresh panel/support census and measured sensitivity',
+                               'concrete task graph and exact-input calibration',
+                               'current-source HIP qualification, freeze and campaign acceptance'],
+                scope='Original input registration only; no research preparation or execution authority'))
+            write(self.base / 'registration-status.json', value)
+            return value, [self.base / 'registration-status.json']
+        self.s.step('registration-status', report,
+            dependencies=('register-inputs/register-originals', 'register-inputs/project-source',
+                          'register-inputs/import-exposure', 'register-inputs/prospective-design'))
+
     def research(self):
         prepared=self.s.folder/'prepare-research'
         c=prepared/'frozen/campaign.json'
@@ -245,11 +350,15 @@ class Workflow:
 
 def main(root,argv=None):
     args=parser().parse_args(argv); root=Path(root).resolve()
+    if args.phase == 'register-inputs' and not args.input_manifest:
+        parser().error('register-inputs requires --input-manifest')
+    if (args.input_manifest or args.oeis_snapshot) and args.phase != 'register-inputs':
+        parser().error('--input-manifest and --oeis-snapshot belong to register-inputs')
     if args.memory_gib<=0 or args.cpus<=0: raise ValueError('positive finite resource limits required')
     if args.dry_run:
         print(json.dumps(dict(phase=args.phase,engine=args.engine,session=args.session,
             source_policy='exact current closure; changes require requalification',
-            sequence=dict(rehearse=['inventory','images','base-qualification','tiny-Q','prepare','freeze','CPU+HIP-acceptance'],
+            sequence=dict(**{'register-inputs':['source-inventory','project-explicit-source','verify-originals','prospective-design','CPU-image','private-exposure-import','registration-status']},rehearse=['inventory','images','base-qualification','tiny-Q','prepare','freeze','CPU+HIP-acceptance'],
             **{'prepare-research':['original-inputs','selected-Q','exact-calibration','freeze','acceptance'],
                'run-research':['run-or-resume','report','verify'],'assess':['locked-assess','report','verify'],'collect':['package-existing']})[args.phase],
             launches=False,host_dependencies='Python standard library only'),indent=2))
@@ -263,6 +372,9 @@ def main(root,argv=None):
         print('--reference-campaign is required for the first invocation',file=sys.stderr); return 2
     binding=dict(source=digest(collect_snapshot(root)),engine=args.engine,memory_gib=args.memory_gib,
         cpus=args.cpus,render_node=args.render_node,reference_campaign=ref)
+    if args.phase == 'register-inputs':
+        from .progressive_workstation_state import sha
+        binding['input_manifest'] = dict(path=args.input_manifest, sha256=sha(confined(root,args.input_manifest)))
     if args.phase=='collect' and old: binding=old # Recovery collects old evidence; never executes it.
     s=Session(root,args.session,binding,args.phase)
     stop=threading.Event()
@@ -282,7 +394,8 @@ def main(root,argv=None):
             write(s.folder/'environment.json',telemetry(root))
             thread=threading.Thread(target=observations,daemon=True); thread.start()
             w=Workflow(s,args)
-            if args.phase=='rehearse': w.rehearse()
+            if args.phase=='register-inputs': w.register_research()
+            elif args.phase=='rehearse': w.rehearse()
             elif args.phase=='prepare-research': w.prepare_research()
             elif args.phase in {'run-research','assess'}: w.research()
             else: return 0

@@ -170,3 +170,189 @@ def test_custodian_file_mount_is_verified_readonly_before_cleanup(tmp_path, monk
     else:
         stage(host, 'image', tmp_path / 'out', ['test'], readonly_inputs=[(source, '/work/inputs/source.json')])
     assert events == ['inspect', 'remove']
+
+
+def test_research_proposal_is_resolved_reference_shape_but_never_execution_authority(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_research_inputs import audit
+    from oeis_learn.pipeline_validation.progressive_research_design import construct
+    from oeis_learn.generalization.progressive.contracts import validate, load
+    manifest = originals(tmp_path)
+    registration = audit(tmp_path, manifest, tmp_path / 'audit')
+    blueprint = construct(tmp_path, tmp_path / 'proposal', manifest, registration)
+    validate('blueprint', blueprint)
+    assert blueprint['purpose'] == 'research' and not blueprint['payload']['executable']
+    assert blueprint['payload']['selected_stages'] == ['capability', 'diversity']
+    assert blueprint['payload']['unresolved']
+    selected = load(tmp_path / 'proposal/selected-profiles.json')
+    assert len(selected['profiles']) == 2 and not selected['tuning_selected']
+    assert all(p['model']['d_model'] == manifest['retained']['model']['d_model'] for p in selected['profiles'])
+    design = load(tmp_path / 'proposal/research-design.json')
+    assert design['initialization']['diversity'] == 'paired_fresh_random'
+    assert design['diversity']['task_seconds'] <= 86400
+
+
+def test_missing_workstation_inputs_collects_all_deficits_without_building(tmp_path, monkeypatch):
+    import zipfile
+    from pathlib import Path
+    from oeis_learn.pipeline_validation import progressive_workstation as w
+    from oeis_learn.experiments import source_snapshot
+    original = Path(__file__).parents[2] / 'specs/013-progressive-mathematical-discovery/validation/research-input-resolution.json'
+    (tmp_path / 'manifest.json').write_bytes(original.read_bytes())
+    monkeypatch.setattr(source_snapshot, 'collect_snapshot', lambda _: {'source': 'test'})
+    monkeypatch.setattr(w.Workflow, 'host', lambda _: pytest.fail('missing originals must not start engine work'))
+    assert w.main(tmp_path, ['--engine','podman','--session','run-state/research',
+        'register-inputs','--reference-campaign','prior','--input-manifest','manifest.json']) == 2
+    with zipfile.ZipFile(tmp_path / 'run-state/research/share/register-inputs.zip') as archive:
+        assert 'register-inputs/registration/registration.json' in archive.namelist()
+        assert 'register-inputs/source-candidates.json' in archive.namelist()
+        result = json.loads(archive.read('register-inputs/registration/registration.json'))
+        assert len(result['deficits']) >= 25
+        assert not result['research_ready']
+
+
+def test_preparation_imports_originals_in_cpu_container_and_keeps_truth_out_of_zip(tmp_path, monkeypatch):
+    import runpy
+    import zipfile
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import progressive_workstation as w, supervision
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session, write
+    from oeis_learn.pipeline_validation.progressive_research_inputs import import_exposure
+    manifest = originals(tmp_path)
+    atomic_write(tmp_path / 'manifest.json', manifest)
+    s = Session(tmp_path, 'run-state/research', {'reference_campaign':'prior'}, 'register-inputs')
+    args = SimpleNamespace(phase='register-inputs', input_manifest='manifest.json',
+        engine='podman', memory_gib=64, cpus=8, render_node=None)
+    flow = w.Workflow(s, args)
+    monkeypatch.setattr(flow, 'host', lambda: SimpleNamespace())
+    def launch(argv, *a, **kw):
+        assert kw['seconds'] == 3650
+        write(argv[-1], {'image':'sha256:'+'a'*64})
+    monkeypatch.setattr(supervision, 'launch', launch)
+    def stage(host, image, output, argv, **kw):
+        assert not kw.get('gpu', False)
+        assert len(kw['readonly_inputs']) == 20
+        assert not any(str(src).endswith('.pt') for src, _ in kw['readonly_inputs'])
+        value = json.loads((output / 'registration.json').read_text())
+        result = import_exposure(tmp_path, manifest, value, output)
+        assert result['status'] == 'COMPLETE'
+    monkeypatch.setattr(runpy, 'run_path', lambda _: {'container_stage': stage})
+    with s.own():
+        flow.register_research()
+    assert s.journal['steps']['register-inputs/import-exposure']['status'] == 'COMPLETE'
+    assert s.code() == 2  # original registration cannot substitute for fresh source/panels
+    with zipfile.ZipFile(s.folder / 'share/register-inputs.zip') as archive:
+        assert 'register-inputs/exposure/exposure-import.json' in archive.namelist()
+        assert 'register-inputs/design/research-design.json' in archive.namelist()
+        assert not any('/private/' in p or p.endswith(('.sqlite','.pt')) for p in archive.namelist())
+        assert not any('(program' in archive.read(p).decode(errors='ignore') for p in archive.namelist())
+
+
+def test_source_inventory_reports_candidates_without_reading_private_truth(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_research_inputs import source_candidates
+    atomic_write(tmp_path / 'data/original/manifest.json', dict(version='indexed-source/v1',
+        release='immutable-original', records=[{'terms': 'PRIVATE'}]))
+    atomic_write(tmp_path / 'run-state/private/manifest.json', dict(version='indexed-source/v1',
+        release='not-an-approved-source', records=[]))
+    result = source_candidates(tmp_path)
+    assert len(result['candidates']) == 1
+    assert result['candidates'][0]['artifact']['path'] == 'data/original/manifest.json'
+    assert 'PRIVATE' not in json.dumps(result) and result['selected'] is None
+
+
+def source_snapshot(root, *, count=3):
+    entries = []
+    for i in range(count):
+        folder = root / 'data/source'
+        folder.mkdir(parents=True, exist_ok=True)
+        terms = folder / f'{i}.txt'
+        terms.write_text(''.join(f'{n} {n*n+i}\n' for n in range(-2, 98)))
+        atomic_write(folder / f'{i}.json', dict(offset=-2, formula='PRIVATE_FORMULA'))
+        refs = [reference(folder, p) for p in (terms, folder / f'{i}.json')]
+        entries.append(dict(record_id=f'OEIS:A{i:06d}',
+            terms={k:refs[0][k] for k in ('path','sha256')},
+            metadata={k:refs[1][k] for k in ('path','sha256')}))
+    atomic_write(folder / 'manifest.json', dict(version='indexed-source/v1', release='immutable', records=entries))
+    return 'data/source/manifest.json'
+
+
+def test_source_projection_preserves_offsets_and_excludes_formulas(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_research_source import project
+    path = source_snapshot(tmp_path)
+    result = project(tmp_path, path, tmp_path / 'out')
+    assert result['status'] == 'COMPLETE' and result['eligible'] == 3
+    rows = json.loads((tmp_path / 'out/private/oeis-candidates.json').read_text())
+    assert all(set(r) == {'id','indices','values'} for r in rows)
+    assert all(r['indices'][0] == '-2' and r['indices'][-1] == '97' for r in rows)
+    assert 'PRIVATE_FORMULA' not in json.dumps(result) + json.dumps(rows)
+
+
+def test_source_projection_continues_after_corruption_and_never_replaces_member(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_research_source import project
+    path = source_snapshot(tmp_path, count=4)
+    first = project(tmp_path, path, tmp_path / 'first', limit=2)
+    selected = json.loads((tmp_path / 'first/private/oeis-candidates.json').read_text())
+    bad = int(selected[0]['id'].split('A')[1])
+    (tmp_path / f'data/source/{bad}.txt').write_text('corrupted')
+    result = project(tmp_path, path, tmp_path / 'second', limit=2)
+    assert result['status'] == 'BLOCKED' and result['eligible'] == 1
+    assert result['failures'][0]['member'] == selected[0]['id']
+    rows = json.loads((tmp_path / 'second/private/oeis-candidates.json').read_text())
+    assert [r['id'] for r in rows] == [selected[1]['id']]
+    assert (tmp_path / 'second/source-progress.json').is_file()
+
+
+def test_source_projection_bounds_aggregate_reads(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_research_source import project
+    path = source_snapshot(tmp_path)
+    result = project(tmp_path, path, tmp_path / 'out', maximum_bytes=1)
+    assert result['status'] == 'BLOCKED' and result['eligible'] == 0
+    assert len(result['failures']) == 3 and result['consumed_source_bytes'] == 0
+
+
+def test_registration_preview_does_not_claim_qualification_or_freeze(tmp_path, capsys):
+    from oeis_learn.pipeline_validation.progressive_workstation import main
+    assert main(tmp_path, ['--engine','podman','--session','run-state/research','--dry-run',
+        'register-inputs','--input-manifest','manifest.json']) == 0
+    value = json.loads(capsys.readouterr().out)
+    assert value['sequence'][-1] == 'registration-status'
+    assert 'selected-Q' not in value['sequence'] and not value['launches']
+
+
+def test_registered_source_can_be_supplied_after_inventory_without_repeating_import(tmp_path, monkeypatch):
+    import runpy
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import progressive_workstation as w, supervision
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session, write
+    from oeis_learn.pipeline_validation.progressive_research_inputs import import_exposure
+    manifest = originals(tmp_path)
+    atomic_write(tmp_path / 'manifest.json', manifest)
+    args = SimpleNamespace(phase='register-inputs', input_manifest='manifest.json', oeis_snapshot=None,
+        engine='podman', memory_gib=64, cpus=8, render_node=None)
+    calls = []
+    monkeypatch.setattr(w.Workflow, 'host', lambda _: SimpleNamespace())
+    def launch(argv, *a, **kw):
+        calls.append('image')
+        write(argv[-1], {'image':'sha256:'+'a'*64})
+    monkeypatch.setattr(supervision, 'launch', launch)
+    def stage(host, image, output, argv, **kw):
+        calls.append('exposure')
+        import_exposure(tmp_path, manifest, json.loads((output/'registration.json').read_text()), output)
+    monkeypatch.setattr(runpy, 'run_path', lambda _: {'container_stage':stage})
+    binding = {'reference_campaign':'prior'}
+    session = Session(tmp_path, 'run-state/research', binding, args.phase)
+    with session.own():
+        w.Workflow(session,args).register_research()
+    assert session.code() == 2
+    args.oeis_snapshot = source_snapshot(tmp_path)
+    session = Session(tmp_path, 'run-state/research', binding, args.phase)
+    with session.own():
+        w.Workflow(session,args).register_research()
+    assert session.code() == 0 and calls == ['image','exposure']
+    status = session.journal['steps']['register-inputs/registration-status']['value']
+    assert status['status'] == 'INPUTS_REGISTERED' and status['research_ready'] is False
+    assert not any('qualify' in k or 'freeze' in k for k in session.journal['steps'])
+    (tmp_path / 'B/tensor.pt').write_bytes(b'changed retained original')
+    session = Session(tmp_path, 'run-state/research', binding, args.phase)
+    with pytest.raises(ValueError, match='completed stage output changed'):
+        with session.own():
+            w.Workflow(session,args).register_research()

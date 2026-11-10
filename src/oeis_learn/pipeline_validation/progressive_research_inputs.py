@@ -70,14 +70,22 @@ class ExposureIndex:
     Keys are hashes of authoritative values; no SQLite dependency on the host
     beyond Python's standard library. Originals are processed one cell at a time.
     """
-    def __init__(self, path):
+    def __init__(self, path, *, readonly=False):
         path = Path(path)
+        self.readonly = readonly
+        if readonly:
+            if path.is_symlink() or not path.is_file():
+                raise ValueError('original exposure index required')
+            self.db = sqlite3.connect(path.resolve().as_uri() + '?mode=ro', uri=True)
+            return
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         if path.exists():
             raise ValueError('fresh exposure index required')
         self.db = sqlite3.connect(path)
         self.db.execute('PRAGMA journal_mode=DELETE')
         self.db.execute('PRAGMA cache_size=-32768')
+        page_size = self.db.execute('PRAGMA page_size').fetchone()[0]
+        self.db.execute('PRAGMA max_page_count=' + str((8 << 30) // page_size))
         self.db.execute('CREATE TABLE keys(kind TEXT, value TEXT, PRIMARY KEY(kind,value)) WITHOUT ROWID')
         self.db.execute('CREATE TABLE origins(name TEXT PRIMARY KEY, rows INTEGER NOT NULL)')
         path.chmod(0o600)
@@ -114,6 +122,8 @@ class ExposureIndex:
         return sorted(result)
 
     def add(self, row, *, origin, role):
+        if self.readonly:
+            raise ValueError('original exposure index is immutable')
         if role not in {'training', 'development', 'confirmation', 'assessment'}:
             raise ValueError('explicit original exposure role required')
         self.db.executemany('INSERT OR IGNORE INTO keys VALUES (?,?)', self.keys(row))
@@ -170,6 +180,7 @@ def import_exposure(root, manifest, registration, output, *, seconds=7200):
                         if index_path.stat().st_size > 8 << 30:
                             raise ValueError('private exposure index exceeds reserved eight GiB')
                         print('research-exposure: ' + name + ' ' + str(ordinal) + '/' + str(len(rows)), flush=True)
+                checked_file(root, by_name[name])
                 reports.append(dict(name=name, status='COMPLETE', rows=len(rows),
                                     artifact=by_name[name], elapsed_seconds=time.monotonic() - before))
             except Exception as exc:
@@ -188,6 +199,48 @@ def import_exposure(root, manifest, registration, output, *, seconds=7200):
     return result
 
 
+def source_candidates(root, *, maximum_files=20000):
+    """Inventory existing indexed source manifests; never acquire new data."""
+    import os
+    root = Path(root)
+    if type(maximum_files) is not int or not 1 <= maximum_files <= 1000000:
+        raise ValueError('finite source inventory bound required')
+    found, scanned, directories, truncated, errors = [], 0, 0, False, []
+    began = time.monotonic()
+    for base in ('data', 'downloads', 'run-state'):
+        folder = root / base
+        if not folder.is_dir() or folder.is_symlink():
+            continue
+        for directory, dirs, names in os.walk(folder, followlinks=False,
+                onerror=lambda exc: errors.append(dict(path=str(exc.filename), reason=str(exc)))):
+            dirs[:] = sorted(d for d in dirs if d not in {'checkpoints', '.git', 'private', 'share'}
+                             and not (Path(directory) / d).is_symlink())
+            scanned += len(names)
+            directories += 1
+            if scanned > maximum_files or directories > maximum_files or time.monotonic() - began > 60:
+                truncated = True
+                break
+            if 'manifest.json' not in names:
+                continue
+            path = Path(directory) / 'manifest.json'
+            if path.is_symlink() or path.stat().st_size > 128 << 20:
+                continue
+            try:
+                value = _json(path)
+                if (isinstance(value, dict) and value.get('version') == 'indexed-source/v1'
+                    and isinstance(value.get('records'), list)):
+                    found.append(dict(artifact=reference(root, path), release=value.get('release'),
+                                      records=len(value.get('records', []))))
+            except (ValueError, OSError, UnicodeError):
+                continue
+        if truncated:
+            break
+    return seal(dict(version='progressive-source-candidates/v1', candidates=found,
+                     scanned_files=scanned, scanned_directories=directories, truncated=truncated,
+                     errors=errors, selected=None,
+                     note='Inventory only; private values and metadata omitted; selection requires an exact source reference.'))
+
+
 def audit(root, manifest, output):
     """Check independent originals even after failures, preserving every cause."""
     from oeis_learn.generalization.contracts import artifact_refs
@@ -203,8 +256,11 @@ def audit(root, manifest, output):
             path = checked_file(namespace, ref)
             if validate:
                 validate(path)
+            workspace_ref = reference(root, path)
+            if any(workspace_ref[key] != ref[key] for key in ('bytes', 'sha256')):
+                raise ValueError('original changed during semantic verification')
             valid[name] = path
-            row.update(status='PASS', workspace_artifact=reference(root, path))
+            row.update(status='PASS', workspace_artifact=workspace_ref)
         except Exception as exc:
             row.update(status='BLOCKED' if isinstance(exc, FileNotFoundError) else 'INVALID',
                        error=type(exc).__name__, reason=str(exc), traceback=traceback.format_exc())

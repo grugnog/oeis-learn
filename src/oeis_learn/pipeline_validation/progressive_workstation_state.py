@@ -29,6 +29,10 @@ NAMES = {'receipt.json','producer.json','qualification.json','acceptance.json',
 NAMES.update({'source.json','matrix.json','profile.json','recipe.json','measurements.json',
               'request.json','image.json','blueprint.json','prepared.json','selection.json',
               'inspection-error.json','partial.json','hardware-results.json','dispositions.json'})
+NAMES.update({'registration.json', 'registration-progress.json', 'retained-inputs.json',
+              'exposure-import.json', 'exposure-progress.json', 'research-design.json',
+              'selected-profiles.json', 'sensitivity-design.json', 'source-candidates.json',
+              'source-projection.json', 'source-progress.json', 'registration-status.json'})
 PRIVATE = {'private','work','installed','dist','checkpoints','inputs','.runtime'}
 
 
