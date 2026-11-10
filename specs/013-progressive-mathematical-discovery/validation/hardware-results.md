@@ -1,5 +1,64 @@
 # Workstation hardware results
 
+## Rehearsal 007: complete tiny diagnostic qualification and acceptance
+
+All stages completed on `run-state/discovery/013-hip-007`. The support archive
+SHA-256 is `d80d68f092f52ebb888be1614fcb3ff05494308085130186962db59908b80069`.
+All 260 inventoried files matched their sizes and hashes, with no omissions.
+The original public acceptance package has 60 members and SHA-256
+`099b0e5457b007eed1b89aa30541874a895cf8b07e729781d5a05e8abb6fd8e5`.
+Its manifest seal, exact member roster and every size/hash were checked. The
+standard-library `consume_receipt`, `original_authority`,
+`validate_device_proofs` and `hardware_plan` validators successfully replayed
+its original software, device, qualification and reuse proofs.
+
+| Gate | Verified result |
+| --- | --- |
+| CPU/native preflight | 2,320 passed, ten deselected, 82 subtests passed |
+| Actual-HIP preflight | 27 passed |
+| Assessment contracts | Eight passed |
+| Selected tiny model Q | Four PASS; zero remaining cases; zero allocated bytes after cleanup |
+| Diagnostic preparation/freeze | COMPLETE |
+| Installed CPU/native lifecycle | All 26 registered cases PASS; 288.233074 seconds |
+| Actual-HIP lifecycle | All seven registered cases PASS; 144.135576 seconds |
+| Campaign-bound acceptance | COMPLETE, qualified=true; host stage 437.409743 seconds |
+| Scientific/sustained results | UNMEASURED / PENDING |
+
+The seven HIP scenarios cover interrupted two-task continuation, OEIS
+search/admit/update, mined components, four-input sources, refreshed structural
+learning, counterexample quarantine and selected-trial restore/continuation.
+Acceptance reused all four Q cases with no Q delta; their original combined
+execution time is 9.945837 seconds, retained once. The seven campaign-dependent
+cases ran separately. There were no skipped, missing or failed required cases.
+
+Scope: Podman on gfx1151 (Ryzen AI Max+ 395 workstation), PyTorch
+`2.9.1+rocm7.2.1.gitff65f5bc`, HIP `7.2.53211-e1a6bc5663`. The selected diagnostic
+model has width 128, four encoder/four decoder layers, four heads, FF width 512,
+dropout 0.1, FP32, seed 13. Q covers input lengths 4/20 and microbatches 7/16.
+This is not qualification for the retained width-768, six-layer research model.
+
+| Binding | Original identity |
+| --- | --- |
+| Source closure | `sha256:f389d71bd2f12d4b6f9564d465708023a6388ae96a3f5d893b5dd33941460784` |
+| CPU image | `sha256:bdf9d9baa43b37de61ebf7df53c6f441ee925fe819bc2f6bba84222e1c336bc9` |
+| HIP image | `sha256:7074428b16b17136448571250077901b45d7647fde3f029e38d08fa65a10f87c` |
+| Qualification | `sha256:5965315aa85da2d254bad36b87e21b5da49154a9f4e386249afedcb9313e878a` |
+| Frozen campaign | `sha256:baed764243cea694ba938382d2be8096845defda1cc27cdec1cd7e0a9fbb8151` |
+| Frozen runtime | `sha256:a2bf9d12f1995ff8732586310440ff7b3fb103ddd49ce923872989159830049d` |
+| CPU/native lifecycle | `sha256:f0a90378dd711026cdb511f87b0e02bd6997de64bbfbbd63dd22d5501474073b` |
+| HIP lifecycle | `sha256:ebb6e141c00629e96e15160b92c7a335f21cf82e203a61729ee025994c901cd0` |
+| Campaign acceptance | `sha256:7732ece02f1ee816d082869a739a92db1cf61ec37e7d8da1a76838fd8195b879` |
+
+T082, T088 and T090 are complete for the declared diagnostic scope. T089's
+research prerequisites and T091's prospectively defined sustained run remain
+pending. The support file's generic task messages are not task dispositions;
+original receipts and this review establish completion. This documentation-only
+review preserves the existing source closure, verified before and after editing;
+no rehearsal rerun is needed for these updates. No source, test, policy, lock,
+image or runtime fact was changed. CI was not awaited.
+
+The sections below retain earlier failure evidence without upgrading it.
+
 ## Rehearsal 006: tiny qualification passed, device acceptance setup failed
 
 Original support ZIP SHA-256:
