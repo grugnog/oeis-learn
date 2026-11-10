@@ -49,6 +49,7 @@ def test_acceptance_has_explicit_software_and_future_specification_scopes(tmp_pa
     assert "tests/unit/test_progressive_polynomial_certificate.py" in gate.TESTS
     assert "tests/integration/test_progressive_claims.py" in gate.TESTS
     assert len(gate.DEFERRED_SPECIFICATIONS) == 0
+    assert "tests/unit/test_progressive_qualification_cleanup.py" in gate.TESTS
 
 
 @pytest.mark.parametrize(
@@ -89,6 +90,8 @@ def test_passing_test_roster_without_retained_integrated_package_fails_ci(tmp_pa
     monkeypatch.setenv("OEIS_REQUIRE_BIGINT_BUILD", "1")
 
     def run(argv, **kwargs):
+        assert kwargs["timeout"] == gate.PYTEST_TIMEOUT_SECONDS == 3000
+        assert "-vv" in argv and "--tb=short" in argv
         assert kwargs["env"]["OEIS_PROGRESSIVE_ACCEPTANCE_EXPORT"] == str(tmp_path / "progressive-acceptance.zip")
         junit(tmp_path / "progressive-foundation.xml")
         return SimpleNamespace(returncode=0)

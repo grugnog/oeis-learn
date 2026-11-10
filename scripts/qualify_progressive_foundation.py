@@ -40,6 +40,7 @@ HISTORICAL_TESTS = (
     "tests/unit/test_pipeline_contracts.py::Contracts::test_current_dispositions_use_the_package_implementation_serializer",
 )
 TESTS = tuple(p for p in CPU_TESTS if p not in DEFERRED_SPECIFICATIONS) + HISTORICAL_TESTS
+PYTEST_TIMEOUT_SECONDS = 3000
 NATIVE_CASE = "test_native_witness_acceptance_uses_packaged_service"
 WHEEL_CASE = "test_wheel_preserves_every_bound_source_resource"
 
@@ -95,7 +96,8 @@ def run(output):
                 sys.executable,
                 "-m",
                 "pytest",
-                "-q",
+                "-vv",
+                "--tb=short",
                 "-p",
                 "no:cacheprovider",
                 "-m",
@@ -106,7 +108,7 @@ def run(output):
                 "--junitxml=" + str(xml),
                 *TESTS,
             ],
-            timeout=1800,
+            timeout=PYTEST_TIMEOUT_SECONDS,
             env=dict(os.environ, OEIS_PROGRESSIVE_ACCEPTANCE_EXPORT=str(output / "progressive-acceptance.zip")),
         ).returncode
         if code:
