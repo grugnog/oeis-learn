@@ -245,6 +245,22 @@ class Journal:
             result.append(value['checkpoint'])
         return sorted(result)
 
+    def library(self, library):
+        """Register verified publication dependencies before any consumer exists."""
+        nodes, origins = [], set()
+        for component in library['payload']['components']:
+            for origin in component['origins']:
+                if 'target' not in origin or 'indices' not in origin:
+                    raise ValueError('original component target/source binding required')
+                target, artifact = origin['target'], origin['artifact']['sha256']
+                nodes.extend([dict(id=target, kind='target', parents=[]),
+                              dict(id=artifact, kind='target', parents=[target])])
+                self.bind_source(target, origin['source'], origin['indices'])
+                origins.add(artifact)
+        nodes.append(dict(id=library['identity'], kind='library', parents=sorted(origins)))
+        self.observe(nodes)
+        self.require_clean([library['identity']])
+
     def training(self, package):
         nodes = []
 
@@ -280,7 +296,11 @@ class Journal:
                     identity = o["artifact"]["sha256"]
                     if identity not in origins:
                         origins.append(identity)
-                        add(identity, "target")
+                        if 'target' not in o or 'indices' not in o:
+                            raise ValueError('original component target/source binding required')
+                        add(o['target'], 'target')
+                        self.bind_source(o['target'], o['source'], o['indices'])
+                        add(identity, "target", [o['target']])
             add(lib["identity"], "library", origins)
             for t in component["targets"]:
                 add(t["identity"], "target", [lib["identity"]])
@@ -308,7 +328,12 @@ class Journal:
         value=seal(dict(identity_key=identity,source=source,indices=indices))
         path=self.root/'sources'/(digest(identity)[7:]+'.json')
         if path.exists():
-            if load(path)!=value:raise ValueError('changed target source binding')
+            original = load(path)
+            def canonical(v):
+                source = v['source']
+                return (v['identity_key'], source if source.startswith('sha256:') else digest(source), v['indices'])
+            if seal(original) != original or canonical(original) != canonical(value):
+                raise ValueError('changed target source binding')
         else:
             from .storage import StorageGuard
             import json
@@ -323,7 +348,7 @@ class Journal:
         for path in sorted((self.root/'sources').glob('*.json')):
             entry=load(path)
             if seal(entry)!=entry:raise ValueError('target source binding differs')
-            if entry['source']==value['payload']['source'] and indices.intersection(entry['indices']):
+            if entry['source'] in {value['payload']['source'], digest(value['payload']['source'])} and indices.intersection(entry['indices']):
                 roots.append(entry['identity_key'])
         affected=set()
         import json

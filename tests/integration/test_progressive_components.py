@@ -378,3 +378,19 @@ def test_more_expensive_library_without_harder_task_yield_retains_baseline():
     assert result["total_cost_us"] == dict(baseline=100, candidate=250)
     assert result["cost_reduction"] == -1.5
     assert result["next_action"] == "RETAIN_BASELINE" and not result["compression_is_utility"]
+
+
+def test_refuting_original_mined_row_quarantines_library_and_distillation(tmp_path):
+    from oeis_learn.generalization.progressive.component_distillation import freeze_distillation
+    from oeis_learn.generalization.progressive.quarantine import Journal
+    from oeis_learn.generalization.progressive.contracts import load
+    bundle, target = prepared(tmp_path)
+    journal = Journal(tmp_path/'accounting')
+    journal.training({'component_distillation':freeze_distillation(bundle,[target],arm='library')})
+    row = load(tmp_path/'source-0.json')
+    journal.training({'shards':[[row]]})
+    affected = journal.refute([row['draw_identity']],reason='original target counterexample')['affected']
+    assert bundle['library']['identity'] in affected
+    assert target['identity'] in affected
+    with pytest.raises(ValueError,match='quarantined'):
+        journal.training({'component_distillation':freeze_distillation(bundle,[target],arm='library')})

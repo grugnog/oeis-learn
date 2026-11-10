@@ -16,7 +16,10 @@ from oeis_learn.generalization.progressive.contracts import (
 )
 from oeis_learn.pipeline_validation.identity import confined
 
-MAX_CASES = 48
+# Full 4-shape x 162-policy domain, for screening and confirmation.
+# Generic Q retains its separate 48-case hardware matrix limit.
+MAX_CASES = 1296
+MAX_SECONDS = 86400
 METADATA_BYTES = 16 << 20
 
 
@@ -360,7 +363,7 @@ def validate_request(request):
         or seal(request) != request
         or request["version"] != "progressive-calibration-request/v1"
         or type(request["seconds"]) is not int
-        or not 0 < request["seconds"] <= 3600
+        or not 0 < request["seconds"] <= MAX_SECONDS
         or not isinstance(request["cases"], list)
         or not 1 <= len(request["cases"]) <= MAX_CASES
         or any(set(c) != {"compatibility", "artifact"} for c in request["cases"])
@@ -473,7 +476,7 @@ def run_inside(root):
                 source=request["source"],
                 image=request["image"],
                 checkpoint_bytes=request["checkpoint_bytes"],
-                seconds=remaining,
+                seconds=min(3600, remaining),
             )
             producers[case["compatibility"]] = reference(root, folder / "producer.json")
         result = seal(

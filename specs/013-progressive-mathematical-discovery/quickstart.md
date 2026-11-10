@@ -401,14 +401,13 @@ learning compatibility across continuation tasks shares one original measurement
 generic Q cases do not substitute for this calibration.
 
 The plan's `caps` is the closed resource vector used by campaign budgets. Its
-`elapsed_us` must equal `seconds * 1000000`; `seconds` is at most 3,600 including
-inspection and cleanup. Calibration caps **plus** the prepared campaign caps must
+`elapsed_us` must equal `seconds * 1000000`; exact calibration may reserve up to 86,400 seconds including inspection and cleanup, with at most 3,600 seconds per serial input. Other handoff plans retain their 3,600-second limit. Calibration caps **plus** the prepared campaign caps must
 fit the blueprint's proposed caps. Reserve at least the two-update token charge
 for every distinct compatible input, two checkpoint generations per input, copied
 input packages and 16 MiB metadata headroom. `checkpoint_bytes` bounds one complete
 generation (including conservative optimizer growth); `maximum_inodes` bounds the
 whole calibration tree and must cover at least 64 per input plus 256 metadata
-entries. There are at most 48 distinct input cases. Insufficient reservations
+entries. Exact calibration permits at most 1,296 distinct inputs: the 648 registered shape/policy combinations at both screening and confirmation trajectories. This is separate from the 48-case generic Q matrix. Insufficient reservations
 return a deficit before device dispatch; they are never enlarged automatically.
 
 Retain `prepared/calibration-input.json`, `prepared/calibration/request.json`,

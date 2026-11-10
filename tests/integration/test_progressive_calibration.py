@@ -414,3 +414,30 @@ def test_calibration_resolves_component_template_before_owned_targets_exist(
     assert len(selected) == len(bindings) == 1
     assert selected[0]["package"]["component_rules"]
     assert not (tmp_path / "mine").exists()
+
+
+def test_full_registered_learning_domain_has_exact_calibration_cases(tmp_path):
+    from itertools import product
+    from oeis_learn.generalization.progressive.tuning import SPACE
+    from oeis_learn.generalization.progressive.models import resolve_profile
+    from oeis_learn.pipeline_validation.progressive_training import resolve_update_policy
+    from oeis_learn.pipeline_validation.progressive_learner import compatibility
+    from oeis_learn.pipeline_validation.progressive_calibration import selected_inputs
+    prepared = inputs(tmp_path)
+    plan = copy.deepcopy(prepared['payload']['task_plans'][0])
+    package = load(tmp_path/'training-input.json')
+    choices = []
+    for values in product(*SPACE.values()):
+        params = dict(zip(SPACE, values))
+        profile = resolve_profile(package['profile']['base_recipe'], seed=plan['seed'], dropout=params['dropout'])
+        policy = resolve_update_policy(profile,
+            schedule_horizon_tokens=package['update_policy']['schedule_horizon_tokens'],
+            microbatch_size=min(package['update_policy']['microbatch_size'],params['effective_batch']),
+            **{k:v for k,v in params.items() if k!='dropout'})
+        material = seal(dict(package, profile=profile, update_policy=policy))
+        choices.append(dict(parameters=params, compatibility=compatibility(material), policy=plan['policy']))
+    plan.update(trial_choices=choices, trial={'phase':'screening'})
+    prepared['payload']['task_plans'] = [plan]
+    cases, bindings = selected_inputs(tmp_path, prepared)
+    assert len(cases) == len(bindings) == 162
+    assert {c['compatibility'] for c in cases} == {v['compatibility'] for v in choices}

@@ -19,7 +19,8 @@ def named_plan(root, document, name, version, fields, optional=()):
     value=json.loads(verify_refs(root,refs,max_bytes=32<<20)[0])
     if not isinstance(value,dict) or not set(fields)|{'version','identity'}<=set(value) or set(value)-set(fields)-{'version','identity'}-set(optional) or value['version']!=version or seal(value)!=value:
         raise ValueError('closed original '+name+' required')
-    if type(value['seconds']) is not int or not 1<=value['seconds']<=3600:
+    maximum_seconds = 86400 if version == 'progressive-calibration-plan/v1' else 3600
+    if type(value['seconds']) is not int or not 1<=value['seconds']<=maximum_seconds:
         raise ValueError('finite handoff stage allowance required')
     return value
 

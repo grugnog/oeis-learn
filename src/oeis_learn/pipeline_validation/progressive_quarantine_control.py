@@ -35,6 +35,13 @@ def require_clean_values(root, accounting, values):
 
 
 def reconcile(root, output, result, journal):
+    if result.get('operation') in {'extract-components', 'verify-components'}:
+        ref = result.get('metrics', {}).get('library')
+        if ref is not None:
+            bundle = json.loads(verify_refs(output, [ref], max_bytes=256 << 20)[0])
+            from oeis_learn.generalization.progressive.component_search import validate_input
+            validate_input(bundle)
+            Journal(journal.root).library(bundle['library'])
     ref = result.get("metrics", {}).get("dossier_record")
     if ref is None:
         return None

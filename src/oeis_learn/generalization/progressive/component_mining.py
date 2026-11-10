@@ -361,6 +361,7 @@ class LibraryStore:
         program = parse(source, self.limits)
         return dict(
             ref=ref,
+            target=value.get("draw_identity", value["identity"]),
             source=source,
             ast=program.result,
             indices=indices,
@@ -425,6 +426,8 @@ class LibraryStore:
                     c = candidates[key]
                     origin = dict(
                         artifact=item["ref"],
+                        target=item["target"],
+                        indices=item["indices"],
                         role="training",
                         group=item["group"],
                         structure=item["structure"],

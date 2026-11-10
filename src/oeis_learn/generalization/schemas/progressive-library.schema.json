@@ -138,6 +138,18 @@
                       "items": {
                         "$ref": "#/$defs/ast"
                       }
+                    },
+                    "target": {
+                      "$ref": "progressive-common.schema.json#/$defs/hash"
+                    },
+                    "indices": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 100,
+                      "items": {
+                        "type": "string",
+                        "maxLength": 256
+                      }
                     }
                   },
                   "required": [
