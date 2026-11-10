@@ -428,3 +428,16 @@ def test_installed_short_learner_resumes_updates_after_owned_pause(tmp_path, fit
     assert resumed["metrics"]["initialization"] == "resume"
     with Recovery(j, task, plan["initializer"]["compatibility"], state_root=state) as owner:
         assert owner.restore()["ledger"].updates > prior
+
+
+def test_research_nested_training_reserves_are_preflighted():
+    from oeis_learn.pipeline_validation.progressive_source_cycle import validate_training_allowance
+    task = dict(arm='with_source', startup_us=1000000, finalization_us=1800000000,
+                iteration_budget=dict(update_us=1, probe_us=1, checkpoint_us=1, producer={}),
+                caps=dict(elapsed_us=21600000000))
+    seconds = dict(train=600, generate=60, score=60, **{'admit-training':60})
+    with pytest.raises(ValueError, match='startup/work/finalization'):
+        validate_training_allowance(task, seconds, 512)
+    validate_training_allowance(task, dict(seconds, train=3600), 512)
+    with pytest.raises(ValueError, match='original child allowance'):
+        validate_training_allowance(dict(task, caps=dict(elapsed_us=4000000000)), dict(seconds, train=3600), 512)

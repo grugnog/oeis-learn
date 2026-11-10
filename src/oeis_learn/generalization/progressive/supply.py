@@ -5,7 +5,7 @@ from .contracts import seal
 
 def plan(package, target, *, arm=None):
     arm = package.get("arm") if arm is None else arm
-    if arm == "static":
+    if arm == "static" or package.get("task_profile") == "combinatorial-short/v1":
         return None
     if arm not in {"refreshed", "replay", "continued_synthetic", "library", "no_library", "with_source", "without_source"}:
         raise ValueError("frozen support arm required")

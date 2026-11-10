@@ -8,6 +8,22 @@ from oeis_learn.pipeline_validation.identity import confined
 from .progressive_oeis import Cycle, _read
 
 
+def validate_training_allowance(task, seconds, source_count):
+    """Refuse an impossible nested pilot before search or device dispatch."""
+    from oeis_learn.generalization.progressive.iteration import margin
+
+    work = task['startup_us'] + task['finalization_us'] + margin(task, research=True)
+    if seconds['train'] * 1000000 <= work:
+        raise ValueError('source training allowance cannot fit startup/work/finalization')
+    # Every arm generates and scores after training. The source arm additionally
+    # generates training candidates and admits at most 128 source rows per role.
+    overhead = seconds['generate'] + seconds['score']
+    if task['arm'] == 'with_source':
+        overhead += seconds['generate'] + ((source_count + 127) // 128) * seconds['admit-training']
+    if (seconds['train'] + overhead) * 1000000 + task['finalization_us'] > task['caps']['elapsed_us']:
+        raise ValueError('source cycle exceeds original child allowance')
+
+
 def validate_plan(root, campaign, plan):
     from oeis_learn.generalization.progressive.short_learning import RULE
     from oeis_learn.generalization.progressive.sources import pilot_support
@@ -30,7 +46,8 @@ def validate_plan(root, campaign, plan):
     if support["status"] != "ELIGIBLE":
         raise ValueError("source support deficit: " + str(support["deficits"]))
     if set(plan["seconds"]) != {"generate", "admit-training", "train", "score"} or any(
-        type(v) is not int or not 1 <= v <= 600 for v in plan["seconds"].values()
+        type(v) is not int or not 1 <= v <= (86400 if op == "train" else 600)
+        for op, v in plan["seconds"].items()
     ):
         raise ValueError("finite short role allowances required")
     from .progressive_short_roles import validate_channel
@@ -74,6 +91,8 @@ def validate_plan(root, campaign, plan):
             or package.get("short_rules") != RULE
         ):
             raise ValueError("frozen short learning package required")
+        if campaign["purpose"] == "research":
+            validate_training_allowance(p, plan["seconds"], len(roster["sources"]))
         validate_input(
             package,
             {"purpose": campaign["purpose"], "track": campaign["track"], "payload": p},
