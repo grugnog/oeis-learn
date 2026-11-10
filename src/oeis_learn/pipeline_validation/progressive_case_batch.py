@@ -12,6 +12,10 @@ from oeis_learn.generalization.progressive.contracts import atomic_write
 def pytest_cases(nodes, output, *, env, seconds, cwd):
     from .progressive_acceptance import _bounded_process
     output = Path(output)
+    # pytest creates each basetemp itself, but does not create its parent.
+    # Keep separate case trees so starting the next case cannot erase evidence.
+    private = output / 'private'
+    private.mkdir(mode=0o700, parents=True, exist_ok=True)
     began = time.monotonic()
     suite = ET.Element('testsuite', name='progressive-device')
     outcomes = []
@@ -24,9 +28,9 @@ def pytest_cases(nodes, output, *, env, seconds, cwd):
         error = blocked
         if not error and remaining > 1:
             try:
-                code = _bounded_process([sys.executable, '-m', 'pytest', '-vv', '-ra',
+                code = _bounded_process([sys.executable, '-m', 'pytest', '-vv', '-ra', '-p', 'no:cacheprovider',
                     '--tb=long', '-o', 'addopts=', '-o', 'faulthandler_timeout=120',
-                    '--basetemp', str(output/'private'/str(index)),
+                    '--basetemp', str(private/str(index)),
                     '--junitxml', str(case/'junit.xml'), node],
                     cwd=cwd, env=env, log=case/'process.log',
                     seconds=remaining/(len(nodes)-index), maximum=4<<20)

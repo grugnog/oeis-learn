@@ -319,3 +319,38 @@ def test_research_resume_uses_original_run_and_reports_even_failure(tmp_path,mon
     assert calls[0][calls[0].index('--output')+1]=='run-state/s/run-research/execution-0001'
     assert reported==['report']
     assert s.journal['steps']['run-research/invocation-0001']['status']==('COMPLETE' if result_status=='PARTIAL' else 'FAILED')
+
+
+def test_real_case_batch_creates_private_pytest_parent_and_preserves_other_cases(tmp_path):
+    """Real pytest processes exercise scratch setup; no HIP qualification claim."""
+    import os
+    import xml.etree.ElementTree as ET
+    from oeis_learn.pipeline_validation.progressive_case_batch import pytest_cases
+
+    (tmp_path/'test_scratch.py').write_text('''
+import os
+from pathlib import Path
+
+root = Path(os.environ['EXPECTED_BATCH_OUTPUT'])
+
+def test_first(tmp_path, tmp_path_factory):
+    assert tmp_path.parent.parent == root / 'private'
+    assert (root / 'private').stat().st_mode & 0o777 == 0o700
+    artifact = tmp_path_factory.mktemp('wheel') / 'marker.txt'
+    artifact.write_text('first case')
+    (root / 'first-location.txt').write_text(str(artifact))
+
+def test_second(tmp_path):
+    assert tmp_path.parent.parent == root / 'private'
+    assert tmp_path.parent.name == '1'
+    assert Path((root / 'first-location.txt').read_text()).read_text() == 'first case'
+''')
+    output = tmp_path/'batch'
+    env = dict(os.environ, PYTEST_DISABLE_PLUGIN_AUTOLOAD='1',
+               EXPECTED_BATCH_OUTPUT=str(output))
+    nodes = ['test_scratch.py::test_first', 'test_scratch.py::test_second']
+    assert pytest_cases(nodes, output, env=env, seconds=30, cwd=tmp_path) == 0
+    outcomes = json.loads((output/'case-outcomes.json').read_text())
+    assert [case['status'] for case in outcomes] == ['PASS', 'PASS']
+    assert len(ET.parse(output/'cases.xml').findall('.//testcase')) == 2
+    assert not (tmp_path/'.pytest_cache').exists()
