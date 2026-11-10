@@ -220,18 +220,36 @@ def launch(command, output, *, seconds):
         raise RuntimeError(f"exit {code}; inspect {output}/stdout.log and stderr.log")
 
 
-def container_stage(host, image, output, argv, *, gpu=False, seconds=3600):
+def container_stage(host, image, output, argv, *, gpu=False, seconds=3600, readonly_inputs=()):
     from oeis_learn.container_runtime import private_runtime_environment
 
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
+    # Explicit file-only custodian inputs; never a workspace or engine socket.
+    # Qualification callers retain the original output-only default.
+    import stat
+    from pathlib import PurePosixPath
+    inputs = []
+    destinations = set()
+    expected_sources = {}
+    for source, destination in readonly_inputs:
+        source = Path(source)
+        parts = PurePosixPath(destination).parts
+        if (source.is_symlink() or not stat.S_ISREG(source.stat().st_mode)
+            or len(parts) < 4 or parts[:3] != ('/', 'work', 'inputs')
+            or '..' in parts or destination in destinations
+            or str(PurePosixPath(destination)) != destination):
+            raise ValueError('distinct confined read-only input files required')
+        destinations.add(destination)
+        expected_sources[destination] = str(source.resolve())
+        inputs.append((source, destination, False))
     name = "oeis-phase5-" + uuid.uuid4().hex
     if gpu:
         host.select_gpu()
     command = host.engine.command(
         image=image,
         name=name,
-        mounts=[(output, "/work/output", True)],
+        mounts=[(output, "/work/output", True), *inputs],
         argv=argv,
         gpu=gpu,
         render_node=host.policy.get("render_node") if gpu else None,
@@ -267,9 +285,15 @@ def container_stage(host, image, output, argv, *, gpu=False, seconds=3600):
                     write(output / "container-inspect.json", inspection)
                     record = inspection[0]
                     policy = record["HostConfig"]
+                    binds = [m for m in record.get('Mounts', []) if m.get('Type') == 'bind']
                     if (policy.get("NetworkMode") != "none" or not policy.get("ReadonlyRootfs")
-                            or policy.get("Privileged") or any(m.get("Destination") != "/work/output"
-                            for m in record.get("Mounts", []) if m.get("Type") == "bind")):
+                            or policy.get("Privileged") or any(
+                                m.get('Destination') not in destinations | {'/work/output'}
+                                or m.get('Destination') in destinations and (
+                                    m.get('RW') is not False
+                                    or m.get('Source') != expected_sources[m['Destination']])
+                                for m in binds)
+                            or not destinations <= {m.get('Destination') for m in binds}):
                         raise RuntimeError("actual role network/root/mount isolation audit failed")
                 except Exception as exc:
                     write(output / "inspection-error.json", dict(type=type(exc).__name__, message=str(exc)))
