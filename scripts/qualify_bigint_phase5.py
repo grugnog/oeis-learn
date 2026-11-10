@@ -250,35 +250,44 @@ def container_stage(host, image, output, argv, *, gpu=False, seconds=3600):
             "OEIS_QUALIFICATION_ENGINE": host.engine.name,
         },
     )
+    failure = None
     try:
         with host.gpu_lock() if gpu else nullcontext():
-            launch(command, output, seconds=seconds)
-            inspected = host.engine.call(["inspect", name], capture_output=True, timeout=30)
-            inspection = json.loads(inspected.stdout)
-            write(output / "container-inspect.json", inspection)
-            record = inspection[0]
-            policy = record["HostConfig"]
-            if (
-                policy.get("NetworkMode") != "none"
-                or not policy.get("ReadonlyRootfs")
-                or policy.get("Privileged")
-                or any(
-                    m.get("Destination") != "/work/output"
-                    for m in record.get("Mounts", [])
-                    if m.get("Type") == "bind"
-                )
-            ):
-                raise RuntimeError("actual role network/root/mount isolation audit failed")
+            try:
+                launch(command, output, seconds=seconds)
+            except BaseException as exc:
+                failure = exc
+                raise
+            finally:
+                # Inspect BEFORE removal on failure as well as success. Preserve
+                # OOM/exit state and the original producer error independently.
+                try:
+                    inspected = host.engine.call(["inspect", name], capture_output=True, timeout=30)
+                    inspection = json.loads(inspected.stdout)
+                    write(output / "container-inspect.json", inspection)
+                    record = inspection[0]
+                    policy = record["HostConfig"]
+                    if (policy.get("NetworkMode") != "none" or not policy.get("ReadonlyRootfs")
+                            or policy.get("Privileged") or any(m.get("Destination") != "/work/output"
+                            for m in record.get("Mounts", []) if m.get("Type") == "bind")):
+                        raise RuntimeError("actual role network/root/mount isolation audit failed")
+                except Exception as exc:
+                    write(output / "inspection-error.json", dict(type=type(exc).__name__, message=str(exc)))
+                    if failure is None:
+                        failure = exc
+                        raise
     finally:
         start = time.monotonic()
-        host.engine.remove(name)
+        cleanup_error = None
+        try:
+            host.engine.remove(name)
+        except Exception as exc:
+            cleanup_error = str(exc)
         elapsed = time.monotonic() - start
-        write(
-            output / "cleanup.json",
-            dict(seconds=elapsed, allowance_seconds=5, within_bound=elapsed <= 5),
-        )
-        if elapsed > 5:
-            raise RuntimeError("role cleanup exceeded declared5second allowance")
+        write(output / "cleanup.json", dict(seconds=elapsed, allowance_seconds=5,
+              within_bound=elapsed <= 5 and cleanup_error is None, error=cleanup_error))
+        if failure is None and (cleanup_error or elapsed > 5):
+            raise RuntimeError(cleanup_error or "role cleanup exceeded declared 5 second allowance")
 
 
 def shape_manifest(inputs):

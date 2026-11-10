@@ -287,7 +287,7 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
     """
     import shutil
 
-    if type(seconds) is not int or not 1 <= seconds <= 900:
+    if type(seconds) is not int or not 1 <= seconds <= 3600:
         raise ValueError("bounded hardware delta allowance required")
     began = time.monotonic()
     plan = hardware_plan(root, request, producers)
@@ -306,8 +306,8 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
         if {k: copied[k] for k in ("sha256", "bytes")} != {k: item["producer"][k] for k in ("sha256", "bytes")}:
             raise ValueError("original hardware bytes changed during reuse")
         originals.append(copied)
-    executed, first_error = [], None
-    for case in plan["delta"]:
+    executed, first_error, failures = [], None, []
+    for index, case in enumerate(plan["delta"]):
         try:
             remaining = seconds - (time.monotonic() - began)
             if remaining <= 0:
@@ -326,7 +326,7 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
             status = _bounded_process(
                 [sys.executable, "-c", code, str(output / "request.json"), case["identity"], str(target)],
                 cwd=output, env=dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[2])),
-                log=target / "process.log", seconds=remaining, maximum=4 << 20)
+                log=target / "process.log", seconds=remaining / (len(plan['delta']) - index), maximum=4 << 20)
             if status:
                 raise ValueError("hardware delta subprocess failed")
             producer = reference(output, target / "producer.json")
@@ -337,8 +337,26 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
             originals.append(producer)
             executed.append(case["identity"])
         except (OSError, ValueError, TimeoutError) as error:
-            first_error = type(error).__name__
-            break
+            import traceback
+            first_error = first_error or type(error).__name__
+            failures.append(dict(case=case['identity'],error=type(error).__name__,message=str(error),traceback=traceback.format_exc()))
+            atomic_write(output/'failures.json',failures)
+            remaining = seconds - (time.monotonic() - began)
+            if remaining <= 1:
+                break
+            # A failed process releases its tensors. Prove the device remains
+            # usable before continuing independent cases; never hide a reset.
+            try:
+                health = _bounded_process([sys.executable,'-c',
+                    'from oeis_learn.pipeline_validation.progressive_qualification import require_hip; t=require_hip(); t.cuda.synchronize()'],
+                    cwd=output,env=dict(os.environ),log=output/f'health-{index}.log',
+                    seconds=min(30,remaining),maximum=1<<20)
+                if health:
+                    raise RuntimeError('device health probe failed')
+            except (OSError, ValueError, TimeoutError, RuntimeError) as health_error:
+                failures.append(dict(case=case['identity'],error='DEVICE_BLOCKED',message=str(health_error)))
+                atomic_write(output/'failures.json',failures)
+                break
     coverage = hardware_plan(output, request, originals)
     result = seal(dict(version="progressive-hardware-delta/v1", matrix=request["identity"],
                        status="PASS" if not first_error and not coverage["delta"] else "FAIL",
@@ -346,6 +364,7 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
                        campaign_device_status="PENDING", sustained_status="PENDING",
                        reused=plan["reused"], executed=executed, producers=originals,
                        omitted=[c["identity"] for c in coverage["delta"]], first_error=first_error,
+                       failures=failures,
                        original_execution_us=plan["original_execution_us"],
                        actual_elapsed_us=int((time.monotonic()-began)*1e6), allowance_seconds=seconds))
     atomic_write(output / "delta.json", result)

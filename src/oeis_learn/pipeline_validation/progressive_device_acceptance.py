@@ -63,10 +63,8 @@ def run_inside(request, output):
     env=dict(os.environ,PYTHONPATH=str(installed)+os.pathsep+'/opt/oeis-build',OEIS_PROGRESSIVE_ACCEPTANCE_DEVICE='actual_HIP',
              OEIS_PROGRESSIVE_ACCEPTANCE_REQUEST=str(output/'request.json'),
              OEIS_REQUIRE_NATIVE='1',OEIS_REQUIRE_BIGINT_BUILD='1',PYTEST_DISABLE_PLUGIN_AUTOLOAD='1')
-    code=_bounded_process([sys.executable,'-m','pytest','-q','-o','addopts=',
-                           '--basetemp',str(output/'private'), '--junitxml',str(output/'cases.xml'),*NODES],
-                          cwd='/opt/oeis-build',env=env,log=output/'process.log',
-                          seconds=request['seconds'],maximum=4<<20)
+    from .progressive_case_batch import pytest_cases
+    code=pytest_cases(NODES,output,env=env,seconds=request['seconds'],cwd='/opt/oeis-build')
     path=output/'cases.xml'
     if path.is_symlink() or path.stat().st_size>4<<20:
         raise ValueError('bounded original device cases required')

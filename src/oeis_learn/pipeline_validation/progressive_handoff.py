@@ -84,17 +84,12 @@ def qualify_command(args, root, host_factory):
         with path.open('xb') as stream: stream.write(raw)
         copied.append(reference(device,path))
     atomic_write(device/'originals.json',copied)
-    code=("from pathlib import Path;from oeis_learn.generalization.progressive.contracts import load;"
-          "from oeis_learn.pipeline_validation.progressive_qualification import qualify;"
-          "from oeis_learn.synthesis.client import SynthesisClient;"
-          "r=load('/work/output/request.json');"
-          "\nwith SynthesisClient(r['identity']) as c:qualify(r,Path('/work/output/cases'),client=c)")
-    if originals:
-        code=("from oeis_learn.generalization.progressive.contracts import load;"
-              "from oeis_learn.pipeline_validation.progressive_acceptance import run_hardware_delta;"
-              "r=load('/work/output/request.json');p=load('/work/output/originals.json');"
-              "v=run_hardware_delta('/work/output',r,p,'/work/output/cases',seconds="+str(min(900,plan['seconds']))+");"
-              "raise SystemExit(0 if v['status']=='PASS' else 1)")
+    # Every independent case has its own process, including the first batch.
+    code=("from oeis_learn.generalization.progressive.contracts import load;"
+          "from oeis_learn.pipeline_validation.progressive_acceptance import run_hardware_delta;"
+          "r=load('/work/output/request.json');p=load('/work/output/originals.json');"
+          "v=run_hardware_delta('/work/output',r,p,'/work/output/cases',seconds="+str(plan['seconds'])+");"
+          "raise SystemExit(0 if v['status']=='PASS' else 1)")
     remaining=plan['seconds']-(time.monotonic()-began)
     if remaining<=0:
         raise TimeoutError('qualification allowance exhausted during inspection')
