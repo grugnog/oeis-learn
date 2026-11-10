@@ -313,7 +313,9 @@ def run_case(request, case, output, *, client):
                 "native_reference_score",
                 "cleanup",
             ],
-            measurements=measures,
+            # Keep the closed v1 authority receipt unchanged. Allocator details
+            # belong in measurements.json, retained on both success and failure.
+            measurements={k: v for k, v in measures.items() if k != "cleanup_diagnostics"},
         )
     )
     atomic_write(producer, value)

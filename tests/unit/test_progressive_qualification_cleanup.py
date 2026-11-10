@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from oeis_learn.generalization.progressive.contracts import digest, load
+from oeis_learn.generalization.progressive.contracts import digest, load, reference
 from oeis_learn.pipeline_validation import progressive_qualification as qualification
 from oeis_learn.pipeline_validation import progressive_training as training
 
@@ -87,6 +87,16 @@ def test_case_releases_memory_and_workspaces_without_waiving_leaks(
     else:
         result = qualification.run_case(request, request["cases"][0], output, client=fitting_client)
         assert result["measurements"]["cleanup"]
+        # A successful producer must be consumable by the real authority path,
+        # not merely pass its own execution assertions.
+        from oeis_learn.pipeline_validation.progressive_acceptance import hardware_plan
+
+        original = (output / "producer.json").read_bytes()
+        plan = hardware_plan(tmp_path, request, [reference(tmp_path, "case/producer.json")])
+        assert [item["case"] for item in plan["reused"]] == [request["cases"][0]["identity"]]
+        assert plan["delta"] == []
+        assert (output / "producer.json").read_bytes() == original
+        assert "cleanup_diagnostics" not in result["measurements"]
     measures = load(output / "measurements.json")
     assert measures["full_restore"] and measures["generation"]
     assert measures["cleanup"] == (retained_bytes == 0)
