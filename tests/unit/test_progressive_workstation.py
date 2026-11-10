@@ -14,7 +14,13 @@ def test_independent_stage_continues_failed_dependency_blocks_and_zip_survives(t
     s=Session(tmp_path,'run-state/session',dict(source='test'),'rehearse')
     visited=[]
     with s.own():
-        def fail(): raise RuntimeError('first original cause')
+        def fail():
+            from oeis_learn.pipeline_validation.progressive_acceptance import _record_failure
+            failures=[]
+            for i in range(2):
+                _record_failure(s.folder/'rehearse/qualification',failures,dict(case=i,error='diagnostic'))
+            write(s.folder/'rehearse/qualification/delta/case/measurements.json',{'cleanup':False})
+            raise RuntimeError('first original cause')
         s.step('bad',fail)
         s.step('dependent',lambda:pytest.fail('dependency ran'),dependencies=('rehearse/bad',))
         s.step('independent',lambda:(visited.append('yes'),[]))
@@ -25,6 +31,10 @@ def test_independent_stage_continues_failed_dependency_blocks_and_zip_survives(t
         assert journal['steps']['rehearse/dependent']['status']=='BLOCKED'
         assert journal['steps']['rehearse/independent']['status']=='COMPLETE'
         assert json.loads(z.read('manifest.json'))['qualified'] is False
+        for i in range(2):
+            assert json.loads(z.read(f'rehearse/qualification/failures/{i:03d}/failures.json'))['case']==i
+        assert json.loads(z.read('rehearse/qualification/delta/case/measurements.json'))['cleanup'] is False
+
 
 
 def test_failed_and_unfinished_work_never_gets_fresh_allowance(tmp_path):
@@ -116,27 +126,34 @@ def test_actual_cpu_assets_match_selected_profile(tmp_path):
     assert (tmp_path/'initial.pt').stat().st_size>1000
 
 
-def test_qualification_continues_after_one_case_failure(tmp_path,monkeypatch):
+@pytest.mark.parametrize('failures,healthy',[(1,True),(2,True),(4,True),(1,False)])
+def test_qualification_continues_after_case_failures(tmp_path,monkeypatch,failures,healthy):
     from oeis_learn.pipeline_validation import progressive_acceptance as a
     from oeis_learn.pipeline_validation.progressive_qualification import matrix
     from tests.integration.test_progressive_acceptance import hardware_fixture
     from oeis_learn.generalization.progressive.contracts import atomic_write,digest,seal
     request,producer,_=hardware_fixture(tmp_path)
-    request=matrix([request['cases'][0]['profile']],**{k:request[k] for k in ('source','image','engine','hardware')},input_lengths=(4,20),microbatches=(7,))
+    request=matrix([request['cases'][0]['profile']],**{k:request[k] for k in ('source','image','engine','hardware')},input_lengths=(4,20),microbatches=(7,16))
     monkeypatch.setattr(a,'_current_hardware',lambda r:None)
     calls=[]
     def execute(argv,**kwargs):
-        if len(argv)==3: return 0 # Explicit boundary-only device health double.
+        if len(argv)==3: return 0 if healthy else 1 # Explicit boundary-only device health double.
         calls.append(argv[-2])
-        if len(calls)==1:return 1
+        if len(calls)<=failures:return 1
         case=next(c for c in request['cases'] if c['identity']==argv[-2])
         value=seal(dict(producer,scope=digest([request[k] for k in ('source','image','engine','hardware')]+[case])))
         atomic_write(Path(argv[-1])/'producer.json',value)
         return 0
     monkeypatch.setattr(a,'_bounded_process',execute)
     result=a.run_hardware_delta(tmp_path,request,[],tmp_path/'batch',seconds=30)
-    assert len(calls)==2 and result['status']=='FAIL'
-    assert len(result['producers'])==1 and len(result['failures'])==1
+    assert len(calls)==(4 if healthy else 1) and result['status']=='FAIL'
+    assert len(result['producers'])==(4-failures if healthy else 0)
+    assert len(result['failures'])==(failures if healthy else 2)
+    assert json.loads((tmp_path/'batch/failures.json').read_text())==result['failures']
+    snapshots=sorted((tmp_path/'batch/failures').glob('*/failures.json'))
+    assert len(snapshots)==len(result['failures'])
+    assert [json.loads(p.read_text()) for p in snapshots]==result['failures']
+    if not healthy:assert result['failures'][-1]['error']=='DEVICE_BLOCKED'
 
 
 def test_device_case_failure_does_not_prevent_independent_case(tmp_path,monkeypatch):
@@ -238,15 +255,15 @@ def test_packaging_failure_does_not_replace_original_exception(tmp_path,monkeypa
     assert [e['type'] for e in read(s.folder/'journal.json')['errors']]==['RuntimeError','PACKAGING_FAILED']
 
 
-@pytest.mark.parametrize('healthy,expected',[(True,[0,1]),(False,[0])])
-def test_calibration_failure_keeps_independent_results_and_blocks_bad_device(tmp_path,monkeypatch,healthy,expected):
+@pytest.mark.parametrize('failures,healthy',[(1,True),(2,True),(3,True),(1,False)])
+def test_calibration_failure_keeps_independent_results_and_blocks_bad_device(tmp_path,monkeypatch,failures,healthy):
     """Double only execution boundaries; exercise real batch and partial receipts."""
     from oeis_learn.pipeline_validation import progressive_calibration as c, progressive_acceptance as a
     from oeis_learn.pipeline_validation import progressive_qualification as q, generalization_execution as execution, progressive_learner as learner
     from oeis_learn.experiments import source_snapshot
     from oeis_learn.generalization.progressive.contracts import digest,reference,seal,load
     cases=[]
-    for i in range(2):
+    for i in range(3):
         key=digest(i); write(tmp_path/f'input-{i}.json',{'compatibility':key})
         cases.append(dict(compatibility=key,artifact=reference(tmp_path,f'input-{i}.json')))
     request=seal(dict(source=digest({}),image='image',engine='podman',hardware={},execution_policy={},
@@ -263,14 +280,17 @@ def test_calibration_failure_keeps_independent_results_and_blocks_bad_device(tmp
     def execute(argv,**kw):
         if len(argv)==3:return 0 if healthy else 1
         i=int(argv[-2]); calls.append(i)
-        if i==0:return 1
+        if i<failures:return 1
         write(tmp_path/'cases'/cases[i]['compatibility'][7:]/'producer.json',seal({'boundary_only':True}))
         return 0
     monkeypatch.setattr(a,'_bounded_process',execute)
     with pytest.raises(ValueError,match='incomplete'):c.run_inside(tmp_path)
-    assert calls==expected
+    assert calls==(list(range(3)) if healthy else [0])
     partial=load(tmp_path/'partial.json')
-    assert partial['status']=='FAIL' and len(partial['producers'])==int(healthy)
+    assert partial['status']=='FAIL' and len(partial['producers'])==(3-failures if healthy else 0)
+    assert len(partial['failures'])==(failures if healthy else 2)
+    assert json.loads((tmp_path/'failures.json').read_text())==partial['failures']
+    assert len(list((tmp_path/'failures').glob('*/failures.json')))==len(partial['failures'])
     assert not (tmp_path/'producer.json').exists()
 
 

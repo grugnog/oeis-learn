@@ -482,7 +482,7 @@ def run_inside(root):
             # residue. Every remaining independent case has a bounded share.
             import sys
             import traceback
-            from .progressive_acceptance import _bounded_process
+            from .progressive_acceptance import _bounded_process, _record_failure
             case_seconds=min(3600,remaining/(len(request['cases'])-index))
             code=('import sys;from oeis_learn.pipeline_validation.progressive_calibration import run_one;'
                   'run_one(sys.argv[1],int(sys.argv[2]),float(sys.argv[3]))')
@@ -493,17 +493,18 @@ def run_inside(root):
                 if status: raise ValueError('exact-input calibration process failed')
                 producers[case['compatibility']]=reference(root,folder/'producer.json')
             except (OSError,ValueError,TimeoutError) as error:
-                failures.append(dict(compatibility=case['compatibility'],error=type(error).__name__,traceback=traceback.format_exc()))
-                atomic_write(root/'failures.json',failures)
+                _record_failure(root, failures, dict(compatibility=case['compatibility'],error=type(error).__name__,traceback=traceback.format_exc()))
                 remaining=request['seconds']-(time.monotonic()-began)
                 try:
                     if remaining<=1 or _bounded_process([sys.executable,'-c',
                         'from oeis_learn.pipeline_validation.progressive_qualification import require_hip; t=require_hip(); t.cuda.synchronize()'],
                         cwd=root,env=dict(os.environ),log=root/f'health-{index}.log',seconds=min(30,remaining),maximum=65536):
-                        break
-                except (OSError,ValueError,TimeoutError):
+                        raise RuntimeError('device health probe failed or calibration allowance exhausted')
+                except (OSError,ValueError,TimeoutError,RuntimeError) as health_error:
+                    _record_failure(root, failures, dict(compatibility=case['compatibility'],error='DEVICE_BLOCKED',message=str(health_error)))
                     break
         if failures:
+            atomic_write(root/'failures.json',failures)
             atomic_write(root/'partial.json',seal(dict(version='progressive-calibration-failure/v1',
                 status='FAIL',request=request['identity'],producers=producers,failures=failures,
                 missing=[c['compatibility'] for c in request['cases'] if c['compatibility'] not in producers])))

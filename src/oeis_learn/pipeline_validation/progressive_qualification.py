@@ -88,6 +88,29 @@ def _same(a, b):
     return a == b
 
 
+def _cleanup_memory(torch):
+    """Release owned garbage and the documented HIP BLAS workspace cache.
+
+    empty_cache alone cannot release hipBLAS workspaces. Keep the allocation
+    counts on both sides so workspace retention cannot conceal live tensors.
+    https://docs.pytorch.org/docs/2.9/notes/hip.html#hipblas-workspaces
+    """
+    import gc
+
+    gc.collect()
+    torch.cuda.synchronize()
+    before = torch.cuda.memory_allocated()
+    torch._C._cuda_clearCublasWorkspaces()
+    torch.cuda.empty_cache()
+    torch.cuda.synchronize()
+    return dict(
+        before_workspace_release_bytes=before,
+        allocated_bytes=torch.cuda.memory_allocated(),
+        reserved_bytes=torch.cuda.memory_reserved(),
+        allocator_stats=torch.cuda.memory_stats(),
+    )
+
+
 def run_case(request, case, output, *, client):
     """One original producer; missing devices and incompatible reuse fail closed."""
     torch = require_hip()
@@ -145,7 +168,7 @@ def run_case(request, case, output, *, client):
     import random
 
     began = time.monotonic()
-    baseline_allocated = torch.cuda.memory_allocated()
+    baseline_allocated = _cleanup_memory(torch)["allocated_bytes"]
     torch.cuda.reset_peak_memory_stats()
     policy = resolve_update_policy(
         case["profile"], schedule_horizon_tokens=10000, microbatch_size=case["microbatch"]
@@ -201,6 +224,7 @@ def run_case(request, case, output, *, client):
     ) and _same(gold_optimizer, resumed.state_dict())
     if not changed or not deterministic:
         raise ValueError("HIP update/restore deterministic continuation failed")
+    memory = None
     if case["input_length"] == 4:
         generated = generate_short(
             resumed.encoder,
@@ -235,17 +259,11 @@ def run_case(request, case, output, *, client):
         v.numel() for v in [*resumed.encoder.parameters(), *resumed.decoder.parameters()]
     )
     generation = bool(generated and generated[0]["tokens"])
-    del runner, resumed, before, gold, gold_optimizer, states, restored, tokens
-    if "memory" in locals():
-        del memory
-    import gc
-
-    gc.collect()
-    torch.cuda.empty_cache()
-    torch.cuda.synchronize()
-    after_cleanup = torch.cuda.memory_allocated()
-    if after_cleanup > baseline_allocated:
-        raise ValueError("owned HIP tensors remain after cleanup")
+    # Avoid locals(): on Python 3.12 its snapshot would retain memory even
+    # after `del memory`, turning the cleanup probe itself into an owner.
+    del runner, resumed, before, gold, gold_optimizer, states, restored, tokens, memory
+    cleanup = _cleanup_memory(torch)
+    after_cleanup = cleanup["allocated_bytes"]
     measures = dict(
         finite_update=True,
         parameter_change=changed,
@@ -253,13 +271,21 @@ def run_case(request, case, output, *, client):
         deterministic_continuation=deterministic,
         generation=generation,
         native_reference_score=True,
-        cleanup=True,
+        cleanup=after_cleanup <= baseline_allocated,
         parameters=parameters,
         peak_allocated_bytes=peak,
         cleanup_allocated_bytes=after_cleanup,
         baseline_allocated_bytes=baseline_allocated,
+        cleanup_diagnostics=cleanup,
         elapsed_us=int((time.monotonic() - began) * 1e6),
     )
+    # Retain successful operations and exact allocator counters even on failure.
+    atomic_write(output / "measurements.json", measures)
+    if not measures["cleanup"]:
+        raise ValueError(
+            f"owned HIP tensors remain after cleanup: {after_cleanup} bytes "
+            f"versus baseline {baseline_allocated}; see measurements.json"
+        )
     if not generation:
         raise ValueError("actual checkpoint generation absent")
     value = seal(

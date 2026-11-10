@@ -279,6 +279,12 @@ def _current_hardware(request):
         raise ValueError("current source/image/engine/HIP runtime differs from requested acceptance")
 
 
+def _record_failure(output, failures, failure):
+    """Durably retain each failure without replacing immutable evidence."""
+    atomic_write(Path(output) / "failures" / f"{len(failures):03d}" / "failures.json", failure)
+    failures.append(failure)
+
+
 def run_hardware_delta(root, request, producers, output, *, seconds=900):
     """One finite serial batch; reuse original bytes, execute only absent Q cases.
 
@@ -328,7 +334,7 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
                 cwd=output, env=dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[2])),
                 log=target / "process.log", seconds=remaining / (len(plan['delta']) - index), maximum=4 << 20)
             if status:
-                raise ValueError("hardware delta subprocess failed")
+                raise ValueError(f"hardware delta subprocess failed (exit {status}); see {target / 'process.log'}")
             producer = reference(output, target / "producer.json")
             # Reconcile new originals through the same validator as reused cases.
             check = hardware_plan(output, request, [producer])
@@ -339,8 +345,7 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
         except (OSError, ValueError, TimeoutError) as error:
             import traceback
             first_error = first_error or type(error).__name__
-            failures.append(dict(case=case['identity'],error=type(error).__name__,message=str(error),traceback=traceback.format_exc()))
-            atomic_write(output/'failures.json',failures)
+            _record_failure(output, failures, dict(case=case['identity'],error=type(error).__name__,message=str(error),traceback=traceback.format_exc()))
             remaining = seconds - (time.monotonic() - began)
             if remaining <= 1:
                 break
@@ -354,9 +359,10 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
                 if health:
                     raise RuntimeError('device health probe failed')
             except (OSError, ValueError, TimeoutError, RuntimeError) as health_error:
-                failures.append(dict(case=case['identity'],error='DEVICE_BLOCKED',message=str(health_error)))
-                atomic_write(output/'failures.json',failures)
+                _record_failure(output, failures, dict(case=case['identity'],error='DEVICE_BLOCKED',message=str(health_error)))
                 break
+    if failures:
+        atomic_write(output / "failures.json", failures)
     coverage = hardware_plan(output, request, originals)
     result = seal(dict(version="progressive-hardware-delta/v1", matrix=request["identity"],
                        status="PASS" if not first_error and not coverage["delta"] else "FAIL",
