@@ -48,11 +48,10 @@ def preparation_inputs(root, folder, *, qualification, assets_root):
     packaging task does not substitute for the actual installed lifecycle cases.
     """
     from oeis_learn.generalization.progressive.targets import defaults
-    from oeis_learn.generalization.progressive.freeze import learning_compatibility
     from oeis_learn.pipeline_validation.progressive_roles import ROLE_POLICY
     from oeis_learn.generalization.progressive.budgets import KEYS
     folder=Path(folder); assets_root=Path(assets_root); qualification=Path(qualification)
-    p=load(assets_root/'profile.json'); recipe=p['base_recipe']; q=load(qualification/'qualification.json')
+    p=load(assets_root/'profile.json'); q=load(qualification/'qualification.json')
     def envelope(kind,payload):
         return record(kind,payload,created_at='2026-11-10T00:00:00Z',purpose='acceptance',track='synthetic_strict')
     def put(name,value):

@@ -208,3 +208,94 @@ def test_container_failure_inspection_precedes_removal_preserves_original(tmp_pa
         stage(host,'image',tmp_path,['test'])
     assert events==['inspect','remove']
     assert json.loads((tmp_path/'container-inspect.json').read_text())[0]['State']['OOMKilled']
+
+
+def test_cpu_work_continues_when_gpu_image_build_fails(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import progressive_workstation as w
+    s=Session(tmp_path,'run-state/s',{'reference_campaign':'reference'},'rehearse')
+    workflow=w.Workflow(s,SimpleNamespace(phase='rehearse'))
+    monkeypatch.setattr(workflow,'run_command',lambda *a,**kw:None)
+    monkeypatch.setattr(workflow,'host',lambda:SimpleNamespace(engine=SimpleNamespace(facts=lambda:{}),policy={}))
+    def images():
+        s.journal['steps']['rehearse/image-qualification']={'status':'COMPLETE','value':'cpu'}
+        s.journal['steps']['rehearse/image-gpu']={'status':'FAILED'}
+        return {'qualification':'cpu','gpu':None}
+    monkeypatch.setattr(workflow,'images',images)
+    visited=[]
+    monkeypatch.setattr(workflow,'installed',lambda name,*a,**kw:visited.append(name))
+    with s.own(): workflow.rehearse()
+    assert visited==['assessment-contracts','assets']
+    assert s.journal['steps']['rehearse/base-qualification']['status']=='BLOCKED'
+
+
+def test_packaging_failure_does_not_replace_original_exception(tmp_path,monkeypatch):
+    s=Session(tmp_path,'run-state/s',{},'rehearse')
+    def fail(): raise OSError('archive disk failure')
+    monkeypatch.setattr(s,'package',fail)
+    with pytest.raises(RuntimeError,match='original cause'):
+        with s.own(): raise RuntimeError('original cause')
+    assert [e['type'] for e in read(s.folder/'journal.json')['errors']]==['RuntimeError','PACKAGING_FAILED']
+
+
+@pytest.mark.parametrize('healthy,expected',[(True,[0,1]),(False,[0])])
+def test_calibration_failure_keeps_independent_results_and_blocks_bad_device(tmp_path,monkeypatch,healthy,expected):
+    """Double only execution boundaries; exercise real batch and partial receipts."""
+    from oeis_learn.pipeline_validation import progressive_calibration as c, progressive_acceptance as a
+    from oeis_learn.pipeline_validation import progressive_qualification as q, generalization_execution as execution, progressive_learner as learner
+    from oeis_learn.experiments import source_snapshot
+    from oeis_learn.generalization.progressive.contracts import digest,reference,seal,load
+    cases=[]
+    for i in range(2):
+        key=digest(i); write(tmp_path/f'input-{i}.json',{'compatibility':key})
+        cases.append(dict(compatibility=key,artifact=reference(tmp_path,f'input-{i}.json')))
+    request=seal(dict(source=digest({}),image='image',engine='podman',hardware={},execution_policy={},
+        seconds=60,caps={'disk_bytes':64<<20},maximum_inodes=1000,cases=cases))
+    write(tmp_path/'request.json',request)
+    monkeypatch.setattr(c,'validate_request',lambda r:None)
+    monkeypatch.setattr(source_snapshot,'source_snapshot',lambda:{})
+    monkeypatch.setattr(q,'require_hip',lambda:None)
+    monkeypatch.setattr(q,'hardware_facts',lambda:{})
+    monkeypatch.setattr(execution,'verify_execution',lambda:{})
+    monkeypatch.setattr(learner,'compatibility',lambda p:p['compatibility'])
+    monkeypatch.setenv('OEIS_QUALIFICATION_IMAGE','image'); monkeypatch.setenv('OEIS_QUALIFICATION_ENGINE','podman')
+    calls=[]
+    def execute(argv,**kw):
+        if len(argv)==3:return 0 if healthy else 1
+        i=int(argv[-2]); calls.append(i)
+        if i==0:return 1
+        write(tmp_path/'cases'/cases[i]['compatibility'][7:]/'producer.json',seal({'boundary_only':True}))
+        return 0
+    monkeypatch.setattr(a,'_bounded_process',execute)
+    with pytest.raises(ValueError,match='incomplete'):c.run_inside(tmp_path)
+    assert calls==expected
+    partial=load(tmp_path/'partial.json')
+    assert partial['status']=='FAIL' and len(partial['producers'])==int(healthy)
+    assert not (tmp_path/'producer.json').exists()
+
+
+@pytest.mark.parametrize('result_status',['PARTIAL','FAILED'])
+def test_research_resume_uses_original_run_and_reports_even_failure(tmp_path,monkeypatch,result_status):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import progressive_workstation as w, supervision
+    s=Session(tmp_path,'run-state/s',{},'run-research')
+    args=SimpleNamespace(phase='run-research',engine='podman',memory_gib=64,cpus=8,render_node=None)
+    workflow=w.Workflow(s,args)
+    write(s.folder/'prepare-research/frozen/campaign.json',{'payload':{'caps':{'elapsed_us':10000000}}})
+    write(workflow.base/'execution-0000/result.json',{'mechanical_status':'PARTIAL'})
+    (workflow.base/'execution-0000-verified').mkdir()
+    calls=[]
+    def launch(argv,*a,**kw):
+        calls.append(argv)
+        write(tmp_path/argv[argv.index('--output')+1]/'result.json',{'mechanical_status':result_status})
+    monkeypatch.setattr(supervision,'launch',launch)
+    reported=[]
+    monkeypatch.setattr(workflow,'run_command',lambda name,op,**kw:reported.append(op))
+    with s.own():
+        s.journal['steps']['prepare-research/acceptance']={'status':'COMPLETE'}
+        workflow.research()
+    assert 'resume' in calls[0]
+    assert calls[0][calls[0].index('--run')+1]=='run-state/s/run-research/execution-0000'
+    assert calls[0][calls[0].index('--output')+1]=='run-state/s/run-research/execution-0001'
+    assert reported==['report']
+    assert s.journal['steps']['run-research/invocation-0001']['status']==('COMPLETE' if result_status=='PARTIAL' else 'FAILED')

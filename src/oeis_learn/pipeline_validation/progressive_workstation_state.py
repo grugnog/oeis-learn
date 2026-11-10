@@ -25,7 +25,7 @@ NAMES = {'receipt.json','producer.json','qualification.json','acceptance.json',
          'process.json','command.json','cleanup.json','container-inspect.json',
          'inspection.json','installed.json','acceptance-limits.json','verification.json',
          'environment.json','inputs.json','deficits.json','session.json','journal.json',
-         'runtime.json','campaign.json','telemetry.jsonl'}
+         'runtime.json','campaign.json','telemetry.jsonl','pipeline.zip'}
 NAMES.update({'source.json','matrix.json','profile.json','recipe.json','measurements.json',
               'request.json','image.json','blueprint.json','prepared.json','selection.json',
               'inspection-error.json','partial.json','hardware-results.json','dispositions.json'})
@@ -97,12 +97,15 @@ class Session:
             finally:
                 # Originals survive a packaging error or power loss. A later
                 # invocation reconstructs the archive, without rerunning work.
+                import sys
+                original_failure=sys.exc_info()[0] is not None
                 try: self.package()
                 except Exception as exc:
                     self.journal['errors'].append(dict(phase=self.phase,type='PACKAGING_FAILED',message=str(exc)))
                     self.save()
                     print('Diagnostic packaging failed; original files remain at '+str(self.folder),flush=True)
-                    raise
+                    # A collector failure must not replace the producer error.
+                    if not original_failure: raise
 
     def save(self):
         write(self.folder/'journal.json',seal(self.journal))

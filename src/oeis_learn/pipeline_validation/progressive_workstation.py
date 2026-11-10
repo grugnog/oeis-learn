@@ -91,8 +91,9 @@ class Workflow:
                 return json.loads((output/'image.json').read_bytes())['image'],[output/'image.json']
             self.s.step('image-'+target,build,dependencies=('rehearse/environment',))
         entries=self.s.journal['steps']
-        if any(entries.get('rehearse/image-'+t,{}).get('status')!='COMPLETE' for t in ('qualification','gpu')): return None
-        return [entries['rehearse/image-'+t]['value'] for t in ('qualification','gpu')]
+        return {t:entries.get('rehearse/image-'+t,{}).get('value')
+                if entries.get('rehearse/image-'+t,{}).get('status')=='COMPLETE' else None
+                for t in ('qualification','gpu')}
 
     def installed(self,name,image,body,*,gpu=False,seconds=600,dependencies=(),outputs=()):
         from .progressive_handoff import stage
@@ -114,10 +115,22 @@ class Workflow:
             write(self.base/'environment.json',value)
             return value,[self.base/'environment.json']
         self.s.step('environment',environment)
-        images=self.images()
-        if images is None:
+        built=self.images()
+        # CPU contracts and fixture construction are independent of GPU build/Q.
+        # Retain these results even when the workstation cannot start HIP.
+        if built['qualification'] is not None:
+            self.installed('assessment-contracts',built['qualification'],
+                "import pytest; raise SystemExit(pytest.main(['-vv','-ra','--tb=long','-o','addopts=',"
+                "'--basetemp','/work/output/private','--junitxml','/work/output/cases.xml',"
+                "'tests/contract/test_progressive_assessment.py']))",
+                seconds=300,outputs=('cases.xml',),dependencies=('rehearse/image-qualification',))
+            self.installed('assets',built['qualification'],
+                "from oeis_learn.pipeline_validation.progressive_workstation_fixture import assets; assets('/work/output')",
+                outputs=('profile.json','recipe.json','initial.pt'),dependencies=('rehearse/image-qualification',))
+        if any(v is None for v in built.values()):
             self.s.step('base-qualification',lambda:None,dependencies=('rehearse/image-qualification','rehearse/image-gpu'))
             return
+        images=[built[t] for t in ('qualification','gpu')]
         def foundation():
             from .generalization_qualification_io import produce
             result=produce(self.host(),self.root,self.base/'base-qualification',images=images,
@@ -125,14 +138,6 @@ class Workflow:
             if result['status']!='PASS': raise RuntimeError('base qualification failed; inspect original pipeline receipts')
             return str((self.base/'base-qualification').relative_to(self.root)),[self.base/'base-qualification/qualification.json']
         self.s.step('base-qualification',foundation,dependencies=('rehearse/image-qualification','rehearse/image-gpu'))
-        self.installed('assessment-contracts',images[0],
-            "import pytest; raise SystemExit(pytest.main(['-vv','-ra','--tb=long','-o','addopts=',"
-            "'--basetemp','/work/output/private','--junitxml','/work/output/cases.xml',"
-            "'tests/contract/test_progressive_assessment.py']))",
-            seconds=300,outputs=('cases.xml',),dependencies=('rehearse/image-qualification',))
-        self.installed('assets',images[0],
-            "from oeis_learn.pipeline_validation.progressive_workstation_fixture import assets; assets('/work/output')",
-            outputs=('profile.json','recipe.json','initial.pt'),dependencies=('rehearse/image-qualification',))
         body=("import os;from oeis_learn.pipeline_validation.progressive_qualification import matrix,hardware_facts;"
               "from oeis_learn.pipeline_validation.progressive_workstation_fixture import profile;"
               "from oeis_learn.experiments.source_snapshot import source_snapshot;"
@@ -167,7 +172,8 @@ class Workflow:
         def select():
             path=self.args.blueprint
             if path is None:
-                inventory=load(self.s.folder/'rehearse/inventory/inputs.json')
+                inventory_path=self.s.folder/'rehearse/inventory/inputs.json'
+                inventory=load(inventory_path) if inventory_path.is_file() else {'references':[]}
                 refs=[r['artifact'] for r in inventory['references'] if r['name']=='research_blueprint']
                 if len(refs)==1:
                     verify_refs(self.root,refs); path=refs[0]['path']
