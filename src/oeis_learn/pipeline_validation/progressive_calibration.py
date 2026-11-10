@@ -16,9 +16,10 @@ from oeis_learn.generalization.progressive.contracts import (
 )
 from oeis_learn.pipeline_validation.identity import confined
 
-# Full 4-shape x 162-policy domain, for screening and confirmation.
+# Bound the total campaign inventory by the existing calibration inode ceiling,
+# including distinct source/library inputs beyond the two tuning trajectories.
 # Generic Q retains its separate 48-case hardware matrix limit.
-MAX_CASES = 1296
+MAX_CASES = (1000000 - 256) // 64
 MAX_SECONDS = 86400
 METADATA_BYTES = 16 << 20
 
@@ -36,13 +37,21 @@ def selected_inputs(root, prepared):
         r["artifact"]["path"]: r for r in refs if r["kind"] == "prepared" and r["role"] == "learner"
     }
     selected, bindings = {}, []
+    originals = {}
+    def original_json(ref, maximum=4<<20):
+        # A verified immutable base is shared by finite policy alternatives;
+        # materialize() changes only profile/update policy, not training rows.
+        key=(ref['path'],ref['bytes'],ref['sha256'])
+        if key not in originals:
+            originals[key]=json.loads(verify_refs(root,[ref],max_bytes=maximum)[0])
+        return originals[key]
     for index, original in enumerate(prepared["payload"]["task_plans"]):
         for plan in variants(original):
             if plan["kind"] != "training":
                 continue
             if plan["policy"] not in policies:
                 raise ValueError("original prepared training policy required for calibration")
-            request = json.loads(verify_refs(root, [policies[plan["policy"]]])[0])
+            request = original_json(policies[plan["policy"]])
             paths = request.get("artifacts", {}).get("training", [])
             if request.get('operation')=='train':
                 paths=[path for path in paths if isinstance(path,str) and path in channels and json.loads(verify_refs(root,[channels[path]['artifact']])[0]).get('kind')=='training_request']
@@ -56,7 +65,7 @@ def selected_inputs(root, prepared):
                 or paths[0] not in channels
             ):
                 raise ValueError("one original prepared learner channel required for calibration")
-            channel = json.loads(verify_refs(root, [channels[paths[0]]["artifact"]])[0])
+            channel = original_json(channels[paths[0]]["artifact"])
             if (
                 seal(channel) != channel
                 or channel.get("role") != "learner"
@@ -64,9 +73,7 @@ def selected_inputs(root, prepared):
             ):
                 raise ValueError("original prepared learner channel identity differs")
             _validate_channel("training_request", channel["data"])
-            package = json.loads(
-                verify_refs(root, [channel["data"]["artifact"]], max_bytes=256 << 20)[0]
-            )
+            package = original_json(channel["data"]["artifact"],256<<20)
             if compatibility(package) != channel["data"]["compatibility"]:
                 raise ValueError("original prepared compatibility differs")
             package = materialize(package, plan)

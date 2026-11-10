@@ -407,7 +407,7 @@ for every distinct compatible input, two checkpoint generations per input, copie
 input packages and 16 MiB metadata headroom. `checkpoint_bytes` bounds one complete
 generation (including conservative optimizer growth); `maximum_inodes` bounds the
 whole calibration tree and must cover at least 64 per input plus 256 metadata
-entries. Exact calibration permits at most 1,296 distinct inputs: the 648 registered shape/policy combinations at both screening and confirmation trajectories. This is separate from the 48-case generic Q matrix. Insufficient reservations
+entries. Exact calibration covers the 648 registered shape/policy combinations at both screening and confirmation trajectories, plus distinct source/library inputs. Its inventory ceiling is derived from the existing one-million-inode bound (64 per input plus 256 metadata entries), rather than the separate 48-case generic Q matrix. Every case must still fit the original token/time/storage reservation. Insufficient reservations
 return a deficit before device dispatch; they are never enlarged automatically.
 
 Retain `prepared/calibration-input.json`, `prepared/calibration/request.json`,
