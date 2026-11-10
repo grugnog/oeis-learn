@@ -707,6 +707,9 @@ def invoke_cpu(
             for p in campaign["payload"]["tasks"]
             if p["slot"] == task["payload"]["initializer"]["parent_slot"]
         )
+        if 'trial_choices' in parent_plan:
+            from oeis_learn.generalization.progressive.trial_scopes import resolve
+            parent_plan=resolve(parent_plan,task['payload']['trial_choice'])
         parent = record(
             "task",
             dict(parent_plan, campaign=campaign["identity"]),

@@ -288,7 +288,7 @@ sustained-duration claim has been produced here.
 
 The mandatory CPU/native CI inventory includes
 `tests/integration/test_progressive_acceptance.py`. It builds one wheel, verifies
-the installed source closure and executes 22 fixed production-path scenarios,
+the installed source closure and executes 26 fixed production-path scenarios,
 including positive and negative diagnostic branches, without depending on research
 yield. CI retains `progressive-acceptance.zip` beside the foundation receipt. Its
 sealed public records distinguish software COMPLETE from `qualified=false`,
@@ -425,8 +425,8 @@ successful prepared output, or prospectively revise the blueprint and its setup
 reservation after examining a failed attempt. Research preparation without the
 required plan reports `iteration_calibration_plan` as a deficit.
 
-Acceptance builds/probes a wheel and runs all 22 CPU/native cases first. It then
-reinspects the frozen runtime and executes the five registered device scenarios
+Acceptance builds/probes a wheel and runs all 26 CPU/native cases first. It then
+reinspects the frozen runtime and executes the seven registered device scenarios
 in one owned GPU stage using the selected Q profile: two linked tasks/recovery,
 OEIS admission/replay, mined-component use, four-term source updates/generation,
 and native-verified refreshed structure consumption. Q requires matching 4/20
@@ -541,3 +541,40 @@ costs and unresolved denominators. Missing scope, qualification, required eviden
 or collector errors prevent verified status. Altered caps or unsupported gates
 are invalid. Required evidence that cannot fit the frozen package allowance and
 512 MiB metadata ceiling remains explicitly incomplete with local originals kept.
+
+
+## Convergence acceptance and comparison handoff
+
+The installed inventory now includes canonical extraction/admission/learning,
+short-source prepare/freeze/run/resume, post-learning refutation, automatic
+report/verify and one selected finite trial choice with interrupted restore and
+full-state continuation. The seven device nodes use the selected architecture
+and dropout; the finite choice case preserves that exact scope. CPU/native
+counterparts exercise orchestration, with original device facts required for
+actual-HIP receipts. T082/T090 and sustained/research executions still require
+their original physical producers.
+
+Freeze one `progressive-public-scope/v1` record named `public-scope` for the
+primary summary. Additional original scopes remain in the same campaign package.
+When the same panel/design is scored at multiple checkpoints, set its optional
+`comparison` field to the original `progressive-gate-registration/v1` identity.
+For an OEIS cycle, use `digest([cycle_plan_identity, baseline])`, with baseline
+`starting` or `continued_synthetic`. Both comparisons are always retained and
+independently replayed; ambiguous primary selection is incomplete evidence.
+
+Comparison export includes complete original panel membership, paired producer
+bytes, checkpoint/owned-output bindings and declared cost-task closure. Explicit
+exploratory actions carry their original decision, prior transition cut and
+budget prefix; the verifier replays their trigger and remaining reservation.
+A missing original binding cannot receive VERIFIED. Original artifacts above
+one table-row limit are partitioned without changing bytes; evidence exceeding
+the frozen package reserve is explicitly omitted and prevents verification.
+Repeated collector errors retain occurrence counts without breaking the closed
+manifest. Weights, private evaluation values and training corpora stay outside
+this public package.
+
+Source-cycle research training has its own finite allowance, which must fit
+startup, measured complete-iteration work, the thirty-minute finalization reserve
+and all enclosing search/admission/evaluation work. Search/admission/scoring role
+limits remain separate. Acceptance fixtures reserve retained phase inodes before
+freeze; their shorter diagnostic reserves do not establish research feasibility.

@@ -567,6 +567,9 @@ class LibraryStore:
                     item = lookup.get(o["artifact"]["sha256"])
                     if item is None:
                         item = self._origin(o["artifact"], client)
+                    if (o.get('target') != item['target'] or o.get('indices') != item['indices']
+                        or o['source'] != digest(item['source'])):
+                        raise ValueError('component original target/source scope differs')
                     node = _at(item["ast"], o["path"])
                     value = expand(
                         provisional, ["call", c["id"], *o["bindings"]], limits=self.limits

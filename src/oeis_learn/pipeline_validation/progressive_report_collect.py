@@ -83,8 +83,17 @@ def collect(root, folder, output):
         if not any(r["identity"] == row["identity"] for r in tables["qualifications"]):
             tables["qualifications"].append(row)
 
+    cycle_paths=set()
+    for original_ref in campaign['payload']['references']:
+        if original_ref['kind']=='policy':
+            try:
+                request=json.loads(verify_refs(root,[original_ref['artifact']],max_bytes=4<<20)[0])
+                if isinstance(request,dict) and request.get('operation')=='oeis-cycle':
+                    cycle_paths.update(request.get('artifacts',{}).get('cycle',[]))
+            except (ValueError,OSError,TypeError):
+                pass # The ordinary collector below preserves this producer error.
     for ref in campaign["payload"]["references"]:
-        if ref["kind"] not in {"policy", "groups", "qualification"}:
+        if ref["kind"] not in {"policy", "groups", "qualification"} and ref['artifact']['path'] not in cycle_paths:
             continue
         try:
             value = json.loads(verify_refs(root, [ref["artifact"]], max_bytes=32 << 20)[0])
@@ -103,6 +112,12 @@ def collect(root, folder, output):
                         "raw": verify_refs(root, [ref["artifact"]], max_bytes=4 << 20)[0].decode(),
                     }
                 )
+            if value.get('version') == 'progressive-oeis-cycle/v1':
+                tables['authorities'].append({'artifact':ref['artifact'],'raw':verify_refs(root,[ref['artifact']])[0].decode()})
+            if value.get('identity') == campaign['payload']['target_policy']:
+                tables['authorities'].append({'artifact':ref['artifact'],'raw':verify_refs(root,[ref['artifact']])[0].decode()})
+            if value.get("version") == "progressive-gate-registration/v1":
+                tables['authorities'].append({'artifact': ref['artifact'], 'raw': verify_refs(root, [ref['artifact']])[0].decode()})
             if value.get("version") == "progressive-public-scope/v1":
                 scopes.append((ref["artifact"], value))
             if value.get("version") == "discovery-cohort/v1" and value["payload"]["role"] in {
@@ -133,13 +148,16 @@ def collect(root, folder, output):
                         )
         except (ValueError, OSError, KeyError, TypeError) as exc:
             errors.append(error(exc, ref["name"]))
-    if len(scopes) > 1:
-        raise ValueError("one frozen public comparison scope required per campaign report")
-    frozen = scopes[0][1] if scopes else None
+    # One primary summary plus independently scoped subsidiary comparisons.
+    # All original scope records remain in the bounded public inventory.
+    for artifact, value in scopes:
+        tables['authorities'].append({'artifact': artifact, 'raw': verify_refs(root, [artifact])[0].decode()})
+    primary = next((item for item in scopes if any(r['name']=='public-scope' and r['artifact']==item[0] for r in campaign['payload']['references'])), scopes[0] if scopes else None)
+    frozen = primary[1] if primary else None
     if frozen:
         if seal(frozen) != frozen:
             raise ValueError("frozen public scope seal differs")
-        scope_record = scopes[0][0]
+        scope_record = primary[0]
         source = frozen["source"]
         selected = set(frozen["qualification_producers"].values())
         tables["qualifications"] = [
@@ -335,8 +353,24 @@ def collect(root, folder, output):
                 bundle = json.loads(
                     verify_refs(base, [result["metrics"]["decision_bundle"]], max_bytes=32 << 20)[0]
                 )
+                registration = None
+                for authority in tables['authorities']:
+                    candidate = json.loads(authority['raw'])
+                    if (candidate.get('version') == 'progressive-gate-registration/v1'
+                        and candidate['source_slot'] == bundle['source_slot']
+                        and candidate['target_slot'] == bundle['target_slot']):
+                        registration = candidate
+                binding = None
+                if registration:
+                    from oeis_learn.generalization.progressive.public_comparisons import export_binding
+                    binding = export_binding(root, campaign, registration, store)
+                    binding['bundle'] = bundle
+                    if (base/'decision-audit.json').exists():
+                        binding['authorization'] = load(base/'decision-audit.json')
                 tables["comparisons"].append(
                     {
+                        'binding': binding,
+                        'costs': __import__('oeis_learn.generalization.progressive.public_comparisons', fromlist=['cost_tasks']).cost_tasks(campaign, bundle['source_slot'], bundle['seeds']) if bundle['design']['claim'] == 'efficiency' else None,
                         "id": bundle["decision"]["identity"],
                         "rows": bundle["rows"],
                         "roster": bundle["roster"],
@@ -419,95 +453,137 @@ def collect(root, folder, output):
                 if owned.name == "host":
                     files.append(owned.parent / "result.json")
         for path in files:
-            if not path.is_file():
-                continue
-            value = load(path, maximum=32 << 20)
-            if seal(value) != value:
-                raise ValueError("original terminal result differs")
-            if value["identity"] not in seen_results:
-                seen_results.add(value["identity"])
-                metrics = value.get("metrics", {})
-                public = {
-                    k: v
-                    for k, v in metrics.items()
-                    if k
-                    in {
-                        "charged_tokens",
-                        "useful_tokens",
-                        "discarded_tokens",
-                        "device",
-                        "diagnostic_only",
-                        "task_status",
-                        "actual_elapsed_us",
-                        "completed_tasks",
-                        "primary_scaling_eligible",
-                        "autonomous_discoveries",
+            try:
+                if not path.is_file():
+                    continue
+                value = load(path, maximum=32 << 20)
+                if seal(value) != value:
+                    raise ValueError("original terminal result differs")
+                if value["identity"] not in seen_results:
+                    seen_results.add(value["identity"])
+                    metrics = value.get("metrics", {})
+                    public = {
+                        k: v
+                        for k, v in metrics.items()
+                        if k
+                        in {
+                            "charged_tokens",
+                            "useful_tokens",
+                            "discarded_tokens",
+                            "device",
+                            "diagnostic_only",
+                            "task_status",
+                            "actual_elapsed_us",
+                            "completed_tasks",
+                            "primary_scaling_eligible",
+                            "autonomous_discoveries",
+                        }
                     }
-                }
-                tables["observations"].append({"producer": value["identity"], "data": public})
-                for name in ("cycle", "source_results"):
-                    if metrics.get(name):
-                        original = json.loads(
-                            verify_refs(root, [metrics[name]], max_bytes=4 << 20)[0]
-                        )
-                        if seal(original) != original:
-                            raise ValueError("original host cycle summary differs")
-                        # These summaries contain public outcomes, identities and
-                        # cost, never learner examples or hidden continuations.
-                        tables["observations"].append(
-                            {"producer": original["identity"], "data": original}
-                        )
-                if (
-                    value.get("mechanical_status") == "COMPLETE"
-                    and metrics.get("scores")
-                    and path in owners
-                ):
-                    plan = task_records.get(owners[path])
-                    if plan is None:
-                        raise ValueError("owned score task is outside frozen campaign")
-                    scores = json.loads(
-                        verify_refs(path.parent, [metrics["scores"]], max_bytes=32 << 20)[0]
-                    )
-                    arm = arm_map.get(plan["arm"], "candidate")
-                    for raw_id, outcome in scores.get("outcomes", {}).items():
-                        member = identity(raw_id)
-                        key = (member, plan["seed"], arm)
-                        if member not in roster:
-                            continue
-                        if key in seen_outcomes:
-                            raise ValueError("ambiguous owned score within public scope")
-                        seen_outcomes.add(key)
-                        tables["outcomes"].append(
-                            dict(
-                                roster[member],
-                                seed=plan["seed"],
-                                arm=arm,
-                                outcome=outcome["equal_budget"]["outcome"],
+                    tables["observations"].append({"producer": value["identity"], "data": public})
+                    for name in ("cycle", "source_results"):
+                        if metrics.get(name):
+                            original = json.loads(
+                                verify_refs(root, [metrics[name]], max_bytes=4 << 20)[0]
                             )
+                            if seal(original) != original:
+                                raise ValueError("original host cycle summary differs")
+                            # These summaries contain public outcomes, identities and
+                            # cost, never learner examples or hidden continuations.
+                            tables["observations"].append(
+                                {"producer": original["identity"], "data": original}
+                            )
+                            if name == 'cycle' and original.get('evaluation_producers'):
+                                for baseline, comparison in original['comparisons'].items():
+                                    producers=[]
+                                    for descriptor in original['evaluation_producers']:
+                                        if descriptor['stage'] not in {baseline,'replay'}:continue
+                                        producers.append(dict(descriptor=descriptor, **{k:verify_refs(root,[descriptor[k]],max_bytes=4<<20)[0].decode() for k in ('candidates','scores')}))
+                                    tables['comparisons'].append(dict(id=digest([original['identity'],baseline]),rows=comparison['rows'],roster=comparison['roster'],seeds=comparison['seeds'],design=comparison['design'],verdict=comparison['verdict'],action='RETAIN_BASELINE',binding=dict(cycle=original['plan'],baseline=baseline,registration=digest([original['plan'],baseline]),producers=producers)))
+                    if (
+                        value.get("mechanical_status") == "COMPLETE"
+                        and metrics.get("scores")
+                        and path in owners
+                    ):
+                        plan = task_records.get(owners[path])
+                        if plan is None:
+                            raise ValueError("owned score task is outside frozen campaign")
+                        scores = json.loads(
+                            verify_refs(path.parent, [metrics["scores"]], max_bytes=32 << 20)[0]
                         )
-            if value.get("producer_error"):
-                original_error = public_error(root, path.parent, value["producer_error"])
-                previous_trace = first.get("local_traceback") if first else None
-                if first is None or (
-                    first["code"] == original_error["code"]
-                    and previous_trace
-                    and not confined(root, previous_trace["path"], exists=False).is_file()
-                ):
-                    first = original_error
-            for e in value.get("collector_errors", []):
-                errors.append(
-                    public_error(root, path.parent, e)
-                    if {"type", "code", "producer", "local_traceback"} <= set(e)
-                    else error(ValueError(e.get("message", "collector failed")), "collector")
-                )
-            progress = sorted((path.parent / "progress").glob("*.json"))
-            if progress:
-                value_progress = load(progress[-1], maximum=4 << 20)
-                tables["observations"].append(
-                    {"producer": value["identity"], "data": value_progress}
-                )
+                        arm = arm_map.get(plan["arm"], "candidate")
+                        for raw_id, outcome in scores.get("outcomes", {}).items():
+                            member = identity(raw_id)
+                            key = (member, plan["seed"], arm)
+                            if member not in roster:
+                                continue
+                            if key in seen_outcomes:
+                                errors.append(error(ValueError("ambiguous owned score within public scope"), "outcomes"))
+                                continue
+                            seen_outcomes.add(key)
+                            tables["outcomes"].append(
+                                dict(
+                                    roster[member],
+                                    seed=plan["seed"],
+                                    arm=arm,
+                                    outcome=outcome["equal_budget"]["outcome"],
+                                )
+                            )
+                if value.get("producer_error"):
+                    original_error = public_error(root, path.parent, value["producer_error"])
+                    previous_trace = first.get("local_traceback") if first else None
+                    if first is None or (
+                        first["code"] == original_error["code"]
+                        and previous_trace
+                        and not confined(root, previous_trace["path"], exists=False).is_file()
+                    ):
+                        first = original_error
+                for e in value.get("collector_errors", []):
+                    errors.append(
+                        public_error(root, path.parent, e)
+                        if {"type", "code", "producer", "local_traceback"} <= set(e)
+                        else error(ValueError(e.get("message", "collector failed")), "collector")
+                    )
+                progress = sorted((path.parent / "progress").glob("*.json"))
+                if progress:
+                    value_progress = load(progress[-1], maximum=4 << 20)
+                    tables["observations"].append(
+                        {"producer": value["identity"], "data": value_progress}
+                    )
+            except (ValueError, OSError, KeyError, TypeError) as exc:
+                errors.append(error(exc, 'owned-inventory'))
     if first is not None:
         fallback["producer_error"] = first
+    # A frozen registration identifies the primary checkpoint comparison.
+    # Other milestones and baselines remain independently scoped auxiliary rows.
+    if frozen and tables['comparisons']:
+        matches=[]
+        for comparison in tables['comparisons']:
+            public_roster=[dict(r,task=identity(r['task']),group=identity(r['group'])) for r in comparison['roster']]
+            binding=comparison.get('binding') or {}
+            if digest(public_roster)==frozen['roster'] and comparison['design']==frozen['design'] and (frozen.get('comparison') is None or binding.get('registration')==frozen['comparison']):
+                matches.append(comparison)
+        if len(matches)==1:
+            chosen=matches[0]
+            tables['outcomes']=[{k:(identity(v) if k in {'task','group'} else v) for k,v in row.items() if k in {'task','group','stratum','seed','arm','outcome'}} for row in chosen['rows']]
+            decisions=[dict(verdict=chosen['verdict'],action=chosen['action'])]
+            errors=[e for e in errors if e['producer']!='outcomes']
+        elif len(matches)>1:
+            errors.append(error(ValueError('explicit primary comparison registration required'),'primary-comparison'))
+    if not frozen and any((c.get('binding') or {}).get('cycle') for c in tables['comparisons']):
+        # These original scores belong to the two explicit cycle comparisons;
+        # no unregistered primary checkpoint comparison is inferred from them.
+        tables['outcomes']=[]
+        errors=[e for e in errors if e['producer']!='outcomes']
+    all_errors=[*fallback.get('collector_errors',[]),*errors]
+    unique_errors={}
+    for entry in all_errors:
+        unique_errors.setdefault(digest(entry),entry)
+    if len(unique_errors)!=len(all_errors) or len(unique_errors)>256:
+        tables['observations'].append(dict(producer=campaign['identity'],data=dict(collector_error_occurrences=len(all_errors),distinct_collector_errors=len(unique_errors),omitted_distinct_errors=max(0,len(unique_errors)-256))))
+    all_errors=list(unique_errors.values())[:256]
+    decisions=list({digest(d):d for d in decisions}.values())
+    from oeis_learn.generalization.progressive.public_comparisons import partition
+    tables['comparisons']=partition(tables['comparisons'],tables['observations'],maximum_bytes=campaign['payload']['storage']['package_bytes'])
     refs = {}
     with guard.activate():
         for kind, rows in tables.items():
@@ -525,7 +601,7 @@ def collect(root, folder, output):
             tables=refs,
             decisions=decisions,
             producer_error=fallback.get("producer_error"),
-            collector_errors=[*fallback.get("collector_errors", []), *errors],
+            collector_errors=all_errors,
             campaign_record=campaign,
             scope_record=scope_record,
             terminal=fallback["terminal"],

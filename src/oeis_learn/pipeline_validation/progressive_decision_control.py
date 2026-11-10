@@ -69,6 +69,12 @@ def reconcile_decision(root, role_output, result, store, journal, task):
     if bundle["source_slot"] != task["payload"]["slot"]:
         raise ValueError("producer cannot authorize another source slot")
     policy, panels, designs = frozen_evidence(root, store.campaign)
+    from oeis_learn.generalization.progressive.contracts import seal
+    with journal.lock():
+        budget_events = journal._read()[0]
+    audit = seal(dict(bundle=bundle['identity'], kwargs=bundle['kwargs'],
+                      budget_events=budget_events, prior_decisions=list(store.state.get('decisions',{}).values())))
+    audit_path = Path(role_output)/'decision-audit.json'
     certificate = store.authorize(
         bundle,
         policy=policy,
@@ -77,6 +83,18 @@ def reconcile_decision(root, role_output, result, store, journal, task):
         designs=designs,
         evidence_root=root,
     )
+    if audit_path.exists():
+        from oeis_learn.generalization.progressive.contracts import load
+        if load(audit_path) != audit:
+            # Resuming a committed decision preserves its original reservation cut.
+            audit = load(audit_path)
+    else:
+        from oeis_learn.generalization.progressive.storage import register_invocation, owned_guard
+        parent=Path(role_output).parent if Path(role_output).name=='role' else Path(role_output)
+        proof=register_invocation(root,store.campaign,task,journal.root,parent)
+        state=Path(root)/'run-state/discovery-learning'/store.campaign['identity'][7:]/task['identity'][7:]
+        with owned_guard(dict(campaign=store.campaign,task=task,storage=proof),output=parent,state_root=state).activate():
+            atomic_write(audit_path, audit)
     from oeis_learn.generalization.progressive.milestones import gain_cost
 
     source = bundle["source_slot"]

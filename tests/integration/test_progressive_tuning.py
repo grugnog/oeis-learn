@@ -171,3 +171,30 @@ def test_real_six_trial_native_study_prunes_only_after_five_comparable_completio
     expected=[r['id'] for r in sorted(rows[:5],key=lambda r:(-r['value'],r['elapsed_us'],r['id']))]
     assert rank(rows,target=p['target_tokens'],root=tmp_path)['ordered']==expected
     assert study.journal(tmp_path,c,p).trials==j.trials
+
+
+def test_selected_trial_scope_updates_restores_and_continues_installed(tmp_path):
+    """The device roster exercises one exact selected choice, without a sweep."""
+    from oeis_learn.pipeline_validation.progressive_acceptance import fixture, invoke_cpu
+    from oeis_learn.pipeline_validation.progressive_learner import compatibility
+    from oeis_learn.generalization.progressive.trial_scopes import resolve, materialize
+    from oeis_learn.generalization.progressive.tuning import BASELINE
+    from oeis_learn.generalization.progressive.contracts import load, seal, digest, record
+    c, _, channel, _ = fixture(tmp_path, interrupt=True)
+    package=load(tmp_path/'training-input.json')
+    params=dict(BASELINE,shape=package['profile']['shape'],dropout=package['profile']['model']['dropout'])
+    for plan in c['payload']['tasks']:
+        plan['trial']=dict(study=digest('selected-device-choice'),ordinal=0,phase='training',coordinate=0)
+        plan['trial_choices']=[dict(parameters=params,compatibility=compatibility(package),policy=plan['policy'])]
+        assert compatibility(materialize(package,resolve(plan,0)))==compatibility(package)
+    c=seal(c)
+    tasks=[record('task',dict(resolve(p,0),campaign=c['identity']),created_at=c['created_at'],purpose=c['purpose'],track=c['track']) for p in c['payload']['tasks']]
+    first,_=invoke_cpu(tmp_path,c,tasks[0],channel,ordinal=0)
+    assert first['mechanical_status']=='PARTIAL',first
+    resumed,_=invoke_cpu(tmp_path,c,tasks[0],channel,ordinal=1)
+    assert resumed['mechanical_status']=='COMPLETE',resumed
+    successor,_=invoke_cpu(tmp_path,c,tasks[1],channel,ordinal=2)
+    assert successor['mechanical_status']=='COMPLETE',successor
+    import os
+    expected='cuda' if os.environ.get('OEIS_PROGRESSIVE_ACCEPTANCE_DEVICE')=='actual_HIP' else 'cpu'
+    assert resumed['metrics']['device']==successor['metrics']['device']==expected

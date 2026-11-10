@@ -23,6 +23,7 @@ def fixture(tmp_path, fitting_client):
     from tests.unit.test_progressive_component_mining import sources
 
     c, _, _, _ = fixture(tmp_path / "base", interrupt=False)
+    measured=load(tmp_path/'base/acceptance-limits.json')
     package = load(tmp_path / "base/training-input.json")
     package = seal(dict(package, component_rules=RULE))
     atomic_write(tmp_path / "package.json", package)
@@ -193,7 +194,7 @@ def fixture(tmp_path, fitting_client):
             rejections=100000,
             native_work=10000000,
             elapsed_us=180000000,
-            disk_bytes=1 << 30,
+            disk_bytes=max(1 << 30,measured["task_bytes"]),
             archive_bytes=128 << 20,
         )
         plans.append(plan)
@@ -233,13 +234,8 @@ def fixture(tmp_path, fitting_client):
         for a, b in itertools.pairwise(stages)
     ]
     c["payload"]["caps"] = {k: 2 * sum(p["caps"][k] for p in plans) for k in plans[0]["caps"]}
-    # This is a diagnostic capability acceptance, covering the component roles.
-    for k in ("task_store_bytes", "projection_bytes", "journal_bytes", "checkpoint_inodes"):
-        c["payload"]["storage"].pop(k, None)
-    s = c["payload"]["storage"]
-    s["required_bytes"] = s["checkpoint_bytes"] * 2 + s["shard_bytes"] + s["package_bytes"]
-    s["required_inodes"] = 32768
-    s["available_inodes"] = 65536
+    from oeis_learn.pipeline_validation.progressive_acceptance_limits import storage
+    c['payload']['storage']=storage(tmp_path,dict(measured,task_bytes=max(1<<30,measured['task_bytes'])),tasks=len(plans))
     for _, _, artifacts in requests:
         for paths in artifacts.values():
             for path in paths:

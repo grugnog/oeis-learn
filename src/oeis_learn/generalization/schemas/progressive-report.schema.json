@@ -231,7 +231,8 @@
               "RETAIN_BASELINE",
               "STOP_AFFECTED",
               "DEFER_BRANCH",
-              "ADVANCE_REGISTERED"
+              "ADVANCE_REGISTERED",
+              "EXPLORE_RESERVED"
             ]
           }
         },

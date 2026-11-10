@@ -436,7 +436,7 @@ def test_full_registered_learning_domain_has_exact_calibration_cases(tmp_path):
             **{k:v for k,v in params.items() if k!='dropout'})
         material = seal(dict(package, profile=profile, update_policy=policy))
         choices.append(dict(parameters=params, compatibility=compatibility(material), policy=plan['policy']))
-    plan.update(trial_choices=choices, trial={'phase':'screening'})
+    plan.update(trial_choices=choices, trial={'study':digest('full-domain'), 'ordinal':0, 'phase':'training', 'coordinate':0})
     prepared['payload']['task_plans'] = [plan]
     cases, bindings = selected_inputs(tmp_path, prepared)
     assert len(cases) == len(bindings) == 162

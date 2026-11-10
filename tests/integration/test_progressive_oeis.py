@@ -132,7 +132,7 @@ def test_real_native_search_admit_update_evaluate_cycle(tmp_path, fitting_client
             trained_tasks.add(task["identity"])
         return value
 
-    def evaluate(self, task, model, *, label):
+    def evaluate(self, task, model, *, label, stage=None):
         from oeis_learn.generalization.progressive.contracts import reference, verify_refs
         from oeis_learn.generalization.progressive.recovery import Recovery
         from oeis_learn.pipeline_validation.progressive_learner import compatibility
@@ -178,7 +178,7 @@ def test_real_native_search_admit_update_evaluate_cycle(tmp_path, fitting_client
                 )
             comparison = arm
         evaluated_models.append((entry["task"], comparison))
-        return original_evaluate(self, task, model, label=label)
+        return original_evaluate(self, task, model, label=label, stage=stage)
 
     monkeypatch.setattr(Cycle, "phase", phase)
     monkeypatch.setattr(Cycle, "evaluate", evaluate)
@@ -294,23 +294,35 @@ def test_cycle_resume_reuses_committed_native_phases_and_original_charges(tmp_pa
     assert j.path.read_bytes()==final
 
 
-def test_canonical_prepare_freeze_run_resume_oeis_deficit(tmp_path,monkeypatch,fitting_client,capsys):
+@pytest.mark.parametrize('low',[True,False])
+def test_canonical_prepare_freeze_run_resume_oeis_deficit(tmp_path,monkeypatch,fitting_client,capsys,low):
     from tests.helpers.progressive_host_cycle import freeze_inputs,accept_prior_stages
     from oeis_learn.pipeline_validation.progressive_commands import main
     from oeis_learn.generalization.progressive.contracts import load
     from oeis_learn.pipeline_validation import progressive_commands as commands
     from oeis_learn.pipeline_validation.progressive_oeis import run_cycle
     from types import SimpleNamespace
-    prefix=freeze_inputs(tmp_path,monkeypatch,low=True)
+    prefix=freeze_inputs(tmp_path,monkeypatch,low=low)
     assert main(SimpleNamespace(operation='prepare',blueprint='cycle-blueprint.json',qualification='qualification',output='prepared-cycle'),tmp_path,None)==0
     assert main(SimpleNamespace(operation='freeze',blueprint='cycle-blueprint.json',prepared='prepared-cycle',qualification='qualification',output='frozen-cycle'),tmp_path,None)==0
     c=load(tmp_path/'frozen-cycle/campaign.json')
     accept_prior_stages(tmp_path,c,prefix,monkeypatch)
     monkeypatch.setattr(commands,'oeis_cycle',lambda root,output,campaign,manager,request,journal,**kw:run_cycle(root,output,campaign,manager,request,journal))
     result=main(SimpleNamespace(operation='run',campaign='frozen-cycle/campaign.json',acceptance='accepted',output='run-cycle'),tmp_path,lambda a:object())
-    assert result==2
-    assert load(tmp_path/'run-cycle/result.json')['reason']=='OEIS_YIELD_DEFICIT'
+    assert result==(2 if low else 0)
+    assert load(tmp_path/'run-cycle/result.json')['reason']==('OEIS_YIELD_DEFICIT' if low else 'FINITE_DAG_COMPLETE')
     journal=tmp_path/'run-state/discovery-accounting'/c['identity'][7:]/'budget.jsonl'
     before=journal.read_bytes()
-    assert main(SimpleNamespace(operation='resume',run='run-cycle',output='resumed-cycle'),tmp_path,lambda a:object())==2
+    assert main(SimpleNamespace(operation='resume',run='run-cycle',output='resumed-cycle'),tmp_path,lambda a:object())==(2 if low else 0)
     assert journal.read_bytes()==before
+
+    if not low:
+        assert main(SimpleNamespace(operation='report',run='run-cycle',output='cycle-report.zip'),tmp_path,None) in {0,2}
+        from oeis_learn.generalization.progressive.verify import verify
+        result=verify(tmp_path/'cycle-report.zip')
+        assert result['status']=='INCOMPLETE' # no physical qualification/public primary scope
+        import zipfile,json
+        with zipfile.ZipFile(tmp_path/'cycle-report.zip') as archive:
+            comparisons=[row for name in archive.namelist() if name.startswith('tables/comparisons-') for row in json.loads(archive.read(name))]
+        assert {c['binding']['baseline'] for c in comparisons}=={'starting','continued_synthetic'}
+        assert not any('cycle_' in value or 'original_cycle_' in value for value in result['missing'])

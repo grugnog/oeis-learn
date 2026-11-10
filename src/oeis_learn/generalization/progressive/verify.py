@@ -123,6 +123,7 @@ def reduce_outcomes(rows, roster, seeds, design, *, costs=None):
         if all(x is not None for x in effects)
         else None,
         groups=support,
+        seed_effects={str(seed):float(effect) if effect is not None else None for seed,effect in zip(sorted(seeds),effects)},
         completion=float(min(completion)),
         lower=None,
         upper=None,
@@ -271,6 +272,8 @@ def verify(path, *, max_bytes=MAX_BYTES):
     ):
         raise ValueError("forged table count")
     missing = list(m["missing"])
+    from .public_comparisons import assemble
+    tables["comparisons"]=assemble(tables["comparisons"],tables["observations"],missing)
     if m['collector_errors']:
         missing.append('collector_errors')
     if m["campaign_record"] is None or m["scope_record"] is None or scope_authority is None:
@@ -284,7 +287,7 @@ def verify(path, *, max_bytes=MAX_BYTES):
         ]:
             raise ValueError("report scope not frozen in campaign")
         if (
-            set(scope_authority)
+            set(scope_authority)-{"comparison"}
             != {
                 "version",
                 "identity",
@@ -388,12 +391,21 @@ def verify(path, *, max_bytes=MAX_BYTES):
         missing.append("frozen_roster_and_seeds")
         metrics, verdict = {}, "INCOMPLETE"
     else:
+        primary_costs=measured_costs if all(measured_costs.values()) else None
+        if scope_authority and scope_authority.get('comparison'):
+            selected=[c for c in tables['comparisons'] if (c.get('binding') or {}).get('registration')==scope_authority['comparison']]
+            if len(selected)!=1:
+                missing.append('primary_comparison')
+                primary_costs=None
+            else:
+                from .public_comparisons import measured_costs as comparison_costs
+                primary_costs=comparison_costs(selected[0],m['campaign_record'],tables['accounting'])
         metrics, verdict = reduce_outcomes(
             tables["outcomes"],
             tables["roster"],
             m["seeds"],
             m["design"],
-            costs=measured_costs if all(measured_costs.values()) else None,
+            costs=primary_costs,
         )
     authorities=[]
     frozen_refs=[r['artifact'] for r in m['campaign_record']['payload']['references']] if m['campaign_record'] else []
@@ -401,19 +413,41 @@ def verify(path, *, max_bytes=MAX_BYTES):
         raw=authority['raw'].encode();ref=authority['artifact']
         if ref not in frozen_refs or len(raw)!=ref['bytes'] or 'sha256:'+hashlib.sha256(raw).hexdigest()!=ref['sha256']:
             raise ValueError('original public authority differs')
-        authorities.append(_json(raw))
+        authority_value = _json(raw)
+        if isinstance(authority_value, dict) and authority_value.get('version') == 'discovery-cohort/v1':
+            authority_value = dict(authority_value, _artifact_sha256=ref['sha256'], _reference_names=[r['name'] for r in m['campaign_record']['payload']['references'] if r['artifact']==ref])
+        authorities.append(authority_value)
     for comparison in tables['comparisons']:
+        from .public_comparisons import verify_authority
+        missing.extend(verify_authority(comparison, authorities, m['campaign_record']))
         original=comparison['roster']
         panels=[a for a in authorities if a.get('version')=='discovery-cohort/v1']
         designs=[a for a in authorities if a==comparison['design']]
         expected=[{'task':r['id'],'group':r['groups'][0],'stratum':r['stratum']} for p in panels for r in p['payload']['rows']]
-        if not designs or any(r not in expected for r in original):
+        if not (comparison.get('binding') or {}).get('cycle') and (not designs or any(r not in expected for r in original)):
             missing.append('comparison_authority:'+comparison['id'])
-        _,classification=reduce_outcomes(comparison['rows'],original,comparison['seeds'],comparison['design'])
+        from .public_comparisons import measured_costs as comparison_costs
+        costs = comparison_costs(comparison, m['campaign_record'], tables['accounting'])
+        comparison_metrics,classification=reduce_outcomes(comparison['rows'],original,comparison['seeds'],comparison['design'], costs=costs)
+        from .public_comparisons import verify_exploration
+        missing.extend(verify_exploration(comparison, authorities, m['campaign_record'], comparison_metrics))
         if classification!=comparison['verdict']:raise ValueError('comparison verdict differs from independent outcomes')
         if comparison['action']=='ADVANCE_REGISTERED' and classification not in {'CONFIRMED_GAIN','CONFIRMED_EFFICIENCY'}:
             raise ValueError('comparison cannot authorize advancement')
+    cycle_labels={}
+    for comparison in tables['comparisons']:
+        binding=comparison.get('binding') or {}
+        if 'cycle' in binding:
+            labels=cycle_labels.setdefault(binding['cycle'],[])
+            labels.append(binding['baseline'])
+    for cycle,labels in cycle_labels.items():
+        if sorted(labels)!=['continued_synthetic','starting']:
+            missing.append('both_cycle_baselines:'+cycle)
     for decision in m["decisions"]:
+        if decision['action']=='ADVANCE_REGISTERED' and not any(c['action']==decision['action'] and c['verdict']==decision['verdict'] and c['design']==m['design'] for c in tables['comparisons']):
+            missing.append('original_advancement_comparison')
+        if decision["action"] == "EXPLORE_RESERVED" and not any(c["action"] == decision["action"] and c["verdict"] == decision["verdict"] for c in tables["comparisons"]):
+            missing.append("exploratory_comparison_authority")
         if decision["verdict"] != verdict or (
             decision["action"] == "ADVANCE_REGISTERED"
             and verdict not in {"CONFIRMED_GAIN", "CONFIRMED_EFFICIENCY"}

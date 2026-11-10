@@ -623,7 +623,7 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
             )
         return load(target / "role/result.json")
 
-    def evaluate(self, task, model, *, label):
+    def evaluate(self, task, model, *, label, stage=None):
         outcomes = []
         for kind, panel in zip(("transfer", "retention"), self.panels):
             rows = [
@@ -670,6 +670,8 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
             )
             _, scored, _ = self.phase("score", scorer_inputs, task)
             score = load(scored / "role/scoring/scores.json", maximum=512 << 20)
+            self.public_evaluations.append(dict(stage=stage or task['payload']['arm'], seed=task['payload']['seed'], task=task['payload']['id'], arm=label,
+                panel=self.plan['panels'][kind], candidates=reference(self.root,target/'role/generation/candidates.json'), scores=reference(self.root,scored/'role/scoring/scores.json')))
             for row in rows:
                 outcome = score["outcomes"][row["id"]]["equal_budget"]
                 outcomes.append(
@@ -813,6 +815,7 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
         if (self.host_root/'archive.json').exists():
             if load(self.host_root/'archive.json') != cut:raise ValueError('original archive cut differs')
         else:atomic_write(self.host_root/'archive.json',cut)
+        self.public_evaluations = []
         all_rows = {"starting": [], "continued_synthetic": [], "replay": []}
         completed = []
         for entry in self.plan["training"]:
@@ -839,7 +842,7 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
             # Initialize learning first; evaluate the original frozen initializer
             # afterwards so inference cannot make a new learner look reopened.
             if task["payload"]["arm"] == "replay":
-                all_rows["starting"] += self.evaluate(task, entry["model"], label="baseline")
+                all_rows["starting"] += self.evaluate(task, entry["model"], label="baseline", stage="starting")
             state = (
                 self.root
                 / "run-state/discovery-learning"
@@ -918,7 +921,8 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
                     claim="capability",
                     primary=("oeis",),
                 )
-            comparisons[label] = dict(metrics=metrics, verdict=verdict)
+            comparisons[label] = dict(metrics=metrics, verdict=verdict, rows=all_rows[label]+candidate, roster=roster, seeds=seeds,
+                design=dict(claim='capability',bootstrap_seed=self.plan['design']['bootstrap_seed'],comparisons=self.plan['design']['comparisons'],links=[],costs=None,primary=['oeis']))
         total_us = time.monotonic_ns() // 1000 - self.started
         cost_ok = total_us <= self.plan["design"]["maximum_total_us"]
         passed = cost_ok and all(v["verdict"] == "CONFIRMED_GAIN" for v in comparisons.values())
@@ -928,6 +932,7 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
                 plan=self.plan["identity"],
                 archive=cut["identity"],
                 comparisons=comparisons,
+                evaluation_producers=self.public_evaluations,
                 discovery_us=search_us + admission_us,
                 cycle_active_us=total_us,
                 cost_within_frozen_limit=cost_ok,

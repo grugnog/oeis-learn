@@ -154,7 +154,7 @@
       },
       {
         "stage": "oeis",
-        "node": "tests/integration/test_progressive_oeis.py::test_real_native_search_admit_update_evaluate_cycle[False]"
+        "node": "tests/integration/test_progressive_oeis.py::test_canonical_prepare_freeze_run_resume_oeis_deficit[False]"
       },
       {
         "stage": "oeis",
@@ -195,6 +195,22 @@
       {
         "stage": "evidence",
         "node": "tests/contract/test_progressive_bundle.py::test_bounded_closed_export_and_independent_incomplete_verdict"
+      },
+      {
+        "stage": "components",
+        "node": "tests/integration/test_progressive_component_flow.py::test_canonical_freeze_component_slots_then_resume_without_remining"
+      },
+      {
+        "stage": "source_pilot",
+        "node": "tests/integration/test_progressive_short_cycle.py::test_canonical_prepare_freeze_run_resume_short_source_cycle"
+      },
+      {
+        "stage": "evidence",
+        "node": "tests/integration/test_progressive_reporting.py::test_run_report_verify_collects_owned_scores_and_resource_journal[COMPLETE]"
+      },
+      {
+        "stage": "tuning",
+        "node": "tests/integration/test_progressive_tuning.py::test_selected_trial_scope_updates_restores_and_continues_installed"
       }
     ]
   },
@@ -205,10 +221,12 @@
     "maximum_seconds": 1800,
     "nodes": [
       "tests/integration/test_progressive_lifecycle.py::test_actual_installed_role_interrupt_resume_and_successor",
-      "tests/integration/test_progressive_oeis.py::test_real_native_search_admit_update_evaluate_cycle[False]",
-      "tests/integration/test_progressive_components.py::test_installed_learner_binds_component_cut_and_rejects_changed_resume[1-library]",
-      "tests/integration/test_progressive_sources.py::test_actual_short_update_restore_generation_and_native_score",
-      "tests/integration/test_progressive_handoff.py::test_installed_refreshed_learner_consumes_native_verified_new_structure"
+      "tests/integration/test_progressive_oeis.py::test_canonical_prepare_freeze_run_resume_oeis_deficit[False]",
+      "tests/integration/test_progressive_component_flow.py::test_canonical_freeze_component_slots_then_resume_without_remining",
+      "tests/integration/test_progressive_short_cycle.py::test_canonical_prepare_freeze_run_resume_short_source_cycle",
+      "tests/integration/test_progressive_handoff.py::test_installed_refreshed_learner_consumes_native_verified_new_structure",
+      "tests/integration/test_progressive_claims.py::test_installed_counterexample_quarantines_consumed_checkpoint_and_dossier[False]",
+      "tests/integration/test_progressive_tuning.py::test_selected_trial_scope_updates_restores_and_continues_installed"
     ],
     "scope": "exact selected model/dropout and paired diagnostic seeds; Q covers 4/20 inputs and accumulation"
   }

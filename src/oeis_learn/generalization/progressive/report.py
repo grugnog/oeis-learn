@@ -23,7 +23,7 @@ def _hash(value):
         raise ValueError("public content-bound identity required")
 
 
-def validate_rows(kind, rows):
+def validate_rows(kind, rows, *, assembled=False):
     if type(rows) is not list or len(rows) > MAX_ROWS:
         raise ValueError("bounded public table required")
     fields = {
@@ -54,8 +54,17 @@ def validate_rows(kind, rows):
     if kind in {'observations','comparisons','authorities'}:
         for row in rows:
             expected={'observations':{'producer','data'},'comparisons':{'id','rows','roster','seeds','design','verdict','action'},'authorities':{'artifact','raw'}}[kind]
+            if kind == 'comparisons' and set(row) in ({'id','parts'},{'id','omitted'}):
+                _hash(row['id'])
+                if 'parts' in row:
+                    if not isinstance(row['parts'],list) or not 1<=len(row['parts'])<=4096:raise ValueError('bounded comparison parts required')
+                    for part in row['parts']:_hash(part)
+                elif not isinstance(row['omitted'],str) or len(row['omitted'])>1024:raise ValueError('explicit comparison omission required')
+                continue
+            if kind == 'comparisons':
+                expected = expected | (set(row) & {'binding', 'costs'})
             if not isinstance(row,dict) or set(row)!=expected:raise ValueError('closed public auxiliary row required')
-            if len(encoded(row))>MAX_PART:raise ValueError('public auxiliary row byte cap')
+            if len(encoded(row))>(MAX_BYTES if assembled else MAX_PART):raise ValueError('public auxiliary row byte cap')
             if kind=='observations':
                 _hash(row['producer'])
                 if not isinstance(row['data'],dict):raise ValueError('closed numeric observation required')

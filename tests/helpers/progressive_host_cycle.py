@@ -108,6 +108,9 @@ def freeze_inputs(root, monkeypatch, *, source=False, low=False, build=None):
         task_plans=plans,
         caps=caps,
         package_bytes=4 << 20,
+        # Canonical cycles retain per-phase projections, original receipts and
+        # restore generations. Reserve this before freeze, for every child.
+        required_inodes=max(prepared['payload']['required_inodes'],16384+8192*len(plans)),
     )
     b["payload"]["proposed_caps"] = caps
     refs = []
