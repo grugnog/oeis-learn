@@ -153,19 +153,21 @@ git switch 013-progressive-mathematical-discovery &&
 git pull --ff-only origin 013-progressive-mathematical-discovery &&
 python3 -S scripts/discovery_hip_handoff.py \
   --engine podman \
-  --session run-state/discovery/013-research-inputs-001 \
+  --session run-state/discovery/013-research-inputs-002 \
   register-inputs \
   --reference-campaign run-state/generalization/pac-012-bcd-r1-002 \
   --input-manifest specs/013-progressive-mathematical-discovery/validation/research-input-resolution.json
 ```
 
-Share `run-state/discovery/013-research-inputs-001/share/register-inputs.zip`,
+Share `run-state/discovery/013-research-inputs-002/share/register-inputs.zip`,
 including when the command exits 2. The shared manifest does not identify the
 immutable indexed OEIS snapshot for fresh transfer panels. The first invocation
 therefore records `ORIGINAL_SOURCE_SELECTION_REQUIRED` while completing the
 independent original-data checks/import. The ZIP lists existing candidates under
-`data`, `downloads` and `run-state`, with a finite scan limit and explicit
-truncation. No source is downloaded or selected automatically.
+`data`, `downloads`, `tmp-oeis-bulk` and `run-state`, with separate finite
+scan limits and explicit truncation. It checks manifests before large directory
+inventories, skips raw member directories, and retains original bulk cache
+fetch-plan/result references for diagnosing an unavailable indexed snapshot. No source is downloaded or selected automatically.
 
 Once an exact existing source is selected, repeat the same command with
 `--oeis-snapshot WORKSPACE_RELATIVE_MANIFEST_PATH`. Completed imports are reused

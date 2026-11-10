@@ -200,45 +200,68 @@ def import_exposure(root, manifest, registration, output, *, seconds=7200):
 
 
 def source_candidates(root, *, maximum_files=20000):
-    """Inventory existing indexed source manifests; never acquire new data."""
+    """Bounded breadth-first metadata inventory; no raw corpus traversal."""
     import os
+    from collections import deque
     root = Path(root)
     if type(maximum_files) is not int or not 1 <= maximum_files <= 1000000:
         raise ValueError('finite source inventory bound required')
-    found, scanned, directories, truncated, errors = [], 0, 0, False, []
-    began = time.monotonic()
-    for base in ('data', 'downloads', 'run-state'):
+    found, caches, scans, errors = [], [], [], []
+    excluded = {'checkpoints', '.git', 'private', 'share', 'rows', 'terms',
+                'metadata', 'raw', 'logs', 'oeisdata'}
+    for base in ('data', 'downloads', 'tmp-oeis-bulk', 'run-state'):
         folder = root / base
         if not folder.is_dir() or folder.is_symlink():
             continue
-        for directory, dirs, names in os.walk(folder, followlinks=False,
-                onerror=lambda exc: errors.append(dict(path=str(exc.filename), reason=str(exc)))):
-            dirs[:] = sorted(d for d in dirs if d not in {'checkpoints', '.git', 'private', 'share'}
-                             and not (Path(directory) / d).is_symlink())
-            scanned += len(names)
+        queue = deque([folder])
+        scanned = directories = 0
+        began = time.monotonic()
+        truncated = False
+        while queue:
+            directory = queue.popleft()
             directories += 1
-            if scanned > maximum_files or directories > maximum_files or time.monotonic() - began > 60:
-                truncated = True
-                break
-            if 'manifest.json' not in names:
-                continue
-            path = Path(directory) / 'manifest.json'
-            if path.is_symlink() or path.stat().st_size > 128 << 20:
-                continue
+            # Inspect the metadata before applying the bulk directory entry cap.
+            # A manifest beside 20,000 terms must not disappear behind that cap.
+            for name in ('manifest.json', 'fetch-plan.json', 'fetch-result.json'):
+                path = directory / name
+                if not path.is_file() or path.is_symlink():
+                    continue
+                try:
+                    if path.stat().st_size > 128 << 20:
+                        raise ValueError('source metadata exceeds inventory bound')
+                    value = _json(path)
+                    if (name == 'manifest.json' and isinstance(value, dict)
+                        and value.get('version') == 'indexed-source/v1'
+                        and isinstance(value.get('records'), list)):
+                        found.append(dict(artifact=reference(root, path), release=value.get('release'),
+                                          records=len(value['records'])))
+                    elif name != 'manifest.json':
+                        caches.append(dict(artifact=reference(root, path),
+                            kind=name.removesuffix('.json'), scope='inventory only; offline import not yet validated'))
+                except (ValueError, OSError, UnicodeError) as exc:
+                    errors.append(dict(path=str(path.relative_to(root)), reason=str(exc)))
+            children = []
             try:
-                value = _json(path)
-                if (isinstance(value, dict) and value.get('version') == 'indexed-source/v1'
-                    and isinstance(value.get('records'), list)):
-                    found.append(dict(artifact=reference(root, path), release=value.get('release'),
-                                      records=len(value.get('records', []))))
-            except (ValueError, OSError, UnicodeError):
-                continue
-        if truncated:
-            break
+                with os.scandir(directory) as entries:
+                    for entry in entries:
+                        scanned += 1
+                        if entry.is_dir(follow_symlinks=False) and entry.name not in excluded:
+                            children.append(Path(entry.path))
+                        if scanned >= maximum_files:
+                            truncated = True
+                            break
+            except OSError as exc:
+                errors.append(dict(path=str(directory.relative_to(root)), reason=str(exc)))
+            queue.extend(sorted(children))
+            if truncated or time.monotonic() - began >= 60:
+                truncated = truncated or bool(queue)
+                break
+        scans.append(dict(root=base, entries=scanned, directories=directories, truncated=truncated))
     return seal(dict(version='progressive-source-candidates/v1', candidates=found,
-                     scanned_files=scanned, scanned_directories=directories, truncated=truncated,
-                     errors=errors, selected=None,
-                     note='Inventory only; private values and metadata omitted; selection requires an exact source reference.'))
+        bulk_caches=caches, scans=scans, scanned_files=sum(s['entries'] for s in scans),
+        scanned_directories=sum(s['directories'] for s in scans),
+        truncated=any(s['truncated'] for s in scans), errors=errors, selected=None,
+        note='Inventory only; private values omitted; exact source selection still required. Each root has a separate entry/time cap.'))
 
 
 def audit(root, manifest, output):

@@ -217,9 +217,13 @@ class Engine:
         if auto_remove:
             args += ["--rm"]
         for source, destination, writable in mounts:
-            source = Path(source).resolve(strict=True)
-            if not source.is_dir() or any(c in str(source) + destination for c in (",", "\n")):
-                raise ValueError("regular directory mount with representable paths required")
+            original = Path(source)
+            source = original.resolve(strict=True)
+            readonly_file = (writable is False and source.is_file()
+                             and not any(p.is_symlink() for p in (original, *original.parents)))
+            if (not (source.is_dir() or readonly_file)
+                    or any(c in str(source) + destination for c in (",", "\n"))):
+                raise ValueError("regular directory or read-only regular file mount with representable paths required")
             if not destination.startswith("/") or type(writable) is not bool:
                 raise ValueError("explicit absolute mount target and write capability required")
             args += [

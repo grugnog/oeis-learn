@@ -52,3 +52,30 @@ freeze and acceptance. The prospective design is not an executable blueprint.
 The reviewed inputs do not identify an immutable OEIS snapshot; the registration
 ZIP is the next evidence needed to resolve that workstation input. The retained
 private input files are not available in the implementation workspace.
+
+## Registration 001 review and launcher repair
+
+The workstation support ZIP (`sha256:584eb0a18d466c83fd463ab1d4a36647df4d08bf10b378d8501a32d2d88c3793`) has 21 members,
+283,755 uncompressed bytes and no declared omissions; every inventory member's
+size and hash was checked. Its original registration reports all 57 checks PASS,
+including both retained checkpoint closures and all supplied historical input
+files. No private tensors or corpus values were supplied in the ZIP.
+
+Exposure import failed before container dispatch: `container_stage` supplied
+read-only files to `Engine.command`, whose mount validator accepted directories
+only. This was a wrapper integration defect, not missing workstation data. The
+launcher now permits explicit read-only regular files while continuing to reject
+writable files, file symlinks and special files. Regression coverage uses the real
+command builder for both engines and the custodian stage's inspection/cleanup path.
+
+The source inventory found no candidates but stopped at 20,002 entries, so absence
+is not established. Discovery now inspects metadata before applying each root's
+entry cap, uses breadth-first traversal, prunes raw/member directories and includes
+the configured `tmp-oeis-bulk` cache's original fetch-plan/result identities. It
+does not automatically select, import or download source data.
+
+Validation: 64 focused launcher, registration, workstation and CLI tests passed.
+Actual exposure import remains pending the corrected workstation invocation. Use
+new session `013-research-inputs-002` because these source changes invalidate the
+old session binding; no HIP repetition is needed for this CPU registration step.
+The automatic research construction work listed above remains outstanding.

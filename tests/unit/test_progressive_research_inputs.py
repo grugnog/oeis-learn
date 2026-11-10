@@ -146,15 +146,17 @@ def test_custodian_file_mount_is_verified_readonly_before_cleanup(tmp_path, monk
     from contextlib import nullcontext
     from pathlib import Path
     from types import SimpleNamespace
+    from oeis_learn.container_runtime import Engine as RuntimeEngine
     stage = runpy.run_path(str(Path(__file__).parents[2] / 'scripts/qualify_bigint_phase5.py'))['container_stage']
     source = tmp_path / 'source.json'
     source.write_text('{}')
     events = []
-    class Engine:
-        name = 'podman'
+    class Engine(RuntimeEngine):
         def command(self, **kwargs):
             assert kwargs['mounts'][1] == (source, '/work/inputs/source.json', False)
-            return ['boundary-only']
+            command = super().command(**kwargs)
+            assert f'type=bind,src={source},dst=/work/inputs/source.json,readonly' in command
+            return command
         def call(self, *args, **kwargs):
             events.append('inspect')
             return SimpleNamespace(stdout=json.dumps([dict(HostConfig=dict(NetworkMode='none',
@@ -162,13 +164,13 @@ def test_custodian_file_mount_is_verified_readonly_before_cleanup(tmp_path, monk
                 Destination='/work/inputs/source.json', Source=str(source), RW=writable)])]).encode())
         def remove(self, name):
             events.append('remove')
-    host = SimpleNamespace(engine=Engine(), policy=dict(memory_bytes=1<<30, cpus=1), gpu_lock=nullcontext)
+    host = SimpleNamespace(engine=Engine('podman', executable='podman', details={}), policy=dict(memory_bytes=1<<30, cpus=1), gpu_lock=nullcontext)
     monkeypatch.setitem(stage.__globals__, 'launch', lambda *a, **k: None)
     if writable:
         with pytest.raises(RuntimeError, match='isolation'):
-            stage(host, 'image', tmp_path / 'out', ['test'], readonly_inputs=[(source, '/work/inputs/source.json')])
+            stage(host, 'sha256:'+'a'*64, tmp_path / 'out', ['test'], readonly_inputs=[(source, '/work/inputs/source.json')])
     else:
-        stage(host, 'image', tmp_path / 'out', ['test'], readonly_inputs=[(source, '/work/inputs/source.json')])
+        stage(host, 'sha256:'+'a'*64, tmp_path / 'out', ['test'], readonly_inputs=[(source, '/work/inputs/source.json')])
     assert events == ['inspect', 'remove']
 
 
@@ -356,3 +358,28 @@ def test_registered_source_can_be_supplied_after_inventory_without_repeating_imp
     with pytest.raises(ValueError, match='completed stage output changed'):
         with session.own():
             w.Workflow(session,args).register_research()
+
+
+def test_source_inventory_checks_manifest_before_entry_cap_and_each_root_independently(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_research_inputs import source_candidates
+    for base in ('data','run-state'):
+        atomic_write(tmp_path / base / 'manifest.json', dict(version='indexed-source/v1', release=base, records=[]))
+        for i in range(4):
+            (tmp_path / base / str(i)).touch()
+    atomic_write(tmp_path / 'tmp-oeis-bulk/fetch-plan.json', dict(selected=[]))
+    result = source_candidates(tmp_path, maximum_files=2)
+    assert {c['release'] for c in result['candidates']} == {'data','run-state'}
+    assert result['truncated']
+    assert result['bulk_caches'][0]['artifact']['path'] == 'tmp-oeis-bulk/fetch-plan.json'
+
+
+def test_source_inventory_prunes_bulk_terms_but_finds_sibling_snapshot(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_research_inputs import source_candidates
+    for i in range(30):
+        p=tmp_path / f'run-state/a/terms/{i}'
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.touch()
+    atomic_write(tmp_path / 'run-state/b/sampling/indexed-source/manifest.json',
+        dict(version='indexed-source/v1', release='original', records=[]))
+    result = source_candidates(tmp_path, maximum_files=15)
+    assert len(result['candidates']) == 1 and not result['truncated']
