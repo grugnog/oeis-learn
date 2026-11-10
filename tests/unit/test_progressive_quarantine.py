@@ -97,3 +97,14 @@ def test_null_archive_and_library_sentinels_are_not_false_dependencies(tmp_path)
         graph, affected, _, _ = Journal(tmp_path).read()
         assert graph == [dict(id=record["identity"], kind="checkpoint", parents=[])]
         assert affected == set()
+
+
+def test_cumulative_roots_survive_reopen_and_new_descendants(tmp_path):
+    journal = Journal(tmp_path)
+    journal.register([dict(id=str(i), kind='target', parents=[]) for i in range(257)])
+    journal.refute([str(i) for i in range(256)], reason='first batch')
+    journal.refute(['256'], reason='second batch')
+    reopened = Journal(tmp_path)
+    assert len(reopened.read()[1]) == 257
+    reopened.register([dict(id='later', kind='checkpoint', parents=['256'])])
+    assert 'later' in reopened.read()[1]

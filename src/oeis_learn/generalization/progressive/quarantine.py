@@ -117,7 +117,15 @@ class Journal:
                     raise ValueError("refutation closure differs")
                 roots.update(e["roots"])
             tip = e["identity"]
-        affected = set(refute(graph, roots=sorted(roots))["affected"]) if roots else set()
+        # Event root limits bound each publication, not cumulative history.
+        # Traverse the validated graph once for the union, including late consumers.
+        _, children = _graph(graph)
+        affected, todo = set(), list(roots)
+        while todo:
+            node = todo.pop()
+            if node not in affected:
+                affected.add(node)
+                todo.extend(children[node])
         return graph, affected, tip, len(paths)
 
     def append(self, operation, *, nodes=None, roots=None, reason=""):

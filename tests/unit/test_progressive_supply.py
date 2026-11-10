@@ -48,3 +48,10 @@ def test_unknown_arm_cannot_select_support():
 
     with pytest.raises(ValueError, match="support cursor"):
         shard_index("unknown", "familiar", 0, 8, 2)
+
+
+@pytest.mark.parametrize('arm', ['replay', 'continued_synthetic', 'library', 'no_library'])
+def test_all_advancing_arms_reject_infeasible_horizon(arm):
+    with pytest.raises(ValueError, match='preparation deficit'):
+        plan(package(), 81921, arm=arm)
+    assert plan(package(), 81920, arm=arm)['required_shards'] == 64
