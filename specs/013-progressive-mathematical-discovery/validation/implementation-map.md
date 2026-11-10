@@ -1749,3 +1749,59 @@ The canonical implementation serializer gives
 `sha256:4f94486346042f6ef8bb629887d7373d27ccdd434a2cc84f0195ffcab911c487`;
 all 68 historical disposition item/task states remain unchanged. These are local
 CPU/native diagnostic producers, not new CI or actual HIP receipts.
+
+## Phase 13 implementation
+
+T135–T142 address the second audit's software gaps. Public comparisons now retain
+exact frozen panel/seed/design authority, original generator/scorer bytes and
+owned checkpoint bindings. Independent verification checks ordinary graph edges,
+exploratory triggers and the original budget prefix. Both OEIS baselines remain
+separate comparisons, including their original initial/full-state checkpoint
+identities. Efficiency uses the particular comparison's task/ancestor debits.
+Large comparison records are losslessly partitioned; explicit omitted evidence
+and ambiguous primary selection prevent verified status. Collector failures on
+owned outputs remain bounded diagnostic evidence, with repeated-error counts.
+
+Mined origins now bind original target identities and index scopes to artifact
+aliases at publication and consumption. Cumulative quarantine replay traverses
+all valid refutation events and late descendants without a 256-root history cap.
+All advancing synthetic-support arms preflight their conservative horizon. Source
+research training preflights nested startup/work/finalization and enclosing role
+allowances. Calibration keeps the generic 48-case Q matrix separate from exact
+prepared inputs, covers the full finite tuning domain plus other staged inputs,
+and shares immutable base rows across parameter alternatives. Every serial case
+still consumes the originally reserved setup time/tokens/storage.
+
+T143 registers 26 installed CPU/native cases and seven selected-device cases.
+They include canonical source/component flows, original post-learning refutation,
+automatic report/verify and one exact finite trial choice with interrupted
+restore and successor state. Acceptance fixtures predeclare retained-phase inode
+and selected-model storage partitions. Physical HIP, sustained execution and
+research tasks retain their original pending status. The final exact-source
+installed receipt is recorded below once that unchanged-source run completes;
+earlier runs overlapping source edits are not completion evidence.
+
+
+The final unchanged-source installed-wheel run passed all **26/26** registered
+CPU/native cases, with zero failures/errors/skips. The outer acceptance test also
+passed. Its original receipt is COMPLETE, scope DIAGNOSTIC_ONLY and
+`qualified=false`; this is software acceptance, not physical HIP qualification.
+The seven selected-device cases are registered and still require actual HIP.
+
+- Current source closure: `sha256:ab2900c2d1f048cc339fc5285e532736d58678c2fe2f2d8e670ae50485188dad`.
+- Original software receipt: `sha256:11ae2ea2ad2287eaa0c4cc0e34bee6ce2aee3b553bcdd08ba032fa5f29f68a92`.
+- Reconciled 26-case inventory: `sha256:276e928a567a9312ed5c89a8ee774e4b9bec441cc08f33ce60211e82f0814de0`.
+- Retained receipt archive: `sha256:e44a044737a548a2f42afd079e2afa69de9d9626db8ef02ddb6ce6fa854df192`.
+- Original local evidence: `run-state/phase13-verified-source/` (archive, request,
+  outer JUnit, verification log/status and 18-case calibration JUnit).
+
+All 18 final calibration cases passed with native requirements enabled and zero
+skips. Focused development runs additionally exercised quarantine/supply,
+component publication/learning, selected-model sizing, handoff, closed reports,
+independent decisions and manifest tampering. Earlier source-changing runs retain
+their failed/nonqualifying status and are not substituted for this final receipt.
+All requested T135–T143 software tasks are complete. T082/T088–T111 remain pending
+their original physical, concrete-campaign and optional research prerequisites.
+The current environment has no HIP build, accelerator or `/dev/kfd`; no HIP,
+sustained-duration or research outcome is asserted. Changes were committed and
+published incrementally without waiting for CI.
