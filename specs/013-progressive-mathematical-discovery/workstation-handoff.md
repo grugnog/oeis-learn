@@ -1,7 +1,7 @@
 # Consolidated workstation handoff
 
 The entrypoint is `python3 -S scripts/discovery_hip_handoff.py`. The host uses only
-Python's standard library and the selected container engine. Device work uses the
+Python 3.11+'s standard library and the selected container engine. Device work uses the
 existing root Dockerfile, immutable inspected image IDs, foundation launcher,
 GPU lease and canonical `discovery` commands. No host venv is needed.
 

@@ -1805,3 +1805,37 @@ their original physical, concrete-campaign and optional research prerequisites.
 The current environment has no HIP build, accelerator or `/dev/kfd`; no HIP,
 sustained-duration or research outcome is asserted. Changes were committed and
 published incrementally without waiting for CI.
+
+## Phase 14 workstation orchestration verification
+
+T144–T147 implement the approved stdlib/Podman handoff. See
+[workstation-handoff.md](../workstation-handoff.md) for exact commands, prospective
+limits, failure collection and the remaining concrete research/sustained inputs.
+The entrypoint adds no host ML dependency or alternate scientific authority.
+
+The final unchanged-source installed-wheel rehearsal passed **26/26** registered
+CPU/native cases with zero failures/errors/skips; its outer acceptance test
+passed in 780 seconds. The original receipt remains DIAGNOSTIC_ONLY,
+`qualified=false`, hardware PENDING and scientific UNMEASURED.
+
+- Source closure: `sha256:a0ecab5147d60548813d960c8d99b39c8dad3d3a2ac2a0bf567b0c026e69ef98`.
+- Original receipt: `sha256:2ed5509d995c6a2b11dcaf07dc3ebc163d0b3fc6a2808f0fd9de4860cf0c83cc`.
+- Reconciled case inventory: `sha256:9a4c4c15abaf6b892a287f26044fcf8ab895fd44a7cdb2c73bc2940bf6d0c1af`.
+- Retained archive: `sha256:a26384dc9c92bb8bfb7b02f452fdbbe5d8edc21d31fa13429f2a1affa3157392`.
+- Local original archive: `run-state/workstation-verified-source` (ZIP).
+
+All **88** focused workstation, handoff, acceptance, CLI and CI-inventory tests
+passed (two installed tests deselected from this focused command; the 26-case
+installed acceptance was run separately as recorded above). This includes 18
+workstation regressions covering source drift, crash journal recovery, immutable
+output reuse, bounded/private archive exclusions, collection failure, real
+fixture prepare/freeze, independent CPU progress after GPU-image failure,
+per-case GPU health gating, calibration partial receipts and canonical
+run/resume/report targeting. Hardware/process doubles in boundary tests are
+explicitly diagnostic and cannot create actual-HIP authority.
+
+An additional native-required run passed all 18 calibration and eight assessment
+contract tests. `python3 -S` dry-run verified the stdlib-only host route without
+builds or execution; `git diff --check` passed. No container image was built here,
+no HIP/sustained/research run was performed, and CI was not awaited. T082 and
+T088–T111 retain their original pending status and evidence requirements.
