@@ -671,7 +671,7 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
             _, scored, _ = self.phase("score", scorer_inputs, task)
             score = load(scored / "role/scoring/scores.json", maximum=512 << 20)
             self.public_evaluations.append(dict(stage=stage or task['payload']['arm'], seed=task['payload']['seed'], task=task['payload']['id'], arm=label,
-                panel=self.plan['panels'][kind], candidates=reference(self.root,target/'role/generation/candidates.json'), scores=reference(self.root,scored/'role/scoring/scores.json')))
+                panel=self.plan['panels'][kind], learning=self.public_checkpoint_records.get(task['identity']) if stage!='starting' else None, initial_checkpoint=[dict(artifact=reference(self.root,p),raw=confined(self.root,p).read_text()) for p in model if load(confined(self.root,p))['kind']=='checkpoint'] if stage=='starting' else [], candidates=reference(self.root,target/'role/generation/candidates.json'), scores=reference(self.root,scored/'role/scoring/scores.json')))
             for row in rows:
                 outcome = score["outcomes"][row["id"]]["equal_budget"]
                 outcomes.append(
@@ -816,6 +816,7 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
             if load(self.host_root/'archive.json') != cut:raise ValueError('original archive cut differs')
         else:atomic_write(self.host_root/'archive.json',cut)
         self.public_evaluations = []
+        self.public_checkpoint_records = {}
         all_rows = {"starting": [], "continued_synthetic": [], "replay": []}
         completed = []
         for entry in self.plan["training"]:
@@ -861,6 +862,7 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
                     owner.state["checkpoint"]["payload"]["full_state"],
                     64 << 30,
                 )
+                self.public_checkpoint_records[task['identity']]=dict(checkpoint=owner.state['checkpoint'],full_state=full,full_state_raw=verify_refs(state/'checkpoints',[owner.state['checkpoint']['payload']['full_state']],max_bytes=64<<20)[0].decode())
                 weights = full["states"]["weights"]
                 verify_refs(state / "checkpoints", [weights], max_bytes=64 << 30)
                 checkpoint = self.channel(

@@ -376,6 +376,33 @@ def verify_cycle(comparison, authorities, campaign):
         seen.add(key)
         generated=checked_json(producer['candidates'],descriptor['candidates'])
         scored=checked_json(producer['scores'],descriptor['scores'])
+        if stage=='starting':
+            originals=descriptor.get('initial_checkpoint',[])
+            if len(originals)!=1 or originals[0]['artifact'] not in [r['artifact'] for r in campaign['payload']['references']]:
+                raise ValueError('original starting checkpoint channel required')
+            channel=checked_json(originals[0]['raw'],originals[0]['artifact'])
+            if seal(channel)!=channel or channel.get('kind')!='checkpoint' or channel.get('role')!='generator':
+                raise ValueError('original starting checkpoint channel differs')
+            data=channel['data']
+            if data.get('control')=='random':
+                if task['initializer']['mode']!='random' or generated.get('model_control')!='random' or generated.get('checkpoint') is not None:
+                    raise ValueError('starting random control differs')
+            elif generated.get('checkpoint')!=data['artifact']['sha256']:
+                raise ValueError('starting retained checkpoint differs')
+        else:
+            learning=descriptor.get('learning')
+            if not learning:return ['cycle_checkpoint_producer:'+comparison['id']]
+            checkpoint,full=learning['checkpoint'],learning['full_state']
+            from .contracts import record
+            task_record=record('task',dict(task,campaign=campaign['identity']),created_at=campaign['created_at'],purpose=campaign['purpose'],track=campaign['track'])
+            if 'full_state_raw' not in learning:return ['cycle_checkpoint_original_bytes:'+comparison['id']]
+            raw=learning['full_state_raw']
+            if checked_json(raw,checkpoint['payload']['full_state'])!=full:
+                raise ValueError('cycle checkpoint manifest differs')
+            if (seal(checkpoint)!=checkpoint or checkpoint['purpose']!=campaign['purpose'] or checkpoint['track']!=campaign['track'] or checkpoint['payload']['campaign']!=campaign['identity'] or checkpoint['payload']['task']!=task_record['identity']
+                or checkpoint['payload']['compatibility']!=task['initializer']['compatibility']
+                or full['states']['weights']['sha256']!=generated.get('checkpoint')):
+                raise ValueError('cycle learned checkpoint identity differs')
         members={r['task']:r for r in roster if (r['stratum']=='retention')==(kind=='retention')}
         if (seal(generated)!=generated or seal(scored)!=scored or (not generated.get('checkpoint') and not (stage=='starting' and generated.get('model_control')=='random' and task['initializer']['mode']=='random'))
             or set(generated['records'])!=set(members) or scored['candidates']!=descriptor['candidates']['sha256']

@@ -326,3 +326,25 @@ def test_canonical_prepare_freeze_run_resume_oeis_deficit(tmp_path,monkeypatch,f
             comparisons=[row for name in archive.namelist() if name.startswith('tables/comparisons-') for row in json.loads(archive.read(name))]
         assert {c['binding']['baseline'] for c in comparisons}=={'starting','continued_synthetic'}
         assert not any('cycle_' in value or 'original_cycle_' in value for value in result['missing'])
+
+        # Preserve the valid original; a resealed archive cannot substitute a
+        # different learned checkpoint under the same task/arm labels.
+        from tests.contract.test_progressive_bundle import rewrite
+        from oeis_learn.generalization.progressive.report import encoded
+        from oeis_learn.generalization.progressive.contracts import seal
+        import hashlib
+        tampered=tmp_path/'changed-checkpoint.zip'
+        tampered.write_bytes((tmp_path/'cycle-report.zip').read_bytes())
+        def change_checkpoint(docs):
+            manifest=json.loads(docs['manifest.json'])
+            name=next(n for n in docs if n.startswith('tables/comparisons-'))
+            rows=json.loads(docs[name])
+            learned=next(p['descriptor']['learning'] for c in rows for p in c['binding']['producers'] if p['descriptor'].get('learning'))
+            learned['full_state']['states']['weights']['sha256']='sha256:'+'0'*64
+            docs[name]=encoded(rows)
+            item=next(i for i in manifest['inventory'] if i['path']==name)
+            item.update(bytes=len(docs[name]),sha256='sha256:'+hashlib.sha256(docs[name]).hexdigest())
+            docs['manifest.json']=encoded(seal(manifest))
+        rewrite(tampered,change_checkpoint)
+        with pytest.raises(ValueError,match='comparison bytes|checkpoint'):
+            verify(tampered)
