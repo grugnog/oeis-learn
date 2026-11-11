@@ -437,7 +437,8 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
                 raise ValueError('frozen training request role/identity differs')
             data=envelope['data']
             _validate_channel('training_request',data)
-            package=json.loads(verify_refs(root,[data['artifact']],max_bytes=256<<20)[0])
+            from .shared_support import shared
+            package=shared(json.loads(verify_refs(root,[data['artifact']],max_bytes=256<<20)[0]))
             if data['compatibility']!=compatibility(package):
                 raise ValueError('declared training compatibility differs')
             targets=targets_by_channel.get(item['artifact']['path'],[])

@@ -41,6 +41,7 @@ def selected_inputs(root, prepared):
     }
     selected, bindings = {}, []
     originals = {}
+    from oeis_learn.generalization.progressive.shared_support import shared
     base_scopes = {}
     expanded = {}
     validated = set()
@@ -50,7 +51,14 @@ def selected_inputs(root, prepared):
         # materialize() changes only profile/update policy, not training rows.
         key=(ref['path'],ref['bytes'],ref['sha256'])
         if key not in originals:
+            # Conservative decoded-tree/serialization peak, before reading any
+            # additional large base. Keep 24+ GiB host headroom on the 64-GiB
+            # preparation envelope, independent of the number of alternatives.
+            if 16*(sum(k[1] for k in originals)+ref['bytes'])+(512<<20)>16<<30:
+                raise ValueError('preparation host memory inventory deficit')
             originals[key]=json.loads(verify_refs(root,[ref],max_bytes=maximum)[0])
+            if isinstance(originals[key],dict) and originals[key].get('version')=='progressive-training-input/v1':
+                originals[key]=shared(originals[key])
         return originals[key]
     for index, original in enumerate(prepared["payload"]["task_plans"]):
         for plan in variants(original):
@@ -175,7 +183,8 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
         * max(len(r["tokens"]) for shard in c["package"]["shards"] for r in shard)
         for c in cases
     )
-    input_bytes = sum((len(json.dumps(c['package'],sort_keys=True,indent=2,allow_nan=False).encode())+1)*2 for c in cases)
+    from oeis_learn.generalization.progressive.shared_support import projection_size, project
+    input_bytes = projection_size(cases)
     from .progressive_calibration_storage import required_bytes as storage_required
     required_bytes=storage_required(len(cases),plan['checkpoint_bytes'],input_bytes,
         retention=plan.get('checkpoint_retention'),metadata_bytes=METADATA_BYTES)
@@ -236,12 +245,7 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
     projected = []
     with guard.activate():
         atomic_write(output / "calibration-input.json", prepared)
-        for case in cases:
-            path = device / "inputs" / (case["compatibility"][7:] + ".json")
-            atomic_write(path, case["package"])
-            projected.append(
-                {"compatibility": case["compatibility"], "artifact": reference(device, path)}
-            )
+        projected=project(device,cases)
         remaining = int(case_allowance(plan["seconds"] - (time.monotonic() - began), maximum=plan["seconds"]))
         if remaining <= 0:
             raise TimeoutError("calibration allowance exhausted during inspection")
@@ -386,7 +390,8 @@ def verify_case(root,request,case,producer_ref):
     producer=json.loads(verify_refs(root,[producer_ref])[0])
     measured_producer(producer,source=request['source'],images=[request['image']],
                       compatibility=case['compatibility'])
-    package=json.loads(verify_refs(root,[case['artifact']],max_bytes=256<<20)[0])
+    from oeis_learn.generalization.progressive.shared_support import restore
+    package=restore(root,case['artifact'])
     if (producer['effective_batch']!=package['update_policy']['effective_batch']
             or producer['maximum_target_tokens']!=max(len(r['tokens']) for s in package['shards'] for r in s)
             or producer['checkpoint_bytes']>request['checkpoint_bytes']):
@@ -558,7 +563,8 @@ def run_inside(root):
                   'run_one(sys.argv[1],int(sys.argv[2]),float(sys.argv[3]))')
             launched=False
             try:
-                package=json.loads(verify_refs(root,[case['artifact']],max_bytes=256<<20)[0])
+                from oeis_learn.generalization.progressive.shared_support import restore
+                package=restore(root,case['artifact'])
                 if compatibility(package)!=case['compatibility']:
                     raise ValueError('prepared calibration compatibility differs')
                 remaining=request['seconds']-(time.monotonic()-began)
@@ -627,7 +633,8 @@ def run_one(root,index,seconds):
     request=load(root/'request.json',maximum=32<<20)
     validate_request(request)
     case=request['cases'][index]
-    package=json.loads(verify_refs(root,[case['artifact']],max_bytes=256<<20)[0])
+    from oeis_learn.generalization.progressive.shared_support import restore
+    package=restore(root,case['artifact'])
     with StorageGuard([root],max_bytes=request['caps']['disk_bytes'],
                       max_inodes=request['maximum_inodes'],reserve_bytes=METADATA_BYTES).activate():
         calibrate_iteration(package,root/'cases'/case['compatibility'][7:],

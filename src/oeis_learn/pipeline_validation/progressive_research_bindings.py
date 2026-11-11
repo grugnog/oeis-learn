@@ -178,10 +178,12 @@ def learner_scopes(compiler, support, summary):
     from oeis_learn.generalization.progressive.models import resolve_profile
     from .progressive_training import resolve_update_policy
     from .progressive_learner import compatibility
+    from oeis_learn.generalization.progressive.shared_support import shared, seal_package
     bases={};scopes={}
     for trajectory,horizon in [('screening',4000000),('confirmation',400000000)]:
         profile=resolve_profile(compiler.recipe,seed=0,dropout=0)
         base=training_input(support,summary,profile,resolve_update_policy(profile,schedule_horizon_tokens=horizon))
+        base=shared(base)
         ref=compiler.put('private/packages/'+trajectory+'.json',base)
         channel=compiler.channel(trajectory+'-training','training_request','learner',
             dict(membership='training',artifact=ref,compatibility=compatibility(base),profile='bigint-body/v1'))
@@ -192,7 +194,7 @@ def learner_scopes(compiler, support, summary):
             policy=resolve_update_policy(profile,schedule_horizon_tokens=horizon,
                 **{k:v for k,v in params.items() if k not in {'shape','dropout'}},
                 microbatch_size=16,warmup_tokens=1250000 if trajectory=='confirmation' and params['schedule']=='warmup_cosine' else None)
-            package=seal(dict(base,profile=profile,update_policy=policy))
+            package=seal_package(dict(base,profile=profile,update_policy=policy))
             value=dict(compatibility=compatibility(package),runtime=compiler.runtime(profile))
             scopes[trajectory][digest(params)]=value
             if params['shape']=='reference':
@@ -437,7 +439,8 @@ def finish_plan(c,bound,study,targetref,state,checkpoint_root,*,data,design,mate
     cases,_=selected_inputs(c.root,preview)
     tokens=sum(2*x['package']['update_policy']['effective_batch']*
         max(len(r['tokens']) for shard in x['package']['shards'] for r in shard) for x in cases)
-    inputs_bytes=sum(2*(len(json.dumps(x['package'],sort_keys=True,indent=2,allow_nan=False).encode())+1) for x in cases)
+    from oeis_learn.generalization.progressive.shared_support import projection_size
+    inputs_bytes=projection_size(cases)
     checkpoint_ceiling=max((p['caps']['disk_bytes']-(128<<20))//2 for p in c.plans if p['kind']=='training')
     setup=zeros();setup.update(tokens=tokens,elapsed_us=12*3600*1000000,
         disk_bytes=required_bytes(len(cases),checkpoint_ceiling,inputs_bytes,retention=POLICY),archive_bytes=512<<20)

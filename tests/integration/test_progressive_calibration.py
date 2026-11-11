@@ -284,7 +284,8 @@ def test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
             raise TimeoutError("deliberate supervised timeout")
         producers = {}; retired={}
         for case in request["cases"]:
-            package = json.loads((output / case["artifact"]["path"]).read_text())
+            from oeis_learn.generalization.progressive.shared_support import restore
+            package = restore(output,case["artifact"])
             value = seal(
                 {
                     "version": "progressive-iteration-calibration/v1",

@@ -51,10 +51,12 @@ def compatibility(package):
     if 'task_profile' in package:
         value['task_profile']=package['task_profile']
         value['short_rules']=package.get('short_rules')
-    return digest(value)
+    from oeis_learn.generalization.progressive.shared_support import package_digest
+    return package_digest(value)
 
 
 def validate_input(package, task, *, allow_pending=False):
+    from oeis_learn.generalization.progressive.shared_support import seal_package
     from oeis_learn.generalization.progressive.models import validate_profile
     from oeis_learn.pipeline_validation.progressive_training import validate_update_policy
 
@@ -82,7 +84,7 @@ def validate_input(package, task, *, allow_pending=False):
             "diagnostic_fault",
         }
         or package["version"] != "progressive-training-input/v1"
-        or seal(package) != package
+        or seal_package(package) != package
     ):
         raise ValueError("closed frozen training input required")
     if (

@@ -140,3 +140,33 @@ def test_study_freeze_uses_same_finite_materialization_as_calibration_and_execut
     next(p for p in bad['payload']['tasks'] if p['id']=='train')['trial_choices'][1]['compatibility']=digest('foreign')
     with pytest.raises(ValueError,match='compatibility'):
         validate_frozen(tmp_path,seal(bad))
+
+
+def test_full_domain_shares_large_support_and_compact_transport(tmp_path):
+    import json,tracemalloc
+    from oeis_learn.generalization.progressive.shared_support import shared,seal_package,projection_size,project,restore
+    from oeis_learn.pipeline_validation.progressive_learner import compatibility
+    from oeis_learn.pipeline_validation.progressive_acceptance import fixture
+    from oeis_learn.generalization.progressive.contracts import load
+    fixture(tmp_path,interrupt=False)
+    package=load(tmp_path/'training-input.json')
+    row=package['shards'][0][0]
+    # Full census-sized support; independent values avoid an unrealistically
+    # tiny repeated-object graph. All 1,296 alternatives remain live together.
+    package['shards']=[[dict(row,values=[str(i*100+n) for n in range(100)]) for i in range(128*j,128*(j+1))] for j in range(64)]
+    package=shared(seal(package))
+    tracemalloc.start()
+    alternatives=[seal_package(dict(package,refresh_updates=i+1)) for i in range(1296)]
+    _,peak=tracemalloc.get_traced_memory();tracemalloc.stop()
+    assert peak<32<<20
+    assert len({id(p['shards']) for p in alternatives})==1
+    assert seal(alternatives[0])==alternatives[0]
+    with pytest.raises(TypeError):alternatives[0]['shards'][0][0]['values'][0]='changed'
+    cases=[dict(compatibility=digest(i),package=p) for i,p in enumerate(alternatives)]
+    assert projection_size(cases)<128<<20
+    refs=project(tmp_path/'transport',cases)
+    assert len(refs)==1296 and len(list((tmp_path/'transport/inputs/support').glob('*.json')))==1
+    assert sum(p.stat().st_size for p in (tmp_path/'transport').rglob('*.json'))<projection_size(cases)
+    assert restore(tmp_path/'transport',refs[-1]['artifact'])==alternatives[-1]
+    support=next((tmp_path/'transport/inputs/support').glob('*.json'));support.write_text('[]')
+    with pytest.raises(ValueError):restore(tmp_path/'transport',refs[0]['artifact'])
