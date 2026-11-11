@@ -1,4 +1,6 @@
 """Stdlib host qualification and acceptance; immutable plans, finite owned stages."""
+from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES
+
 import json
 import runpy
 import time
@@ -158,7 +160,7 @@ def acceptance_command(args, root, host_factory):
     from .progressive_commands import _output
     from oeis_learn.generalization.progressive.campaign import validate_campaign
     began=time.monotonic()
-    campaign=validate_campaign(load(confined(root,args.campaign),maximum=32<<20))
+    campaign=validate_campaign(load(confined(root,args.campaign),maximum=CAMPAIGN_DOCUMENT_BYTES))
     output=_output(root,args.output)
     plan=named_plan(root,campaign,'acceptance_plan','progressive-acceptance-plan/v1',
                     {'qualification','seconds'})

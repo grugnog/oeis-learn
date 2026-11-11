@@ -334,7 +334,7 @@
             "$ref": "progressive-common.schema.json#/$defs/reference"
           },
           "minItems": 1,
-          "maxItems": 4096
+          "maxItems": 16384
         },
         "caps": {
           "$ref": "progressive-common.schema.json#/$defs/caps"

@@ -3,6 +3,8 @@
 No arbitrary command manifest, extra training authority, host ML dependencies,
 or invented retained inputs. Research consumes an original concrete blueprint.
 """
+from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES
+
 import argparse
 import json
 import os
@@ -341,7 +343,7 @@ class Workflow:
             if operation=='resume': args['run']=str(executions[0].relative_to(self.root))
             else: args.update(campaign=str(c.relative_to(self.root)),acceptance=str((prepared/'acceptance').relative_to(self.root)))
             if operation=='assess': args['selection']=self.args.selection
-            cap=load(c,maximum=32<<20)['payload']['caps']['elapsed_us']/1000000
+            cap=load(c,maximum=CAMPAIGN_DOCUMENT_BYTES)['payload']['caps']['elapsed_us']/1000000
             from .supervision import launch
             logs=self.base/'logs'/output.name
             launch(command(self.root,self.args,operation,**args),logs,seconds=cap+120,

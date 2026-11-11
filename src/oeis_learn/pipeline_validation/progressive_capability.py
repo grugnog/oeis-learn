@@ -1,5 +1,7 @@
 """Outcome-blind preparation assembly and installed public capability reconciliation."""
 
+from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES
+
 import json
 from .identity import confined
 from oeis_learn.generalization.progressive.contracts import (
@@ -30,7 +32,7 @@ def prepare(args, root, host_factory=None):
             reason="PREPARATION_PLAN_DEFICIT",
             missing=["preparation_plan"],
         ), 2
-    plan = json.loads(verify_refs(root, selected, max_bytes=32 << 20)[0])
+    plan = json.loads(verify_refs(root, selected, max_bytes=CAMPAIGN_DOCUMENT_BYTES)[0])
     if set(plan) != {"version", "payload"} or plan["version"] != "progressive-preparation-plan/v1":
         raise ValueError("closed prospective preparation plan required")
     if "blueprint" in plan["payload"]:

@@ -79,6 +79,14 @@ def cohort(root, output, rows, *, panel, role, decision, exposure,
         # Original group/family keys survive component assignment. Otherwise a
         # publication could erase a relation present in the retained index.
         groups=sorted(set([row['group'],*row.get('declared_groups',[])]))
+        # Downstream comparison contracts use the first sorted group as the
+        # statistical unit. Preserve all original relation keys for exclusion,
+        # but give every member of the reserved connected component the same
+        # primary alias; a member-specific family label must not split it.
+        component='0000000000000000:component:'+row['group']
+        if any(g<=component for g in groups):
+            raise ValueError('original relation key collides with reserved component namespace')
+        groups=[component,*groups]
         is_retention=panel.startswith('retention')
         projected.append(dict(id=row['id'],source=source,offset=row['indices'][0],
             stratum='retention' if is_retention else row['stratum'],groups=groups,

@@ -1,5 +1,7 @@
 """Bounded collection from a frozen campaign and its committed owned outputs."""
 
+from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES
+
 import json
 from pathlib import Path
 
@@ -47,7 +49,7 @@ def collect(root, folder, output):
     if seal(invocation) != invocation:
         raise ValueError("original run binding differs")
     campaign = validate_campaign(
-        load(confined(root, invocation["campaign_path"]), maximum=32 << 20)
+        load(confined(root, invocation["campaign_path"]), maximum=CAMPAIGN_DOCUMENT_BYTES)
     )
     if campaign["identity"] != invocation["campaign"]:
         raise ValueError("original report campaign differs")

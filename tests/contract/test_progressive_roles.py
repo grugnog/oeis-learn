@@ -36,6 +36,58 @@ def test_every_execution_contract_row_has_closed_registry():
         REGISTRY["execute-python"] = None
 
 
+@pytest.mark.parametrize('operation',['generate','score'])
+@pytest.mark.parametrize('remaining',[17,7200])
+def test_installed_evaluation_uses_enclosing_deadline(tmp_path,monkeypatch,operation,remaining):
+    """Mock model/native work only; exercise the actual installed argument binding."""
+    import time
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive.contracts import reference,digest
+    from oeis_learn.pipeline_validation.progressive_role import _execute
+    from oeis_learn.fresh.bigint_config import defaults,resolve
+    atomic_write(tmp_path/'authority.json',{'task':{'purpose':'acceptance'}})
+    end=time.monotonic()+remaining
+    budget=SimpleNamespace(deadline=end,client=lambda client:client)
+    monkeypatch.setattr('oeis_learn.generalization.progressive.budgets.RoleWorkBudget',lambda *a:budget)
+    class Client:
+        def __init__(self,*args):pass
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+    monkeypatch.setattr('oeis_learn.synthesis.client.SynthesisClient',Client)
+    class ReachedEvaluation(Exception):pass
+    def evaluation(*args,**kw):
+        assert remaining-2<kw['seconds']<=remaining
+        assert kw['budget'] is budget
+        raise ReachedEvaluation
+    monkeypatch.setattr('oeis_learn.pipeline_validation.progressive_evaluation.'+operation,evaluation)
+    channels={}
+    if operation=='generate':
+        model=tmp_path/'inputs/model';model.mkdir(parents=True)
+        atomic_write(model/'recipe.json',resolve(defaults()))
+        (model/'weights.pt').write_bytes(b'explicit model loading test boundary')
+        comp=digest('same model')
+        channels={'visible':[('visible_prompt',dict(id='one',indices=['0'],values=['0']))],
+                  'model':[(kind,dict(artifact=reference(model,path),compatibility=comp,profile='bigint-body/v1'))
+                           for kind,path in [('recipe','recipe.json'),('checkpoint','weights.pt')]]}
+    else:
+        channels={'candidates':[('candidate',{})],'score_truth':[('development_truth',{})]}
+    for channel,values in channels.items():
+        for kind,data in values:
+            value=seal(dict(version='discovery-channel/v1',role=REGISTRY[operation].role,kind=kind,data=data))
+            atomic_write(tmp_path/'inputs'/channel/(value['identity'][7:]+'.json'),value)
+    with pytest.raises(ReachedEvaluation):
+        _execute(operation,inputs=tmp_path/'inputs',output=tmp_path/'output',
+                 authority=tmp_path/'authority.json',accounting=tmp_path/'accounting')
+
+
+def test_expired_evaluation_cannot_receive_a_fresh_clock():
+    import time
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation.progressive_role import _evaluation_seconds
+    with pytest.raises(TimeoutError):
+        _evaluation_seconds(SimpleNamespace(deadline=time.monotonic()-1))
+
+
 def test_generator_projection_contains_visible_only(tmp_path):
     p = artifact(
         tmp_path,

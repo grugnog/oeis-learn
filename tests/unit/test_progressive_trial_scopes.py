@@ -54,6 +54,37 @@ def test_finite_choice_changes_scope_without_changing_task_allowance(tmp_path):
             seal(dict(study=digest("study"), ordinal=0, seed=p["seed"], parameters=BASELINE))
         )
 
+
+@pytest.mark.parametrize('screen_status',['PARTIAL','FAILED','SKIPPED'])
+def test_locked_confirmation_can_follow_terminal_screening_only(tmp_path,screen_status):
+    c=campaign();payload=c['payload'];first,second=payload['tasks']
+    study=digest('study')
+    first['trial']=dict(study=study,ordinal=0,phase='training',coordinate=0)
+    selected=copy.deepcopy(first)
+    selected.update(id='selection',kind='evaluation',token_target=0,output='selection',
+                    trial=dict(study=study,ordinal=0,phase='selection',coordinate=0))
+    second['initializer']=dict(mode='random',artifact=None,compatibility=first['initializer']['compatibility'])
+    second['trial']=dict(study=study,ordinal=0,phase='confirmation',coordinate=0)
+    second['trial_choices']=[dict(parameters=BASELINE,compatibility=second['initializer']['compatibility'],policy=second['policy'])]
+    payload['tasks']=[first,selected,second]
+    node=payload['graph']['nodes'][0]
+    node['caps']={k:v*2 for k,v in node['caps'].items()}
+    payload['caps']={k:sum(n['caps'][k] for n in payload['graph']['nodes']) for k in payload['caps']}
+    store=RunStore(tmp_path,seal(c))
+    states=dict(first=screen_status,selection='COMPLETE')
+    store.append(dict(store.state,tasks=states,choices={'second':0},outputs={'selection':{'original':'test boundary'}}))
+    assert store.next_task()['payload']['id']=='second'
+    for changes in [dict(outputs={}),dict(choices={}),dict(tasks=dict(states,selection='FAILED')),
+                    dict(tasks=dict(states,first='RUNNING'))]:
+        store.append(dict(store.state,**changes))
+        assert store.next_task() is None or store.next_task()['payload']['id']!='second'
+        store.append(dict(store.state,tasks=states,choices={'second':0},outputs={'selection':{'original':'test boundary'}}))
+    # An unrelated failed dependency must never borrow selection permission.
+    first['trial']['study']=digest('other study')
+    other=RunStore(tmp_path/'other',seal(c))
+    other.append(dict(other.state,tasks=states,choices={'second':0},outputs={'selection':{'original':'test boundary'}}))
+    assert other.next_task() is None
+
 @pytest.mark.parametrize('schedule', ['constant', 'warmup_cosine'])
 def test_confirmation_policy_survives_scaling_and_rejects_changed_trajectory(tmp_path, schedule):
     from oeis_learn.pipeline_validation.progressive_acceptance import fixture

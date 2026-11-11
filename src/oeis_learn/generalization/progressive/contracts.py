@@ -17,6 +17,11 @@ from oeis_learn.pipeline_validation.identity import digest, seal, file_hash, con
 from oeis_learn.generalization.contracts import verify_artifact
 
 
+# Full finite tuning campaigns contain up to 512 tasks and 648 choices per task.
+# Keep their containing authority documents bounded independently of small receipts.
+CAMPAIGN_DOCUMENT_BYTES = 128 << 20
+
+
 @lru_cache(maxsize=32)
 def schema(name):
     path = files("oeis_learn.generalization").joinpath(

@@ -1,5 +1,7 @@
 """Finite campaign transitions; worker identity is owned by the existing supervisor."""
 
+from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES
+
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -14,7 +16,7 @@ class RunStore:
         self.campaign = validate_campaign(campaign)
         binding = self.root / "campaign.json"
         if binding.exists():
-            if load(binding,maximum=32<<20) != self.campaign:
+            if load(binding,maximum=CAMPAIGN_DOCUMENT_BYTES) != self.campaign:
                 raise ValueError("run campaign changed")
         else:
             from .storage import journal_write
@@ -82,8 +84,10 @@ class RunStore:
             ]
             if set(node["dependencies"]) - {p["slot"] for p in deps}:
                 continue
+            selected_screening = self._selected_screening_slots(plan, deps)
             terminal = {"COMPLETE", "PARTIAL", "FAILED"}
-            if any(self.state["tasks"].get(p["id"]) not in terminal for p in deps):
+            if any(self.state["tasks"].get(p["id"]) not in
+                   (terminal | {'SKIPPED'} if p['slot'] in selected_screening else terminal) for p in deps):
                 continue
             if plan["initializer"].get("parent_task") and self.state["tasks"].get(
                 plan["initializer"]["parent_task"]
@@ -94,6 +98,7 @@ class RunStore:
             ]
             if any(
                 self.state["tasks"].get(p["id"]) != "COMPLETE"
+                and p['slot'] not in selected_screening
                 and not any(
                     e["source"] == p["slot"] and e["condition"] != "COMPLETE" for e in edges
                 )
@@ -106,6 +111,7 @@ class RunStore:
                 (
                     any(
                         self.state["tasks"].get(p["id"]) != "COMPLETE"
+                        and p['slot'] not in selected_screening
                         for p in deps
                         if p["slot"] == e["source"]
                     )
@@ -129,6 +135,29 @@ class RunStore:
                 track=self.campaign["track"],
             )
         return None
+
+    def _selected_screening_slots(self, plan, dependencies):
+        """A committed finalist may follow pruned screening, never failed controls.
+
+        Selection already verifies the complete study journal. Only its exact
+        screening slot is discharged here; separate baseline confirmation and
+        ordinary scientific dependencies still require their original outcomes.
+        """
+        meta=plan.get('trial',{})
+        if meta.get('phase')!='confirmation' or plan['id'] not in self.state.get('choices',{}):
+            return set()
+        allowed=set()
+        for slot in {p['slot'] for p in dependencies}:
+            members=[p for p in dependencies if p['slot']==slot]
+            if any(p.get('trial',{}).get('study')!=meta['study']
+                   or p['trial']['phase']=='confirmation' for p in members):
+                continue
+            selections=[p for p in members if p['trial']['phase']=='selection']
+            if (len(selections)==1
+                    and self.state['tasks'].get(selections[0]['id'])=='COMPLETE'
+                    and selections[0]['id'] in self.state.get('outputs',{})):
+                allowed.add(slot)
+        return allowed
 
     def authorize(
         self, bundle, *, policy, remaining, panels=None, designs=None, evidence_root=None

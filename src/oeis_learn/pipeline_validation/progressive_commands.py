@@ -1,5 +1,7 @@
 """Stdlib command plumbing; unfinished research commands fail explicitly."""
 
+from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES
+
 import json
 import uuid
 from contextvars import ContextVar
@@ -80,7 +82,7 @@ def freeze_command(args, root):
     from oeis_learn.generalization.progressive.freeze import IncompleteFreeze, freeze
 
     b = load(confined(root, args.blueprint))
-    p = load(confined(root, args.prepared) / "prepared.json",maximum=32<<20)
+    p = load(confined(root, args.prepared) / "prepared.json",maximum=CAMPAIGN_DOCUMENT_BYTES)
     output = _output(root, args.output)
     try:
         campaign, runtime, tasks = freeze(root, b, p, qualification_root=args.qualification)
@@ -116,7 +118,7 @@ def status(args, root):
             raise ValueError("run manifest changed")
         from oeis_learn.generalization.progressive.lifecycle import RunStore
 
-        campaign = load(confined(root, manifest["campaign_path"]),maximum=32<<20)
+        campaign = load(confined(root, manifest["campaign_path"]),maximum=CAMPAIGN_DOCUMENT_BYTES)
         store = object.__new__(RunStore)
         store.root = confined(
             root,
@@ -410,7 +412,7 @@ def lifecycle_command(args, root, host_factory):
             raise ValueError("run manifest seal differs")
         campaign_path = manifest["campaign_path"]
         acceptance_path = manifest["acceptance_path"]
-    campaign = validate_campaign(load(confined(root, campaign_path),maximum=32<<20))
+    campaign = validate_campaign(load(confined(root, campaign_path),maximum=CAMPAIGN_DOCUMENT_BYTES))
     folder = confined(
         root, "run-state/discovery-accounting/" + campaign["identity"].split(":")[1], exists=False
     )
@@ -856,7 +858,7 @@ def assess_command(args, root, host_factory):
     from oeis_learn.generalization.progressive.projections import describe
     from .progressive_roles import invoke, current_runtime
 
-    campaign = load(confined(root, args.campaign),maximum=32<<20)
+    campaign = load(confined(root, args.campaign),maximum=CAMPAIGN_DOCUMENT_BYTES)
     selection = validate_selection(root, load(confined(root, args.selection)), campaign)
     acceptance = load(confined(root, args.acceptance) / "acceptance.json")
     if (

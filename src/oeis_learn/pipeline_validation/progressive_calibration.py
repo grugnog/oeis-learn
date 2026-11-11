@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 
 from oeis_learn.generalization.progressive.contracts import (
+    CAMPAIGN_DOCUMENT_BYTES,
     atomic_write,
     digest,
     load,
@@ -430,7 +431,7 @@ def validate_prepared(root, blueprint, prepared):
         raise ValueError("complete original prepared calibration closure required")
     request = json.loads(verify_refs(root, [refs["iteration_calibration_request"]])[0])
     original = json.loads(
-        verify_refs(root, [refs["iteration_calibration_input"]], max_bytes=32 << 20)[0]
+        verify_refs(root, [refs["iteration_calibration_input"]], max_bytes=CAMPAIGN_DOCUMENT_BYTES)[0]
     )
     validate("prepared", original)
     if request["blueprint"] != blueprint["identity"] or request["prepared"] != original["identity"]:

@@ -77,6 +77,11 @@ def prepare(workflow):
         result=load(base/'materials/materials.json')
         return result,sorted((base/'materials').rglob('*.json'))
     projected=s.step('materials',materials,dependencies=('prepare-research/native-census','prepare-research/census-plan'))
+    def role_roster():
+        from .progressive_research_bindings import publish_roster
+        value=publish_roster(root,base/'roster',data,load(base/'research-round-design.json'),projected)
+        return value,[base/'roster/roster-summary.json',base/'roster/private/role-roster.json']
+    s.step('role-roster',role_roster,dependencies=('prepare-research/materials',))
     def sensitivity():
         # Original registered assumptions, not real panel/model outcomes.
         original=confined(root,data['donor_session']['path']).parent/'register-inputs/design/sensitivity-design.json'

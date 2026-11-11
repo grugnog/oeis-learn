@@ -108,6 +108,26 @@ def test_family_history_cannot_be_hidden_by_component_group(tmp_path):
             check_panel(tmp_path,c,indexes)
 
 
+def test_reserved_component_is_primary_without_losing_original_family_keys(tmp_path):
+    exposure=record('exposure',dict(previous=None,detector_limits=['exact'],events=[]),
+        created_at='2026-11-11T00:00:00Z',purpose='acceptance',track='synthetic_strict')
+    rows=[dict(id=f'member-{i}',role='development',group='reserved-component',declared_groups=[f'family-{i}'],
+               stratum='oeis',indices=list(map(str,range(100))),values=[str(i*1000+n) for n in range(100)])
+          for i in range(2)]
+    result=panels.cohort(tmp_path,tmp_path/'projection',rows,panel='development',role='development',
+        decision='capability',exposure=exposure,required=1,minimum_groups=1,purpose='acceptance',
+        created_at=exposure['created_at'])
+    projected=result['payload']['rows']
+    assert projected[0]['groups'][0]==projected[1]['groups'][0]=='0000000000000000:component:reserved-component'
+    for i,row in enumerate(projected):
+        assert {'reserved-component',f'family-{i}'}<=set(row['groups'])
+    rows[0]['declared_groups']=['0000000000000000:collision']
+    with pytest.raises(ValueError,match='namespace'):
+        panels.cohort(tmp_path,tmp_path/'collision',rows,panel='development',role='development',
+            decision='capability',exposure=exposure,required=1,minimum_groups=1,purpose='acceptance',
+            created_at=exposure['created_at'])
+
+
 def test_batch_publication_rejects_relations_before_first_channel(tmp_path):
     from tests.unit.test_progressive_cohorts import fixture
     a,e=fixture(tmp_path,panel='a')
