@@ -247,12 +247,25 @@ def host_inputs(root, monkeypatch):
 @pytest.mark.parametrize("change", ["none", "cpu", "stale", "missing", "timeout", "overspend"])
 @pytest.mark.parametrize('retirement',[False,True])
 def test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
-    tmp_path, monkeypatch, capsys, change, retirement
+    tmp_path, monkeypatch, capsys, change, retirement, measured_resources=False
 ):
     from oeis_learn.pipeline_validation import progressive_handoff as h
     from oeis_learn.pipeline_validation.progressive_commands import main
 
     host_inputs(tmp_path, monkeypatch)
+    if measured_resources:
+        from oeis_learn.pipeline_validation.progressive_research_resources import policy
+        atomic_write(tmp_path/'resource-policy.json',policy())
+        original=load(tmp_path/'preparation-plan.json')
+        original['payload']['references'].append(dict(name='research_resource_policy',kind='policy',role='custodian',
+            artifact=reference(tmp_path,'resource-policy.json')))
+        (tmp_path/'preparation-plan.json').write_text(json.dumps(original))
+        blueprint=load(tmp_path/'blueprint.json')
+        next(r for r in blueprint['payload']['references'] if r['name']=='preparation_plan')['artifact']=reference(tmp_path,'preparation-plan.json')
+        (tmp_path/'blueprint.json').write_text(json.dumps(seal(blueprint)))
+        # This fixture has no real original D checkpoint. Device and retained
+        # checkpoint measurement are explicit boundaries; replay/freeze is real.
+        monkeypatch.setattr('oeis_learn.generalization.progressive.storage.checkpoint_size',lambda *a,**kw:(32<<20,32))
     if retirement:
         from oeis_learn.pipeline_validation.progressive_calibration_storage import POLICY
         plan=seal(dict(load(tmp_path/'calibration-plan.json'),checkpoint_retention=POLICY))
@@ -343,6 +356,14 @@ def test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
         assert main(args, tmp_path, None) == 0
         c = load(tmp_path / "frozen/campaign.json")
         assert c["payload"]["storage"]["checkpoint_bytes"] >= 32 << 20
+        if measured_resources:
+            from oeis_learn.pipeline_validation.progressive_calibration import validate_prepared
+            resources=load(tmp_path/'out/resource-estimate.json')
+            assert resources['status']=='READY' and resources['storage_after_bytes']<resources['storage_before_bytes']
+            tampered=copy.deepcopy(p)
+            tampered['payload']['task_plans'][0]['caps']['disk_bytes']+=1
+            with pytest.raises(ValueError,match='downward-only'):
+                validate_prepared(tmp_path,load(tmp_path/'blueprint.json'),seal(tampered))
         if retirement:
             from oeis_learn.pipeline_validation.progressive_calibration import verify_result
             base=tmp_path/'out/calibration'
@@ -472,3 +493,8 @@ def test_full_registered_learning_domain_has_exact_calibration_cases(tmp_path):
     cases, bindings = selected_inputs(tmp_path, prepared)
     assert len(cases) == len(bindings) == 162
     assert {c['compatibility'] for c in cases} == {v['compatibility'] for v in choices}
+
+
+def test_canonical_resource_finalization_freeze_and_tamper_rejection(tmp_path,monkeypatch,capsys):
+    test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
+        tmp_path,monkeypatch,capsys,'none',False,measured_resources=True)

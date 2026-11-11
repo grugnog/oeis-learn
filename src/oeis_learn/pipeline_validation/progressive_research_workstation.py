@@ -91,11 +91,18 @@ def prepare(workflow):
             "from oeis_learn.pipeline_validation.progressive_research_sensitivity import main;main()",
             seconds=7200,outputs=('sensitivity.json',))
     measured=s.step('sensitivity',sensitivity,dependencies=('prepare-research/registered-data','prepare-research/image-qualification'))
+    def prerequisites():
+        if projected['status']!='COMPLETE' or measured['status']!='COMPLETE':
+            raise Blocked('Original support/panel and sensitivity evidence must be complete before HIP preparation')
+        return dict(status='COMPLETE'),[base/'materials/materials.json',base/'sensitivity/sensitivity.json']
+    ready=s.step('research-prerequisites',prerequisites,
+        dependencies=('prepare-research/role-roster','prepare-research/sensitivity'))
+    if ready:
+        from .progressive_research_launch import prepare as prepare_execution
+        prepare_execution(w,data,load(base/'research-round-design.json'),projected)
     def outcome():
         census_result=counted or seal(dict(version='progressive-research-census/v1',status='UNAVAILABLE',
                                           deficits=['native_census_not_completed']))
-        value=bridge.readiness(base,data,census_result,measured,projected)
-        # Persist the full deficit report even when a producer failed independently.
-        raise Blocked('Research preparation evidence collected; '+', '.join(value['deficits'])+
-                      '; retain private reservoirs and share prepare-research.zip')
+        from .progressive_research_launch import readiness
+        return readiness(w,data,census_result,measured,projected)
     s.step('readiness',outcome,dependencies=('prepare-research/registered-data',))

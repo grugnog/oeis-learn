@@ -475,3 +475,20 @@ def test_large_comparison_parts_preserve_original_bytes_and_bound_omissions():
     missing=[]
     assert assemble(omitted,[],missing)==[]
     assert missing==['comparison_omitted:'+comparison['id']]
+
+
+def test_large_finite_campaign_manifest_roundtrips_without_relaxing_table_limits(tmp_path):
+    from oeis_learn.generalization.progressive.report import MAX_PART,MAX_MANIFEST
+    request=fixture(tmp_path)
+    campaign=request['campaign_record']
+    # Finite domains add many legitimate references to a containing campaign.
+    # Individual public table parts retain their independent small bound.
+    template=campaign['payload']['references'][0]
+    campaign['payload']['references'].extend(dict(template,name='finite-'+str(i)+'x'*900) for i in range(5000))
+    campaign=seal(campaign)
+    request=seal(dict(request,campaign=campaign['identity'],campaign_record=campaign))
+    build(tmp_path,tmp_path/'large.zip',request)
+    with zipfile.ZipFile(tmp_path/'large.zip') as archive:
+        assert MAX_PART<archive.getinfo('manifest.json').file_size<MAX_MANIFEST
+        assert all(i.file_size<=MAX_PART for i in archive.infolist() if i.filename.startswith('tables/'))
+    assert verify(tmp_path/'large.zip')['status']=='VERIFIED'

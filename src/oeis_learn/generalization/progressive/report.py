@@ -4,11 +4,12 @@ import hashlib
 import json
 from pathlib import Path
 import zipfile
-from .contracts import digest, seal, verify_refs, _check, schema
+from .contracts import CAMPAIGN_DOCUMENT_BYTES, digest, seal, verify_refs, _check, schema
 
 KINDS = ("roster", "outcomes", "accounting", "ancestry", "qualifications", "observations", "comparisons", "authorities")
 MAX_BYTES = 512 << 20
 MAX_PART = 4 << 20
+MAX_MANIFEST = CAMPAIGN_DOCUMENT_BYTES + MAX_PART
 MAX_ROWS = 262144
 
 
@@ -263,7 +264,7 @@ def build(root, destination, request, *, max_bytes=MAX_BYTES):
     )
     validate_manifest(manifest)
     docs["manifest.json"] = encoded(manifest)
-    if len(docs["manifest.json"]) > MAX_PART:
+    if len(docs["manifest.json"]) > MAX_MANIFEST:
         raise ValueError("REPORT_INCOMPLETE: manifest cannot fit")
     if sum(map(len, docs.values())) > max_bytes:
         raise ValueError("REPORT_INCOMPLETE: metadata byte budget")

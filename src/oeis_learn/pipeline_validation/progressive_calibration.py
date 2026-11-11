@@ -39,6 +39,8 @@ def selected_inputs(root, prepared):
     }
     selected, bindings = {}, []
     originals = {}
+    base_scopes = {}
+    expanded = {}
     def original_json(ref, maximum=4<<20):
         # A verified immutable base is shared by finite policy alternatives;
         # materialize() changes only profile/update policy, not training rows.
@@ -55,7 +57,7 @@ def selected_inputs(root, prepared):
             request = original_json(policies[plan["policy"]])
             paths = request.get("artifacts", {}).get("training", [])
             if request.get('operation')=='train':
-                paths=[path for path in paths if isinstance(path,str) and path in channels and json.loads(verify_refs(root,[channels[path]['artifact']])[0]).get('kind')=='training_request']
+                paths=[path for path in paths if isinstance(path,str) and path in channels and original_json(channels[path]['artifact']).get('kind')=='training_request']
             if request.get('operation') in {'source-cycle','oeis-cycle'}:
                 frozen=json.loads(verify_refs(root,[reference(root,request['artifacts']['cycle'][0])],max_bytes=32<<20)[0])
                 paths=[e['channel'] for e in frozen['training'] if e['task']==plan['id']]
@@ -75,9 +77,18 @@ def selected_inputs(root, prepared):
                 raise ValueError("original prepared learner channel identity differs")
             _validate_channel("training_request", channel["data"])
             package = original_json(channel["data"]["artifact"],256<<20)
-            if compatibility(package) != channel["data"]["compatibility"]:
+            original_ref=channel['data']['artifact']
+            original_key=(original_ref['path'],original_ref['sha256'],original_ref['bytes'])
+            if original_key not in base_scopes:
+                base_scopes[original_key]=compatibility(package)
+            if base_scopes[original_key] != channel["data"]["compatibility"]:
                 raise ValueError("original prepared compatibility differs")
-            package = materialize(package, plan)
+            params=plan['trial_choices'][plan['trial_choice']]['parameters'] if 'trial_choice' in plan else None
+            variant_key=(original_key,plan['seed'],plan['initializer']['compatibility'],digest(params),
+                         plan.get('trial',{}).get('phase')=='confirmation')
+            if variant_key not in expanded:
+                expanded[variant_key]=materialize(package,plan)
+            package = expanded[variant_key]
             validate_input(
                 package,
                 {"purpose": prepared["purpose"], "track": prepared["track"], "payload": plan},
@@ -303,6 +314,12 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
     )
     from oeis_learn.generalization.progressive.trial_scopes import variants
 
+    from .progressive_research_resources import finalize
+    resources=finalize(root,payload,cases,producers)
+    if resources is not None:
+        atomic_write(output/'resource-estimate.json',resources)
+        payload['references'].append(dict(name='measured_research_resources',role='custodian',kind='source',
+            artifact=reference(root,output/'resource-estimate.json')))
     for task in payload["task_plans"]:
         for variant in variants(task):
             if variant["kind"] == "training":
@@ -443,6 +460,20 @@ def validate_prepared(root, blueprint, prepared):
     cases, _ = selected_inputs(root, prepared)
     if expected != {c["compatibility"] for c in cases}:
         raise ValueError("frozen calibration input inventory differs")
+    from .progressive_research_resources import finalize
+    reconstructed=copy.deepcopy(original['payload'])
+    resource_result=finalize(root,reconstructed,cases,producers)
+    if resource_result is not None:
+        resources=[r['artifact'] for r in prepared['payload']['references'] if r['name']=='measured_research_resources']
+        if len(resources)!=1 or json.loads(verify_refs(root,resources)[0])!=resource_result:
+            raise ValueError('original measured research resource finalization differs')
+        def without_iteration(value):
+            if isinstance(value,dict):return {k:without_iteration(v) for k,v in value.items() if k!='iteration_budget'}
+            if isinstance(value,list):return [without_iteration(v) for v in value]
+            return value
+        if any(without_iteration(prepared['payload'][key])!=without_iteration(reconstructed[key])
+               for key in ('task_plans','graph','caps','deficits')):
+            raise ValueError('research resources must follow the original downward-only rule')
     raw = verify_refs(root, [refs["iteration_calibration_cost"]], max_bytes=64 << 20)[0]
     events = [json.loads(line) for line in raw.splitlines()]
     if (

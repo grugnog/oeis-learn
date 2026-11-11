@@ -9,7 +9,7 @@ import random
 import stat
 import zipfile
 from .contracts import seal, digest
-from .report import MAX_BYTES, MAX_PART, KINDS, validate_manifest, validate_rows, validate_producer
+from .report import MAX_BYTES, MAX_PART, MAX_MANIFEST, KINDS, validate_manifest, validate_rows, validate_producer
 
 
 def _json(blob):
@@ -221,7 +221,7 @@ def verify(path, *, max_bytes=MAX_BYTES):
                 or i.flag_bits & 1
             ):
                 raise ValueError("unsafe ZIP entry")
-        if "manifest.json" not in names or z.getinfo("manifest.json").file_size > MAX_PART:
+        if "manifest.json" not in names or z.getinfo("manifest.json").file_size > MAX_MANIFEST:
             raise ValueError("bounded manifest required")
         m = validate_manifest(_json(z.read("manifest.json")))
         inventory = {r["path"]: r for r in m["inventory"]}

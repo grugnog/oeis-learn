@@ -64,6 +64,7 @@ def collect(root, folder, output):
     scope_record = None
     scopes = []
     cohorts = []
+    gates = []
     source = None
 
     def error(exc, producer):
@@ -98,7 +99,7 @@ def collect(root, folder, output):
         if ref["kind"] not in {"policy", "groups", "qualification"} and ref['artifact']['path'] not in cycle_paths:
             continue
         try:
-            value = json.loads(verify_refs(root, [ref["artifact"]], max_bytes=32 << 20)[0])
+            value = json.loads(verify_refs(root, [ref["artifact"]], max_bytes=CAMPAIGN_DOCUMENT_BYTES)[0])
             if not isinstance(value, dict):
                 continue
             if value.get("version") == "discovery-cohort/v1" or set(value) - {"primary"} == {
@@ -119,6 +120,7 @@ def collect(root, folder, output):
             if value.get('identity') == campaign['payload']['target_policy']:
                 tables['authorities'].append({'artifact':ref['artifact'],'raw':verify_refs(root,[ref['artifact']])[0].decode()})
             if value.get("version") == "progressive-gate-registration/v1":
+                gates.append(value)
                 tables['authorities'].append({'artifact': ref['artifact'], 'raw': verify_refs(root, [ref['artifact']])[0].decode()})
             if value.get("version") == "progressive-public-scope/v1":
                 scopes.append((ref["artifact"], value))
@@ -184,7 +186,10 @@ def collect(root, folder, output):
                 raise ValueError("ambiguous public task membership")
             merged[row["task"]] = row
     all_roster = list(merged.values())
-    candidates = [all_roster, *rosters]
+    by_panel={c['identity']:r for c,r in zip(cohorts,rosters)}
+    paired_rosters=[[row for panel in gate['panels'] for row in by_panel[panel]]
+                    for gate in gates if all(panel in by_panel for panel in gate['panels'])]
+    candidates = [all_roster, *rosters, *paired_rosters]
     if frozen:
         candidates = [r for r in candidates if digest(r) == frozen["roster"]]
     tables["roster"] = candidates[0] if candidates else []
@@ -214,7 +219,12 @@ def collect(root, folder, output):
     for template in campaign["payload"]["tasks"]:
         plan = store.resolved_plan(template) if store else template
         if plan is None:
-            continue
+            # A pruned/unselected task still owns an immutable cap and original
+            # journal debit (usually zero); include it without inventing a choice
+            # or a model result. The terminal disposition stays explicit.
+            plan=template
+            tables['observations'].append(dict(producer=campaign['identity'],data=dict(
+                task=identity(plan['id']),state=store.state['tasks'].get(plan['id'],'UNRESOLVED_CHOICE'))))
         task = identity(plan["id"])
         arm = arm_map.get(plan["arm"], "candidate")
         from oeis_learn.generalization.progressive.contracts import record

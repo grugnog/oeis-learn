@@ -128,7 +128,7 @@ class Compiler:
         finalization=1 if shared else 1800
         elapsed=row['seconds']*1000000
         caps=dict.fromkeys(KEYS,0)
-        caps.update(elapsed_us=elapsed,disk_bytes=(2*checkpoint_bytes+(128<<20)) if operation=='train' else checkpoint_bytes+(128<<20),
+        caps.update(elapsed_us=elapsed,disk_bytes=(2*checkpoint_bytes+(128<<20)) if operation=='train' else (checkpoint_bytes if operation=='generate' else 0)+(128<<20),
                     archive_bytes=16<<20)
         if operation=='train':
             target=row['token_target'];before=0 if row['parent'] is None else (1000000 if target==2000000 else 2000000)
@@ -228,6 +228,8 @@ def compile_plan(root,output,data,design,materials,*,qualification,checkpoint_by
         dict(name='source',role='custodian',kind='source',artifact=reference(root,checked_file(c.qroot,c.q['source_closure']))),
         dict(name='exposure',role='custodian',kind='groups',artifact=materials['exposure'])])
     c.put('images.json',dict(version='discovery-images/v1',images=c.q['images']),kind='image')
+    from .progressive_research_resources import policy as resource_policy
+    c.put('research_resource_policy.json',resource_policy(),kind='policy')
     panelrefs={x['panel']:x['cohort'] for x in materials['panels']}
     visible={};truth={}
     for name,panel in bound['panels'].items():
@@ -281,6 +283,14 @@ def compile_plan(root,output,data,design,materials,*,qualification,checkpoint_by
             if row['id'].startswith('confirmation-baseline-'):position=int(row['id'].split('-')[2])
             slot_of[row['id']]=f'tuning-confirmation-{position}'
     comparison_by_id={r['id']:r for r in roster['comparisons']}
+    from .progressive_report_collect import identity as public_identity
+    from oeis_learn.generalization.progressive.report import KINDS
+    qualification_producers={}
+    for ref in c.q.get('producer',{}).get('artifacts',[]):
+        if ref['path'].endswith('.json') and ref['bytes']<=4<<20:
+            value=_json(checked_file(c.qroot,ref))
+            if isinstance(value,dict) and value.get('version')=='progressive-hip-case/v1':
+                qualification_producers[value['scope']]=value['identity']
     profile_channels={}
     def profile_channel(seed,trajectory):
         key=(seed,trajectory)
@@ -355,6 +365,15 @@ def compile_plan(root,output,data,design,materials,*,qualification,checkpoint_by
                 design=digest(comparison_designs[row['id']]),producers=registered))
             c.put('comparisons/'+row['id']+'-gate.json',gate,kind='policy',role='verifier')
             c.put('comparisons/'+row['id']+'-design.json',comparison_designs[row['id']],kind='policy',role='verifier')
+            public_roster=[dict(r,task=public_identity(r['task']),group=public_identity(r['group'])) for r in comparison_roster]
+            public_scope=seal(dict(version='progressive-public-scope/v1',
+                source=digest(_json(checked_file(c.qroot,c.q['source_closure']),maximum=64<<20)),
+                scope=dict(required=list(KINDS),qualification_scopes=sorted(qualification_producers),
+                           tasks=[public_identity(r['id']) for r in allrows]),
+                seeds=design['seeds'],design=comparison_designs[row['id']],roster=digest(public_roster),
+                qualification_producers=qualification_producers,comparison=gate['identity']))
+            name='public-scope' if row['id']=='diversity-comparison' else 'public-scope-'+row['id']
+            c.put(name+'.json',public_scope,kind='policy',role='verifier')
             template=dict(version='progressive-decision-template/v1',source_slot=slot_of[row['id']],target_slot=target_slot,
                 roster=comparison_roster,seeds=design['seeds'],design=comparison_designs[row['id']],policy=targets,
                 remaining={},kwargs=dict(target_id='gain',action='RETAIN_BASELINE'),producers=producers)
@@ -420,7 +439,7 @@ def finish_plan(c,bound,study,targetref,state,checkpoint_root,*,data,design,mate
     blueprint=record('blueprint',dict(executable=False,selected_stages=graph['selected_stages'],
         references=[dict(name='preparation_plan',role='custodian',kind='policy',artifact=preparation_ref),
                     dict(name='iteration_calibration_plan',role='custodian',kind='policy',artifact=calibration_ref)],
-        unresolved=[],proposed_caps=proposed,reference_campaign=str(c.output.relative_to(c.root))),
+        unresolved=['measured_evaluation_feasibility'],proposed_caps=proposed,reference_campaign=str(c.output.relative_to(c.root))),
         created_at=c.created_at,purpose='research',track='synthetic_strict')
     c.put('blueprint.json',blueprint)
     summary=seal(dict(version='progressive-research-construction/v1',status='COMPLETE',executable=False,
@@ -435,8 +454,27 @@ def finish_plan(c,bound,study,targetref,state,checkpoint_root,*,data,design,mate
     return summary
 
 
-def build(root,output,data,design,materials,*,qualification,checkpoint_bytes=8<<30):
+def build(root,output,data,design,materials,*,qualification,checkpoint_bytes=8<<30,execution_contract=None):
     if type(checkpoint_bytes) is not int or not 0<checkpoint_bytes<=64<<30:
         raise ValueError('finite prospective checkpoint storage ceiling required')
     args=compile_plan(root,output,data,design,materials,qualification=qualification,checkpoint_bytes=checkpoint_bytes)
+    if execution_contract is not None:
+        contract=load(execution_contract)
+        req,roster=[_json(checked_file(root,contract[k])) for k in ('request','roster')]
+        if (roster!=args[1]['roster'] or req['support']!=args[1]['support']['identity']
+                or req['qualification']!=args[0].qref):
+            raise ValueError('measured evaluation must bind this exact original research roster and support')
+        args[0].refs.append(dict(name='measured_evaluation_feasibility',kind='policy',role='custodian',
+                                artifact=reference(root,execution_contract)))
     return finish_plan(*args,data=data,design=design,materials=materials)
+
+
+def main():
+    import argparse
+    p=argparse.ArgumentParser(description=__doc__)
+    for name in ('root','output','data','design','materials','qualification','execution-contract'):
+        p.add_argument('--'+name,required=True)
+    args=p.parse_args();root=Path(args.root)
+    build(root,confined(root,args.output,exists=False),load(confined(root,args.data)),
+        load(confined(root,args.design)),load(confined(root,args.materials)),
+        qualification=confined(root,args.qualification),execution_contract=confined(root,args.execution_contract))

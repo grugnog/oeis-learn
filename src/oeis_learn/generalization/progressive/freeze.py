@@ -7,7 +7,7 @@ from pathlib import Path
 from oeis_learn.pipeline_validation.identity import confined
 
 from .campaign import validate_campaign, validate_runtime, validate_task
-from .contracts import digest, load, record, reference, validate, verify_refs
+from .contracts import CAMPAIGN_DOCUMENT_BYTES, digest, load, record, reference, validate, verify_refs
 from .targets import validate_policy
 
 
@@ -183,6 +183,11 @@ def freeze(
     if reference(root, qual_root / "qualification.json") not in runtime["payload"]["qualification"]:
         raise ValueError("qualification producer route differs")
     validate_runtime(runtime, root=root, current_facts=facts)
+    execution_contracts=[r['artifact'] for r in refs if r['name']=='measured_evaluation_feasibility']
+    if execution_contracts:
+        from oeis_learn.pipeline_validation.progressive_research_feasibility import verify_contract
+        if len(execution_contracts)!=1:raise ValueError('one research execution contract required')
+        verify_contract(root,execution_contracts[0],runtime)
     policy = json.loads(verify_refs(root, [q["target_policy"]])[0])
     validate_policy(policy)
     if not policy["payload"]["selected"]:
@@ -356,7 +361,7 @@ def freeze(
     for item in refs:
         if item["kind"] != "policy":
             continue
-        request = load(confined(root, item["artifact"]["path"]))
+        request = load(confined(root, item["artifact"]["path"]),maximum=CAMPAIGN_DOCUMENT_BYTES)
         if request.get("operation") == "oeis-cycle":
             from oeis_learn.pipeline_validation.progressive_oeis import validate_cycle
 
@@ -402,49 +407,64 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
     from oeis_learn.fresh.bigint_config import resolve
 
     learner_packages = []
+    packages_by_scope = {}
+    plans_by_scope = {}
+    targets_by_channel = {}
+    policies={r['artifact']['sha256']:r['artifact'] for r in refs if r['kind']=='policy'}
+    requests={}
+    for plan in task_plans:
+        plans_by_scope.setdefault(plan['initializer']['compatibility'],[]).append(plan)
+        if plan['kind']!='training' or plan['policy'] not in policies:
+            continue
+        if plan['policy'] not in requests:
+            requests[plan['policy']]=json.loads(verify_refs(root,[policies[plan['policy']]])[0])
+        request=requests[plan['policy']]
+        if request.get('operation')=='train':
+            for path in request.get('artifacts',{}).get('training',[]):
+                if isinstance(path,str):targets_by_channel.setdefault(path,[]).append(plan)
     for item in grouped.get("prepared", []):
         envelope = load(confined(root, item["artifact"]["path"]), maximum=256 << 20)
-        if (
-            envelope.get("version") == "discovery-channel/v1"
-            and envelope.get("kind") == "training_request"
-        ):
+        if (envelope.get("version") == "discovery-channel/v1"
+                and envelope.get("kind") == "training_request"):
             from oeis_learn.pipeline_validation.identity import seal
-            from oeis_learn.pipeline_validation.progressive_learner import (
-                compatibility,
-                validate_input,
-            )
-
+            from oeis_learn.pipeline_validation.progressive_learner import compatibility, validate_input
             from .projections import _validate_channel
-
-            if (
-                seal(envelope) != envelope
-                or envelope.get("role") != "learner"
-                or item["role"] != "learner"
-            ):
-                raise ValueError("frozen training request role/identity differs")
-            data = envelope["data"]
-            _validate_channel("training_request", data)
-            raw = verify_refs(root, [data["artifact"]], max_bytes=256 << 20)[0]
-            package = json.loads(raw)
-            if data['compatibility']!=compatibility(package):raise ValueError('declared training compatibility differs')
             from .trial_scopes import materialize
-            policies={r['artifact']['sha256']:r['artifact'] for r in refs if r['kind']=='policy'}
-            targets=[]
-            for plan in task_plans:
-                if plan['kind']!='training':continue
-                ref=policies.get(plan['policy'])
-                if ref is None:continue
-                request=json.loads(verify_refs(root,[ref])[0])
-                if request.get('operation')=='train' and item['artifact']['path'] in request.get('artifacts',{}).get('training',[]):targets.append(plan)
-            candidates=[materialize(package,plan) for plan in targets] or [package]
-            for expanded in {p['identity']:p for p in candidates}.values():
-                validate_input(expanded,{'purpose':runtime['purpose'],'track':track,'payload':{'arm':next((p['arm'] for p in task_plans if p['initializer']['compatibility']==compatibility(expanded)),'without_source'),'seed':expanded['profile']['model']['seed'],'initializer':dict(compatibility=compatibility(expanded),mode='full_state' if 'full_state' in expanded else 'weights_only' if 'weights' in expanded else 'random',artifact=expanded.get('weights',expanded.get('full_state',{}).get('artifact')))}},allow_pending=True)
-                from .supply import plan as supply_plan
-                for task_plan in targets:
-                    if task_plan['initializer']['compatibility']==compatibility(expanded):
-                        try:supply_plan(expanded,task_plan['token_target'],arm=task_plan['arm'])
-                        except ValueError as exc:raise IncompleteFreeze([str(exc)]) from exc
+            from .supply import plan as supply_plan
+            if seal(envelope)!=envelope or envelope.get('role')!='learner' or item['role']!='learner':
+                raise ValueError('frozen training request role/identity differs')
+            data=envelope['data']
+            _validate_channel('training_request',data)
+            package=json.loads(verify_refs(root,[data['artifact']],max_bytes=256<<20)[0])
+            if data['compatibility']!=compatibility(package):
+                raise ValueError('declared training compatibility differs')
+            targets=targets_by_channel.get(item['artifact']['path'],[])
+            # The same finite law occurs at every look. Expand each exact
+            # seed/law once, without rereading or rehashing all other tasks.
+            expanded_by_key={}
+            for plan in targets:
+                params=plan['trial_choices'][plan['trial_choice']]['parameters'] if 'trial_choice' in plan else None
+                key=(plan['seed'],plan['initializer']['compatibility'],digest(params),
+                     plan.get('trial',{}).get('phase')=='confirmation')
+                if key not in expanded_by_key:
+                    expanded_by_key[key]=materialize(package,plan)
+            candidates=list(expanded_by_key.values()) or [package]
+            for expanded in candidates:
+                key=compatibility(expanded)
+                matched=plans_by_scope.get(key,[])
+                validate_input(expanded,{'purpose':runtime['purpose'],'track':track,
+                    'payload':{'arm':matched[0]['arm'] if matched else 'without_source',
+                        'seed':expanded['profile']['model']['seed'],
+                        'initializer':dict(compatibility=key,mode='full_state' if 'full_state' in expanded
+                            else 'weights_only' if 'weights' in expanded else 'random',
+                            artifact=expanded.get('weights',expanded.get('full_state',{}).get('artifact')))}},
+                    allow_pending=True)
+                for target,arm in {(p['token_target'],p['arm']) for p in targets
+                                   if p['initializer']['compatibility']==key}:
+                    try:supply_plan(expanded,target,arm=arm)
+                    except ValueError as exc:raise IncompleteFreeze([str(exc)]) from exc
                 learner_packages.append(expanded)
+                packages_by_scope[key]=expanded
     recipes = []
     for item in grouped["recipe"]:
         recipe = load(confined(root, item["artifact"]["path"]))
@@ -461,9 +481,16 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
             if learner_packages
             else {model}
         )
-        for package in learner_packages:
-            matched=[p for p in task_plans if p['initializer']['compatibility']==compatibility(package)]
-            scopes=[trial_runtime(root,p,runtime)['payload']['scope'] for p in matched] or [scope]
+        runtime_scopes={}
+        for key,package in packages_by_scope.items():
+            matched=plans_by_scope.get(key,[])
+            scopes=[]
+            for plan in matched:
+                selected=plan.get('trial_runtime',{}).get('sha256',runtime['identity'])
+                if selected not in runtime_scopes:
+                    runtime_scopes[selected]=trial_runtime(root,plan,runtime)['payload']['scope']
+                scopes.append(runtime_scopes[selected])
+            scopes=scopes or [scope]
             model_id=digest({k:v for k,v in package['profile']['model'].items() if k!='seed'})
             if any(model_id!=candidate['model'] or candidate['language']!=scope['language'] or candidate['source']!=scope['source'] for candidate in scopes):
                 raise ValueError('per-trial model/update qualification differs')
@@ -499,7 +526,7 @@ def _scope_inputs(root, refs, runtime, *, qualification_root, checkpoint, target
     if len(recipes) != 1:
         raise ValueError("one resolved initial recipe required")
     if learner_packages:
-        identities = {compatibility(p) for p in learner_packages}
+        identities = set(packages_by_scope)
         return identities
     return {learning_compatibility(recipes[0], refs, scope, track)}
 

@@ -15,7 +15,7 @@ from oeis_learn.generalization.progressive.contracts import (
 
 @pytest.mark.parametrize("status", ["COMPLETE", "PARTIAL", "FAILED"])
 def test_run_report_verify_collects_owned_scores_and_resource_journal(
-    tmp_path, monkeypatch, capsys, status
+    tmp_path, monkeypatch, capsys, status, paired=False
 ):
     from oeis_learn.pipeline_validation import progressive_roles as roles
     from oeis_learn.pipeline_validation.progressive_commands import main
@@ -104,6 +104,26 @@ def test_run_report_verify_collects_owned_scores_and_resource_journal(
             "artifact": reference(tmp_path, "panel.json"),
         }
     )
+    if paired:
+        first=copy.deepcopy(panel);second=copy.deepcopy(panel);unrelated=copy.deepcopy(panel)
+        # Two prospective source panels and an unrelated development panel.
+        # The primary scope is their ordered union, not every published cohort.
+        first['payload']['rows']=panel['payload']['rows'][:1]
+        second['payload']['rows']=[dict(template,id=digest('retention'),groups=[digest('retention-group')],stratum='retention')]
+        unrelated['payload']['rows']=[dict(template,id=digest('unrelated'),groups=[digest('unrelated-group')])]
+        first,second,unrelated=map(seal,(first,second,unrelated))
+        roster=[roster[0],dict(task=digest('retention'),group=digest('retention-group'),stratum='retention')]
+        scope['roster']=digest(roster)
+        atomic_write(tmp_path/'paired-scope.json',seal(scope))
+        next(r for r in c['payload']['references'] if r['name']=='public-scope')['artifact']=reference(tmp_path,'paired-scope.json')
+        c['payload']['references']=[r for r in c['payload']['references'] if r['name']!='public-panel']
+        for name,value in [('primary',first),('retention',second),('unrelated',unrelated)]:
+            atomic_write(tmp_path/(name+'.json'),value)
+            c['payload']['references'].append(dict(name=name,role='custodian',kind='groups',artifact=reference(tmp_path,name+'.json')))
+        gate=seal(dict(version='progressive-gate-registration/v1',panels=[first['identity'],second['identity']],
+            source_slot='capability',target_slot='diversity',seeds=[1,2],design=digest(scope['design']),producers=[]))
+        atomic_write(tmp_path/'paired-gate.json',gate)
+        c['payload']['references'].append(dict(name='paired-gate',role='verifier',kind='policy',artifact=reference(tmp_path,'paired-gate.json')))
     req = {
         "operation": "score",
         "artifacts": {"candidates": [], "score_truth": []},
@@ -203,12 +223,18 @@ def test_run_report_verify_collects_owned_scores_and_resource_journal(
         lambda a: object(),
     ) in {0, 1, 2}
     capsys.readouterr()
+    if paired:
+        # Explicit unresolved finite-choice boundary: accounting must retain the
+        # original immutable task cap and debit, without inventing a selection.
+        monkeypatch.setattr('oeis_learn.generalization.progressive.lifecycle.RunStore.resolved_plan',lambda *a:None)
     assert (
         main(SimpleNamespace(operation="report", run="run", output="report.zip"), tmp_path, None)
         == 0
     )
     capsys.readouterr()
     manifest = load(tmp_path / "report.zip.metadata/public-report.json")
+    if paired:
+        assert load(tmp_path/manifest['tables']['roster'][0]['path'])==roster
     assert manifest["campaign_record"] == c
     assert manifest["tables"]["accounting"]
     qualifications = load(tmp_path / manifest["tables"]["qualifications"][0]["path"])
@@ -248,3 +274,7 @@ def test_run_report_verify_collects_owned_scores_and_resource_journal(
         build(tmp_path, tmp_path / "altered.zip", seal(manifest))
         with pytest.raises(ValueError, match="resource accounting"):
             verify(tmp_path / "altered.zip")
+
+
+def test_combined_primary_retention_scope_and_unselected_accounting(tmp_path,monkeypatch,capsys):
+    test_run_report_verify_collects_owned_scores_and_resource_journal(tmp_path,monkeypatch,capsys,'PARTIAL',paired=True)
