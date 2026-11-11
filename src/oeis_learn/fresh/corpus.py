@@ -22,6 +22,11 @@ from .common import confined, digest, file_hash, lock, read, write
 BFILES = 'files/**/b*.txt'
 VERSION = 'oeis-corpus/v1'
 PROCESSOR = 'indexed-corpus-entry/v1'
+VERIFICATION = 'sha256-content-bounded-actual-size/v2'
+
+
+class SourceDisagreement(ValueError):
+    """Hash-verified source records disagree; exclude, never choose a winner."""
 
 
 def configuration(value):
@@ -276,13 +281,17 @@ def inspect_bfile(path, row, offset, runner):
     """Hash and validate all terms in one streaming pass; retain 120 indexed terms."""
     h, values, previous, count = hashlib.sha256(), {}, None, 0
     before = stamp(path)
-    if before[2] > row['bytes']:
-        raise ValueError('b-file exceeds declared byte allowance')
+    if before[2] > runner.config['max_source_bytes']:
+        raise ValueError('b-file exceeds reserved actual source byte allowance')
     malformed = None
+    consumed = 0
     with path.open('rb') as stream:
         for chunk, raw in enumerate(iter(lambda: stream.readline(16385), b'')):
             if chunk % 4096 == 0:
                 runner.remaining()
+            consumed += len(raw)
+            if consumed > before[2]:
+                raise ValueError('b-file grew while reading')
             h.update(raw)
             if len(raw) > 16384:
                 malformed = 'oversized b-file line'
@@ -319,9 +328,13 @@ def process(db, media, cache, runner):
     db.execute('CREATE TABLE IF NOT EXISTS verified_objects(oid TEXT PRIMARY KEY, fingerprint TEXT)')
     projection_bytes = sum(json.loads(r[0]).get('projection_bytes', 0)
                            for r in db.execute('SELECT result FROM processed'))
+    reused = 0
     for ordinal, row in enumerate(db.execute('SELECT * FROM entries ORDER BY aid')):
         runner.remaining()
         aid, meta, main = row['aid'], json.loads(row['metadata']), json.loads(row['main_terms'])
+        if ordinal % 1000 == 0:
+            print(f'Corpus scan: {ordinal + 1}; reused {reused}; latest {aid}', flush=True)
+            resource_floor(cache, runner.config)
         source = db.execute('SELECT * FROM objects WHERE path=?',
                             (f'files/{aid[:4]}/b{aid[1:]}.txt',)).fetchone()
         raw = ((cache / 'git-bfiles' / source['oid']) if source['storage'] == 'git'
@@ -329,14 +342,21 @@ def process(db, media, cache, runner):
         current_stamp = stamp(raw) if raw and raw.exists() else None
         signature = digest([PROCESSOR, row['entry_oid'], dict(source) if source else None, current_stamp])
         old = db.execute('SELECT signature,result FROM processed WHERE aid=?', (aid,)).fetchone()
-        if old and old['signature'] == signature:
+        if old:
             prior = json.loads(old['result'])
+            if prior['status'] == 'BLOCKED':
+                # Keep the original cause after the current summary is repaired.
+                with (runner.logs / 'prior-blocked-members.jsonl').open('a') as stream:
+                    stream.write(json.dumps({k: v for k, v in prior.items()
+                                             if k not in {'values', 'indices'}}) + '\n')
+        if old and old['signature'] == signature:
             if prior['status'] != 'BLOCKED':
                 # Published projections are cheap to hash; raw multi-GB b-files
                 # need no repeated parsing when their exact stat identity holds.
                 for ref in prior.get('projections', {}).values():
                     if file_hash(confined(cache, ref['path'])) != ref['sha256']:
                         raise ValueError('published corpus projection changed: ' + aid)
+                reused += 1
                 continue
         result = dict(aid=aid, status='PROCESSED', reasons=[], metadata=meta,
                       entry_oid=row['entry_oid'], bfile=dict(source) if source else None,
@@ -358,6 +378,8 @@ def process(db, media, cache, runner):
                 if source['error'] or not current_stamp:
                     raise ValueError(source['error'] or 'missing pinned b-file object')
                 bvalues, count, malformed, verified_stamp = inspect_bfile(raw, source, meta.get('offset'), runner)
+                if verified_stamp[2] != source['bytes']:
+                    result['warnings'] = ['declared_size_mismatch_hash_verified']
                 with db:
                     db.execute('INSERT OR REPLACE INTO verified_objects VALUES (?,?)',
                                (source['oid'], json.dumps(verified_stamp)))
@@ -366,8 +388,10 @@ def process(db, media, cache, runner):
                     result['reasons'].append(malformed)
                     values = {}
                 else:
-                    if any(i in values and values[i] != v for i, v in bvalues.items()):
-                        raise ValueError('b-file/main-entry value disagreement')
+                    conflicts = [i for i, v in bvalues.items() if i in values and values[i] != v]
+                    if conflicts:
+                        result['conflict'] = dict(count=len(conflicts), first_index=str(min(conflicts)))
+                        raise SourceDisagreement('b-file/main-entry value disagreement')
                     # Do not bridge gaps in a supplied b-file with main-entry terms.
                     values = bvalues
             else:
@@ -398,50 +422,103 @@ def process(db, media, cache, runner):
                 projection_bytes += required
                 result['projections'] = dict(terms=dict(path=terms, sha256=file_hash(cache / terms)),
                                             metadata=dict(path=metadata, sha256=file_hash(cache / metadata)))
+        except SourceDisagreement as exc:
+            result.update(status='EXCLUDED', eligible100=False)
+            result['reasons'].append(str(exc))
         except (ValueError, OSError, UnicodeError) as exc:
             result.update(status='BLOCKED', eligible100=False, error=str(exc))
         with db:
             db.execute('INSERT OR REPLACE INTO processed VALUES (?,?,?)',
                        (aid, signature, json.dumps(result)))
-        if ordinal % 1000 == 0:
-            print(f'Corpus processed: {ordinal + 1}; latest {aid}', flush=True)
-            resource_floor(cache, runner.config)
 
 
 
 def verify_objects(db, media, cache, runner):
     """Account for every selected object, including auxiliary/orphan b-files."""
     failures = 0
+    warnings = Counter()
     path = cache / 'diagnostics/object-outcomes.jsonl'
+    if path.exists():
+        with path.open() as previous, (runner.logs / 'prior-object-failures.jsonl').open('w') as saved:
+            for ordinal, line in enumerate(previous):
+                runner.remaining()
+                try:
+                    prior = json.loads(line)
+                except json.JSONDecodeError:
+                    # A killed writer can leave an unfinished diagnostic line.
+                    # This is not source evidence; verify the actual object anew.
+                    saved.write(json.dumps(dict(status='INCOMPLETE_DIAGNOSTIC_LINE', line=ordinal + 1)) + '\n')
+                    continue
+                if prior.get('status') == 'BLOCKED':
+                    saved.write(line)
     with path.open('w') as out:
-        for row in db.execute('SELECT * FROM objects ORDER BY path'):
+        for ordinal, row in enumerate(db.execute('SELECT * FROM objects ORDER BY path')):
             runner.remaining()
+            if ordinal % 10000 == 0:
+                print(f'Corpus object verification: {ordinal + 1}; blocked {failures}', flush=True)
             outcome = dict(row)
             try:
                 if row['error']:
                     raise ValueError(row['error'])
                 raw = cache / 'git-bfiles' / row['oid'] if row['storage'] == 'git' else object_path(media, row['oid'])
                 before = stamp(raw)
-                if before[2] > row['bytes']:
-                    raise ValueError('object exceeds declared size')
+                outcome['actual_bytes'] = before[2]
+                if before[2] > runner.config['max_source_bytes']:
+                    raise ValueError('object exceeds reserved actual source byte allowance')
                 verified = db.execute('SELECT fingerprint FROM verified_objects WHERE oid=?', (row['oid'],)).fetchone()
                 if not verified or json.loads(verified[0]) != before:
                     h = hashlib.sha256()
+                    consumed = 0
                     with raw.open('rb') as stream:
                         for block in iter(lambda: stream.read(1 << 20), b''):
                             runner.remaining()
+                            consumed += len(block)
+                            if consumed > before[2]:
+                                raise ValueError('object grew while reading')
                             h.update(block)
+                    outcome['sha256'] = 'sha256:' + h.hexdigest()
                     if h.hexdigest() != row['oid'] or stamp(raw) != before:
                         raise ValueError('object differs from pinned hash')
                     with db:
                         db.execute('INSERT OR REPLACE INTO verified_objects VALUES (?,?)',
                                    (row['oid'], json.dumps(before)))
-                outcome.update(status='VERIFIED', actual_bytes=before[2])
+                outcome.update(status='VERIFIED', sha256='sha256:' + row['oid'])
+                if before[2] != row['bytes']:
+                    outcome['warnings'] = ['declared_size_mismatch_hash_verified']
+                    warnings.update(outcome['warnings'])
             except (ValueError, OSError) as exc:
                 failures += 1
                 outcome.update(status='BLOCKED', reason=str(exc))
             out.write(json.dumps(outcome, sort_keys=True) + '\n')
-    return failures
+    return dict(failures=failures, warnings=dict(warnings), policy=VERIFICATION)
+
+
+def source_budget(db, media, cache, runner):
+    """Reserve actual retained bytes too: a pointer's size is not authoritative.
+
+    Count per path, conservatively including shared objects more than once,
+    matching the original declared-byte reservation. No content reads here.
+    """
+    actual = declared = missing = 0
+    for ordinal, row in enumerate(db.execute('SELECT * FROM objects')):
+        runner.remaining()
+        if ordinal % 10000 == 0:
+            print(f'Corpus size preflight: {ordinal + 1}; actual bytes {actual}', flush=True)
+        declared += row['bytes']
+        if not row['oid']:
+            continue
+        raw = cache / 'git-bfiles' / row['oid'] if row['storage'] == 'git' else object_path(media, row['oid'])
+        if raw.exists():
+            actual += stamp(raw)[2]
+        else:
+            missing += 1
+    result = dict(actual_bytes=actual, declared_bytes=declared, missing_objects=missing,
+                  limit=runner.config['max_source_bytes'], policy=VERIFICATION)
+    write(cache / 'diagnostics/source-budget.json', result)
+    write(runner.logs / 'source-budget.json', result)
+    if actual > runner.config['max_source_bytes']:
+        raise ValueError('actual source bytes exceed reservation; increase reserved source allowance')
+    return result
 
 def resource_floor(cache, config, *, required=0, inodes=0):
     if shutil.disk_usage(cache).free < config['free_disk_floor_bytes'] + required:
@@ -450,7 +527,7 @@ def resource_floor(cache, config, *, required=0, inodes=0):
         raise OSError('corpus inode reserve insufficient; cache retained')
 
 
-def summarize(db, cache, pin, *, fetch_error=None):
+def summarize(db, cache, pin, *, fetch_error=None, objects=None):
     counts, reasons, records = Counter(), Counter(), []
     db.row_factory = sqlite3.Row
     target = cache / 'diagnostics/member-outcomes.jsonl'
@@ -466,10 +543,14 @@ def summarize(db, cache, pin, *, fetch_error=None):
                 refs = {key: dict(ref, path=str(Path(ref['path']).relative_to('indexed')))
                         for key, ref in result['projections'].items()}
                 records.append(dict(record_id='OEIS:' + result['aid'], **refs))
-    complete = not fetch_error and not counts['PENDING'] and not counts['BLOCKED']
+    complete = objects is not None and not objects['failures'] and not fetch_error and not counts['PENDING'] and not counts['BLOCKED']
     report = dict(version='oeis-corpus-result/v1', snapshot=pin,
                   status='COMPLETE' if complete else 'PARTIAL', counts=dict(counts),
                   reasons=dict(reasons), fetch_error=fetch_error,
+                  verification_policy=VERIFICATION,
+                  object_warnings=objects['warnings'] if objects else {},
+                  objects_verified=objects is not None and not objects['failures'],
+                  completion_scope='full inventory accounted for; EXCLUDED entries never enter indexed training sources',
                   membership='UNASSIGNED; no training or evaluation authority',
                   license='CC BY-SA 4.0; OEIS Foundation', qualified=False,
                   inventory=dict(path='inventory.sqlite', bytes=(cache / 'inventory.sqlite').stat().st_size,
@@ -525,12 +606,19 @@ def prepare(root, config):
                                 '--include=' + BFILES, '--exclude=', 'origin', pin['commit']], retry=True)
             except (ValueError, RuntimeError, OSError, TimeoutError) as exc:
                 fetch_error = f'{type(exc).__name__}: {exc}'
+            objects = None
             try:
-                process(db, media, cache, runner)
-                object_failures = verify_objects(db, media, cache, runner)
-                if object_failures:
-                    fetch_error = fetch_error or f'{object_failures} pinned b-file objects unavailable or invalid'
+                db.row_factory = sqlite3.Row
+                try:
+                    source_budget(db, media, cache, runner)
+                except (ValueError, OSError) as exc:
+                    fetch_error = fetch_error or f'{type(exc).__name__}: {exc}'
+                else:
+                    process(db, media, cache, runner)
+                    objects = verify_objects(db, media, cache, runner)
+                    if objects['failures']:
+                        fetch_error = fetch_error or f"{objects['failures']} pinned b-file objects unavailable or invalid"
             finally:
-                report = summarize(db, cache, pin, fetch_error=fetch_error)
+                report = summarize(db, cache, pin, fetch_error=fetch_error, objects=objects)
                 write(runner.logs / 'result.json', dict(report, elapsed_seconds=time.monotonic() - runner.started))
             return report

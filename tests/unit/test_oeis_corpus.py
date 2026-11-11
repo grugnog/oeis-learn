@@ -133,6 +133,8 @@ def test_missing_object_continues_independent_entries_and_later_resumes(tmp_path
     monkeypatch.setattr(corpus, 'inspect_bfile', inspected_once)
     assert corpus.prepare(tmp_path, config())['status'] == 'COMPLETE'
     assert inspected == [oid]
+    retained = list((tmp_path / 'corpus/diagnostics').glob('attempt-*/prior-object-failures.jsonl'))
+    assert any(oid in p.read_text() for p in retained)
 
 
 def test_declared_budget_blocks_fetch_without_dropping_inventory(tmp_path, upstream, monkeypatch):
@@ -311,3 +313,97 @@ def test_worker_preserves_each_failure_traceback_across_retries(tmp_path, monkey
     failures = list((tmp_path / 'corpus/diagnostics').glob('worker-*/failure.json'))
     assert len(failures) == 2
     assert all('original input failure' in read(p)['traceback'] for p in failures)
+
+
+def test_wrong_declared_sizes_resume_without_refetch_or_reparse(tmp_path, upstream, monkeypatch):
+    """Reproduce a legacy partial inventory while retaining genuine fetched objects."""
+    corpus.prepare(tmp_path, config())
+    before = results(tmp_path)
+    cache = tmp_path / 'corpus'
+    # Controlled stale-pointer fixture: only these old BLOCKED rows need repair.
+    with sqlite3.connect(cache / 'inventory.sqlite') as db:
+        for aid, delta in [('A000001', -100), ('A000006', 100)]:
+            db.execute('UPDATE objects SET bytes=bytes+? WHERE path=?',
+                       (delta, f'files/{aid[:4]}/b{aid[1:]}.txt'))
+            legacy = dict(before[aid], status='BLOCKED', eligible100=False,
+                          error='b-file exceeds declared byte allowance')
+            legacy.pop('projection_bytes', None); legacy.pop('projections', None)
+            db.execute('UPDATE processed SET result=? WHERE aid=?', (json.dumps(legacy), aid))
+    real, seen = corpus.inspect_bfile, []
+    def inspect(path, *args):
+        seen.append(path.name)
+        return real(path, *args)
+    monkeypatch.setattr(corpus, 'inspect_bfile', inspect)
+    def no_transfer(*args, **kwargs):
+        pytest.fail('refetched retained source')
+    monkeypatch.setattr(corpus.Runner, 'run', no_transfer)
+    report = corpus.prepare(tmp_path, config())
+    assert report['status'] == 'COMPLETE'
+    assert set(seen) == {before[a]['bfile']['oid'] for a in ('A000001','A000006')}
+    repaired = results(tmp_path)
+    for aid in ('A000001', 'A000006'):
+        assert repaired[aid]['eligible100']
+        assert repaired[aid]['projections'] == before[aid]['projections']
+        assert repaired[aid]['warnings'] == ['declared_size_mismatch_hash_verified']
+    assert report['object_warnings']['declared_size_mismatch_hash_verified'] == 2
+    seen.clear()
+    assert corpus.prepare(tmp_path, config())['status'] == 'COMPLETE'
+    assert seen == []
+
+
+def test_wrong_size_does_not_hide_corrupt_hash_or_actual_budget(tmp_path, upstream):
+    corpus.prepare(tmp_path, config())
+    row = results(tmp_path)['A000001']
+    cache = tmp_path / 'corpus'
+    raw = cache / row['raw_path']
+    original = raw.read_bytes()
+    raw.write_bytes(original + b'# extra bytes do not match pinned hash\n')
+    report = corpus.prepare(tmp_path, config())
+    assert report['status'] == 'PARTIAL'
+    assert 'hash' in results(tmp_path)['A000001']['error']
+    outcome = next(json.loads(s) for s in (cache / 'diagnostics/object-outcomes.jsonl').read_text().splitlines()
+                   if json.loads(s)['oid'] == row['bfile']['oid'])
+    assert outcome['status'] == 'BLOCKED'
+    assert outcome['actual_bytes'] == raw.stat().st_size
+    assert outcome['sha256'] != 'sha256:' + row['bfile']['oid']
+    raw.write_bytes(original)
+    with sqlite3.connect(cache / 'inventory.sqlite') as db:
+        db.execute('UPDATE objects SET bytes=1')
+    report = corpus.prepare(tmp_path, dict(config(), max_source_bytes=100))
+    assert report['status'] == 'PARTIAL'
+    assert 'actual source' in report['fetch_error']
+    assert read(cache / 'diagnostics/source-budget.json')['actual_bytes'] > 100
+
+
+def test_pinned_value_disagreement_is_explicit_ineligible_exclusion(tmp_path, upstream, monkeypatch):
+    source = tmp_path / 'source'
+    seq = source / 'seq/A000/A000001.seq'
+    seq.write_text(seq.read_text().replace('%S A000001 0,1,2', '%S A000001 0,999,2'))
+    bulk.git(source, 'add', '.')
+    bulk.git(source, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+             'commit', '-qm', 'conflicting pinned source values')
+    bulk.git(source, 'push', '-q', 'origin', 'HEAD')
+    report = corpus.prepare(tmp_path, config())
+    assert report['status'] == 'COMPLETE'
+    assert report['counts']['EXCLUDED'] == 1 and report['counts']['eligible100'] == 1
+    row = results(tmp_path)['A000001']
+    assert row['status'] == 'EXCLUDED' and not row['eligible100']
+    assert row['reasons'] == ['b-file/main-entry value disagreement']
+    assert row['conflict'] == {'count': 1, 'first_index': '-1'}
+    assert not {'values','indices','projections'} & row.keys()
+    manifest = read(tmp_path / 'corpus/indexed/manifest.json')
+    assert [r['record_id'] for r in manifest['records']] == ['OEIS:A000006']
+    monkeypatch.setattr(corpus, 'inspect_bfile', lambda *a: pytest.fail('reparsed classified source'))
+    assert corpus.prepare(tmp_path, config())['status'] == 'COMPLETE'
+
+
+def test_unfinished_object_verification_cannot_publish_complete(tmp_path, upstream, monkeypatch):
+    def interrupt(*args):
+        raise KeyboardInterrupt()
+    monkeypatch.setattr(corpus, 'verify_objects', interrupt)
+    with pytest.raises(KeyboardInterrupt):
+        corpus.prepare(tmp_path, config())
+    report = read(tmp_path / 'corpus/diagnostics/result.json')
+    assert report['status'] == 'PARTIAL' and not report['objects_verified']
+    assert report['counts']['PROCESSED'] == 6
+    assert not (tmp_path / 'corpus/indexed/manifest.json').exists()

@@ -238,7 +238,7 @@ Short upstream size declarations are never trusted over content hashes; every
 new b-file is hash-verified while its complete contents are parsed. Ordinary Git
 b-files are also retained and parsed. Malformed data retains its disposition.
 
-Defaults reserve at most 256 GiB of declared source objects, 16 GiB for derived
+Defaults reserve at most 256 GiB of declared and actual source objects, 16 GiB for derived
 projections/inventory, and 32 GiB of free disk headroom. These are limits, **not
 measured requirements or a download-size estimate**. The full pointer census
 records actual declared bytes before LFS transfer; disk/inode checks can pause
@@ -274,6 +274,44 @@ outcomes, first errors/tracebacks, native command logs, container exit/OOM state
 and cleanup records. Raw corpus, local SQLite data and weights stay local.
 Any support ZIP size omission is explicit with local path/hash; it is never a
 qualification artifact. Keep the cache and all original diagnostics.
+
+### Recovery from the 2026-11-11 partial corpus
+
+The uploaded report inventoried 401,255 entries, processed 401,250 and found
+192,088 eligible under the 100-term rules. Its first native LFS fetch failed on
+upstream network errors; the retry succeeded. Verification then rejected 1,345
+objects solely because actual size exceeded the pointer declaration (1,341
+auxiliary files and four primary b-files). A fifth primary entry, A363936,
+contained conflicting main-entry/b-file values. All 41 ZIP file hashes verified.
+
+Run the **same data-fetch command above after pulling this repair**, keeping
+`data/oeis-corpus-001` and the original stripped cache. The CPU image is rebuilt
+through the existing cached Dockerfile layers. The pinned Git revision, imported
+cache and completed projections are reused. No new download is requested when
+the selected LFS objects already exist. Completed entries still undergo cheap
+projection-hash checks, but only blocked/changed entries are reparsed. Expect a
+local scan, not a zero-work resume. Progress prints size-preflight, entry-scan
+reuse counts and object-verification milestones.
+
+Policy `sha256-content-bounded-actual-size/v2` accepts a size discrepancy **only**
+after verifying the entire bounded object against its pinned hash. Both actual
+and declared bytes remain in the object report. Aggregate actual bytes must fit
+the configured reservation; same-hash size discrepancies are counted as warnings.
+Hash mismatches still block completion and now include the observed hash and
+size for diagnosis. Do not replace a pin or delete a cache to hide a mismatch.
+
+A conflict between independently hash-verified source values is `EXCLUDED`,
+with mismatch count/first source index, and cannot enter the indexed manifest.
+It is not resolved by preferring the main entry or b-file. `COMPLETE` means all
+entries are accounted for and all objects verified, including explicit ineligible
+dispositions; it is not a claim that every sequence is usable for training. An
+incomplete object-verification pass cannot publish a new complete manifest.
+
+This is a production **CPU data-preparation** repair, so its source identity
+changes. It does not invoke HIP/rehearsal or mutate the saved rehearsal artifacts;
+those retain their original scope. Existing current-source qualification checks
+still apply before later research execution. After recovery, share the same
+`data/oeis-corpus-001/share/corpus.zip` path, including any remaining deficits.
 
 ### Reusing registration002 exposure data
 
