@@ -295,3 +295,19 @@ def test_auxiliary_bfile_is_fetched_and_independently_hash_verified(tmp_path, up
     report = corpus.prepare(tmp_path, config())
     assert report['status'] == 'PARTIAL' and report['counts']['PROCESSED'] == 6
     assert 'objects unavailable or invalid' in report['fetch_error']
+
+
+def test_worker_preserves_each_failure_traceback_across_retries(tmp_path, monkeypatch):
+    from oeis_learn.fresh import corpus_worker
+    cfg = dict(config(), cache=str(tmp_path / 'corpus'))
+    write(tmp_path / 'worker.json', cfg)
+    monkeypatch.setattr(corpus_worker.sys, 'argv', ['worker', str(tmp_path / 'worker.json')])
+    monkeypatch.setattr(corpus_worker.signal, 'signal', lambda *a: None)
+    def fail(*args):
+        raise ValueError('original input failure')
+    monkeypatch.setattr(corpus_worker, 'prepare', fail)
+    assert corpus_worker.main() == 1
+    assert corpus_worker.main() == 1
+    failures = list((tmp_path / 'corpus/diagnostics').glob('worker-*/failure.json'))
+    assert len(failures) == 2
+    assert all('original input failure' in read(p)['traceback'] for p in failures)

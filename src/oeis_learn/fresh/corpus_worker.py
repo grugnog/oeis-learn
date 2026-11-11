@@ -3,6 +3,7 @@ from pathlib import Path
 import signal
 import sys
 import traceback
+import time
 
 from .common import read, write
 from .corpus import prepare
@@ -18,7 +19,7 @@ def main():
         result = prepare(Path.cwd(), config)
         return 0 if result['status'] == 'COMPLETE' else 2
     except BaseException as exc:
-        write(Path(config['cache']) / 'diagnostics/worker-failure.json',
+        write(Path(config['cache']) / 'diagnostics' / ('worker-' + str(time.time_ns())) / 'failure.json',
               dict(error=type(exc).__name__, traceback=traceback.format_exc()))
         return 130 if isinstance(exc, KeyboardInterrupt) else 1
 
