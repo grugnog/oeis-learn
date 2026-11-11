@@ -360,13 +360,15 @@ it does not fetch the corpus, repeat exposure import or request another tiny HIP
 rehearsal. An optional `--rehearsal-session` records the actual original session
 and scope differences, without treating old hardware evidence as current.
 
-The installed CPU census reserves 8,192 training draws and 16,384 evaluation
+The installed CPU census v2 reserves 8,192 training draws and 32,768 evaluation
 draws, with native/reference verification and exact original-exposure exclusions.
 It reserves related groups together before quotas; missing strata/groups remain
-explicit. Private support and panel candidates stay on the workstation. They are
-not yet published learner channels or scoreable cohorts. The public summary
-reports conservative support supply at 25M charged tokens, the original proposed
-eight-update refresh cadence, and any need for a prospective revision. It never
+explicit. Private support and panel candidates stay on the workstation. The
+custodian projection publishes canonical cohorts, separate probes, finite support
+shards and a fixed screening roster from those original reservations. The public
+summary reports support supply at 25M charged tokens and the prospectively declared
+eight-update-aligned cadence rule; a missing group or infeasible cadence remains
+a deficit. It never
 silently substitutes static data, reduces panel quotas or resets failed work.
 
 Ceilings are one hour for CPU image build, six hours for native census including
@@ -390,3 +392,20 @@ source/resource-bound session. Both preparation and research ZIPs are retained.
 It neither bypasses readiness deficits nor opens final assessment. On the existing
 explicit-blueprint route this supplies the unattended transition; it cannot make
 the unfinished registered-data route executable by itself.
+
+Exact-input calibration plans may prospectively select
+`checkpoint_retention: verified-calibration-inventory/v1`. That policy retains
+two live temporary checkpoint generations for the current serial case instead
+of retaining every case's tensors. Only an original passing, verified calibration
+can retire its temporary snapshots. Complete file hashes and byte counts are
+published before cleanup, with a separate completion receipt; original producers,
+input packages and costs remain intact. Failed cases and scientific training
+checkpoints are not eligible. Legacy plans retain all calibration snapshots.
+Storage reservations include every retained input and per-case inventory.
+
+Calibration publishes immutable per-case start/terminal records and a final
+roster. Bad input hashes or malformed receipts cannot make the batch pass;
+independent cases continue, while a failed GPU health probe or expired deadline
+leaves explicit blocked cases. The support ZIP includes these records and both
+retirement inventories, without exporting tensors. CPU and simulated-boundary
+tests do not establish actual HIP qualification or resource feasibility.

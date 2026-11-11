@@ -110,6 +110,7 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
         "iteration_calibration_plan",
         "progressive-calibration-plan/v1",
         {"seconds", "caps", "checkpoint_bytes", "maximum_inodes"},
+        optional={'checkpoint_retention'},
     )
     if plan is None:
         if prepared["purpose"] == "research" and any(
@@ -127,6 +128,9 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
                 )
             )
         return prepared
+    from .progressive_calibration_storage import POLICY as RETIREMENT_POLICY
+    if 'checkpoint_retention' in plan and plan['checkpoint_retention']!=RETIREMENT_POLICY:
+        raise ValueError('registered calibration snapshot retention policy required')
     caps = vector(plan["caps"])
     if (
         any(
@@ -147,8 +151,10 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
         * max(len(r["tokens"]) for shard in c["package"]["shards"] for r in shard)
         for c in cases
     )
-    input_bytes = sum(len(json.dumps(c["package"]).encode()) * 2 for c in cases)
-    required_bytes = 2 * len(cases) * plan["checkpoint_bytes"] + input_bytes + METADATA_BYTES
+    input_bytes = sum((len(json.dumps(c['package'],sort_keys=True,indent=2,allow_nan=False).encode())+1)*2 for c in cases)
+    from .progressive_calibration_storage import required_bytes as storage_required
+    required_bytes=storage_required(len(cases),plan['checkpoint_bytes'],input_bytes,
+        retention=plan.get('checkpoint_retention'),metadata_bytes=METADATA_BYTES)
     if (
         caps["tokens"] < tokens
         or caps["disk_bytes"] < required_bytes
@@ -230,6 +236,7 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
                 "checkpoint_bytes": plan["checkpoint_bytes"],
                 "maximum_inodes": plan["maximum_inodes"],
                 "caps": caps,
+                **({'checkpoint_retention':plan['checkpoint_retention']} if 'checkpoint_retention' in plan else {}),
             }
         )
         atomic_write(device / "request.json", request)
@@ -306,8 +313,6 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
 
 def verify_result(root, request, result):
     """No label can substitute for the complete original per-input measurements."""
-    from oeis_learn.generalization.progressive.iteration import measured_producer
-
     validate_request(request)
     if load(Path(root) / "request.json", maximum=32 << 20) != request:
         raise ValueError("original calibration request changed")
@@ -315,6 +320,7 @@ def verify_result(root, request, result):
     if (
         set(result)
         != {"version", "identity", "request", "device", "status", "producers", "actual_elapsed_us"}
+            | ({'retirements'} if 'checkpoint_retention' in request else set())
         or seal(result) != result
         or result["version"] != "progressive-calibration-run/v1"
         or result["request"] != request["identity"]
@@ -326,24 +332,36 @@ def verify_result(root, request, result):
     ):
         raise ValueError("complete original bounded calibration producer required")
     producers = []
+    if 'checkpoint_retention' in request and set(result['retirements'])!=keys:
+        raise ValueError('complete original calibration retirement inventory required')
     for case in request["cases"]:
-        producer = json.loads(verify_refs(root, [result["producers"][case["compatibility"]]])[0])
-        measured_producer(
-            producer,
-            source=request["source"],
-            images=[request["image"]],
-            compatibility=case["compatibility"],
-        )
-        package = json.loads(verify_refs(root, [case["artifact"]], max_bytes=256 << 20)[0])
-        if (
-            producer["effective_batch"] != package["update_policy"]["effective_batch"]
-            or producer["maximum_target_tokens"]
-            != max(len(r["tokens"]) for s in package["shards"] for r in s)
-            or producer["checkpoint_bytes"] > request["checkpoint_bytes"]
-        ):
-            raise ValueError("calibration prepared work/storage scope differs")
+        producer_ref=result['producers'][case['compatibility']]
+        producer=verify_case(root,request,case,producer_ref)
+        if 'checkpoint_retention' in request:
+            from .progressive_calibration_storage import verify as verify_retirement
+            base=confined(root,producer_ref['path']).parent
+            rref=result['retirements'][case['compatibility']]
+            rpath=confined(root,rref['path'])
+            if rpath.parent!=base:
+                raise ValueError('retirement belongs to another calibration case')
+            verify_refs(root,[rref])
+            verify_retirement(base,reference(base,rpath),producer)
         producers.append(producer)
     return producers
+
+
+def verify_case(root,request,case,producer_ref):
+    """Verify original measurements before optional temporary snapshot cleanup."""
+    from oeis_learn.generalization.progressive.iteration import measured_producer
+    producer=json.loads(verify_refs(root,[producer_ref])[0])
+    measured_producer(producer,source=request['source'],images=[request['image']],
+                      compatibility=case['compatibility'])
+    package=json.loads(verify_refs(root,[case['artifact']],max_bytes=256<<20)[0])
+    if (producer['effective_batch']!=package['update_policy']['effective_batch']
+            or producer['maximum_target_tokens']!=max(len(r['tokens']) for s in package['shards'] for r in s)
+            or producer['checkpoint_bytes']>request['checkpoint_bytes']):
+        raise ValueError('calibration prepared work/storage scope differs')
+    return producer
 
 
 def validate_request(request):
@@ -365,8 +383,11 @@ def validate_request(request):
         "maximum_inodes",
         "caps",
     }
+    from .progressive_calibration_storage import POLICY as RETIREMENT_POLICY
+    if 'checkpoint_retention' in request and request['checkpoint_retention']!=RETIREMENT_POLICY:
+        raise ValueError('registered calibration snapshot retention policy required')
     if (
-        set(request) != fields
+        set(request)-{'checkpoint_retention'} != fields
         or seal(request) != request
         or request["version"] != "progressive-calibration-request/v1"
         or type(request["seconds"]) is not int
@@ -382,9 +403,11 @@ def validate_request(request):
     ):
         raise ValueError("closed finite installed calibration request required")
     caps = vector(request["caps"])
+    from .progressive_calibration_storage import required_bytes as storage_required
     if (
         request["seconds"] * 1000000 > caps["elapsed_us"]
-        or 2 * len(request["cases"]) * request["checkpoint_bytes"] + METADATA_BYTES
+        or storage_required(len(request['cases']),request['checkpoint_bytes'],0,
+                            retention=request.get('checkpoint_retention'),metadata_bytes=METADATA_BYTES)
         > caps["disk_bytes"]
     ):
         raise ValueError("installed calibration exceeds prospective reservation")
@@ -444,7 +467,7 @@ def run_inside(root):
 
     from .generalization_execution import verify_execution
     from .progressive_learner import compatibility
-    from .progressive_qualification import calibrate_iteration, hardware_facts, require_hip
+    from .progressive_qualification import hardware_facts, require_hip
 
     root = Path(root)
     request = load(root / "request.json", maximum=32 << 20)
@@ -466,47 +489,74 @@ def run_inside(root):
         reserve_bytes=METADATA_BYTES,
     )
     producers = {}
+    retirements = {}
     failures = []
+    outcomes=[dict(index=i,compatibility=c['compatibility'],status='PENDING')
+              for i,c in enumerate(request['cases'])]
+    def publish_outcome(index):
+        row=outcomes[index]
+        atomic_write(root/'case-events'/str(index)/row['status']/'calibration-case.json',seal(dict(
+            version='progressive-calibration-case/v1',request=request['identity'],case=row)))
+    blocked=None
     with guard.activate():
         for index, case in enumerate(request["cases"]):
-            if set(case) != {"compatibility", "artifact"} or case["compatibility"] in producers:
-                raise ValueError("unique original calibration input required")
-            package = json.loads(verify_refs(root, [case["artifact"]], max_bytes=256 << 20)[0])
-            if compatibility(package) != case["compatibility"]:
-                raise ValueError("prepared calibration compatibility differs")
-            remaining = request["seconds"] - (time.monotonic() - began)
-            if remaining <= 1:
-                raise TimeoutError("calibration deadline before next input")
+            if blocked:
+                outcomes[index].update(status='BLOCKED',reason=blocked)
+                publish_outcome(index)
+                continue
             folder = root / "cases" / case["compatibility"][7:]
             # Fresh processes contain per-configuration OOMs and allocator
             # residue. Every remaining independent case has a bounded share.
             import sys
             import traceback
             from .progressive_acceptance import _bounded_process, _record_failure
-            case_seconds=min(3600,remaining/(len(request['cases'])-index))
             code=('import sys;from oeis_learn.pipeline_validation.progressive_calibration import run_one;'
                   'run_one(sys.argv[1],int(sys.argv[2]),float(sys.argv[3]))')
+            launched=False
             try:
+                package=json.loads(verify_refs(root,[case['artifact']],max_bytes=256<<20)[0])
+                if compatibility(package)!=case['compatibility']:
+                    raise ValueError('prepared calibration compatibility differs')
+                remaining=request['seconds']-(time.monotonic()-began)
+                if remaining<=1:
+                    blocked='CALIBRATION_DEADLINE'
+                    raise TimeoutError('calibration deadline before next input')
+                case_seconds=min(3600,remaining/(len(request['cases'])-index))
+                outcomes[index].update(status='RUNNING',seconds=case_seconds)
+                publish_outcome(index)
+                launched=True
                 status=_bounded_process([sys.executable,'-c',code,str(root),str(index),str(case_seconds)],
                     cwd=root,env=dict(os.environ),log=root/f'case-{index}.log',
                     seconds=case_seconds,maximum=65536)
                 if status: raise ValueError('exact-input calibration process failed')
-                producers[case['compatibility']]=reference(root,folder/'producer.json')
+                producer_ref=reference(root,folder/'producer.json')
+                producer=verify_case(root,request,case,producer_ref)
+                if 'checkpoint_retention' in request:
+                    from .progressive_calibration_storage import retire
+                    retired=retire(folder,producer,maximum_bytes=2*request['checkpoint_bytes'])
+                    retirements[case['compatibility']]=reference(root,confined(folder,retired['path']))
+                producers[case['compatibility']]=producer_ref
+                outcomes[index].update(status='PASS',producer=producer_ref)
             except (OSError,ValueError,TimeoutError) as error:
+                outcomes[index].update(status='FAIL',error=type(error).__name__,message=str(error))
                 _record_failure(root, failures, dict(compatibility=case['compatibility'],error=type(error).__name__,traceback=traceback.format_exc()))
                 remaining=request['seconds']-(time.monotonic()-began)
                 try:
-                    if remaining<=1 or _bounded_process([sys.executable,'-c',
+                    if launched and (remaining<=1 or _bounded_process([sys.executable,'-c',
                         'from oeis_learn.pipeline_validation.progressive_qualification import require_hip; t=require_hip(); t.cuda.synchronize()'],
-                        cwd=root,env=dict(os.environ),log=root/f'health-{index}.log',seconds=min(30,remaining),maximum=65536):
+                        cwd=root,env=dict(os.environ),log=root/f'health-{index}.log',seconds=min(30,remaining),maximum=65536)):
                         raise RuntimeError('device health probe failed or calibration allowance exhausted')
                 except (OSError,ValueError,TimeoutError,RuntimeError) as health_error:
                     _record_failure(root, failures, dict(compatibility=case['compatibility'],error='DEVICE_BLOCKED',message=str(health_error)))
-                    break
+                    blocked='DEVICE_BLOCKED'
+            publish_outcome(index)
+        atomic_write(root/'calibration-cases.json',seal(dict(
+            version='progressive-calibration-cases/v1',request=request['identity'],cases=outcomes)))
         if failures:
             atomic_write(root/'failures.json',failures)
             atomic_write(root/'partial.json',seal(dict(version='progressive-calibration-failure/v1',
                 status='FAIL',request=request['identity'],producers=producers,failures=failures,
+                **({'retirements':retirements} if 'checkpoint_retention' in request else {}),
                 missing=[c['compatibility'] for c in request['cases'] if c['compatibility'] not in producers])))
             raise ValueError('exact calibration incomplete; original per-case diagnostics retained')
         result = seal(
@@ -517,6 +567,7 @@ def run_inside(root):
                 "status": "PASS",
                 "producers": producers,
                 "actual_elapsed_us": max(1, int((time.monotonic() - began) * 1000000)),
+                **({'retirements':retirements} if 'checkpoint_retention' in request else {}),
             }
         )
         verify_result(root, request, result)

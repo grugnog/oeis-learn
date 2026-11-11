@@ -245,13 +245,21 @@ def host_inputs(root, monkeypatch):
 
 
 @pytest.mark.parametrize("change", ["none", "cpu", "stale", "missing", "timeout", "overspend"])
+@pytest.mark.parametrize('retirement',[False,True])
 def test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
-    tmp_path, monkeypatch, capsys, change
+    tmp_path, monkeypatch, capsys, change, retirement
 ):
     from oeis_learn.pipeline_validation import progressive_handoff as h
     from oeis_learn.pipeline_validation.progressive_commands import main
 
     host_inputs(tmp_path, monkeypatch)
+    if retirement:
+        from oeis_learn.pipeline_validation.progressive_calibration_storage import POLICY
+        plan=seal(dict(load(tmp_path/'calibration-plan.json'),checkpoint_retention=POLICY))
+        (tmp_path/'calibration-plan.json').write_text(json.dumps(plan))
+        b=load(tmp_path/'blueprint.json')
+        next(r for r in b['payload']['references'] if r['name']=='iteration_calibration_plan')['artifact']=reference(tmp_path,'calibration-plan.json')
+        (tmp_path/'blueprint.json').write_text(json.dumps(seal(b)))
     calls = []
 
     def stage(host, root, image, output, argv, *, gpu, seconds):
@@ -261,7 +269,7 @@ def test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
         assert gpu and 0 < seconds < 60
         if change == "timeout":
             raise TimeoutError("deliberate supervised timeout")
-        producers = {}
+        producers = {}; retired={}
         for case in request["cases"]:
             package = json.loads((output / case["artifact"]["path"]).read_text())
             value = seal(
@@ -286,6 +294,13 @@ def test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
             atomic_write(path, value)
             if change != "missing":
                 producers[case["compatibility"]] = reference(output, path)
+                if retirement:
+                    from oeis_learn.pipeline_validation.progressive_calibration_storage import retire
+                    # This is an explicitly simulated installed boundary. The
+                    # separate CPU test actually saves/restores both snapshots.
+                    atomic_write(path.parent/'checkpoints/generation/manifest.json',{'test_boundary_only':True})
+                    rref=retire(path.parent,value,maximum_bytes=2*request['checkpoint_bytes'])
+                    retired[case['compatibility']]=reference(output,path.parent/rref['path'])
         atomic_write(
             output / "producer.json",
             seal(
@@ -295,6 +310,7 @@ def test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
                     "device": "actual_HIP",
                     "status": "PASS",
                     "producers": producers,
+                    **({'retirements':retired} if retirement else {}),
                     "actual_elapsed_us": request["seconds"] * 1000000 + 1
                     if change == "overspend"
                     else 100,
@@ -327,6 +343,21 @@ def test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
         assert main(args, tmp_path, None) == 0
         c = load(tmp_path / "frozen/campaign.json")
         assert c["payload"]["storage"]["checkpoint_bytes"] >= 32 << 20
+        if retirement:
+            from oeis_learn.pipeline_validation.progressive_calibration import verify_result
+            base=tmp_path/'out/calibration'
+            result=load(base/'producer.json');request=load(base/'request.json')
+            changed=seal(dict(result,retirements={}))
+            with pytest.raises(ValueError,match='retirement inventory'):
+                verify_result(base,request,changed)
+            rref=next(iter(result['retirements'].values()))
+            record=load(base/rref['path']);record['bytes']+=1
+            (base/rref['path']).write_text(json.dumps(seal(record)))
+            changed=copy.deepcopy(result)
+            key=next(iter(changed['retirements']))
+            changed['retirements'][key]=reference(base,rref['path'])
+            with pytest.raises(ValueError,match='inventory differs'):
+                verify_result(base,request,seal(changed))
     else:
         assert code != 0
         assert not (tmp_path / "out/prepared.json").exists()

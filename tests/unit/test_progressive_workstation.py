@@ -75,9 +75,15 @@ def test_packaging_excludes_private_tensors_and_symlinks_retains_log_tail(tmp_pa
             p=s.folder/name; p.parent.mkdir(parents=True,exist_ok=True); p.write_text('PRIVATE')
         (s.folder/'alias.log').symlink_to(s.folder/'inputs/truth.log')
         (s.folder/'failure.log').write_bytes(b'begin\n'+b'x'*(5<<20)+b'\nlast error')
+        for name in ('calibration/cases/one/checkpoint-retirement.json',
+                     'calibration/cases/one/checkpoint-retirement-intent.json',
+                     'calibration/case-events/0/FAIL/calibration-case.json',
+                     'calibration/calibration-cases.json'):
+            write(s.folder/name,{'public_diagnostic':True})
     with zipfile.ZipFile(s.folder/'share/rehearse.zip') as z:
         assert not any('PRIVATE' in z.read(n).decode(errors='ignore') for n in z.namelist())
         assert z.read('failure.log.excerpt').endswith(b'last error')
+        assert len([n for n in z.namelist() if n.startswith('calibration/')])==4
         manifest=json.loads(z.read('manifest.json'))
         assert {v['reason'].split(';')[0] for v in manifest['omissions']}=={'symlink','size bound'}
 
@@ -256,7 +262,9 @@ def test_packaging_failure_does_not_replace_original_exception(tmp_path,monkeypa
 
 
 @pytest.mark.parametrize('failures,healthy',[(1,True),(2,True),(3,True),(1,False)])
-def test_calibration_failure_keeps_independent_results_and_blocks_bad_device(tmp_path,monkeypatch,failures,healthy):
+@pytest.mark.parametrize('defect',['process','input','producer'])
+@pytest.mark.parametrize('retirement',[False,True])
+def test_calibration_failure_keeps_independent_results_and_blocks_bad_device(tmp_path,monkeypatch,failures,healthy,defect,retirement):
     """Double only execution boundaries; exercise real batch and partial receipts."""
     from oeis_learn.pipeline_validation import progressive_calibration as c, progressive_acceptance as a
     from oeis_learn.pipeline_validation import progressive_qualification as q, generalization_execution as execution, progressive_learner as learner
@@ -264,10 +272,17 @@ def test_calibration_failure_keeps_independent_results_and_blocks_bad_device(tmp
     from oeis_learn.generalization.progressive.contracts import digest,reference,seal,load
     cases=[]
     for i in range(3):
-        key=digest(i); write(tmp_path/f'input-{i}.json',{'compatibility':key})
+        key=digest(i); write(tmp_path/f'input-{i}.json',{'compatibility':key,
+            'update_policy':{'effective_batch':16},'shards':[[{'tokens':[1,2]}]]})
         cases.append(dict(compatibility=key,artifact=reference(tmp_path,f'input-{i}.json')))
     request=seal(dict(source=digest({}),image='image',engine='podman',hardware={},execution_policy={},
-        seconds=60,caps={'disk_bytes':64<<20},maximum_inodes=1000,cases=cases))
+        seconds=60,caps={'disk_bytes':64<<20},maximum_inodes=1000,cases=cases,
+        checkpoint_bytes=1<<20))
+    if retirement:
+        from oeis_learn.pipeline_validation.progressive_calibration_storage import POLICY
+        request=seal(dict(request,checkpoint_retention=POLICY))
+    if defect=='input':
+        for i in range(failures):write(tmp_path/f'input-{i}.json',{'changed':True})
     write(tmp_path/'request.json',request)
     monkeypatch.setattr(c,'validate_request',lambda r:None)
     monkeypatch.setattr(source_snapshot,'source_snapshot',lambda:{})
@@ -280,17 +295,66 @@ def test_calibration_failure_keeps_independent_results_and_blocks_bad_device(tmp
     def execute(argv,**kw):
         if len(argv)==3:return 0 if healthy else 1
         i=int(argv[-2]); calls.append(i)
-        if i<failures:return 1
-        write(tmp_path/'cases'/cases[i]['compatibility'][7:]/'producer.json',seal({'boundary_only':True}))
+        if defect=='process' and i<failures:return 1
+        write(tmp_path/'cases'/cases[i]['compatibility'][7:]/'producer.json',seal(dict(
+            version='progressive-iteration-calibration/v1',source=request['source'],
+            image='wrong-image' if defect=='producer' and i<failures else request['image'],
+            device='actual_HIP',status='PASS',compatibility=cases[i]['compatibility'],
+            maximum_target_tokens=2,effective_batch=16,
+            measurements={'update_us':10,'probe_us':20,'checkpoint_us':30},
+            measurement_scope='TEST EXECUTION BOUNDARY ONLY; NOT ACTUAL HIP',
+            checkpoint_bytes=1024,checkpoint_inodes=4)))
+        write(tmp_path/'cases'/cases[i]['compatibility'][7:]/'checkpoints/generation/manifest.json',{'test_boundary_only':True})
         return 0
     monkeypatch.setattr(a,'_bounded_process',execute)
     with pytest.raises(ValueError,match='incomplete'):c.run_inside(tmp_path)
-    assert calls==(list(range(3)) if healthy else [0])
+    independent=healthy or defect=='input'
+    assert calls==(list(range(failures,3)) if defect=='input' else list(range(3)) if healthy else [0])
     partial=load(tmp_path/'partial.json')
-    assert partial['status']=='FAIL' and len(partial['producers'])==(3-failures if healthy else 0)
-    assert len(partial['failures'])==(failures if healthy else 2)
+    assert partial['status']=='FAIL' and len(partial['producers'])==(3-failures if independent else 0)
+    assert len(partial['failures'])==(failures if independent else 2)
     assert json.loads((tmp_path/'failures.json').read_text())==partial['failures']
     assert len(list((tmp_path/'failures').glob('*/failures.json')))==len(partial['failures'])
+    outcomes=load(tmp_path/'calibration-cases.json')['cases']
+    assert [c['status'] for c in outcomes]==(['FAIL']*failures+['PASS']*(3-failures) if independent else ['FAIL','BLOCKED','BLOCKED'])
+    assert len(list((tmp_path/'case-events').rglob('calibration-case.json')))==3+len(calls)
+    if retirement:
+        assert set(partial['retirements'])==set(partial['producers'])
+        from oeis_learn.pipeline_validation.progressive_calibration_storage import verify
+        for key,ref in partial['retirements'].items():
+            folder=(tmp_path/ref['path']).parent
+            verify(folder,reference(folder,'checkpoint-retirement.json'),load(folder/'producer.json'))
+    assert not (tmp_path/'producer.json').exists()
+
+
+def test_calibration_expired_deadline_records_every_unattempted_case(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import progressive_calibration as c, progressive_acceptance as a
+    from oeis_learn.pipeline_validation import progressive_qualification as q, generalization_execution as execution, progressive_learner as learner
+    from oeis_learn.experiments import source_snapshot
+    from oeis_learn.generalization.progressive.contracts import digest,reference,seal,load
+    cases=[]
+    for i in range(3):
+        key=digest(i);write(tmp_path/f'input-{i}.json',{'compatibility':key})
+        cases.append(dict(compatibility=key,artifact=reference(tmp_path,f'input-{i}.json')))
+    write(tmp_path/'request.json',seal(dict(source=digest({}),image='image',engine='podman',
+        hardware={},execution_policy={},seconds=60,caps={'disk_bytes':64<<20},maximum_inodes=1000,cases=cases)))
+    monkeypatch.setattr(c,'validate_request',lambda r:None)
+    ticks=iter([0,61,61])
+    monkeypatch.setattr(c,'time',SimpleNamespace(monotonic=lambda:next(ticks)))
+    monkeypatch.setattr(source_snapshot,'source_snapshot',lambda:{})
+    monkeypatch.setattr(q,'require_hip',lambda:None)
+    monkeypatch.setattr(q,'hardware_facts',lambda:{})
+    monkeypatch.setattr(execution,'verify_execution',lambda:{})
+    monkeypatch.setattr(learner,'compatibility',lambda p:p['compatibility'])
+    monkeypatch.setenv('OEIS_QUALIFICATION_IMAGE','image');monkeypatch.setenv('OEIS_QUALIFICATION_ENGINE','podman')
+    monkeypatch.setattr(a,'_bounded_process',lambda *a,**kw:pytest.fail('no late device work'))
+    with pytest.raises(ValueError,match='incomplete'):c.run_inside(tmp_path)
+    assert len(load(tmp_path/'partial.json')['missing'])==3
+    cases=load(tmp_path/'calibration-cases.json')['cases']
+    assert [c['status'] for c in cases]==['FAIL','BLOCKED','BLOCKED']
+    assert cases[0]['error']=='TimeoutError'
+    assert all(c['reason']=='CALIBRATION_DEADLINE' for c in cases[1:])
     assert not (tmp_path/'producer.json').exists()
 
 
