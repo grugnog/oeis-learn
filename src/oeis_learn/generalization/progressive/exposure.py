@@ -43,6 +43,7 @@ def append(registry, events, *, created_at):
             previous=previous["identity"],
             detector_limits=payload["detector_limits"],
             events=payload["events"] + list(events),
+            **({'indexes':payload['indexes']} if 'indexes' in payload else {}),
         ),
         created_at=created_at,
         parents=[previous["identity"]],
@@ -59,6 +60,7 @@ def validate_extension(previous, current):
         new["payload"]["previous"] != old["identity"]
         or new["payload"]["events"][:n] != old["payload"]["events"]
         or new["payload"]["detector_limits"] != old["payload"]["detector_limits"]
+        or new['payload'].get('indexes',[])[:len(old['payload'].get('indexes',[]))] != old['payload'].get('indexes',[])
     ):
         raise ValueError("exposure history cannot be erased")
     return new

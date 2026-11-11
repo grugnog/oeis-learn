@@ -158,6 +158,9 @@ def census(cohort, *, exposure, other_cohorts=()):
 
 def publish(root, output, cohort, *, exposure, other_cohorts=()):
     c = validate_cohort(cohort, exposure=exposure, other_cohorts=other_cohorts)
+    from .indexed_history import open_indexes, check_panel
+    with open_indexes(root,[exposure]) as indexes:
+        check_panel(root,c,indexes)
     result = census(c, exposure=exposure, other_cohorts=other_cohorts)
     from oeis_learn.pipeline_validation.identity import confined
 
@@ -225,6 +228,11 @@ def validate_frozen_panels(root, panels, exposures):
     original census. Independent/forked registries cannot erase one another.
     """
     from .exposure import detect, validate_extension
+
+    from .indexed_history import open_indexes, check_panel
+    with open_indexes(root,exposures.values()) as indexes:
+        for panel in panels:
+            check_panel(root,panel,indexes)
 
     for exposure in exposures.values():
         previous = exposure["payload"]["previous"]

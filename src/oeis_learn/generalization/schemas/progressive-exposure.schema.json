@@ -130,6 +130,15 @@
           },
           "minItems": 0,
           "maxItems": 100000
+        },
+        "indexes": {
+          "type": "array",
+          "items": {
+            "$ref": "progressive-common.schema.json#/$defs/artifact"
+          },
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true
         }
       },
       "required": [
