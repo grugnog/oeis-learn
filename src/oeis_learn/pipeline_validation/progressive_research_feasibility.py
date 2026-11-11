@@ -159,7 +159,7 @@ def run_inside(root):
                     env=dict(os.environ),log=root/f'case-{i}.log',seconds=seconds,maximum=4<<20)
                 if code:raise RuntimeError('evaluation timing subprocess failed: '+str(code))
                 ref=reference(root,root/'cases'/str(i)/'producer.json')
-                producer=load(confined(root,ref['path']))
+                producer=verify_case(root,req,case,ref)
                 if (seal(producer)!=producer or producer['request']!=req['identity']
                         or producer['case']!=case['identity'] or producer['device']!='actual_HIP' or producer['status']!='PASS'):
                     raise ValueError('original complete evaluation timing producer required')
@@ -186,6 +186,49 @@ def run_inside(root):
     return result
 
 
+def verify_case(root,req,case,ref):
+    """Replay the complete original generation/scoring/timing artifact closure."""
+    from .progressive_evidence import generation_timing
+    root=Path(root)
+    p=json.loads(verify_refs(root,[ref])[0]);base=confined(root,ref['path']).parent
+    fields={'version','identity','request','case','device','status','samples',
+        'generation_us','scoring_us','peak_allocated_bytes','producer','scoring','timing','actual_elapsed_us'}
+    if (set(p)!=fields or seal(p)!=p or p['version']!='progressive-research-evaluation-case/v1'
+            or p['request']!=req['identity'] or p['case']!=case['identity']
+            or p['device']!='actual_HIP' or p['status']!='PASS' or p['samples']!=2
+            or type(p['peak_allocated_bytes']) is not int or p['peak_allocated_bytes']<0):
+        raise ValueError('closed original measured evaluation case required')
+    generated,scored,timing=[json.loads(raw) for raw in verify_refs(base,[p[k] for k in ('producer','scoring','timing')],max_bytes=512<<20)]
+    rows=json.loads(verify_refs(root,[req['samples']])[0])
+    if len(rows)!=2 or len({r['id'] for r in rows})!=2 or any(
+            set(r)!={'id','indices','values'} or len(r['indices'])!=100 or len(r['values'])!=100 for r in rows):
+        raise ValueError('two original training-only timing members required')
+    prompts=sorted([dict(id=r['id'],indices=r['indices'][:20],values=r['values'][:20]) for r in rows],key=lambda r:r['id'])
+    fields={'version','identity','model','checkpoint','model_control','recipe','methods','prompts','records','clock','counts','elapsed_us'}
+    if (set(generated)!=fields or seal(generated)!=generated or generated['version']!='discovery-candidates/v1'
+            or generated['recipe']!=digest(case['profile']) or generated['methods']!=case['methods']
+            or generated['model_control']!=case['control']
+            or generated['checkpoint']!=(req['checkpoint']['sha256'] if case['control']=='retained_D' else None)
+            or generated['prompts']!=digest(prompts) or set(generated['records'])!={r['id'] for r in rows}
+            or type(generated['elapsed_us']) is not int or not 0<=generated['elapsed_us']<=p['generation_us']):
+        raise ValueError('original timing generation member/model/profile/method scope differs')
+    fields={'version','identity','candidates','outcomes','denominator','scientific_status','claim'}
+    if (set(scored)!=fields or seal(scored)!=scored or scored['version']!='discovery-scoring/v1'
+            or scored['candidates']!=p['producer']['sha256'] or scored['denominator']!=2
+            or scored['scientific_status']!='UNMEASURED' or scored['claim']!='finite_agreement_only'
+            or set(scored['outcomes'])!=set(generated['records'])):
+        raise ValueError('original independent timing scorer binding differs')
+    methods=['equal_budget' if m=='correct' else m for m in case['methods']]
+    for member,row in generated['records'].items():
+        for method in methods:
+            if (row.get('arm_evidence',{}).get(method,{}).get('complete') is not True
+                    or scored['outcomes'][member].get(method,{}).get('complete') is not True):
+                raise ValueError('incomplete original timing portfolio')
+    if timing!=generation_timing(generated):
+        raise ValueError('original timing phase clocks differ')
+    return p
+
+
 def estimates(root,request_value,roster,*,publish=True):
     """Conservative sampled estimates, always subject to original hard task caps."""
     root=Path(root);req=validate_request(request_value);result=load(root/'evaluation-cases.json')
@@ -196,7 +239,7 @@ def estimates(root,request_value,roster,*,publish=True):
     for index,(expected,row) in enumerate(zip(req['cases'],result['cases'])):
         if row.get('status')!='PASS' or row.get('index')!=index or row.get('case')!=expected['identity']:
             raise ValueError('complete ordered original evaluation cases required')
-        p=json.loads(verify_refs(root,[row['producer']])[0])
+        p=verify_case(root,req,expected,row['producer'])
         if (p.get('version')!='progressive-research-evaluation-case/v1' or seal(p)!=p or p['case']!=expected['identity'] or p['request']!=req['identity']
                 or p['device']!='actual_HIP' or p['status']!='PASS' or p['samples']!=2
                 or any(type(p[k])is not int or p[k]<=0 for k in ('generation_us','scoring_us','actual_elapsed_us'))

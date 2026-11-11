@@ -153,7 +153,7 @@ def test_original_census_to_materials_retains_deficits_and_private_bytes(tmp_pat
     with session.own():
         result=build(tmp_path,str((base/'census/census.json').relative_to(tmp_path)),
             str((base/'census/request.json').relative_to(tmp_path)),
-            str((base/'materials').relative_to(tmp_path)),support.policy(seed=req['seed']))
+            str((base/'materials').relative_to(tmp_path)),support.policy(seed=req['seed'],shard_rows=req['shard_rows']))
     assert result['status']=='INCOMPLETE' and result['diagnostic']
     assert not result['research_ready'] and not result['original_generation_repeated']
     assert result['panel_censuses'] and result['deficits']
@@ -165,7 +165,7 @@ def test_original_census_to_materials_retains_deficits_and_private_bytes(tmp_pat
     with pytest.raises(ValueError,match='no automatic replacement'):
         build(tmp_path,str((base/'census/census.json').relative_to(tmp_path)),
             str((base/'census/request.json').relative_to(tmp_path)),
-            str((base/'materials').relative_to(tmp_path)),support.policy(seed=req['seed']))
+            str((base/'materials').relative_to(tmp_path)),support.policy(seed=req['seed'],shard_rows=req['shard_rows']))
 
 
 def test_screening_uses_fixed_two_by_sixteen_groups_and_reports_shortages():
@@ -266,3 +266,16 @@ def test_null_difficulty_cannot_enter_cohort_without_availability_reason(tmp_pat
     c['payload']['rows'][0]['difficulty']['work']=None
     with pytest.raises(ValueError,match='unavailable difficulty'):
         validate('cohort',seal(c))
+
+
+def test_transfer_strata_use_initial_gradient_not_trimmed_probe_or_refresh_rows(reservoir):
+    from oeis_learn.pipeline_validation.progressive_research_census import classify
+    rows=reservoir
+    data,_=support.project(rows,support.policy(seed=13,shard_rows=16,max_shards=2),diagnostic=True)
+    actual,binding=support.transfer_support(data)
+    initial={r['structure'] for r in data['shards'][0] if r['draw_identity'] not in binding['probes']}
+    assert actual['structures']==initial
+    lost=[r for r in rows if r['structure'] not in initial]
+    assert lost and all(classify(r,actual)!='parameter' for r in lost)
+    assert len(binding['initial_gradient'])==len(data['shards'][0])-2
+    assert binding['refreshed_shards']==1

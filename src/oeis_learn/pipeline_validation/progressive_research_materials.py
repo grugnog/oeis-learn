@@ -43,11 +43,19 @@ def build(root, census_path, request_path, output, rule):
         for stratum in (['parameter'] if panel in request['retention_panels'] else ['parameter','composition','unseen_structure','oeis']):
             if sum(r['stratum']==stratum for r in rows)!=census['panels'][panel+'/'+stratum]['tasks']:
                 raise ValueError('original panel census/count binding differs')
+    support,summary=prepared_support.project(training,rule,diagnostic=request['diagnostic'])
+    transfer,binding=prepared_support.transfer_support(support)
+    if census.get('transfer_support')!=binding:
+        raise ValueError('original census transfer support differs from published learner support')
+    from .progressive_research_census import classify
+    for rows in roster.values():
+        for row in rows:
+            if row['stratum']!='oeis' and classify(row,transfer)!=row['stratum']:
+                raise ValueError('reserved transfer classification differs from published support')
     # The external step binds the original producer receipt; the native identity
     # is retained here, never replaced by a projection-generated PASS.
     private=output/'private';private.mkdir(parents=True,mode=0o700)
     write(output/'support-policy.json',rule)
-    support,summary=prepared_support.project(training,rule,diagnostic=request['diagnostic'])
     write(private/'support.json',support);write(output/'support-summary.json',summary)
     screening,screening_summary=prepared_panels.screening(roster['development'],seed=request['seed'])
     write(private/'screening.json',screening);write(output/'screening-summary.json',screening_summary)

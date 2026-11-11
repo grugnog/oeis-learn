@@ -150,3 +150,27 @@ def training_input(support, report, profile, update_policy):
         update_policy=update_policy,shards=support['shards'],layout=support['layout'],
         refresh_updates=support['refresh_updates'],
         scope='DIAGNOSTIC_ONLY' if support['diagnostic'] else 'NATIVE_VERIFIED',diagnostic_fault=None))
+
+
+def transfer_support(data):
+    """Shared initial gradient support, excluding probes and later refreshes.
+
+Parameter/composition witnesses must be available to both static and refreshed
+arms at their common start. Later shards and all raw draws still count as prior
+exposure for exclusion; they cannot manufacture initial transfer support.
+"""
+    from oeis_learn.pipeline_validation.progressive_research_census import features
+    if seal(data)!=data or data.get('version')!='progressive-prepared-support/v1':
+        raise ValueError('original published support required')
+    probes={v['id'] for v in data['layout']['probes'].values()}
+    rows=[r for r in (data['shards'][0] if data['shards'] else []) if r['draw_identity'] not in probes]
+    support=dict(structures=set(),nodes=set(),operators=set())
+    for row in rows:
+        f=features(row['source']);support['structures'].add(row['structure'])
+        support['nodes'].update(f['nodes']);support['operators'].update(f['operators'])
+    binding=seal(dict(version='progressive-transfer-support/v1',published=data['identity'],
+        policy=data['policy'],initial_gradient=[r['draw_identity'] for r in rows],
+        probes=sorted(probes),refreshed_shards=max(0,len(data['shards'])-1),
+        structures=sorted(support['structures']),nodes=sorted(support['nodes']),operators=sorted(support['operators']),
+        scope='common initial gradient support; probes excluded; all original draws remain exposure exclusions'))
+    return support,binding

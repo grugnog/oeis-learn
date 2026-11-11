@@ -134,7 +134,7 @@ def test_selected_cpu_build_does_not_request_gpu_and_uses_current_phase(tmp_path
     s=Session(tmp_path,'run-state/new',{},'prepare-research')
     calls=[]
     def launch(argv,*a,**kw):
-        calls.append(argv[-1]);write(argv[-2],{'image':'cpu'})
+        calls.append(argv[-2]);write(argv[-3],{'image':'cpu'})
     monkeypatch.setattr(supervision,'launch',launch)
     with s.own():
         s.step('environment',lambda:({},[]))
@@ -197,7 +197,7 @@ def test_preparation_has_no_rehearsal_dependency_and_continues_sensitivity(tmp_p
     monkeypatch.setattr(w.Workflow,'host',lambda self:SimpleNamespace(
         engine=SimpleNamespace(facts=lambda:{'fixture':True}),policy={'memory_bytes':64 << 30}))
     def launch(argv,*args,**kw):
-        events.append('CPU-image');assert argv[-1]=='qualification';write(argv[-2],{'image':'cpu'})
+        events.append('CPU-image');assert argv[-2]=='qualification';write(argv[-3],{'image':'cpu'})
     monkeypatch.setattr(supervision,'launch',launch)
     def stage(host,image,output,argv,**kw):
         assert not kw['gpu']

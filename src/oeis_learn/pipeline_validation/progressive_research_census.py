@@ -173,6 +173,10 @@ def run(root, output, request, *, client):
     work_deadline = deadline-min(600,max(1,request['seconds']//10))
     counters, failures, evaluation, training = Counter(), [], [], []
     support = dict(structures=set(), nodes=set(), operators=set())
+    support_binding=None
+    from oeis_learn.generalization.progressive.prepared_support import policy, project, transfer_support
+    support_rule=policy(seed=request['seed'],shard_rows=request['shard_rows'],
+        max_shards=request['max_shards'],target_tokens=request['token_target'])
     law = default_policy(seed=request['seed'])
     total = request['training_draws'] + request['evaluation_draws']
     law.update(max_draws=total, max_work_units=total)
@@ -205,6 +209,9 @@ def run(root, output, request, *, client):
             index_page_size=train_index.db.execute('PRAGMA page_size').fetchone()[0]
             train_index.db.execute('PRAGMA max_page_count='+str((request['disk_bytes']//8)//index_page_size))
             for ordinal in range(total):
+                if ordinal==request['training_draws']:
+                    published,_=project(training,support_rule,diagnostic=request['diagnostic'])
+                    support,support_binding=transfer_support(published)
                 if time.monotonic() >= work_deadline:
                     counters['unattempted'] += total-ordinal
                     break
@@ -218,12 +225,9 @@ def run(root, output, request, *, client):
                     if row is not None:
                         row = seal(dict(row, id='mechanical:'+row['draw_identity']))
                         if ordinal < request['training_draws']:
-                            f=features(row['source'])
                             with train_index.db:
                                 train_index.add(row, origin='prospective-support', role='training')
                             training.append(row)
-                            support['structures'].add(row['structure'])
-                            support['nodes'].update(f['nodes']); support['operators'].update(f['operators'])
                             status='TRAINING'
                         else:
                             row, reason=classify_fresh(row,history,train_index)
@@ -282,6 +286,7 @@ def run(root, output, request, *, client):
             research_ready=False, qualification=False, training_started=False, assessment_exposed=False,
             native=client.runtime_identity('bigint-body/v1'), elapsed_seconds=time.monotonic()-began,
             counts=dict(counters), panels=panels, deficits=deficits, failures=failures,
+            transfer_support=support_binding,
             reserved_panel_rows=sum(len(rows) for rows in roster.values()),
             unreserved_evaluation_rows=len(evaluation)-sum(len(rows) for rows in roster.values()),
             support=dict(rows=len(training),bins=dict(bins),canonical_structures=len(support['structures']),
@@ -292,7 +297,7 @@ def run(root, output, request, *, client):
             artifacts=[reference(output,private/name) for name in
                        ('training-reservoir.json','panel-reservations.json','census.sqlite','training-exposure.sqlite')],
             detector_limits='exact finite 20-term windows, normalized structures and source identities; not semantic equivalence',
-            strata_rule='parameter: supported normalized structure; composition: new structure with supported proper subtrees/operators; unseen: remaining structures',
+            strata_rule='parameter/composition relative to frozen common initial gradient support; probe-only and later-refreshed support excluded; all raw draws remain exposure exclusions',
             disposition='private reservations only; independent proof/census/publication and exact-input calibration required before freeze'))
         write(output/'census.json',result)
         return result

@@ -16,18 +16,42 @@ def request_fixture(root):
     atomic_write(root/'private/training-samples.json',[dict(id=str(i),indices=list(map(str,range(100))),values=[str(n+i*1000) for n in range(100)]) for i in range(2)])
     req=seal(dict(version=f.VERSION,source=digest({}),image=digest('image'),engine='podman',hardware={},
         execution_policy=digest('policy'),qualification={'path':'explicit-test-boundary'},support=digest('training'),
-        samples=reference(root,'private/training-samples.json'),checkpoint={'path':'explicit-test-boundary'},
+        samples=reference(root,'private/training-samples.json'),checkpoint={'path':'explicit-test-boundary','sha256':digest('checkpoint'), 'bytes':1},
         cases=[seal(c) for c in cases],seconds=f.SECONDS,scope='training-only test boundary',safety_multiplier=4))
     atomic_write(root/'request.json',req)
     return req
 
 
 def producer(root,req,index,us=1000):
-    p=seal(dict(version='progressive-research-evaluation-case/v1',request=req['identity'],case=req['cases'][index]['identity'],
+    # Original-format artifacts from the explicit process boundary; never HIP
+    # qualification evidence. Their complete closure is still verified normally.
+    from oeis_learn.pipeline_validation.progressive_evidence import generation_timing
+    case=req['cases'][index];base=root/'cases'/str(index)/('normal' if us==1000 else 'slow')
+    samples=json.loads((root/req['samples']['path']).read_text())
+    methods=['equal_budget' if m=='correct' else m for m in case['methods']]
+    records={r['id']:dict(arm_evidence={m:dict(complete=True) for m in methods},costs={}) for r in samples}
+    generated=seal(dict(version='discovery-candidates/v1',model=digest('process boundary model'),
+        checkpoint=req['checkpoint']['sha256'] if case['control']=='retained_D' else None,
+        model_control=case['control'],recipe=digest(case['profile']),methods=case['methods'],
+        prompts=digest(sorted([dict(id=r['id'],indices=r['indices'][:20],values=r['values'][:20]) for r in samples],key=lambda r:r['id'])),
+        records=records,clock={},counts={},elapsed_us=us))
+    atomic_write(base/'generation.json',generated);generation_ref=reference(base,base/'generation.json')
+    atomic_write(base/'scoring.json',seal(dict(version='discovery-scoring/v1',candidates=generation_ref['sha256'],
+        outcomes={r['id']:{m:dict(complete=True) for m in methods} for r in samples},denominator=2,
+        scientific_status='UNMEASURED',claim='finite_agreement_only')))
+    atomic_write(base/'timing.json',generation_timing(generated))
+    p=seal(dict(version='progressive-research-evaluation-case/v1',request=req['identity'],case=case['identity'],
         device='actual_HIP',status='PASS',samples=2,generation_us=us,scoring_us=us,
-        peak_allocated_bytes=1,producer={'explicit_test_boundary':True},timing={'explicit_test_boundary':True},actual_elapsed_us=2*us))
-    path=root/'cases'/str(index)/('producer.json' if us==1000 else 'slow-producer.json');atomic_write(path,p)
-    return reference(root,path)
+        peak_allocated_bytes=1,producer=generation_ref,scoring=reference(base,base/'scoring.json'),
+        timing=reference(base,base/'timing.json'),actual_elapsed_us=2*us))
+    atomic_write(base/'producer.json',p)
+    # The batch subprocess contract locates this fixed path. Keep its relative
+    # original references valid by putting the entire case closure at that root.
+    if us==1000:
+        import shutil
+        for path in base.iterdir():shutil.copyfile(path,base.parent/path.name)
+        return reference(root,base.parent/'producer.json')
+    return reference(root,base/'producer.json')
 
 
 def test_full_measured_roster_is_required_and_infeasibility_does_not_reduce_it(tmp_path):
@@ -288,3 +312,27 @@ def test_device_inspection_lease_includes_cleanup(tmp_path,monkeypatch):
     monkeypatch.setattr('oeis_learn.pipeline_validation.supervision.launch',launch)
     assert inspect_device(host,'image',tmp_path/'inspect')=={'boundary':True}
     assert events==['lock','run','remove','unlock']
+
+
+@pytest.mark.parametrize('change',['missing-generation','missing-scoring','missing-timing','changed-bytes','foreign-profile','foreign-members','incomplete','wrong-timing'])
+def test_timing_closure_rejects_missing_changed_and_foreign_originals(tmp_path,change):
+    req=request_fixture(tmp_path);ref=producer(tmp_path,req,0)
+    p=load(tmp_path/ref['path']);base=(tmp_path/ref['path']).parent
+    f.verify_case(tmp_path,req,req['cases'][0],ref)
+    if change.startswith('missing-'):
+        key={'generation':'producer','scoring':'scoring','timing':'timing'}[change[8:]]
+        (base/p[key]['path']).unlink()
+    elif change=='changed-bytes':
+        with (base/p['producer']['path']).open('ab') as stream:stream.write(b' ')
+    else:
+        key='timing' if change=='wrong-timing' else 'producer'
+        target=base/p[key]['path'];value=load(target)
+        if change=='foreign-profile':value['recipe']=digest('foreign')
+        if change=='foreign-members':value['records']['foreign']=value['records'].pop('0')
+        if change=='incomplete':value['records']['0']['arm_evidence']['equal_budget']['complete']=False
+        if change=='wrong-timing':value['wall_elapsed_us']+=1
+        target.write_text(json.dumps(seal(value)))
+        p[key]=reference(base,target);(tmp_path/ref['path']).write_text(json.dumps(seal(p)))
+        ref=reference(tmp_path,ref['path'])
+    with pytest.raises((ValueError,FileNotFoundError)):
+        f.verify_case(tmp_path,req,req['cases'][0],ref)
