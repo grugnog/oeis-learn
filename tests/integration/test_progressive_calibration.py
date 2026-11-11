@@ -357,6 +357,11 @@ def test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
         assert main(args, tmp_path, None) == 0
         c = load(tmp_path / "frozen/campaign.json")
         assert c["payload"]["storage"]["checkpoint_bytes"] >= 32 << 20
+        # A missing wrapper terminal must not repeat a completed device batch.
+        before=len(calls)
+        again=SimpleNamespace(operation='prepare',blueprint='blueprint.json',qualification='qualification',output='out')
+        assert main(again,tmp_path,lambda _:host)==0
+        assert len(calls)==before and load(tmp_path/'out/prepared.json')==p
         if measured_resources:
             from oeis_learn.pipeline_validation.progressive_calibration import validate_prepared
             resources=load(tmp_path/'out/resource-estimate.json')
@@ -421,7 +426,7 @@ def test_calibration_deficit_stops_before_engine_or_debit(tmp_path, monkeypatch,
         != 0
     )
     assert not (tmp_path / "out/prepared.json").exists()
-    assert not (tmp_path / "run-state/discovery-calibration").exists()
+    assert not list((tmp_path / "run-state/discovery-calibration").rglob("budget.jsonl"))  # preflight may retain an operational attempt, never a scientific debit
 
 
 @pytest.mark.parametrize("source", [False, True])

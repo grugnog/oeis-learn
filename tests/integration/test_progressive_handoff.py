@@ -183,9 +183,24 @@ def test_qualification_host_orchestration_requires_original_complete_device_rost
     calls=[]
     def stage(host,root,image,output,argv,*,gpu,seconds):
         calls.append((gpu,seconds,image))
-        for case in request['cases'][:-1] if change=='missing_case' else request['cases']:
+        # Execute the real emitted installed command and delta dispatcher. Only
+        # GPU process execution/facts are doubled at the engine boundary.
+        from oeis_learn.pipeline_validation import progressive_acceptance as acceptance
+        def process(command,**kwargs):
+            if 'synchronize' in command[2]:return 0
+            selected=next(c for c in request['cases'] if c['identity']==command[-2])
+            if change=='missing_case' and selected==request['cases'][-1]:return 1
             measures=dict.fromkeys(HARDWARE_CHECKS,True)|dict(parameters=1,peak_allocated_bytes=1,cleanup_allocated_bytes=0,baseline_allocated_bytes=0,elapsed_us=1)
-            atomic_write(output/'cases'/case['identity'][7:]/'producer.json',seal(dict(version='progressive-hip-case/v1',source=request['source'],scope=digest([request[k] for k in ('source','image','engine','hardware')]+[case]),device='actual_HIP',status='PASS',requested=list(HARDWARE_CHECKS),executed=list(HARDWARE_CHECKS),measurements=measures)))
+            atomic_write(Path(command[-1])/'producer.json',seal(dict(version='progressive-hip-case/v1',source=request['source'],
+                scope=digest([request[k] for k in ('source','image','engine','hardware')]+[selected]),device='actual_HIP',status='PASS',
+                requested=list(HARDWARE_CHECKS),executed=list(HARDWARE_CHECKS),measurements=measures)))
+            return 0
+        with monkeypatch.context() as boundary:
+            boundary.setattr(acceptance,'_current_hardware',lambda r:None)
+            boundary.setattr(acceptance,'_bounded_process',process)
+            try:exec(argv[-1].replace('/work/output',str(output)),{})
+            except SystemExit as exc:
+                if exc.code:raise ValueError('installed qualification batch incomplete')
     monkeypatch.setattr(handoff,'stage',stage)
     host=SimpleNamespace(engine=SimpleNamespace(name='podman' if change=='wrong_engine' else 'docker'))
     args=SimpleNamespace(blueprint='blueprint.json',output='out')
@@ -203,7 +218,7 @@ from types import SimpleNamespace
 sys.path.insert(0,sys.argv[2])
 from oeis_learn.pipeline_validation.progressive_commands import main
 def absent(args): raise RuntimeError('engine unavailable')
-assert main(SimpleNamespace(operation='qualify',blueprint='blueprint.json',output='no-site-out'),Path(sys.argv[1]),absent)==1
+assert main(SimpleNamespace(operation='qualify',blueprint='blueprint.json',output='no-site-out'),Path(sys.argv[1]),absent)==3  # sibling output cannot reset original qualification allowance
 assert not {'torch','numpy','optuna','jsonschema'} & set(sys.modules)
 """
         probe=subprocess.run([sys.executable,'-S','-c',script,str(tmp_path),str(Path(__file__).resolve().parents[2]/'src')],capture_output=True,text=True,timeout=30)

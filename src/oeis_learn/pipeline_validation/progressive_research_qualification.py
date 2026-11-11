@@ -70,6 +70,6 @@ def qualify(workflow, data, design):
         path=qualification_blueprint(root,base/'plans',matrix=base/'matrix/matrix.json',base=base/'base-qualification')
         return str(path.relative_to(root)),[path,base/'plans/qualification-plan.json']
     blueprint=s.step('qualification-plan',plan,dependencies=('prepare-research/matrix',))
-    return w.run_command('qualify','qualify',blueprint=blueprint or 'missing',
+    return w.run_command('qualify','qualify',resume=True,blueprint=blueprint or 'missing',
         output=str((base/'qualification').relative_to(root)),seconds=3700,
         dependencies=('prepare-research/qualification-plan',))

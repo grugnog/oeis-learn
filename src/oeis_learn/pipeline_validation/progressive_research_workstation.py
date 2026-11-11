@@ -49,20 +49,31 @@ def prepare(workflow):
         runner=runpy.run_path(str(root/'scripts/qualify_bigint_phase5.py'))
         host=w.host()
         host.policy['memory_bytes']=min(host.policy['memory_bytes'],64 << 30)
+        from .preparation_recovery import preserve_process
+        preserve_process(folder)
         runner['container_stage'](host,image,folder,
             ['python','-c',diagnostic_program(body,name)],gpu=False,seconds=seconds,
             readonly_inputs=[(checked_file(root,r),'/work/inputs/'+r['path']) for r in inputs])
         return load(folder/outputs[0]),[folder/n for n in outputs]
-    def census():
+    def census_action(seconds):
+        if (base/'census/census.json').exists():
+            result=load(base/'census/census.json')
+            if result['request']!=req['identity']:raise ValueError('original census request differs')
+            files=[base/'census/census.json',*[checked_file(base/'census',r) for r in result['artifacts']]]
+            return result,files
         result, files=execute('census',
             'from oeis_learn.pipeline_validation.progressive_research_census import main;main()',
-            seconds=req['seconds']+120,inputs=[req[k] for k in ('candidates','exposure','recipe')],
+            seconds=seconds,inputs=[req[k] for k in ('candidates','exposure','recipe')],
             outputs=('census.json',))
         # Hash-bound private outputs are reusable data, but never included in ZIPs.
         for ref in result['artifacts']:
             files.append(checked_file(base/'census',ref))
         return result,files
-    counted=s.step('native-census',census,dependencies=('prepare-research/census-plan','prepare-research/image-qualification'))
+    def census():
+        from .preparation_recovery import Allowance
+        with Allowance(base/'census-host-allowance.json',dict(request=req['identity'],scope=s.binding),req['seconds']+120).attempt() as (left,ordinal):
+            return census_action(left)
+    counted=s.step('native-census',census,recover=True,dependencies=('prepare-research/census-plan','prepare-research/image-qualification'))
     def materials():
         from .supervision import launch
         # Stdlib byte projection only; no model, native execution, download or

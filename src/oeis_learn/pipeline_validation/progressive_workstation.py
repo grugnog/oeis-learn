@@ -59,9 +59,13 @@ class Workflow:
         self.s=session; self.root=session.root; self.args=args
         self.base=session.folder/args.phase
 
-    def run_command(self,name,operation,*,dependencies=(),seconds=3600,recover=False,**arguments):
+    def run_command(self,name,operation,*,dependencies=(),seconds=3600,recover=False,resume=False,**arguments):
         from .supervision import launch
         def action():
+            if resume:
+                from .preparation_recovery import Allowance
+                with Allowance(self.base/(name+'-allowance.json'),seal(dict(scope=self.s.binding,operation=operation,arguments=arguments)),seconds).attempt() as (left,ordinal):
+                    return dispatch(left,ordinal)
             if recover:
                 from .preparation_recovery import Allowance
                 from oeis_learn.generalization.progressive.research_budget import LIMITS_SECONDS
@@ -70,7 +74,7 @@ class Workflow:
             return dispatch(seconds,None)
         def dispatch(allowance,ordinal):
             selected=dict(arguments)
-            if ordinal is not None and selected.get('output'):
+            if recover and ordinal is not None and selected.get('output'):
                 # Preserve every prior archive/partial directory and collector
                 # log. A fresh publication path never grants a new allowance.
                 output=Path(selected['output'])
@@ -99,8 +103,8 @@ class Workflow:
                 files.append(confined(self.root,target)/'verification.json')
                 files.append(confined(self.root,selected['archive']))
             return dict(operation=operation,output=target,exit_code=code),files
-        return self.s.step(name,action,dependencies=dependencies,recover=recover,
-            binding=seal(dict(operation=operation,arguments=arguments)) if recover else None)
+        return self.s.step(name,action,dependencies=dependencies,recover=recover or resume,
+            binding=seal(dict(operation=operation,arguments=arguments)) if recover or resume else None)
 
     def host(self):
         import importlib.util

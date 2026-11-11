@@ -83,8 +83,7 @@ def test_actual_census_retains_private_outputs_and_quantifies_supply(tmp_path):
     assert 'values' not in json.dumps(result) and '(program' not in json.dumps(result)
     for r in result['artifacts']:
         assert r['path'].startswith('private/')
-    with pytest.raises(ValueError,match='repetition'):
-        census.run(tmp_path,tmp_path/'out',req,client=ReferenceDouble())
+    assert census.run(tmp_path,tmp_path/'out',req,client=ReferenceDouble())==result
 
 
 def test_native_failure_continues_independent_cases_without_success(tmp_path):
@@ -226,17 +225,26 @@ def test_preparation_has_no_rehearsal_dependency_and_continues_sensitivity(tmp_p
     events.clear()
     with s.own():
         w.Workflow(s,args).prepare_research()
-    assert events==[]
+    assert events==['census']  # only the failed owned phase retries within its original allowance
 
 
 def test_actual_native_census(fitting_client,tmp_path):
     """Mandatory in the CPU qualification image; never a reference fallback."""
-    result=census.run(tmp_path,tmp_path/'out',inputs(tmp_path),client=fitting_client)
+    request=inputs(tmp_path)
+    write(tmp_path/'request.json',request)
+    result=census.run(tmp_path,tmp_path/'out',request,client=fitting_client)
     assert result['counts']['TRAINING']>0
     assert result['native']==fitting_client.runtime_identity('bigint-body/v1')
     assert not result['counts'].get('FAILED')
     assert not result['qualification'] and result['diagnostic']
     assert result['counts']['TRAINING']+result['counts'].get('REJECTED',0)+result['counts'].get('EVALUATION',0)==40
+    from oeis_learn.pipeline_validation.progressive_research_materials import build
+    from oeis_learn.generalization.progressive.prepared_support import policy
+    materials=build(tmp_path,'out/census.json','request.json','nested/materials',
+        policy(seed=request['seed'],shard_rows=request['shard_rows']))
+    assert materials['diagnostic'] and materials['status']=='INCOMPLETE'
+    assert materials['native']==result['native'] and not materials['original_generation_repeated']
+
 
 
 def test_sensitivity_isolates_failures_preserves_original_seeds_and_denominators(tmp_path,monkeypatch):
@@ -312,3 +320,35 @@ def test_automatic_training_rejects_changed_acceptance_bytes(tmp_path,monkeypatc
         write(path,{'original':2})
         with pytest.raises(ValueError,match='changed'):
             w.Workflow(s,SimpleNamespace(phase='prepare-research')).run_after_prepare()
+
+
+def test_census_recovers_publication_without_repeating_completed_native_draws(tmp_path,monkeypatch):
+    req=inputs(tmp_path)
+    class Counting(ReferenceDouble):
+        calls=0
+        def execute(self,*a,**kw):self.calls+=1;return super().execute(*a,**kw)
+    client=Counting();original=census.write;fail=[True]
+    def publish(path,value):
+        if path.name=='census.json' and fail:
+            fail.pop();raise OSError('publication boundary interrupted')
+        return original(path,value)
+    monkeypatch.setattr(census,'write',publish)
+    with pytest.raises(OSError,match='publication'):census.run(tmp_path,tmp_path/'deep/new/census',req,client=client)
+    calls=client.calls
+    result=census.run(tmp_path,tmp_path/'deep/new/census',req,client=client)
+    assert client.calls==calls and result['counts']['TRAINING']>0
+    assert census.run(tmp_path,tmp_path/'deep/new/census',req,client=client)==result
+    assert client.calls==calls
+    with pytest.raises(ValueError):census.run(tmp_path,tmp_path/'deep/new/census',seal(dict(req,seed=req['seed']+1)),client=client)
+
+
+def test_unknown_census_interval_is_charged_without_more_native_work(tmp_path):
+    from oeis_learn.pipeline_validation.preparation_recovery import Allowance
+    req=inputs(tmp_path);output=tmp_path/'out';output.mkdir()
+    binding=dict(request=req['identity'],native=ReferenceDouble().runtime_identity())
+    state=dict(version='progressive-operational-allowance/v1',binding=binding,seconds=req['seconds'],
+        spent_seconds=0,active=dict(ordinal=0,reserved_seconds=req['seconds']),attempts=[])
+    write(output/'census-allowance.json',seal(state))
+    with pytest.raises(ValueError,match='exhausted'):
+        census.run(tmp_path,output,req,client=ReferenceDouble())
+    assert not (output/'private/census.sqlite').exists()

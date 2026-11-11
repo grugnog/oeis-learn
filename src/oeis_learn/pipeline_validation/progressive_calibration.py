@@ -9,7 +9,6 @@ from pathlib import Path
 
 from oeis_learn.generalization.progressive.contracts import (
     CAMPAIGN_DOCUMENT_BYTES,
-    atomic_write,
     digest,
     load,
     reference,
@@ -18,6 +17,8 @@ from oeis_learn.generalization.progressive.contracts import (
     verify_refs,
 )
 from oeis_learn.pipeline_validation.identity import confined
+
+from .preparation_recovery import retain as atomic_write, revise
 
 # Bound the total campaign inventory by the existing calibration inode ceiling,
 # including distinct source/library inputs beyond the two tuning trajectories.
@@ -124,7 +125,20 @@ def selected_inputs(root, prepared):
     return [selected[k] for k in sorted(selected)], bindings
 
 
-def prepare(root, blueprint, prepared, output, args, host_factory):
+def prepare(root,blueprint,prepared,output,args,host_factory):
+    from .progressive_handoff import named_plan
+    from .preparation_recovery import Allowance
+    plan=named_plan(root,blueprint,'iteration_calibration_plan','progressive-calibration-plan/v1',
+        {'seconds','caps','checkpoint_bytes','maximum_inodes'},optional={'checkpoint_retention'})
+    if plan is None:return _prepare(root,blueprint,prepared,output,args,host_factory)
+    identity=digest(['iteration-calibration',blueprint['identity']])
+    state=Path(root)/'run-state/discovery-calibration'/identity[7:]
+    binding=dict(blueprint=blueprint['identity'],prepared=prepared['identity'],output=str(Path(output).relative_to(root)))
+    with Allowance(state/'preparation-allowance.json',binding,plan['seconds']).attempt() as (left,attempt):
+        return _prepare(root,blueprint,prepared,output,args,host_factory,allowance=left,attempt=attempt)
+
+
+def _prepare(root, blueprint, prepared, output, args, host_factory, *, allowance=None, attempt=0):
     """Measure once inside the blueprint's prospective setup reservation."""
     began = time.monotonic()
     from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -211,10 +225,8 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
     reserved = journal.reserve(
         "preparation", "calibrate", 0, caps, boot=identity, monotonic_us=time.monotonic_ns() // 1000
     )
-    if "reserved" in reserved:
-        raise ValueError(
-            "calibration reservation already consumed; retain original output or prospectively revise blueprint"
-        )
+    # A repeated reservation is reusable only through the original owner-bound
+    # operational allowance; the scientific debit remains consumed exactly once.
     # Conservative commit before dispatch: failed/unproven setup work never
     # refunds this finite attempt or grants time by selecting a sibling output.
     journal.commit(reserved["key"])
@@ -225,7 +237,7 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
     facts = current_facts(
         host,
         root,
-        output / "inspection",
+        output / ("inspection" if attempt==0 else "inspection-"+str(attempt)),
         images=q["images"],
         source_ref=q["source_closure"],
         build_refs=q["build_dependencies"],
@@ -241,38 +253,50 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
         if selected["payload"]["scope"]["model"] != model:
             raise ValueError("prepared calibration model/runtime differs")
     device = output / "calibration"
-    device.mkdir()
+    device.mkdir(exist_ok=True)
     projected = []
     with guard.activate():
-        atomic_write(output / "calibration-input.json", prepared)
-        projected=project(device,cases)
-        remaining = int(case_allowance(plan["seconds"] - (time.monotonic() - began), maximum=plan["seconds"]))
-        if remaining <= 0:
-            raise TimeoutError("calibration allowance exhausted during inspection")
-        request = seal(
-            {
-                "version": "progressive-calibration-request/v1",
-                "source": source,
-                "image": q["images"][1],
-                "engine": host.engine.name,
-                "hardware": matrix["hardware"],
-                "execution_policy": q["runtime"]["execution_policy"],
-                "blueprint": blueprint["identity"],
-                "prepared": prepared["identity"],
-                "cases": projected,
-                "seconds": remaining,
-                "checkpoint_bytes": plan["checkpoint_bytes"],
-                "maximum_inodes": plan["maximum_inodes"],
-                "caps": caps,
-                **({'checkpoint_retention':plan['checkpoint_retention']} if 'checkpoint_retention' in plan else {}),
-            }
-        )
-        atomic_write(device / "request.json", request)
+        if (device/'request.json').exists():
+            request=load(device/'request.json',maximum=32<<20)
+            projected=request['cases']
+            if (load(output/'calibration-input.json',maximum=CAMPAIGN_DOCUMENT_BYTES)!=prepared
+                    or request['source']!=source or request['image']!=q['images'][1]
+                    or request['blueprint']!=blueprint['identity'] or request['prepared']!=prepared['identity']):
+                raise ValueError('original calibration recovery scope differs')
+            remaining=int(case_allowance(min(plan['seconds'],allowance or plan['seconds'])-(time.monotonic()-began),maximum=plan['seconds']))
+        else:
+            atomic_write(output / "calibration-input.json", prepared)
+            projected=project(device,cases)
+            remaining = int(case_allowance(min(plan["seconds"],allowance or plan["seconds"]) - (time.monotonic() - began), maximum=plan["seconds"]))
+            if remaining <= 0:
+                raise TimeoutError("calibration allowance exhausted during inspection")
+            request = seal(
+                {
+                    "version": "progressive-calibration-request/v1",
+                    "source": source,
+                    "image": q["images"][1],
+                    "engine": host.engine.name,
+                    "hardware": matrix["hardware"],
+                    "execution_policy": q["runtime"]["execution_policy"],
+                    "blueprint": blueprint["identity"],
+                    "prepared": prepared["identity"],
+                    "cases": projected,
+                    "seconds": remaining,
+                    "checkpoint_bytes": plan["checkpoint_bytes"],
+                    "maximum_inodes": plan["maximum_inodes"],
+                    "caps": caps,
+                    **({'checkpoint_retention':plan['checkpoint_retention']} if 'checkpoint_retention' in plan else {}),
+                }
+            )
+            atomic_write(device / "request.json", request)
     code = (
         "from oeis_learn.pipeline_validation.progressive_calibration import run_inside;"
         "run_inside('/work/output')"
     )
-    stage(host, root, q["images"][1], device, ["python", "-c", code], gpu=True, seconds=remaining)
+    if not (device/'producer.json').exists():
+        from .preparation_recovery import preserve_process
+        preserve_process(device)
+        stage(host, root, q["images"][1], device, ["python", "-c", code], gpu=True, seconds=remaining)
     if time.monotonic() - began > plan["seconds"]:
         raise TimeoutError("calibration aggregate allowance exhausted")
     guard.check()
@@ -508,6 +532,16 @@ def validate_prepared(root, blueprint, prepared):
 
 
 def run_inside(root):
+    from .preparation_recovery import Allowance
+    root=Path(root);request=load(root/'request.json',maximum=32<<20)
+    validate_request(request)
+    if (root/'producer.json').exists():
+        result=load(root/'producer.json');verify_result(root,request,result);return result
+    with Allowance(root/'calibration-allowance.json',request['identity'],request['seconds']).attempt() as (left,ordinal):
+        return _run_inside(root,allowance=left,prior_spent=request['seconds']-left)
+
+
+def _run_inside(root, *, allowance=None, prior_spent=0):
     """Installed actual-HIP entry point, supervised by the existing GPU launcher."""
     import os
 
@@ -540,6 +574,7 @@ def run_inside(root):
     producers = {}
     retirements = {}
     failures = []
+    prior_failures=load(root/'failures.json') if (root/'failures.json').exists() else []
     outcomes=[dict(index=i,compatibility=c['compatibility'],status='PENDING')
               for i,c in enumerate(request['cases'])]
     def publish_outcome(index):
@@ -549,6 +584,29 @@ def run_inside(root):
     blocked=None
     with guard.activate():
         for index, case in enumerate(request["cases"]):
+            folder = root / 'cases' / case['compatibility'][7:]
+            if (folder/'producer.json').exists():
+                try:
+                    ref=reference(root,folder/'producer.json')
+                    verified=verify_case(root,request,case,ref)
+                    if 'checkpoint_retention' in request:
+                        from .progressive_calibration_storage import retire
+                        rref=retire(folder,verified,maximum_bytes=2*request['checkpoint_bytes'])
+                        retirements[case['compatibility']]=reference(root,confined(folder,rref['path']))
+                    producers[case['compatibility']]=ref
+                    outcomes[index].update(status='PASS',producer=ref)
+                    continue
+                except (OSError,ValueError) as exc:
+                    failures.append(dict(compatibility=case['compatibility'],error='INVALID_ORIGINAL_PRODUCER',message=str(exc)))
+                    outcomes[index].update(status='FAIL',reason=str(exc))
+                    continue
+            attempted=root/'case-events'/str(index)/'RUNNING'/'calibration-case.json'
+            failed=root/'case-events'/str(index)/'FAIL'/'calibration-case.json'
+            if attempted.exists() or failed.exists():
+                outcomes[index].update(status='FAIL',reason='original attempted case has no complete producer; no token/attempt refund')
+                failures.extend([r for r in prior_failures if r.get('compatibility')==case['compatibility']] or
+                    [dict(compatibility=case['compatibility'],error='PRIOR_UNPROVEN_CASE')])
+                continue
             if blocked:
                 outcomes[index].update(status='BLOCKED',reason=blocked)
                 publish_outcome(index)
@@ -567,7 +625,7 @@ def run_inside(root):
                 package=restore(root,case['artifact'])
                 if compatibility(package)!=case['compatibility']:
                     raise ValueError('prepared calibration compatibility differs')
-                remaining=request['seconds']-(time.monotonic()-began)
+                remaining=(request['seconds'] if allowance is None else allowance)-(time.monotonic()-began)
                 if remaining<=1:
                     blocked='CALIBRATION_DEADLINE'
                     raise TimeoutError('calibration deadline before next input')
@@ -590,7 +648,7 @@ def run_inside(root):
             except (OSError,ValueError,TimeoutError) as error:
                 outcomes[index].update(status='FAIL',error=type(error).__name__,message=str(error))
                 _record_failure(root, failures, dict(compatibility=case['compatibility'],error=type(error).__name__,traceback=traceback.format_exc()))
-                remaining=request['seconds']-(time.monotonic()-began)
+                remaining=(request['seconds'] if allowance is None else allowance)-(time.monotonic()-began)
                 try:
                     if launched and (remaining<=1 or _bounded_process([sys.executable,'-c',
                         'from oeis_learn.pipeline_validation.progressive_qualification import require_hip; t=require_hip(); t.cuda.synchronize()'],
@@ -600,14 +658,17 @@ def run_inside(root):
                     _record_failure(root, failures, dict(compatibility=case['compatibility'],error='DEVICE_BLOCKED',message=str(health_error)))
                     blocked='DEVICE_BLOCKED'
             publish_outcome(index)
-        atomic_write(root/'calibration-cases.json',seal(dict(
+        revise(root/'calibration-cases.json',seal(dict(
             version='progressive-calibration-cases/v1',request=request['identity'],cases=outcomes)))
         if failures:
-            atomic_write(root/'failures.json',failures)
-            atomic_write(root/'partial.json',seal(dict(version='progressive-calibration-failure/v1',
+            revise(root/'failures.json',failures)
+            revise(root/'partial.json',seal(dict(version='progressive-calibration-failure/v1',
                 status='FAIL',request=request['identity'],producers=producers,failures=failures,
                 **({'retirements':retirements} if 'checkpoint_retention' in request else {}),
                 missing=[c['compatibility'] for c in request['cases'] if c['compatibility'] not in producers])))
+            if blocked=='DEVICE_BLOCKED':
+                from .preparation_recovery import UnsafeRecovery
+                raise UnsafeRecovery('exact calibration incomplete; device health unavailable')
             raise ValueError('exact calibration incomplete; original per-case diagnostics retained')
         result = seal(
             {
@@ -616,7 +677,7 @@ def run_inside(root):
                 "device": "actual_HIP",
                 "status": "PASS",
                 "producers": producers,
-                "actual_elapsed_us": max(1, int((time.monotonic() - began) * 1000000)),
+                "actual_elapsed_us": max(1, int((prior_spent+time.monotonic() - began) * 1000000)),
                 **({'retirements':retirements} if 'checkpoint_retention' in request else {}),
             }
         )

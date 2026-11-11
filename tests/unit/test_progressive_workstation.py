@@ -161,6 +161,15 @@ def test_qualification_continues_after_case_failures(tmp_path,monkeypatch,failur
     assert len(snapshots)==len(result['failures'])
     assert [json.loads(p.read_text()) for p in snapshots]==result['failures']
     if not healthy:assert result['failures'][-1]['error']=='DEVICE_BLOCKED'
+    before=list(calls)
+    if healthy:
+        again=a.run_hardware_delta(tmp_path,request,[],tmp_path/'batch',seconds=30)
+        assert again['status']=='FAIL'
+        assert [c for c in calls if c not in before]==[]
+    else:
+        with pytest.raises(ValueError,match='exhausted'):
+            a.run_hardware_delta(tmp_path,request,[],tmp_path/'batch',seconds=30)
+
 
 
 def test_device_case_failure_does_not_prevent_independent_case(tmp_path,monkeypatch):
@@ -326,6 +335,9 @@ def test_calibration_failure_keeps_independent_results_and_blocks_bad_device(tmp
             folder=(tmp_path/ref['path']).parent
             verify(folder,reference(folder,'checkpoint-retirement.json'),load(folder/'producer.json'))
     assert not (tmp_path/'producer.json').exists()
+    before=list(calls)
+    with pytest.raises(ValueError):c.run_inside(tmp_path)
+    assert calls==before  # originals/failed attempts never reset their token debit
 
 
 def test_calibration_expired_deadline_records_every_unattempted_case(tmp_path,monkeypatch):

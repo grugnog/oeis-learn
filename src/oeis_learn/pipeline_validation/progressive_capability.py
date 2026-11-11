@@ -20,7 +20,7 @@ def prepare(args, root, host_factory=None):
     from .progressive_commands import _output
 
     blueprint = validate("blueprint", load(confined(root, args.blueprint)))
-    output = _output(root, args.output)
+    output = _output(root, args.output,binding=dict(operation='prepare',blueprint=blueprint['identity'],qualification=reference(root,confined(root,args.qualification)/'qualification.json')))
     selected = [
         r["artifact"] for r in blueprint["payload"]["references"] if r["name"] == "preparation_plan"
     ]
@@ -73,7 +73,8 @@ def prepare(args, root, host_factory=None):
 
         prepared = calibrate(root, blueprint, prepared, output, args, host_factory)
         deficits = prepared['payload']['deficits']
-    atomic_write(output / "prepared.json", prepared)
+    from .preparation_recovery import retain
+    retain(output / "prepared.json", prepared)
     return publish(
         output,
         operation="prepare",

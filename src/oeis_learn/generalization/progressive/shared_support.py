@@ -65,16 +65,19 @@ def seal_package(value):
 
 
 def projection_size(cases):
-    """Conservative compact projection bound, before any per-case publication."""
+    """Exact pretty-JSON byte counts plus atomic-publication headroom."""
+    encoder=json.JSONEncoder(sort_keys=True,indent=2,allow_nan=False)
+    def size(value):return 1+sum(len(part.encode()) for part in encoder.iterencode(value))
     bases={};total=0
     for case in cases:
-        p=case['package'];shards=p['shards']
-        key=id(shards)
-        if key not in bases:bases[key]=len(raw(shards))
-        total+=len(raw({k:v for k,v in p.items() if k!='shards'}))+4096
-    # atomic_write uses indentation; conservative 4x compact bytes covers it,
-    # plus separate original package metadata and every content reference.
-    return 4*(sum(bases.values())+total)
+        p=case['package'];shards=p['shards'];key=id(shards)
+        if key not in bases:bases[key]=size(shards)
+        # Fixed-length sha256/path fields, including the wrapper's own seal.
+        ref=dict(path='inputs/support/'+('0'*64)+'.json',bytes=bases[key],sha256='sha256:'+('0'*64))
+        envelope=seal(dict(version='progressive-calibration-input/v1',support=ref,
+            package={k:v for k,v in p.items() if k!='shards'}))
+        total+=size(envelope)
+    return 2*(sum(bases.values())+total)
 
 
 def project(root,cases):

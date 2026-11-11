@@ -10,7 +10,6 @@ from oeis_learn.pipeline_validation import progressive_research_bindings as b
 
 @pytest.fixture(scope='module')
 def compiled(tmp_path_factory):
-    from unittest.mock import patch
     from tests.unit.test_progressive_research_roster import fixture
     from oeis_learn.pipeline_validation.progressive_acceptance import fixture as learning_fixture
     from oeis_learn.pipeline_validation.progressive_research_design import scientific_round
@@ -32,7 +31,11 @@ def compiled(tmp_path_factory):
     manifest=dict(retained=dict(checkpoints=dict(D=dict(root='.',descriptor=dict(
         weights=reference(root,'weights.pt'),state=reference(root,'state.json'))))))
     atomic_write(root/'manifest.json',manifest)
+    from oeis_learn.pipeline_validation.progressive_research_inputs import ExposureIndex
+    with ExposureIndex(root/'original-exposure.sqlite'):pass
+    atomic_write(root/'candidates.json',[])
     data=seal(dict(version='progressive-registered-data/v1',design=seal(dict(seeds=[17,19])),
+        candidates=reference(root,'candidates.json'),exposure=reference(root,'original-exposure.sqlite'),
         recipe=reference(root,'recipe.json'),manifest=reference(root,'manifest.json')))
     design=scientific_round(data)
     _,rosters,screening=fixture();panels={};reservations={};pubs=[]
@@ -49,17 +52,30 @@ def compiled(tmp_path_factory):
             exposure=exposure,created_at=exposure['created_at'])
         atomic_write(root/name/'cohort.json',panel)
         panels[name]=panel;reservations[name]=reserved
-        pubs.append(dict(panel=name,cohort=reference(root,root/name/'cohort.json')))
+        pubs.append(dict(panel=name,role=role,status='COMPLETE',cohort=reference(root,root/name/'cohort.json')))
     bound=dict(roster=b.construct(design,rosters,screening),panels=panels,reservations=reservations,
                screening=screening,support=support,support_summary=summary,exposure=exposure)
-    materials=seal(dict(panels=pubs,support=reference(root,'support.json'),exposure=reference(root,'exposure.json')))
+    # Only the native data producer is doubled. Actual material binding reads
+    # every original reservation/cohort/support byte; inputs() is not patched.
+    from oeis_learn.pipeline_validation.progressive_research_bridge import request
+    req=request(data);atomic_write(root/'census/request.json',req)
+    atomic_write(root/'census/private/panel-reservations.json',reservations)
+    native=digest('EXPLICIT NATIVE PRODUCER BOUNDARY')
+    census=seal(dict(version='progressive-research-census/v1',request=req['identity'],diagnostic=False,native=native,
+        artifacts=[reference(root/'census','private/panel-reservations.json')]))
+    atomic_write(root/'census/census.json',census)
+    atomic_write(root/'support-summary.json',summary);atomic_write(root/'screening.json',screening)
+    materials=seal(dict(version='progressive-research-materials/v1',status='COMPLETE',diagnostic=False,deficits=[],
+        census=reference(root,'census/census.json'),request=reference(root,'census/request.json'),native=native,
+        panels=pubs,support=reference(root,'support.json'),support_summary=reference(root,'support-summary.json'),
+        screening=reference(root,'screening.json'),exposure=reference(root,'exposure.json')))
+    assert b.inputs(root,data,design,materials)==bound
     atomic_write(root/'qualification/source.json',{'test_boundary_only':True})
     q=dict(source_closure=reference(root/'qualification','source.json'),images=[digest('cpu'),digest('hip')],
            runtime={'execution_policy':digest('TEST EXECUTION POLICY BOUNDARY')})
     atomic_write(root/'qualification/qualification.json',q)
-    with patch.object(b,'inputs',return_value=bound):
-        args=b.compile_plan(root,root/'compiled',data,design,materials,qualification=root/'qualification',checkpoint_bytes=64<<20)
-        result=b.finish_plan(*args,data=data,design=design,materials=materials)
+    args=b.compile_plan(root,root/'compiled',data,design,materials,qualification=root/'qualification',checkpoint_bytes=64<<20)
+    result=b.finish_plan(*args,data=data,design=design,materials=materials)
     return root,args,result
 
 

@@ -70,7 +70,7 @@ class ExposureIndex:
     Keys are hashes of authoritative values; no SQLite dependency on the host
     beyond Python's standard library. Originals are processed one cell at a time.
     """
-    def __init__(self, path, *, readonly=False):
+    def __init__(self, path, *, readonly=False, resume=False):
         path = Path(path)
         self.readonly = readonly
         if readonly:
@@ -80,7 +80,13 @@ class ExposureIndex:
             return
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         if path.exists():
-            raise ValueError('fresh exposure index required')
+            if not resume or path.is_symlink() or path.stat().st_size>8<<30:
+                raise ValueError('fresh exposure index required')
+            self.db=sqlite3.connect(path)
+            if (self.db.execute('PRAGMA quick_check').fetchone()[0]!='ok'
+                    or {r[0] for r in self.db.execute("SELECT name FROM sqlite_master WHERE type='table'")}!={'keys','origins'}):
+                self.db.close();raise ValueError('original exposure index recovery schema differs')
+            return
         self.db = sqlite3.connect(path)
         self.db.execute('PRAGMA journal_mode=DELETE')
         self.db.execute('PRAGMA cache_size=-32768')

@@ -16,13 +16,24 @@ from .progressive_evidence import publish
 _INVOCATION = ContextVar("discovery_invocation", default=None)
 
 
-def _output(root, name):
+def _output(root, name, *, binding=None):
     path = confined(root, name, exists=False)
-    if path.exists():
-        if not path.is_dir() or any(path.iterdir()):
-            raise ValueError("fresh empty output required")
+    if path.exists() and any(path.iterdir()):
+        if binding is None or not (path/'operation-binding.json').is_file() or load(path/'operation-binding.json')!=seal(binding):
+            raise ValueError('fresh empty output or exact original recovery binding required')
+        owner=load(path/'owner.json')
+        if owner.get('version')!='discovery-owner/v1' or owner.get('output')!=str(path.relative_to(root)):
+            raise ValueError('original recovery owner differs')
+        import shutil
+        history=path/'recovery';history.mkdir(exist_ok=True)
+        attempt=history/str(len(list(history.iterdir()))).zfill(4);attempt.mkdir()
+        for name in ('owner.json','result.json','failure.json','private/host-traceback.txt'):
+            if (path/name).is_file():
+                (attempt/name).parent.mkdir(parents=True,exist_ok=True)
+                shutil.move(path/name,attempt/name)
     else:
-        path.mkdir(parents=True)
+        path.mkdir(parents=True,exist_ok=True)
+        if binding is not None:atomic_write(path/'operation-binding.json',seal(binding))
     atomic_write(
         path / "owner.json",
         seal(

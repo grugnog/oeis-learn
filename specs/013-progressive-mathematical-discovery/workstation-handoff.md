@@ -479,3 +479,27 @@ portfolio, program, token and aggregate scientific caps remain unchanged; an
 infeasible measured design blocks before training instead of shortening looks
 or extending spent reservations. Historical 2× records remain historical and
 do not establish readiness for this new preparation policy.
+
+Preparation recovery (T164–T167): repeat the same command/session/output. The
+wrapper reuses hash-verified completed stages, and canonical preparation binds
+recovery to the original blueprint, source/resources and output owner. Terminal
+census publications and committed calibration/qualification cases are reused.
+A publication failure can be repaired without repeating native draws or updates.
+Only never-attempted cases can spend a proven remaining allowance; an attempted
+case without a valid complete producer retains its debit and failure. A killed
+supervisor with no termination proof, failed device health, exhausted allowance,
+or changed source/data requires a new prospective decision rather than an
+automatic budget reset. A sibling output cannot bypass the original reservation.
+
+Completed scientific execution now reconciles report/verification separately.
+Missing/corrupt archives and failed collectors use fresh publication paths and
+retain previous attempts inside the same four-hour packaging allowance. Host
+telemetry retains two 8-MiB windows, lifetime omission/error counters and the
+latest successful observation; support ZIPs include the status even after log
+rotation. None of these recovery paths opens the assessment panel.
+
+Integration checks use the actual material reader and all 376 canonical role
+requests, 1,296 calibration choices, emitted qualification command, preparation,
+freeze and reporting interfaces. Reduced native census/material publication is
+in the existing mandatory CPU Docker inventory. Local hardware doubles are
+explicit boundaries and cannot qualify HIP or mark scientific tasks complete.

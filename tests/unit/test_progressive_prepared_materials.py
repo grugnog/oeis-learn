@@ -279,3 +279,33 @@ def test_transfer_strata_use_initial_gradient_not_trimmed_probe_or_refresh_rows(
     assert lost and all(classify(r,actual)!='parameter' for r in lost)
     assert len(binding['initial_gradient'])==len(data['shards'][0])-2
     assert binding['refreshed_shards']==1
+
+
+def test_stdlib_custodian_cli_connects_census_and_rejects_stale_output(tmp_path):
+    import json,os,subprocess,sys
+    from pathlib import Path
+    from tests.unit.test_progressive_research_census import inputs,ReferenceDouble
+    from oeis_learn.pipeline_validation.progressive_research_census import run
+    from oeis_learn.pipeline_validation.progressive_workstation_state import write,sha
+    request=inputs(tmp_path);write(tmp_path/'request.json',request)
+    run(tmp_path,tmp_path/'nested/census',request,client=ReferenceDouble())
+    write(tmp_path/'rule.json',support.policy(seed=request['seed'],shard_rows=request['shard_rows']))
+    originals=[p for p in tmp_path.rglob('*') if p.is_file()]
+    before={p:sha(p) for p in originals}
+    for path in originals:path.chmod(0o400)
+    source=Path(__file__).resolve().parents[2]/'src'
+    argv=[sys.executable,'-S','-c',
+        'import sys;sys.path.insert(0,sys.argv.pop(1));from oeis_learn.pipeline_validation.progressive_research_materials import main;main()',
+        str(source),'--root',str(tmp_path),'--census','nested/census/census.json',
+        '--request','request.json','--policy','rule.json','--output','new/nested/materials']
+    first=subprocess.run(argv,capture_output=True,text=True,timeout=60)
+    assert first.returncode==0,first.stderr
+    material=json.loads((tmp_path/'new/nested/materials/materials.json').read_text())
+    assert material['diagnostic'] and not material['research_ready'] and material['deficits']
+    repeated=subprocess.run(argv,capture_output=True,text=True,timeout=60)
+    assert repeated.returncode!=0 and 'original materials retained' in repeated.stderr
+    assert all(sha(p)==value for p,value in before.items())
+    (tmp_path/'partial/output').mkdir(parents=True)
+    (tmp_path/'partial/output/sentinel').write_text('retain')
+    stale=subprocess.run([*argv[:-1],'partial/output'],capture_output=True,text=True,timeout=60)
+    assert stale.returncode!=0 and (tmp_path/'partial/output/sentinel').read_text()=='retain'

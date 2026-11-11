@@ -152,15 +152,31 @@ def validate_request(request):
     return request
 
 
-def run(root, output, request, *, client):
+def run(root,output,request,*,client):
+    from .preparation_recovery import Allowance
+    request=validate_request(request);output=Path(output)
+    for key in ('candidates','exposure','recipe'):checked_file(root,request[key])
+    if (output/'census.json').exists():
+        original=_json(output/'census.json',maximum=32<<20)
+        if (seal(original)!=original or original['request']!=request['identity']
+                or original['native']!=client.runtime_identity('bigint-body/v1')):
+            raise ValueError('original census recovery scope differs')
+        for ref in original['artifacts']:checked_file(output,ref)
+        # A terminal census (including negative supply) never reruns native work.
+        return original
+    with Allowance(output/'census-allowance.json',dict(request=request['identity'],native=client.runtime_identity('bigint-body/v1')),
+                   request['seconds']).attempt() as (left,ordinal):
+        return _run(root,output,request,client=client,allowance=left,prior_spent=request['seconds']-left)
+
+
+def _run(root, output, request, *, client, allowance=None, prior_spent=0):
     from oeis_learn.generalization.progressive.generator import default_policy, draw
     from .progressive_preparation import verify_draw
     request = validate_request(request)
     root, output = Path(root), Path(output)
     private = output / 'private'; private.mkdir(parents=True, exist_ok=True, mode=0o700)
     path = private / 'census.sqlite'
-    if path.exists():
-        raise ValueError('prior census retained; no automatic repetition or budget reset')
+    resumed=path.exists()
     candidates = _json(checked_file(root, request['candidates']), maximum=128 << 20)
     recipe = _json(checked_file(root, request['recipe']))
     batch=recipe['learning']['batch_size']
@@ -169,7 +185,7 @@ def run(root, output, request, *, client):
     exposure = checked_file(root, request['exposure'])
     if not isinstance(candidates,list) or len(candidates)>4096 or len({r['id'] for r in candidates}) != len(candidates):
         raise ValueError('bounded unique original OEIS projection required')
-    began = time.monotonic(); deadline = began + request['seconds']
+    began = time.monotonic(); deadline = began + (request['seconds'] if allowance is None else allowance)
     work_deadline = deadline-min(600,max(1,request['seconds']//10))
     counters, failures, evaluation, training = Counter(), [], [], []
     support = dict(structures=set(), nodes=set(), operators=set())
@@ -187,12 +203,21 @@ def run(root, output, request, *, client):
     # reservoir JSON (including atomic-write headroom), and a 512-MiB native
     # cache fit within the declared 8-GiB output reservation.
     db.execute('PRAGMA max_page_count='+str((request['disk_bytes']//8)//page_size))
-    db.execute('CREATE TABLE draws(ordinal INTEGER PRIMARY KEY,status TEXT,row TEXT,reason TEXT)')
-    db.execute('CREATE TABLE binding(value TEXT)')
-    db.execute('INSERT INTO binding VALUES (?)', (json.dumps(request),)); db.commit()
+    if resumed:
+        binding=json.loads(db.execute('SELECT value FROM binding').fetchone()[0])
+        if binding!=request:raise ValueError('original census recovery binding differs')
+        if db.execute('SELECT value FROM native').fetchone()[0]!=client.runtime_identity('bigint-body/v1'):
+            raise ValueError('original native census identity changed')
+    else:
+        db.execute('CREATE TABLE draws(ordinal INTEGER PRIMARY KEY,status TEXT,row TEXT,reason TEXT)')
+        db.execute('CREATE TABLE binding(value TEXT)')
+        db.execute('CREATE TABLE native(value TEXT)')
+        db.execute('INSERT INTO native VALUES (?)',(client.runtime_identity('bigint-body/v1'),))
+        db.execute('INSERT INTO binding VALUES (?)', (json.dumps(request),));db.commit()
+    previous={r[0]:r[1:] for r in db.execute('SELECT ordinal,status,row,reason FROM draws ORDER BY ordinal')}
     def progress():
         write(output/'census-progress.json',seal(dict(version='progressive-census-progress/v1',
-            requested=total, outcomes=dict(counters), elapsed_seconds=time.monotonic()-began,
+            requested=total, outcomes=dict(counters), elapsed_seconds=prior_spent+time.monotonic()-began,
             failures=failures[:32], private_outputs_retained=True)))
     def classify_fresh(row, historical, training_index):
         stratum = classify(row, support)
@@ -205,13 +230,29 @@ def run(root, output, request, *, client):
         return seal(dict(row, stratum=stratum, membership='evaluation_candidate')), None
     from types import SimpleNamespace
     try:
-        with ExposureIndex(exposure, readonly=True) as history, ExposureIndex(private/'training-exposure.sqlite') as train_index:
+        with ExposureIndex(exposure, readonly=True) as history, ExposureIndex(private/'training-exposure.sqlite',resume=resumed) as train_index:
             index_page_size=train_index.db.execute('PRAGMA page_size').fetchone()[0]
             train_index.db.execute('PRAGMA max_page_count='+str((request['disk_bytes']//8)//index_page_size))
             for ordinal in range(total):
                 if ordinal==request['training_draws']:
                     published,_=project(training,support_rule,diagnostic=request['diagnostic'])
                     support,support_binding=transfer_support(published)
+                if ordinal in previous:
+                    status,raw,reason=previous[ordinal]
+                    row=json.loads(raw) if raw else None
+                    if row is not None and seal(row)!=row:raise ValueError('changed original census row')
+                    if status=='TRAINING':
+                        if ordinal>=request['training_draws']:raise ValueError('foreign original training ordinal')
+                        training.append(row)
+                    elif status=='EVALUATION':
+                        if ordinal<request['training_draws'] or classify(row,support)!=row['stratum']:
+                            raise ValueError('original reserved transfer classification changed')
+                        evaluation.append(row)
+                    elif status=='RESERVED':
+                        status='FAILED';reason='interrupted original draw; no repetition'
+                    if status=='FAILED' and len(failures)<32:failures.append(dict(ordinal=ordinal,reason=reason))
+                    counters[status]+=1
+                    continue
                 if time.monotonic() >= work_deadline:
                     counters['unattempted'] += total-ordinal
                     break
@@ -284,7 +325,7 @@ def run(root, output, request, *, client):
         result=seal(dict(version='progressive-research-census/v1',request=request['identity'],
             status='INCOMPLETE' if deficits else 'COMPLETE', diagnostic=request['diagnostic'],
             research_ready=False, qualification=False, training_started=False, assessment_exposed=False,
-            native=client.runtime_identity('bigint-body/v1'), elapsed_seconds=time.monotonic()-began,
+            native=client.runtime_identity('bigint-body/v1'), elapsed_seconds=prior_spent+time.monotonic()-began,
             counts=dict(counters), panels=panels, deficits=deficits, failures=failures,
             transfer_support=support_binding,
             reserved_panel_rows=sum(len(rows) for rows in roster.values()),

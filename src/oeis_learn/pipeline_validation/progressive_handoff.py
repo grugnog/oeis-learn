@@ -10,6 +10,7 @@ from oeis_learn.generalization.progressive.contracts import (
 )
 from .identity import confined
 from .progressive_evidence import publish
+from .preparation_recovery import retain, revise
 from .research_limits import ACCEPTANCE_SECONDS, CPU_ACCEPTANCE_SECONDS, case_allowance
 
 
@@ -51,7 +52,19 @@ def original_authority(root, ref):
     return q,base
 
 
-def qualify_command(args, root, host_factory):
+def qualify_command(args,root,host_factory):
+    from .preparation_recovery import Allowance
+    blueprint=validate('blueprint',load(confined(root,args.blueprint)))
+    plan=named_plan(root,blueprint,'qualification_plan','progressive-qualification-plan/v1',
+        {'matrix','base_qualification','seconds'},optional={'original_cases'})
+    if plan is None:return _qualify_command(args,root,host_factory)
+    state=Path(root)/'run-state/discovery-qualification'/blueprint['identity'][7:]
+    with Allowance(state/'qualification-allowance.json',dict(blueprint=blueprint['identity'],output=args.output),
+                   plan['seconds']).attempt() as (left,attempt):
+        return _qualify_command(args,root,host_factory,allowance=left,attempt=attempt)
+
+
+def _qualify_command(args, root, host_factory, *, allowance=None, attempt=0):
     from .progressive_commands import _output
     from .progressive_acceptance import hardware_plan
     from .generalization_qualification_io import current_facts, public_closure
@@ -59,7 +72,7 @@ def qualify_command(args, root, host_factory):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     began=time.monotonic()
     blueprint=validate('blueprint',load(confined(root,args.blueprint)))
-    output=_output(root,args.output)
+    output=_output(root,args.output,binding=dict(operation='qualify',blueprint=blueprint['identity']))
     plan=named_plan(root,blueprint,'qualification_plan','progressive-qualification-plan/v1',
                     {'matrix','base_qualification','seconds'},optional={'original_cases'})
     if plan is None:
@@ -76,19 +89,22 @@ def qualify_command(args, root, host_factory):
     host=host_factory(args)
     if request['source']!=digest(collect_snapshot(root)) or request['engine']!=host.engine.name or request['image']!=base['images'][1]:
         raise ValueError('current source/selected engine/immutable GPU image required')
-    facts=current_facts(host,root,output/'inspection',images=base['images'],
+    facts=current_facts(host,root,output/('inspection' if attempt==0 else 'inspection-'+str(attempt)),images=base['images'],
                         source_ref=base['source_closure'],build_refs=base['build_dependencies'],producer_root=base_root,pac_seconds=max(1,min(120,plan['seconds']//6)))
     consume_public(base,facts,root=base_root,required_suites=['bigint-cpu','bigint-gpu'],
                    required_capabilities=['weight-load','finite-update','native-exact'])
-    device=output/'device';device.mkdir()
-    atomic_write(device/'request.json',request)
+    device=output/'device';device.mkdir(exist_ok=True)
+    retain(device/'request.json',request)
     copied=[]
     for i,(ref,raw) in enumerate(zip(originals,verify_refs(root,originals,max_bytes=4<<20))):
         path=device/'originals'/(str(i)+'.json');path.parent.mkdir(exist_ok=True)
-        with path.open('xb') as stream: stream.write(raw)
+        if path.exists():
+            if path.read_bytes()!=raw:raise ValueError('original qualification input changed')
+        else:
+            with path.open('xb') as stream: stream.write(raw)
         copied.append(reference(device,path))
-    atomic_write(device/'originals.json',copied)
-    remaining=case_allowance(plan['seconds']-(time.monotonic()-began), maximum=plan['seconds'])
+    retain(device/'originals.json',copied)
+    remaining=int(case_allowance(min(plan['seconds'],allowance or plan['seconds'])-(time.monotonic()-began), maximum=plan['seconds']))
     # Every independent case has its own process, including the first batch.
     code=("from oeis_learn.generalization.progressive.contracts import load;"
           "from oeis_learn.pipeline_validation.progressive_acceptance import run_hardware_delta;"
@@ -97,10 +113,17 @@ def qualify_command(args, root, host_factory):
           "raise SystemExit(0 if v['status']=='PASS' else 1)")
     if remaining<=0:
         raise TimeoutError('qualification allowance exhausted during inspection')
+    from .preparation_recovery import preserve_process
+    preserve_process(device)
     stage(host,root,request['image'],device,['python','-c',code],gpu=True,seconds=remaining)
     if time.monotonic()-began>plan['seconds']:
         raise TimeoutError('qualification aggregate allowance exhausted')
-    refs=[reference(output,p) for p in sorted((device/'cases').rglob('producer.json'))]
+    refs=[];scopes={}
+    for path in sorted((device/'cases').rglob('producer.json')):
+        ref=reference(output,path);scope=load(path)['scope']
+        if scope in scopes:
+            if scopes[scope]['sha256']!=ref['sha256']:raise ValueError('conflicting original qualification case')
+        else:scopes[scope]=ref;refs.append(ref)
     if hardware_plan(output,request,refs)['delta']:
         raise ValueError('original selected device producers missing')
     # Keep every original byte/path from the base authority. New feature facts
@@ -109,24 +132,27 @@ def qualify_command(args, root, host_factory):
         raw=verify_refs(base_root,[ref],max_bytes=512<<20)[0]
         target=confined(output,ref['path'],exists=False)
         target.parent.mkdir(parents=True,exist_ok=True)
-        with target.open('xb') as stream: stream.write(raw)
+        if target.exists():
+            if target.read_bytes()!=raw:raise ValueError('original base qualification changed')
+        else:
+            with target.open('xb') as stream: stream.write(raw)
     original=load(confined(output,base['producer']['receipt']['path']))
     caps=sorted(set(base['covered_capabilities'])|{'language:bigint-body/v1'}|
                 {'model:'+digest({k:v for k,v in c['profile']['model'].items() if k!='seed'}) for c in request['cases']})
-    atomic_write(output/'qualification-run.json',seal(dict(version='progressive-qualification-run/v1',
+    revise(output/'qualification-run.json',seal(dict(version='progressive-qualification-run/v1',
         matrix=request['identity'],original_execution_us=reuse['original_execution_us'],
         actual_elapsed_us=int((time.monotonic()-began)*1e6),
         reused=[v['case'] for v in reuse['reused']],executed=[c['identity'] for c in reuse['delta']])))
     artifacts=[*original['artifacts'],reference(output,device/'request.json'),reference(output,'qualification-run.json'),*refs]
     producer=seal(dict(original,capabilities=caps,artifacts=artifacts,
                        dependencies=[*original['dependencies'],base['producer']['receipt']]))
-    atomic_write(output/'progressive-producer.json',producer)
+    revise(output/'progressive-producer.json',producer)
     q=seal(dict(base,covered_capabilities=caps,
                 producer=dict(receipt=reference(output,'progressive-producer.json'),status='PASS',artifacts=artifacts),
                 artifact_inventory=public_closure(output,producer)))
     consume_public(q,facts,root=output,required_suites=['bigint-cpu','bigint-gpu'],required_capabilities=caps)
     validate_device_proofs(output,q,source=request['source'],image=request['image'],engine=request['engine'])
-    atomic_write(output/'qualification.json',q)
+    revise(output/'qualification.json',q)
     return publish(output,operation='qualify',mechanical_status='COMPLETE',qualification_status='QUALIFIED',
                    reason='ORIGINAL_SELECTED_DEVICE_QUALIFICATION',metrics={'qualification':reference(output,'qualification.json')}),0
 

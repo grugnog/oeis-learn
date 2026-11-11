@@ -283,33 +283,66 @@ def _current_hardware(request):
 
 def _record_failure(output, failures, failure):
     """Durably retain each failure without replacing immutable evidence."""
-    atomic_write(Path(output) / "failures" / f"{len(failures):03d}" / "failures.json", failure)
+    folder=Path(output)/'failures'
+    index=max([int(p.name) for p in folder.iterdir() if p.name.isdigit()] or [-1])+1 if folder.exists() else 0
+    atomic_write(folder / f'{index:03d}' / 'failures.json', failure)
     failures.append(failure)
 
 
-def run_hardware_delta(root, request, producers, output, *, seconds=900):
+def run_hardware_delta(root,request,producers,output,*,seconds=900):
+    from .preparation_recovery import Allowance
+    output=Path(output)
+    ceiling=load(output/'hardware-allowance.json')['seconds'] if (output/'hardware-allowance.json').exists() else seconds
+    from .preparation_recovery import UnsafeRecovery
+    try:
+        with Allowance(output/'hardware-allowance.json',request['identity'],ceiling).attempt() as (left,ordinal):
+            if min(left,seconds)<1:raise TimeoutError('original hardware allowance exhausted')
+            result=_run_hardware_delta(root,request,producers,output,seconds=int(min(left,seconds)))
+            if any(f.get('error')=='DEVICE_BLOCKED' for f in result['failures']):
+                raise UnsafeRecovery('hardware delta device health unavailable')
+            return result
+    except UnsafeRecovery:
+        return result  # retain the batch's original FAIL; its allowance is exhausted
+
+
+def _run_hardware_delta(root, request, producers, output, *, seconds=900):
     """One finite serial batch; reuse original bytes, execute only absent Q cases.
 
     This capability delta deliberately cannot authorize campaign launch. Integrated
     device lifecycle/target consumption and sustained runs retain their own owners.
     """
-    import shutil
+    import shutil,json
+    from oeis_learn.generalization.progressive.contracts import verify_refs
 
     if type(seconds) is not int or not 1 <= seconds <= 3600:
         raise ValueError("bounded hardware delta allowance required")
     began = time.monotonic()
-    plan = hardware_plan(root, request, producers)
-    _current_hardware(request)
     output = Path(output).absolute()
-    output.mkdir(parents=True, exist_ok=False)
-    atomic_write(output / "request.json", request)
-    atomic_write(output / "plan.json", plan)
+    previous=[]
+    if (output/'request.json').exists():
+        if load(output/'request.json')!=request:raise ValueError('original hardware recovery request differs')
+        previous=[reference(root,p) for p in sorted(output.rglob('producer.json'))]
+    # Repeated copies of the same original are one scope; conflicting bytes
+    # never acquire reuse authority. Hardware validation still checks every case.
+    unique={}
+    for ref in [*producers,*previous]:
+        value=json.loads(verify_refs(root,[ref])[0]);scope=value['scope']
+        if scope in unique and unique[scope]['sha256']!=ref['sha256']:
+            raise ValueError('conflicting original hardware producers')
+        unique.setdefault(scope,ref)
+    plan = hardware_plan(root, request, list(unique.values()))
+    _current_hardware(request)
+    output.mkdir(parents=True, exist_ok=True)
+    from .preparation_recovery import retain,revise
+    retain(output / "request.json", request)
+    revise(output / "plan.json", plan)
     originals = []
     # Copy exactly, retaining origin reference and identity; do not reseal PASS.
     for item in plan["reused"]:
         destination = output / "reused" / item["case"].split(":")[1] / "producer.json"
-        destination.parent.mkdir(parents=True)
-        shutil.copyfile(Path(root) / item["producer"]["path"], destination)
+        destination.parent.mkdir(parents=True,exist_ok=True)
+        if not destination.exists():shutil.copyfile(Path(root) / item['producer']['path'], destination)
+
         copied = reference(output, destination)
         if {k: copied[k] for k in ("sha256", "bytes")} != {k: item["producer"][k] for k in ("sha256", "bytes")}:
             raise ValueError("original hardware bytes changed during reuse")
@@ -321,6 +354,7 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
             if remaining <= 0:
                 raise TimeoutError("hardware delta allowance exhausted")
             target = output / "delta" / case["identity"].split(":")[1]
+            if target.exists():raise ValueError("prior attempted hardware case lacks complete producer; no automatic retry")
             target.mkdir(parents=True)
             code = (
                 "from pathlib import Path;import sys;"
@@ -364,7 +398,7 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
                 _record_failure(output, failures, dict(case=case['identity'],error='DEVICE_BLOCKED',message=str(health_error)))
                 break
     if failures:
-        atomic_write(output / "failures.json", failures)
+        revise(output / "failures.json", failures)
     coverage = hardware_plan(output, request, originals)
     result = seal(dict(version="progressive-hardware-delta/v1", matrix=request["identity"],
                        status="PASS" if not first_error and not coverage["delta"] else "FAIL",
@@ -375,7 +409,7 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
                        failures=failures,
                        original_execution_us=plan["original_execution_us"],
                        actual_elapsed_us=int((time.monotonic()-began)*1e6), allowance_seconds=seconds))
-    atomic_write(output / "delta.json", result)
+    revise(output / "delta.json", result)
     return result
 
 
