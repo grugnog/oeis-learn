@@ -32,6 +32,7 @@ def parser():
     p.add_argument('--blueprint',help='original concrete research blueprint; never a template with guessed inputs')
     p.add_argument('--selection',help='original locked assessment selection')
     p.add_argument('--input-manifest', help='reviewed research input-resolution manifest for register-inputs')
+    p.add_argument('--reuse-exposure-session', help='reuse reviewed complete original exposure data only')
     p.add_argument('--oeis-snapshot', help='explicit existing indexed-source/v1 manifest for register-inputs')
     return p
 
@@ -265,9 +266,13 @@ class Workflow:
                    seconds=3650, stream_cap=4 << 20)
             value = json.loads((output / 'image.json').read_bytes())['image']
             return value, [output / 'image.json']
-        selected_image = self.s.step('research-custodian-image', image,
+        reuse = getattr(self.args, 'reuse_exposure_session', None)
+        selected_image = None if reuse else self.s.step('research-custodian-image', image,
             dependencies=('register-inputs/register-originals',))
         def exposure():
+            if reuse:
+                from .progressive_research_inputs import reuse_exposure
+                return reuse_exposure(self.root, reuse, manifest, registration, self.base / 'exposure-reuse')
             import runpy
             from .supervision import diagnostic_program
             runner = runpy.run_path(str(self.root / 'scripts/qualify_bigint_phase5.py'))
@@ -289,7 +294,7 @@ class Workflow:
                 readonly_inputs=mounts)
             return str(output.relative_to(self.root)), [output / 'exposure-import.json', output / 'private/exposure.sqlite']
         self.s.step('import-exposure', exposure,
-            dependencies=('register-inputs/register-originals','register-inputs/research-custodian-image'))
+            dependencies=('register-inputs/register-originals',) + (() if reuse else ('register-inputs/research-custodian-image',)))
         def report():
             value = seal(dict(version='progressive-research-registration-status/v1',
                 status='INPUTS_REGISTERED', research_ready=False, executable=False,
@@ -352,8 +357,8 @@ def main(root,argv=None):
     args=parser().parse_args(argv); root=Path(root).resolve()
     if args.phase == 'register-inputs' and not args.input_manifest:
         parser().error('register-inputs requires --input-manifest')
-    if (args.input_manifest or args.oeis_snapshot) and args.phase != 'register-inputs':
-        parser().error('--input-manifest and --oeis-snapshot belong to register-inputs')
+    if (args.input_manifest or args.oeis_snapshot or args.reuse_exposure_session) and args.phase != 'register-inputs':
+        parser().error('input manifest, source snapshot and exposure reuse belong to register-inputs')
     if args.memory_gib<=0 or args.cpus<=0: raise ValueError('positive finite resource limits required')
     if args.dry_run:
         print(json.dumps(dict(phase=args.phase,engine=args.engine,session=args.session,
@@ -375,6 +380,8 @@ def main(root,argv=None):
     if args.phase == 'register-inputs':
         from .progressive_workstation_state import sha
         binding['input_manifest'] = dict(path=args.input_manifest, sha256=sha(confined(root,args.input_manifest)))
+        if args.reuse_exposure_session:
+            binding['reuse_exposure_session'] = args.reuse_exposure_session
     if args.phase=='collect' and old: binding=old # Recovery collects old evidence; never executes it.
     s=Session(root,args.session,binding,args.phase)
     stop=threading.Event()

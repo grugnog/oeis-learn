@@ -276,3 +276,22 @@ def test_inline_git_bfile_is_retained_and_processed(tmp_path, upstream):
     row = results(tmp_path)['A000006']
     assert row['bfile']['storage'] == 'git'
     assert row['raw_path'].startswith('git-bfiles/') and row['eligible100']
+
+
+def test_auxiliary_bfile_is_fetched_and_independently_hash_verified(tmp_path, upstream):
+    source = tmp_path / 'source'
+    (source / 'files/A000/b000001-extra.txt').write_bytes(b'0 42\n')
+    bulk.git(source, 'add', '.')
+    bulk.git(source, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+             'commit', '-qm', 'auxiliary b-file')
+    bulk.git(source, 'push', '-q', 'origin', 'HEAD')
+    assert corpus.prepare(tmp_path, config())['status'] == 'COMPLETE'
+    outcomes = [json.loads(line) for line in (tmp_path / 'corpus/diagnostics/object-outcomes.jsonl').read_text().splitlines()]
+    assert len(outcomes) == 6
+    extra = next(r for r in outcomes if 'extra' in r['path'])
+    assert extra['status'] == 'VERIFIED'
+    raw = corpus.object_path(tmp_path / 'corpus/oeisdata.git/lfs/objects', extra['oid'])
+    raw.write_bytes(b'0 41\n')
+    report = corpus.prepare(tmp_path, config())
+    assert report['status'] == 'PARTIAL' and report['counts']['PROCESSED'] == 6
+    assert 'objects unavailable or invalid' in report['fetch_error']

@@ -512,4 +512,4 @@ All tasks are initially unchecked. Hardware/retained-data absence is reported ex
 
 - [X] T148 Implement pinned full-entry inventory, one native all-b-file LFS fetch with bounded retries/resource checks, transactional resumable processing, cache compatibility checks and complete eligibility accounting.
 - [X] T149 Integrate CPU-only canonical Podman/Docker execution, failure/interruption diagnostics ZIPs, exact operator command and regression coverage using real local Git/LFS fixtures.
-- [ ] T150 Reuse complete prior exposure data across source-changing sessions with exact input/index verification, original producer/cost records, and no hardware-authority transfer; regression-test rejection paths.
+- [X] T150 Reuse complete prior exposure data across source-changing sessions with exact input/index verification, original producer/cost records, and no hardware-authority transfer; regression-test rejection paths.

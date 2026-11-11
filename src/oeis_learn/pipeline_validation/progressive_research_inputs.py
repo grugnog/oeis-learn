@@ -208,7 +208,7 @@ def source_candidates(root, *, maximum_files=20000):
         raise ValueError('finite source inventory bound required')
     found, caches, scans, errors = [], [], [], []
     excluded = {'checkpoints', '.git', 'private', 'share', 'rows', 'terms',
-                'metadata', 'raw', 'logs', 'oeisdata'}
+                'metadata', 'raw', 'logs', 'oeisdata', 'oeisdata.git'}
     for base in ('data', 'downloads', 'tmp-oeis-bulk', 'run-state'):
         folder = root / base
         if not folder.is_dir() or folder.is_symlink():
@@ -354,3 +354,81 @@ def audit(root, manifest, output):
                             legacy_optimizer='retained for provenance; never a progressive resume state')))
     write(output / 'registration.json', result)
     return result
+
+
+# Reviewed data-producer closure from registration002. This is deliberately not
+# a generic exemption from current-source qualification. Change only following
+# a review of exposure-key/parser compatibility; hardware receipts never carry.
+EXPOSURE_COMPATIBLE_SOURCES = {
+    'sha256:3f73c66881a324e53d9b99368b92a963666545c062553dc7a0904226ddeab93c',
+}
+
+
+def reuse_exposure(root, session, manifest, registration, output):
+    """Validate and reference original data in place; no copy or re-import."""
+    from .progressive_workstation_state import read
+    root, output = Path(root), Path(output)
+    folder = confined(root, session)
+    if not folder.is_relative_to(root / 'run-state'):
+        raise ValueError('prior workstation session required')
+    prior = read(folder / 'session.json')
+    journal = read(folder / 'journal.json')
+    if prior['binding']['source'] not in EXPOSURE_COMPATIBLE_SOURCES:
+        raise ValueError('prior exposure producer has not been reviewed for data compatibility')
+    original = journal['steps'].get('register-inputs/register-originals', {})
+    imported = journal['steps'].get('register-inputs/import-exposure', {})
+    if original.get('status') != 'COMPLETE' or imported.get('status') != 'COMPLETE':
+        raise ValueError('complete original registration and exposure import required')
+    def audit_contract(value):
+        # Timings are original evidence, not data identities. Preserve both
+        # receipts while requiring every substantive check/authority to match.
+        return dict({k: v for k, v in value.items() if k not in {'identity', 'checks'}},
+                    checks=[{k: v for k, v in row.items() if k != 'elapsed_seconds'}
+                            for row in value['checks']])
+    old_registration = original['value']
+    if (registration.get('status') != 'COMPLETE' or seal(registration) != registration
+            or seal(old_registration) != old_registration
+            or registration['manifest'] != manifest['identity']
+            or audit_contract(old_registration) != audit_contract(registration)):
+        raise ValueError('current input audit differs from original exposure registration')
+    # audit() has just verified all inputs. Verify again here so this helper
+    # cannot authorize reuse based solely on a caller-supplied COMPLETE label.
+    for row in registration['checks']:
+        if row.get('status') == 'PASS' and 'workspace_artifact' in row:
+            checked_file(root, row['workspace_artifact'])
+    files = [checked_file(root, ref) for ref in imported.get('outputs', [])]
+    exposure = folder / 'register-inputs/exposure'
+    receipt_path, index_path = exposure / 'exposure-import.json', exposure / 'private/exposure.sqlite'
+    if set(files) != {receipt_path, index_path}:
+        raise ValueError('original exposure outputs must bind receipt and private index')
+    receipt = read(receipt_path)
+    expected = {'original.' + item['name'] for item in manifest['prior_inputs']['originals']}
+    expected.update({'prior.probes', 'prior.observed', 'fresh-002.targets'})
+    if (receipt.get('version') != 'progressive-exposure-import/v1'
+            or receipt.get('status') != 'COMPLETE' or receipt.get('failures')
+            or receipt.get('registration') != old_registration['identity']
+            or len(receipt['reports']) != len(expected)
+            or {r['name'] for r in receipt['reports']} != expected
+            or any(r['status'] != 'COMPLETE' for r in receipt['reports'])
+            or checked_file(exposure, receipt['index']) != index_path):
+        raise ValueError('complete matching exposure receipt required')
+    refs = {r['name']: r['workspace_artifact'] for r in registration['checks']
+            if r.get('status') == 'PASS' and 'workspace_artifact' in r}
+    if any(r['artifact'] != refs[r['name']] for r in receipt['reports']):
+        raise ValueError('exposure receipt input identities differ')
+    with ExposureIndex(index_path, readonly=True) as index:
+        origins = dict(index.db.execute('SELECT name,rows FROM origins'))
+    if origins != {r['name']: r['rows'] for r in receipt['reports']}:
+        raise ValueError('exposure index origin accounting differs')
+    result = seal(dict(version='progressive-exposure-reuse/v1', status='COMPLETE',
+        original_session=reference(root, folder / 'session.json'),
+        original_journal=reference(root, folder / 'journal.json'),
+        producer_source=prior['binding']['source'], registration=registration['identity'],
+        original_registration=old_registration['identity'],
+        original_receipt=reference(root, receipt_path), index=reference(root, index_path),
+        original_elapsed_seconds=imported['elapsed_seconds'],
+        original_preparation_seconds=sum(s.get('elapsed_seconds', 0) for s in journal['steps'].values()),
+        hardware_authority_transferred=False, research_ready=False,
+        scope='reviewed original exposure data only; costs retained, no re-import or qualification reuse'))
+    write(output / 'reuse.json', result)
+    return str(exposure.relative_to(root)), [output / 'reuse.json', receipt_path, index_path]

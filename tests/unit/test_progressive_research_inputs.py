@@ -383,3 +383,75 @@ def test_source_inventory_prunes_bulk_terms_but_finds_sibling_snapshot(tmp_path)
         dict(version='indexed-source/v1', release='original', records=[]))
     result = source_candidates(tmp_path, maximum_files=15)
     assert len(result['candidates']) == 1 and not result['truncated']
+
+
+@pytest.mark.parametrize('damage', [None, 'index', 'receipt', 'input', 'producer', 'incomplete'])
+def test_cross_source_exposure_reuse_keeps_costs_and_rejects_changed_evidence(tmp_path, damage):
+    from oeis_learn.pipeline_validation import progressive_research_inputs as inputs
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session, write
+    manifest = originals(tmp_path)
+    old = Session(tmp_path, 'run-state/original',
+                  dict(source=next(iter(inputs.EXPOSURE_COMPATIBLE_SOURCES))), 'register-inputs')
+    exposure = old.folder / 'register-inputs/exposure'
+    with old.own():
+        registration = inputs.audit(tmp_path, manifest, old.folder / 'register-inputs/registration')
+        old.step('register-originals', lambda: (registration, []))
+        receipt = inputs.import_exposure(tmp_path, manifest, registration, exposure)
+        old.step('import-exposure', lambda: (str(exposure.relative_to(tmp_path)),
+                    [exposure / 'exposure-import.json', exposure / 'private/exposure.sqlite']))
+        old.journal['steps']['register-inputs/import-exposure']['elapsed_seconds'] = 5044.2325
+        if damage == 'incomplete':
+            old.journal['steps']['register-inputs/import-exposure']['status'] = 'FAILED'
+        old.save()
+    if damage == 'index':
+        with (exposure / 'private/exposure.sqlite').open('ab') as stream:
+            stream.write(b'changed')
+    if damage == 'receipt':
+        write(exposure / 'exposure-import.json', seal(dict(receipt, status='BLOCKED')))
+    if damage == 'input':
+        (tmp_path / 'prior/probes.json').write_text('[]')
+    if damage == 'producer':
+        write(old.folder / 'session.json', seal(dict(version='progressive-workstation-session/v1',
+              binding=dict(source='unreviewed'))))
+    if damage:
+        with pytest.raises(ValueError):
+            inputs.reuse_exposure(tmp_path, 'run-state/original', manifest, registration, tmp_path / 'new')
+    else:
+        value, files = inputs.reuse_exposure(tmp_path, 'run-state/original', manifest,
+                                            registration, tmp_path / 'new')
+        result = json.loads((tmp_path / 'new/reuse.json').read_text())
+        assert result['original_elapsed_seconds'] == 5044.2325
+        assert result['hardware_authority_transferred'] is False
+        assert result['index']['path'].startswith('run-state/original/')
+        assert value == str(exposure.relative_to(tmp_path))
+        assert not (tmp_path / 'new/private/exposure.sqlite').exists()
+        assert exposure / 'private/exposure.sqlite' in files
+
+
+def test_registration_workflow_reuses_exposure_without_build_or_import(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import progressive_research_inputs as inputs
+    from oeis_learn.pipeline_validation.progressive_workstation import Workflow
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session, write
+    manifest = originals(tmp_path)
+    write(tmp_path / 'manifest.json', manifest)
+    old = Session(tmp_path, 'run-state/old',
+                  dict(source=next(iter(inputs.EXPOSURE_COMPATIBLE_SOURCES))), 'register-inputs')
+    exposure = old.folder / 'register-inputs/exposure'
+    with old.own():
+        registration = inputs.audit(tmp_path, manifest, old.folder / 'register-inputs/registration')
+        old.step('register-originals', lambda: (registration, []))
+        inputs.import_exposure(tmp_path, manifest, registration, exposure)
+        old.step('import-exposure', lambda: (str(exposure.relative_to(tmp_path)),
+                    [exposure / 'exposure-import.json', exposure / 'private/exposure.sqlite']))
+    monkeypatch.setattr(inputs, 'import_exposure', lambda *a, **k: pytest.fail('duplicate import'))
+    monkeypatch.setattr(Workflow, 'host', lambda *a: pytest.fail('engine/image requested for data reuse'))
+    args = SimpleNamespace(phase='register-inputs', input_manifest='manifest.json',
+                           oeis_snapshot=None, reuse_exposure_session='run-state/old')
+    new = Session(tmp_path, 'run-state/new', dict(source='current-source'), 'register-inputs')
+    with new.own():
+        Workflow(new, args).register_research()
+    assert new.journal['steps']['register-inputs/import-exposure']['status'] == 'COMPLETE'
+    assert 'register-inputs/research-custodian-image' not in new.journal['steps']
+    assert new.journal['steps']['register-inputs/project-source']['status'] == 'BLOCKED'
+    assert 'rehearse/qualify' not in new.journal['steps']

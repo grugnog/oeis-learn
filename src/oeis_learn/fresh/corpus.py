@@ -316,6 +316,7 @@ def inspect_bfile(path, row, offset, runner):
 def process(db, media, cache, runner):
     db.row_factory = sqlite3.Row
     db.execute('CREATE TABLE IF NOT EXISTS processed(aid TEXT PRIMARY KEY, signature TEXT, result TEXT)')
+    db.execute('CREATE TABLE IF NOT EXISTS verified_objects(oid TEXT PRIMARY KEY, fingerprint TEXT)')
     projection_bytes = sum(json.loads(r[0]).get('projection_bytes', 0)
                            for r in db.execute('SELECT result FROM processed'))
     for ordinal, row in enumerate(db.execute('SELECT * FROM entries ORDER BY aid')):
@@ -356,7 +357,10 @@ def process(db, media, cache, runner):
             if source:
                 if source['error'] or not current_stamp:
                     raise ValueError(source['error'] or 'missing pinned b-file object')
-                bvalues, count, malformed, _ = inspect_bfile(raw, source, meta.get('offset'), runner)
+                bvalues, count, malformed, verified_stamp = inspect_bfile(raw, source, meta.get('offset'), runner)
+                with db:
+                    db.execute('INSERT OR REPLACE INTO verified_objects VALUES (?,?)',
+                               (source['oid'], json.dumps(verified_stamp)))
                 result['available_terms'] = count
                 if malformed:
                     result['reasons'].append(malformed)
@@ -403,6 +407,41 @@ def process(db, media, cache, runner):
             print(f'Corpus processed: {ordinal + 1}; latest {aid}', flush=True)
             resource_floor(cache, runner.config)
 
+
+
+def verify_objects(db, media, cache, runner):
+    """Account for every selected object, including auxiliary/orphan b-files."""
+    failures = 0
+    path = cache / 'diagnostics/object-outcomes.jsonl'
+    with path.open('w') as out:
+        for row in db.execute('SELECT * FROM objects ORDER BY path'):
+            runner.remaining()
+            outcome = dict(row)
+            try:
+                if row['error']:
+                    raise ValueError(row['error'])
+                raw = cache / 'git-bfiles' / row['oid'] if row['storage'] == 'git' else object_path(media, row['oid'])
+                before = stamp(raw)
+                if before[2] > row['bytes']:
+                    raise ValueError('object exceeds declared size')
+                verified = db.execute('SELECT fingerprint FROM verified_objects WHERE oid=?', (row['oid'],)).fetchone()
+                if not verified or json.loads(verified[0]) != before:
+                    h = hashlib.sha256()
+                    with raw.open('rb') as stream:
+                        for block in iter(lambda: stream.read(1 << 20), b''):
+                            runner.remaining()
+                            h.update(block)
+                    if h.hexdigest() != row['oid'] or stamp(raw) != before:
+                        raise ValueError('object differs from pinned hash')
+                    with db:
+                        db.execute('INSERT OR REPLACE INTO verified_objects VALUES (?,?)',
+                                   (row['oid'], json.dumps(before)))
+                outcome.update(status='VERIFIED', actual_bytes=before[2])
+            except (ValueError, OSError) as exc:
+                failures += 1
+                outcome.update(status='BLOCKED', reason=str(exc))
+            out.write(json.dumps(outcome, sort_keys=True) + '\n')
+    return failures
 
 def resource_floor(cache, config, *, required=0, inodes=0):
     if shutil.disk_usage(cache).free < config['free_disk_floor_bytes'] + required:
@@ -488,6 +527,9 @@ def prepare(root, config):
                 fetch_error = f'{type(exc).__name__}: {exc}'
             try:
                 process(db, media, cache, runner)
+                object_failures = verify_objects(db, media, cache, runner)
+                if object_failures:
+                    fetch_error = fetch_error or f'{object_failures} pinned b-file objects unavailable or invalid'
             finally:
                 report = summarize(db, cache, pin, fetch_error=fetch_error)
                 write(runner.logs / 'result.json', dict(report, elapsed_seconds=time.monotonic() - runner.started))
