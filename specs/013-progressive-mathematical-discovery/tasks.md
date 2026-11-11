@@ -513,3 +513,8 @@ All tasks are initially unchecked. Hardware/retained-data absence is reported ex
 - [X] T148 Implement pinned full-entry inventory, one native all-b-file LFS fetch with bounded retries/resource checks, transactional resumable processing, cache compatibility checks and complete eligibility accounting.
 - [X] T149 Integrate CPU-only canonical Podman/Docker execution, failure/interruption diagnostics ZIPs, exact operator command and regression coverage using real local Git/LFS fixtures.
 - [X] T150 Reuse complete prior exposure data across source-changing sessions with exact input/index verification, original producer/cost records, and no hardware-authority transfer; regression-test rejection paths.
+
+## Phase 16: Independent OEIS pilot diagnostics
+
+- [X] T151 Add a separately identified read-only observer with a prospective training-group sample, concrete/parameterised size and literal-information metrics, direct-index exception flags and exact terms 101–200 checks. Preserve unavailable/unsolved members, original admission provenance, budgets and failure ZIPs. No selection, replay, training, scoring, assessment or qualification changes.
+- [X] T152 Add isolated CPU regression coverage for lookup rejection, valid conditional admission, shortest-target preference, hidden-range failure, tampering, missing outcomes and failures; exercise real native regressions in existing Docker CI. Verify the existing production qualification closure is unchanged; no HIP rehearsal rerun is introduced by this observer.

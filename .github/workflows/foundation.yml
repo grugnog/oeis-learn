@@ -2,6 +2,7 @@ name: Container and native acceptance
 on:
   pull_request:
     paths:
+      - 'tools/oeis_diagnostics/**'
       - 'src/**'
       - 'tests/**'
       - 'scripts/**'
@@ -108,6 +109,10 @@ jobs:
               seconds=3120,
           )
           PYCODE
+      - name: Independent OEIS observer CPU regressions (no HIP)
+        run: |
+          python3 -S tools/oeis_diagnostics/run.py --engine docker --image oeis-portable-ci \
+            self-test --output run-state/ci-oeis-observer
       - name: Public standard-library CLI validation and verified rerun
         env:
           OEIS_CONTAINER_ENGINE: ${{ matrix.engine }}
@@ -120,6 +125,7 @@ jobs:
         with:
           name: portable-${{ matrix.engine }}
           path: |
+            run-state/ci-oeis-observer/diagnostics.zip
             tmp-engine-evidence/*.xml
             tmp-engine-evidence/pytest/**/*.log
             tmp-engine-evidence/pytest/**/container-inspect.json

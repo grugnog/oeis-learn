@@ -298,3 +298,16 @@ preparation costs. Changed/partial/unreviewed producers are rejected. Keep the
 original session: it owns the reused index. Current-source hardware qualification,
 fresh panel/support construction, exact calibration and research freeze are still
 required; this command does not complete those pending tasks.
+
+## Independent OEIS memorisation diagnostics
+
+Use the separately identified [OEIS observer](../../tools/oeis_diagnostics/README.md)
+when the real OEIS training pool/cycle is ready. Freeze its training-group sample
+before search, then analyse the original yield publication. It reports concrete
+and parameterised lengths, literal information, direct-index exceptions and
+terms 101–200 agreement without changing training/admission policies. It uses a
+retained CPU image with no build/GPU/network/experiment-write access; these
+observer-only changes leave the production qualification fingerprint unchanged.
+The current corpus acquisition needs no restart and no exposure re-import.
+The optional small CPU `self-test` and existing Docker CI exercise the real native
+admission/archive regressions; they are not a repeated HIP rehearsal.
