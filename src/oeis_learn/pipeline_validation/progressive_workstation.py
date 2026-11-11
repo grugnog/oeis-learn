@@ -463,7 +463,7 @@ def main(root,argv=None):
         while not stop.wait(30):
             try:s.observer.observe(telemetry(root))
             except OSError as exc:
-                s.observer.observe(dict(collector_error=type(exc).__name__,unix=time.time()))
+                s.observer.failed(exc)
             print('Workstation heartbeat; original stage progress and logs: '+str(s.folder),flush=True)
     def interrupted(*_): raise KeyboardInterrupt()
     previous={sig:signal.signal(sig,interrupted) for sig in (signal.SIGINT,signal.SIGTERM,signal.SIGHUP)}

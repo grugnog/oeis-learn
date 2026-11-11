@@ -579,3 +579,14 @@ def test_telemetry_rotation_errors_and_zip_are_explicit(tmp_path,monkeypatch):
         assert {'telemetry.jsonl','telemetry-previous.jsonl'}<=set(z.namelist())
     resumed=TelemetryCollector(s.folder,segment_bytes=64);resumed.observe(dict(index=21))
     assert resumed.status['observations']==22 and resumed.status['last_observation']['index']==21
+
+
+def test_failed_sensor_poll_preserves_last_successful_observation(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_workstation_state import TelemetryCollector
+    observer=TelemetryCollector(tmp_path)
+    observer.observe(dict(memory_free=42))
+    observer.failed(OSError('sensor boundary unavailable'))
+    value=read(tmp_path/'telemetry-status.json')
+    assert value['observations']==2 and value['omitted_observations']==1
+    assert value['write_failures']==1 and value['last_observation']==dict(memory_free=42)
+    assert value['errors'][0]['type']=='OSError'

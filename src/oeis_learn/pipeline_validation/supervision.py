@@ -30,6 +30,20 @@ try:
     return prefix+textwrap.indent(body,'    ')+'\nfinally:\n    _diagnostic_stop.set()\n'
 
 
+def _live_process_group(group):
+    """Observe owned descendants, ignoring zombies awaiting init's reap."""
+    proc=Path('/proc')
+    if (proc/'self/stat').exists():
+        for path in proc.glob('[0-9]*/stat'):
+            try:fields=path.read_text().rsplit(')',1)[1].split()
+            except (OSError,IndexError):continue
+            if len(fields)>2 and fields[2]==str(group) and fields[0]!='Z':return True
+        return False
+    try:os.killpg(group,0)
+    except ProcessLookupError:return False
+    return True
+
+
 def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartbeat=30,
            cleanup_state=None, grace_seconds=None,allowed_returncodes=(0,)):
     output=Path(output); output.mkdir(parents=True,exist_ok=True)
@@ -108,6 +122,17 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
                 process.wait(timeout=reap)
             except subprocess.TimeoutExpired:
                 cleanup_failure='process-group termination unacknowledged within cleanup deadline'
+                outcome='FAIL' if not interrupted else 'INTERRUPTED'
+            # killpg delivery is asynchronous: waiting only for the leader can
+            # leave a descendant runnable when cleanup is reported complete.
+            # Use the existing shared envelope, retaining time for engine rm.
+            observed_end=cleanup_end
+            if cleanup_state is not None:
+                observed_end=min(cleanup_end,time.monotonic()+max(0,(cleanup_end-time.monotonic())/4))
+            while _live_process_group(process.pid) and time.monotonic()<observed_end:
+                time.sleep(min(.01,max(0,observed_end-time.monotonic())))
+            if _live_process_group(process.pid):
+                cleanup_failure='owned descendant termination unacknowledged within cleanup deadline'
                 outcome='FAIL' if not interrupted else 'INTERRUPTED'
             process.stdout.close();process.stderr.close()
         for name,stream in streams.items():

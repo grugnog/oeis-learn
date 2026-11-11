@@ -268,6 +268,16 @@ class TelemetryCollector:
                 self.status['errors']=(self.status['errors']+[dict(type=type(exc).__name__,message=str(exc)[:512])])[-32:]
                 print('Telemetry status unavailable: '+type(exc).__name__,flush=True)
 
+    def failed(self,error):
+        """A failed sensor poll is an omission, never the last good sample."""
+        with self.lock:
+            self.status['observations']+=1
+            self.status['omitted_observations']+=1
+            self.status['write_failures']+=1
+            self.status['errors']=(self.status['errors']+[dict(type=type(error).__name__,message=str(error)[:512])])[-32:]
+            print('Telemetry polling failed: '+type(error).__name__,flush=True)
+            self.flush()
+
     def observe(self,value):
         with self.lock:
             self.status['observations']+=1

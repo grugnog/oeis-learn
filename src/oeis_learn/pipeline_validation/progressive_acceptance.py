@@ -290,6 +290,8 @@ def _record_failure(output, failures, failure):
 
 
 def run_hardware_delta(root,request,producers,output,*,seconds=900):
+    if type(seconds) is not int or not 1<=seconds<=3600:
+        raise ValueError('bounded hardware delta allowance required')
     from .preparation_recovery import Allowance
     output=Path(output)
     ceiling=load(output/'hardware-allowance.json')['seconds'] if (output/'hardware-allowance.json').exists() else seconds
