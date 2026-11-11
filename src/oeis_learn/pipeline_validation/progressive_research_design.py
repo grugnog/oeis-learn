@@ -17,6 +17,7 @@ def scientific_round(data):
     from oeis_learn.generalization.progressive.tuning import SPACE,BASELINE,CONTROL,SHAPES
     if seal(data)!=data or data.get('version')!='progressive-registered-data/v1':
         raise ValueError('original registered-data receipt required')
+    from oeis_learn.generalization.progressive.research_budget import ROLE_SECONDS,SETUP_SECONDS,LIMITS_SECONDS
     return seal(dict(version='progressive-research-round-design/v1',executable=False,
         original_design=data['design']['identity'],registration=data['identity'],
         selected_stages=['capability','diversity','tuning'],
@@ -35,6 +36,8 @@ def scientific_round(data):
             protected_finalization_seconds=1800,confirmation_tokens=25000000,
             confirmation_seconds=43200,confirmation_schedule_horizon=400000000,
             confirmation_cosine_warmup=1250000,maximum_nonbaseline_finalists=3),
+        operational_reservation=dict(role_seconds=ROLE_SECONDS,setup_seconds=SETUP_SECONDS,ancillary_limits_seconds=LIMITS_SECONDS,
+            selected_training_seconds=176*3600,selected_total_seconds=312*3600),
         qualification=dict(maximum_profiles=12,maximum_cases=48,
             exact_calibration_maximum_combinations=1296,
             historical_rehearsal='retained original evidence; no transfer of current model authority'),

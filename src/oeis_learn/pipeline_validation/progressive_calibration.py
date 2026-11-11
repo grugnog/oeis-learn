@@ -41,6 +41,8 @@ def selected_inputs(root, prepared):
     originals = {}
     base_scopes = {}
     expanded = {}
+    validated = set()
+    compatibility_by_variant = {}
     def original_json(ref, maximum=4<<20):
         # A verified immutable base is shared by finite policy alternatives;
         # materialize() changes only profile/update policy, not training rows.
@@ -89,12 +91,20 @@ def selected_inputs(root, prepared):
             if variant_key not in expanded:
                 expanded[variant_key]=materialize(package,plan)
             package = expanded[variant_key]
-            validate_input(
-                package,
-                {"purpose": prepared["purpose"], "track": prepared["track"], "payload": plan},
-                allow_pending=True,
-            )
-            key = compatibility(package)
+            # The same immutable rows recur across screening looks and paired
+            # confirmation slots. Cache only after validating every task field
+            # consumed by validate_input; different arms/targets/initializers
+            # never inherit another task's validation.
+            validation_key=(variant_key,digest({k:plan.get(k) for k in
+                ('stage','arm','seed','initializer','token_target')}))
+            if validation_key not in validated:
+                validate_input(package,
+                    {"purpose": prepared["purpose"], "track": prepared["track"], "payload": plan},
+                    allow_pending=True)
+                validated.add(validation_key)
+            if variant_key not in compatibility_by_variant:
+                compatibility_by_variant[variant_key]=compatibility(package)
+            key = compatibility_by_variant[variant_key]
             if key != plan["initializer"]["compatibility"]:
                 raise ValueError("calibration task compatibility differs")
             selected.setdefault(key, {"compatibility": key, "package": package, "plan": plan})

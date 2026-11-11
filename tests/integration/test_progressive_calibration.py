@@ -498,3 +498,23 @@ def test_full_registered_learning_domain_has_exact_calibration_cases(tmp_path):
 def test_canonical_resource_finalization_freeze_and_tamper_rejection(tmp_path,monkeypatch,capsys):
     test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
         tmp_path,monkeypatch,capsys,'none',False,measured_resources=True)
+
+
+def test_repeated_validation_cache_retains_arm_and_token_target_boundaries(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import progressive_calibration as calibration
+    original=inputs(tmp_path)
+    first=original['payload']['task_plans'][0]
+    duplicate=copy.deepcopy(first);duplicate['id']='same-input-different-role'
+    original['payload']['task_plans']=[first,duplicate]
+    from oeis_learn.pipeline_validation import progressive_learner as learner
+    calls=[];validate=learner.validate_input
+    def counted(package,task,**kwargs):
+        calls.append(task['payload']['id'])
+        return validate(package,task,**kwargs)
+    monkeypatch.setattr(learner,'validate_input',counted)
+    cases,bindings=calibration.selected_inputs(tmp_path,original)
+    assert len(cases)==1 and len(bindings)==2 and len(calls)==1
+    duplicate['arm']='unregistered-arm'
+    with pytest.raises(ValueError,match='support arm'):calibration.selected_inputs(tmp_path,original)
+    first['arm']=duplicate['arm']='refreshed';first['token_target']=0;duplicate['token_target']=10**15
+    with pytest.raises(ValueError,match='preparation deficit'):calibration.selected_inputs(tmp_path,original)

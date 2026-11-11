@@ -205,3 +205,19 @@ def test_installed_timing_adapter_requires_complete_scoring_and_retains_its_prod
     else:
         result=f.run_one(tmp_path,0,30)
         assert result['scoring']==reference(tmp_path/'cases/0',tmp_path/'cases/0/scoring/scores.json')
+
+
+def test_roster_cli_is_stdlib_projection_without_device_authority(tmp_path,monkeypatch):
+    import sys
+    from oeis_learn.pipeline_validation import progressive_research_bindings as bindings
+    for name in ('data','design','materials'):atomic_write(tmp_path/(name+'.json'),dict(name=name))
+    argv=['research','--roster-only','--root',str(tmp_path),'--output','roster']
+    for name in ('data','design','materials'):argv+=['--'+name,name+'.json']
+    monkeypatch.setattr(sys,'argv',argv)
+    calls=[]
+    monkeypatch.setattr(bindings,'publish_roster',lambda *a:calls.append(a))
+    monkeypatch.setattr(bindings,'build',lambda *a,**k:pytest.fail('roster cannot construct execution authority'))
+    bindings.main()
+    assert calls==[(tmp_path,tmp_path/'roster',dict(name='data'),dict(name='design'),dict(name='materials'))]
+    monkeypatch.setattr(sys,'argv',argv+['--qualification','foreign'])
+    with pytest.raises(SystemExit):bindings.main()

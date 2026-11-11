@@ -64,3 +64,22 @@ def test_roster_rejects_missing_support_or_silently_reduced_design(change):
     if change=='domain':design['tuning']['learning_trials']=2;design=seal(design)
     if change=='look':design['tuning']['screening_looks'].pop();design=seal(design)
     with pytest.raises(ValueError):construct(design,panels,screening)
+
+
+def test_whole_round_budget_counts_shared_trials_once_and_obeys_each_ancillary_envelope(tmp_path):
+    from oeis_learn.generalization.progressive.research_budget import reservation,verify_reservation
+    from oeis_learn.generalization.progressive.contracts import atomic_write,reference
+    r=construct(*fixture());budget=reservation(r)
+    assert budget['status']=='READY' and budget['training_seconds']==176*3600
+    assert budget['ancillary_seconds']['evaluation_analysis']==242850
+    assert all(v<=budget['limits_seconds'][k] for k,v in budget['ancillary_seconds'].items())
+    assert budget['total_seconds']==sum(budget['ancillary_seconds'].values())+176*3600
+    atomic_write(tmp_path/'roster.json',r);atomic_write(tmp_path/'budget.json',budget)
+    refs=[dict(name='research-reservation',artifact=reference(tmp_path,'budget.json'))]
+    plans=[dict(id=row['id'],caps=dict(elapsed_us=row['seconds']*1000000)) for row in r['tasks']]
+    contract=dict(roster=reference(tmp_path,'roster.json'))
+    assert verify_reservation(tmp_path,refs,plans,contract)==budget
+    plans[0]['caps']['elapsed_us']+=1
+    with pytest.raises(ValueError,match='task ceilings'):verify_reservation(tmp_path,refs,plans,contract)
+    r['tasks'][0]['seconds']+=5*3600
+    assert reservation(seal(r))['deficits']==['ancillary:evaluation_analysis']

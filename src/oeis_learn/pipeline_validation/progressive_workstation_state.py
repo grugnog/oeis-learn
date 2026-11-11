@@ -39,7 +39,7 @@ NAMES.update({'materials.json','support-policy.json','support-summary.json','res
               'screening-summary.json','roster-summary.json'})
 NAMES.update({'checkpoint-retirement.json','checkpoint-retirement-intent.json',
               'calibration-case.json','calibration-cases.json'})
-NAMES.update({'construction-summary.json','execution-contract.json','evaluation-cases.json',
+NAMES.update({'research-reservation.json','construction-summary.json','execution-contract.json','evaluation-cases.json',
               'evaluation-feasibility.json','evaluation-progress.json','resource-estimate.json','timing.json','running.json'})
 PRIVATE = {'private','work','installed','dist','checkpoints','inputs','.runtime'}
 

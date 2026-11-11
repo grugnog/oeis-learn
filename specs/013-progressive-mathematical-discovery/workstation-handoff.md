@@ -351,7 +351,7 @@ The optional small CPU `self-test` and existing Docker CI exercise the real nati
 admission/archive regressions; they are not a repeated HIP rehearsal.
 
 
-## Registered-data preparation: implemented census, pending campaign construction
+## Registered-data preparation and automatic research round
 
 `prepare-research --registration-session run-state/discovery/013-research-inputs-003`
 can now verify and reuse the completed registration in a **new preparation
@@ -379,19 +379,71 @@ sensitivity scenarios have no estimated success/error rates. The whole run write
 `share/prepare-research.zip` on failure too. Completed stages are hash-verified and
 reused; interrupted/failed stages are retained instead of receiving a fresh budget.
 
-**Current implementation limit:** this registration route still reports BLOCKED
-for missing concrete campaign construction, current selected-model HIP evidence,
-exact-input calibration and freeze/acceptance. It is not the finished unattended
-preparation/training command. T157 tracks that connection. Do not launch a lengthy
-census-only run when the intended operator handoff is the combined campaign.
+The registration route now constructs and validates the complete selected
+capability/diversity/tuning round: 376 canonical roles, twelve learning-setting
+trials, four sizing trials, three screening looks, and up to four fresh paired
+confirmation positions. It obtains current-source qualification for twelve
+model/dropout profiles, measures fourteen training-only evaluation cases, retains
+all 1,296 exact calibration combinations, finalizes measured storage, freezes the
+campaign and obtains campaign-bound acceptance. It does not repeat the tiny
+rehearsal or expose final assessment.
 
-`--run-after-prepare` is implemented for a preparation that reaches complete,
-campaign-bound acceptance. It rechecks original receipt bytes and invokes the
-canonical research run/resume followed by report and verification in the same
-source/resource-bound session. Both preparation and research ZIPs are retained.
-It neither bypasses readiness deficits nor opens final assessment. On the existing
-explicit-blueprint route this supplies the unattended transition; it cannot make
-the unfinished registered-data route executable by itself.
+From the repository root, use a new preparation session:
+
+```bash
+git pull --ff-only origin 013-progressive-mathematical-discovery &&
+python3 -S scripts/discovery_hip_handoff.py \
+  --engine podman \
+  --session run-state/discovery/013-research-round-001 \
+  prepare-research \
+  --registration-session run-state/discovery/013-research-inputs-003 \
+  --run-after-prepare
+```
+
+The command proceeds directly to canonical research run/resume, reporting and
+independent verification only after preparation reports READY and the original
+acceptance receipt is rechecked. Missing support, failed device cases or an
+infeasible design stop dependent work with diagnostics. Reinvoking the same
+command verifies and reuses completed stages; it does not grant a fresh budget
+to failed/interrupted preparation. Keep the original inputs-002 and inputs-003
+sessions because they own referenced artifacts. Both preparation and research
+ZIPs remain under the new session's `share/` directory, including on failures.
+
+Preparation is not expected to be a short 30-minute check. Evaluation timing has
+a four-hour ceiling and exact calibration has a twelve-hour ceiling, in addition
+to the native census, sensitivity, construction and device qualification. These
+are finite bounds, not predicted durations. The outer reservation is published
+as `prepare-research/roster/research-reservation.json` before device preparation
+and rechecked against every literal task ceiling at freeze.
+
+| Envelope | Selected maximum | Spec maximum |
+|---|---:|---:|
+| Training tasks, including all screening children and shared finalization | 176 h | 176 h for these stages |
+| Mechanical preparation and host allowance | 23.95 h | 24 h |
+| Images, qualification, freeze and acceptance | 8.09 h | 12 h |
+| Evaluation/analysis, including training-only timing | 67.46 h | 72 h |
+| Packaging and verification | 4 h | 4 h |
+| New acquisition | 0 h | 24 h |
+
+The selected sum is approximately 279.5 hours, not an ETA or a requirement to
+consume it. Prior registration/import costs remain separately recorded in the
+original registered-data receipt and journals. Screening evaluations and the
+thirty-minute shared reserve are included once inside each two-hour trial.
+The complete optional 672-hour envelope is not allocated to this subset.
+
+The aggregate review corrected an over-allocation in the initial operational
+ceilings. Non-screening generation now has a prospective seventy-minute task
+ceiling, including at least thirty minutes of finalization and its startup;
+language audit has one hour. No panel member, trial, look, model choice, attempt,
+per-sequence portfolio cap, fitting cap or token target was removed. Training-only
+measurements must demonstrate feasibility with the original safety margin before
+any research panel is scored. An infeasible result requests a new prospective
+design; the wrapper never silently reduces the experiment.
+
+Scaling, OEIS, components and the source pilot retain their separate conditional
+eligibility and finite-freeze requirements. This first round does not reserve
+100M/400M continuations, claim sustained HIP evidence or automatically open final
+assessment. Its results determine which later branches can be properly frozen.
 
 Exact-input calibration plans may prospectively select
 `checkpoint_retention: verified-calibration-inventory/v1`. That policy retains

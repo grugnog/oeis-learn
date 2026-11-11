@@ -47,6 +47,7 @@ def construct(design, panels, screening):
             or t['screen_seconds']!=7200 or t['protected_finalization_seconds']!=1800
             or t['confirmation_tokens']!=25000000 or t['confirmation_seconds']!=43200):
         raise ValueError('complete registered study domain and horizons required')
+    from .research_budget import ROLE_SECONDS
     tasks=[];comparisons=[]
     # Duration allocations are ceilings, not measurements or promised throughput.
     # Exact-input/evaluation feasibility must reject insufficient allocations.
@@ -61,16 +62,16 @@ def construct(design, panels, screening):
         gen=add(name+'-generate',stage,'generate',seed=seed,arm=arm,trial=trial,
                 panel=panel,members=[r['id'] for r in selected],checkpoint=checkpoint,
                 retention=retention,control=control,all_methods=all_methods,
-                seconds=seconds or (5400 if all_methods else 7200 if len(selected)>128 else 3600))
+                seconds=seconds or ROLE_SECONDS['generate'])
         score_trial=dict(trial,phase='scoring') if trial and trial['phase']=='generation' else trial
         score=add(name+'-score',stage,'score',seed=seed,arm=arm,trial=score_trial,
                   panel=panel,retention=retention,members=[r['id'] for r in selected],generation=gen,
-                  seconds=20 if trial and trial['phase'] not in {'confirmation','selection'} else 1980)
+                  seconds=20 if trial and trial['phase'] not in {'confirmation','selection'} else ROLE_SECONDS['score'])
         return dict(generation=gen,scoring=score)
     development=sorted(panels['development'],key=lambda r:r['id'])
     add('capability-census','capability','census',seed=design['seeds'][0],panel='development',seconds=2100)
     add('capability-language','capability','audit-language',seed=design['seeds'][0],panel='development',
-        members=[r['id'] for r in development],seconds=5400)
+        members=[r['id'] for r in development],seconds=ROLE_SECONDS['audit_language'])
     capability=[]
     for control in ('retained_D','random'):
         for i in range(0,len(development),64):

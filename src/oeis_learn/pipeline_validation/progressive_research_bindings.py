@@ -67,6 +67,10 @@ def publish_roster(root, output, data, design, materials):
     output=Path(output)
     atomic_write(output/'private/role-roster.json',bound['roster'])
     from collections import Counter
+    from oeis_learn.generalization.progressive.research_budget import reservation
+    budget=reservation(bound['roster'])
+    atomic_write(output/'research-reservation.json',budget)
+    if budget['status']!='READY':raise ValueError('prospective research budget deficit: '+','.join(budget['deficits']))
     rows=bound['roster']['tasks']
     value=seal(dict(version='progressive-research-roster-publication/v1',
         status='COMPLETE',executable=False,design=design['identity'],materials=materials['identity'],
@@ -227,6 +231,11 @@ def compile_plan(root,output,data,design,materials,*,qualification,checkpoint_by
         dict(name='current-qualification',role='custodian',kind='qualification',artifact=c.qref),
         dict(name='source',role='custodian',kind='source',artifact=reference(root,checked_file(c.qroot,c.q['source_closure']))),
         dict(name='exposure',role='custodian',kind='groups',artifact=materials['exposure'])])
+    from oeis_learn.generalization.progressive.research_budget import reservation
+    budget=reservation(roster)
+    if budget['status']!='READY':raise ValueError('prospective research reservation cannot fit')
+    c.put('research-reservation.json',budget,kind='policy')
+    c.put('registered-research-data.json',data,kind='source')
     c.put('images.json',dict(version='discovery-images/v1',images=c.q['images']),kind='image')
     from .progressive_research_resources import policy as resource_policy
     c.put('research_resource_policy.json',resource_policy(),kind='policy')
@@ -472,9 +481,16 @@ def build(root,output,data,design,materials,*,qualification,checkpoint_bytes=8<<
 def main():
     import argparse
     p=argparse.ArgumentParser(description=__doc__)
-    for name in ('root','output','data','design','materials','qualification','execution-contract'):
+    for name in ('root','output','data','design','materials'):
         p.add_argument('--'+name,required=True)
+    p.add_argument('--roster-only',action='store_true')
+    p.add_argument('--qualification');p.add_argument('--execution-contract')
     args=p.parse_args();root=Path(args.root)
-    build(root,confined(root,args.output,exists=False),load(confined(root,args.data)),
-        load(confined(root,args.design)),load(confined(root,args.materials)),
-        qualification=confined(root,args.qualification),execution_contract=confined(root,args.execution_contract))
+    inputs=(root,confined(root,args.output,exists=False),load(confined(root,args.data)),
+        load(confined(root,args.design)),load(confined(root,args.materials)))
+    if args.roster_only:
+        if args.qualification or args.execution_contract:p.error('roster publication has no device authority')
+        publish_roster(*inputs)
+    else:
+        if not args.qualification or not args.execution_contract:p.error('construction requires original qualification and measured contract')
+        build(*inputs,qualification=confined(root,args.qualification),execution_contract=confined(root,args.execution_contract))

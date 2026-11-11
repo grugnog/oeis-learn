@@ -2,6 +2,7 @@
 import runpy
 import sys
 
+from oeis_learn.generalization.progressive.research_budget import SETUP_SECONDS
 from .identity import confined, seal
 from .progressive_workstation_state import Blocked, write
 from .progressive_research_inputs import checked_file
@@ -73,14 +74,22 @@ def prepare(workflow):
             '--request',str((base/'census/request.json').relative_to(root)),
             '--policy',str((base/'support-policy.json').relative_to(root)),
             '--output',str((base/'materials').relative_to(root))]
-        launch(argv,base/'logs/materials',seconds=3600,stream_cap=4<<20)
+        launch(argv,base/'logs/materials',seconds=SETUP_SECONDS['materials'],stream_cap=4<<20)
         result=load(base/'materials/materials.json')
         return result,sorted((base/'materials').rglob('*.json'))
     projected=s.step('materials',materials,dependencies=('prepare-research/native-census','prepare-research/census-plan'))
     def role_roster():
-        from .progressive_research_bindings import publish_roster
-        value=publish_roster(root,base/'roster',data,load(base/'research-round-design.json'),projected)
-        return value,[base/'roster/roster-summary.json',base/'roster/private/role-roster.json']
+        from .supervision import launch
+        argv=[sys.executable,'-S','-c',
+            'import sys;sys.path.insert(0,sys.argv.pop(1));from oeis_learn.pipeline_validation.progressive_research_bindings import main;main()',
+            str(root/'src'),'--roster-only','--root',str(root),
+            '--data',str((base/'registered/registered-data.json').relative_to(root)),
+            '--design',str((base/'research-round-design.json').relative_to(root)),
+            '--materials',str((base/'materials/materials.json').relative_to(root)),
+            '--output',str((base/'roster').relative_to(root))]
+        launch(argv,base/'logs/role-roster',seconds=SETUP_SECONDS['roster'],stream_cap=4<<20)
+        return load(base/'roster/roster-summary.json'),[base/'roster/roster-summary.json',
+            base/'roster/private/role-roster.json',base/'roster/research-reservation.json']
     s.step('role-roster',role_roster,dependencies=('prepare-research/materials',))
     def sensitivity():
         # Original registered assumptions, not real panel/model outcomes.

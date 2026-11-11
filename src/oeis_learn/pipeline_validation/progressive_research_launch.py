@@ -5,6 +5,7 @@ import sys
 from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES,load,reference,seal
 from .progressive_research_inputs import checked_file,_json
 from .progressive_workstation_state import Blocked,write
+from oeis_learn.generalization.progressive.research_budget import SETUP_SECONDS
 
 
 def prepare(workflow,data,design,materials):
@@ -53,7 +54,7 @@ def prepare(workflow,data,design,materials):
             '--materials',str((base/'materials/materials.json').relative_to(root)),
             '--qualification',str(qroot.relative_to(root)),
             '--execution-contract',str((base/'execution-contract.json').relative_to(root))]
-        launch(argv,base/'logs/construction',seconds=7200,stream_cap=4<<20)
+        launch(argv,base/'logs/construction',seconds=SETUP_SECONDS['construction'],stream_cap=4<<20)
         result=load(base/'construction/construction-summary.json')
         # Bind every constructed immutable channel/request. A resumed wrapper
         # cannot treat changed private inputs as completed preparation.
@@ -61,11 +62,11 @@ def prepare(workflow,data,design,materials):
     s.step('construction',construction,dependencies=('prepare-research/evaluation-feasibility',))
     blueprint=str((base/'construction/blueprint.json').relative_to(root));q=str(qroot.relative_to(root))
     w.run_command('prepare','prepare',blueprint=blueprint,qualification=q,
-        output=str((base/'prepared').relative_to(root)),seconds=14*3600,
+        output=str((base/'prepared').relative_to(root)),seconds=SETUP_SECONDS['prepare'],
         dependencies=('prepare-research/construction','prepare-research/sensitivity'))
     w.run_command('freeze','freeze',blueprint=blueprint,qualification=q,
         prepared=str((base/'prepared').relative_to(root)),output=str((base/'frozen').relative_to(root)),
-        seconds=7200,dependencies=('prepare-research/prepare',))
+        seconds=SETUP_SECONDS['freeze'],dependencies=('prepare-research/prepare',))
     w.run_command('acceptance','acceptance',campaign=str((base/'frozen/campaign.json').relative_to(root)),
         output=str((base/'acceptance').relative_to(root)),seconds=3700,dependencies=('prepare-research/freeze',))
 

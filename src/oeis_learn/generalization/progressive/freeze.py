@@ -187,7 +187,9 @@ def freeze(
     if execution_contracts:
         from oeis_learn.pipeline_validation.progressive_research_feasibility import verify_contract
         if len(execution_contracts)!=1:raise ValueError('one research execution contract required')
-        verify_contract(root,execution_contracts[0],runtime)
+        execution_contract=verify_contract(root,execution_contracts[0],runtime)
+        from .research_budget import verify_reservation
+        verify_reservation(root,refs,q['task_plans'],execution_contract)
     policy = json.loads(verify_refs(root, [q["target_policy"]])[0])
     validate_policy(policy)
     if not policy["payload"]["selected"]:

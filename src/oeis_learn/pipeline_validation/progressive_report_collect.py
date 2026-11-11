@@ -102,6 +102,8 @@ def collect(root, folder, output):
             value = json.loads(verify_refs(root, [ref["artifact"]], max_bytes=CAMPAIGN_DOCUMENT_BYTES)[0])
             if not isinstance(value, dict):
                 continue
+            if ref['name']=='research-reservation':
+                tables['observations'].append(dict(producer=campaign['identity'],data=value))
             if value.get("version") == "discovery-cohort/v1" or set(value) - {"primary"} == {
                 "claim",
                 "bootstrap_seed",
