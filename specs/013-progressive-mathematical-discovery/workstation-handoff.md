@@ -420,12 +420,12 @@ and rechecked against every literal task ceiling at freeze.
 |---|---:|---:|
 | Training tasks, including all screening children and shared finalization | 176 h | 176 h for these stages |
 | Mechanical preparation and host allowance | 23.95 h | 24 h |
-| Images, qualification, freeze and acceptance | 8.09 h | 12 h |
+| Images, qualification, freeze and acceptance | 11.09 h | 12 h |
 | Evaluation/analysis, including training-only timing | 67.46 h | 72 h |
 | Packaging and verification | 4 h | 4 h |
 | New acquisition | 0 h | 24 h |
 
-The selected sum is approximately 279.5 hours, not an ETA or a requirement to
+The selected sum is approximately 282.5 hours, not an ETA or a requirement to
 consume it. Prior registration/import costs remain separately recorded in the
 original registered-data receipt and journals. Screening evaluations and the
 thirty-minute shared reserve are included once inside each two-hour trial.
@@ -465,3 +465,17 @@ tests do not establish actual HIP qualification or resource feasibility.
 ### Source complexity availability
 
 Newly projected panels retain independent reference-AST node/depth measurements and, when captured by the original census, reference evaluation steps over its declared indices. These steps are not native runtime or fuel measurements. Missing source programs and missing historical work measurements are explicit nulls with reasons, never zero difficulty. Public censuses and reports retain measured/unavailable counts separately, including partial runs. Private source programs and evaluation truth remain excluded from support archives.
+
+Operational headroom policy (T160): new measured preparation uses **4×** observed
+update/probe/checkpoint and evaluation costs, leaving slack beyond a healthy 3×
+slowdown. Generic qualification, calibration and timing cases receive up to an
+hour inside the remaining aggregate reservation, never an equal share divided
+by the unexecuted case count. Cleanup/health allowance is 120 seconds. Images
+have two hours each including supervisor headroom; installed acceptance has
+two hours (CPU suite 45 minutes), and report/verification two hours each within
+the original four-hour packaging envelope. Short diagnostics reserve cleanup
+proportionally. These are stall watchdogs, not expected durations. Frozen trial,
+portfolio, program, token and aggregate scientific caps remain unchanged; an
+infeasible measured design blocks before training instead of shortening looks
+or extending spent reservations. Historical 2× records remain historical and
+do not establish readiness for this new preparation policy.

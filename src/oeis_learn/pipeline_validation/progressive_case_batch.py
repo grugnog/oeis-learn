@@ -1,4 +1,6 @@
 """Installed diagnostic cases with independent processes and durable outcomes."""
+from .research_limits import case_allowance, HEALTH_SECONDS
+
 import os
 from pathlib import Path
 import sys
@@ -33,7 +35,7 @@ def pytest_cases(nodes, output, *, env, seconds, cwd):
                     '--basetemp', str(private/str(index)),
                     '--junitxml', str(case/'junit.xml'), node],
                     cwd=cwd, env=env, log=case/'process.log',
-                    seconds=remaining/(len(nodes)-index), maximum=4<<20)
+                    seconds=case_allowance(remaining), maximum=4<<20)
                 path = case/'junit.xml'
                 if path.stat().st_size > 4<<20:
                     raise ValueError('case XML bound')
@@ -49,7 +51,7 @@ def pytest_cases(nodes, output, *, env, seconds, cwd):
                     if remaining <= 1 or _bounded_process([sys.executable, '-c',
                         'from oeis_learn.pipeline_validation.progressive_qualification import require_hip; t=require_hip(); t.cuda.synchronize()'],
                         cwd=cwd, env=env, log=case/'health.log',
-                        seconds=min(30,remaining), maximum=1<<20):
+                        seconds=min(HEALTH_SECONDS,remaining), maximum=1<<20):
                         blocked = 'DEVICE_UNAVAILABLE_OR_BUDGET_EXHAUSTED'
                 except (OSError, ValueError, TimeoutError):
                     blocked = 'DEVICE_HEALTH_PROBE_FAILED'

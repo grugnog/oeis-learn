@@ -5,6 +5,7 @@ custodian. Original artifacts are hash checked; canonical freeze remains the
 execution authority.
 """
 from pathlib import Path
+from .research_limits import ACCEPTANCE_SECONDS
 import json
 
 from .identity import confined
@@ -425,7 +426,7 @@ def finish_plan(c,bound,study,targetref,state,checkpoint_root,*,data,design,mate
         raise ValueError('scientific auxiliary roles exceed the original campaign ceiling')
     profile=__import__('oeis_learn.generalization.progressive.models',fromlist=['resolve_profile']).resolve_profile(c.recipe,seed=0,dropout=0)
     runtime=c.runtime(profile)
-    c.put('acceptance-plan.json',seal(dict(version='progressive-acceptance-plan/v1',qualification=c.qref,seconds=3600)),kind='policy')
+    c.put('acceptance-plan.json',seal(dict(version='progressive-acceptance-plan/v1',qualification=c.qref,seconds=ACCEPTANCE_SECONDS)),kind='policy')
     # The named entry is required by the canonical acceptance selector.
     c.refs[-1]['name']='acceptance_plan'
     payload=dict(runtime=runtime,graph=graph,task_plans=c.plans,references=c.refs,caps=caps,

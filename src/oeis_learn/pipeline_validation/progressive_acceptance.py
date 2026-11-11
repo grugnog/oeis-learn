@@ -2,6 +2,8 @@
 
 Software diagnostics, device capability and research authority remain separate.
 """
+from .research_limits import case_allowance, HEALTH_SECONDS
+
 
 import os
 import subprocess
@@ -332,7 +334,7 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
             status = _bounded_process(
                 [sys.executable, "-c", code, str(output / "request.json"), case["identity"], str(target)],
                 cwd=output, env=dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[2])),
-                log=target / "process.log", seconds=remaining / (len(plan['delta']) - index), maximum=4 << 20)
+                log=target / "process.log", seconds=case_allowance(remaining), maximum=4 << 20)
             if status:
                 raise ValueError(f"hardware delta subprocess failed (exit {status}); see {target / 'process.log'}")
             producer = reference(output, target / "producer.json")
@@ -355,7 +357,7 @@ def run_hardware_delta(root, request, producers, output, *, seconds=900):
                 health = _bounded_process([sys.executable,'-c',
                     'from oeis_learn.pipeline_validation.progressive_qualification import require_hip; t=require_hip(); t.cuda.synchronize()'],
                     cwd=output,env=dict(os.environ),log=output/f'health-{index}.log',
-                    seconds=min(30,remaining),maximum=1<<20)
+                    seconds=min(HEALTH_SECONDS,remaining),maximum=1<<20)
                 if health:
                     raise RuntimeError('device health probe failed')
             except (OSError, ValueError, TimeoutError, RuntimeError) as health_error:

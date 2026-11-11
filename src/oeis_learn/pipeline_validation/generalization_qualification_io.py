@@ -11,7 +11,7 @@ from .generalization_execution import startup_environment,POLICY_ID
 
 
 def inspect_device(host,image,output,*,seconds=120):
-    from .supervision import launch,reclaim
+    from .supervision import launch,reclaim,pending_gpu
     output=Path(output);output.mkdir(parents=True,exist_ok=False)
     name='generalization-inspect-'+uuid.uuid4().hex
     code="""import json,platform,torch
@@ -25,10 +25,22 @@ Path('/output/inspection.json').write_text(json.dumps(result,sort_keys=True))
 """
     command=host.engine.command(image=image,name=name,mounts=[(output,'/output',True)],argv=['python','-c',code],
         gpu=True,render_node=host.policy['render_node'],memory_bytes=host.policy['memory_bytes'],cpus=host.policy['cpus'],environment=startup_environment())
-    cleanup={}
-    try:
-        with host.gpu_lock():launch(command,output/'logs',seconds=seconds,stream_cap=1<<20,cleanup_state=cleanup)
-    finally:reclaim(host.engine,name,output/'logs',cleanup)
+    cleanup={'allowance_seconds':120}
+    failure=None
+    with host.gpu_lock():
+        pending=pending_gpu(host,name)
+        try:
+            launch(command,output/'logs',seconds=seconds,stream_cap=1<<20,
+                   cleanup_seconds=120,cleanup_state=cleanup)
+        except BaseException as exc:
+            failure=exc
+            raise
+        finally:
+            try:
+                reclaim(host.engine,name,output/'logs',cleanup)
+                if pending is not None:pending.unlink()
+            except Exception:
+                if failure is None:raise
     return json.loads((output/'inspection.json').read_text())
 
 

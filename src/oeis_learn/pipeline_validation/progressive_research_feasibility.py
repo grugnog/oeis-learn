@@ -3,6 +3,8 @@
 The installed canonical generator/scorer run unchanged. These measurements are
 resource estimates, never research observations or guarantees about trained models.
 """
+from .research_limits import case_allowance, HEALTH_SECONDS, TIMING_MULTIPLIER, padded_us
+
 import json
 import os
 from pathlib import Path
@@ -57,7 +59,7 @@ def request(root, output, support, profiles, qualification, *, checkpoint):
     value=seal(dict(version=VERSION,source=source,image=q['images'][1],engine=matrix['engine'],hardware=matrix['hardware'],
         execution_policy=q['runtime']['execution_policy'],qualification=qualification,support=support['identity'],
         samples=sample_ref,checkpoint=checkpoint,cases=[seal(c) for c in cases],seconds=SECONDS,
-        scope='training-only prospective throughput; no panel exposure',safety_multiplier=2))
+        scope='training-only prospective throughput; no panel exposure',safety_multiplier=TIMING_MULTIPLIER))
     atomic_write(output/'request.json',value)
     return value
 
@@ -66,7 +68,7 @@ def validate_request(value):
     fields={'version','identity','source','image','engine','hardware','execution_policy','qualification',
             'support','samples','checkpoint','cases','seconds','scope','safety_multiplier'}
     if (set(value)!=fields or seal(value)!=value or value.get('version')!=VERSION or value.get('seconds')!=SECONDS
-            or value.get('safety_multiplier')!=2 or len(value.get('cases',[]))!=14
+            or value.get('safety_multiplier')!=TIMING_MULTIPLIER or len(value.get('cases',[]))!=14
             or len({c['identity'] for c in value['cases']})!=14):
         raise ValueError('complete bounded prospective evaluation request required')
     from oeis_learn.generalization.progressive.models import validate_profile
@@ -151,7 +153,7 @@ def run_inside(root):
             try:
                 remaining=req['seconds']-(time.monotonic()-began)
                 if remaining<=1:raise TimeoutError('aggregate evaluation timing deadline')
-                seconds=remaining/(len(req['cases'])-i)
+                seconds=case_allowance(remaining)
                 code='import sys;from oeis_learn.pipeline_validation.progressive_research_feasibility import run_one;run_one(sys.argv[1],int(sys.argv[2]),float(sys.argv[3]))'
                 code=_bounded_process([sys.executable,'-c',code,str(root),str(i),str(seconds)],cwd=root,
                     env=dict(os.environ),log=root/f'case-{i}.log',seconds=seconds,maximum=4<<20)
@@ -169,7 +171,7 @@ def run_inside(root):
                 try:
                     if remaining<=1 or _bounded_process([sys.executable,'-c',
                         'from oeis_learn.pipeline_validation.progressive_qualification import require_hip;t=require_hip();t.cuda.synchronize()'],
-                        cwd=root,env=dict(os.environ),log=root/f'health-{i}.log',seconds=min(30,remaining),maximum=65536):
+                        cwd=root,env=dict(os.environ),log=root/f'health-{i}.log',seconds=min(HEALTH_SECONDS,remaining),maximum=65536):
                         raise RuntimeError('device cleanup/health unavailable')
                 except (OSError,ValueError,TimeoutError,RuntimeError):blocked='DEVICE_BLOCKED'
         atomic_write(root/'case-events'/str(i)/'outcome.json',seal(row))
@@ -211,14 +213,14 @@ def estimates(root,request_value,roster,*,publish=True):
         shared=row['trial'] and row['trial']['phase'] not in {'confirmation','selection'}
         available=(row['seconds']-(1 if shared else 1800)-1)*1000000
         # Each measurement contains two members and model startup. Charging the
-        # whole batch per pair, then doubling, deliberately repeats startup cost.
-        estimate=times['all' if row.get('all_methods') or row['operation']=='score' else 'primary',row['operation']]*((len(row['members'])+1)//2)*2
+        # whole batch per pair, then applying the frozen 4x margin, deliberately repeats startup cost.
+        estimate=padded_us(times['all' if row.get('all_methods') or row['operation']=='score' else 'primary',row['operation']]*((len(row['members'])+1)//2))
         tasks.append(dict(task=row['id'],estimated_us=estimate,available_us=available))
         if estimate>available:deficits.append('evaluation_time:'+row['id'])
     value=seal(dict(version='progressive-research-evaluation-feasibility/v1',request=req['identity'],
         roster=roster['identity'],status='READY' if not deficits else 'BLOCKED',deficits=deficits,tasks=tasks,
         producers=receipts,assessment_exposed=False,
-        limits='training-only sampled estimate with 2x margin; later task clocks remain hard bounds'))
+        limits='training-only sampled estimate with 4x margin; later task clocks remain hard bounds'))
     if publish:atomic_write(root/'evaluation-feasibility.json',value)
     return value
 

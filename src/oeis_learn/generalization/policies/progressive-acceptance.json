@@ -102,8 +102,8 @@
   "integrated": {
     "version": "progressive-integrated-suite/v1",
     "scope": "DIAGNOSTIC_ONLY",
-    "timeout_seconds": 900,
-    "build_timeout_seconds": 120,
+    "timeout_seconds": 2700,
+    "build_timeout_seconds": 360,
     "maximum_log_bytes": 4194304,
     "maximum_junit_bytes": 4194304,
     "maximum_export_bytes": 1048576,

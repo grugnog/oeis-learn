@@ -17,7 +17,7 @@ def request_fixture(root):
     req=seal(dict(version=f.VERSION,source=digest({}),image=digest('image'),engine='podman',hardware={},
         execution_policy=digest('policy'),qualification={'path':'explicit-test-boundary'},support=digest('training'),
         samples=reference(root,'private/training-samples.json'),checkpoint={'path':'explicit-test-boundary'},
-        cases=[seal(c) for c in cases],seconds=f.SECONDS,scope='training-only test boundary',safety_multiplier=2))
+        cases=[seal(c) for c in cases],seconds=f.SECONDS,scope='training-only test boundary',safety_multiplier=4))
     atomic_write(root/'request.json',req)
     return req
 
@@ -221,3 +221,70 @@ def test_roster_cli_is_stdlib_projection_without_device_authority(tmp_path,monke
     assert calls==[(tmp_path,tmp_path/'roster',dict(name='data'),dict(name='design'),dict(name='materials'))]
     monkeypatch.setattr(sys,'argv',argv+['--qualification','foreign'])
     with pytest.raises(SystemExit):bindings.main()
+
+
+def test_operational_headroom_tolerates_threefold_slowdown_without_shrinking_cases():
+    from oeis_learn.pipeline_validation.research_limits import case_allowance, padded_us
+    # The old equal-share allowances were 75 s / 33.3 s. A cold but healthy
+    # case may take 3x those values without losing its complete-case allowance.
+    assert case_allowance(3600)>3*(3600/48)
+    assert case_allowance(12*3600)>3*(12*3600/1296)
+    assert padded_us(100)>300
+    assert 0<case_allowance(10)<10
+    assert case_allowance(7200)<=3600
+    with pytest.raises(TimeoutError):case_allowance(0)
+    with pytest.raises(ValueError):case_allowance(float('inf'))
+    with pytest.raises(ValueError):padded_us(True)
+
+
+def test_readiness_requires_more_than_threefold_measured_time(tmp_path):
+    from tests.unit.test_progressive_research_roster import fixture
+    from oeis_learn.generalization.progressive.research_roster import construct
+    req=request_fixture(tmp_path);roster=construct(*fixture())
+    rows=[dict(index=i,case=c['identity'],status='PASS',producer=producer(tmp_path,req,i)) for i,c in enumerate(req['cases'])]
+    atomic_write(tmp_path/'evaluation-cases.json',seal(dict(version='progressive-research-evaluation-run/v1',request=req['identity'],status='PASS',cases=rows,actual_elapsed_us=100000)))
+    result=f.estimates(tmp_path,req,roster,publish=False)
+    by_id={row['id']:row for row in roster['tasks']}
+    for task in result['tasks']:
+        unpadded=1000*((len(by_id[task['task']]['members'])+1)//2)
+        assert task['estimated_us']>3*unpadded
+
+
+def test_image_build_deadline_and_outer_budget_are_nested(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation.progressive_workstation import Workflow
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session
+    from oeis_learn.pipeline_validation.research_limits import IMAGE_SECONDS
+    from oeis_learn.generalization.progressive.research_budget import SETUP_SECONDS
+    s=Session(tmp_path,'run-state/nested/session',{},'prepare-research')
+    s.journal['steps']['prepare-research/environment']=dict(status='COMPLETE')
+    def launch(argv,output,**kwargs):
+        compile(argv[3],'<image builder>','exec')
+        assert int(argv[-1]) < kwargs['seconds'] < IMAGE_SECONDS
+        assert kwargs['seconds']+kwargs['cleanup_seconds']<=IMAGE_SECONDS
+        atomic_write(argv[-3],dict(image='sha256:boundary'))
+    monkeypatch.setattr('oeis_learn.pipeline_validation.supervision.launch',launch)
+    assert Workflow(s,SimpleNamespace(phase='prepare-research',engine='podman')).images()==dict(qualification='sha256:boundary',gpu='sha256:boundary')
+    assert SETUP_SECONDS['images']==2*IMAGE_SECONDS
+
+
+def test_device_inspection_lease_includes_cleanup(tmp_path,monkeypatch):
+    from contextlib import contextmanager
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation.generalization_qualification_io import inspect_device
+    events=[]
+    @contextmanager
+    def lock():
+        events.append('lock')
+        try:yield
+        finally:events.append('unlock')
+    def launch(*a,**kw):
+        events.append('run');assert kw['cleanup_seconds']==120
+        atomic_write(tmp_path/'inspect/inspection.json',{'boundary':True})
+    def remove(name,timeout):
+        assert timeout>100;events.append('remove')
+    host=SimpleNamespace(gpu_lock=lock,policy=dict(render_node=None,memory_bytes=1,cpus=1),
+        engine=SimpleNamespace(command=lambda **kw:[],remove=remove))
+    monkeypatch.setattr('oeis_learn.pipeline_validation.supervision.launch',launch)
+    assert inspect_device(host,'image',tmp_path/'inspect')=={'boundary':True}
+    assert events==['lock','run','remove','unlock']

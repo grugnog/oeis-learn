@@ -4,6 +4,7 @@ Only disk partitions decrease. Scientific exposure/time entitlements and every
 finite choice remain unchanged; infeasible measured work becomes a deficit.
 """
 import json
+from .research_limits import padded_us
 from oeis_learn.generalization.progressive.contracts import seal,verify_refs
 
 POLICY='progressive-measured-research-resources/v1'
@@ -12,7 +13,7 @@ POLICY='progressive-measured-research-resources/v1'
 def policy():
     return seal(dict(version=POLICY,metadata_bytes=128<<20,generations=2,
         checkpoint_scope='maximum original retained or exact calibrated full state',
-        training_estimate='2x measured update and checkpoint per complete update; two probes per eight updates',
+        training_estimate='4x measured update and checkpoint per complete update; two probes per eight updates',
         permits='decrease disk only; no scientific budget or search-domain changes'))
 
 
@@ -44,7 +45,7 @@ def finalize(root,payload,cases,producers):
                 minimum=min(len(r['tokens']) for shard in package['shards'] for r in shard)*package['update_policy']['effective_batch']
                 updates=(delta+minimum-1)//minimum
                 m=producer['measurements']
-                elapsed=2*(updates*(m['update_us']+m['checkpoint_us'])+2*((updates+7)//8)*m['probe_us'])
+                elapsed=padded_us(updates*(m['update_us']+m['checkpoint_us'])+2*((updates+7)//8)*m['probe_us'])
                 row=dict(task=task['id'],compatibility=key,maximum_updates=updates,estimated_work_us=elapsed,
                     available_work_us=task['caps']['elapsed_us']-task['startup_us']-task['finalization_us'])
                 if worst is None or elapsed>worst['estimated_work_us']:worst=row

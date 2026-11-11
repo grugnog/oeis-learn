@@ -158,7 +158,7 @@ def pending_gpu(host, name):
     state = host.policy.get('state_root')
     if state is None:  # Explicit engine-boundary test doubles have no workspace.
         return None
-    if not re.fullmatch(r'oeis-phase5-[0-9a-f]{32}', name):
+    if not re.fullmatch(r'(?:oeis-phase5|generalization-inspect)-[0-9a-f]{32}', name):
         raise ValueError('owned preparation container required')
     path = Path(state) / 'gpu-pending.json'
     write(path, dict(version='preparation-gpu-owner/v1', engine=host.engine.name, name=name))
@@ -177,7 +177,7 @@ def reconcile_gpu(state, engine):
     value = json.loads(path.read_bytes())
     if (set(value) != {'version','engine','name'} or value['version'] != 'preparation-gpu-owner/v1'
             or value['engine'] != engine.name
-            or not re.fullmatch(r'oeis-phase5-[0-9a-f]{32}', value['name'])):
+            or not re.fullmatch(r'(?:oeis-phase5|generalization-inspect)-[0-9a-f]{32}', value['name'])):
         raise ResourceBreach('pending GPU owner scope differs; no new GPU work')
     # Retain the marker if the engine cannot acknowledge termination. Original
     # producer/cleanup errors remain in their original stage directory.

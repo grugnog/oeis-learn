@@ -10,6 +10,7 @@ from oeis_learn.generalization.progressive.contracts import (
 )
 from .identity import confined
 from .progressive_evidence import publish
+from .research_limits import ACCEPTANCE_SECONDS, CPU_ACCEPTANCE_SECONDS, case_allowance
 
 
 def named_plan(root, document, name, version, fields, optional=()):
@@ -21,7 +22,7 @@ def named_plan(root, document, name, version, fields, optional=()):
     value=json.loads(verify_refs(root,refs,max_bytes=32<<20)[0])
     if not isinstance(value,dict) or not set(fields)|{'version','identity'}<=set(value) or set(value)-set(fields)-{'version','identity'}-set(optional) or value['version']!=version or seal(value)!=value:
         raise ValueError('closed original '+name+' required')
-    maximum_seconds = 86400 if version == 'progressive-calibration-plan/v1' else 3600
+    maximum_seconds = 86400 if version == 'progressive-calibration-plan/v1' else ACCEPTANCE_SECONDS if version == 'progressive-acceptance-plan/v1' else 3600
     if type(value['seconds']) is not int or not 1<=value['seconds']<=maximum_seconds:
         raise ValueError('finite handoff stage allowance required')
     return value
@@ -87,13 +88,13 @@ def qualify_command(args, root, host_factory):
         with path.open('xb') as stream: stream.write(raw)
         copied.append(reference(device,path))
     atomic_write(device/'originals.json',copied)
+    remaining=case_allowance(plan['seconds']-(time.monotonic()-began), maximum=plan['seconds'])
     # Every independent case has its own process, including the first batch.
     code=("from oeis_learn.generalization.progressive.contracts import load;"
           "from oeis_learn.pipeline_validation.progressive_acceptance import run_hardware_delta;"
           "r=load('/work/output/request.json');p=load('/work/output/originals.json');"
-          "v=run_hardware_delta('/work/output',r,p,'/work/output/cases',seconds="+str(plan['seconds'])+");"
+          "v=run_hardware_delta('/work/output',r,p,'/work/output/cases',seconds="+str(remaining)+");"
           "raise SystemExit(0 if v['status']=='PASS' else 1)")
-    remaining=plan['seconds']-(time.monotonic()-began)
     if remaining<=0:
         raise TimeoutError('qualification allowance exhausted during inspection')
     stage(host,root,request['image'],device,['python','-c',code],gpu=True,seconds=remaining)
@@ -176,7 +177,7 @@ def acceptance_command(args, root, host_factory):
     host=host_factory(args)
     cpu=output/'software'
     code="from pathlib import Path;from oeis_learn.pipeline_validation.progressive_acceptance import run_suite; r=run_suite(Path('/opt/oeis-build'),Path('/work/output/suite')); raise SystemExit(0 if r['status']=='COMPLETE' else 1)"
-    stage(host,root,q['images'][0],cpu,['python','-c',code],gpu=False,seconds=min(1200,plan['seconds']-30))
+    stage(host,root,q['images'][0],cpu,['python','-c',code],gpu=False,seconds=case_allowance(plan['seconds'],maximum=CPU_ACCEPTANCE_SECONDS))
     receipt=load(cpu/'suite/acceptance.json')
     if receipt['status']!='COMPLETE' or receipt['qualified'] is not False:
         raise ValueError('original diagnostic CPU/native acceptance required')

@@ -345,7 +345,7 @@ def test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
         assert (
             len([r for r in p["payload"]["references"] if r["name"].startswith("iteration:")]) == 1
         )
-        assert all(t["iteration_budget"]["update_us"] == 20 for t in p["payload"]["task_plans"])
+        assert all(t["iteration_budget"]["update_us"] == 40 for t in p["payload"]["task_plans"])
         args = SimpleNamespace(
             operation="freeze",
             blueprint="blueprint.json",

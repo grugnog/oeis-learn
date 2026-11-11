@@ -68,7 +68,7 @@ def prepare(workflow,data,design,materials):
         prepared=str((base/'prepared').relative_to(root)),output=str((base/'frozen').relative_to(root)),
         seconds=SETUP_SECONDS['freeze'],dependencies=('prepare-research/prepare',))
     w.run_command('acceptance','acceptance',campaign=str((base/'frozen/campaign.json').relative_to(root)),
-        output=str((base/'acceptance').relative_to(root)),seconds=3700,dependencies=('prepare-research/freeze',))
+        output=str((base/'acceptance').relative_to(root)),seconds=SETUP_SECONDS['acceptance'],dependencies=('prepare-research/freeze',))
 
 
 def readiness(workflow,data,census,sensitivity,materials):

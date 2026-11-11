@@ -1,4 +1,6 @@
 """Bounded prepared-input calibration; the host remains standard-library-only."""
+from .research_limits import case_allowance, HEALTH_SECONDS, padded_us
+
 
 import copy
 import json
@@ -240,7 +242,7 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
             projected.append(
                 {"compatibility": case["compatibility"], "artifact": reference(device, path)}
             )
-        remaining = int(plan["seconds"] - (time.monotonic() - began)) - 10
+        remaining = int(case_allowance(plan["seconds"] - (time.monotonic() - began), maximum=plan["seconds"]))
         if remaining <= 0:
             raise TimeoutError("calibration allowance exhausted during inspection")
         request = seal(
@@ -279,7 +281,7 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
     for case, producer in zip(projected, producers):
         key = case["compatibility"]
         ref = reference(root, confined(device, result["producers"][key]["path"]))
-        refs[key] = dict(producer=ref, **{k: 2 * v for k, v in producer["measurements"].items()})
+        refs[key] = dict(producer=ref, **{k: padded_us(v) for k, v in producer["measurements"].items()})
         payload["references"].append(
             {
                 "name": "iteration:" + key,
@@ -563,7 +565,7 @@ def run_inside(root):
                 if remaining<=1:
                     blocked='CALIBRATION_DEADLINE'
                     raise TimeoutError('calibration deadline before next input')
-                case_seconds=min(3600,remaining/(len(request['cases'])-index))
+                case_seconds=case_allowance(remaining)
                 outcomes[index].update(status='RUNNING',seconds=case_seconds)
                 publish_outcome(index)
                 launched=True
@@ -586,7 +588,7 @@ def run_inside(root):
                 try:
                     if launched and (remaining<=1 or _bounded_process([sys.executable,'-c',
                         'from oeis_learn.pipeline_validation.progressive_qualification import require_hip; t=require_hip(); t.cuda.synchronize()'],
-                        cwd=root,env=dict(os.environ),log=root/f'health-{index}.log',seconds=min(30,remaining),maximum=65536)):
+                        cwd=root,env=dict(os.environ),log=root/f'health-{index}.log',seconds=min(HEALTH_SECONDS,remaining),maximum=65536)):
                         raise RuntimeError('device health probe failed or calibration allowance exhausted')
                 except (OSError,ValueError,TimeoutError,RuntimeError) as health_error:
                     _record_failure(root, failures, dict(compatibility=case['compatibility'],error='DEVICE_BLOCKED',message=str(health_error)))

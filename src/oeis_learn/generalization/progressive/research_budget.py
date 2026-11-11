@@ -5,15 +5,16 @@ All other roles are charged once to the execution contract's ancillary envelopes
 The ceilings are not expected durations and cannot establish measured feasibility.
 """
 from .contracts import seal
+from oeis_learn.pipeline_validation.research_limits import IMAGE_SECONDS, ACCEPTANCE_SECONDS
 
 LIMITS_SECONDS=dict(acquisition=24*3600,preparation=24*3600,
     qualification_acceptance=12*3600,evaluation_analysis=72*3600,packaging=4*3600)
 # Supervisor envelopes include bounded startup and cleanup. Inner calibration
 # retains its original twelve hours; its enclosing command has five minutes
 # for dispatch and reporting. No scientific work borrows these extra seconds.
-SETUP_SECONDS=dict(images=7200,base_qualification=7200,matrix=120,qualify=3700,
+SETUP_SECONDS=dict(images=2*IMAGE_SECONDS,base_qualification=7200,matrix=120,qualify=3700,
     census=21720,sensitivity=7200,materials=3600,roster=1800,construction=7200,
-    prepare=43500,freeze=7200,acceptance=3700,evaluation_timing=14430,
+    prepare=43500,freeze=7200,acceptance=ACCEPTANCE_SECONDS+100,evaluation_timing=14430,
     preparation_host=1200,packaging=14400)
 ROLE_SECONDS=dict(generate=4200,score=1980,audit_language=3600)
 

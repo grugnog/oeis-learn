@@ -18,6 +18,8 @@ import time
 from .identity import confined, seal
 from .progressive_workstation_state import Session, Blocked, write, read, telemetry
 
+from .research_limits import IMAGE_SECONDS, REPORT_SECONDS, CLEANUP_SECONDS, case_allowance
+
 PHASES=('register-inputs','rehearse','prepare-research','run-research','assess','collect')
 
 
@@ -62,7 +64,7 @@ class Workflow:
         def action():
             argv=command(self.root,self.args,operation,**arguments)
             logs=self.base/'logs'/name
-            launch(argv,logs,seconds=seconds,stream_cap=4<<20,cleanup_seconds=45,
+            launch(argv,logs,seconds=case_allowance(seconds,maximum=seconds),stream_cap=4<<20,cleanup_seconds=CLEANUP_SECONDS,
                    grace_seconds=40,allowed_returncodes=(0,1,2,3))
             process=json.loads((logs/'process.json').read_bytes())
             code=process['returncode']
@@ -94,9 +96,9 @@ class Workflow:
                 code=('import sys;from pathlib import Path;sys.path.insert(0,sys.argv[1]);'
                       'from oeis_learn.container_runtime import Engine;'
                       'from oeis_learn.pipeline_validation.progressive_workstation_state import write;'
-                      'write(sys.argv[4],dict(image=Engine(sys.argv[2]).build(sys.argv[3],target=sys.argv[5],tag="oeis-learn:discovery-"+sys.argv[5])))')
+                      'write(sys.argv[4],dict(image=Engine(sys.argv[2]).build(sys.argv[3],target=sys.argv[5],tag="oeis-learn:discovery-"+sys.argv[5],seconds=int(sys.argv[6]))))')
                 launch([sys.executable,'-S','-c',code,str(self.root/'src'),self.args.engine,str(self.root),
-                        str(output/'image.json'),target],output/'logs',seconds=3600,stream_cap=4<<20)
+                        str(output/'image.json'),target,str(IMAGE_SECONDS-180)],output/'logs',seconds=IMAGE_SECONDS-120,stream_cap=4<<20,cleanup_seconds=CLEANUP_SECONDS)
                 return json.loads((output/'image.json').read_bytes())['image'],[output/'image.json']
             self.s.step('image-'+target,build,dependencies=(self.s.phase+'/environment',))
         entries=self.s.journal['steps']
@@ -356,10 +358,10 @@ class Workflow:
         self.s.step(key,execute,dependencies=deps)
         if output.exists():
             archive=self.base/(output.name+'.zip')
-            self.run_command(key+'-report','report',run=str(output.relative_to(self.root)),output=str(archive.relative_to(self.root)),seconds=600)
+            self.run_command(key+'-report','report',run=str(output.relative_to(self.root)),output=str(archive.relative_to(self.root)),seconds=REPORT_SECONDS)
             if archive.is_file():
                 self.run_command(key+'-verify','verify-bundle',archive=str(archive.relative_to(self.root)),
-                    output=str((self.base/(output.name+'-verified')).relative_to(self.root)),seconds=600)
+                    output=str((self.base/(output.name+'-verified')).relative_to(self.root)),seconds=REPORT_SECONDS)
 
     def run_after_prepare(self):
         """One invocation, same source/resource binding; never open assessment."""

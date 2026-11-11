@@ -1,4 +1,6 @@
 """Finite installed HIP feature rehearsal; Q capability reuse remains separate."""
+from .research_limits import DEVICE_ACCEPTANCE_SECONDS, case_allowance
+
 import os
 from pathlib import Path
 import time
@@ -52,7 +54,7 @@ def run_inside(request, output):
         request['engine']!=os.environ.get('OEIS_QUALIFICATION_ENGINE') or
         request['hardware']!=hardware_facts()):
         raise ValueError('current exact device campaign scope required')
-    if type(request['seconds']) is not int or not 1<=request['seconds']<=1800:
+    if type(request['seconds']) is not int or not 1<=request['seconds']<=DEVICE_ACCEPTANCE_SECONDS:
         raise ValueError('finite integrated device allowance required')
     output=Path(output); output.mkdir(parents=True,exist_ok=False)
     atomic_write(output/'request.json',request)
@@ -126,12 +128,12 @@ def run_campaign(args, root, host, campaign, q, plan, output, software, *, began
         raise ValueError('four-term and twenty-term accumulation scope required')
     if software['source']!=source:
         raise ValueError('software acceptance source differs')
-    remaining=int(plan['seconds']-(time.monotonic()-began))-30
+    remaining=int(case_allowance(plan['seconds']-(time.monotonic()-began),maximum=plan['seconds']))
     if remaining<=0:
         raise TimeoutError('acceptance allowance exhausted before device batch')
     request=seal(dict(version='progressive-device-acceptance-request/v1',campaign=campaign['identity'],
                       runtime=runtime['identity'],source=source,image=q['images'][1],engine=host.engine.name,
-                      hardware=matrix['hardware'],execution_policy=q['runtime']['execution_policy'],profile=profile,seconds=min(1800,remaining)))
+                      hardware=matrix['hardware'],execution_policy=q['runtime']['execution_policy'],profile=profile,seconds=min(DEVICE_ACCEPTANCE_SECONDS,remaining)))
     target=output/'device';target.mkdir()
     atomic_write(target/'input.json',request)
     from .progressive_acceptance import hardware_plan
