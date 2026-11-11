@@ -114,9 +114,11 @@ def request(data):
         diagnostic=False, memory_bytes=64 << 30, disk_bytes=8 << 30))
 
 
-def readiness(output, data, census, sensitivity=None):
+def readiness(output, data, census, sensitivity=None, materials=None):
     """No passing data census can stand in for scientific or device acceptance."""
-    deficits = list(census.get('deficits', []))
+    deficits = list((materials or census).get('deficits', []))
+    if not materials or materials.get('status') != 'COMPLETE':
+        deficits.append('cohort_and_support_publication_not_completed')
     if not sensitivity or sensitivity.get('status') != 'COMPLETE':
         deficits.append('sensitivity_not_completed')
     deficits += ['current_source_selected_model_HIP_qualification',
@@ -125,6 +127,7 @@ def readiness(output, data, census, sensitivity=None):
     value = seal(dict(version='progressive-research-readiness/v1', status='BLOCKED',
         registration=data['identity'], census=census['identity'], research_ready=False,
         sensitivity=sensitivity.get('identity') if sensitivity else None,
+        materials=materials.get('identity') if materials else None,
         deficits=sorted(set(deficits)), training_started=False, assessment_exposed=False,
         stage_dispositions={
             'capability':'AWAITING_PREPARATION_AND_QUALIFICATION',

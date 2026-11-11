@@ -72,7 +72,10 @@ def reserve_panels(rows, *, seed, required, minimum_groups, panels, deadline=Non
         keys += [('behavior', digest(row['values'])), ('id', row['id'])]
         if row.get('structure'):
             keys.append(('structure', row['structure']))
-        keys += [(k, row[k]) for k in ('group','family') if row.get(k)]
+        if row['stratum']=='composition':
+            from oeis_learn.generalization.progressive.prepared_panels import composition
+            keys.append(('composition',composition(row)))
+        keys += [('group', row[k]) for k in ('group','family') if row.get(k)]
         for key in keys:
             if key in seen:
                 linked.join(i, seen[key])
@@ -101,7 +104,8 @@ def reserve_panels(rows, *, seed, required, minimum_groups, panels, deadline=Non
             for group in sorted(groups, key=lambda g: digest([seed, panel, stratum, g])):
                 for row in sorted(groups[group], key=lambda r: digest([seed, r['id']]))[:8]:
                     if len(chosen) < required:
-                        chosen.append(dict(row, group=group, role=panel))
+                        chosen.append(dict(row, group=group, role=panel,
+                            declared_groups=sorted(set(row[k] for k in ('group','family') if row.get(k)))))
             n = len({r['group'] for r in chosen})
             counts[panel+'/'+stratum] = dict(tasks=len(chosen), groups=n,
                 available_groups=len(groups), available_rows=sum(map(len,groups.values())),

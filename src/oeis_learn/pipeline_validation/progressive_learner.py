@@ -55,7 +55,6 @@ def compatibility(package):
 
 
 def validate_input(package, task, *, allow_pending=False):
-    from oeis_learn.decoder.bigint_codec import encode_body
     from oeis_learn.generalization.progressive.models import validate_profile
     from oeis_learn.pipeline_validation.progressive_training import validate_update_policy
 
@@ -201,43 +200,8 @@ def validate_input(package, task, *, allow_pending=False):
         if not isinstance(shard, list) or not 1 <= len(shard) <= 4096:
             raise ValueError("bounded nonempty verified shard required")
         for row in shard:
-            fields = {
-                "version",
-                "identity",
-                "ordinal",
-                "draw_identity",
-                "source_policy",
-                "source",
-                "structure",
-                "behavior",
-                "indices",
-                "values",
-                "target_source",
-                "tokens",
-                "target_disposition",
-                "membership",
-                "native_verified",
-                "control_events",
-                "branch_events",
-                "operations",
-                "detector_limit",
-            }
-            if set(row) != fields:
-                raise ValueError("closed training row; evaluation metadata excluded")
-            if (
-                seal(row) != row
-                or row.get("version") != "progressive-training-row/v1"
-                or row.get("membership") != "training"
-            ):
-                raise ValueError("sealed training rows only")
-            if package["scope"] == "NATIVE_VERIFIED" and row.get("native_verified") is not True:
-                raise ValueError("native verification missing")
-            if (
-                len(row["values"]) != (4 if short else 100)
-                or len(row["indices"]) != (4 if short else 100)
-                or encode_body(row["target_source"]) != row["tokens"]
-            ):
-                raise ValueError("complete target/codec binding required")
+            from oeis_learn.generalization.progressive.training_rows import validate_row
+            validate_row(row, native_verified=package["scope"] == "NATIVE_VERIFIED", short=short)
             if row["draw_identity"] in seen and seen[row["draw_identity"]] != row:
                 raise ValueError("conflicting training row")
             seen[row["draw_identity"]] = row

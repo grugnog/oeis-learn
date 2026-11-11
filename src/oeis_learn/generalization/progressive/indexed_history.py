@@ -40,7 +40,7 @@ def check_panel(root, panel, indexes):
         truth = json.loads(verify_refs(root, [row['truth']], max_bytes=4 << 20)[0])
         keys = set(ExposureIndex.keys(truth))
         keys.add(('structure', row['structure']))
-        keys.update(('group', digest(group)) for group in row['groups'])
+        keys.update((kind, digest(group)) for group in row['groups'] for kind in ('group','family'))
         # Parameter transfer deliberately retains structure, but never an exact
         # sequence, prefix/shift, identity or declared relation group.
         if row['stratum'] in {'parameter','retention'} and panel['payload']['group_policy'] == 'parameter_structure_sharing':

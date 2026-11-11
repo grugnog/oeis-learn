@@ -161,6 +161,28 @@ def publish(root, output, cohort, *, exposure, other_cohorts=()):
     from .indexed_history import open_indexes, check_panel
     with open_indexes(root,[exposure]) as indexes:
         check_panel(root,c,indexes)
+    return _publish_validated(root,output,c,exposure=exposure,other_cohorts=other_cohorts)
+
+
+def publish_many(root, publications, *, exposure):
+    """Check the shared original index once for an outcome-blind panel roster.
+
+    This is a custodian batch operation, not a way to supply unchecked indexes.
+    All cross-panel relations are checked before publishing the first channel.
+    """
+    from .indexed_history import open_indexes, check_panel
+    panels=[c for _,c in publications]
+    if len({str(path) for path,_ in publications})!=len(publications):
+        raise ValueError('distinct cohort publication destinations required')
+    with open_indexes(root,[exposure]) as indexes:
+        for panel in panels:
+            validate_cohort(panel,exposure=exposure,other_cohorts=panels)
+            check_panel(root,panel,indexes)
+    return [_publish_validated(root,path,c,exposure=exposure,other_cohorts=panels)
+            for path,c in publications]
+
+
+def _publish_validated(root, output, c, *, exposure, other_cohorts):
     result = census(c, exposure=exposure, other_cohorts=other_cohorts)
     from oeis_learn.pipeline_validation.identity import confined
 

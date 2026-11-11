@@ -1,5 +1,6 @@
 """Registered-data preparation, with independent CPU cases and explicit readiness."""
 import runpy
+import sys
 
 from .identity import confined, seal
 from .progressive_workstation_state import Blocked, write
@@ -16,6 +17,8 @@ def prepare(workflow):
     def plan():
         request=bridge.request(data)
         write(base/'census/request.json',request)
+        from oeis_learn.generalization.progressive.prepared_support import policy
+        write(base/'support-policy.json',policy(seed=request['seed'],target_tokens=request['token_target']))
         design=data['design']
         updated=seal(dict(version='progressive-research-preflight/v1',registration=data['identity'],
             source=data['source'], source_resolved=True, executable=False, research_ready=False,
@@ -26,7 +29,7 @@ def prepare(workflow):
             limits=request, qualification_scope='current source, image, device and selected update policy',
             subsequent_stages='conditional scaling/OEIS/component/source branches require explicit finite reservations'))
         write(base/'research-preflight-plan.json',updated)
-        return request,[base/'census/request.json',base/'research-preflight-plan.json']
+        return request,[base/'census/request.json',base/'research-preflight-plan.json',base/'support-policy.json']
     req=s.step('census-plan',plan,dependencies=('prepare-research/registered-data',))
     def environment():
         host=w.host()
@@ -56,6 +59,21 @@ def prepare(workflow):
             files.append(checked_file(base/'census',ref))
         return result,files
     counted=s.step('native-census',census,dependencies=('prepare-research/census-plan','prepare-research/image-qualification'))
+    def materials():
+        from .supervision import launch
+        # Stdlib byte projection only; no model, native execution, download or
+        # original exposure import runs outside the installed container roles.
+        argv=[sys.executable,'-S','-c',
+            "import sys;sys.path.insert(0,sys.argv.pop(1));from oeis_learn.pipeline_validation.progressive_research_materials import main;main()",
+            str(root/'src'),'--root',str(root),
+            '--census',str((base/'census/census.json').relative_to(root)),
+            '--request',str((base/'census/request.json').relative_to(root)),
+            '--policy',str((base/'support-policy.json').relative_to(root)),
+            '--output',str((base/'materials').relative_to(root))]
+        launch(argv,base/'logs/materials',seconds=3600,stream_cap=4<<20)
+        result=load(base/'materials/materials.json')
+        return result,sorted((base/'materials').rglob('*.json'))
+    projected=s.step('materials',materials,dependencies=('prepare-research/native-census','prepare-research/census-plan'))
     def sensitivity():
         # Original registered assumptions, not real panel/model outcomes.
         original=confined(root,data['donor_session']['path']).parent/'register-inputs/design/sensitivity-design.json'
@@ -68,7 +86,7 @@ def prepare(workflow):
     def outcome():
         census_result=counted or seal(dict(version='progressive-research-census/v1',status='UNAVAILABLE',
                                           deficits=['native_census_not_completed']))
-        value=bridge.readiness(base,data,census_result,measured)
+        value=bridge.readiness(base,data,census_result,measured,projected)
         # Persist the full deficit report even when a producer failed independently.
         raise Blocked('Research preparation evidence collected; '+', '.join(value['deficits'])+
                       '; retain private reservoirs and share prepare-research.zip')
