@@ -739,8 +739,23 @@ def validate_frozen(root, campaign):
                 ):
                     raise ValueError("one original training-only variant request required")
                 envelope = load(confined(root, paths[0]))
+                if (seal(envelope)!=envelope or envelope.get('version')!='discovery-channel/v1'
+                        or envelope.get('kind')!='training_request' or envelope.get('role')!='learner'):
+                    raise ValueError('original training-only variant channel required')
                 data = envelope["data"]
                 package = json.loads(verify_refs(root, [data["artifact"]], max_bytes=256 << 20)[0])
+                from .progressive_learner import compatibility,validate_input
+                from oeis_learn.generalization.progressive.projections import _validate_channel
+                from oeis_learn.generalization.progressive.trial_scopes import materialize
+                _validate_channel('training_request',data)
+                if compatibility(package)!=data['compatibility']:
+                    raise ValueError('original variant base compatibility differs')
+                # The retained package is the immutable data base. Calibration
+                # and installed execution both expand the selected finite law;
+                # freeze must validate that same input, not demand one copy of
+                # every training reservoir per possible hyperparameter choice.
+                package=materialize(package,variant)
+                validate_input(package,dict(purpose=campaign['purpose'],track=campaign['track'],payload=variant),allow_pending=True)
                 params = variant["trial_choices"][variant["trial_choice"]]["parameters"]
                 actual = {
                     k: package["update_policy"][k]

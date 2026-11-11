@@ -37,10 +37,10 @@ def build(root, census_path, request_path, output, rule):
     files={name:checked_file(census_path.parent,ref) for name,ref in refs.items()}
     training=_json(files['training-reservoir.json'],maximum=128<<20)
     roster=_json(files['panel-reservations.json'],maximum=128<<20)
-    if len(training)!=census['counts'].get('TRAINING',0) or set(roster)!={*request['panels'],'retention'}:
+    if len(training)!=census['counts'].get('TRAINING',0) or set(roster)!={*request['panels'],*request['retention_panels']}:
         raise ValueError('original reservoir/count binding differs')
     for panel,rows in roster.items():
-        for stratum in (['parameter'] if panel=='retention' else ['parameter','composition','unseen_structure','oeis']):
+        for stratum in (['parameter'] if panel in request['retention_panels'] else ['parameter','composition','unseen_structure','oeis']):
             if sum(r['stratum']==stratum for r in rows)!=census['panels'][panel+'/'+stratum]['tasks']:
                 raise ValueError('original panel census/count binding differs')
     # The external step binds the original producer receipt; the native identity
@@ -49,6 +49,8 @@ def build(root, census_path, request_path, output, rule):
     write(output/'support-policy.json',rule)
     support,summary=prepared_support.project(training,rule,diagnostic=request['diagnostic'])
     write(private/'support.json',support);write(output/'support-summary.json',summary)
+    screening,screening_summary=prepared_panels.screening(roster['development'],seed=request['seed'])
+    write(private/'screening.json',screening);write(output/'screening-summary.json',screening_summary)
     exposure=record('exposure',dict(previous=None,detector_limits=prepared_panels.LIMITS,
         events=[],indexes=[request['exposure'],reference(root,files['training-exposure.sqlite'])]),
         created_at='2026-11-11T00:00:00Z',purpose='acceptance' if request['diagnostic'] else 'research',
@@ -57,14 +59,16 @@ def build(root, census_path, request_path, output, rule):
     publications=[]
     for panel,rows in roster.items():
         role=('assessment' if panel=='assessment' else
-              'confirmation' if panel.startswith('confirmation') else 'development')
-        decision='diversity' if panel=='confirmation-diversity' else ('assessment' if role=='assessment' else 'capability')
+              'confirmation' if panel.startswith('confirmation') or panel in {'retention-diversity','retention-tuning'} else 'development')
+        decision=('tuning' if 'tuning' in panel else 'diversity' if 'diversity' in panel
+                  else 'assessment' if role=='assessment' else 'capability')
         value=prepared_panels.cohort(root,private/'panels'/panel,rows,panel=panel,role=role,
             decision=decision,exposure=exposure,required=request['required_per_stratum'],
             minimum_groups=request['minimum_groups'],purpose=exposure['purpose'],created_at=exposure['created_at'])
         publications.append((str((private/'published'/panel).relative_to(root)),value))
     outcomes=publish_many(root,publications,exposure=exposure)
     deficits=list(summary['deficits'])
+    deficits.extend(screening_summary['deficits'])
     deficits.extend(d for d in census['deficits'] if d!='refresh_cadence_requires_prospective_revision')
     for (_,panel),outcome in zip(publications,outcomes):
         if outcome['status']!='COMPLETE':
@@ -74,6 +78,7 @@ def build(root, census_path, request_path, output, rule):
         diagnostic=request['diagnostic'],census=reference(root,census_path),
         request=reference(root,request_path),native=census['native'],
         support=reference(root,private/'support.json'),support_summary=reference(root,output/'support-summary.json'),
+        screening=reference(root,private/'screening.json'),screening_summary=reference(root,output/'screening-summary.json'),
         exposure=reference(root,private/'exposure.json'),
         panel_censuses=outcomes,
         panels=[dict(panel=p['payload']['panel'],role=p['payload']['role'],status=o['status'],

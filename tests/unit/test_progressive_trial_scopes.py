@@ -80,3 +80,32 @@ def test_confirmation_policy_survives_scaling_and_rejects_changed_trajectory(tmp
         schedule_horizon_tokens=25000000, schedule=schedule)))
     with pytest.raises(ValueError, match='400M'):
         validate_input(bad, task)
+
+
+def test_study_freeze_uses_same_finite_materialization_as_calibration_and_execution(tmp_path,monkeypatch):
+    from tests.helpers.progressive_study import build
+    from oeis_learn.pipeline_validation.progressive_study import validate_frozen
+    from oeis_learn.pipeline_validation.progressive_training import resolve_update_policy
+    from oeis_learn.pipeline_validation.progressive_learner import compatibility
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.generalization.progressive.trial_scopes import materialize
+    from oeis_learn.pipeline_validation.progressive_calibration import selected_inputs
+
+    campaign,_,_,_=build(tmp_path,monkeypatch)
+    task=next(p for p in campaign['payload']['tasks'] if p['id']=='train')
+    original=load(tmp_path/'study-training.json')
+    parameters=dict(BASELINE,lr_multiplier=3)
+    other=seal(dict(original,update_policy=resolve_update_policy(original['profile'],
+        schedule_horizon_tokens=4000000,lr_multiplier=3)))
+    task['trial_choices'].append(dict(parameters=parameters,compatibility=compatibility(other),policy=task['policy']))
+    campaign=seal(campaign)
+    validate_frozen(tmp_path,campaign)
+    cases,_=selected_inputs(tmp_path,dict(purpose='acceptance',track=campaign['track'],payload=dict(
+        task_plans=campaign['payload']['tasks'],references=campaign['payload']['references'])))
+    assert len(cases)==2
+    assert materialize(original,resolve(task,1))==other
+    assert load(tmp_path/'study-training.json')==original
+    bad=copy.deepcopy(campaign)
+    next(p for p in bad['payload']['tasks'] if p['id']=='train')['trial_choices'][1]['compatibility']=digest('foreign')
+    with pytest.raises(ValueError,match='compatibility'):
+        validate_frozen(tmp_path,seal(bad))

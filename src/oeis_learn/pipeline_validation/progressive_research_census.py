@@ -62,7 +62,8 @@ def classify(row, support):
     return 'unseen_structure'
 
 
-def reserve_panels(rows, *, seed, required, minimum_groups, panels, deadline=None):
+def reserve_panels(rows, *, seed, required, minimum_groups, panels, deadline=None,
+                   retention_panels=('retention',)):
     """Assign whole detected components before quotas; never substitute/reseed."""
     linked, seen = Union(len(rows)), {}
     for i, row in enumerate(rows):
@@ -86,18 +87,21 @@ def reserve_panels(rows, *, seed, required, minimum_groups, panels, deadline=Non
         components[linked.root(i)].append(row)
     assigned = defaultdict(lambda: defaultdict(list))
     # The retention panel is independent and uses parameter-transfer candidates.
-    owners = [*panels, 'retention']
+    owners = [*panels, *retention_panels]
+    if len(set(owners))!=len(owners):
+        raise ValueError('distinct prospective panel names required')
     for group in components.values():
         identity = digest(sorted(r['id'] for r in group))
-        owner = owners[int(digest([seed, identity])[7:23], 16) % len(owners)]
+        eligible=owners if all(r['stratum']=='parameter' for r in group) else panels
+        owner = eligible[int(digest([seed, identity])[7:23], 16) % len(eligible)]
         for row in group:
-            if owner == 'retention' and row['stratum'] != 'parameter':
+            if owner in retention_panels and row['stratum'] != 'parameter':
                 continue
             assigned[(owner, row['stratum'])][identity].append(row)
     roster, counts, deficits = {}, {}, []
     for panel in owners:
         roster[panel] = []
-        strata = ['parameter'] if panel == 'retention' else ['parameter','composition','unseen_structure','oeis']
+        strata = ['parameter'] if panel in retention_panels else ['parameter','composition','unseen_structure','oeis']
         for stratum in strata:
             chosen = []
             groups = assigned[(panel, stratum)]
@@ -123,7 +127,7 @@ def validate_request(request):
         candidates={}, exposure={}, recipe={}))))
     if not isinstance(request, dict) or set(request) != required or seal(request) != request:
         raise ValueError('closed sealed census request required')
-    if request['version'] != 'progressive-research-census-request/v1':
+    if request['version'] != 'progressive-research-census-request/v2':
         raise ValueError('unknown census request')
     if type(request['diagnostic']) is not bool:
         raise ValueError('explicit census purpose required')
@@ -133,11 +137,13 @@ def validate_request(request):
         template = expected(dummy)
         if any(request[k] != template[k] for k in template if k not in {'identity','registration'}):
             raise ValueError('prospective research census limits changed')
-    for field, cap in [('training_draws',8192),('evaluation_draws',16384),('seconds',21600),
-                       ('shard_rows',512),('required_per_stratum',128),('minimum_groups',16)]:
+    for field, cap in [('training_draws',8192),('evaluation_draws',32768),('seconds',21600),
+                       ('shard_rows',256),('required_per_stratum',128),('minimum_groups',16)]:
         if type(request[field]) is not int or not 1 <= request[field] <= cap:
             raise ValueError('bounded census field: '+field)
-    if (request['panels'] != ['development','confirmation-diversity','assessment']
+    if (request['panels'] != ['development','confirmation-diversity',
+                             *['confirmation-tuning-'+str(i) for i in range(4)],'assessment']
+            or request['retention_panels'] != ['retention-development','retention-diversity','retention-tuning']
             or request['per_case_seconds'] != 4 or request['max_shards'] != 64
             or request['disk_bytes'] != 8 << 30 or request['memory_bytes'] != 64 << 30
             or request['token_target'] != 25000000 or request['proposed_refresh_updates'] != 8
@@ -249,7 +255,8 @@ def run(root, output, request, *, client):
                         failures.append(dict(source_ordinal=ordinal,reason=type(exc).__name__+': '+str(exc),
                                              traceback=traceback.format_exc()))
         roster, panels, deficits=reserve_panels(evaluation,seed=request['seed'],
-            required=request['required_per_stratum'],minimum_groups=request['minimum_groups'],panels=request['panels'],deadline=deadline)
+            required=request['required_per_stratum'],minimum_groups=request['minimum_groups'],panels=request['panels'],
+            retention_panels=request['retention_panels'],deadline=deadline)
         # Reservoirs remain private and are not scoreable cohorts/learner channels.
         for value in (training,roster):
             if len(json.dumps(value,sort_keys=True,indent=2,allow_nan=False).encode()) > 128 << 20:

@@ -25,6 +25,33 @@ def composition(row):
     return digest([sorted(f['proper']),sorted(f['operators'])])
 
 
+def screening(rows, *, seed):
+    """Select two members of sixteen original groups per development stratum."""
+    if len({r['id'] for r in rows})!=len(rows) or any(r['role']!='development' for r in rows):
+        raise ValueError('unique original development reservations required')
+    selected=[];counts={};deficits=[]
+    for stratum in STRATA:
+        groups={}
+        for row in rows:
+            if row['stratum']==stratum:
+                groups.setdefault(row['group'],[]).append(row)
+        eligible=[group for group,members in groups.items() if len(members)>=2]
+        chosen=sorted(eligible,key=lambda g:digest([seed,stratum,g]))[:16]
+        for group in chosen:
+            for row in sorted(groups[group],key=lambda r:digest([seed,r['id']]))[:2]:
+                selected.append(dict(id=row['id'],group=group,stratum=stratum,role='development'))
+        counts[stratum]=dict(eligible_groups=len(eligible),selected_groups=len(chosen),tasks=2*len(chosen))
+        if len(chosen)!=16:
+            deficits.append('screening_support:'+stratum)
+    if not deficits:
+        from .tuning import validate_screening_panel
+        validate_screening_panel(selected)
+    return selected,seal(dict(version='progressive-screening-publication/v1',
+        reservation=digest(rows),seed=seed,status='INCOMPLETE' if deficits else 'COMPLETE',
+        roster=digest(selected),strata=counts,deficits=deficits,
+        selection='outcome-blind fixed original groups; no replacements or reduced quotas'))
+
+
 def cohort(root, output, rows, *, panel, role, decision, exposure,
            required=128, minimum_groups=16, purpose='research', created_at):
     """Write private raw inputs and return a closed cohort for canonical publish."""

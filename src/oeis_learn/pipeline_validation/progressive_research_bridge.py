@@ -105,11 +105,13 @@ def request(data):
     """Finite native census before model scoring, calibration or task freezing."""
     if seal(data) != data or data.get('version') != 'progressive-registered-data/v1':
         raise ValueError('original registered-data receipt required')
-    return seal(dict(version='progressive-research-census-request/v1', registration=data['identity'],
+    return seal(dict(version='progressive-research-census-request/v2', registration=data['identity'],
         candidates=data['candidates'], exposure=data['exposure'], recipe=data['recipe'],
-        seed=20261112, training_draws=8192, evaluation_draws=16384, seconds=21600,
-        shard_rows=512, per_case_seconds=4, required_per_stratum=128, minimum_groups=16,
-        panels=['development','confirmation-diversity','assessment'],
+        seed=20261112, training_draws=8192, evaluation_draws=32768, seconds=21600,
+        shard_rows=256, per_case_seconds=4, required_per_stratum=128, minimum_groups=16,
+        panels=['development','confirmation-diversity',
+                *['confirmation-tuning-'+str(i) for i in range(4)],'assessment'],
+        retention_panels=['retention-development','retention-diversity','retention-tuning'],
         token_target=25000000, proposed_refresh_updates=8, max_shards=64,
         diagnostic=False, memory_bytes=64 << 30, disk_bytes=8 << 30))
 
@@ -132,7 +134,7 @@ def readiness(output, data, census, sensitivity=None, materials=None):
         stage_dispositions={
             'capability':'AWAITING_PREPARATION_AND_QUALIFICATION',
             'diversity':'AWAITING_SUPPORT_FEASIBILITY',
-            'tuning':'OPTIONAL_DOMAIN_NOT_SELECTED',
+            'tuning':'AWAITING_FULL_DOMAIN_AND_NESTED_BUDGET_FEASIBILITY',
             'scaling':'CONDITIONAL_ON_CONFIRMED_PREDECESSOR',
             'oeis':'CONDITIONAL_ON_ELIGIBLE_INITIALIZER_AND_SEPARATE_TRAINING_POOL',
             'components':'INDEPENDENT_ELIGIBILITY_REQUIRED',

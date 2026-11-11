@@ -366,6 +366,17 @@ def _validate_channel(kind, data):
         }
     ):
         raise ValueError("closed coverage witness")
+    if kind == 'coverage_witness':
+        from oeis_learn.synthesis.contracts import canonical_integer
+        if (not isinstance(data['task'],str) or not data['task']
+                or (data['source'] is not None and (not isinstance(data['source'],str) or not data['source']))
+                or not isinstance(data['indices'],list) or not isinstance(data['values'],list)
+                or not 1<=len(data['indices'])==len(data['values'])<=100
+                or not isinstance(data['operator_class'],list) or not isinstance(data['missing_operations'],list)
+                or (data['source'] is None and data['operator_class'])):
+            raise ValueError('explicit original witness or unavailable source required')
+        for value in data['indices']+data['values']:
+            canonical_integer(value)
     if kind == "visible_prompt":
         from .cohorts import validate_prompt
 

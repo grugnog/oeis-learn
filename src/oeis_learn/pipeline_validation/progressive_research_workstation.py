@@ -19,7 +19,9 @@ def prepare(workflow):
         write(base/'census/request.json',request)
         from oeis_learn.generalization.progressive.prepared_support import policy
         write(base/'support-policy.json',policy(seed=request['seed'],target_tokens=request['token_target']))
-        design=data['design']
+        from .progressive_research_design import scientific_round
+        design=scientific_round(data)
+        write(base/'research-round-design.json',design)
         updated=seal(dict(version='progressive-research-preflight/v1',registration=data['identity'],
             source=data['source'], source_resolved=True, executable=False, research_ready=False,
             selected_initial_stages=design['selected_stages'],
@@ -29,7 +31,8 @@ def prepare(workflow):
             limits=request, qualification_scope='current source, image, device and selected update policy',
             subsequent_stages='conditional scaling/OEIS/component/source branches require explicit finite reservations'))
         write(base/'research-preflight-plan.json',updated)
-        return request,[base/'census/request.json',base/'research-preflight-plan.json',base/'support-policy.json']
+        return request,[base/'census/request.json',base/'research-preflight-plan.json',base/'support-policy.json',
+                        base/'research-round-design.json']
     req=s.step('census-plan',plan,dependencies=('prepare-research/registered-data',))
     def environment():
         host=w.host()

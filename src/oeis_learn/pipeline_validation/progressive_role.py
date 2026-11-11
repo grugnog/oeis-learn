@@ -576,13 +576,16 @@ def _execute(
             budget.client(client)
             for ordinal, value in enumerate(witnesses):
                 budget.consume(attempts=1,rejections=1)
-                witness = {k: value[k] for k in ("source", "indices", "values")}
-                path = private / (str(ordinal) + ".json")
-                atomic_write(path, witness)
+                witness_ref = None
+                if value['source'] is not None:
+                    witness = {k: value[k] for k in ("source", "indices", "values")}
+                    path = private / (str(ordinal) + ".json")
+                    atomic_write(path, witness)
+                    witness_ref = reference(output,path)
                 result = audit(
                     output,
                     value["task"],
-                    reference(output, path),
+                    witness_ref,
                     client=client,
                     operator_class=value["operator_class"],
                     missing_operations=value["missing_operations"],

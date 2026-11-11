@@ -146,3 +146,51 @@ def test_original_census_to_materials_retains_deficits_and_private_bytes(tmp_pat
         build(tmp_path,str((base/'census/census.json').relative_to(tmp_path)),
             str((base/'census/request.json').relative_to(tmp_path)),
             str((base/'materials').relative_to(tmp_path)),support.policy(seed=req['seed']))
+
+
+def test_screening_uses_fixed_two_by_sixteen_groups_and_reports_shortages():
+    rows=[dict(id=f'{stratum}-{group}-{i}',group=f'{stratum}-{group}',stratum=stratum,role='development')
+          for stratum in panels.STRATA for group in range(18) for i in range(8)]
+    roster,summary=panels.screening(rows,seed=13)
+    assert len(roster)==128 and summary['status']=='COMPLETE'
+    assert roster==panels.screening(list(reversed(rows)),seed=13)[0]
+    assert set(r['id'] for r in roster)<={r['id'] for r in rows}
+    _,short=panels.screening([r for r in rows if r['stratum']!='composition'],seed=13)
+    assert short['status']=='INCOMPLETE' and short['deficits']==['screening_support:composition']
+
+
+def test_round_retains_full_optimization_domain_and_separate_panels(tmp_path):
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.pipeline_validation.progressive_workstation_state import write
+    from oeis_learn.generalization.progressive.contracts import reference
+    from oeis_learn.pipeline_validation.progressive_research_design import scientific_round
+    from oeis_learn.pipeline_validation.progressive_research_qualification import selected_profiles,qualification_blueprint
+    from oeis_learn.pipeline_validation.progressive_qualification import matrix
+    from oeis_learn.pipeline_validation.progressive_research_bridge import request
+    from oeis_learn.pipeline_validation.progressive_handoff import named_plan
+    write(tmp_path/'recipe.json',resolve(dict(version='bigint-bootstrap/v1')))
+    data=seal(dict(version='progressive-registered-data/v1',design=seal(dict(seeds=[17,19])),
+        recipe=reference(tmp_path,'recipe.json'),candidates={},exposure={}))
+    design=scientific_round(data)
+    assert design['selected_stages']==['capability','diversity','tuning']
+    assert design['tuning']['learning_trials']==12 and design['tuning']['sizing_trials']==4
+    assert design['tuning']['screen_seconds']==7200
+    assert design['tuning']['screening_looks']==[1000000,2000000,4000000]
+    profiles=selected_profiles(tmp_path,data,design)
+    assert len(profiles['profiles'])==12
+    req=matrix(profiles['profiles'],source=digest('scope'),image=digest('image'),engine='podman',hardware={})
+    assert len(req['cases'])==48
+    census_request=request(data)
+    assert len(census_request['panels'])==7 and len(census_request['retention_panels'])==3
+    changed=seal(dict(design,tuning=dict(design['tuning'],learning_trials=1)))
+    with pytest.raises(ValueError,match='original prospective'):
+        selected_profiles(tmp_path,data,changed)
+    write(tmp_path/'matrix.json',req)
+    write(tmp_path/'base/qualification.json',{'test_boundary_only':True})
+    blueprint=qualification_blueprint(tmp_path,tmp_path/'plans',matrix=tmp_path/'matrix.json',base=tmp_path/'base')
+    from oeis_learn.generalization.progressive.contracts import load
+    bp=load(blueprint)
+    qp=named_plan(tmp_path,bp,'qualification_plan','progressive-qualification-plan/v1',
+                  {'matrix','base_qualification','seconds'})
+    assert qp['matrix']==reference(tmp_path,'matrix.json') and bp['purpose']=='research'
+    assert not bp['payload']['executable']

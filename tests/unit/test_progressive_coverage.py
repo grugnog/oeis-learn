@@ -22,6 +22,17 @@ def test_no_witness_or_neural_failure_is_not_inexpressibility(tmp_path):
     assert r["payload"]["missing_operations"] == ["division"]
 
 
+def test_missing_oeis_program_is_an_explicit_unavailable_custodian_input():
+    from oeis_learn.generalization.progressive.projections import _validate_channel
+    value=dict(task='OEIS:A000001',source=None,indices=list(map(str,range(100))),
+        values=list(map(str,range(100))),operator_class=[],missing_operations=[],created_at='2026-11-11T00:00:00Z')
+    _validate_channel('coverage_witness',value)
+    with pytest.raises(ValueError,match='unavailable source'):
+        _validate_channel('coverage_witness',dict(value,operator_class=['lookup']))
+    with pytest.raises(ValueError,match='unavailable source'):
+        _validate_channel('coverage_witness',dict(value,source=''))
+
+
 def test_reference_checks_independent_fixture_and_missing_native_is_unresolved(tmp_path):
     for example in manifest()["programs"]:
         path = tmp_path / example["id"]

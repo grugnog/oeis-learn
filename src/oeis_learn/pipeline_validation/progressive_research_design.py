@@ -7,6 +7,47 @@ from .progressive_research_inputs import _json, checked_file
 from oeis_learn.generalization.progressive.contracts import reference, record
 
 
+def scientific_round(data):
+    """Prospective extension of the registered fixed-reference design.
+
+    The requested optimization round retains the full registered search space.
+    Feasibility may stop it, but may not silently reduce candidates, looks,
+    independent panels, or the protected reserve to manufacture readiness.
+    """
+    from oeis_learn.generalization.progressive.tuning import SPACE,BASELINE,CONTROL,SHAPES
+    if seal(data)!=data or data.get('version')!='progressive-registered-data/v1':
+        raise ValueError('original registered-data receipt required')
+    return seal(dict(version='progressive-research-round-design/v1',executable=False,
+        original_design=data['design']['identity'],registration=data['identity'],
+        selected_stages=['capability','diversity','tuning'],
+        seeds=data['design']['seeds'],precision='float32',gpu_owners=1,
+        panels=dict(required_per_stratum=128,minimum_groups=16,
+            tuning_confirmation=4,separate_retention=['development','diversity','tuning'],
+            assessment='explicit locked assessment command only'),
+        support=dict(token_horizon=25000000,maximum_shards=64,
+            cadence='prospective support-projection-policy/v1 before census',
+            fresh_initialization='paired random; original D remains an evaluation reference'),
+        tuning=dict(learning_trials=12,sizing_trials=4,space=SPACE,shapes=list(SHAPES),
+            unchanged_baseline=BASELINE,unpruned_learning_control=CONTROL,
+            screen_tokens=4000000,screen_seconds=7200,
+            screening_looks=[1000000,2000000,4000000],screening_tasks_per_stratum=32,
+            screening_groups_per_stratum=16,screening_tasks_per_group=2,
+            protected_finalization_seconds=1800,confirmation_tokens=25000000,
+            confirmation_seconds=43200,confirmation_schedule_horizon=400000000,
+            confirmation_cosine_warmup=1250000,maximum_nonbaseline_finalists=3),
+        qualification=dict(maximum_profiles=12,maximum_cases=48,
+            exact_calibration_maximum_combinations=1296,
+            historical_rehearsal='retained original evidence; no transfer of current model authority'),
+        feasibility='measure exact selected training and evaluation work; stop a design that cannot fit before scoring',
+        later_branches={
+            'scaling':'requires confirmed compatible finalist and a separately reserved 100M/400M support horizon',
+            'oeis':'requires eligible scaling initializer and independently reserved training/panel support',
+            'components':'assess independent eligibility even if OEIS outcome is negative',
+            'source_pilot':'assess independent eligibility after capability; no primary scaling claim',
+            'assessment':'never part of preparation or adaptive run'},
+        later_reservations='no automatic borrowing or unbounded continuation; explicit finite freeze required'))
+
+
 def construct(root, output, manifest, registration):
     """Resolve original model choices before scores, retain finite unmet inputs.
 
