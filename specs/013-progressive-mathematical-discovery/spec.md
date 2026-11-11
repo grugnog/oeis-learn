@@ -226,7 +226,7 @@ Learning gates use all-task family-macro verified yield as the default primary m
 
 The initial synthetic-only studies may use OEIS development scores for declared model selection, but never OEIS values as target construction or allocation feedback. The later OEIS-derived track is explicitly in scope under the user's request and must be identified as a separate experimental track under constitution V. This specification does not amend the constitution or assert that its runtime adoption/qualification is already complete.
 
-Out of scope: unrestricted autonomous research budgets; automatic host reconfiguration; imported OEIS/LODA solutions or pretrained external model teachers; an unbounded hyperparameter sweep; all-database bulk ingestion; numerical approximation presented as exact integer reasoning; and automatic claims of mathematical novelty. Those are not prerequisites for the five-stage pathway.
+Out of scope: unrestricted autonomous research budgets; automatic host reconfiguration; imported OEIS/LODA solutions or pretrained external model teachers; an unbounded hyperparameter sweep; numerical approximation presented as exact integer reasoning; and automatic claims of mathematical novelty. Those are not prerequisites for the five-stage pathway.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -281,3 +281,7 @@ Out of scope: unrestricted autonomous research budgets; automatic host reconfigu
 - [DreamCoder](https://arxiv.org/abs/2006.08381): reusable abstractions and search/learning precedent.
 - [FunSearch](https://www.nature.com/articles/s41586-023-06924-6): independently evaluated program search as a discovery route; different pretrained-model assumptions.
 - [FindStat](https://www.findstat.org/), [Sage interface](https://doc.sagemath.org/html/en/reference/databases/sage/databases/findstat.html), [Cremona data](https://johncremona.github.io/ecdata/), [LMFDB](https://www.lmfdb.org/), [KnotInfo downloads](https://knotinfo.org/homelinks/database_download.php), [Dartmouth knot data](https://knots.dartmouth.edu/): source suitability requires task-level admission, not merely availability of files.
+
+### Full OEIS preparation amendment (2026-11-11)
+
+User-authorized full-corpus acquisition and preparation is in scope. Inventory every entry at one immutable OEIS revision and retain short, finite, table, unavailable and malformed members with explicit dispositions. Fetch indexed b-files with bounded, resumable native Git LFS operations and retries; retain original values, offsets, keywords, licensing and source identities. Reuse compatible local caches and verified prior exposure artifacts without transferring old software/HIP qualification or resetting original costs. Full-corpus availability does not authorize training on reserved development, confirmation or assessment groups, imported solutions, or unbounded scientific execution.

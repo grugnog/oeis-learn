@@ -147,3 +147,11 @@ All acceptance changes require independently expected tests; mocks alone cannot 
 ## Complexity Tracking
 
 No constitutional violation is accepted. The additional versioned policy is necessary because existing PAC fixes corpus, initialization, budgets and replay exclusions. Reusing its version would invalidate historical comparisons. A container-local tuning adapter and bounded component language are justified research additions; a new training service, general scheduler or imported-teacher system is not.
+
+### G — Reusable full-corpus preparation
+
+Use a separate versioned corpus cache and CPU-only canonical data-fetch command. Pin a shallow bare OEIS repository, enumerate the complete Git tree through native batch reads, and fetch all current b-file objects in one native `git lfs fetch` invocation per retry. Do not use `--all` (history), thousands of subprocess batches, or per-sequence HTTP. Native transfer retries and bounded command retries preserve LFS objects. Preflight declared object bytes, disk and inodes; retain per-invocation elapsed costs and failure ZIPs.
+
+Maintain a transactional per-entry SQLite inventory with source hashes, exact metadata, bounded indexed projections, full raw b-file locations, eligibility reasons and processing fingerprints. Reuse verified compatible stripped-cache values; conflicting releases remain explicit. Retain every entry in the inventory and expose eligible 100-term projections through the existing indexed-source contract. Never ingest names/formulas/programs into training targets. Retries process only unfinished or changed members, preserve successes and do not create a fresh experimental panel.
+
+Provide explicit cross-session reuse of a complete hash-bound exposure index with original input identities, producer source and spent costs. Re-audit retained inputs and require current-source hardware qualification independently. Full-corpus acquisition itself performs no GPU work, panel scoring or training.

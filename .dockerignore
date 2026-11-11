@@ -81,3 +81,8 @@ system/
 
 # Local pytest temporary trees under any execution account
 pytest-of-*/
+
+# Full corpus and retained caches are mounted explicitly, never image inputs.
+data/
+downloads/
+**/*.duckdb

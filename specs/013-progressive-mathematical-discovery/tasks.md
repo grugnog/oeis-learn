@@ -507,3 +507,9 @@ All tasks are initially unchecked. Hardware/retained-data absence is reported ex
 - [X] T145 Persist stage transitions and bounded support ZIPs on success/failure/interruption; preserve first causes, original producers, inspection/OOM/cleanup, telemetry and explicit omissions without exporting private tensors/truth. Do not reset interrupted budgets.
 - [X] T146 Isolate independent Q/calibration/device cases and continue after recoverable failure only when a fresh GPU health check permits it. Continue independent CPU contracts/assets after a GPU-image failure, block dependencies, and test failure/recovery/report boundaries.
 - [X] T147 Document exact first command, phase prerequisites, resource/time limits, collection/recovery and pending sustained/scientific evidence in `workstation-handoff.md`; validate software paths without claiming a physical HIP run or building container images here.
+
+## Phase 15: Full OEIS corpus preparation (user scope amendment)
+
+- [X] T148 Implement pinned full-entry inventory, one native all-b-file LFS fetch with bounded retries/resource checks, transactional resumable processing, cache compatibility checks and complete eligibility accounting.
+- [X] T149 Integrate CPU-only canonical Podman/Docker execution, failure/interruption diagnostics ZIPs, exact operator command and regression coverage using real local Git/LFS fixtures.
+- [ ] T150 Reuse complete prior exposure data across source-changing sessions with exact input/index verification, original producer/cost records, and no hardware-authority transfer; regression-test rejection paths.

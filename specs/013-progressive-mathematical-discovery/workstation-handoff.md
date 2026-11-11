@@ -193,3 +193,108 @@ These software changes alter the source closure. Preserve rehearsal 007 as the
 original successful diagnostic result; it cannot qualify this new closure or the
 retained research architecture. Registration requires no repeat HIP run. Finish
 the remaining research construction software before the next hardware handoff.
+
+## Full OEIS corpus preparation
+
+The 2026-11-11 scope amendment prepares every entry at a pinned revision for
+future use. It does not assign all entries to training or waive the reserved
+assessment/confirmation groups. The original bounded `fresh.bulk` workflow is
+unchanged. This is a separate, resumable CPU data operation:
+
+```bash
+git pull --ff-only origin 013-progressive-mathematical-discovery &&
+python3 -S scripts/foundation_run.py \
+  --engine podman --memory-gib 12 --cpus 4 \
+  data fetch --config configs/foundation/oeis_corpus.json
+```
+
+The host needs only system Python and Podman. It builds/reuses the qualification
+image through the root Dockerfile, grants network access only to the CPU corpus
+worker and mounts the dedicated cache plus read-only config/stripped inputs.
+There is no GPU/device/socket mount. No new host packages or DuckDB dependency
+are required. The existing DuckDB is preserved; its inferred tags and missing
+source offsets cannot substitute for authoritative metadata.
+
+The first invocation pins the upstream OEIS commit in
+`data/oeis-corpus-001/snapshot.json`. It inventories every sequence, including
+short/finite/table entries. A bare repository retains original entries and
+supporting-file pointers, without materializing a second b-file working copy.
+All current b-files are fetched by one native queue per attempt:
+
+```text
+git -C <bare-repository> -c lfs.fetchrecentalways=false \
+  -c lfs.concurrenttransfers=4 -c lfs.transfer.maxretries=8 \
+  -c lfs.transfer.maxretrydelay=30 -c lfs.skipdownloaderrors=false \
+  lfs fetch --include=files/**/b*.txt --exclude= origin <pinned-commit>
+```
+
+The argument list is passed directly, without shell wildcard expansion. There
+are no Python batches or per-sequence HTTP calls. `--all` is deliberately absent
+because it includes historical objects. Native transfer retries are supplemented
+by up to three whole-command attempts, ten seconds apart, within one twelve-hour
+invocation ceiling. Existing LFS objects survive retries; completed entries are
+not reparsed when source fingerprints and published projection hashes match.
+Short upstream size declarations are never trusted over content hashes; every
+new b-file is hash-verified while its complete contents are parsed. Ordinary Git
+b-files are also retained and parsed. Malformed data retains its disposition.
+
+Defaults reserve at most 256 GiB of declared source objects, 16 GiB for derived
+projections/inventory, and 32 GiB of free disk headroom. These are limits, **not
+measured requirements or a download-size estimate**. The full pointer census
+records actual declared bytes before LFS transfer; disk/inode checks can pause
+acquisition. If a limit is insufficient, edit the checked-in config locally to
+raise the appropriate reservation and rerun the same command; retain the cache
+and pinned revision. Each invocation has separate logs/cost records. Do not
+change the selected revision in an existing cache; use a new cache for a new
+snapshot. Rerunning the command resumes data work and does not start training.
+
+The retained `data/oeis_cache/stripped.gz` is optional. Its hash and compatibility
+with each pinned entry are recorded. Matching values are reused only over the
+range verified against the pinned main entry; mismatches remain explicit, and
+unverified extra cached values cannot manufacture a 100-term record. Names,
+formulas and imported implementations never become target values/programs.
+Raw full b-files stay in the native LFS store. `inventory.sqlite` retains every
+entry's metadata, status, raw object location, availability counts and a bounded
+120-term indexed projection, including short/finite/table entries. The public
+per-member report excludes the actual terms. On complete preparation,
+`data/oeis-corpus-001/indexed/manifest.json` exposes the eligible 100-term subset
+through the existing indexed-source contract; eligibility is not membership.
+
+Failures continue independent entry processing where resources permit. ZIP
+collection runs on success, failure and handled interruption. Reinvocation
+reconstructs diagnostics after a killed host and reclaims any leftover owned
+container before starting new work. Share:
+
+```text
+data/oeis-corpus-001/share/corpus.zip
+```
+
+The ZIP includes exact commands, source/image identities, environment, per-member
+outcomes, first errors/tracebacks, native command logs, container exit/OOM state
+and cleanup records. Raw corpus, local SQLite data and weights stay local.
+Any support ZIP size omission is explicit with local path/hash; it is never a
+qualification artifact. Keep the cache and all original diagnostics.
+
+### Reusing registration002 exposure data
+
+Code changes require a new discovery session; they do not require rebuilding the
+reviewed original data index. After corpus preparation completes, the registration
+command can explicitly reference the completed original producer:
+
+```bash
+python3 -S scripts/discovery_hip_handoff.py \
+  --engine podman --session run-state/discovery/013-research-inputs-003 \
+  register-inputs \
+  --reference-campaign run-state/generalization/pac-012-bcd-r1-002 \
+  --input-manifest specs/013-progressive-mathematical-discovery/validation/research-input-resolution.json \
+  --oeis-snapshot data/oeis-corpus-001/indexed/manifest.json \
+  --reuse-exposure-session run-state/discovery/013-research-inputs-002
+```
+
+This re-audits the original inputs and hashes the existing private index, checks
+the reviewed producer/receipt/origin accounting, and references it in place.
+It skips the 84-minute import and its image build, retaining original import and
+preparation costs. Changed/partial/unreviewed producers are rejected. Keep the
+original session: it owns the reused index. Current-source hardware qualification,
+fresh panel/support construction, exact calibration and research freeze are still
+required; this command does not complete those pending tasks.

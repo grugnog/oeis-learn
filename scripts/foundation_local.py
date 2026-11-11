@@ -430,6 +430,11 @@ def main(argv=None):
     args = parser().parse_args(argv)
     args.explicit_options = {v.split("=", 1)[0] for v in argv if v.startswith("--")}
     try:
+        if args.command == "data" and Path(args.config).suffix == ".json":
+            value = read(ROOT / relative(args.config))
+            if value.get("version") == "oeis-corpus/v1":
+                from oeis_learn.pipeline_validation.corpus_workstation import run
+                return run(ROOT, args)
         if args.command == "discovery":
             from oeis_learn.pipeline_validation.progressive_cli import main as discovery_main
             return discovery_main(args, ROOT, Host)
