@@ -8,6 +8,7 @@ import zipfile
 import pytest
 
 from oeis_learn.pipeline_validation.progressive_workstation_state import Session, Blocked, read, write
+from oeis_learn.pipeline_validation.identity import seal
 
 
 def test_independent_stage_continues_failed_dependency_blocks_and_zip_survives(tmp_path):
@@ -272,8 +273,8 @@ def test_calibration_failure_keeps_independent_results_and_blocks_bad_device(tmp
     from oeis_learn.generalization.progressive.contracts import digest,reference,seal,load
     cases=[]
     for i in range(3):
-        key=digest(i); write(tmp_path/f'input-{i}.json',{'compatibility':key,
-            'update_policy':{'effective_batch':16},'shards':[[{'tokens':[1,2]}]]})
+        key=digest(i); write(tmp_path/f'input-{i}.json',seal({'compatibility':key,
+            'update_policy':{'effective_batch':16},'shards':[[{'tokens':[1,2]}]]}))
         cases.append(dict(compatibility=key,artifact=reference(tmp_path,f'input-{i}.json')))
     request=seal(dict(source=digest({}),image='image',engine='podman',hardware={},execution_policy={},
         seconds=60,caps={'disk_bytes':64<<20},maximum_inodes=1000,cases=cases,
@@ -335,7 +336,7 @@ def test_calibration_expired_deadline_records_every_unattempted_case(tmp_path,mo
     from oeis_learn.generalization.progressive.contracts import digest,reference,seal,load
     cases=[]
     for i in range(3):
-        key=digest(i);write(tmp_path/f'input-{i}.json',{'compatibility':key})
+        key=digest(i);write(tmp_path/f'input-{i}.json',seal({'compatibility':key}))
         cases.append(dict(compatibility=key,artifact=reference(tmp_path,f'input-{i}.json')))
     write(tmp_path/'request.json',seal(dict(source=digest({}),image='image',engine='podman',
         hardware={},execution_policy={},seconds=60,caps={'disk_bytes':64<<20},maximum_inodes=1000,cases=cases)))
@@ -492,3 +493,77 @@ def test_preparation_process_deadline_contains_inherited_pipe_descendant(tmp_pat
     assert not status.exists() or status.read_text().split(')')[1].split()[0]=='Z'
     record=json.loads((tmp_path/'logs/process.json').read_text())
     assert record['outcome']=='FAIL' and record['cleanup_failure'] is None
+
+
+def test_complete_execution_repairs_report_and_verification_without_training(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import progressive_workstation as w,supervision
+    s=Session(tmp_path,'run-state/recovery',{},'run-research')
+    wf=w.Workflow(s,SimpleNamespace(phase='run-research',engine='podman',memory_gib=64,cpus=8,render_node=None))
+    write(wf.base/'execution-0000/result.json',{'mechanical_status':'COMPLETE'})
+    calls=[];fail_verify=[True]
+    def launch(argv,logs,**kw):
+        operation=argv[argv.index('discovery')+1];calls.append(operation)
+        assert operation in {'report','verify-bundle'}
+        target=tmp_path/argv[argv.index('--output')+1]
+        target.parent.mkdir(parents=True,exist_ok=True)
+        if operation=='report':
+            with zipfile.ZipFile(target,'w') as z:z.writestr('original.json','{}')
+        elif fail_verify.pop() if fail_verify else False:
+            write(logs/'process.json',dict(returncode=1));return
+        else:
+            write(target/'verification.json',{'status':'VERIFIED'})
+            write(target/'result.json',{'mechanical_status':'COMPLETE'})
+        write(logs/'process.json',dict(returncode=0))
+    monkeypatch.setattr(supervision,'launch',launch)
+    with s.own():
+        wf.research();assert calls==['report','verify-bundle']
+        wf.research();assert calls==['report','verify-bundle','verify-bundle']
+        assert s.code()==0
+        report=s.journal['steps']['run-research/invocation-0000-report']
+        (tmp_path/report['value']['output']).write_bytes(b'corrupt')
+        wf.research();assert calls[-2:]==['report','verify-bundle']
+        before=len(calls);wf.research();assert len(calls)==before
+        assert report['outputs'] and s.journal['steps']['run-research/invocation-0000-report']['history']
+    assert (s.folder/'reporting-allowance.json').is_file()
+
+
+def test_operational_allowance_never_resets_unknown_or_changed_scope(tmp_path):
+    from oeis_learn.pipeline_validation.preparation_recovery import Allowance
+    from oeis_learn.pipeline_validation.progressive_workstation_state import read,Blocked
+    path=tmp_path/'nested/allowance.json';a=Allowance(path,{'source':'a'},10)
+    with a.attempt() as (remaining,ordinal):assert remaining==10 and ordinal==0
+    state=read(path);assert state['spent_seconds']>0
+    with a.attempt() as (remaining,ordinal):assert remaining<10 and ordinal==1
+    with pytest.raises(Blocked):
+        with Allowance(path,{'source':'b'},10).attempt():pass
+    state=read(path);state['active']=dict(ordinal=2,reserved_seconds=10-state['spent_seconds'])
+    write(path,seal(state))
+    with pytest.raises(Blocked,match='exhausted'):
+        with a.attempt():pytest.fail('unknown work resumed')
+    assert read(path)['spent_seconds']==10
+
+
+def test_telemetry_rotation_errors_and_zip_are_explicit(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation.progressive_workstation_state import TelemetryCollector
+    s=Session(tmp_path,'run-state/telemetry',{},'collect')
+    observer=s.observer=TelemetryCollector(s.folder,segment_bytes=64)
+    for i in range(20):observer.observe(dict(index=i,memory_free=1000-i))
+    assert observer.status['rotations']>0 and observer.status['omitted_observations']>0
+    assert observer.status['last_observation']['index']==19
+    before=observer.status['observations']
+    original=Path.open
+    def fail(path,*a,**kw):
+        if path.name=='telemetry.jsonl' and a==('ab',):raise OSError('explicit storage boundary failure')
+        return original(path,*a,**kw)
+    with monkeypatch.context() as m:
+        m.setattr(Path,'open',fail);observer.observe(dict(index=20))
+    assert observer.status['write_failures']==1 and observer.status['observations']==before+1
+    assert observer.status['last_observation']['index']==19
+    archive=s.package()
+    with zipfile.ZipFile(archive) as z:
+        status=json.loads(z.read('telemetry-status.json'))
+        assert status['write_failures']==1 and status['omitted_observations']>0
+        assert {'telemetry.jsonl','telemetry-previous.jsonl'}<=set(z.namelist())
+    resumed=TelemetryCollector(s.folder,segment_bytes=64);resumed.observe(dict(index=21))
+    assert resumed.status['observations']==22 and resumed.status['last_observation']['index']==21

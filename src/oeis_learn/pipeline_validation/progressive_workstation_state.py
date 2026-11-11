@@ -25,7 +25,7 @@ NAMES = {'receipt.json','producer.json','qualification.json','acceptance.json',
          'process.json','command.json','cleanup.json','container-inspect.json',
          'inspection.json','installed.json','acceptance-limits.json','verification.json',
          'environment.json','inputs.json','deficits.json','session.json','journal.json',
-         'runtime.json','campaign.json','telemetry.jsonl','pipeline.zip'}
+         'runtime.json','campaign.json','telemetry.jsonl','telemetry-previous.jsonl','telemetry-status.json','pipeline.zip'}
 NAMES.update({'source.json','matrix.json','profile.json','recipe.json','measurements.json',
               'request.json','image.json','blueprint.json','prepared.json','selection.json',
               'inspection-error.json','partial.json','hardware-results.json','dispositions.json'})
@@ -39,7 +39,7 @@ NAMES.update({'materials.json','support-policy.json','support-summary.json','res
               'screening-summary.json','roster-summary.json'})
 NAMES.update({'checkpoint-retirement.json','checkpoint-retirement-intent.json',
               'calibration-case.json','calibration-cases.json'})
-NAMES.update({'research-reservation.json','construction-summary.json','execution-contract.json','evaluation-cases.json',
+NAMES.update({'reporting-allowance.json','census-allowance.json','research-reservation.json','construction-summary.json','execution-contract.json','evaluation-cases.json',
               'evaluation-feasibility.json','evaluation-progress.json','resource-estimate.json','timing.json','running.json'})
 PRIVATE = {'private','work','installed','dist','checkpoints','inputs','.runtime'}
 
@@ -122,23 +122,32 @@ class Session:
     def save(self):
         write(self.folder/'journal.json',seal(self.journal))
 
-    def step(self,name,action,*,dependencies=()):
+    def step(self,name,action,*,dependencies=(),recover=False,binding=None):
         key=self.phase+'/'+name
         steps=self.journal['steps']
         if key in steps:
             old=steps[key]
-            if old['status']=='COMPLETE':
-                for ref in old.get('outputs',[]):
-                    path=confined(self.root,ref['path'])
-                    if path.stat().st_size!=ref['bytes'] or sha(path)!=ref['sha256']:
-                        raise ValueError('completed stage output changed: '+ref['path'])
-                print('Reusing original stage: '+key,flush=True)
-                return old.get('value')
-            if old['status']!='BLOCKED':
+            if binding is not None and old.get('binding')!=binding and not recover:
+                raise ValueError('completed step input binding changed')
+            if old['status']=='COMPLETE' and (binding is None or old.get('binding')==binding):
+                try:
+                    for ref in old.get('outputs',[]):
+                        path=confined(self.root,ref['path'])
+                        if path.stat().st_size!=ref['bytes'] or sha(path)!=ref['sha256']:
+                            raise ValueError('completed stage output changed: '+ref['path'])
+                except (OSError,ValueError):
+                    if not recover:raise
+                else:
+                    print('Reusing original stage: '+key,flush=True)
+                    return old.get('value')
+            if old['status']!='BLOCKED' and not recover:
                 print('Retaining prior '+old['status']+': '+key,flush=True)
                 return None
         missing=[d for d in dependencies if steps.get(d,{}).get('status')!='COMPLETE']
         row=dict(status='BLOCKED' if missing else 'RUNNING',dependencies=list(dependencies),started_unix=time.time(),reason=','.join(missing))
+        if binding is not None:row['binding']=binding
+        if key in steps:
+            old=dict(steps[key]);history=list(old.pop('history',[]));row['history']=[*history,old]
         steps[key]=row; self.save()
         if missing: return None
         print('Starting '+key,flush=True)
@@ -167,6 +176,12 @@ class Session:
         return 2 if not rows or any(r['status']!='COMPLETE' for r in rows) else 0
 
     def package(self):
+        observer=getattr(self,'observer',None)
+        with observer.lock if observer is not None else contextlib.nullcontext():
+            if observer is not None:observer.flush()
+            return self._package()
+
+    def _package(self):
         share=self.folder/'share'; share.mkdir(exist_ok=True)
         target=share/(self.phase+'.zip'); temp=share/(self.phase+'.pending.zip')
         files=[]; omissions=[]; total=0
@@ -233,3 +248,43 @@ def telemetry(root):
         except (OSError,ValueError): pass
     if not values['thermal']: values['thermal']={'unavailable':'render-node thermal sensors not exposed'}
     return values
+
+
+class TelemetryCollector:
+    """Two bounded windows plus durable lifetime counters and collector errors."""
+    def __init__(self,folder,*,segment_bytes=8<<20):
+        import threading
+        self.folder=Path(folder);self.limit=segment_bytes;self.lock=threading.RLock()
+        path=self.folder/'telemetry-status.json'
+        self.status=read(path) if path.exists() else dict(version='progressive-host-telemetry/v1',
+            observations=0,omitted_observations=0,write_failures=0,rotations=0,
+            current_observations=0,previous_observations=0,last_observation=None,errors=[])
+
+    def flush(self):
+        with self.lock:
+            try:write(self.folder/'telemetry-status.json',seal(self.status))
+            except OSError as exc:
+                self.status['write_failures']+=1
+                self.status['errors']=(self.status['errors']+[dict(type=type(exc).__name__,message=str(exc)[:512])])[-32:]
+                print('Telemetry status unavailable: '+type(exc).__name__,flush=True)
+
+    def observe(self,value):
+        with self.lock:
+            self.status['observations']+=1
+            raw=(json.dumps(value,sort_keys=True,allow_nan=False)+'\n').encode()
+            path=self.folder/'telemetry.jsonl';previous=self.folder/'telemetry-previous.jsonl'
+            try:
+                if len(raw)>self.limit:raise OSError('observation exceeds telemetry segment bound')
+                if path.exists() and path.stat().st_size+len(raw)>self.limit:
+                    os.replace(path,previous)
+                    self.status['omitted_observations']+=self.status['previous_observations']
+                    self.status.update(previous_observations=self.status['current_observations'],current_observations=0,
+                        rotations=self.status['rotations']+1)
+                with path.open('ab') as stream:stream.write(raw);stream.flush()
+                self.status['current_observations']+=1
+                self.status['last_observation']=value
+            except OSError as exc:
+                self.status['omitted_observations']+=1;self.status['write_failures']+=1
+                self.status['errors']=(self.status['errors']+[dict(type=type(exc).__name__,message=str(exc)[:512])])[-32:]
+                print('Telemetry collection failed: '+type(exc).__name__,flush=True)
+            self.flush()

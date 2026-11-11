@@ -59,25 +59,48 @@ class Workflow:
         self.s=session; self.root=session.root; self.args=args
         self.base=session.folder/args.phase
 
-    def run_command(self,name,operation,*,dependencies=(),seconds=3600,**arguments):
+    def run_command(self,name,operation,*,dependencies=(),seconds=3600,recover=False,**arguments):
         from .supervision import launch
         def action():
-            argv=command(self.root,self.args,operation,**arguments)
+            if recover:
+                from .preparation_recovery import Allowance
+                from oeis_learn.generalization.progressive.research_budget import LIMITS_SECONDS
+                with Allowance(self.s.folder/'reporting-allowance.json',self.s.binding,LIMITS_SECONDS['packaging']).attempt() as (left,ordinal):
+                    return dispatch(min(seconds,left),ordinal)
+            return dispatch(seconds,None)
+        def dispatch(allowance,ordinal):
+            selected=dict(arguments)
+            if ordinal is not None and selected.get('output'):
+                # Preserve every prior archive/partial directory and collector
+                # log. A fresh publication path never grants a new allowance.
+                output=Path(selected['output'])
+                selected['output']=str(output.parent/'collection'/str(ordinal).zfill(4)/output.name)
+                (self.root/selected['output']).parent.mkdir(parents=True,exist_ok=True)
+            argv=command(self.root,self.args,operation,**selected)
             logs=self.base/'logs'/name
-            launch(argv,logs,seconds=case_allowance(seconds,maximum=seconds),stream_cap=4<<20,cleanup_seconds=CLEANUP_SECONDS,
+            if ordinal is not None:logs=logs/str(ordinal).zfill(4)
+            launch(argv,logs,seconds=case_allowance(allowance,maximum=allowance),stream_cap=4<<20,cleanup_seconds=CLEANUP_SECONDS,
                    grace_seconds=40,allowed_returncodes=(0,1,2,3))
             process=json.loads((logs/'process.json').read_bytes())
             code=process['returncode']
-            if code:
+            if code and not (recover and operation=='report' and code==2):
                 exception=Blocked if code==2 else RuntimeError
                 raise exception(f'{operation} exited {code}; original logs: {logs}')
             # Commands expose original result records, not wrapper PASS bits.
-            target=arguments.get('output')
+            target=selected.get('output')
             result=confined(self.root,target,exists=False)/'result.json' if target else None
             files=[logs/'process.json']
             if result is not None and result.is_file(): files.append(result)
+            if operation=='report' and target:
+                archive=confined(self.root,target)
+                if not archive.is_file():raise ValueError('original report archive missing')
+                files.append(archive)
+            if operation=='verify-bundle' and target:
+                files.append(confined(self.root,target)/'verification.json')
+                files.append(confined(self.root,selected['archive']))
             return dict(operation=operation,output=target,exit_code=code),files
-        return self.s.step(name,action,dependencies=dependencies)
+        return self.s.step(name,action,dependencies=dependencies,recover=recover,
+            binding=seal(dict(operation=operation,arguments=arguments)) if recover else None)
 
     def host(self):
         import importlib.util
@@ -335,6 +358,7 @@ class Workflow:
             last=load(executions[-1]/'result.json')
             if last.get('mechanical_status')=='COMPLETE':
                 print('Original campaign invocation is already complete: '+str(executions[-1]),flush=True)
+                self.collect_execution(executions[-1],'invocation-'+str(len(executions)-1).zfill(4))
                 return
         output=self.base/('execution-'+str(len(executions)).zfill(4))
         def execute():
@@ -356,12 +380,16 @@ class Workflow:
             return dict(run=str(output.relative_to(self.root)),result=result),[output/'result.json']
         key='invocation-'+str(len(executions)).zfill(4)
         self.s.step(key,execute,dependencies=deps)
-        if output.exists():
-            archive=self.base/(output.name+'.zip')
-            self.run_command(key+'-report','report',run=str(output.relative_to(self.root)),output=str(archive.relative_to(self.root)),seconds=REPORT_SECONDS)
-            if archive.is_file():
-                self.run_command(key+'-verify','verify-bundle',archive=str(archive.relative_to(self.root)),
-                    output=str((self.base/(output.name+'-verified')).relative_to(self.root)),seconds=REPORT_SECONDS)
+        if output.exists():self.collect_execution(output,key)
+
+    def collect_execution(self,output,key):
+        archive=self.base/(output.name+'.zip')
+        value=self.run_command(key+'-report','report',run=str(output.relative_to(self.root)),
+            output=str(archive.relative_to(self.root)),seconds=REPORT_SECONDS,recover=True)
+        if value:archive=confined(self.root,value['output'])
+        if archive.is_file():
+            self.run_command(key+'-verify','verify-bundle',archive=str(archive.relative_to(self.root)),
+                output=str((self.base/(output.name+'-verified')).relative_to(self.root)),seconds=REPORT_SECONDS,recover=True)
 
     def run_after_prepare(self):
         """One invocation, same source/resource binding; never open assessment."""
@@ -424,16 +452,15 @@ def main(root,argv=None):
         elif key in old and key not in binding: binding[key]=old[key]
     if args.phase=='collect' and old: binding=old # Recovery collects old evidence; never executes it.
     s=Session(root,args.session,binding,args.phase)
+    from .progressive_workstation_state import TelemetryCollector
+    s.observer=TelemetryCollector(s.folder)
     stop=threading.Event()
     def observations():
         while not stop.wait(30):
-            try:
-                value=telemetry(root)
-                path=s.folder/'telemetry.jsonl'
-                if not path.exists() or path.stat().st_size < 16<<20:
-                    with path.open('a') as f: f.write(json.dumps(value,sort_keys=True)+'\n'); f.flush()
-                print('Workstation heartbeat; original stage progress and logs: '+str(s.folder),flush=True)
-            except OSError: pass
+            try:s.observer.observe(telemetry(root))
+            except OSError as exc:
+                s.observer.observe(dict(collector_error=type(exc).__name__,unix=time.time()))
+            print('Workstation heartbeat; original stage progress and logs: '+str(s.folder),flush=True)
     def interrupted(*_): raise KeyboardInterrupt()
     previous={sig:signal.signal(sig,interrupted) for sig in (signal.SIGINT,signal.SIGTERM,signal.SIGHUP)}
     try:
