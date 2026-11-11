@@ -215,6 +215,8 @@ class Host:
                 raise RuntimeError(
                     "another foundation GPU operation is active in this workspace"
                 ) from None
+            from oeis_learn.pipeline_validation.supervision import reconcile_gpu
+            reconcile_gpu(state, self.engine)
             yield
 
     def select_gpu(self):

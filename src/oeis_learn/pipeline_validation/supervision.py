@@ -142,10 +142,45 @@ def reclaim(engine, name, output, cleanup_state):
         engine.remove(name,timeout=left)
         if time.monotonic()>deadline:
             raise TimeoutError('container reclamation exceeded cleanup deadline')
-    except (OSError,RuntimeError,subprocess.SubprocessError) as exc:
+    except Exception as exc:
         failure=f'{type(exc).__name__}: {exc}'
         raise ResourceBreach('container termination unacknowledged: '+failure) from exc
     finally:
         write(Path(output)/'cleanup.json',dict(seconds=time.monotonic()-started,
             allowance_seconds=allowance,within_bound=failure is None and time.monotonic()<=deadline,
             acknowledged=failure is None,failure=failure))
+
+
+def pending_gpu(host, name):
+    """Durable owner marker; only engine acknowledgment permits its removal."""
+    import re
+    from .identity import write
+    state = host.policy.get('state_root')
+    if state is None:  # Explicit engine-boundary test doubles have no workspace.
+        return None
+    if not re.fullmatch(r'oeis-phase5-[0-9a-f]{32}', name):
+        raise ValueError('owned preparation container required')
+    path = Path(state) / 'gpu-pending.json'
+    write(path, dict(version='preparation-gpu-owner/v1', engine=host.engine.name, name=name))
+    return path
+
+
+def reconcile_gpu(state, engine):
+    """Called under the global GPU lock, before any new engine-owned work."""
+    import json,re
+    from .runner import ResourceBreach
+    path = Path(state) / 'gpu-pending.json'
+    if not path.exists():
+        return
+    if path.is_symlink() or path.stat().st_size > 4096:
+        raise ResourceBreach('invalid pending GPU owner; no new GPU work')
+    value = json.loads(path.read_bytes())
+    if (set(value) != {'version','engine','name'} or value['version'] != 'preparation-gpu-owner/v1'
+            or value['engine'] != engine.name
+            or not re.fullmatch(r'oeis-phase5-[0-9a-f]{32}', value['name'])):
+        raise ResourceBreach('pending GPU owner scope differs; no new GPU work')
+    # Retain the marker if the engine cannot acknowledge termination. Original
+    # producer/cleanup errors remain in their original stage directory.
+    from uuid import uuid4
+    reclaim(engine, value['name'], Path(state) / 'gpu-recovery' / uuid4().hex, {'allowance_seconds':120})
+    path.unlink()

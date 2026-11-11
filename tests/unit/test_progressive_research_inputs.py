@@ -162,7 +162,8 @@ def test_custodian_file_mount_is_verified_readonly_before_cleanup(tmp_path, monk
             return SimpleNamespace(stdout=json.dumps([dict(HostConfig=dict(NetworkMode='none',
                 ReadonlyRootfs=True, Privileged=False), Mounts=[dict(Type='bind',
                 Destination='/work/inputs/source.json', Source=str(source), RW=writable)])]).encode())
-        def remove(self, name):
+        def remove(self, name, *, timeout):
+            assert 0 < timeout <= 120
             events.append('remove')
     host = SimpleNamespace(engine=Engine('podman', executable='podman', details={}), policy=dict(memory_bytes=1<<30, cpus=1), gpu_lock=nullcontext)
     monkeypatch.setitem(stage.__globals__, 'launch', lambda *a, **k: None)

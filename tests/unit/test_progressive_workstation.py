@@ -223,7 +223,7 @@ def test_container_failure_inspection_precedes_removal_preserves_original(tmp_pa
         def command(self,**kwargs):return ['test']
         def call(self,*args,**kw):
             events.append('inspect'); return SimpleNamespace(stdout=json.dumps([dict(State=dict(OOMKilled=True),HostConfig=dict(NetworkMode='none',ReadonlyRootfs=True,Privileged=False),Mounts=[])]).encode())
-        def remove(self,name): events.append('remove')
+        def remove(self,name,**kwargs): events.append('remove')
     host=SimpleNamespace(engine=Engine(),policy=dict(memory_bytes=1<<30,cpus=1),gpu_lock=nullcontext)
     def fail(*args,**kw): raise RuntimeError('original producer failed')
     monkeypatch.setitem(stage.__globals__,'launch',fail)
@@ -418,3 +418,77 @@ def test_second(tmp_path):
     assert [case['status'] for case in outcomes] == ['PASS', 'PASS']
     assert len(ET.parse(output/'cases.xml').findall('.//testcase')) == 2
     assert not (tmp_path/'.pytest_cache').exists()
+
+
+def test_preparation_launcher_caps_logs_and_records_actual_process(tmp_path):
+    import runpy,sys
+    runner=runpy.run_path(str(Path(__file__).resolve().parents[2]/'scripts/qualify_bigint_phase5.py'))
+    output=tmp_path/'missing'/'nested'
+    runner['launch']([sys.executable,'-c',"import sys;sys.stdout.write('x'*(9<<20));sys.stderr.write('LAST')"],output,seconds=10)
+    assert (output/'stdout.log').stat().st_size <= 4<<20
+    record=json.loads((output/'process.json').read_text())
+    assert record['returncode']==0 and record['omitted_bytes']['stdout']>0
+    assert (output/'stderr.log').read_text()=='LAST'
+
+
+def test_preparation_gpu_lease_covers_inspection_and_acknowledged_removal(tmp_path,monkeypatch):
+    import runpy
+    from contextlib import contextmanager
+    from types import SimpleNamespace
+    stage=runpy.run_path(str(Path(__file__).resolve().parents[2]/'scripts/qualify_bigint_phase5.py'))['container_stage']
+    events=[]
+    @contextmanager
+    def lease():
+        events.append('lock')
+        try:yield
+        finally:events.append('unlock')
+    class Engine:
+        name='podman'
+        def command(self,**kwargs):return ['test']
+        def call(self,*args,**kwargs):
+            events.append('inspect')
+            return SimpleNamespace(stdout=json.dumps([dict(HostConfig=dict(NetworkMode='none',ReadonlyRootfs=True,Privileged=False),Mounts=[])]))
+        def remove(self,name,*,timeout):
+            assert 30<timeout<=120
+            events.append('remove')
+    host=SimpleNamespace(engine=Engine(),policy=dict(memory_bytes=1<<30,cpus=1),gpu_lock=lease,select_gpu=lambda:None)
+    monkeypatch.setitem(stage.__globals__,'launch',lambda *a,**k:events.append('run'))
+    stage(host,'image',tmp_path,['test'],gpu=True)
+    assert events==['lock','run','inspect','remove','unlock']
+    cleanup=json.loads((tmp_path/'cleanup.json').read_text())
+    assert cleanup['acknowledged'] and cleanup['within_bound']
+
+
+def test_failed_gpu_cleanup_blocks_next_owner_until_reclaimed(tmp_path):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation.supervision import pending_gpu,reconcile_gpu
+    from oeis_learn.pipeline_validation.runner import ResourceBreach
+    class Engine:
+        name='podman'
+        failed=True
+        def remove(self,name,*,timeout):
+            assert name=='oeis-phase5-'+'a'*32 and 0<timeout<=120
+            if self.failed:raise RuntimeError('engine unavailable')
+    engine=Engine();host=SimpleNamespace(engine=engine,policy={'state_root':str(tmp_path)})
+    marker=pending_gpu(host,'oeis-phase5-'+'a'*32)
+    with pytest.raises(ResourceBreach):reconcile_gpu(tmp_path,engine)
+    assert marker.exists()
+    with pytest.raises(ResourceBreach):reconcile_gpu(tmp_path,engine)
+    assert marker.exists()
+    engine.failed=False;reconcile_gpu(tmp_path,engine)
+    assert not marker.exists()
+    receipts=list((tmp_path/'gpu-recovery').glob('*/cleanup.json'))
+    assert len(receipts)==3
+    assert sum(json.loads(p.read_text())['acknowledged'] for p in receipts)==1
+
+
+def test_preparation_process_deadline_contains_inherited_pipe_descendant(tmp_path):
+    import runpy,sys,os
+    runner=runpy.run_path(str(Path(__file__).resolve().parents[2]/'scripts/qualify_bigint_phase5.py'))
+    script="import subprocess,sys; p=subprocess.Popen([sys.executable,'-c','import time;time.sleep(60)']);print(p.pid,flush=True)"
+    with pytest.raises(TimeoutError):runner['launch']([sys.executable,'-c',script],tmp_path/'logs',seconds=.5)
+    pid=int((tmp_path/'logs/stdout.log').read_text())
+    status=Path('/proc')/str(pid)/'stat'
+    assert not status.exists() or status.read_text().split(')')[1].split()[0]=='Z'
+    record=json.loads((tmp_path/'logs/process.json').read_text())
+    assert record['outcome']=='FAIL' and record['cleanup_failure'] is None
