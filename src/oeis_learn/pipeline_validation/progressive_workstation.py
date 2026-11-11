@@ -31,6 +31,10 @@ def parser():
     p.add_argument('--reference-campaign')
     p.add_argument('--blueprint',help='original concrete research blueprint; never a template with guessed inputs')
     p.add_argument('--selection',help='original locked assessment selection')
+    p.add_argument('--registration-session',help='verified completed input registration to reuse for research preparation')
+    p.add_argument('--rehearsal-session',help='original completed rehearsal retained for scope reconciliation, never relabelled')
+    p.add_argument('--run-after-prepare',action='store_true',
+                   help='continue directly into canonical research run/resume only after complete preparation and campaign-bound acceptance')
     p.add_argument('--input-manifest', help='reviewed research input-resolution manifest for register-inputs')
     p.add_argument('--reuse-exposure-session', help='reuse reviewed complete original exposure data only')
     p.add_argument('--oeis-snapshot', help='explicit existing indexed-source/v1 manifest for register-inputs')
@@ -80,9 +84,9 @@ class Workflow:
             cpus=self.args.cpus,render_node=self.args.render_node,free_disk_gib=10,
             host_free_memory_gib=24,image=None,gpu_base_image=None))
 
-    def images(self):
+    def images(self, targets=('qualification','gpu')):
         from .supervision import launch
-        for target in ('qualification','gpu'):
+        for target in targets:
             def build(target=target):
                 output=self.base/('image-'+target); output.mkdir(parents=True,exist_ok=True)
                 code=('import sys;from pathlib import Path;sys.path.insert(0,sys.argv[1]);'
@@ -92,11 +96,11 @@ class Workflow:
                 launch([sys.executable,'-S','-c',code,str(self.root/'src'),self.args.engine,str(self.root),
                         str(output/'image.json'),target],output/'logs',seconds=3600,stream_cap=4<<20)
                 return json.loads((output/'image.json').read_bytes())['image'],[output/'image.json']
-            self.s.step('image-'+target,build,dependencies=('rehearse/environment',))
+            self.s.step('image-'+target,build,dependencies=(self.s.phase+'/environment',))
         entries=self.s.journal['steps']
-        return {t:entries.get('rehearse/image-'+t,{}).get('value')
-                if entries.get('rehearse/image-'+t,{}).get('status')=='COMPLETE' else None
-                for t in ('qualification','gpu')}
+        return {t:entries.get(self.s.phase+'/image-'+t,{}).get('value')
+                if entries.get(self.s.phase+'/image-'+t,{}).get('status')=='COMPLETE' else None
+                for t in targets}
 
     def installed(self,name,image,body,*,gpu=False,seconds=600,dependencies=(),outputs=()):
         from .progressive_handoff import stage
@@ -171,6 +175,9 @@ class Workflow:
 
     def prepare_research(self):
         """Missing workstation inputs block only research, never fixture acceptance."""
+        if getattr(self.args, 'registration_session', None):
+            from .progressive_research_workstation import prepare
+            return prepare(self)
         from oeis_learn.generalization.progressive.contracts import load,reference,verify_refs,validate
         def select():
             path=self.args.blueprint
@@ -352,6 +359,23 @@ class Workflow:
                 self.run_command(key+'-verify','verify-bundle',archive=str(archive.relative_to(self.root)),
                     output=str((self.base/(output.name+'-verified')).relative_to(self.root)),seconds=600)
 
+    def run_after_prepare(self):
+        """One invocation, same source/resource binding; never open assessment."""
+        if self.s.phase != 'prepare-research' or self.args.phase != 'prepare-research':
+            raise ValueError('automatic continuation belongs to research preparation')
+        accepted=self.s.journal['steps'].get('prepare-research/acceptance',{})
+        if self.s.code() or accepted.get('status') != 'COMPLETE' or not accepted.get('outputs'):
+            print('Research was not launched: preparation/freeze/campaign acceptance is incomplete.',flush=True)
+            return
+        # Verify original producer bytes again before changing phases. The
+        # canonical run still checks runtime, frozen graph and acceptance scope.
+        self.s.step('acceptance',lambda: (_ for _ in ()).throw(ValueError('acceptance was not retained')))
+        self.s.package()
+        self.s.phase='run-research'
+        from argparse import Namespace
+        args=Namespace(**vars(self.args)); args.phase='run-research'
+        Workflow(self.s,args).research()
+
 
 def main(root,argv=None):
     args=parser().parse_args(argv); root=Path(root).resolve()
@@ -359,20 +383,28 @@ def main(root,argv=None):
         parser().error('register-inputs requires --input-manifest')
     if (args.input_manifest or args.oeis_snapshot or args.reuse_exposure_session) and args.phase != 'register-inputs':
         parser().error('input manifest, source snapshot and exposure reuse belong to register-inputs')
+    if (args.registration_session or args.rehearsal_session) and args.phase != 'prepare-research':
+        parser().error('registration/rehearsal session references belong to prepare-research')
+    if args.run_after_prepare and args.phase != 'prepare-research':
+        parser().error('--run-after-prepare belongs to prepare-research; assessment is always separate')
+    if args.registration_session and args.blueprint:
+        parser().error('choose registered-data preparation or an original concrete blueprint')
     if args.memory_gib<=0 or args.cpus<=0: raise ValueError('positive finite resource limits required')
     if args.dry_run:
         print(json.dumps(dict(phase=args.phase,engine=args.engine,session=args.session,
             source_policy='exact current closure; changes require requalification',
             sequence=dict(**{'register-inputs':['source-inventory','project-explicit-source','verify-originals','prospective-design','CPU-image','private-exposure-import','registration-status']},rehearse=['inventory','images','base-qualification','tiny-Q','prepare','freeze','CPU+HIP-acceptance'],
-            **{'prepare-research':['original-inputs','selected-Q','exact-calibration','freeze','acceptance'],
+            **{'prepare-research':(['verified-registration-reuse','rehearsal-scope-reference','CPU-native-census','independent-sensitivity','readiness-deficits'] if args.registration_session else ['original-inputs','selected-Q','exact-calibration','freeze','acceptance']),
                'run-research':['run-or-resume','report','verify'],'assess':['locked-assess','report','verify'],'collect':['package-existing']})[args.phase],
-            launches=False,host_dependencies='Python standard library only'),indent=2))
+            launches=False,host_dependencies='Python standard library only',
+            automatic_research='run-or-resume/report/verify after complete freeze and acceptance; never assess' if args.run_after_prepare else None),indent=2))
         return 0
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from oeis_learn.generalization.progressive.contracts import digest
     folder=confined(root,args.session,exists=False)
     old=read(folder/'session.json')['binding'] if (folder/'session.json').is_file() else {}
-    ref=args.reference_campaign or old.get('reference_campaign')
+    donor=read(confined(root,args.registration_session)/'session.json') if args.registration_session else None
+    ref=args.reference_campaign or old.get('reference_campaign') or (donor['binding']['reference_campaign'] if donor else None)
     if not ref and args.phase!='collect':
         print('--reference-campaign is required for the first invocation',file=sys.stderr); return 2
     binding=dict(source=digest(collect_snapshot(root)),engine=args.engine,memory_gib=args.memory_gib,
@@ -382,6 +414,10 @@ def main(root,argv=None):
         binding['input_manifest'] = dict(path=args.input_manifest, sha256=sha(confined(root,args.input_manifest)))
         if args.reuse_exposure_session:
             binding['reuse_exposure_session'] = args.reuse_exposure_session
+    for key in ('input_manifest','reuse_exposure_session','registration_session','rehearsal_session'):
+        selected=getattr(args,key,None) if key in {'registration_session','rehearsal_session'} else None
+        if selected is not None: binding[key]=selected
+        elif key in old and key not in binding: binding[key]=old[key]
     if args.phase=='collect' and old: binding=old # Recovery collects old evidence; never executes it.
     s=Session(root,args.session,binding,args.phase)
     stop=threading.Event()
@@ -403,7 +439,9 @@ def main(root,argv=None):
             w=Workflow(s,args)
             if args.phase=='register-inputs': w.register_research()
             elif args.phase=='rehearse': w.rehearse()
-            elif args.phase=='prepare-research': w.prepare_research()
+            elif args.phase=='prepare-research':
+                w.prepare_research()
+                if args.run_after_prepare: w.run_after_prepare()
             elif args.phase in {'run-research','assess'}: w.research()
             else: return 0
             statuses={k:v['status'] for k,v in s.journal['steps'].items()}

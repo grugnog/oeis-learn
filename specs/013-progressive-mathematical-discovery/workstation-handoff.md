@@ -349,3 +349,44 @@ observer-only changes leave the production qualification fingerprint unchanged.
 The current corpus acquisition needs no restart and no exposure re-import.
 The optional small CPU `self-test` and existing Docker CI exercise the real native
 admission/archive regressions; they are not a repeated HIP rehearsal.
+
+
+## Registered-data preparation: implemented census, pending campaign construction
+
+`prepare-research --registration-session run-state/discovery/013-research-inputs-003`
+can now verify and reuse the completed registration in a **new preparation
+session**. It retains the original corpus projection, exposure database and costs;
+it does not fetch the corpus, repeat exposure import or request another tiny HIP
+rehearsal. An optional `--rehearsal-session` records the actual original session
+and scope differences, without treating old hardware evidence as current.
+
+The installed CPU census reserves 8,192 training draws and 16,384 evaluation
+draws, with native/reference verification and exact original-exposure exclusions.
+It reserves related groups together before quotas; missing strata/groups remain
+explicit. Private support and panel candidates stay on the workstation. They are
+not yet published learner channels or scoreable cohorts. The public summary
+reports conservative support supply at 25M charged tokens, the original proposed
+eight-update refresh cadence, and any need for a prospective revision. It never
+silently substitutes static data, reduces panel quotas or resets failed work.
+
+Ceilings are one hour for CPU image build, six hours for native census including
+finalization, and two hours for independently collected synthetic sensitivity.
+These are resource ceilings, not an ETA. Case outcomes and original failures are
+persisted, failed independent cases do not stop remaining cases, and incomplete
+sensitivity scenarios have no estimated success/error rates. The whole run writes
+`share/prepare-research.zip` on failure too. Completed stages are hash-verified and
+reused; interrupted/failed stages are retained instead of receiving a fresh budget.
+
+**Current implementation limit:** this registration route still reports BLOCKED
+for missing concrete campaign construction, current selected-model HIP evidence,
+exact-input calibration and freeze/acceptance. It is not the finished unattended
+preparation/training command. T157 tracks that connection. Do not launch a lengthy
+census-only run when the intended operator handoff is the combined campaign.
+
+`--run-after-prepare` is implemented for a preparation that reaches complete,
+campaign-bound acceptance. It rechecks original receipt bytes and invokes the
+canonical research run/resume followed by report and verification in the same
+source/resource-bound session. Both preparation and research ZIPs are retained.
+It neither bypasses readiness deficits nor opens final assessment. On the existing
+explicit-blueprint route this supplies the unattended transition; it cannot make
+the unfinished registered-data route executable by itself.

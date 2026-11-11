@@ -163,3 +163,18 @@ Provide explicit cross-session reuse of a complete hash-bound exposure index wit
 Keep the first pilot's existing admission/selection/training policies fixed. Add `tools/oeis_diagnostics/` as a separately invoked analysis tool, never imported by production roles. It runs against a retained immutable CPU image with no build, GPU, network or experiment write mounts. Its own tool/plan/image/input identities are recorded separately. Existing source-closure rules are unchanged; these observer-only files and their own tests are outside the production qualification closure. This is not an exemption for runtime changes or authority to relabel older HIP evidence.
 
 Before search, freeze up to 32 groups from the canonical OEIS training pool by deterministic outcome-blind ordering, one member per group, with unavailable members retained. Bind the corpus revision/raw hashes and exactly the next 100 source indices after the admitted 100. After original yield publication, reconcile every committed admission against that publication and report concrete/parameterised token lengths, literal digits/bits, branch/direct-index-equality indicators, and separate reference/native continuation results. Additional truth never enters a learner, selector or automatic refutation gate. Bound CPU work and preserve partial diagnostics. Future adaptive use of these diagnostic results requires declaring their exposure and a revised study.
+
+
+### Registered-data handoff follow-through (2026-11-11)
+
+A new preparation session may reuse a complete, audited registration session and
+its reviewed immutable exposure index. A bounded CPU/native census measures
+support and independently reserved panel supply before model outcomes. Synthetic
+sensitivity cases are isolated and collected independently. Neither data reuse
+nor the census transfers historical HIP authority or publishes a scientific freeze.
+The operator preference is one unattended preparation-to-research invocation when
+preparation may exceed 30 minutes; `--run-after-prepare` may transition only after
+canonical freeze and campaign-bound acceptance, with final assessment separate.
+T157 remains the explicit implementation dependency for the concrete registered-
+data campaign builder, calibration connection and prospectively selected tuning
+scope; the intermediate census is not completion of that workflow.

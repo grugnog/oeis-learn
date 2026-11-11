@@ -33,6 +33,8 @@ NAMES.update({'registration.json', 'registration-progress.json', 'retained-input
               'exposure-import.json', 'exposure-progress.json', 'research-design.json',
               'selected-profiles.json', 'sensitivity-design.json', 'source-candidates.json',
               'source-projection.json', 'source-progress.json', 'registration-status.json'})
+NAMES.update({'registered-data.json','rehearsal-reference.json','research-preflight-plan.json',
+              'census.json','census-progress.json','sensitivity.json','readiness.json'})
 PRIVATE = {'private','work','installed','dist','checkpoints','inputs','.runtime'}
 
 

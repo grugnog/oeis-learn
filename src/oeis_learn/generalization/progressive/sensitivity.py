@@ -130,29 +130,36 @@ def validate_design(design):
     return design
 
 
+def repeat_verdict(design, ordinal, repeat):
+    """One original scenario/repeat, preserving its preregistered random stream."""
+    s = design["scenarios"][ordinal]
+    seed = int(
+        digest({"design": design["seed"], "scenario": ordinal, "repeat": repeat})[7:15], 16
+    )
+    rows, roster, seeds = simulate(s, seed=seed)
+    _, verdict = recompute(
+        rows,
+        roster,
+        seeds,
+        {
+            "claim": s["claim"],
+            "bootstrap_seed": seed,
+            "comparisons": s["comparisons"],
+            "links": [],
+            "costs": dict(COST_POLICY) if s["claim"] == "efficiency" else None,
+        },
+        costs={"baseline": 100, "candidate": 80} if s["claim"] == "efficiency" else None,
+    )
+    return verdict
+
+
 def run(design):
     design = validate_design(design)
     results = []
     for ordinal, s in enumerate(design["scenarios"]):
         counts = Counter()
         for repeat in range(design["repeats"]):
-            seed = int(
-                digest({"design": design["seed"], "scenario": ordinal, "repeat": repeat})[7:15], 16
-            )
-            rows, roster, seeds = simulate(s, seed=seed)
-            _, verdict = recompute(
-                rows,
-                roster,
-                seeds,
-                {
-                    "claim": s["claim"],
-                    "bootstrap_seed": seed,
-                    "comparisons": s["comparisons"],
-                    "links": [],
-                    "costs": dict(COST_POLICY) if s["claim"] == "efficiency" else None,
-                },
-                costs={"baseline": 100, "candidate": 80} if s["claim"] == "efficiency" else None,
-            )
+            verdict = repeat_verdict(design, ordinal, repeat)
             counts[verdict] += 1
         promoted = counts["CONFIRMED_GAIN"] + counts["CONFIRMED_EFFICIENCY"]
         # Efficiency's synthetic positive truth is the assumed 20% cost saving

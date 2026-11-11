@@ -20,6 +20,7 @@ COMMANDS = {
 CPU_TESTS = (
     "tests/unit/test_oeis_corpus.py",
     "tests/unit/test_progressive_research_inputs.py",
+    "tests/unit/test_progressive_research_census.py",
     "tests/unit/test_progressive_qualification_cleanup.py",
     "tests/unit/test_progressive_workstation.py",
     "tests/integration/test_progressive_component_flow.py",
