@@ -330,6 +330,9 @@ def collect(root, folder, output):
                 if k in public_keys and type(v) in (str, int, float, bool, type(None))
             }
             tables["observations"].append({"producer": result["identity"], "data": data})
+            observation = census_observation(base, result.get('metrics', {}))
+            if observation is not None:
+                tables['observations'].append(observation)
             if "timing" in result.get("metrics", {}):
                 timing = json.loads(
                     verify_refs(base, [result["metrics"]["timing"]], max_bytes=4 << 20)[0]
@@ -494,6 +497,9 @@ def collect(root, folder, output):
                         }
                     }
                     tables["observations"].append({"producer": value["identity"], "data": public})
+                    observation = census_observation(path.parent, metrics)
+                    if observation is not None:
+                        tables['observations'].append(observation)
                     for name in ("cycle", "source_results"):
                         if metrics.get(name):
                             original = json.loads(
@@ -630,3 +636,16 @@ def public_error(root, base, value):
         path = confined(base, original["path"], exists=False)
         result["local_traceback"] = dict(original, path=str(path.relative_to(root)))
     return result
+
+
+def census_observation(root, metrics):
+    """Export only original public availability/counts, including partial roles."""
+    if 'census' not in metrics:
+        return None
+    original = json.loads(verify_refs(root, [metrics['census']], max_bytes=4 << 20)[0])
+    if seal(original) != original or original.get('version') != 'discovery-census/v1':
+        raise ValueError('original public cohort census differs')
+    if 'difficulty' not in original:
+        return None
+    return dict(producer=original['identity'], data=dict(
+        cohort=original['cohort'], difficulty=original['difficulty']))

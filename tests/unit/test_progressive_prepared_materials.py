@@ -214,3 +214,55 @@ def test_round_retains_full_optimization_domain_and_separate_panels(tmp_path):
                   {'matrix','base_qualification','seconds'})
     assert qp['matrix']==reference(tmp_path,'matrix.json') and bp['purpose']=='research'
     assert not bp['payload']['executable']
+
+
+def test_projected_difficulty_preserves_measured_reference_work_and_unknowns(tmp_path):
+    from oeis_learn.generalization.progressive.complexity import measure, validate as validate_difficulty
+    source='(program (return (add (mul $index $index) (int 1))))'
+    measured=measure(source,reference_steps=600)
+    assert measured['nodes']==5 and measured['depth']==3 and measured['work']==600
+    unknown=measure(None)
+    assert all(unknown[k] is None for k in ('depth','nodes','work'))
+    assert all(unknown['unavailable'][k] for k in ('depth','nodes','work'))
+    with pytest.raises(ValueError):validate_difficulty(dict(unknown,unavailable={}))
+    exposure=record('exposure',dict(previous=None,detector_limits=['exact'],events=[]),
+        created_at='2026-11-11T00:00:00Z',purpose='acceptance',track='synthetic_strict')
+    rows=[dict(id='known',role='development',group='known',stratum='parameter',source=source,
+               difficulty=measured,indices=list(map(str,range(100))),values=[str(i*i+1) for i in range(100)]),
+          dict(id='unknown',role='development',group='unknown',stratum='oeis',
+               indices=list(map(str,range(100))),values=[str(i**3+99999) for i in range(100)])]
+    c=panels.cohort(tmp_path,tmp_path/'new'/'nested',rows,panel='development',role='development',
+        decision='capability',exposure=exposure,required=1,minimum_groups=1,purpose='acceptance',created_at=exposure['created_at'])
+    assert c['payload']['rows'][0]['difficulty']==measured
+    assert c['payload']['rows'][1]['difficulty']==unknown
+    from oeis_learn.generalization.progressive.cohorts import census
+    counts=census(c,exposure=exposure)['difficulty']
+    assert counts['oeis']['work']['unavailable']==1
+    assert counts['parameter']['work']['maximum']==600
+    assert counts['parameter']['nodes']['minimum']==5
+
+
+def test_original_reference_work_is_captured_without_reexecuting_draw():
+    from oeis_learn.generalization.progressive.generator import default_policy,draw
+    from oeis_learn.pipeline_validation.progressive_preparation import verify_draw
+    measured={};row,_=verify_draw(draw(default_policy(seed=13),0),measurements=measured)
+    assert row is not None and measured['reference_steps']>0
+    assert 'difficulty' not in row  # Private census metadata does not enter learner rows.
+
+
+def test_complexity_counts_ast_nodes_not_literal_digits_or_local_names():
+    from oeis_learn.generalization.progressive.complexity import measure
+    a=measure('(program (local $b0 bigint) (set $b0 (int 123456789)) (return (get $b0)))')
+    assert a['nodes']==3 and a['depth']==2 and a['work'] is None
+    assert a['unavailable']['work']
+    b=measure('(program (return (select (eq $index (int 0)) (int 99) $index)))')
+    assert b['nodes']==6 and b['depth']==3
+
+
+def test_null_difficulty_cannot_enter_cohort_without_availability_reason(tmp_path):
+    from tests.unit.test_progressive_cohorts import fixture
+    from oeis_learn.generalization.progressive.contracts import validate
+    c,_=fixture(tmp_path)
+    c['payload']['rows'][0]['difficulty']['work']=None
+    with pytest.raises(ValueError,match='unavailable difficulty'):
+        validate('cohort',seal(c))

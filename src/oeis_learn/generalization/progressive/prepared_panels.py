@@ -63,6 +63,7 @@ def cohort(root, output, rows, *, panel, role, decision, exposure,
     output=confined(root,str(output.relative_to(root)),exists=False)
     if len({r['id'] for r in rows})!=len(rows):
         raise ValueError('unique original reservation identities required')
+    from .complexity import measure, validate as validate_difficulty
     projected=[]
     private=output/'private';private.mkdir(parents=True,mode=0o700)
     for row in rows:
@@ -88,12 +89,18 @@ def cohort(root, output, rows, *, panel, role, decision, exposure,
             raise ValueError('original relation key collides with reserved component namespace')
         groups=[component,*groups]
         is_retention=panel.startswith('retention')
+        difficulty=measure(row.get('source'))
+        if 'difficulty' in row:
+            original=validate_difficulty(row['difficulty'])
+            if any(original[k]!=difficulty[k] for k in ('depth','nodes')):
+                raise ValueError('original source complexity differs')
+            difficulty=original
         projected.append(dict(id=row['id'],source=source,offset=row['indices'][0],
             stratum='retention' if is_retention else row['stratum'],groups=groups,
             structure=row.get('structure',digest(['unavailable-source-structure',row['id']])),
             behavior=digest(row['values']),composition=composition(row),
             operations=row.get('operations',[]),
-            difficulty=dict(depth=0,nodes=0,work=0),
+            difficulty=difficulty,
             visible=reference(root,private/(name+'-visible.json')),
             truth=reference(root,private/(name+'-truth.json'))))
     result=record('cohort',dict(role=role,panel=panel,decision=decision,

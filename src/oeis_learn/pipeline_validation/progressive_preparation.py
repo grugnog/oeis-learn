@@ -13,7 +13,7 @@ def publish_cohort(*args, **kwargs):
     return publish(*args, **kwargs)
 
 
-def verify_draw(value, *, client=None, budget=None):
+def verify_draw(value, *, client=None, budget=None, measurements=None):
     """Custodian verification; reference-only diagnostic rows cannot train."""
     import re
     import time
@@ -96,6 +96,8 @@ def verify_draw(value, *, client=None, budget=None):
             "detector_limit": value["detector_limit"],
         }
     )
+    if measurements is not None:
+        measurements['reference_steps'] = result.steps
     return row, None
 
 

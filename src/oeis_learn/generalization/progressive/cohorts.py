@@ -122,9 +122,12 @@ def _linked(a, b, exposure, policy):
 def census(cohort, *, exposure, other_cohorts=()):
     c = validate_cohort(cohort, exposure=exposure, other_cohorts=other_cohorts)
     p = c["payload"]
+    from .complexity import summarize
+    difficulty = {}
     strata = {}
     for stratum in p["strata"]:
         rows = [r for r in p["rows"] if r["stratum"] == stratum]
+        difficulty[stratum] = summarize(rows)
         # Connected related rows count as one independent group, not one/group key.
         clusters = []
         for row in rows:
@@ -150,6 +153,7 @@ def census(cohort, *, exposure, other_cohorts=()):
             cohort=c["identity"],
             status="COMPLETE" if complete else "INCOMPLETE",
             strata=strata,
+            difficulty=difficulty,
             selection="fixed_roster_no_reseed",
             detector_limits=p["detector_limits"],
         )

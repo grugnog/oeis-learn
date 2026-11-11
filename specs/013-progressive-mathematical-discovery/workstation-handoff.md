@@ -461,3 +461,7 @@ independent cases continue, while a failed GPU health probe or expired deadline
 leaves explicit blocked cases. The support ZIP includes these records and both
 retirement inventories, without exporting tensors. CPU and simulated-boundary
 tests do not establish actual HIP qualification or resource feasibility.
+
+### Source complexity availability
+
+Newly projected panels retain independent reference-AST node/depth measurements and, when captured by the original census, reference evaluation steps over its declared indices. These steps are not native runtime or fuel measurements. Missing source programs and missing historical work measurements are explicit nulls with reasons, never zero difficulty. Public censuses and reports retain measured/unavailable counts separately, including partial runs. Private source programs and evaluation truth remain excluded from support archives.

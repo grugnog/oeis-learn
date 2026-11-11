@@ -15,7 +15,7 @@ from oeis_learn.generalization.progressive.contracts import (
 
 @pytest.mark.parametrize("status", ["COMPLETE", "PARTIAL", "FAILED"])
 def test_run_report_verify_collects_owned_scores_and_resource_journal(
-    tmp_path, monkeypatch, capsys, status, paired=False
+    tmp_path, monkeypatch, capsys, status, paired=False, with_difficulty=False
 ):
     from oeis_learn.pipeline_validation import progressive_roles as roles
     from oeis_learn.pipeline_validation.progressive_commands import main
@@ -90,8 +90,11 @@ def test_run_report_verify_collects_owned_scores_and_resource_journal(
     next(r for r in c["payload"]["references"] if r["name"] == "public-scope")["artifact"] = (
         reference(tmp_path, "accounted-scope.json")
     )
-    panel, _ = cohort_fixture(tmp_path / "cohort")
+    panel, exposure = cohort_fixture(tmp_path / "cohort")
     template = panel["payload"]["rows"][0]
+    if with_difficulty:
+        from oeis_learn.generalization.progressive.complexity import measure
+        template['difficulty'] = measure(None)
     panel["payload"]["rows"] = [
         dict(template, id=r["task"], groups=[r["group"]], stratum=r["stratum"]) for r in roster
     ]
@@ -205,13 +208,18 @@ def test_run_report_verify_collects_owned_scores_and_resource_journal(
                 producer="installed-score",
             )
 
+        metrics={"scores": reference(base, base / "scores.json")}
+        if with_difficulty:
+            from oeis_learn.generalization.progressive.cohorts import census
+            atomic_write(base/'census.json',census(seal(panel),exposure=exposure))
+            metrics['census']=reference(base,base/'census.json')
         return publish(
             base,
             operation="score",
             mechanical_status=status,
             reason="DIAGNOSTIC_NEGATIVE",
             campaign=c["identity"],
-            metrics={"scores": reference(base, base / "scores.json")},
+            metrics=metrics,
         )
 
     monkeypatch.setattr(roles, "invoke", invoke)
@@ -237,6 +245,11 @@ def test_run_report_verify_collects_owned_scores_and_resource_journal(
         assert load(tmp_path/manifest['tables']['roster'][0]['path'])==roster
     assert manifest["campaign_record"] == c
     assert manifest["tables"]["accounting"]
+    if with_difficulty:
+        observations=[r for ref in manifest['tables']['observations'] for r in load(tmp_path/ref['path'])]
+        measured=[r['data']['difficulty'] for r in observations if 'difficulty' in r['data']]
+        assert measured and sum(v['work']['unavailable'] for v in measured[0].values())==len(roster)
+        assert all(v['work']['maximum'] is None for v in measured[0].values())
     qualifications = load(tmp_path / manifest["tables"]["qualifications"][0]["path"])
     assert qualifications[0]["identity"] == case["identity"]
     assert qualifications[0]["receipt"] == reference(tmp_path, "qualification/case.json")
@@ -278,3 +291,8 @@ def test_run_report_verify_collects_owned_scores_and_resource_journal(
 
 def test_combined_primary_retention_scope_and_unselected_accounting(tmp_path,monkeypatch,capsys):
     test_run_report_verify_collects_owned_scores_and_resource_journal(tmp_path,monkeypatch,capsys,'PARTIAL',paired=True)
+
+
+def test_report_preserves_unknown_complexity_without_zero_measurements(tmp_path,monkeypatch,capsys):
+    test_run_report_verify_collects_owned_scores_and_resource_journal(
+        tmp_path,monkeypatch,capsys,'PARTIAL',with_difficulty=True)

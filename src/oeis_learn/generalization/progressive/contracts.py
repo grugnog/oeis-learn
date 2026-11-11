@@ -157,6 +157,10 @@ def shape(kind, record):
 
 def validate(kind, record):
     shape(kind, record)
+    if kind == 'cohort':
+        from .complexity import validate as validate_difficulty
+        for row in record['payload']['rows']:
+            validate_difficulty(row['difficulty'])
     if seal(record) != record:
         raise ValueError("canonical identity mismatch")
     return json.loads(json.dumps(record, allow_nan=False))

@@ -212,7 +212,8 @@ def run(root, output, request, *, client):
                     db.execute('INSERT INTO draws VALUES (?,?,?,?)',(ordinal,'RESERVED',None,None))
                 row, reason, status = None, None, 'REJECTED'
                 try:
-                    row, reason = verify_draw(draw(law, ordinal), client=client,
+                    measurements = {}
+                    row, reason = verify_draw(draw(law, ordinal), client=client, measurements=measurements,
                         budget=SimpleNamespace(deadline=min(work_deadline,time.monotonic()+request['per_case_seconds'])))
                     if row is not None:
                         row = seal(dict(row, id='mechanical:'+row['draw_identity']))
@@ -227,6 +228,8 @@ def run(root, output, request, *, client):
                         else:
                             row, reason=classify_fresh(row,history,train_index)
                             if row is not None:
+                                from oeis_learn.generalization.progressive.complexity import measure
+                                row=seal(dict(row,difficulty=measure(row['source'],reference_steps=measurements['reference_steps'])))
                                 evaluation.append(row); status='EVALUATION'
                 except Exception as exc:
                     status='FAILED'; reason=type(exc).__name__+': '+str(exc)
