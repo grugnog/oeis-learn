@@ -211,21 +211,26 @@ def test_installed_timing_adapter_requires_complete_scoring_and_retains_its_prod
         assert all(len(p['values'])==20 for p in prompts)
         assert kw['device']=='cuda' and kw['model_control']=='random' and kw['methods']==('correct',)
         assert profile==req['cases'][0]['profile'] and kw['seed']==profile['model']['seed']
-        value=seal(dict(records={p['id']:dict(arm_evidence=dict(equal_budget=dict(complete=True))) for p in prompts}))
+        value,_=cost_fixture([p['id'] for p in prompts],capped=False)
         path=kw['output_root']/name/'candidates.json';atomic_write(path,value)
         return reference(kw['output_root'],path)
     def score(root,candidate,truth,**kw):
         assert all(len(p['values'])==100 for p in truth)
         assert kw['seconds']>0
-        result=seal(dict(outcomes={r['id']:dict(equal_budget=dict(complete=scorer_complete)) for r in truth}))
+        _,result=cost_fixture([r['id'] for r in truth],capped=False)
+        for row in result['outcomes'].values():
+            row['equal_budget']['scoring']['complete']=scorer_complete
+        result=seal(result)
         atomic_write(root/'scoring/scores.json',result)
         return result
     monkeypatch.setattr('oeis_learn.pipeline_validation.progressive_evaluation.generate',generate)
     monkeypatch.setattr('oeis_learn.pipeline_validation.progressive_evaluation.score',score)
     if not scorer_complete:
-        with pytest.raises(ValueError,match='incomplete portfolio'):f.run_one(tmp_path,0,30)
+        with pytest.raises(ValueError,match='scoring incomplete'):f.run_one(tmp_path,0,30)
         assert not (tmp_path/'cases/0/producer.json').exists()
         assert (tmp_path/'cases/0/scoring/scores.json').is_file()
+        assert (tmp_path/'cases/0/timing.json').is_file()
+        assert load(tmp_path/'cases/0/evaluation-diagnostics.json')['status']=='FAIL'
     else:
         result=f.run_one(tmp_path,0,30)
         assert result['scoring']==reference(tmp_path/'cases/0',tmp_path/'cases/0/scoring/scores.json')
@@ -336,3 +341,134 @@ def test_timing_closure_rejects_missing_changed_and_foreign_originals(tmp_path,c
         ref=reference(tmp_path,ref['path'])
     with pytest.raises((ValueError,FileNotFoundError)):
         f.verify_case(tmp_path,req,req['cases'][0],ref)
+
+
+def cost_fixture(members=('0','1'),*,capped=True):
+    """Original-format terminal token cap; missing global methods are unselected."""
+    from oeis_learn.pipeline_validation.pilot_clocks import clock_record,DRAIN
+    records={};outcomes={};clocks=[]
+    for member in members:
+        details=[]
+        for i in range(8):
+            limited=capped and i==0
+            details.append(dict(position=i,tokens=[1]*(1024 if limited else 3),complete=not limited,
+                generation_seconds=1,generation=dict(complete=not limited,
+                    reason='token_cap_without_eos' if limited else None),
+                fitting=dict(complete=not limited,outcome='not_attempted' if limited else 'unsat_in_scope')))
+        clocks.append(clock_record(prompt=member,mode='correct',snapshot=digest('model'),
+            start=0,scope_deadline=3600,finish=8,expected=8,started=8,terminal=8,policy=DRAIN))
+        records[member]=dict(costs={'correct':dict(details=details)},
+            arm_evidence={m:dict(complete=not capped,reason='token_cap_without_eos' if capped else 'unsat_in_scope')
+                          for m in ('raw','rescue','equal_budget')},
+            selections={m:None if capped else {'explicit_scoring_boundary':True} for m in ('raw','rescue','equal_budget')})
+        outcomes[member]={m:dict(complete=not capped,success=False,outcome='unresolved' if capped else 'failure',
+            scoring=dict(complete=not capped,outcome='no_selected_candidate' if capped else 'continuation_mismatch'))
+            for m in ('raw','rescue','equal_budget')}
+    generated=seal(dict(version='discovery-candidates/v1',methods=['correct'],records=records,
+        elapsed_us=8_000_000,clock=dict(policy=DRAIN,expected_portfolios=8,missing_portfolios=6,cost_complete=False,clocks=clocks)))
+    scored=seal(dict(outcomes=outcomes))
+    return generated,scored
+
+
+def test_cost_completion_accepts_terminal_caps_without_relabelling_science():
+    from oeis_learn.pipeline_validation.progressive_timing_coverage import coverage
+    g,s=cost_fixture();before=copy.deepcopy((g,s))
+    result=coverage(g,s)
+    assert (g,s)==before
+    assert result['selected_portfolios']==2 and result['terminal_attempts']==16
+    assert result['token_capped_attempts']==2 and result['unresolved_scientific_outcomes']==6
+    assert result['unmeasured_native_reserve_us']==16_000_000
+    assert result['unmeasured_scoring_reserve_us']==360_000_000
+
+
+@pytest.mark.parametrize('change',['missing-clock','duplicate-clock','unstarted','missing-detail',
+    'wrong-cap','device-error','native-error','scoring-error'])
+def test_cost_completion_rejects_unfinished_or_failed_services(change):
+    from oeis_learn.pipeline_validation.progressive_timing_coverage import coverage
+    g,s=cost_fixture(capped=change!='scoring-error')
+    first=g['records']['0']['costs']['correct']['details'][0]
+    if change=='missing-clock':g['clock']['clocks'].pop()
+    if change=='duplicate-clock':g['clock']['clocks'].append(g['clock']['clocks'][0])
+    if change=='unstarted':g['clock']['clocks'][0]['terminal']=7
+    if change=='missing-detail':g['records']['0']['costs']['correct']['details'].pop()
+    if change=='wrong-cap':first['tokens'].pop()
+    if change=='device-error':first['generation']['reason']='device lost'
+    if change=='native-error':g['records']['0']['costs']['correct']['details'][1]['fitting']['complete']=False
+    if change=='scoring-error':s['outcomes']['0']['equal_budget']['scoring']['complete']=False
+    with pytest.raises(ValueError):coverage(g,s)
+
+
+def test_realistic_hash_member_roster_exceeds_old_limit_and_loads_through_contract(tmp_path,monkeypatch):
+    from tests.unit.test_progressive_research_roster import fixture
+    from oeis_learn.generalization.progressive.research_roster import construct,ROSTER_DOCUMENT_BYTES
+    design,panels,screening=fixture()
+    for rows in panels.values():
+        for r in rows:r['id']=digest(r['id']);r['group']=digest(r['group'])
+    for r in screening:r['id']=digest(r['id']);r['group']=digest(r['group'])
+    roster=construct(design,panels,screening)
+    atomic_write(tmp_path/'roster.json',roster)
+    assert 4<<20 < (tmp_path/'roster.json').stat().st_size < ROSTER_DOCUMENT_BYTES
+    atomic_write(tmp_path/'request.json',{'explicit_case_boundary':True})
+    report={'status':'READY'};atomic_write(tmp_path/'report.json',report)
+    def estimates(root,req,actual,**kw):
+        assert actual==roster
+        return report
+    monkeypatch.setattr(f,'estimates',estimates)
+    f.execution_contract(tmp_path,tmp_path/'contract.json',request_path=tmp_path/'request.json',
+        roster_path=tmp_path/'roster.json',report_path=tmp_path/'report.json')
+
+
+def test_v2_timing_proof_replays_caps_and_accounts_for_unmeasured_work(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_timing_coverage import coverage
+    from oeis_learn.pipeline_validation.progressive_evidence import generation_timing
+    from tests.unit.test_progressive_research_roster import fixture
+    from oeis_learn.generalization.progressive.research_roster import construct
+    req=request_fixture(tmp_path);rows=[]
+    for i,case in enumerate(req['cases']):
+        ref=producer(tmp_path,req,i);p=load(tmp_path/ref['path']);base=(tmp_path/ref['path']).parent
+        if i==0:
+            g=load(base/p['producer']['path']);template,scored=cost_fixture()
+            g=seal(dict(g,records=template['records'],clock=template['clock']))
+            (base/p['producer']['path']).write_text(json.dumps(g))
+            p['producer']=reference(base,base/p['producer']['path'])
+            s=load(base/p['scoring']['path'])
+            s=seal(dict(s,outcomes=scored['outcomes'],candidates=p['producer']['sha256']))
+            (base/p['scoring']['path']).write_text(json.dumps(s))
+            p['scoring']=reference(base,base/p['scoring']['path'])
+            (base/p['timing']['path']).write_text(json.dumps(generation_timing(g)))
+            p['timing']=reference(base,base/p['timing']['path'])
+            p=seal(dict(p,version='progressive-research-evaluation-case/v2',coverage=coverage(g,s)))
+            (tmp_path/ref['path']).write_text(json.dumps(p));ref=reference(tmp_path,ref['path'])
+            assert f.verify_case(tmp_path,req,case,ref)==p
+        rows.append(dict(index=i,case=case['identity'],status='PASS',producer=ref))
+    atomic_write(tmp_path/'evaluation-cases.json',seal(dict(version='progressive-research-evaluation-run/v1',
+        request=req['identity'],status='PASS',cases=rows,actual_elapsed_us=100000)))
+    report=f.estimates(tmp_path,req,construct(*fixture()))
+    assert report['status']=='BLOCKED'  # fast empty scoring cannot establish feasibility
+    trial=next(t for t in report['tasks'] if t['task']=='trial-00-1000000-development-generate')
+    assert trial['estimated_us']>=16_000_000*64*4
+    path=tmp_path/rows[0]['producer']['path'];p=load(path)
+    p['coverage']['unmeasured_native_reserve_us']=0
+    path.write_text(json.dumps(seal(p)))
+    with pytest.raises(ValueError,match='coverage differs'):
+        f.verify_case(tmp_path,req,req['cases'][0],reference(tmp_path,path))
+
+
+def test_failure_bundle_includes_timing_coverage_but_not_private_inputs(tmp_path):
+    import zipfile
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session
+    s=Session(tmp_path,'run-state/timing',{},'prepare-research')
+    base=s.folder/'prepare-research/evaluation-timing/cases/0'
+    atomic_write(base/'evaluation-diagnostics.json',seal(dict(status='FAIL',error='timing native fitting incomplete')))
+    atomic_write(base/'timing.json',seal(dict(version='progressive-phase-timing/v1')))
+    atomic_write(base/'generation/attempts/attempt-index.json',seal(dict(states={'INCOMPLETE':1})))
+    atomic_write(base/'generation/attempts/portfolio-clocks.json',seal(dict(cost_complete=False)))
+    (base/'generation/attempts/attempts.jsonl').write_text('{"event":"INCOMPLETE"}\n')
+    atomic_write(base/'private/training-samples.json',{'secret':True})
+    with zipfile.ZipFile(s.package()) as z:
+        assert any(n.endswith('evaluation-diagnostics.json') for n in z.namelist())
+        assert any(n.endswith('timing.json') for n in z.namelist())
+        assert any(n.endswith('attempt-index.json') for n in z.namelist())
+        assert any(n.endswith('portfolio-clocks.json') for n in z.namelist())
+        assert any(n.endswith('attempts.jsonl') for n in z.namelist())
+        assert not any('/private/' in n for n in z.namelist())

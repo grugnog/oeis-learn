@@ -7,6 +7,10 @@ assessment role is constructed here, including for an unused finalist position.
 from .contracts import digest, seal
 from .tuning import SPACE, BASELINE, SHAPES
 
+# Original SHA-256 member IDs repeat across 376 roles and comparison rosters.
+# Real published rosters exceed 4 MiB; use the same bound at every consumer.
+ROSTER_DOCUMENT_BYTES = 64 << 20
+
 
 def construct(design, panels, screening):
     """Compile the selected capability/diversity/tuning round into exact roles.

@@ -39,8 +39,9 @@ NAMES.update({'materials.json','support-policy.json','support-summary.json','res
               'screening-summary.json','roster-summary.json'})
 NAMES.update({'checkpoint-retirement.json','checkpoint-retirement-intent.json',
               'calibration-case.json','calibration-cases.json'})
+NAMES.update({'attempt-index.json','portfolio-clocks.json','attempts.jsonl'})
 NAMES.update({'preparation-allowance.json','prepare-allowance.json','qualify-allowance.json','qualification-allowance.json','calibration-allowance.json','hardware-allowance.json','census-host-allowance.json','reporting-allowance.json','census-allowance.json','research-reservation.json','construction-summary.json','execution-contract.json','evaluation-cases.json',
-              'evaluation-feasibility.json','evaluation-progress.json','resource-estimate.json','timing.json','running.json'})
+              'evaluation-feasibility.json','evaluation-progress.json','evaluation-diagnostics.json','resource-estimate.json','timing.json','running.json'})
 PRIVATE = {'private','work','installed','dist','checkpoints','inputs','.runtime'}
 
 

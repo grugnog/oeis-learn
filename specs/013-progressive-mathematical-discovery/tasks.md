@@ -610,3 +610,14 @@ reference-only supply probe supports the revised sampling design but does not
 include the workstation history or confer native/HIP authority. Actual native
 revision/publication is registered in mandatory Docker CI. T089 research readiness
 and scientific/HIP tasks remain pending until original workstation evidence exists.
+
+## Phase 21: Correct training-only timing coverage
+
+- [X] T172 Separate terminal cost measurement from scientific completion in versioned evaluation timing producers. Verify the selected eight-attempt clock roster; retain token-cap censoring and reject missing attempts, unexpected decoder failures, incomplete fitting and incomplete selected-candidate scoring. Reserve unexercised services rather than extrapolating zero cost. Preserve diagnostics on failure and retain historical v1 semantics.
+- [X] T173 Unify role-roster read bounds across preparation, execution-contract and reservation verification. Test real-length hash identifiers exceeding the previous 4 MiB limit, plus terminal cap acceptance, unchanged scientific outcomes, service failures, producer replay and conservative feasibility. Document the measured budget deficit without relaxing study or qualification gates.
+
+Original round-002 hardware evidence remains scoped to its original source. The
+supplemental observer projections diagnose all fourteen terminal token-cap cases;
+they cannot replace original producer bytes or become new HIP proof. T089 remains
+pending because generation extrapolations alone exceed the frozen role allocations.
+Do not repeat preparation just to discover this already-measured incompatibility.

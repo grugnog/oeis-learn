@@ -58,10 +58,11 @@ def reservation(roster):
 
 def verify_reservation(root,refs,plans,contract):
     import json
+    from .research_roster import ROSTER_DOCUMENT_BYTES
     from .contracts import verify_refs
     selected=[r['artifact'] for r in refs if r['name']=='research-reservation']
     if len(selected)!=1:raise ValueError('one original prospective research reservation required')
-    roster=json.loads(verify_refs(root,[contract['roster']],max_bytes=4<<20)[0])
+    roster=json.loads(verify_refs(root,[contract['roster']],max_bytes=ROSTER_DOCUMENT_BYTES)[0])
     expected=reservation(roster)
     if expected['status']!='READY' or json.loads(verify_refs(root,selected)[0])!=expected:
         raise ValueError('original research ancillary/aggregate reservation differs')

@@ -219,3 +219,38 @@ recorded INELIGIBLE disposition; malformed values/indices remain integrity error
 No source is padded, truncated or substituted. Publish cumulative and new draw
 counts, rejection reasons, original producer references and source dispositions.
 An actual workstation supply deficit still blocks model work honestly.
+
+### Training-only evaluation timing correction (2026-11-12)
+
+The round-002 run published complete materials and passed its 48 original selected
+HIP cases. All fourteen timing subprocesses then rejected terminal decoder token
+caps as incomplete measurement. The supplementary diagnostic projections show
+`token_cap_without_eos` at exactly 1,024 tokens, with all selected eight-attempt
+rosters terminal. This is measured generation work but remains censored science.
+
+Evaluation-case v2 verifies the selected portfolio clocks and attempt details,
+allowing only the registered terminal token cap. Missing attempts, other decoder
+failures, incomplete native fitting and incomplete selected-candidate scoring
+still fail. The global four-method clock inventory may include unselected methods;
+their absence cannot invalidate an explicitly one-method timing request. Historical
+v1 case semantics remain unchanged. Coverage and phase timing are exported before
+the case gate, including on failure.
+
+A missing candidate did not exercise fitting or full-horizon scoring. For resource
+estimates, reserve the unexercised four-second fit/raw services and thirty seconds
+per native/reference scoring executor, separately from measured time, before the
+existing fourfold margin. These are conservative reserves, not measured execution
+or scientific results. Future direct service calibration may reduce uncertainty
+only through original measurements under a prospectively declared policy.
+
+The measured generation alone already contradicts the current 250-second screening
+allocations and 4,200-second full-method generation roles. The fourteen timing
+records must not be used to waive feasibility, shorten panels or relax scientific
+completion gates. T089 remains pending a prospectively feasible design; another
+hardware run is unnecessary merely to rediscover this deficit. Original census,
+materials, exposure, model timing and qualification remain intact. A production
+source correction does not transfer the old HIP authority to the new source.
+
+The real 376-role roster is 6,162,183 bytes. Its readers share a 64 MiB document
+bound, including execution-contract and reservation verification; short fixture
+identifiers must not hide this integration requirement.

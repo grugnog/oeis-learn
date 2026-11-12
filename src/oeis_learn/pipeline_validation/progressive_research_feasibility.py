@@ -14,6 +14,7 @@ import traceback
 
 from oeis_learn.generalization.progressive.contracts import atomic_write,digest,load,reference,seal,verify_refs
 from .identity import confined
+from oeis_learn.generalization.progressive.research_roster import ROSTER_DOCUMENT_BYTES
 
 VERSION='progressive-research-evaluation-request/v1'
 SECONDS=4*3600
@@ -114,17 +115,23 @@ def run_one(root,index,seconds):
         scored=score(output,generated,rows,client=client,output='scoring',seconds=min(21600,remaining))
         scoring_us=max(1,int((time.monotonic()-score_began)*1000000))
     original=load(confined(output,generated['path']),maximum=512<<20)
-    selected=['equal_budget' if m=='correct' else m for m in case['methods']]
-    if (any(row['arm_evidence'][m].get('complete') is not True for row in original['records'].values() for m in selected)
-            or set(scored['outcomes'])!=set(original['records'])
-            or any(row[m].get('complete') is not True for row in scored['outcomes'].values() for m in selected)):
-        raise ValueError('incomplete portfolio cannot establish evaluation throughput')
     # Preserve all producer attempts and phase clocks, but no outcomes influence
     # the design. Exceeding a portfolio cap is recorded, never counted as a win.
     from .progressive_evidence import generation_timing
     atomic_write(output/'timing.json',generation_timing(original))
-    value=seal(dict(version='progressive-research-evaluation-case/v1',request=req['identity'],case=case['identity'],
+    from .progressive_timing_coverage import coverage
+    try:
+        covered=coverage(original,scored)
+    except (ValueError,KeyError,TypeError) as error:
+        atomic_write(output/'evaluation-diagnostics.json',seal(dict(status='FAIL',error=str(error),
+            generation=generated,scoring=reference(output,output/'scoring/scores.json'),
+            arms={k:r['arm_evidence'] for k,r in original['records'].items()},
+            clock=original.get('clock'),scientific_status='UNMEASURED')))
+        raise
+    atomic_write(output/'evaluation-diagnostics.json',covered)
+    value=seal(dict(version='progressive-research-evaluation-case/v2',request=req['identity'],case=case['identity'],
         device='actual_HIP',status='PASS',samples=len(rows),generation_us=generated_us,scoring_us=scoring_us,
+        coverage=covered,
         peak_allocated_bytes=torch.cuda.max_memory_allocated(),
         producer=generated,scoring=reference(output,output/'scoring/scores.json'),timing=reference(output,output/'timing.json'),
         actual_elapsed_us=max(1,int((time.monotonic()-began)*1000000))))
@@ -193,7 +200,9 @@ def verify_case(root,req,case,ref):
     p=json.loads(verify_refs(root,[ref])[0]);base=confined(root,ref['path']).parent
     fields={'version','identity','request','case','device','status','samples',
         'generation_us','scoring_us','peak_allocated_bytes','producer','scoring','timing','actual_elapsed_us'}
-    if (set(p)!=fields or seal(p)!=p or p['version']!='progressive-research-evaluation-case/v1'
+    revised=p.get('version')=='progressive-research-evaluation-case/v2'
+    if revised:fields.add('coverage')
+    if (set(p)!=fields or seal(p)!=p or p['version'] not in {'progressive-research-evaluation-case/v1','progressive-research-evaluation-case/v2'}
             or p['request']!=req['identity'] or p['case']!=case['identity']
             or p['device']!='actual_HIP' or p['status']!='PASS' or p['samples']!=2
             or type(p['peak_allocated_bytes']) is not int or p['peak_allocated_bytes']<0):
@@ -218,12 +227,17 @@ def verify_case(root,req,case,ref):
             or scored['scientific_status']!='UNMEASURED' or scored['claim']!='finite_agreement_only'
             or set(scored['outcomes'])!=set(generated['records'])):
         raise ValueError('original independent timing scorer binding differs')
-    methods=['equal_budget' if m=='correct' else m for m in case['methods']]
-    for member,row in generated['records'].items():
-        for method in methods:
-            if (row.get('arm_evidence',{}).get(method,{}).get('complete') is not True
-                    or scored['outcomes'][member].get(method,{}).get('complete') is not True):
-                raise ValueError('incomplete original timing portfolio')
+    if revised:
+        from .progressive_timing_coverage import coverage
+        if p['coverage']!=coverage(generated,scored):
+            raise ValueError('original timing cost coverage differs')
+    else:
+        methods=['equal_budget' if m=='correct' else m for m in case['methods']]
+        for member,row in generated['records'].items():
+            for method in methods:
+                if (row.get('arm_evidence',{}).get(method,{}).get('complete') is not True
+                        or scored['outcomes'][member].get(method,{}).get('complete') is not True):
+                    raise ValueError('incomplete original timing portfolio')
     if timing!=generation_timing(generated):
         raise ValueError('original timing phase clocks differ')
     return p
@@ -240,7 +254,7 @@ def estimates(root,request_value,roster,*,publish=True):
         if row.get('status')!='PASS' or row.get('index')!=index or row.get('case')!=expected['identity']:
             raise ValueError('complete ordered original evaluation cases required')
         p=verify_case(root,req,expected,row['producer'])
-        if (p.get('version')!='progressive-research-evaluation-case/v1' or seal(p)!=p or p['case']!=expected['identity'] or p['request']!=req['identity']
+        if (p.get('version') not in {'progressive-research-evaluation-case/v1','progressive-research-evaluation-case/v2'} or seal(p)!=p or p['case']!=expected['identity'] or p['request']!=req['identity']
                 or p['device']!='actual_HIP' or p['status']!='PASS' or p['samples']!=2
                 or any(type(p[k])is not int or p[k]<=0 for k in ('generation_us','scoring_us','actual_elapsed_us'))
                 or p['generation_us']+p['scoring_us']>p['actual_elapsed_us']+2
@@ -248,7 +262,8 @@ def estimates(root,request_value,roster,*,publish=True):
             raise ValueError('original measured evaluation case differs')
         key='all' if len(expected['methods'])>1 else 'primary'
         for operation,field in [('generate','generation_us'),('score','scoring_us')]:
-            times[key,operation]=max(times.get((key,operation),0),p[field])
+            reserve=p.get('coverage',{}).get('unmeasured_'+('native' if operation=='generate' else 'scoring')+'_reserve_us',0)
+            times[key,operation]=max(times.get((key,operation),0),p[field]+reserve)
         receipts.append(row['producer'])
     deficits=[];tasks=[]
     for row in roster['tasks']:
@@ -270,7 +285,7 @@ def estimates(root,request_value,roster,*,publish=True):
 
 def execution_contract(root, output, *, request_path, roster_path, report_path):
     root=Path(root)
-    req=load(request_path);roster=load(roster_path,maximum=4<<20)
+    req=load(request_path);roster=load(roster_path,maximum=ROSTER_DOCUMENT_BYTES)
     expected=estimates(Path(request_path).parent,req,roster,publish=False)
     if expected['status']!='READY' or load(report_path)!=expected:
         raise ValueError('original feasible evaluation design required')
@@ -286,7 +301,7 @@ def verify_contract(root, ref, runtime):
     if (set(value)!={'version','identity','request','roster','evaluation'} or seal(value)!=value
             or value['version']!='progressive-research-execution-contract/v1'):
         raise ValueError('closed research execution contract required')
-    req,roster,report=[json.loads(raw) for raw in verify_refs(root,[value[k] for k in ('request','roster','evaluation')],max_bytes=8<<20)]
+    req,roster,report=[json.loads(raw) for raw in verify_refs(root,[value[k] for k in ('request','roster','evaluation')],max_bytes=ROSTER_DOCUMENT_BYTES+(8<<20))]
     q=json.loads(verify_refs(root,[req['qualification']])[0])
     source=json.loads(verify_refs(confined(root,req['qualification']['path']).parent,[q['source_closure']],max_bytes=64<<20)[0])
     if (req['qualification'] not in runtime['payload']['qualification'] or req['source']!=digest(source)

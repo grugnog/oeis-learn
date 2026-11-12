@@ -6,6 +6,7 @@ from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BY
 from .progressive_research_inputs import checked_file,_json
 from .progressive_workstation_state import Blocked,write
 from oeis_learn.generalization.progressive.research_budget import SETUP_SECONDS
+from oeis_learn.generalization.progressive.research_roster import ROSTER_DOCUMENT_BYTES
 
 
 def prepare(workflow,data,design,materials):
@@ -36,7 +37,7 @@ def prepare(workflow,data,design,materials):
     s.step('evaluation-timing',measure,dependencies=('prepare-research/evaluation-plan',))
     def feasibility():
         from .progressive_research_feasibility import estimates,execution_contract
-        roster=load(base/'roster/private/role-roster.json',maximum=4<<20)
+        roster=load(base/'roster/private/role-roster.json',maximum=ROSTER_DOCUMENT_BYTES)
         value=estimates(timing,req,roster)
         if value['status']!='READY':
             raise Blocked('Measured evaluation cannot fit the prospective role budgets; see evaluation-feasibility.json. No screening looks or members were removed.')
