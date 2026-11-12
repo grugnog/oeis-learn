@@ -652,3 +652,10 @@ model doubles. Original material constructor/binding, private-data exclusion, fa
 ZIP, source rejection, immutable reuse and sibling-owner checks passed. Actual HIP
 timing and scientific horizon selection remain external; no hardware qualification,
 learning gate, reduced scientific budget or research completion is claimed.
+
+## Phase 24: Reuse research persistence and remove measured training overhead
+
+- [X] T178 Reuse the post-012 hourly snapshot policy in the progressive learner, retaining irreversible per-update charges, exact model/controller/RNG rollback, clean-boundary publication and quarantine/diversity provenance for the complete saved window. Avoid tensor reads/captures on ordinary updates; preserve legacy per-update inputs.
+- [ ] T179 Bound long-run metadata costs: incremental verified budget indexes, bounded recent update metrics and checkpoint-boundary retention. Test external journal modification, crash/publication faults and real numerical pause/resume.
+- [ ] T180 Provide outcome-blind support recadencing for prospective shorter horizons using the original prepared rows; report refresh feasibility and reject unsafe reuse without changing frozen studies or historical data.
+- [ ] T181 Update runtime projections and regression coverage for hourly persistence, document the remaining actual-HIP measurement and scientific horizon choice, and preserve existing original evidence/qualification boundaries.

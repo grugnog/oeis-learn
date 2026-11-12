@@ -15,6 +15,12 @@ def policy(config):
     return name
 
 
+def snapshot_due(name, last_full, now, *, force=False):
+    """Shared post-012 research cadence; callers enforce complete update cuts."""
+    policy({'checkpoint_policy':name})
+    return force or name=='per-update/v1' or now-last_full>=INTERVAL
+
+
 def number(value):
     if type(value) not in (int,float) or not math.isfinite(value) or value<0:raise ValueError('finite nonnegative accounting required')
     return value

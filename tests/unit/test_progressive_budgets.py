@@ -237,3 +237,29 @@ def test_storage_guard_covers_shared_evidence_writers_and_copy(tmp_path):
         with pytest.raises(TimeoutError, match="storage"):
             evidence("task", "correct", 0, "STARTED", dict(tokens=[]))
     assert list(output.iterdir()) == []
+
+
+def test_verified_index_avoids_reparse_and_rechecks_external_edits(tmp_path, monkeypatch):
+    import json
+    j=BudgetJournal(tmp_path,'c',caps())
+    j.reserve('task','update',0,work(tokens=3),boot='b',monotonic_us=0)
+    j.commit('task/update/0')
+    # An unchanged file and our own appends do not reparse its historical lines.
+    with monkeypatch.context() as m:
+        from pathlib import Path
+        original=Path.open
+        def guarded(path,mode='r',*args,**kwargs):
+            if path==j.path and mode=='r':pytest.fail('reparsed journal prefix')
+            return original(path,mode,*args,**kwargs)
+        m.setattr(Path,'open',guarded)
+        for i in range(1,4):
+            j.reserve('task','update',i,work(tokens=3),boot='b',monotonic_us=i)
+            j.commit('task/update/'+str(i))
+        assert j.snapshot()['consumed']['tokens']==12
+    # Another legitimate owner invalidates the cache and is fully reconciled.
+    other=BudgetJournal(tmp_path,'c',caps())
+    other.reserve('task','update',4,work(tokens=5),boot='b',monotonic_us=4)
+    assert j.snapshot()['consumed']['tokens']==17
+    raw=j.path.read_text()
+    j.path.write_text(raw.replace('"tokens": 3','"tokens": 2',1))
+    with pytest.raises(ValueError,match='chain broken'):j.snapshot()

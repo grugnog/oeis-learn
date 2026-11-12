@@ -110,6 +110,7 @@ CPU_TESTS = (
     "tests/integration/test_progressive_tuning.py",
     "tests/integration/test_progressive_recovery.py",
     "tests/integration/test_progressive_recovery_updates.py",
+    "tests/integration/test_progressive_periodic_recovery.py",
     "tests/unit/test_progressive_trial_specifications.py",
     "tests/unit/test_progressive_models.py",
     "tests/unit/test_discovery_readiness.py",

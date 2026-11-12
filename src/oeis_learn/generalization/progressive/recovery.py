@@ -34,6 +34,7 @@ class Recovery:
         self.lease = TaskLease(journal.root, task)
         self.owned = False
         self.store = None
+        self._ledgers = {}
 
     def __enter__(self):
         self.lease.__enter__()
@@ -248,7 +249,7 @@ class Recovery:
         self.read()
         return self.initialize(restored['states'],state['payload']['cuts'])
 
-    def save(self, states, ledger, cuts):
+    def save(self, states, ledger, cuts, *, entries=None):
         if not self.owned:
             raise ValueError("exclusive task lease required")
         cuts = dict(cuts, cost_journal=self.journal.snapshot()["watermark"])
@@ -261,12 +262,14 @@ class Recovery:
             track=self.task["track"],
             maximum_bytes=self.checkpoint_bytes,
         )
-        self.store.load(record)  # verify complete reference/tensor closure before commit
+        verified = self.store.load(record)  # verify complete reference/tensor closure before commit
+        self._ledgers = {record["identity"]: verified["ledger"]}
         from .quarantine import Journal
 
         pending=self.state.get('pending')
         batch=pending['batch'] if pending else []
-        entries=batch.get('entries',[]) if isinstance(batch,dict) else batch
+        if entries is None:
+            entries=batch.get('entries',[]) if isinstance(batch,dict) else batch
         full=load(self.store.root/record['payload']['full_state']['path'])
         Journal(self.journal.root).checkpoint(record, previous=self.state['checkpoint'],entries=entries,
                                               weights=full['states']['weights']['sha256'])
@@ -280,6 +283,7 @@ class Recovery:
 
         Journal(self.journal.root).require_clean([self.state["checkpoint"]["identity"]])
         restored = self.store.load(self.state["checkpoint"])
+        self._ledgers = {self.state["checkpoint"]["identity"]: restored["ledger"]}
         remaining = self.journal.task_remaining(self.task)
         consumed = self.base["tokens"] + self.p["caps"]["tokens"] - remaining["tokens"]
         if consumed < restored["ledger"].consumed or consumed < self.state["useful_tokens"]:
@@ -291,6 +295,22 @@ class Recovery:
         restored["pending"] = copy.deepcopy(self.state["pending"])
         restored["cuts"] = copy.deepcopy(self.state["checkpoint"]["payload"]["cuts"])
         return restored
+
+    def current(self):
+        """Metadata for the leased owner; full tensor verification stays at restore/save."""
+        if not self.owned or self.state["checkpoint"] is None:
+            raise ValueError("owned committed checkpoint required")
+        identity = self.state["checkpoint"]["identity"]
+        if identity not in self._ledgers:
+            return self.restore()
+        saved = self._ledgers[identity]
+        consumed = self.base["tokens"] + self.p["caps"]["tokens"] - self.journal.task_remaining(self.task)["tokens"]
+        if consumed < saved.consumed or consumed < self.state["useful_tokens"]:
+            raise ValueError("cost journal rolled back behind checkpoint")
+        return dict(ledger=Ledger(self.token_cap, consumed=consumed, updates=saved.updates),
+                    discarded_tokens=consumed-self.state["useful_tokens"],
+                    pending=copy.deepcopy(self.state["pending"]),
+                    cuts=copy.deepcopy(self.state["checkpoint"]["payload"]["cuts"]))
 
     def begin(self, *, boot, monotonic_us):
         integer(monotonic_us)
@@ -393,7 +413,7 @@ class Recovery:
                 if state["last"]["batch"] != batch:
                     raise ValueError("conflicting committed update replay")
                 return state["checkpoint"]
-        if update != self.store.load(self.state["checkpoint"])["ledger"].updates + 1:
+        if update != self.current()["ledger"].updates + 1:
             raise ValueError("ordered logical update required")
         return None
 
@@ -436,7 +456,7 @@ class Recovery:
         self.journal.commit(event["key"])
         pending = {"batch": copy.deepcopy(batch), "tokens": tokens, "operation": event["key"]}
         self.append(pending=pending)
-        restored = self.restore()
+        restored = self.current()
         return Ledger(
             restored["ledger"].cap,
             consumed=restored["ledger"].consumed,
@@ -450,7 +470,7 @@ class Recovery:
             raise ValueError("exclusive task lease required")
         if self.state["status"] != "RUNNING" or self.state["pending"] is None:
             raise ValueError("reserved update required")
-        old = self.store.load(self.state["checkpoint"])["ledger"]
+        old = self.current()["ledger"]
         spent = (
             self.base["tokens"]
             + self.p["caps"]["tokens"]

@@ -176,7 +176,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
     from oeis_learn.generalization.checkpoints import milestone_decision,pin_plan
     from oeis_learn.generalization.contracts import verify_artifact
     from oeis_learn.fresh.common import write
-    from .generalization_persistence import policy,INTERVAL,journal,recover
+    from .generalization_persistence import policy,snapshot_due,journal,recover
     checkpoint_policy=policy(config);periodic=checkpoint_policy=='hourly/v1'
     progress_count=0;timing=TrainingTiming();tensors_dirty=True
     journal_writes=0;last_full_time=None;last_full_ledger=None;last_full_policy=None
@@ -321,7 +321,7 @@ def run_torch(root,output,config,*,resume=None,stop_after_updates=None,initializ
         milestone_due=any(m not in milestone_keys and (m==effective or m in crossed) for m in milestones)
         stopped=stop_after_updates is not None and account.pending is None and account.updates>=stop_after_updates
         full=(not periodic or force or latest is None or milestone_due or stopped or
-              account.pending is None and time.monotonic()-last_full_time>=INTERVAL)
+              account.pending is None and snapshot_due(checkpoint_policy,last_full_time,time.monotonic()))
         if full:full_save(current,account)
         saved_ledger=account
         if periodic:

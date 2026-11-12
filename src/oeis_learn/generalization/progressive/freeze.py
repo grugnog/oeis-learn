@@ -303,13 +303,13 @@ def freeze(
     # Frozen disjoint task partitions include all retained predecessor stores,
     # archive history and task metadata. Separate reserves cover shared journal,
     # the largest projection (conservatively all inputs) and final packaging.
-    from .storage import projection_size
+    from .storage import projection_size, JOURNAL_BYTES
 
     projection_bytes, projection_inodes = projection_size(root, list(unique.values()))
     # Retained strict origins are copied into the learner's isolated training view.
     projection_bytes += sum(r["bytes"] for r in initializer_closure.values()) + measured
     projection_inodes += sum(len(Path(r["path"]).parts) + 1 for r in initializer_closure.values())
-    journal_bytes = 128 << 20
+    journal_bytes = JOURNAL_BYTES if b["purpose"] == "research" else 128 << 20
     required_bytes = (
         task_store_bytes + projection_bytes + journal_bytes + q["shard_bytes"] + q["package_bytes"]
     )

@@ -7,20 +7,20 @@ import json
 from .research_limits import padded_us
 from oeis_learn.generalization.progressive.contracts import seal,verify_refs
 
-POLICY='progressive-measured-research-resources/v1'
+POLICY='progressive-measured-research-resources/v2'
 
 
-def policy():
-    return seal(dict(version=POLICY,metadata_bytes=128<<20,generations=2,
+def policy(*, legacy=False):
+    return seal(dict(version='progressive-measured-research-resources/v1' if legacy else POLICY,metadata_bytes=128<<20,generations=2,
         checkpoint_scope='maximum original retained or exact calibrated full state',
-        training_estimate='4x measured update and checkpoint per complete update; two probes per eight updates',
+        training_estimate=('4x measured update and checkpoint per complete update; two probes per eight updates' if legacy else '4x measured updates/probes plus bounded hourly, milestone and terminal snapshots'),
         permits='decrease disk only; no scientific budget or search-domain changes'))
 
 
 def finalize(root,payload,cases,producers):
     refs=[r['artifact'] for r in payload['references'] if r['name']=='research_resource_policy']
     if not refs:return None
-    if len(refs)!=1 or json.loads(verify_refs(root,refs)[0])!=policy():
+    if len(refs)!=1 or json.loads(verify_refs(root,refs)[0]) not in (policy(),policy(legacy=True)):
         raise ValueError('original prospective measured-resource rule required')
     from oeis_learn.generalization.progressive.storage import checkpoint_size
     from oeis_learn.generalization.progressive.trial_scopes import variants
@@ -45,8 +45,16 @@ def finalize(root,payload,cases,producers):
                 minimum=min(len(r['tokens']) for shard in package['shards'] for r in shard)*package['update_policy']['effective_batch']
                 updates=(delta+minimum-1)//minimum
                 m=producer['measurements']
-                elapsed=padded_us(updates*(m['update_us']+m['checkpoint_us'])+2*((updates+7)//8)*m['probe_us'])
-                row=dict(task=task['id'],compatibility=key,maximum_updates=updates,estimated_work_us=elapsed,
+                from .generalization_persistence import policy as checkpoint_policy, INTERVAL
+                available=task['caps']['elapsed_us']-task['startup_us']-task['finalization_us']
+                snapshots=updates
+                if checkpoint_policy(package)=='hourly/v1':
+                    from oeis_learn.generalization.progressive.milestones import MILESTONES
+                    parent_target=by_id[parent]['token_target'] if parent else 0
+                    snapshots=(2+max(0,available)//(INTERVAL*1000000)+
+                        sum(parent_target < n <= task['token_target'] for n in MILESTONES))
+                elapsed=padded_us(updates*m['update_us']+snapshots*m['checkpoint_us']+2*((updates+7)//8)*m['probe_us'])
+                row=dict(task=task['id'],compatibility=key,maximum_updates=updates,checkpoint_policy=checkpoint_policy(package),maximum_snapshots=snapshots,estimated_work_us=elapsed,
                     available_work_us=task['caps']['elapsed_us']-task['startup_us']-task['finalization_us'])
                 if worst is None or elapsed>worst['estimated_work_us']:worst=row
             estimates.append(worst)

@@ -798,6 +798,8 @@ class RecoverableUpdate:
         if prior is not None:
             # Historical receipts remain immutable after tensor generations are
             # retired. The current complete cut retains all committed metrics.
+            if getattr(self.recovery, "active", False):
+                return self.context["history"][f"recovery-update/{update}"], prior
             restored = self.recovery.restore()
             return restored["states"]["history"][f"recovery-update/{update}"], prior
         count = int(tokens[:, 1:].ne(PAD_ID).sum())
@@ -814,7 +816,19 @@ class RecoverableUpdate:
             if fault_after_reserve:
                 if self.recovery.task["purpose"] != "acceptance":
                     raise ValueError("diagnostic faults cannot enter research")
-                raise InterruptedError("diagnostic interruption after durable update debit")
+                fire = True
+                if getattr(self.recovery, "active", False):
+                    from oeis_learn.generalization.progressive.contracts import atomic_write, load
+                    path = self.recovery.root / "diagnostic-fault.json"
+                    value = seal(dict(task=self.recovery.task['identity'], update=update, point='after_reserve'))
+                    if path.exists():
+                        if load(path) != value:
+                            raise ValueError('changed diagnostic interruption request')
+                        fire = False
+                    else:
+                        atomic_write(path, value)
+                if fire:
+                    raise InterruptedError("diagnostic interruption after durable update debit")
             metrics, ledger = self.runner.update(
                 sequences, tokens, ledger=ledger, allocation=allocation
             )
@@ -828,7 +842,20 @@ class RecoverableUpdate:
                 cuts = dict(cuts, allocation=digest(allocation.snapshot()))
             next_context["history"][f"recovery-update/{update}"] = metrics
             next_context["data"] = {"cursor": ledger.updates, "pending_batch": None}
-            record = self.recovery.commit(self.capture(next_context), ledger, cuts)
+            if getattr(self.recovery, "active", False):
+                # Preserve exact distinct-target multiplicities, with bounded recent
+                # optimizer metrics instead of copying the entire update history.
+                if next_context["history"].get("consumed_counts_task") != self.recovery.task['identity']:
+                    next_context["history"]["consumed_counts"] = {}
+                    next_context["history"]["consumed_counts_task"] = self.recovery.task['identity']
+                counts = next_context["history"].setdefault("consumed_counts", {})
+                for entry in entries:
+                    counts[entry] = counts.get(entry, 0) + 1
+                old = f"recovery-update/{update-64}"
+                next_context["history"].pop(old, None)
+                record = self.recovery.commit_lazy(lambda: self.capture(next_context), ledger, cuts)
+            else:
+                record = self.recovery.commit(self.capture(next_context), ledger, cuts)
             self.context = next_context
             return metrics, record
         except BaseException:
@@ -1002,7 +1029,7 @@ def reconcile_replay(package, state, journal, task):
     from oeis_learn.generalization.progressive.replay import Mixer
 
     with journal.lock():
-        events = journal._read()[0]
+        events = journal._read()[0][state["journal_index"]:]
     return replay_mixer(package).reconcile(state, events, task=task)
 
 

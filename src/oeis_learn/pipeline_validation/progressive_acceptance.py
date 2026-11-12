@@ -415,7 +415,7 @@ def _run_hardware_delta(root, request, producers, output, *, seconds=900):
     return result
 
 
-def fixture(root, *, interrupt=True, first_cap_updates=8, weights_only=False, fail=False):
+def fixture(root, *, interrupt=True, first_cap_updates=8, weights_only=False, fail=False, checkpoint_policy=None):
     """Hand-checkable mechanical sources, separate purpose and bounded horizons."""
     from oeis_learn.fresh.bigint_config import resolve
     from oeis_learn.generalization.progressive.curriculum import Controller
@@ -473,6 +473,7 @@ def fixture(root, *, interrupt=True, first_cap_updates=8, weights_only=False, fa
     package = seal(
         {
             "version": "progressive-training-input/v1",
+            **({"checkpoint_policy": checkpoint_policy} if checkpoint_policy is not None else {}),
             "profile": p,
             "update_policy": policy,
             "shards": [rows],

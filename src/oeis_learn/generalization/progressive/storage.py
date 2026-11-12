@@ -10,6 +10,11 @@ from pathlib import Path
 from oeis_learn.pipeline_validation.identity import confined
 from .contracts import load, verify_refs, seal
 
+# Shared campaign accounting must fit many 25M+ tasks, not just one short
+# diagnostic. This is a finite implementation ceiling; enclosing frozen storage
+# and task allowances continue to apply independently.
+JOURNAL_BYTES = 2 << 30
+
 _ACTIVE = None
 _LOCK = threading.RLock()
 
@@ -173,7 +178,7 @@ def journal_write(root, path, value):
     from .contracts import atomic_write
 
     raw = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
-    StorageGuard([root], max_bytes=64 << 20, max_inodes=8192).check(len(raw), 2)
+    StorageGuard([root], max_bytes=JOURNAL_BYTES, max_inodes=8192).check(len(raw), 2)
     return atomic_write(path, value)
 
 

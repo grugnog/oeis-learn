@@ -182,7 +182,7 @@ def learner_scopes(compiler, support, summary):
     bases={};scopes={}
     for trajectory,horizon in [('screening',4000000),('confirmation',400000000)]:
         profile=resolve_profile(compiler.recipe,seed=0,dropout=0)
-        base=training_input(support,summary,profile,resolve_update_policy(profile,schedule_horizon_tokens=horizon))
+        base=training_input(support,summary,profile,resolve_update_policy(profile,schedule_horizon_tokens=horizon),checkpoint_policy='hourly/v1')
         base=shared(base)
         ref=compiler.put('private/packages/'+trajectory+'.json',base)
         channel=compiler.channel(trajectory+'-training','training_request','learner',

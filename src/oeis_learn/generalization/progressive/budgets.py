@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 from .contracts import load, digest, seal, _check, schema
+from .storage import JOURNAL_BYTES
 from oeis_learn.generalization.budgets import Ledger, integer
 
 KEYS = (
@@ -65,108 +66,141 @@ class BudgetJournal:
             finally:
                 fcntl.flock(stream, fcntl.LOCK_UN)
 
-    def _read(self):
-        events = []
-        previous = digest(self.binding)
-        pending = {}
-        finished = set()
-        totals = dict.fromkeys(KEYS, 0)
-        if self.path.exists():
-            if self.path.is_symlink() or self.path.stat().st_size > 64 << 20:
-                raise ValueError("bounded regular journal required")
-            for line in self.path.read_text().splitlines():
-                event = json.loads(line)
-                if (
-                    set(event) - {"details"}
-                    != {
-                        "identity",
-                        "previous",
-                        "index",
-                        "operation",
-                        "event",
-                        "cost",
-                        "boot",
-                        "start_us",
-                        "end_us",
-                    }
-                    or seal(event) != event
-                    or event["previous"] != previous
-                    or event["index"] != len(events)
-                ):
-                    raise ValueError("journal chain broken")
-                vector(event["cost"])
-                if "details" in event:
-                    from .replay import validate_charge
+    def _fingerprint(self):
+        if self.path.is_symlink():
+            raise ValueError("bounded regular journal required")
+        if not self.path.exists():
+            return None
+        st = self.path.stat()
+        if st.st_size > JOURNAL_BYTES:
+            raise ValueError("bounded regular journal required")
+        return (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
 
-                    if set(event["details"]) != {"replay"} or event["event"] != "RESERVE":
-                        raise ValueError("closed replay debit details required")
-                    debit = validate_charge(event["details"]["replay"])
-                    if debit["oeis_tokens"] + debit["synthetic_tokens"] != event["cost"]["tokens"]:
-                        raise ValueError("replay token charge differs")
-                integer(event["index"])
-                integer(event["start_us"])
-                if (
-                    not isinstance(event["boot"], str)
-                    or not event["boot"]
-                    or len(event["boot"]) > 128
-                ):
-                    raise ValueError("bounded boot identity")
-                key = event["operation"]
-                if event["event"] == "RESERVE":
-                    if key in pending or key in finished:
-                        raise ValueError("duplicate ordinal")
-                    pending[key] = event
-                    for k in KEYS:
-                        totals[k] += event["cost"][k]
-                elif event["event"] == "COMMIT":
-                    if key not in pending:
-                        raise ValueError("unreserved commit")
-                    original = pending.pop(key)
-                    finished.add(key)
-                    if (
-                        event["boot"] != original["boot"]
-                        or event["start_us"] != original["start_us"]
-                    ):
-                        raise ValueError("supervisor clock binding changed")
-                    if event["end_us"] is not None and (
-                        type(event["end_us"]) is not int
-                        or event["end_us"] < event["start_us"]
-                        or event["cost"]["elapsed_us"] != event["end_us"] - event["start_us"]
-                    ):
-                        raise ValueError("invalid monotonic elapsed proof")
-                    if (
-                        event["end_us"] is None
-                        and event["cost"]["elapsed_us"] != original["cost"]["elapsed_us"]
-                    ):
-                        raise ValueError("missing termination proof cannot refund time")
-                    if (
-                        any(
-                            event["cost"][k] != original["cost"][k]
-                            for k in KEYS
-                            if k != "elapsed_us"
-                        )
-                        or event["cost"]["elapsed_us"] > original["cost"]["elapsed_us"]
-                    ):
-                        raise ValueError("invalid debit refund")
-                    totals["elapsed_us"] -= (
-                        original["cost"]["elapsed_us"] - event["cost"]["elapsed_us"]
-                    )
-                else:
-                    raise ValueError("unknown journal event")
-                previous = event["identity"]
-                events.append(event)
+    def _consume(self, event):
+        events, pending, finished, totals, previous = self._cache
+        if (
+            set(event) - {"details"}
+            != {
+                "identity",
+                "previous",
+                "index",
+                "operation",
+                "event",
+                "cost",
+                "boot",
+                "start_us",
+                "end_us",
+            }
+            or seal(event) != event
+            or event["previous"] != previous
+            or event["index"] != len(events)
+        ):
+            raise ValueError("journal chain broken")
+        vector(event["cost"])
+        if "details" in event:
+            from .replay import validate_charge
+
+            if set(event["details"]) != {"replay"} or event["event"] != "RESERVE":
+                raise ValueError("closed replay debit details required")
+            debit = validate_charge(event["details"]["replay"])
+            if debit["oeis_tokens"] + debit["synthetic_tokens"] != event["cost"]["tokens"]:
+                raise ValueError("replay token charge differs")
+        integer(event["index"])
+        integer(event["start_us"])
+        if (
+            not isinstance(event["boot"], str)
+            or not event["boot"]
+            or len(event["boot"]) > 128
+        ):
+            raise ValueError("bounded boot identity")
+        key = event["operation"]
+        if event["event"] == "RESERVE":
+            if key in pending or key in finished:
+                raise ValueError("duplicate ordinal")
+            pending[key] = event
+            for k in KEYS:
+                totals[k] += event["cost"][k]
+        elif event["event"] == "COMMIT":
+            if key not in pending:
+                raise ValueError("unreserved commit")
+            original = pending.pop(key)
+            finished.add(key)
+            if (
+                event["boot"] != original["boot"]
+                or event["start_us"] != original["start_us"]
+            ):
+                raise ValueError("supervisor clock binding changed")
+            if event["end_us"] is not None and (
+                type(event["end_us"]) is not int
+                or event["end_us"] < event["start_us"]
+                or event["cost"]["elapsed_us"] != event["end_us"] - event["start_us"]
+            ):
+                raise ValueError("invalid monotonic elapsed proof")
+            if (
+                event["end_us"] is None
+                and event["cost"]["elapsed_us"] != original["cost"]["elapsed_us"]
+            ):
+                raise ValueError("missing termination proof cannot refund time")
+            if (
+                any(
+                    event["cost"][k] != original["cost"][k]
+                    for k in KEYS
+                    if k != "elapsed_us"
+                )
+                or event["cost"]["elapsed_us"] > original["cost"]["elapsed_us"]
+            ):
+                raise ValueError("invalid debit refund")
+            totals["elapsed_us"] -= (
+                original["cost"]["elapsed_us"] - event["cost"]["elapsed_us"]
+            )
+        else:
+            raise ValueError("unknown journal event")
+        previous = event["identity"]
+        events.append(event)
+        task = event['operation'].rsplit('/', 2)[0]
+        task_totals = self._task_totals.setdefault(task, dict.fromkeys(KEYS, 0))
+        if event['event'] == 'RESERVE':
+            self._reservations[event['operation']] = event
+            for key in KEYS:
+                task_totals[key] += event['cost'][key]
+        else:
+            original = self._reservations[event['operation']]
+            task_totals['elapsed_us'] -= original['cost']['elapsed_us'] - event['cost']['elapsed_us']
         if any(totals[k] > self.binding["caps"][k] for k in KEYS):
             raise ValueError("budget exceeded")
-        return events, pending, finished, totals, previous
+        self._cache = events, pending, finished, totals, previous
+
+    def _read(self):
+        # Cache only a file we fully verified or appended ourselves under flock.
+        # Any external change (including same-size edits) forces full verification.
+        fingerprint = self._fingerprint()
+        if hasattr(self, '_cache') and fingerprint == self._verified_fingerprint:
+            return self._cache
+        self._verified_fingerprint = object()
+        self._cache = [], {}, set(), dict.fromkeys(KEYS, 0), digest(self.binding)
+        self._reservations, self._task_totals = {}, {}
+        if fingerprint is not None:
+            with self.path.open() as stream:
+                for line in stream:
+                    self._consume(json.loads(line))
+        self._verified_fingerprint = fingerprint
+        return self._cache
 
     def _append(self, event):
         from .storage import append_json, StorageGuard
 
         value = seal(event)
-        StorageGuard([self.root], max_bytes=64 << 20, max_inodes=8192).check(
+        StorageGuard([self.root], max_bytes=JOURNAL_BYTES, max_inodes=8192).check(
             len((json.dumps(value, sort_keys=True, allow_nan=False) + "\n").encode()), 1
         )
-        append_json(self.path, value)
+        # _append is called only while holding the journal lock, immediately
+        # after _read. Never adopt unverified bytes from another writer.
+        before = self._fingerprint()
+        append_json(self.path, value, maximum=JOURNAL_BYTES)
+        if before == self._verified_fingerprint:
+            self._verified_fingerprint = object()
+            self._consume(value)
+            self._verified_fingerprint = self._fingerprint()
         fd = os.open(self.root, os.O_DIRECTORY)
         try:
             os.fsync(fd)
@@ -188,9 +222,7 @@ class BudgetJournal:
         key = f"{task}/{operation}/{ordinal}"
         with self.lock():
             events, pending, finished, totals, previous = self._read()
-            prior = next(
-                (e for e in events if e["operation"] == key and e["event"] == "RESERVE"), None
-            )
+            prior = self._reservations.get(key)
             if prior:
                 if prior["cost"] != costs or prior.get("details") != details:
                     raise ValueError("conflicting duplicate ordinal")
@@ -260,7 +292,7 @@ class BudgetJournal:
         with self.lock():
             events, pending, finished, totals, previous = self._read()
             return dict(
-                consumed=totals,
+                consumed=dict(totals),
                 remaining={k: self.binding["caps"][k] - totals[k] for k in KEYS},
                 pending=sorted(pending),
                 committed=sorted(finished),
@@ -320,22 +352,7 @@ class BudgetJournal:
 
                 journal_write(self.root, binding, task)
             events, _, _, _, _ = self._read()
-            totals = dict.fromkeys(KEYS, 0)
-            for event in events:
-                if not event["operation"].startswith(p["id"] + "/"):
-                    continue
-                if event["event"] == "RESERVE":
-                    for key in KEYS:
-                        totals[key] += event["cost"][key]
-                elif event["event"] == "COMMIT":
-                    reservation = next(
-                        e
-                        for e in events
-                        if e["operation"] == event["operation"] and e["event"] == "RESERVE"
-                    )
-                    totals["elapsed_us"] -= (
-                        reservation["cost"]["elapsed_us"] - event["cost"]["elapsed_us"]
-                    )
+            totals = self._task_totals.get(p['id'], dict.fromkeys(KEYS, 0))
             if any(totals[k] > p["caps"][k] for k in KEYS):
                 raise ValueError("task allowance exceeded")
             return {k: p["caps"][k] - totals[k] for k in KEYS}

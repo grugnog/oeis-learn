@@ -138,7 +138,7 @@ def project(reservoir, rule, *, diagnostic=False):
     return data,report
 
 
-def training_input(support, report, profile, update_policy):
+def training_input(support, report, profile, update_policy, *, checkpoint_policy=None):
     """Only complete projected support can become an installed learner package."""
     from .models import validate_profile
     from oeis_learn.pipeline_validation.progressive_training import validate_update_policy
@@ -147,12 +147,16 @@ def training_input(support, report, profile, update_policy):
             or report['diagnostic']!=support['diagnostic']):
         raise ValueError('complete original support publication required')
     validate_profile(profile); validate_update_policy(profile,update_policy)
+    if checkpoint_policy is not None:
+        from oeis_learn.pipeline_validation.generalization_persistence import policy as persistence_policy
+        persistence_policy(dict(checkpoint_policy=checkpoint_policy))
     if update_policy['effective_batch'] not in report['policy']['batches']:
         raise ValueError('effective batch outside prospective support domain')
     return seal(dict(version='progressive-training-input/v1',profile=profile,
         update_policy=update_policy,shards=support['shards'],layout=support['layout'],
         refresh_updates=support.get('refresh_by_batch',{}).get(str(update_policy['effective_batch']),support['refresh_updates']),
         **({'refresh_by_batch':support['refresh_by_batch']} if 'refresh_by_batch' in support else {}),
+        **({'checkpoint_policy':checkpoint_policy} if checkpoint_policy is not None else {}),
         scope='DIAGNOSTIC_ONLY' if support['diagnostic'] else 'NATIVE_VERIFIED',diagnostic_fault=None))
 
 

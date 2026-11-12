@@ -9,6 +9,7 @@ import copy
 import fcntl
 from pathlib import Path
 from .contracts import atomic_write, digest, load, seal, _check, schema
+from .storage import JOURNAL_BYTES
 
 KINDS = {"target", "archive", "library", "consumed_update", "checkpoint", "dossier"}
 MAX_NODES = 65536
@@ -232,7 +233,7 @@ class Journal:
                 if load(path)!=value:raise ValueError('changed checkpoint weight binding')
             else:
                 from .storage import StorageGuard
-                StorageGuard([self.root],max_bytes=64<<20,max_inodes=MAX_NODES*4).check(512,3)
+                StorageGuard([self.root],max_bytes=JOURNAL_BYTES,max_inodes=MAX_NODES*4).check(512,3)
                 atomic_write(path,value)
 
     def weight_checkpoints(self, weights):
@@ -337,7 +338,7 @@ class Journal:
         else:
             from .storage import StorageGuard
             import json
-            StorageGuard([self.root],max_bytes=64<<20,max_inodes=MAX_NODES*4).check(len(json.dumps(value).encode())+64,3)
+            StorageGuard([self.root],max_bytes=JOURNAL_BYTES,max_inodes=MAX_NODES*4).check(len(json.dumps(value).encode())+64,3)
             atomic_write(path,value)
 
     def refute_dossier(self, value, *, evidence):

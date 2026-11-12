@@ -40,6 +40,7 @@ def compatibility(package):
         "refresh_updates": package["refresh_updates"],
         "scope": package["scope"],
     }
+    if "checkpoint_policy" in package:value["checkpoint_policy"]=package["checkpoint_policy"]
     if "refresh_by_batch" in package:value["refresh_by_batch"]=package["refresh_by_batch"]
     if "oeis_replay" in package or "oeis_rules" in package:
         from oeis_learn.generalization.progressive.replay import RULE
@@ -64,7 +65,7 @@ def validate_input(package, task, *, allow_pending=False):
     if (
         set(package)
         - {
-            "weights", "refresh_by_batch",
+            "weights", "refresh_by_batch", "checkpoint_policy",
             "full_state",
             "origin",
             "oeis_replay",
@@ -88,6 +89,8 @@ def validate_input(package, task, *, allow_pending=False):
         or seal_package(package) != package
     ):
         raise ValueError("closed frozen training input required")
+    from .generalization_persistence import policy as persistence_policy
+    persistence_policy(package)
     if (
         task["purpose"] == "research"
         and task["payload"].get("stage") == "scaling"
@@ -298,7 +301,11 @@ def _run(
     status = "PAUSED"
     reason = "UPDATE_BOUNDARY"
     first_failure = None
-    with Recovery(
+    from .generalization_persistence import policy as persistence_policy
+    from oeis_learn.generalization.progressive.periodic_recovery import PeriodicRecovery
+    periodic = persistence_policy(package) == 'hourly/v1'
+    RecoveryType = PeriodicRecovery if periodic else Recovery
+    with RecoveryType(
         journal,
         t,
         compatibility(package),
@@ -447,10 +454,14 @@ def _run(
             "remaining": journal.task_remaining(t),
             "phase": "STARTUP",
         }
+        if periodic:
+            recovery.activate()
+        retained_checkpoint = None
+        registered_targets = set()
         with Heartbeat(progress, device=device, initial=initial, clock=recovery.clock) as heartbeat:
             try:
                 while True:
-                    restored = recovery.restore()
+                    restored = recovery.current()
                     if restored["ledger"].consumed >= t["payload"]["token_target"]:
                         status='PARTIAL' if recovery.state['pending'] is not None else 'COMPLETE'
                         reason='TARGET_REACHED_WITH_UNCOMMITTED_WORK' if status=='PARTIAL' else 'TOKEN_TARGET_REACHED'
@@ -470,8 +481,10 @@ def _run(
                     # preserving two generations, pinned milestones and package reserve.
                     storage = c["payload"]["storage"]
                     heartbeat.update(phase="CHECKPOINT_RETENTION")
-                    recovery.retain(milestone_pins=storage["milestone_pins"])
-                    used = sum(p.stat().st_size for p in Path(state_root).rglob("*") if p.is_file())
+                    if retained_checkpoint != recovery.state['checkpoint']['identity']:
+                        recovery.retain(milestone_pins=storage["milestone_pins"])
+                        used = sum(p.stat().st_size for p in Path(state_root).rglob("*") if p.is_file())
+                        retained_checkpoint = recovery.state['checkpoint']['identity']
                     if used + storage["checkpoint_bytes"] > t["payload"]["caps"]["disk_bytes"]:
                         raise TimeoutError("task checkpoint storage cap exhausted")
                     progress.preflight(
@@ -552,7 +565,10 @@ def _run(
                         phase="UPDATE_IN_PROGRESS",
                         remaining={**journal.task_remaining(t), "elapsed_us": max(0, remaining_us)},
                     )
-                    Journal(journal.root).training({'shards':[rows]})
+                    new_rows = [r for r in rows if r['draw_identity'] not in registered_targets]
+                    if new_rows:
+                        Journal(journal.root).training({'shards':[new_rows]})
+                        registered_targets.update(r['draw_identity'] for r in new_rows)
                     worker.step(
                         [list(map(int, r['values'][:4 if package.get('task_profile')=='combinatorial-short/v1' else 20])) for r in rows],
                         tokens,
@@ -578,17 +594,29 @@ def _run(
                     )
                     controller = controller_cut
                     context = copy.deepcopy(worker.context)
-                    current = recovery.restore()
+                    current = recovery.current()
                     heartbeat.update(
                         committed=recovery.state["useful_tokens"],
                         charged=current["ledger"].consumed,
                         discarded=current["discarded_tokens"],
-                        phase="CHECKPOINT_COMMITTED",
+                        phase="UPDATE_COMPLETE" if periodic else "CHECKPOINT_COMMITTED",
                     )
+                if periodic:
+                    recovery.finish_window(lambda: worker.capture(worker.context), failed=worker.failed)
             except (TimeoutError, InterruptedError) as exc:
                 reason = type(exc).__name__ + ":" + str(exc)
                 status = "PARTIAL" if isinstance(exc, TimeoutError) else "PAUSED"
+                if periodic:
+                    # Failed updates may have partially mutated tensors. Only a
+                    # clean preflight stop is allowed to publish the live window.
+                    try:
+                        recovery.finish_window(lambda: worker.capture(worker.context), failed=worker.failed)
+                    except Exception:
+                        recovery.finish_window(None, failed=True)
+                        raise
             except Exception as exc:  # noqa: BLE001 -- preserve the original producer traceback
+                if periodic:
+                    recovery.finish_window(None, failed=True)
                 import traceback
 
                 from oeis_learn.generalization.progressive.contracts import reference
@@ -628,15 +656,19 @@ def _run(
             new_cost_us=elapsed,
         )
         from oeis_learn.generalization.progressive.diversity import summarize
-        committed={}
-        for path in sorted(recovery.root.glob('event-*.json')):
-            event=load(path)['state']
-            last=event['last']
-            if last is not None:committed[last['update']]=last['batch']['entries']
         from collections import Counter
-        consumed=Counter(i for entries in committed.values() for i in entries if i in lookup)
+        if periodic:
+            history = current['states']['history']
+            consumed_all = Counter(history.get('consumed_counts', {}) if history.get('consumed_counts_task') == t['identity'] else {})
+        else:
+            committed={}
+            for path in sorted(recovery.root.glob('event-*.json')):
+                last=load(path)['state']['last']
+                if last is not None:committed[last['update']]=last['batch']['entries']
+            consumed_all=Counter(i for entries in committed.values() for i in entries)
+        consumed=Counter({k:v for k,v in consumed_all.items() if k in lookup})
         diversity=summarize(list(lookup.values()),consumed)
-        atomic_write(output/'diversity.json',seal(dict(version='progressive-consumed-diversity/v1',task=t['identity'],checkpoint=recovery.state['checkpoint']['identity'],counts=diversity,excluded_nonmechanical_entries=sum(i not in lookup for entries in committed.values() for i in entries))))
+        atomic_write(output/'diversity.json',seal(dict(version='progressive-consumed-diversity/v1',task=t['identity'],checkpoint=recovery.state['checkpoint']['identity'],counts=diversity,excluded_nonmechanical_entries=sum(v for k,v in consumed_all.items() if k not in lookup))))
         atomic_write(output / "checkpoint.json", recovery.state["checkpoint"])
         atomic_write(output / "milestone.json", m)
         return publish(

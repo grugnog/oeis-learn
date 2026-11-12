@@ -353,3 +353,25 @@ A short independent two-seed confirmation can support a claim at its own horizon
 it cannot establish superiority at 25M/100M/400M. Keep its unused confirmation panel
 and the final assessment isolated. Decide the finite pilot/study budgets after
 timing review; existing scientific rosters and budgets remain unchanged.
+
+## Post-measurement persistence correction
+
+Reuse the post-012 research `hourly/v1` cadence through the shared persistence
+policy. New research learner packages explicitly bind that policy into their
+compatibility identity; historical packages retain `per-update/v1`. Complete
+model/Adam/RNG/controller cuts are saved at initialization, hourly complete-update
+boundaries and clean pause/task completion. The existing progressive budget
+journal remains durable before every update. On a crash, restore the last full
+model/policy and count all later charges as discarded work, without adding those
+charges twice. Unknown elapsed intervals retain existing conservative supervisor
+rules. Live progress is informational and cannot authorize evaluation/continuation.
+
+The owned learner uses verified checkpoint metadata for ordinary update counters;
+full tensor verification remains mandatory on publication and restore. Hourly
+windows retain the union of consumed target ancestry, exact per-task diversity
+multiplicities and the latest 64 update metrics. Retention runs when the published
+checkpoint changes. The budget reader indexes its own verified appends; any
+external file change invalidates that index and forces full chain verification.
+Real optimizer, failed-publication, failed-update, rollback, quarantine and installed
+pause/resume/successor tests cover the change. Actual HIP throughput and the
+scientific choice of shorter study horizons remain separate hardware/research work.

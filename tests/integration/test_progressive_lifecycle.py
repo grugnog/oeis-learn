@@ -68,9 +68,17 @@ def installed_lifecycle(tmp_path_factory):
 
 
 def test_actual_installed_role_interrupt_resume_and_successor(tmp_path, installed_lifecycle):
+    _installed_resume(tmp_path, installed_lifecycle, None)
+
+
+def test_hourly_installed_role_interrupt_resume_and_successor(tmp_path, installed_lifecycle):
+    _installed_resume(tmp_path, installed_lifecycle, 'hourly/v1')
+
+
+def _installed_resume(tmp_path, installed_lifecycle, checkpoint_policy):
     from oeis_learn.pipeline_validation.progressive_acceptance import fixture, invoke_cpu
 
-    c, tasks, channel, charge = fixture(tmp_path)
+    c, tasks, channel, charge = fixture(tmp_path, checkpoint_policy=checkpoint_policy)
     first, _one = invoke_cpu(
         tmp_path, c, tasks[0], channel, ordinal=0, pythonpath=installed_lifecycle
     )
