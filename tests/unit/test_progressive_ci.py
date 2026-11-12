@@ -14,9 +14,9 @@ gate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gate)
 
 
-def junit(path):
+def junit(path, requested=gate.TESTS):
     suite = ET.Element("testsuite")
-    for node in gate.TESTS:
+    for node in requested:
         module = node.split("::")[0].removesuffix(".py").replace("/", ".")
         ET.SubElement(suite, "testcase", classname=module, name="case")
     ET.SubElement(
@@ -101,3 +101,72 @@ def test_passing_test_roster_without_retained_integrated_package_fails_ci(tmp_pa
     result = json.loads((tmp_path / "progressive-foundation.json").read_text())
     assert result["status"] == "FAIL" and result["counts"]["tests"] > 0
     assert result["error"]["type"] in {"ValueError", "FileNotFoundError"}
+
+
+
+def test_partitions_are_disjoint_complete_and_keep_expensive_modules_separate():
+    groups = [gate.partition_tests(name) for name in gate.PARTITIONS]
+    assert set().union(*map(set, groups)) == set(gate.TESTS)
+    assert sum(map(len, groups)) == len(gate.TESTS) == len(set(gate.TESTS))
+    for module, owner in gate.ANCHORS.items():
+        assert module in gate.partition_tests(owner)
+    with pytest.raises(ValueError):
+        gate.partition_tests('unknown')
+
+
+def partition_receipts(root, monkeypatch):
+    from types import SimpleNamespace
+    monkeypatch.setenv('OEIS_REQUIRE_NATIVE', '1')
+    monkeypatch.setenv('OEIS_REQUIRE_BIGINT_BUILD', '1')
+    monkeypatch.setattr(gate, 'source_snapshot', lambda: {'fixture': 'current-source'})
+    for name in gate.PARTITIONS:
+        folder = root / name
+        requested = gate.partition_tests(name)
+        def execute(argv, *, requested=requested, folder=folder, **kwargs):
+            assert argv[-len(requested):] == list(requested)
+            junit(folder / 'progressive-foundation.xml', requested)
+            if 'tests/integration/test_progressive_acceptance.py' in requested:
+                (folder / 'progressive-acceptance.zip').write_bytes(b'original export fixture')
+            return SimpleNamespace(returncode=0)
+        monkeypatch.setattr(gate.subprocess, 'run', execute)
+        assert gate.run(folder, partition=name) == 0
+    return root
+
+
+def test_partitioned_receipts_reconcile_complete_mandatory_inventory(tmp_path, monkeypatch):
+    import json
+    root = partition_receipts(tmp_path, monkeypatch)
+    assert gate.merge(root, root / 'summary') == 0
+    report = json.loads((root / 'summary/progressive-foundation.json').read_text())
+    assert report['status'] == 'PASS' and report['qualified'] is False
+    assert report['requested'] == list(gate.TESTS)
+    assert report['counts']['skipped'] == 0
+    with pytest.raises(ValueError, match='fresh merged'):
+        gate.merge(root, root / 'summary')
+
+
+@pytest.mark.parametrize('damage', ['missing', 'changed_junit', 'changed_export', 'stale_source', 'wrong_membership', 'failed', 'skipped'])
+def test_merge_rejects_incomplete_or_foreign_partitions(tmp_path, monkeypatch, damage):
+    import json
+    root = partition_receipts(tmp_path, monkeypatch)
+    path = root / 'lifecycle/progressive-foundation.json'
+    report = json.loads(path.read_text())
+    if damage == 'missing':
+        path.unlink()
+    elif damage == 'changed_junit':
+        (root / 'lifecycle/progressive-foundation.xml').write_text('<testsuites/>')
+    elif damage == 'changed_export':
+        (root / 'lifecycle/progressive-acceptance.zip').write_bytes(b'changed')
+    else:
+        if damage == 'stale_source': report['source'] = 'sha256:' + '0' * 64
+        if damage == 'wrong_membership': report['requested'] = report['requested'][1:]
+        if damage == 'failed': report['status'] = 'FAIL'
+        if damage == 'skipped':
+            xml = root / 'lifecycle/progressive-foundation.xml'
+            suite = ET.parse(xml)
+            ET.SubElement(suite.find('.//testcase'), 'skipped')
+            suite.write(xml)
+            report['junit'] = gate.reference(root / 'lifecycle', xml)
+        path.write_text(json.dumps(gate.seal(report)))
+    with pytest.raises((ValueError, FileNotFoundError)):
+        gate.merge(root, root / 'summary')

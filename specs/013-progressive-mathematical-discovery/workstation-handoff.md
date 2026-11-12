@@ -537,3 +537,25 @@ Do not delete old sessions or override a reported source mismatch. Exit codes ar
 0 for no failed checks (warnings may remain), 1 for failures and 130 for an
 interrupted regular collection. The checker resolves its checkout independently
 of the current working directory; `--root` explicitly selects another checkout.
+
+## Parallel CI acceptance
+
+The container workflow builds one shared qualification image, then runs four
+independent mandatory Spec 013 partitions (`lifecycle`, `tuning`, `construction`,
+`contracts`). All registered modules occur in exactly one partition. The three
+historically expensive lifecycle, tuning and construction modules have distinct
+owners. Worker isolation, public CLI validation and the OEIS observer also run
+as independent jobs, so one failure does not suppress unrelated diagnostics.
+
+A final `progressive-foundation-complete` job verifies every partition's source,
+requested inventory, original JUnit hash/counts, native/wheel cases and retained
+integrated export before publishing complete CPU/native acceptance. A partition
+receipt alone is explicitly partial. Per-test and enclosing timeout allowances
+are preserved. The ordinary unpartitioned workstation acceptance command still
+runs the complete inventory. CI job timings are scheduling/resource observations,
+not scientific qualification or a substitute for selected-model HIP acceptance.
+
+Preparation may start while this CI reorganization is being checked; its own
+current-source qualification, calibration, freeze and acceptance gate training.
+Keep the workstation checkout unchanged once its run starts. CI-only updates do
+not require pulling into a running session or repeating its historical rehearsal.

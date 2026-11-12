@@ -265,5 +265,25 @@ def test_ci_runs_docker_without_duplicate_podman_jobs():
         assert matrix["engine"] == ["docker"]
         assert all(row.get("engine", "docker") == "docker" for row in matrix.get("include", []))
     assert "Spec 013 mandatory CPU and native foundation acceptance" in {
-        s.get("name") for s in jobs["portable-engines"]["steps"]
+        s.get("name") for s in jobs["progressive-foundation"]["steps"]
     }
+
+
+
+def test_acceptance_partitions_and_independent_jobs_share_one_image():
+    import yaml
+    workflow = yaml.safe_load((ROOT / '.github/workflows/foundation.yml').read_text())
+    jobs = workflow['jobs']
+    groups = jobs['progressive-foundation']
+    assert groups['strategy']['matrix']['partition'] == ['lifecycle', 'tuning', 'construction', 'contracts']
+    assert groups['strategy']['fail-fast'] is False
+    assert jobs['progressive-foundation-complete']['needs'] == 'progressive-foundation'
+    assert jobs['portable-engines']['strategy']['matrix']['task'] == ['roles', 'cli']
+    for name in ('portable-engines', 'progressive-foundation', 'oeis-observer'):
+        assert jobs[name]['needs'] == 'image'
+        loaders = [s for s in jobs[name]['steps'] if s.get('uses') == './.github/actions/load-ci-image']
+        assert len(loaders) == 1
+        assert loaders[0]['with']['reference'] == '${{ needs.image.outputs.reference }}'
+        assert not any('build-push-action' in s.get('uses', '') for s in jobs[name]['steps'])
+    aggregate = jobs['progressive-foundation-complete']['steps']
+    assert any('--merge tmp-engine-evidence/progressive-foundation' in s.get('run', '') for s in aggregate)
