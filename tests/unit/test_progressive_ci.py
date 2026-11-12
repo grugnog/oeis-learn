@@ -133,14 +133,20 @@ def partition_receipts(root, monkeypatch):
     return root
 
 
-def test_partitioned_receipts_reconcile_complete_mandatory_inventory(tmp_path, monkeypatch):
+@pytest.mark.parametrize('relative', [False, True])
+def test_partitioned_receipts_reconcile_complete_mandatory_inventory(tmp_path, monkeypatch, relative):
     import json
-    root = partition_receipts(tmp_path, monkeypatch)
-    assert gate.merge(root, root / 'summary') == 0
+    monkeypatch.chdir(tmp_path)
+    root = Path('tmp-engine-evidence/progressive-foundation') if relative else tmp_path / 'evidence'
+    partition_receipts(root, monkeypatch)
+    assert gate.main(['--merge', str(root), '--output', str(root / 'summary')]) == 0
     report = json.loads((root / 'summary/progressive-foundation.json').read_text())
     assert report['status'] == 'PASS' and report['qualified'] is False
     assert report['requested'] == list(gate.TESTS)
     assert report['counts']['skipped'] == 0
+    from oeis_learn.generalization.progressive.contracts import verify_refs
+    assert verify_refs(root, [report['integrated']]) == [b'original export fixture']
+    assert gate.reconcile(root / 'summary' / report['junit']['path']) == report['counts']
     with pytest.raises(ValueError, match='fresh merged'):
         gate.merge(root, root / 'summary')
 

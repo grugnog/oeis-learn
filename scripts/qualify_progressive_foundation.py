@@ -95,7 +95,7 @@ def reconcile(path, *, requested=TESTS):
 
 def run(output, *, partition=None):
     requested = TESTS if partition is None else partition_tests(partition)
-    output = Path(output)
+    output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=True)
     if (output / "progressive-foundation.json").exists():
         raise ValueError("fresh foundation acceptance output required")
@@ -159,7 +159,9 @@ def merge(partitions, output):
     """Reconcile every original shard before publishing full acceptance."""
     import copy
     from oeis_learn.generalization.progressive.contracts import load, verify_refs
-    partitions, output = Path(partitions), Path(output)
+    # reference() interprets relative paths against its artifact root. Resolve
+    # CLI paths once so a checkout-relative prefix is not applied twice.
+    partitions, output = Path(partitions).resolve(), Path(output).resolve()
     output.mkdir(parents=True, exist_ok=True)
     if (output / 'progressive-foundation.json').exists():
         raise ValueError('fresh merged acceptance output required')
