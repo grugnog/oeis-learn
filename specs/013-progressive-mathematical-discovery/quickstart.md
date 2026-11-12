@@ -578,3 +578,31 @@ startup, measured complete-iteration work, the thirty-minute finalization reserv
 and all enclosing search/admission/evaluation work. Search/admission/scoring role
 limits remain separate. Acceptance fixtures reserve retained phase inodes before
 freeze; their shorter diagnostic reserves do not establish research feasibility.
+
+### Post-012 hourly persistence in new research packages
+
+New research construction binds `checkpoint_policy: hourly/v1`. Full model,
+optimizer, controller and RNG snapshots publish hourly and at clean pause,
+milestone and task boundaries. Per-update token charges remain durable. A crash
+can discard the latest window of model progress, never its costs. Live progress
+shows both completed and recoverable exposure. Historical inputs without this
+field keep their original per-update policy; original rehearsal/data outputs are
+not rewritten or rerun by this change. Current-source HIP checks are still required.
+
+The prior physical reference-model measurement gives approximate hourly-policy
+component projections of 3.2/6.2/12.2/24.2 minutes for 500k/1M/2M/4M tokens and
+150 minutes for 25M tokens. These use measured update, probe and snapshot costs;
+whole-learner journal/retention overhead and allocation-dependent throughput are
+not yet measured on HIP. Evaluation, image startup, qualification, preparation
+and recovery are separate. These figures are not campaign ETAs or scientific
+support for shorter training.
+
+Do not rerun the old `measure-training` command in a sibling session to obtain a
+new allowance. Its completed evidence remains immutable. A current-source HIP
+validation/learning pilot must have its own prospectively bound scope. Before
+freezing a shorter pilot, derive support with `prepared_support.recadence` using
+the complete trajectory horizon and the first planned look, retain both returned
+publications, and require `COMPLETE`. Construct the learner input from that derived
+support via `training_input(..., checkpoint_policy='hourly/v1')`. Never change
+cadence independently between cumulative screening looks or silently recycle
+shards. No scientific horizon or existing study budget has been changed here.

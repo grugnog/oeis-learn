@@ -329,7 +329,7 @@ class Recovery:
             and invocations[-1]["event"] == "COMMIT"
             and invocations[-1]["end_us"] is not None
         ):
-            for key, event in pending.items():
+            for key, event in list(pending.items()):
                 if key.startswith(prefix + "update/") and event["cost"]["elapsed_us"] == 0:
                     self.journal.commit(key)
         self.journal.reconcile(self.task)

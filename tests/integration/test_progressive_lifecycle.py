@@ -68,7 +68,11 @@ def installed_lifecycle(tmp_path_factory):
 
 
 def test_actual_installed_role_interrupt_resume_and_successor(tmp_path, installed_lifecycle):
-    _installed_resume(tmp_path, installed_lifecycle, None)
+    import os
+    # The already registered installed HIP recovery scenario exercises the new
+    # research policy; ordinary CPU coverage also retains the legacy path.
+    selected='hourly/v1' if os.environ.get('OEIS_PROGRESSIVE_ACCEPTANCE_DEVICE')=='actual_HIP' else None
+    _installed_resume(tmp_path, installed_lifecycle, selected)
 
 
 def test_hourly_installed_role_interrupt_resume_and_successor(tmp_path, installed_lifecycle):

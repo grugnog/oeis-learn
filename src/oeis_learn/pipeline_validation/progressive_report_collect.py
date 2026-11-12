@@ -200,7 +200,7 @@ def collect(root, folder, output):
     store = RunStore(control, campaign) if (control / "campaign.json").is_file() else None
     journal_root = root / "run-state/discovery-accounting" / campaign["identity"][7:]
     journal = (
-        BudgetJournal(journal_root, campaign["identity"], campaign["payload"]["caps"])
+        BudgetJournal(journal_root, campaign["identity"], campaign["payload"]["caps"], journal_bytes=campaign["payload"]["storage"].get("journal_bytes",64<<20))
         if (journal_root / "budget-binding.json").is_file()
         else None
     )

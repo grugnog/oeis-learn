@@ -1,5 +1,4 @@
 """Real optimizer tests for the shared hourly policy and progressive accounting."""
-import copy
 import pytest
 import torch
 from oeis_learn.generalization.progressive.contracts import digest
@@ -12,7 +11,7 @@ from tests.unit.test_progressive_training_policy import batch, policy, profile
 
 def setup(root):
     p = profile(0.2); cfg = policy(p, microbatch_size=7)
-    t = task(caps=caps(tokens=10000, elapsed_us=60000000))
+    t = task(caps=caps(tokens=100000, elapsed_us=60000000))
     j = BudgetJournal(root, t['payload']['campaign'], t['payload']['caps'])
     context = {k:{} for k in ('scheduler','data','replay','history','pins','selection')}
     context['data'] = dict(cursor=0, pending_batch=None)
@@ -103,3 +102,47 @@ def test_hour_boundary_publishes_union_of_window_targets(tmp_path,monkeypatch):
         assert node['kind']=='consumed_update'
         r.finish_window(lambda:w.capture(w.context)); r.close(boot='boot',monotonic_us=100)
         assert r.restore()['ledger'].updates==2
+
+
+def test_clean_pause_resume_matches_uninterrupted_dropout_updates(tmp_path):
+    p,cfg,t,j,context,cuts=setup(tmp_path/'split');x,tokens,_=batch()
+    # Start both runs from exactly the same saved RNG/model/optimizer cut.
+    with PeriodicRecovery(j,t,digest([p,cfg])) as r:
+        w=RecoverableUpdate(r,p,cfg,device='cpu');w.initialize(context,cuts)
+        initial=r.restore()['states']
+        r.begin(boot='boot',monotonic_us=0);r.activate()
+        advance(w,x,tokens,cuts,1)
+        r.finish_window(lambda:w.capture(w.context));r.close(boot='boot',monotonic_us=100)
+    with PeriodicRecovery(j,t,digest([p,cfg])) as r:
+        r.begin(boot='boot',monotonic_us=1000)
+        w=RecoverableUpdate(r,p,cfg,device='cpu');r.activate()
+        advance(w,x,tokens,cuts,2)
+        expected=tensors(w);rng=torch.get_rng_state()
+        r.finish_window(lambda:w.capture(w.context));r.close(boot='boot',monotonic_us=1100)
+    _,_,t,j,_,_=setup(tmp_path/'whole')
+    with PeriodicRecovery(j,t,digest([p,cfg])) as r:
+        r.initialize(initial,cuts)
+        w=RecoverableUpdate(r,p,cfg,device='cpu')
+        r.begin(boot='boot',monotonic_us=0);r.activate()
+        advance(w,x,tokens,cuts,1);advance(w,x,tokens,cuts,2)
+        assert all(torch.equal(a,b) for a,b in zip(tensors(w),expected))
+        assert torch.equal(torch.get_rng_state(),rng)
+        r.finish_window(lambda:w.capture(w.context));r.close(boot='boot',monotonic_us=100)
+
+
+def test_long_window_bounds_metrics_but_retains_all_consumption(tmp_path):
+    p,cfg,t,j,context,cuts=setup(tmp_path);x,tokens,pad=batch()
+    with PeriodicRecovery(j,t,digest([p,cfg])) as r:
+        w=RecoverableUpdate(r,p,cfg,device='cpu');w.initialize(context,cuts)
+        r.begin(boot='boot',monotonic_us=0);r.activate()
+        losses=[]
+        for update in range(1,67):
+            metrics,_=advance(w,x,tokens,cuts,update);losses.append(metrics['loss'])
+        assert r.recoverable_useful==0
+        r.finish_window(lambda:w.capture(w.context));r.close(boot='boot',monotonic_us=100)
+        history=r.restore()['states']['history']
+        assert len([k for k in history if k.startswith('recovery-update/')])==64
+        assert len(history['consumed_counts'])==66
+        assert sum(history['consumed_counts'].values())==66*16
+        assert history['model_update_metrics']['loss_sum']==pytest.approx(sum(losses))
+        assert history['model_update_metrics']['tokens']==66*int(tokens[:,1:].ne(pad).sum())

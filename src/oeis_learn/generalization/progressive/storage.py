@@ -174,11 +174,22 @@ def copy_file(source, target):
         return shutil.copyfile(source, target)
 
 
+def journal_limit(root):
+    """Original campaigns retain their frozen allowance; no implicit enlargement."""
+    path=Path(root)/'journal-storage.json'
+    if not path.exists():return 64<<20
+    value=load(path)
+    if (set(value)!={'campaign','bytes','identity'} or seal(value)!=value or
+            type(value['bytes']) is not int or not 0<value['bytes']<=JOURNAL_BYTES):
+        raise ValueError('bounded frozen journal storage required')
+    return value['bytes']
+
+
 def journal_write(root, path, value):
     from .contracts import atomic_write
 
     raw = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
-    StorageGuard([root], max_bytes=JOURNAL_BYTES, max_inodes=8192).check(len(raw), 2)
+    StorageGuard([root], max_bytes=journal_limit(root), max_inodes=8192).check(len(raw), 2)
     return atomic_write(path, value)
 
 

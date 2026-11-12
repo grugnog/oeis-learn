@@ -199,9 +199,8 @@ def measure(package, output, *, device='cuda', seconds=SECONDS):
             purpose='acceptance',track='synthetic_strict',maximum_bytes=CHECKPOINT_BYTES)
         result['components']['capture_and_save_us']=now()-start;publish()
         del states
-        # The current learner performs five verified full-state reads per
-        # ordinary update: loop restore, completed(), reserve(), commit(), and
-        # save verification. Measure these costs rather than omitting them.
+        # Retain the historical five-read comparator so original measurements
+        # remain interpretable. Hourly learners do not perform these per update.
         result['checkpoint_read_us']=[]
         for _ in range(5):
             start=now();restored=store.load(checkpoint)
@@ -283,6 +282,8 @@ def report(root, inputs):
             mean_charged_tokens_per_update=mean_charge,
             first_refresh_tokens_projection=package['refresh_updates']*initial_charge,
             checkpoint_reads_per_update=5,
+            checkpoint_projection_policy='historical per-update comparator; hourly estimate is separate',
+            hourly_horizons=[hourly_projection(producer,n) for n in HORIZONS],
             checkpoint_read_seconds=[v/1e6 for v in producer['checkpoint_read_us']],
             horizons=[dict(tokens=n,update_only_seconds=n*elapsed/tokens,
                 observed_rate_seconds_range=[n/max(rates),n/min(rates)],
@@ -293,7 +294,7 @@ def report(root, inputs):
                 for n in HORIZONS],
             caveats=['No safety multiplier included; observed rate range is not a confidence interval.',
                 'Initial/future bin coverage is fixed, not a prediction of learned allocation.',
-                'Current production checkpoints every update; five verified reads and one save are included per projected update.',
+                'Legacy horizons retain the original five-read per-update comparator; hourly_horizons describe the new policy without relabeling old measurements.',
                 'Journal/quarantine growth, retention scans and long-run filesystem pressure remain unmeasured; this is a component projection, not full-learner throughput.',
                 'Fresh-model restore cost applies to startup/recovery, not every ordinary update.',
                 'Restore uses a fresh store/model; the operating-system file cache is not flushed.',
@@ -302,3 +303,25 @@ def report(root, inputs):
                 'This brief diagnostic provides no evidence that 500k, 1M or 2M tokens are scientifically sufficient.'])
     revise(root/'training-runtime-review.json',seal(value))
     return seal(value)
+
+
+def hourly_projection(producer, tokens):
+    """Unpadded component arithmetic, explicitly not a new HIP measurement."""
+    from .generalization_persistence import INTERVAL
+    from oeis_learn.generalization.progressive.milestones import MILESTONES
+    if type(tokens) is not int or tokens<1:raise ValueError('positive token horizon required')
+    rows=[r for r in producer['updates'][:UPDATES] if not r['cold']]
+    charge=sum(r['charged_tokens'] for r in rows)
+    mean_charge=charge/len(rows)
+    update_seconds=tokens*sum(r['packing_us']+r['update_us'] for r in rows)/charge/1e6
+    m=producer['components']
+    probes=(tokens/mean_charge/8)*m['two_probe_us']/1e6
+    # The hourly timer restarts after each successful snapshot. Initial and final
+    # cuts are included; a final milestone is not counted twice.
+    snapshots=2+int((update_seconds+probes)//INTERVAL)+sum(0<n<tokens for n in MILESTONES)
+    verified_snapshot=(m['capture_and_save_us']+sum(producer['checkpoint_read_us'])/len(producer['checkpoint_read_us']))/1e6
+    return dict(tokens=tokens,checkpoint_policy='hourly/v1',projected_snapshots=snapshots,
+        update_only_seconds=update_seconds,probe_seconds=probes,checkpoint_seconds=snapshots*verified_snapshot,
+        training_component_projection_seconds=update_seconds+probes+snapshots*verified_snapshot+m['initialization_us']/1e6,
+        measured_full_learner=False,
+        caveat='Original component timings only; journal/quarantine/retention and allocation-dependent throughput need current-source HIP measurement. Startup restore, evaluation, images and qualification are separate.')

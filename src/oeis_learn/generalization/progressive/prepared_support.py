@@ -194,3 +194,48 @@ def apply_batch_cadence(package):
     key=str(package['update_policy']['effective_batch'])
     if key not in intervals:raise ValueError('batch outside frozen refresh schedule')
     return dict(package,refresh_updates=intervals[key])
+
+
+def recadence(support, report, *, target_tokens, first_look_tokens=None):
+    """Prospectively retime the original rows, without regenerating or scoring data.
+
+    The target is the entire trajectory (not each successive screening look).
+    Every continuation must use this same derived package. The first-look bound
+    says when a new frontier shard is available; actual consumption still depends
+    on the declared allocation policy and must be reported from the learner.
+    """
+    if (seal(support)!=support or seal(report)!=report or report['status']!='COMPLETE'
+            or report['support']!=support['identity'] or report['policy']['identity']!=support['policy']
+            or report['diagnostic']!=support['diagnostic']):
+        raise ValueError('complete original support publication required')
+    original=_policy(report['policy'])
+    rule=policy(**{k:original[k] for k in ('seed','shard_rows','max_shards','batches')},
+                target_tokens=target_tokens,batch_cadence=True)
+    _policy(rule)
+    first_look_tokens=target_tokens if first_look_tokens is None else first_look_tokens
+    if type(first_look_tokens) is not int or not 0<first_look_tokens<=target_tokens:
+        raise ValueError('first look must lie within the complete trajectory')
+    shards=support['shards']
+    if len(shards)<2 or any(not shard for shard in shards):
+        raise ValueError('original finite refreshed shards required')
+    minimum=min(len(r['tokens']) for shard in shards for r in shard)
+    maximum=max(len(r['tokens']) for shard in shards for r in shard)
+    if minimum<1:raise ValueError('nonempty original targets required')
+    bounds=[];deficits=[]
+    for batch in rule['batches']:
+        updates=ceil(target_tokens/(minimum*batch))
+        cadence=max(8,8*ceil(updates/(len(shards)*8)))
+        first=cadence*maximum*batch
+        bounds.append(dict(batch=batch,maximum_updates=updates,required_shards=ceil(updates/cadence),
+            refresh_updates=cadence,first_refresh_token_upper_bound=first))
+        if first>=first_look_tokens:
+            deficits.append('refresh_not_guaranteed_before_first_look:batch'+str(batch))
+    schedule={str(b['batch']):b['refresh_updates'] for b in bounds}
+    data=seal(dict(support,policy=rule['identity'],refresh_updates=max(schedule.values()),refresh_by_batch=schedule))
+    revised=seal(dict(report,status='INCOMPLETE' if deficits else 'COMPLETE',policy=rule,
+        support=data['identity'],refresh_updates=data['refresh_updates'],bounds=bounds,deficits=deficits,
+        minimum_target_tokens=minimum,maximum_target_tokens=maximum,
+        cadence_origin=dict(support=support['identity'],publication=report['identity'],
+                            first_look_tokens=first_look_tokens),
+        cadence_revision='prospective shorter-horizon schedule over unchanged original rows; no outcome use'))
+    return data,revised

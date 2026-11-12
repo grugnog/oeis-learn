@@ -375,3 +375,24 @@ external file change invalidates that index and forces full chain verification.
 Real optimizer, failed-publication, failed-update, rollback, quarantine and installed
 pause/resume/successor tests cover the change. Actual HIP throughput and the
 scientific choice of shorter study horizons remain separate hardware/research work.
+
+Shared journal storage for a new research freeze reserves 2 GiB, sufficient to
+avoid the former 64 MiB implementation stop during ordinary multi-task training.
+The runtime binds this to the frozen campaign's allowance; old campaigns keep
+their original limits. Replay reconciliation reads only the unseen indexed suffix.
+Progress distinguishes completed optimizer work from recoverable snapshot exposure;
+cumulative loss/token counts survive pruning of recent per-update metrics.
+
+Resource policy v2 prices hourly snapshots from the bounded task duration, plus
+initial/final and crossed milestone cuts, instead of multiplying checkpoint cost
+by every update. It retains the existing fourfold feasibility margin and scientific
+caps. Historical v1 remains readable with its original per-update semantics. Runtime
+reports preserve the historical comparator and add explicitly unmeasured hourly
+component projections; they do not rename old HIP results as current validation.
+
+For a prospective shorter study, `prepared_support.recadence` derives an immutable
+schedule from the original rows and complete trajectory horizon. It preserves
+all shards, probe exclusions, ordering, preparation omissions and provenance;
+returns explicit first-look deficits; and never uses model scores. All successive
+screening looks must share that schedule. A 500k/1M screening or 2M confirmation
+choice still requires its own prospective design; this repair selects none of them.

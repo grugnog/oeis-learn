@@ -268,7 +268,7 @@ def _run(
     device = execution_device(t["purpose"])
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
-    journal = BudgetJournal(accounting, c["identity"], c["payload"]["caps"])
+    journal = BudgetJournal(accounting, c["identity"], c["payload"]["caps"], journal_bytes=c["payload"]["storage"].get("journal_bytes",64<<20))
     from oeis_learn.generalization.progressive.quarantine import Journal
 
     Journal(journal.root).training(dict(package,shards=[]))
@@ -456,6 +456,7 @@ def _run(
         }
         if periodic:
             recovery.activate()
+            initial["recoverable"] = recovery.recoverable_useful
         retained_checkpoint = None
         registered_targets = set()
         with Heartbeat(progress, device=device, initial=initial, clock=recovery.clock) as heartbeat:
@@ -600,6 +601,7 @@ def _run(
                         charged=current["ledger"].consumed,
                         discarded=current["discarded_tokens"],
                         phase="UPDATE_COMPLETE" if periodic else "CHECKPOINT_COMMITTED",
+                        **({"recoverable": recovery.recoverable_useful} if periodic else {}),
                     )
                 if periodic:
                     recovery.finish_window(lambda: worker.capture(worker.context), failed=worker.failed)
@@ -641,6 +643,7 @@ def _run(
             final = recovery.restore()
             heartbeat.update(
                 phase=status,
+                **({"recoverable": recovery.state["useful_tokens"]} if periodic else {}),
                 committed=recovery.state["useful_tokens"],
                 charged=final["ledger"].consumed,
                 discarded=final["discarded_tokens"],

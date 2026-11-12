@@ -9,7 +9,7 @@ an evaluator or successor.
 import copy
 import time
 
-from oeis_learn.generalization.budgets import Ledger
+from oeis_learn.generalization.budgets import Ledger, integer
 from oeis_learn.pipeline_validation.generalization_persistence import snapshot_due
 from .contracts import seal
 from oeis_learn.fresh.common import write
@@ -28,6 +28,7 @@ class PeriodicRecovery(Recovery):
         current = super().current()
         if current['pending'] is not None:
             raise ValueError('hourly snapshots must be complete update boundaries')
+        self.recoverable_useful = self.state["useful_tokens"]
         self.live_ledger = current['ledger']
         self.live_cuts = current['cuts']
         self.active = True
@@ -42,6 +43,8 @@ class PeriodicRecovery(Recovery):
 
     def append(self, **changes):
         if self.active:
+            if not self.owned:
+                raise ValueError("exclusive task lease required")
             self.state = dict(self.state, **changes)
         else:
             super().append(**changes)
@@ -59,6 +62,9 @@ class PeriodicRecovery(Recovery):
                     pending=copy.deepcopy(self.state['pending']), cuts=copy.deepcopy(self.live_cuts))
 
     def completed(self, update, batch):
+        integer(update, 1)
+        if not self.owned:
+            raise ValueError("exclusive task lease required")
         if not self.active:
             return super().completed(update, batch)
         # The current owner may retry its last acknowledgement. Older requests
@@ -96,10 +102,11 @@ class PeriodicRecovery(Recovery):
         # plus the independently durable debit-before-work journal.
         write(self.root/'progress.json', seal(dict(version='progressive-periodic-progress/v1',
             checkpoint=self.state['checkpoint']['identity'], ledger=self.live_ledger.snapshot(),
-            useful_tokens=self.state['useful_tokens'], recoverable=False)))
+            useful_tokens=self.state['useful_tokens'], recoverable_useful_tokens=self.recoverable_useful,
+            recovery_authority=False)))
 
     def flush(self, capture):
-        if not self.active or self.state['pending'] is not None:
+        if not self.owned or not self.active or self.state['pending'] is not None:
             raise ValueError('complete live update boundary required')
         if not self.dirty:
             return self.state['checkpoint']
@@ -111,6 +118,7 @@ class PeriodicRecovery(Recovery):
             super().append(checkpoint=record)
         finally:
             self.active = True
+        self.recoverable_useful = self.state["useful_tokens"]
         self.entries.clear()
         self.dirty = False
         self.last_full = time.monotonic()

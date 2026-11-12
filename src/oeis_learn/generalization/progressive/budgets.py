@@ -6,7 +6,7 @@ import json
 import os
 from pathlib import Path
 from .contracts import load, digest, seal, _check, schema
-from .storage import JOURNAL_BYTES
+from .storage import JOURNAL_BYTES, journal_limit
 from oeis_learn.generalization.budgets import Ledger, integer
 
 KEYS = (
@@ -34,7 +34,7 @@ class BudgetJournal:
     timestamp or checkpoint can refund tokens/draws/attempts/discarded updates.
     """
 
-    def __init__(self, root, campaign, caps):
+    def __init__(self, root, campaign, caps, *, journal_bytes=None):
         self.root = Path(root)
         if self.root.is_symlink() or any(p.is_symlink() for p in self.root.parents):
             raise ValueError("symlink journal root")
@@ -47,6 +47,18 @@ class BudgetJournal:
         self.path = self.root / "budget.jsonl"
         self.binding = dict(campaign=campaign, caps=vector(caps))
         with self.lock():
+            if journal_bytes is not None:
+                from .contracts import atomic_write
+                from .storage import StorageGuard
+                if type(journal_bytes) is not int or not 0<journal_bytes<=JOURNAL_BYTES:
+                    raise ValueError('bounded frozen journal storage required')
+                storage=self.root/'journal-storage.json'
+                value=seal(dict(campaign=campaign,bytes=journal_bytes))
+                if storage.exists():
+                    if load(storage)!=value:raise ValueError('frozen journal storage changed')
+                else:
+                    StorageGuard([self.root],max_bytes=journal_bytes,max_inodes=8192).check(1024,2)
+                    atomic_write(storage,value)
             p = self.root / "budget-binding.json"
             if p.exists():
                 if load(p) != seal(self.binding):
@@ -72,7 +84,7 @@ class BudgetJournal:
         if not self.path.exists():
             return None
         st = self.path.stat()
-        if st.st_size > JOURNAL_BYTES:
+        if st.st_size > journal_limit(self.root):
             raise ValueError("bounded regular journal required")
         return (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
 
@@ -190,13 +202,13 @@ class BudgetJournal:
         from .storage import append_json, StorageGuard
 
         value = seal(event)
-        StorageGuard([self.root], max_bytes=JOURNAL_BYTES, max_inodes=8192).check(
+        StorageGuard([self.root], max_bytes=journal_limit(self.root), max_inodes=8192).check(
             len((json.dumps(value, sort_keys=True, allow_nan=False) + "\n").encode()), 1
         )
         # _append is called only while holding the journal lock, immediately
         # after _read. Never adopt unverified bytes from another writer.
         before = self._fingerprint()
-        append_json(self.path, value, maximum=JOURNAL_BYTES)
+        append_json(self.path, value, maximum=journal_limit(self.root))
         if before == self._verified_fingerprint:
             self._verified_fingerprint = object()
             self._consume(value)

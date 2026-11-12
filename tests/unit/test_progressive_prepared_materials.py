@@ -324,3 +324,22 @@ def test_batch_specific_cadence_covers_full_horizon_and_refreshes(reservoir):
     # The support selection is identical; only the frozen timing law changes.
     old,_=support.project(reservoir,support.policy(seed=13),diagnostic=True)
     assert data['shards']==old['shards'] and data['layout']==old['layout']
+
+
+def test_shorter_horizons_retime_original_support_without_new_data(reservoir):
+    import copy
+    original,report=support.project(reservoir,support.policy(seed=13,batch_cadence=True),diagnostic=True)
+    before=copy.deepcopy((original,report))
+    for target in (500000,1000000,2000000):
+        data,summary=support.recadence(original,report,target_tokens=target)
+        assert summary['status']=='COMPLETE',summary['deficits']
+        assert data['shards']==original['shards'] and data['layout']==original['layout']
+        assert summary['cadence_origin']['support']==original['identity']
+        assert all(b['first_refresh_token_upper_bound']<target for b in summary['bounds'])
+        assert all(b['required_shards']<=len(data['shards']) for b in summary['bounds'])
+        assert data['refresh_by_batch']!=original['refresh_by_batch']
+    assert (original,report)==before
+    _,too_early=support.recadence(original,report,target_tokens=2000000,first_look_tokens=1)
+    assert too_early['status']=='INCOMPLETE' and len(too_early['deficits'])==3
+    for target in (0,True,400000001):
+        with pytest.raises(ValueError):support.recadence(original,report,target_tokens=target)

@@ -505,7 +505,7 @@ def lifecycle_command(args, root, host_factory):
     producer_root = confined(root, runtime["payload"]["qualification"][0]["path"]).parent
     checked = current_runtime(host, root, output, runtime, producer_root=producer_root)
     store = RunStore(control, campaign)
-    journal = BudgetJournal(folder, campaign["identity"], campaign["payload"]["caps"])
+    journal = BudgetJournal(folder, campaign["identity"], campaign["payload"]["caps"], journal_bytes=campaign["payload"]["storage"].get("journal_bytes",64<<20))
     with store.lease():
         store.append(
             {"tasks": store.state["tasks"], "status": "RUNNING", "invocation": _INVOCATION.get()}
@@ -922,6 +922,7 @@ def assess_command(args, root, host_factory):
         root / "run-state/discovery-accounting" / campaign["identity"].split(":")[1],
         campaign["identity"],
         campaign["payload"]["caps"],
+        journal_bytes=campaign["payload"]["storage"].get("journal_bytes",64<<20),
     )
     derived = seal(
         dict(

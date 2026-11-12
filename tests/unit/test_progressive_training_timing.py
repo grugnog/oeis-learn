@@ -167,3 +167,16 @@ def test_installed_entry_rejects_foreign_source_before_device_work(tmp_path,monk
     monkeypatch.setenv('OEIS_QUALIFICATION_IMAGE',req['image'])
     with pytest.raises(ValueError,match='source/image'):t.run_inside(output)
     assert not (output/'hardware.json').exists()
+
+
+def test_hourly_projection_uses_snapshots_not_update_count():
+    # Independent hand calculation: 2M tokens at 2000/s, 25s probes,
+    # two 5-second verified snapshots and a 1-second initialization.
+    producer=dict(updates=[dict(cold=i==0,charged_tokens=1000,packing_us=0,update_us=500000) for i in range(16)],
+        checkpoint_read_us=[2000000]*5,components=dict(capture_and_save_us=3000000,two_probe_us=100000,initialization_us=1000000))
+    value=t.hourly_projection(producer,2000000)
+    assert value['projected_snapshots']==2
+    assert value['training_component_projection_seconds']==1036
+    assert not value['measured_full_learner']
+    longer=t.hourly_projection(producer,25000000)
+    assert longer['projected_snapshots']==5  # initial, three hours, terminal

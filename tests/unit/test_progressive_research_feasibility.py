@@ -125,6 +125,17 @@ def test_resource_finalization_only_shrinks_disk_and_reports_slow_choices(tmp_pa
     slow=copy.deepcopy(original);producers[0]['measurements']['update_us']=10**12
     result=r.finalize(tmp_path,slow,cases,producers)
     assert result['status']=='BLOCKED' and slow['deficits']==['training_time:first','training_time:second']
+    # Full tuning tasks carry multiple compatible choices. The slowest, not the
+    # first enumerated scope, must determine feasibility.
+    other=digest('other exact scope')
+    expanded=[cases[0],dict(cases[0],compatibility=other)]
+    producers[0]['measurements']['update_us']=100
+    second=dict(producers[0],compatibility=other,measurements=dict(update_us=1000000,probe_us=100,checkpoint_us=100))
+    monkeypatch.setattr('oeis_learn.generalization.progressive.trial_scopes.variants',
+        lambda task:[task,dict(task,initializer=dict(task['initializer'],compatibility=other))])
+    result=r.finalize(tmp_path,copy.deepcopy(original),expanded,[*producers,second])
+    assert all(row['compatibility']==other for row in result['training'])
+
 
 
 @pytest.mark.parametrize('failed_timing',[False,True])

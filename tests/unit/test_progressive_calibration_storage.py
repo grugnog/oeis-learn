@@ -71,3 +71,17 @@ def test_rolling_storage_counts_all_inputs_and_metadata_but_two_live_generations
     assert rolling<64<<30 and retained>10*(1<<40)
     with pytest.raises(ValueError,match='retention policy'):
         storage.required_bytes(cases,checkpoint,inputs,retention='delete-anything')
+
+
+def test_resource_estimate_accounts_for_hourly_snapshots_and_legacy_policy():
+    from oeis_learn.pipeline_validation.progressive_research_resources import estimate_training,policy
+    from oeis_learn.pipeline_validation.research_limits import padded_us
+    package=dict(shards=[[dict(tokens=[1])]],update_policy=dict(effective_batch=16))
+    measured=dict(update_us=1000,checkpoint_us=1000000,probe_us=500)
+    legacy=estimate_training(package,measured,delta=16000,target=16000,available=7200*1000000)
+    hourly=estimate_training(dict(package,checkpoint_policy='hourly/v1'),measured,delta=16000,target=16000,available=7200*1000000)
+    assert legacy['maximum_updates']==hourly['maximum_updates']==1000
+    assert legacy['maximum_snapshots']==1000 and hourly['maximum_snapshots']==4
+    assert hourly['estimated_work_us']==padded_us(1000000+4000000+125000)
+    assert hourly['estimated_work_us']<legacy['estimated_work_us']/100
+    assert policy(legacy=True)['version'].endswith('/v1') and policy()['version'].endswith('/v2')

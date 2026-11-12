@@ -704,7 +704,7 @@ def invoke_cpu(
     accounting = root / "accounting"
     control = root / "control"
     control.mkdir(parents=True, exist_ok=True)
-    journal = BudgetJournal(accounting, campaign["identity"], campaign["payload"]["caps"])
+    journal = BudgetJournal(accounting, campaign["identity"], campaign["payload"]["caps"], journal_bytes=campaign["payload"]["storage"].get("journal_bytes",64<<20))
     remaining = journal.task_remaining(task)
     name = "invocation-" + str(ordinal)
     output = root / name

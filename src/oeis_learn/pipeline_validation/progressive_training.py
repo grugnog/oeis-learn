@@ -848,6 +848,10 @@ class RecoverableUpdate:
                 if next_context["history"].get("consumed_counts_task") != self.recovery.task['identity']:
                     next_context["history"]["consumed_counts"] = {}
                     next_context["history"]["consumed_counts_task"] = self.recovery.task['identity']
+                totals = next_context["history"].setdefault("model_update_metrics", dict(updates=0, tokens=0, loss_sum=0.0))
+                totals["updates"] += 1
+                totals["tokens"] += count
+                totals["loss_sum"] += metrics["loss"]
                 counts = next_context["history"].setdefault("consumed_counts", {})
                 for entry in entries:
                     counts[entry] = counts.get(entry, 0) + 1
@@ -886,6 +890,7 @@ class Progress:
         force=False,
         last_boundary_age_us=None,
         stalled_reason=None,
+        recoverable=None,
     ):
         import shutil
 
@@ -899,6 +904,8 @@ class Progress:
                 raise ValueError("exact nonnegative exposure required")
         if committed + discarded > charged:
             raise ValueError("exposure accounting differs")
+        if recoverable is not None and (type(recoverable) is not int or not 0<=recoverable<=committed):
+            raise ValueError('recoverable exposure must be part of completed updates')
         self.output.mkdir(parents=True, exist_ok=True)
         disk = shutil.disk_usage(self.output)
         value = seal(
@@ -908,6 +915,7 @@ class Progress:
                 "last_boundary_age_us": last_boundary_age_us,
                 "stalled_reason": stalled_reason,
                 "committed": committed,
+                **({"recoverable": recoverable} if recoverable is not None else {}),
                 "charged": charged,
                 "discarded": discarded,
                 "remaining": remaining,

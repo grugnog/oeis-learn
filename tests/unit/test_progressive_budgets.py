@@ -240,7 +240,6 @@ def test_storage_guard_covers_shared_evidence_writers_and_copy(tmp_path):
 
 
 def test_verified_index_avoids_reparse_and_rechecks_external_edits(tmp_path, monkeypatch):
-    import json
     j=BudgetJournal(tmp_path,'c',caps())
     j.reserve('task','update',0,work(tokens=3),boot='b',monotonic_us=0)
     j.commit('task/update/0')
@@ -263,3 +262,17 @@ def test_verified_index_avoids_reparse_and_rechecks_external_edits(tmp_path, mon
     raw=j.path.read_text()
     j.path.write_text(raw.replace('"tokens": 3','"tokens": 2',1))
     with pytest.raises(ValueError,match='chain broken'):j.snapshot()
+
+
+def test_large_journal_allowance_is_frozen_and_legacy_default_stays_bounded(tmp_path):
+    from oeis_learn.generalization.progressive.storage import journal_limit,JOURNAL_BYTES
+    j=BudgetJournal(tmp_path/'research','c',caps(),journal_bytes=JOURNAL_BYTES)
+    j.reserve('t','update',0,work(tokens=1),boot='b',monotonic_us=0)
+    assert journal_limit(j.root)==2<<30
+    assert BudgetJournal(j.root,'c',caps()).snapshot()['consumed']['tokens']==1
+    with pytest.raises(ValueError,match='storage changed'):
+        BudgetJournal(j.root,'c',caps(),journal_bytes=128<<20)
+    legacy=BudgetJournal(tmp_path/'legacy','c',caps())
+    assert journal_limit(legacy.root)==64<<20
+    BudgetJournal(legacy.root,'c',caps(),journal_bytes=128<<20)
+    assert journal_limit(legacy.root)==128<<20

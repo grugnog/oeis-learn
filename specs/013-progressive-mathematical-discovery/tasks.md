@@ -656,6 +656,25 @@ learning gate, reduced scientific budget or research completion is claimed.
 ## Phase 24: Reuse research persistence and remove measured training overhead
 
 - [X] T178 Reuse the post-012 hourly snapshot policy in the progressive learner, retaining irreversible per-update charges, exact model/controller/RNG rollback, clean-boundary publication and quarantine/diversity provenance for the complete saved window. Avoid tensor reads/captures on ordinary updates; preserve legacy per-update inputs.
-- [ ] T179 Bound long-run metadata costs: incremental verified budget indexes, bounded recent update metrics and checkpoint-boundary retention. Test external journal modification, crash/publication faults and real numerical pause/resume.
-- [ ] T180 Provide outcome-blind support recadencing for prospective shorter horizons using the original prepared rows; report refresh feasibility and reject unsafe reuse without changing frozen studies or historical data.
-- [ ] T181 Update runtime projections and regression coverage for hourly persistence, document the remaining actual-HIP measurement and scientific horizon choice, and preserve existing original evidence/qualification boundaries.
+- [X] T179 Bound long-run metadata costs: incremental verified budget indexes, bounded recent update metrics and checkpoint-boundary retention. Test external journal modification, crash/publication faults and real numerical pause/resume.
+- [X] T180 Provide outcome-blind support recadencing for prospective shorter horizons using the original prepared rows; report refresh feasibility and reject unsafe reuse without changing frozen studies or historical data.
+- [X] T181 Update runtime projections and regression coverage for hourly persistence, document the remaining actual-HIP measurement and scientific horizon choice, and preserve existing original evidence/qualification boundaries.
+
+T178–T181 validation: real CPU optimizer/dropout tests cover hourly publication,
+clean pause/resume numerical equality, lost windows, partially mutated optimizers,
+lost publication acknowledgements, exact consumed-target ancestry, and bounded
+history with complete consumption counts. Installed-wheel interruption/resume and
+successor execution pass with both policies. Historical research persistence,
+replay/components, budget tamper/reopen, freeze, resource finalization (including
+multiple exact scopes), support recadencing, CLI and workstation regressions pass.
+An orphan-debit regression exposed a borrowed-cache iteration issue; the reader
+now snapshots pending keys before closing them, and the original crash test passes.
+The existing registered installed HIP recovery scenario now selects the hourly
+policy; it has not been run on physical HIP in this workspace.
+New research reserves 2 GiB for shared journals; the original frozen allowance is
+bound on use, with no enlargement of historical campaign caps. Native-only checks
+remain registered in CI and skip locally; no new HIP qualification is claimed.
+The original physical measurements support component estimates, not measured
+hourly full-learner throughput. Scientific study sizes remain unchanged. Selecting
+a shorter trajectory must prospectively publish its derived support schedule and
+first-look feasibility before freeze; it never rewrites original prepared data.
