@@ -34,7 +34,7 @@ NAMES.update({'registration.json', 'registration-progress.json', 'retained-input
               'selected-profiles.json', 'sensitivity-design.json', 'source-candidates.json',
               'source-projection.json', 'source-progress.json', 'registration-status.json'})
 NAMES.update({'registered-data.json','rehearsal-reference.json','research-preflight-plan.json',
-              'census.json','census-progress.json','sensitivity.json','readiness.json'})
+              'census.json','census-reuse.json','census-progress.json','sensitivity.json','readiness.json'})
 NAMES.update({'materials.json','support-policy.json','support-summary.json','research-round-design.json',
               'screening-summary.json','roster-summary.json'})
 NAMES.update({'checkpoint-retirement.json','checkpoint-retirement-intent.json',

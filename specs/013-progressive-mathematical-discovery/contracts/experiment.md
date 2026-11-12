@@ -58,3 +58,23 @@ A maximum research preset is only a resource reservation, not an instruction to 
 ## Sensitivity and negative-result handling
 
 Before confirming a candidate, perform the outcome-blind gate sensitivity checks in the contingency contract; sparse-group/censoring and repeated-look uncertainty can dominate a 2 pp target. A useful baseline remains available if refresh or tuning does not improve it. The HPO count, 400M milestone and library/source expansion are not completion obligations for a live research campaign. Every branch has a bounded negative/inconclusive path while software acceptance still covers all stages.
+
+### Prospective preparation v3 amendment
+
+For a newly frozen research-round-design/v2 only, screening uses 32 tasks in each
+stratum, at least 16 actual relation groups and at most two tasks per group. Select
+one member of each outcome-blind ordered group before second members; retain the
+exact roster for every trial/look. Existing study-policy/v1 continues to require
+exactly 16 pairs. Singleton groups are not duplicated or combined artificially.
+
+Parameter and familiar retention endpoints may share program structures between
+panels while exact finite values/windows and declared relation groups remain
+exclusive. Within each panel, parameter variants of a structure form one
+statistical cluster. Composition/unseen endpoints continue to reserve structural
+and composition relation components exclusively. No declaration implies that
+undetected mathematical dependencies are absent.
+
+Support-projection-policy/v2 freezes per-batch update intervals over the same
+25M-token support horizon. The interval, its batch map, support and update policy
+are bound to each exact learning compatibility. Changing batch therefore selects
+its prospectively frozen interval; it never rewrites a live trajectory.

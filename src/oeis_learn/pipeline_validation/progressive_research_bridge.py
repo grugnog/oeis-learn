@@ -105,9 +105,11 @@ def request(data):
     """Finite native census before model scoring, calibration or task freezing."""
     if seal(data) != data or data.get('version') != 'progressive-registered-data/v1':
         raise ValueError('original registered-data receipt required')
-    return seal(dict(version='progressive-research-census-request/v2', registration=data['identity'],
+    revision=data.get('census_reuse')
+    return seal(dict(version='progressive-research-census-request/v3' if revision else 'progressive-research-census-request/v2', registration=data['identity'],
+        **({'reuse':revision} if revision else {}),
         candidates=data['candidates'], exposure=data['exposure'], recipe=data['recipe'],
-        seed=20261112, training_draws=8192, evaluation_draws=32768, seconds=21600,
+        seed=20261112, training_draws=8192, evaluation_draws=65536 if revision else 32768, seconds=21600,
         shard_rows=256, per_case_seconds=4, required_per_stratum=128, minimum_groups=16,
         panels=['development','confirmation-diversity',
                 *['confirmation-tuning-'+str(i) for i in range(4)],'assessment'],

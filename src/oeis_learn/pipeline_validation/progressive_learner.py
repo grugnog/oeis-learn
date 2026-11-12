@@ -40,6 +40,7 @@ def compatibility(package):
         "refresh_updates": package["refresh_updates"],
         "scope": package["scope"],
     }
+    if "refresh_by_batch" in package:value["refresh_by_batch"]=package["refresh_by_batch"]
     if "oeis_replay" in package or "oeis_rules" in package:
         from oeis_learn.generalization.progressive.replay import RULE
 
@@ -63,7 +64,7 @@ def validate_input(package, task, *, allow_pending=False):
     if (
         set(package)
         - {
-            "weights",
+            "weights", "refresh_by_batch",
             "full_state",
             "origin",
             "oeis_replay",
@@ -98,6 +99,9 @@ def validate_input(package, task, *, allow_pending=False):
         )
     ):
         raise ValueError("scaling must retain the frozen 400M trajectory and schedule-specific warmup")
+    from oeis_learn.generalization.progressive.prepared_support import apply_batch_cadence
+    if apply_batch_cadence(package)['refresh_updates']!=package['refresh_updates']:
+        raise ValueError('batch differs from frozen refresh schedule')
     short=package.get('task_profile')=='combinatorial-short/v1'
     if 'task_profile' in package or 'short_rules' in package or 'short_rows' in package:
         from oeis_learn.generalization.progressive.short_learning import RULE

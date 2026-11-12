@@ -8,8 +8,9 @@ from oeis_learn.generalization.progressive.contracts import atomic_write,digest,
 from oeis_learn.pipeline_validation import progressive_research_bindings as b
 
 
-@pytest.fixture(scope='module')
-def compiled(tmp_path_factory):
+@pytest.fixture(scope='module',params=[False,True],ids=['original','preparation-v3'])
+def compiled(tmp_path_factory,request):
+    revised=request.param
     from tests.unit.test_progressive_research_roster import fixture
     from oeis_learn.pipeline_validation.progressive_acceptance import fixture as learning_fixture
     from oeis_learn.pipeline_validation.progressive_research_design import scientific_round
@@ -21,7 +22,8 @@ def compiled(tmp_path_factory):
     shards=[[seal(dict(r,native_verified=True)) for r in shard] for shard in package['shards']]
     rule=seal(dict(batches=[16,32,64]))
     support=seal(dict(version='progressive-prepared-support/v1',policy=rule['identity'],diagnostic=False,
-        shards=shards,layout=package['layout'],refresh_updates=1000000))
+        shards=shards,layout=package['layout'],refresh_updates=1000000,
+        **({'refresh_by_batch':{'16':1000000,'32':500000,'64':250000}} if revised else {})))
     summary=seal(dict(status='COMPLETE',diagnostic=False,support=support['identity'],policy=rule,
         maximum_target_tokens=max(len(r['tokens']) for s in shards for r in s)))
     atomic_write(root/'support.json',support)
@@ -36,9 +38,14 @@ def compiled(tmp_path_factory):
     atomic_write(root/'candidates.json',[])
     data=seal(dict(version='progressive-registered-data/v1',design=seal(dict(seeds=[17,19])),
         candidates=reference(root,'candidates.json'),exposure=reference(root,'original-exposure.sqlite'),
-        recipe=reference(root,'recipe.json'),manifest=reference(root,'manifest.json')))
+        recipe=reference(root,'recipe.json'),manifest=reference(root,'manifest.json'),
+        **({'census_reuse':seal(dict(TEST_BOUNDARY_ONLY=True))} if revised else {})))
     design=scientific_round(data)
     _,rosters,screening=fixture();panels={};reservations={};pubs=[]
+    if revised:
+        rosters['development']=[dict(r,group=r['id']) for r in rosters['development']]
+        from oeis_learn.generalization.progressive.prepared_panels import screening as select
+        screening,_=select([dict(r,role='development') for r in rosters['development']],seed=17,grouping='balanced-at-most-two/v2')
     exposure=record('exposure',dict(previous=None,events=[],detector_limits=['TEST BOUNDARY']),
         created_at='2026-11-11T00:00:00Z',purpose='research',track='synthetic_strict')
     atomic_write(root/'exposure.json',exposure)

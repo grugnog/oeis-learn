@@ -12,11 +12,11 @@ from .training_rows import validate_row
 
 
 def policy(*, seed, shard_rows=256, max_shards=64, target_tokens=25000000,
-           batches=(16, 32, 64)):
-    return seal(dict(version='progressive-support-projection-policy/v1', seed=seed,
+           batches=(16, 32, 64), batch_cadence=False):
+    return seal(dict(version='progressive-support-projection-policy/v2' if batch_cadence else 'progressive-support-projection-policy/v1', seed=seed,
         shard_rows=shard_rows, max_shards=max_shards, target_tokens=target_tokens,
         batches=list(batches), allocation_block=8, original_refresh_updates=8,
-        cadence_rule='smallest multiple of eight covering the complete horizon',
+        cadence_rule=('per-effective-batch smallest multiple of eight covering the complete horizon' if batch_cadence else 'smallest multiple of eight covering the complete horizon'),
         probe_rule='first counter-ordered row per bin; exclude exact finite overlaps',
         shard_rule='counter-ordered frontier structures, one new structure per refresh',
         minimum_refreshes=1))
@@ -24,7 +24,7 @@ def policy(*, seed, shard_rows=256, max_shards=64, target_tokens=25000000,
 
 def _policy(value):
     try:
-        expected=policy(**{k:value[k] for k in ('seed','shard_rows','max_shards','target_tokens','batches')})
+        expected=policy(**{k:value[k] for k in ('seed','shard_rows','max_shards','target_tokens','batches')}, batch_cadence=value.get('version')=='progressive-support-projection-policy/v2')
     except (KeyError,TypeError) as exc:
         raise ValueError('closed prospective support rule required') from exc
     if expected != value:
@@ -113,16 +113,19 @@ def project(reservoir, rule, *, diagnostic=False):
         cadence=max(8,8*ceil(updates/(len(shards)*8)))
         for batch in rule['batches']:
             bound=ceil(rule['target_tokens']/(minimum*batch))
-            first_refresh_tokens=cadence*maximum*batch
+            selected_cadence=max(8,8*ceil(bound/(len(shards)*8))) if rule['version'].endswith('/v2') else cadence
+            first_refresh_tokens=selected_cadence*maximum*batch
             bounds.append(dict(batch=batch,maximum_updates=bound,
-                required_shards=ceil(bound/cadence),
+                required_shards=ceil(bound/selected_cadence),
+                **({'refresh_updates':selected_cadence} if rule['version'].endswith('/v2') else {}),
                 first_refresh_token_upper_bound=first_refresh_tokens))
             if first_refresh_tokens>=rule['target_tokens']:
                 deficits.append('refresh_not_guaranteed_before_target:batch'+str(batch))
     layout=dict(bins=['familiar','frontier'],probes={
         name:dict(role='training',id=row['draw_identity']) for name,row in probes.items()})
     data=seal(dict(version='progressive-prepared-support/v1', policy=rule['identity'],
-        diagnostic=diagnostic, shards=shards,layout=layout,refresh_updates=cadence))
+        diagnostic=diagnostic, shards=shards,layout=layout,refresh_updates=cadence,
+        **({'refresh_by_batch':{str(b['batch']):b['refresh_updates'] for b in bounds}} if rule['version'].endswith('/v2') else {})))
     report=seal(dict(version='progressive-support-publication/v1',
         status='INCOMPLETE' if deficits else 'COMPLETE', policy=rule, reservoir=digest(reservoir),
         support=data['identity'], diagnostic=diagnostic, original_draws=len(reservoir),
@@ -148,7 +151,8 @@ def training_input(support, report, profile, update_policy):
         raise ValueError('effective batch outside prospective support domain')
     return seal(dict(version='progressive-training-input/v1',profile=profile,
         update_policy=update_policy,shards=support['shards'],layout=support['layout'],
-        refresh_updates=support['refresh_updates'],
+        refresh_updates=support.get('refresh_by_batch',{}).get(str(update_policy['effective_batch']),support['refresh_updates']),
+        **({'refresh_by_batch':support['refresh_by_batch']} if 'refresh_by_batch' in support else {}),
         scope='DIAGNOSTIC_ONLY' if support['diagnostic'] else 'NATIVE_VERIFIED',diagnostic_fault=None))
 
 
@@ -174,3 +178,15 @@ exposure for exclusion; they cannot manufacture initial transfer support.
         structures=sorted(support['structures']),nodes=sorted(support['nodes']),operators=sorted(support['operators']),
         scope='common initial gradient support; probes excluded; all original draws remain exposure exclusions'))
     return support,binding
+
+
+def apply_batch_cadence(package):
+    """Materialize the exact prospective interval for a finite batch choice."""
+    if 'refresh_by_batch' not in package:return package
+    intervals=package['refresh_by_batch']
+    if (not isinstance(intervals,dict) or not intervals or set(intervals)-{'16','32','64'}
+            or any(type(v) is not int or v<8 or v%8 for v in intervals.values())):
+        raise ValueError('closed batch-specific eight-update cadence required')
+    key=str(package['update_policy']['effective_batch'])
+    if key not in intervals:raise ValueError('batch outside frozen refresh schedule')
+    return dict(package,refresh_updates=intervals[key])

@@ -112,7 +112,7 @@ def _linked(a, b, exposure, policy):
         return True
     if a["behavior"] == b["behavior"]:
         return True
-    if policy == "parameter_structure_sharing" and a["stratum"] == b["stratum"] == "parameter":
+    if policy == "parameter_structure_sharing" and a["stratum"] in {"parameter","retention"} and b["stratum"] in {"parameter","retention"}:
         return False
     return a["structure"] == b["structure"] or (
         a["stratum"] == "composition" and a["composition"] == b["composition"]
@@ -304,7 +304,7 @@ def validate_frozen_panels(root, panels, exposures):
             )[0]["groups"]
             # Parameter sharing permits structure alone, never identical/shifted
             # finite values, source ancestry or declared relation groups.
-            if p["group_policy"] == "parameter_structure_sharing" and row["stratum"] == "parameter":
+            if p["group_policy"] == "parameter_structure_sharing" and row["stratum"] in {"parameter","retention"}:
                 detected = [g for g in detected if not g.startswith(("structure:", "composition:"))]
             effective = dict(row, groups=sorted(set(row["groups"]) | set(detected)))
             if p["role"] in {"confirmation", "assessment"} and any(

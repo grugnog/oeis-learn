@@ -559,3 +559,43 @@ Preparation may start while this CI reorganization is being checked; its own
 current-source qualification, calibration, freeze and acceptance gate training.
 Keep the workstation checkout unchanged once its run starts. CI-only updates do
 not require pulling into a running session or repeating its historical rehearsal.
+
+### Recover the unscored preparation census (request v3)
+
+`013-research-round-001` is retained unchanged. Its native draw census completed;
+its full-panel/screening supply and common refresh cadence were infeasible, and
+one OEIS member exceeded the evaluation integer profile. No model work started.
+The revised design in plan.md reuses all original native outcomes and unchanged
+synthetic sensitivity results, adds a fixed 32,768 support-conditioned evaluation
+attempts, and reruns canonical material publication. It preserves all historical
+exposure exclusions and costs. It cannot guarantee that the workstation's private
+history leaves enough fresh support; a deficit remains blocking and is packaged.
+
+From the repository root, use a new session and keep its checkout fixed during
+execution:
+
+```bash
+git switch 013-progressive-mathematical-discovery &&
+git pull --ff-only origin 013-progressive-mathematical-discovery &&
+python3 -S scripts/discovery_hip_handoff.py \
+  --engine podman \
+  --session run-state/discovery/013-research-round-002 \
+  prepare-research \
+  --registration-session run-state/discovery/013-research-inputs-003 \
+  --reuse-census-session run-state/discovery/013-research-round-001 \
+  --run-after-prepare
+```
+
+The reference-campaign location is inherited from the original registration.
+No new tiny rehearsal is requested. Current-source research-model HIP
+qualification, exact-input calibration, measured feasibility, freeze and scoped
+acceptance still gate automatic training. Final assessment remains explicit.
+Rerun the identical command at the same source to reconcile interruption; do not
+change the session to reset allowances. The donor-derived owner rejects another
+revision destination. Original census elapsed time is deducted from its six-hour
+allowance. New timing is measured, not inferred from a CPU simulation.
+
+Share `run-state/discovery/013-research-round-002/share/prepare-research.zip` on a
+preparation stop; if research proceeds, its separate `run-research.zip` follows.
+The preparation bundle includes original reuse provenance, cumulative counts,
+source exclusions, panel deficits and rejection summaries even on failure.

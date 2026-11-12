@@ -178,3 +178,44 @@ canonical freeze and campaign-bound acceptance, with final assessment separate.
 T157 remains the explicit implementation dependency for the concrete registered-
 data campaign builder, calibration connection and prospectively selected tuning
 scope; the intermediate census is not completion of that workflow.
+
+### Prospective census revision after unscored preparation (2026-11-12)
+
+Retain preparation v2 and all its costs/exclusions. Explicit v3 data reuse is
+limited to the reviewed original producer and an unscored, pre-HIP preparation.
+The new session owns the remainder of the original six-hour census allowance;
+one donor-derived durable owner prevents another directory resetting it. Reuse
+all 40,960 original native outcomes and their exact input artifacts. Do not
+repeat the tiny rehearsal, corpus acquisition or exposure import. Current-source
+model qualification/calibration/acceptance are still required independently.
+
+Commit 32,768 additional evaluation draws, alternating literal variants of
+common initial gradient-support programs and binary compositions of their seen
+pure bigint subexpressions. Use [-65,536,65,536] arithmetic literals, [1,4] control
+counts and [1,99] branch thresholds, with unchanged native/reference, encoding,
+exposure and finite-window validation. Every attempted counter remains charged;
+there is no redraw-until-quota policy. This explicitly changes the evaluation
+sampling prior, not the synthetic training distribution or primary endpoint.
+
+Permit structure sharing for parameter/retention variants across panels while
+retaining structural statistical clusters within each panel. Exact values,
+shift/prefix windows, declared relationships and composition relations remain
+indivisible. Primary composition/unseen structural grouping is unchanged.
+Screening v2 preserves 32 tasks/stratum and at least 16 groups, with at most two
+members each, selecting one from each group before second members. Singleton
+OEIS groups therefore remain eligible without invented relationships. Full
+confirmation targets and scientific gates remain unchanged.
+
+Support projection v2 retains the original training rows/shards/probes and
+chooses an eight-update-aligned interval separately for each effective batch.
+Each interval must both cover 25M tokens without exhausting support and guarantee
+a refresh before that milestone under the conservative maximum target size.
+The map is part of learning compatibility and follows exact trial materialization
+through calibration and execution. Reusing a fixed update interval across batches
+would confound the intended token-scale intervention.
+
+Exact original OEIS values outside the 4096-bit execution profile receive a
+recorded INELIGIBLE disposition; malformed values/indices remain integrity errors.
+No source is padded, truncated or substituted. Publish cumulative and new draw
+counts, rejection reasons, original producer references and source dispositions.
+An actual workstation supply deficit still blocks model work honestly.

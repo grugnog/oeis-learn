@@ -57,7 +57,7 @@ def build(root, census_path, request_path, output, rule):
     private=output/'private';private.mkdir(parents=True,mode=0o700)
     write(output/'support-policy.json',rule)
     write(private/'support.json',support);write(output/'support-summary.json',summary)
-    screening,screening_summary=prepared_panels.screening(roster['development'],seed=request['seed'])
+    screening,screening_summary=prepared_panels.screening(roster['development'],seed=request['seed'],grouping='balanced-at-most-two/v2' if 'reuse' in request else 'paired-16/v1')
     write(private/'screening.json',screening);write(output/'screening-summary.json',screening_summary)
     exposure=record('exposure',dict(previous=None,detector_limits=prepared_panels.LIMITS,
         events=[],indexes=[request['exposure'],reference(root,files['training-exposure.sqlite'])]),

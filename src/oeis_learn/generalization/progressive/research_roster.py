@@ -15,11 +15,11 @@ def construct(design, panels, screening):
     positions are fixed before model outcomes. Later conditional branches retain
     separate reservation requirements; a negative result never creates a task.
     """
-    if (seal(design)!=design or design.get('version')!='progressive-research-round-design/v1'
+    if (seal(design)!=design or design.get('version') not in {'progressive-research-round-design/v1','progressive-research-round-design/v2'}
             or design['selected_stages']!=['capability','diversity','tuning']):
         raise ValueError('original prospective capability/diversity/tuning round required')
     from .tuning import validate_screening_panel
-    validate_screening_panel(screening)
+    validate_screening_panel(screening,grouping=design['tuning'].get('screening_group_policy','paired-16/v1'))
     names={'development','confirmation-diversity',*[f'confirmation-tuning-{i}' for i in range(4)],
            'retention-development','retention-diversity','retention-tuning','assessment'}
     if set(panels)!=names:

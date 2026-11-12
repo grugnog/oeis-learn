@@ -194,7 +194,8 @@ def learner_scopes(compiler, support, summary):
             policy=resolve_update_policy(profile,schedule_horizon_tokens=horizon,
                 **{k:v for k,v in params.items() if k not in {'shape','dropout'}},
                 microbatch_size=16,warmup_tokens=1250000 if trajectory=='confirmation' and params['schedule']=='warmup_cosine' else None)
-            package=seal_package(dict(base,profile=profile,update_policy=policy))
+            from oeis_learn.generalization.progressive.prepared_support import apply_batch_cadence
+            package=seal_package(apply_batch_cadence(dict(base,profile=profile,update_policy=policy)))
             value=dict(compatibility=compatibility(package),runtime=compiler.runtime(profile))
             scopes[trajectory][digest(params)]=value
             if params['shape']=='reference':
@@ -265,7 +266,8 @@ def compile_plan(root,output,data,design,materials,*,qualification,checkpoint_by
                  missing_operations=[],created_at=c.created_at)))
     evaluations={name:dict(value,qualification=None) for name,value in roster['study_evaluations'].items()}
     # Three cumulative token milestones share one original 4M+whole-update cap.
-    study=seal(dict(version='progressive-study-policy/v1',token_cap=4000000+3*maximum_update,
+    study=seal(dict(version='progressive-study-policy/v2' if 'census_reuse' in data else 'progressive-study-policy/v1',
+        **({'screening_group_policy':'balanced-at-most-two/v2'} if 'census_reuse' in data else {}),token_cap=4000000+3*maximum_update,
         target_tokens=4000000,elapsed_cap_us=7200*1000000,
         screening=dict(startup_us=20*1000000,evaluation_us=[810*1000000,540*1000000,540*1000000],
                        training_us=2700*1000000,finalization_us=1800*1000000),

@@ -28,14 +28,17 @@ def policy(root, campaign, study):
         doc = json.loads(verify_refs(root, [item["artifact"]], max_bytes=32 << 20)[0])
         if (
             isinstance(doc, dict)
-            and doc.get("version") == "progressive-study-policy/v1"
+            and doc.get("version") in {"progressive-study-policy/v1","progressive-study-policy/v2"}
             and doc.get("identity") == study
         ):
             matches.append(doc)
     if len(matches) != 1 or seal(matches[0]) != matches[0]:
         raise ValueError("one original frozen study policy required")
     p = matches[0]
-    if set(p) - {"diagnostic_pruning_coordinate"} != {
+    revised=p["version"]=="progressive-study-policy/v2"
+    if revised and p.get("screening_group_policy")!="balanced-at-most-two/v2":
+        raise ValueError("registered prospective screening group policy required")
+    if set(p) - {"diagnostic_pruning_coordinate"} - ({"screening_group_policy"} if revised else set()) != {
         "version",
         "identity",
         "token_cap",
@@ -56,7 +59,7 @@ def policy(root, campaign, study):
     if campaign["purpose"] == "research":
         if p["target_tokens"] != 4000000 or p["elapsed_cap_us"] != 7200000000:
             raise ValueError("fixed research screening horizon required")
-        validate_screening_panel(p["panel"])
+        validate_screening_panel(p["panel"],grouping=p.get("screening_group_policy","paired-16/v1"))
     if not 0 < p["target_tokens"] <= p["token_cap"] <= 2**63 - 1:
         raise ValueError("frozen token ceiling required")
     return p

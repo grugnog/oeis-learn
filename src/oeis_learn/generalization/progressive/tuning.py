@@ -81,9 +81,11 @@ def propose(journal, ordinal, *, selected_learning=None):
     return journal.propose(ordinal, parameters=params, seed=seed)
 
 
-def validate_screening_panel(rows):
+def validate_screening_panel(rows, *, grouping="paired-16/v1"):
     if not isinstance(rows, list) or len(rows) != 128 or len({r["id"] for r in rows}) != 128:
         raise ValueError("fixed 128-task development subset required")
+    if grouping not in {"paired-16/v1", "balanced-at-most-two/v2"}:
+        raise ValueError("registered screening group policy required")
     for stratum in ("parameter", "composition", "unseen_structure", "oeis"):
         groups = {}
         for row in rows:
@@ -91,7 +93,8 @@ def validate_screening_panel(rows):
                 raise ValueError("development-only screening panel")
             if row["stratum"] == stratum:
                 groups[row["group"]] = groups.get(row["group"], 0) + 1
-        if len(groups) != 16 or set(groups.values()) != {2}:
+        valid=(len(groups)==16 and set(groups.values())=={2}) if grouping=="paired-16/v1" else (sum(groups.values())==32 and len(groups)>=16 and max(groups.values(),default=0)<=2)
+        if not valid:
             raise ValueError("two tasks from each of sixteen groups per stratum required")
     return digest(rows)
 

@@ -62,7 +62,8 @@ def materialize(package, plan):
         microbatch_size=min(package["update_policy"]["microbatch_size"], params["effective_batch"]),
         warmup_tokens=1250000 if confirmation and params["schedule"] == "warmup_cosine" else None,
     )
-    result = seal_package(dict(package, profile=profile, update_policy=policy))
+    from .prepared_support import apply_batch_cadence
+    result = seal_package(apply_batch_cadence(dict(package, profile=profile, update_policy=policy)))
     if compatibility(result) != plan["initializer"]["compatibility"]:
         raise ValueError("finite trial choice differs from frozen learning compatibility")
     return result

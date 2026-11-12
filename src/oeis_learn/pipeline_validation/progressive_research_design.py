@@ -18,7 +18,8 @@ def scientific_round(data):
     if seal(data)!=data or data.get('version')!='progressive-registered-data/v1':
         raise ValueError('original registered-data receipt required')
     from oeis_learn.generalization.progressive.research_budget import ROLE_SECONDS,SETUP_SECONDS,LIMITS_SECONDS
-    return seal(dict(version='progressive-research-round-design/v1',executable=False,
+    revised='census_reuse' in data
+    return seal(dict(version='progressive-research-round-design/v2' if revised else 'progressive-research-round-design/v1',executable=False,
         original_design=data['design']['identity'],registration=data['identity'],
         selected_stages=['capability','diversity','tuning'],
         seeds=data['design']['seeds'],precision='float32',gpu_owners=1,
@@ -26,13 +27,14 @@ def scientific_round(data):
             tuning_confirmation=4,separate_retention=['development','diversity','tuning'],
             assessment='explicit locked assessment command only'),
         support=dict(token_horizon=25000000,maximum_shards=64,
-            cadence='prospective support-projection-policy/v1 before census',
+            cadence='prospective support-projection-policy/v2 per effective batch' if revised else 'prospective support-projection-policy/v1 before census',
             fresh_initialization='paired random; original D remains an evaluation reference'),
         tuning=dict(learning_trials=12,sizing_trials=4,space=SPACE,shapes=list(SHAPES),
             unchanged_baseline=BASELINE,unpruned_learning_control=CONTROL,
             screen_tokens=4000000,screen_seconds=7200,
             screening_looks=[1000000,2000000,4000000],screening_tasks_per_stratum=32,
             screening_groups_per_stratum=16,screening_tasks_per_group=2,
+            **({'screening_group_policy':'balanced-at-most-two/v2'} if revised else {}),
             protected_finalization_seconds=1800,confirmation_tokens=25000000,
             confirmation_seconds=43200,confirmation_schedule_horizon=400000000,
             confirmation_cosine_warmup=1250000,maximum_nonbaseline_finalists=3),

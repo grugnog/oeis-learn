@@ -309,3 +309,18 @@ def test_stdlib_custodian_cli_connects_census_and_rejects_stale_output(tmp_path)
     (tmp_path/'partial/output/sentinel').write_text('retain')
     stale=subprocess.run([*argv[:-1],'partial/output'],capture_output=True,text=True,timeout=60)
     assert stale.returncode!=0 and (tmp_path/'partial/output/sentinel').read_text()=='retain'
+
+
+def test_batch_specific_cadence_covers_full_horizon_and_refreshes(reservoir):
+    from oeis_learn.generalization.progressive.supply import plan
+    rule=support.policy(seed=13,batch_cadence=True)
+    data,summary=support.project(reservoir,rule,diagnostic=True)
+    assert summary['status']=='COMPLETE'
+    assert set(data['refresh_by_batch'])=={'16','32','64'}
+    for batch in (16,32,64):
+        package=support.apply_batch_cadence(dict(data,update_policy={'effective_batch':batch}))
+        plan(package,25000000,arm='refreshed')
+        assert package['refresh_updates']*summary['maximum_target_tokens']*batch<25000000
+    # The support selection is identical; only the frozen timing law changes.
+    old,_=support.project(reservoir,support.policy(seed=13),diagnostic=True)
+    assert data['shards']==old['shards'] and data['layout']==old['layout']

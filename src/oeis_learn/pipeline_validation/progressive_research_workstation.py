@@ -13,13 +13,23 @@ def prepare(workflow):
     from . import progressive_research_bridge as bridge
     from .supervision import diagnostic_program
     w = workflow; s = w.s; root = w.root; base = w.base
-    data = s.step('registered-data', lambda: bridge.adopt(root,w.args.registration_session,base/'registered'))
+    def registered():
+        data,files=bridge.adopt(root,w.args.registration_session,base/'registered')
+        donor=getattr(w.args,'reuse_census_session',None)
+        if donor:
+            from .progressive_research_revision import adopt
+            reuse=adopt(root,donor,s.folder,data)
+            data=seal(dict(data,census_reuse=reuse))
+            write(base/'registered/registered-data.json',data)
+            write(base/'census-reuse.json',reuse);files.append(base/'census-reuse.json')
+        return data,files
+    data = s.step('registered-data', registered)
     s.step('rehearsal-reference',lambda: bridge.rehearsal(root,w.args.rehearsal_session,base,s.binding['source']))
     def plan():
         request=bridge.request(data)
         write(base/'census/request.json',request)
         from oeis_learn.generalization.progressive.prepared_support import policy
-        write(base/'support-policy.json',policy(seed=request['seed'],target_tokens=request['token_target']))
+        write(base/'support-policy.json',policy(seed=request['seed'],target_tokens=request['token_target'],batch_cadence='reuse' in request))
         from .progressive_research_design import scientific_round
         design=scientific_round(data)
         write(base/'research-round-design.json',design)
@@ -63,7 +73,8 @@ def prepare(workflow):
             return result,files
         result, files=execute('census',
             'from oeis_learn.pipeline_validation.progressive_research_census import main;main()',
-            seconds=seconds,inputs=[req[k] for k in ('candidates','exposure','recipe')],
+            seconds=seconds,inputs=[req[k] for k in ('candidates','exposure','recipe')]+(
+                [req['reuse']['census'],req['reuse']['request'],*req['reuse']['artifacts']] if 'reuse' in req else []),
             outputs=('census.json',))
         # Hash-bound private outputs are reusable data, but never included in ZIPs.
         for ref in result['artifacts']:
@@ -71,7 +82,7 @@ def prepare(workflow):
         return result,files
     def census():
         from .preparation_recovery import Allowance
-        with Allowance(base/'census-host-allowance.json',dict(request=req['identity'],scope=s.binding),req['seconds']+120).attempt() as (left,ordinal):
+        with Allowance(base/'census-host-allowance.json',dict(request=req['identity'],scope=s.binding),req['seconds']+120-req.get('reuse',{}).get('prior_elapsed_seconds',0)).attempt() as (left,ordinal):
             return census_action(left)
     counted=s.step('native-census',census,recover=True,dependencies=('prepare-research/census-plan','prepare-research/image-qualification'))
     def materials():
@@ -90,6 +101,8 @@ def prepare(workflow):
         return result,sorted((base/'materials').rglob('*.json'))
     projected=s.step('materials',materials,dependencies=('prepare-research/native-census','prepare-research/census-plan'))
     def role_roster():
+        if projected['status']!='COMPLETE':
+            raise Blocked('Outcome-blind materials are incomplete: '+', '.join(projected['deficits']))
         from .supervision import launch
         argv=[sys.executable,'-S','-c',
             'import sys;sys.path.insert(0,sys.argv.pop(1));from oeis_learn.pipeline_validation.progressive_research_bindings import main;main()',
@@ -106,6 +119,10 @@ def prepare(workflow):
         # Original registered assumptions, not real panel/model outcomes.
         original=confined(root,data['donor_session']['path']).parent/'register-inputs/design/sensitivity-design.json'
         design=load(original)
+        if 'census_reuse' in data:
+            from .progressive_research_revision import reuse_sensitivity
+            reused=reuse_sensitivity(root,data['census_reuse'],design,base/'sensitivity')
+            if reused:return reused
         write(base/'sensitivity/design.json',design)
         return execute('sensitivity',
             "from oeis_learn.pipeline_validation.progressive_research_sensitivity import main;main()",

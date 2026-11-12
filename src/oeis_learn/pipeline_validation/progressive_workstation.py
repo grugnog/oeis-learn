@@ -36,6 +36,7 @@ def parser():
     p.add_argument('--blueprint',help='original concrete research blueprint; never a template with guessed inputs')
     p.add_argument('--selection',help='original locked assessment selection')
     p.add_argument('--registration-session',help='verified completed input registration to reuse for research preparation')
+    p.add_argument('--reuse-census-session',help='explicit unscored v2 preparation to reuse under the prospective v3 design')
     p.add_argument('--rehearsal-session',help='original completed rehearsal retained for scope reconciliation, never relabelled')
     p.add_argument('--run-after-prepare',action='store_true',
                    help='continue directly into canonical research run/resume only after complete preparation and campaign-bound acceptance')
@@ -419,10 +420,12 @@ def main(root,argv=None):
         parser().error('register-inputs requires --input-manifest')
     if (args.input_manifest or args.oeis_snapshot or args.reuse_exposure_session) and args.phase != 'register-inputs':
         parser().error('input manifest, source snapshot and exposure reuse belong to register-inputs')
-    if (args.registration_session or args.rehearsal_session) and args.phase != 'prepare-research':
+    if (args.registration_session or args.rehearsal_session or args.reuse_census_session) and args.phase != 'prepare-research':
         parser().error('registration/rehearsal session references belong to prepare-research')
     if args.run_after_prepare and args.phase != 'prepare-research':
         parser().error('--run-after-prepare belongs to prepare-research; assessment is always separate')
+    if args.reuse_census_session and not args.registration_session:
+        parser().error('--reuse-census-session requires the same original --registration-session')
     if args.registration_session and args.blueprint:
         parser().error('choose registered-data preparation or an original concrete blueprint')
     if args.memory_gib<=0 or args.cpus<=0: raise ValueError('positive finite resource limits required')
@@ -450,8 +453,8 @@ def main(root,argv=None):
         binding['input_manifest'] = dict(path=args.input_manifest, sha256=sha(confined(root,args.input_manifest)))
         if args.reuse_exposure_session:
             binding['reuse_exposure_session'] = args.reuse_exposure_session
-    for key in ('input_manifest','reuse_exposure_session','registration_session','rehearsal_session'):
-        selected=getattr(args,key,None) if key in {'registration_session','rehearsal_session'} else None
+    for key in ('input_manifest','reuse_exposure_session','registration_session','rehearsal_session','reuse_census_session'):
+        selected=getattr(args,key,None) if key in {'registration_session','rehearsal_session','reuse_census_session'} else None
         if selected is not None: binding[key]=selected
         elif key in old and key not in binding: binding[key]=old[key]
     if args.phase=='collect' and old: binding=old # Recovery collects old evidence; never executes it.
