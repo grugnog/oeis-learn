@@ -637,3 +637,37 @@ Completed case publications are verified and reused; failed/interrupted original
 remain evidence, and unknown interruption time is conservatively charged. Do not
 switch destinations to reset the donor-owned allowance. Review the measurements
 before selecting a revised finite schedule; this command cannot freeze or launch it.
+
+### Measure reference training costs before choosing shorter trials
+
+After `013-services-001` completed successfully, run:
+
+```bash
+git pull --ff-only origin 013-progressive-mathematical-discovery &&
+python3 -S scripts/discovery_hip_handoff.py \
+  --engine podman \
+  --session run-state/discovery/013-training-timing-001 \
+  measure-training \
+  --service-session run-state/discovery/013-services-001
+```
+
+This reuses original training data and runs 16 diagnostic reference-model updates
+plus two stress updates. It measures initialization, update throughput, training
+probes, progressive checkpoint save/verified reads and fresh-model restore using
+the current installed HIP image and existing numerical policy. No census, generation
+timing, rehearsal, scientific training campaign or assessment is repeated. The
+diagnostic weights are local-only and cannot initialize scientific research.
+
+The host measurement has a 32-minute safety ceiling, including cleanup; image
+construction is additional. This is not an ETA. There is no automatic model-work
+retry after failure; reissuing the same command reuses complete checked steps and
+reconciles reporting. Failed progress and original debits remain available.
+
+Share `run-state/discovery/013-training-timing-001/share/measure-training.zip`, even
+after failure. The runtime review separates update-only costs from per-update
+checkpoint and probe costs, projects 500k/1M/2M/4M/25M tokens, and states remaining
+full-learner overhead uncertainty. Review refresh timing before choosing a 2M
+static/refreshed experiment: the existing 25M-support policy only guarantees its
+first refresh by about 8.2M tokens. Scientific utility of a short horizon still
+requires an independently registered learning-curve pilot; this timing command
+neither chooses budgets nor opens development, confirmation or assessment panels.

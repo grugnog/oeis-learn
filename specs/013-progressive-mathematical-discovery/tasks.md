@@ -638,3 +638,17 @@ Physical service timings and a prospectively feasible research schedule remain
 external requirements; these implementation tasks do not complete T089.
 Final affected workstation/feasibility/service/CI/CLI/inventory run: 136 passed,
 one local native-service skip. No physical HIP or CI completion is claimed.
+
+## Phase 23: Reference training timing before selecting shorter horizons
+
+- [X] T176 Implement a training-only HIP timing command over the original service-session publications and native gradient support. Measure reference FP32 updates across initial/future bins, separate cold/steady costs, probe overhead, canonical progressive checkpoint save/read/restore and device cleanup. Use current source/image, one bounded owner, durable debits, immutable completed-stage reuse and failure ZIPs. Cover real CPU numerical/checkpoint paths and host integration without claiming CPU results as HIP.
+- [X] T177 Report unpadded component projections at 500k/1M/2M/4M/25M tokens, including the current per-update checkpoint reads/writes, and expose first-refresh bounds. Document the separate early learning-curve pilot needed to choose a useful horizon, schedule/refresh implications, evaluation costs and confirmation independence. Do not change scientific budgets or claim timing data establishes learned capability.
+
+T176–T177 validation: 121 affected timing/service/workstation/CI/CLI/checkpoint/
+iteration/inventory checks passed; one existing native-service test skipped locally.
+Actual CPU optimizer updates, progressive checkpoint save, five verified reads,
+fresh-adapter restore, charged-token accounting and component projection ran without
+model doubles. Original material constructor/binding, private-data exclusion, failure
+ZIP, source rejection, immutable reuse and sibling-owner checks passed. Actual HIP
+timing and scientific horizon selection remain external; no hardware qualification,
+learning gate, reduced scientific budget or research completion is claimed.

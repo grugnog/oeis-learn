@@ -20,7 +20,7 @@ from .progressive_workstation_state import Session, Blocked, write, read, teleme
 
 from .research_limits import IMAGE_SECONDS, REPORT_SECONDS, CLEANUP_SECONDS, case_allowance
 
-PHASES=('register-inputs','rehearse','prepare-research','measure-services','run-research','assess','collect')
+PHASES=('register-inputs','rehearse','prepare-research','measure-services','measure-training','run-research','assess','collect')
 
 
 def parser():
@@ -38,6 +38,7 @@ def parser():
     p.add_argument('--registration-session',help='verified completed input registration to reuse for research preparation')
     p.add_argument('--reuse-census-session',help='explicit unscored v2 preparation to reuse under the prospective v3 design')
     p.add_argument('--preparation-session',help='original failed preparation for CPU-only service measurement')
+    p.add_argument('--service-session',help='completed original service measurement for training-only HIP timing')
     p.add_argument('--rehearsal-session',help='original completed rehearsal retained for scope reconciliation, never relabelled')
     p.add_argument('--run-after-prepare',action='store_true',
                    help='continue directly into canonical research run/resume only after complete preparation and campaign-bound acceptance')
@@ -419,6 +420,8 @@ def main(root,argv=None):
     args=parser().parse_args(argv); root=Path(root).resolve()
     if (args.phase=='measure-services') != bool(args.preparation_session):
         parser().error('measure-services requires --preparation-session; that option belongs only to this phase')
+    if (args.phase=='measure-training') != bool(args.service_session):
+        parser().error('measure-training requires --service-session; that option belongs only to this phase')
     if args.phase == 'register-inputs' and not args.input_manifest:
         parser().error('register-inputs requires --input-manifest')
     if (args.input_manifest or args.oeis_snapshot or args.reuse_exposure_session) and args.phase != 'register-inputs':
@@ -438,6 +441,7 @@ def main(root,argv=None):
             sequence=dict(**{'register-inputs':['source-inventory','project-explicit-source','verify-originals','prospective-design','CPU-image','private-exposure-import','registration-status']},rehearse=['inventory','images','base-qualification','tiny-Q','prepare','freeze','CPU+HIP-acceptance'],
             **{'prepare-research':(['verified-registration-reuse','rehearsal-scope-reference','CPU-native-census','independent-sensitivity','readiness-deficits'] if args.registration_session else ['original-inputs','selected-Q','exact-calibration','freeze','acceptance']),
                'measure-services':['verify-original-training-inputs','CPU-image','eight-native-service-cases','budget-review'],
+               'measure-training':['verify-original-service-inputs','HIP-image','training-only-update-timing','runtime-review'],
                'run-research':['run-or-resume','report','verify'],'assess':['locked-assess','report','verify'],'collect':['package-existing']})[args.phase],
             launches=False,host_dependencies='Python standard library only',
             census_reuse=args.reuse_census_session,
@@ -451,6 +455,8 @@ def main(root,argv=None):
     donor=read(confined(root,args.registration_session)/'session.json') if args.registration_session else None
     if args.preparation_session:
         donor=read(confined(root,args.preparation_session)/'session.json')
+    if args.service_session:
+        donor=read(confined(root,args.service_session)/'session.json')
     ref=args.reference_campaign or old.get('reference_campaign') or (donor['binding']['reference_campaign'] if donor else None)
     if not ref and args.phase!='collect':
         print('--reference-campaign is required for the first invocation',file=sys.stderr); return 2
@@ -461,8 +467,8 @@ def main(root,argv=None):
         binding['input_manifest'] = dict(path=args.input_manifest, sha256=sha(confined(root,args.input_manifest)))
         if args.reuse_exposure_session:
             binding['reuse_exposure_session'] = args.reuse_exposure_session
-    for key in ('input_manifest','reuse_exposure_session','registration_session','rehearsal_session','reuse_census_session','preparation_session'):
-        selected=getattr(args,key,None) if key in {'registration_session','rehearsal_session','reuse_census_session','preparation_session'} else None
+    for key in ('input_manifest','reuse_exposure_session','registration_session','rehearsal_session','reuse_census_session','preparation_session','service_session'):
+        selected=getattr(args,key,None) if key in {'registration_session','rehearsal_session','reuse_census_session','preparation_session','service_session'} else None
         if selected is not None: binding[key]=selected
         elif key in old and key not in binding: binding[key]=old[key]
     if args.phase=='collect' and old: binding=old # Recovery collects old evidence; never executes it.
@@ -490,6 +496,9 @@ def main(root,argv=None):
                 if args.run_after_prepare: w.run_after_prepare()
             elif args.phase=='measure-services':
                 from .progressive_service_workstation import measure
+                measure(w)
+            elif args.phase=='measure-training':
+                from .progressive_training_timing_workstation import measure
                 measure(w)
             elif args.phase in {'run-research','assess'}: w.research()
             else: return 0

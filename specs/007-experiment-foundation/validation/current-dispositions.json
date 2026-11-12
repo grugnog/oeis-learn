@@ -1,7 +1,7 @@
 {
   "schema_version": "review-disposition/v1",
   "phase": 13,
-  "code_revision": "spec013-training-service-continuation-runtime-review",
+  "code_revision": "spec013-reference-training-timing-short-horizon-review",
   "source_sha256": "sha256:fcf84cd2f6f420daf2f5ef3fe11beee0f04543aa5032bb580752347ae19b787a",
   "scope": "Original-input/task traceability with phase-13 code repairs. Missing source/model and phase-14 acceptance remain pending; no checklist grants release authorization.",
   "full_007_complete": false,
@@ -1755,7 +1755,7 @@
     }
   ],
   "original_inputs": 68,
-  "implementation_sha256": "sha256:c191e52c00897c0b3c1d22a8aa7b63f9bba3b9740ec4166d2f082c9434f39c95",
+  "implementation_sha256": "sha256:ae6a402dca14d159075f47d5a7bb2fcbbe622c2d70e90af2b6f568f223442eaa",
   "implementation_hash_method": "experiment_runner.implementation_identity()",
   "task_inventory_sha256": "sha256:87b554eb1482ac30aab8229d456b0f92665635c21ad210b150658a38f26b9053",
   "historical_template": {

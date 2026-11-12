@@ -300,3 +300,56 @@ elapsed time unknown until representative HIP update throughput, probes, checkpo
 publication/restore and setup are measured separately. Neither the fourfold safety
 margin nor a hard cap is an ETA. Review the measurements with the operator before
 changing scientific budgets or freezing a new schedule.
+
+### Reference training timing and short-study sizing
+
+The operator selected staged measurement before committing the full tuning budget
+and asked whether 500k–1M screening and 2M confirmation can be informative. Add
+`measure-training`, consuming the completed service diagnostic and unchanged
+native training support. It builds/reuses only the current HIP image and measures
+the reference recipe at batch 16 with the canonical FP32 update path. Sixteen
+fixed coverage batches include initial familiar/frontier and later frontier data;
+two additional stress batches cover longest targets and largest visible integers.
+Exclude probes from gradients, record every debit before work, and report cold
+initialization/Adam allocation separately from steady update speed. This fixed
+coverage sample is not a prediction of learned curriculum allocation.
+
+Measure the canonical training probes, full progressive checkpoint capture/save,
+five verified checkpoint reads and fresh-model restore. The present production
+learner checkpoints every update and reads complete state in its loop restore,
+completion check, reservation, commit check and save verification. Omitting those
+costs would materially understate training time. Report these component projections
+separately from GPU update-only throughput; growing journal/quarantine history,
+retention scans and sustained filesystem pressure remain unmeasured. This short
+diagnostic cannot establish full-learner throughput or sustained execution.
+
+The installed role verifies current source/image and actual HIP with the existing
+numerical startup policy and exclusive GPU owner. A finite 1,800-second inner /
+1,920-second host allowance includes cleanup; image construction remains separate.
+A donor-derived ownership claim prevents sibling resets. Successful stages reuse
+original checked publications; failed or interrupted model work is retained and
+not automatically restarted. Original progress, debits, hardware facts, failures,
+checkpoint hash inventory and partial reports enter the existing ZIP infrastructure;
+training rows and checkpoint tensors stay local. This is diagnostic timing, never
+qualification, a scientific checkpoint or a frozen campaign.
+
+Project costs at 500k, 1M, 2M, 4M and 25M tokens without safety multipliers. Also
+report the original first-refresh bounds and an initial-bin token-size projection.
+Round-002's first-refresh upper bound is approximately 8.2M tokens; merely stopping
+its current policy at 2M cannot guarantee that refreshed training ever differs
+from static. A shorter diversity experiment requires a prospectively revised
+refresh horizon that exposes the intervention. Learning-rate warmup/decay must
+likewise be chosen for the intended horizon, or explicitly preserved when studying
+early checkpoints of a longer schedule. These are scientific design decisions,
+not automatic timeout adjustments.
+
+Useful short-run sizing requires a separate registered learning-curve pilot:
+measure executable development capability and retention at declared early cuts,
+check whether gains/rankings stabilize or remain near the floor, and preserve all
+data exposure. Teacher-forced loss and this 18-update timing diagnostic cannot
+establish a useful training horizon. Repeated development scoring has a substantial
+fixed cost, so token reductions alone do not produce proportional wall-time savings.
+A short independent two-seed confirmation can support a claim at its own horizon;
+it cannot establish superiority at 25M/100M/400M. Keep its unused confirmation panel
+and the final assessment isolated. Decide the finite pilot/study budgets after
+timing review; existing scientific rosters and budgets remain unchanged.
