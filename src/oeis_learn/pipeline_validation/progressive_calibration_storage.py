@@ -28,7 +28,7 @@ def required_bytes(cases,checkpoint_bytes,input_bytes,*,retention=None,metadata_
 
 def retire(case_root, producer, *, maximum_bytes):
     case_root=Path(case_root)
-    if (seal(producer)!=producer or producer.get('version')!='progressive-iteration-calibration/v1'
+    if (seal(producer)!=producer or producer.get('version') not in {'progressive-iteration-calibration/v1','progressive-iteration-calibration/v2'}
             or producer.get('status')!='PASS' or load(case_root/'producer.json')!=producer):
         raise ValueError('original successful exact-input calibration required for retirement')
     if type(maximum_bytes) is not int or maximum_bytes<1:

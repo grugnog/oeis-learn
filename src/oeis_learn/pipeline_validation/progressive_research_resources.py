@@ -7,12 +7,12 @@ import json
 from .research_limits import padded_us
 from oeis_learn.generalization.progressive.contracts import seal,verify_refs
 
-POLICY='progressive-measured-research-resources/v2'
+POLICY='progressive-measured-research-resources/v3'
 
 
-def policy(*, legacy=False):
-    return seal(dict(version='progressive-measured-research-resources/v1' if legacy else POLICY,metadata_bytes=128<<20,generations=2,
-        checkpoint_scope='maximum original retained or exact calibrated full state',
+def policy(*, legacy=False, global_storage=False):
+    return seal(dict(version='progressive-measured-research-resources/v1' if legacy else 'progressive-measured-research-resources/v2' if global_storage else POLICY,metadata_bytes=128<<20,generations=2,
+        checkpoint_scope='maximum original retained or exact calibrated full state' if legacy or global_storage else 'per-task exact calibrated full state plus 128 MiB context; evaluation weights only',
         training_estimate=('4x measured update and checkpoint per complete update; two probes per eight updates' if legacy else '4x measured updates/probes plus bounded hourly, milestone and terminal snapshots'),
         permits='decrease disk only; no scientific budget or search-domain changes'))
 
@@ -22,7 +22,7 @@ def finalize(root,payload,cases,producers):
     if not refs:return None
     if len(refs)!=1:raise ValueError('original prospective measured-resource rule required')
     registered=json.loads(verify_refs(root,refs)[0])
-    if registered not in (policy(),policy(legacy=True)):
+    if registered not in (policy(),policy(legacy=True),policy(global_storage=True)):
         raise ValueError('original prospective measured-resource rule required')
     if registered==policy(legacy=True) and any(c['package'].get('checkpoint_policy')=='hourly/v1' for c in cases):
         raise ValueError('hourly resource estimates require the prospective v2 policy')
@@ -34,13 +34,17 @@ def finalize(root,payload,cases,producers):
     inputs={c['compatibility']:c['package'] for c in cases}
     if set(inputs)!=set(by_scope):raise ValueError('complete exact resource measurement inventory required')
     plans=payload['task_plans'];by_id={p['id']:p for p in plans}
+    scoped = registered == policy()
+    from oeis_learn.generalization.progressive.storage_plan import task_checkpoints
+    bounds = task_checkpoints(plans, producers, payload['milestone_pins']) if scoped else {}
     old_total=sum(p['caps']['disk_bytes'] for p in plans)
     old_slots={n['id']:sum(p['caps']['disk_bytes'] for p in plans if p['slot']==n['id']) for n in payload['graph']['nodes']}
     estimates=[];deficits=[]
     policies={r['artifact']['sha256']:r['artifact'] for r in payload['references'] if r['kind']=='policy'}
     for task in plans:
         if task['kind']=='training':
-            needed=2*measured+(128<<20)
+            bound=bounds.get(task['id'])
+            needed=(bound['checkpoint_bytes']*(2+bound['milestone_pins']) if bound else 2*measured)+(128<<20)
             worst=None
             parent=task['initializer'].get('parent_task')
             delta=task['token_target']-(by_id[parent]['token_target'] if parent else 0)
@@ -54,7 +58,18 @@ def finalize(root,payload,cases,producers):
             if worst['estimated_work_us']>worst['available_work_us']:deficits.append('training_time:'+task['id'])
         else:
             request=json.loads(verify_refs(root,[policies[task['policy']]])[0])
-            needed=(measured if request.get('operation')=='generate' else 0)+(128<<20)
+            model_bytes=measured
+            if scoped and request.get('operation')=='generate':
+                model_bytes=0
+                for item in request['artifacts']['model']:
+                    if isinstance(item,str):
+                        from oeis_learn.pipeline_validation.identity import confined
+                        channel=json.loads(confined(root,item).read_bytes())
+                        if channel['kind']=='checkpoint':model_bytes+=channel['data']['artifact']['bytes']
+                    elif item['kind']=='checkpoint':
+                        source=by_id[item['task']]
+                        model_bytes+=max(by_scope[v['initializer']['compatibility']].get('weights_bytes',by_scope[v['initializer']['compatibility']]['checkpoint_bytes']) for v in variants(source))
+            needed=(model_bytes if request.get('operation')=='generate' else 0)+(128<<20)
         if needed>task['caps']['disk_bytes']:
             deficits.append('measured_task_storage:'+task['id'])
         else:

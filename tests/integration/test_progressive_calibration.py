@@ -72,6 +72,13 @@ calibrate_iteration(load(root/'data/training-input.json'),root/'measured',source
     result = load(tmp_path / "measured/producer.json")
     assert result["device"] == "cpu"
     assert result["checkpoint_bytes"] > 0 and result["checkpoint_inodes"] > 0
+    assert result['version']=='progressive-iteration-calibration/v2'
+    pointer=load(tmp_path/'measured/checkpoints/generalization-latest.json')
+    full=load(tmp_path/'measured/checkpoints'/pointer['path'])
+    assert result['weights_bytes']==full['states']['weights']['bytes']
+    from oeis_learn.generalization.progressive.storage import checkpoint_size
+    legacy,_=checkpoint_size(tmp_path/'measured/checkpoints',pointer,checkpoint_root='.',research=True)
+    assert legacy-result['checkpoint_bytes']==2*result['weights_bytes']
     assert all(v > 0 for v in result["measurements"].values())
     assert result["effective_batch"] == package["update_policy"]["effective_batch"]
     with pytest.raises(TimeoutError, match="checkpoint"):
@@ -257,6 +264,10 @@ def test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
         from oeis_learn.pipeline_validation.progressive_research_resources import policy
         atomic_write(tmp_path/'resource-policy.json',policy())
         original=load(tmp_path/'preparation-plan.json')
+        for task in original['payload']['task_plans']:
+            task['caps']['disk_bytes']=1<<30
+        for node in original['payload']['graph']['nodes']:
+            node['caps']['disk_bytes']=sum(t['caps']['disk_bytes'] for t in original['payload']['task_plans'] if t['slot']==node['id'])
         original['payload']['references'].append(dict(name='research_resource_policy',kind='policy',role='custodian',
             artifact=reference(tmp_path,'resource-policy.json')))
         (tmp_path/'preparation-plan.json').write_text(json.dumps(original))
@@ -357,6 +368,19 @@ def test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(
         assert main(args, tmp_path, None) == 0
         c = load(tmp_path / "frozen/campaign.json")
         assert c["payload"]["storage"]["checkpoint_bytes"] >= 32 << 20
+        if measured_resources:
+            assert {b['task'] for b in c['payload']['storage']['task_checkpoints']}=={'first','second'}
+            assert all(b['checkpoint_bytes']==160<<20 for b in c['payload']['storage']['task_checkpoints'])
+            from oeis_learn.generalization.progressive.campaign import validate_campaign
+            for mutation in ('missing','duplicate','scope','pin'):
+                changed=copy.deepcopy(c)
+                bounds=changed['payload']['storage']['task_checkpoints']
+                if mutation=='missing':bounds.pop()
+                elif mutation=='duplicate':bounds.append(copy.deepcopy(bounds[0]))
+                elif mutation=='scope':bounds[0]['checkpoint_bytes']=changed['payload']['storage']['checkpoint_bytes']+1
+                else:bounds[0]['milestone_pins']+=1
+                with pytest.raises(ValueError,match='checkpoint'):
+                    validate_campaign(seal(changed))
         # A missing wrapper terminal must not repeat a completed device batch.
         before=len(calls)
         again=SimpleNamespace(operation='prepare',blueprint='blueprint.json',qualification='qualification',output='out')

@@ -33,9 +33,14 @@ def measured_producer(producer, *, source, images, compatibility):
         "checkpoint_bytes",
         "checkpoint_inodes",
     }
+    if producer.get('version') == 'progressive-iteration-calibration/v2':
+        fields.add('weights_bytes')
+        if (type(producer.get('weights_bytes')) is not int or type(producer.get('checkpoint_bytes')) is not int or
+                not 0 < producer['weights_bytes'] <= producer.get('checkpoint_bytes', 0)):
+            raise ValueError('measured weights must fit the complete checkpoint')
     if (
         set(producer) != fields
-        or producer.get("version") != "progressive-iteration-calibration/v1"
+        or producer.get("version") not in {"progressive-iteration-calibration/v1", "progressive-iteration-calibration/v2"}
         or not isinstance(producer["measurements"], dict)
         or set(producer["measurements"]) != {"update_us", "probe_us", "checkpoint_us"}
         or any(
@@ -78,7 +83,7 @@ def validate_producer(root, plan, runtime, references):
     source = json.loads(verify_refs(confined(root, qref["path"]).parent, [q["source_closure"]])[0])
     source_identity = digest(source)
     producer = json.loads(verify_refs(root, [ref])[0])
-    if producer.get("version") == "progressive-iteration-calibration/v1":
+    if producer.get("version") in {"progressive-iteration-calibration/v1", "progressive-iteration-calibration/v2"}:
         measured_producer(
             producer,
             source=source_identity,

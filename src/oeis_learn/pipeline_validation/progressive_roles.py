@@ -216,158 +216,164 @@ def _invoke_reserved(
     work_end_us=min(started_us+reservation['elapsed_us'],int(deadline*1000000))-int(cleanup_seconds*1000000)
     spec = REGISTRY[operation]
     views = target / "private-input"
-    authorized = [r["artifact"] for r in c["payload"]["references"] if r["role"] == spec.role]
-    if derived is not None:
-        if operation == "assess":
-            from oeis_learn.generalization.progressive.assessment import check_derived
-        else:
-            from .progressive_oeis import check_derived
+    try:
+        authorized = [r["artifact"] for r in c["payload"]["references"] if r["role"] == spec.role]
+        if derived is not None:
+            if operation == "assess":
+                from oeis_learn.generalization.progressive.assessment import check_derived
+            else:
+                from .progressive_oeis import check_derived
 
-        authorized.extend(check_derived(derived, campaign=c, task=t, operation=operation, **({"root":root} if operation=="assess" else {})))
-    with projection_guard.activate():
-        channels = project(
-            root,
-            views,
-            operation,
-            artifacts,
-            registry=REGISTRY,
-            forbidden=forbidden,
-            authorized=authorized,
-        )
-    projected_bytes, projected_inodes = usage([target])
-    storage_proof["prior_bytes"] += projected_bytes + (2 << 20) + metadata_bytes
-    storage_proof["prior_inodes"] += projected_inodes + 64
-    from oeis_learn.container_runtime import private_runtime_environment
-
-    from .generalization_roles import supervise_owned
-    from .supervision import diagnostic_program
-
-    name = "discovery-" + uuid.uuid4().hex
-    role_output = target / "role"
-    role_output.mkdir()
-    mounted = [(str(path), "/inputs/" + channel, False) for channel, path in channels.items()] + [
-        (str(role_output), "/output/discovery", True)
-    ]
-    gpu = spec.gpu and t["purpose"] != "acceptance"
-    if operation == "train":
-        from oeis_learn.generalization.progressive.contracts import atomic_write, seal
-
-        authority_dir = target / "authority"
-        authority_dir.mkdir()
-        invocation = uuid.uuid4().hex
-        # Host campaign invocation identifies exactly one pause namespace.
-        from .progressive_commands import _INVOCATION
-
-        invocation = _INVOCATION.get() or invocation
-        authority = seal(
-            {
-                "version": "progressive-supervisor/v1",
-                "campaign": c,
-                "task": t,
-                "clock": {
-                    "reservation_key": charge["key"],
-                    "boot": boot,
-                    "start_us": started_us,
-                    "end_us": started_us + reservation["elapsed_us"],
-                    "work_end_us":work_end_us,
-                },
-                "invocation": invocation,
-                "storage": storage_proof,
-            }
-        )
-        atomic_write(authority_dir / "supervisor.json", authority)
-        control = Path(root) / "run-state" / "discovery-control" / c["identity"].split(":")[1]
-        control.mkdir(parents=True, exist_ok=True)
-        states = Path(root) / "run-state" / "discovery-learning" / c["identity"].split(":")[1]
-        state = states / t["identity"].split(":")[1]
-        state.mkdir(parents=True, exist_ok=True)
-        mounted.append((str(state), "/learning-state", True))
-        parent_slot = t["payload"]["initializer"].get("parent_slot")
-        parent_task = t["payload"]["initializer"].get("parent_task")
-        if parent_slot or parent_task:
-            from oeis_learn.generalization.progressive.contracts import record
-
-            plan = next(
-                p
-                for p in c["payload"]["tasks"]
-                if (p["id"] == parent_task if parent_task else p["slot"] == parent_slot)
-                and p["arm"] == t["payload"]["arm"]
-                and p["seed"] == t["payload"]["seed"]
+            authorized.extend(check_derived(derived, campaign=c, task=t, operation=operation, **({"root":root} if operation=="assess" else {})))
+        with projection_guard.activate():
+            channels = project(
+                root,
+                views,
+                operation,
+                artifacts,
+                registry=REGISTRY,
+                forbidden=forbidden,
+                authorized=authorized,
             )
-            if 'trial_choices' in plan:
-                from oeis_learn.generalization.progressive.trial_scopes import resolve
-                plan=resolve(plan,t['payload']['trial_choice'])
-            parent = record(
-                "task",
-                dict(plan, campaign=c["identity"]),
-                created_at=c["created_at"],
-                purpose=c["purpose"],
-                track=c["track"],
-            )
-            parent_state = confined(states, parent["identity"].split(":")[1])
-            mounted.append((str(parent_state), "/predecessor-state", False))
-        mounted += [
-            (str(authority_dir), "/authority", False),
-            (str(journal.root), "/accounting", True),
-            (str(control), "/control", False),
+        projected_bytes, projected_inodes = usage([target])
+        storage_proof["prior_bytes"] += projected_bytes + (2 << 20) + metadata_bytes
+        storage_proof["prior_inodes"] += projected_inodes + 64
+        from oeis_learn.container_runtime import private_runtime_environment
+
+        from .generalization_roles import supervise_owned
+        from .supervision import diagnostic_program
+
+        name = "discovery-" + uuid.uuid4().hex
+        role_output = target / "role"
+        role_output.mkdir()
+        mounted = [(str(path), "/inputs/" + channel, False) for channel, path in channels.items()] + [
+            (str(role_output), "/output/discovery", True)
         ]
-    if operation in {"extract-components", "verify-components"}:
-        own_state.mkdir(parents=True, exist_ok=True)
-        mounted.append((str(own_state), "/component-state", True))
-    if operation in WORK_ROLES:
-        authority_dir = target / "authority"
-        authority_dir.mkdir()
-        with journal.lock():
-            reserved = next(
-                e
-                for e in journal._read()[0]
-                if e["operation"] == charge["key"] and e["event"] == "RESERVE"
+        gpu = spec.gpu and t["purpose"] != "acceptance"
+        if operation == "train":
+            from oeis_learn.generalization.progressive.contracts import atomic_write, seal
+
+            authority_dir = target / "authority"
+            authority_dir.mkdir()
+            invocation = uuid.uuid4().hex
+            # Host campaign invocation identifies exactly one pause namespace.
+            from .progressive_commands import _INVOCATION
+
+            invocation = _INVOCATION.get() or invocation
+            authority = seal(
+                {
+                    "version": "progressive-supervisor/v1",
+                    "campaign": c,
+                    "task": t,
+                    "clock": {
+                        "reservation_key": charge["key"],
+                        "boot": boot,
+                        "start_us": started_us,
+                        "end_us": started_us + reservation["elapsed_us"],
+                        "work_end_us":work_end_us,
+                    },
+                    "invocation": invocation,
+                    "storage": storage_proof,
+                }
             )
-        atomic_write(
-            authority_dir / "supervisor.json",
-            seal(
-                dict(
-                    version="progressive-role-budget/v1",
-                    campaign=c,
-                    task=t,
-                    operation=operation,
-                    inputs=digest(sorted(work_values, key=lambda v: v["identity"])),
-                    reservation=reserved,
-                    work_end_us=work_end_us,
-                    storage=storage_proof,
+            atomic_write(authority_dir / "supervisor.json", authority)
+            control = Path(root) / "run-state" / "discovery-control" / c["identity"].split(":")[1]
+            control.mkdir(parents=True, exist_ok=True)
+            states = Path(root) / "run-state" / "discovery-learning" / c["identity"].split(":")[1]
+            state = states / t["identity"].split(":")[1]
+            state.mkdir(parents=True, exist_ok=True)
+            mounted.append((str(state), "/learning-state", True))
+            parent_slot = t["payload"]["initializer"].get("parent_slot")
+            parent_task = t["payload"]["initializer"].get("parent_task")
+            if parent_slot or parent_task:
+                from oeis_learn.generalization.progressive.contracts import record
+
+                plan = next(
+                    p
+                    for p in c["payload"]["tasks"]
+                    if (p["id"] == parent_task if parent_task else p["slot"] == parent_slot)
+                    and p["arm"] == t["payload"]["arm"]
+                    and p["seed"] == t["payload"]["seed"]
                 )
+                if 'trial_choices' in plan:
+                    from oeis_learn.generalization.progressive.trial_scopes import resolve
+                    plan=resolve(plan,t['payload']['trial_choice'])
+                parent = record(
+                    "task",
+                    dict(plan, campaign=c["identity"]),
+                    created_at=c["created_at"],
+                    purpose=c["purpose"],
+                    track=c["track"],
+                )
+                parent_state = confined(states, parent["identity"].split(":")[1])
+                mounted.append((str(parent_state), "/predecessor-state", False))
+            mounted += [
+                (str(authority_dir), "/authority", False),
+                (str(journal.root), "/accounting", True),
+                (str(control), "/control", False),
+            ]
+        if operation in {"extract-components", "verify-components"}:
+            own_state.mkdir(parents=True, exist_ok=True)
+            mounted.append((str(own_state), "/component-state", True))
+        if operation in WORK_ROLES:
+            authority_dir = target / "authority"
+            authority_dir.mkdir()
+            with journal.lock():
+                reserved = next(
+                    e
+                    for e in journal._read()[0]
+                    if e["operation"] == charge["key"] and e["event"] == "RESERVE"
+                )
+            atomic_write(
+                authority_dir / "supervisor.json",
+                seal(
+                    dict(
+                        version="progressive-role-budget/v1",
+                        campaign=c,
+                        task=t,
+                        operation=operation,
+                        inputs=digest(sorted(work_values, key=lambda v: v["identity"])),
+                        reservation=reserved,
+                        work_end_us=work_end_us,
+                        storage=storage_proof,
+                    )
+                ),
+            )
+            mounted.append((str(authority_dir), "/authority", False))
+        argv = [
+            "python",
+            "-u",
+            "-c",
+            diagnostic_program(
+                "import runpy;runpy.run_module('oeis_learn.pipeline_validation.progressive_role',run_name='__main__')",
+                "discovery STARTUP; exposure unavailable until checkpoint verification; remaining deadline externally supervised",
             ),
+            operation,
+        ]
+        environment = private_runtime_environment(role_output, destination="/output/discovery")
+        if gpu:
+            from .generalization_execution import startup_environment
+            environment.update(startup_environment())
+        environment["OEIS_DISCOVERY_PURPOSE"] = t["purpose"]
+        environment['OEIS_DISCOVERY_TRACK']=t['track']
+        command = host.engine.command(
+            image=image,
+            name=name,
+            mounts=mounted,
+            argv=argv,
+            gpu=gpu,
+            render_node=host.policy.get("render_node") if gpu else None,
+            memory_bytes=host.policy["memory_bytes"],
+            cpus=host.policy["cpus"],
+            network=False,
+            tmp_bytes=2 << 30,
+            environment=environment,
         )
-        mounted.append((str(authority_dir), "/authority", False))
-    argv = [
-        "python",
-        "-u",
-        "-c",
-        diagnostic_program(
-            "import runpy;runpy.run_module('oeis_learn.pipeline_validation.progressive_role',run_name='__main__')",
-            "discovery STARTUP; exposure unavailable until checkpoint verification; remaining deadline externally supervised",
-        ),
-        operation,
-    ]
-    environment = private_runtime_environment(role_output, destination="/output/discovery")
-    if gpu:
-        from .generalization_execution import startup_environment
-        environment.update(startup_environment())
-    environment["OEIS_DISCOVERY_PURPOSE"] = t["purpose"]
-    environment['OEIS_DISCOVERY_TRACK']=t['track']
-    command = host.engine.command(
-        image=image,
-        name=name,
-        mounts=mounted,
-        argv=argv,
-        gpu=gpu,
-        render_node=host.policy.get("render_node") if gpu else None,
-        memory_bytes=host.policy["memory_bytes"],
-        cpus=host.policy["cpus"],
-        network=False,
-        tmp_bytes=2 << 30,
-        environment=environment,
-    )
+    except BaseException:
+        # No process has been dispatched: failed projection/command setup owns
+        # no live reader and must not leave model copies behind.
+        remove_projection(views)
+        raise
     try:
         supervise_owned(
             host,
@@ -411,6 +417,7 @@ def _invoke_reserved(
 
         cleanup = target / "supervision" / "cleanup.json"
         process = target / "supervision" / "process.json"
+        reclaimed = False
         if cleanup.is_file() and process.is_file():
             q = json.loads(cleanup.read_text())
             p = json.loads(process.read_text())
@@ -419,13 +426,15 @@ def _invoke_reserved(
                 and q.get("acknowledged") is True
                 and p.get("cleanup_failure") is None
             ):
+                reclaimed = True
                 journal.commit(
                     charge["key"],
                     boot=boot,
                     monotonic_us=time.monotonic_ns() // 1000,
                     termination_proven=True,
                 )
-        remove_projection(views)
+        if reclaimed:
+            remove_projection(views)
 
 
 def current_runtime(host, root, output, runtime, *, producer_root):

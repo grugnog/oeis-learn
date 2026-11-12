@@ -307,12 +307,15 @@ def _run(
     from oeis_learn.generalization.progressive.periodic_recovery import PeriodicRecovery
     periodic = persistence_policy(package) == 'hourly/v1'
     RecoveryType = PeriodicRecovery if periodic else Recovery
+    from oeis_learn.generalization.progressive.storage_plan import checkpoint_bound, publication_reserve
+    storage=c['payload']['storage']
+    task_storage=checkpoint_bound(storage,t['payload'])
     with RecoveryType(
         journal,
         t,
         compatibility(package),
         state_root=state_root,
-        checkpoint_bytes=c["payload"]["storage"]["checkpoint_bytes"],
+        checkpoint_bytes=task_storage['checkpoint_bytes'],
     ) as recovery:
         recovery.attach(authority["clock"])
         if recovery.state["checkpoint"] is None and (
@@ -486,14 +489,14 @@ def _run(
                     storage = c["payload"]["storage"]
                     heartbeat.update(phase="CHECKPOINT_RETENTION")
                     if retained_checkpoint != recovery.state['checkpoint']['identity']:
-                        recovery.retain(milestone_pins=storage["milestone_pins"])
+                        recovery.retain(milestone_pins=task_storage["milestone_pins"])
                         used = sum(p.stat().st_size for p in Path(state_root).rglob("*") if p.is_file())
                         retained_checkpoint = recovery.state['checkpoint']['identity']
-                    if used + storage["checkpoint_bytes"] > t["payload"]["caps"]["disk_bytes"]:
+                    if used + task_storage["checkpoint_bytes"] > t["payload"]["caps"]["disk_bytes"]:
                         raise TimeoutError("task checkpoint storage cap exhausted")
                     progress.preflight(
-                        bytes_required=storage["required_bytes"],
-                        inodes_required=storage["required_inodes"],
+                        bytes_required=publication_reserve(storage,t['payload'])[0],
+                        inodes_required=publication_reserve(storage,t['payload'])[1],
                         remaining_us=remaining_us,
                         finalization_us=t["payload"]["finalization_us"],
                         research=t["purpose"] == "research",
@@ -654,6 +657,11 @@ def _run(
                 remaining=journal.task_remaining(t),
             )
         recovery.finish_external(status)
+        if status in {'COMPLETE','PAUSED','PARTIAL'}:
+            # Publication and recovery commit succeeded. Keep the current full
+            # state and every frozen milestone; retire the redundant predecessor
+            # now rather than leaving two generations until a future invocation.
+            recovery.retain(milestone_pins=task_storage['milestone_pins'])
         current = recovery.restore()
         elapsed = max(0, time.monotonic_ns() // 1000 - authority["clock"]["start_us"])
         m = milestone(

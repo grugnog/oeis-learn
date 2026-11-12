@@ -174,14 +174,29 @@ def validate_campaign(campaign):
         "journal_bytes",
         "checkpoint_inodes",
     }
+    if 'task_checkpoints' in s:
+        from .storage_plan import checkpoint_bound
+        rows=s['task_checkpoints']
+        if (not complete_storage <= set(s) or len({r['task'] for r in rows})!=len(rows) or
+                {r['task'] for r in rows}!={t['id'] for t in plans if t['kind']=='training'} or
+                not any(r['name']=='research_resource_policy' for r in p['references'])):
+            raise ValueError('complete measured task checkpoint inventory required')
+        for t in plans:
+            if t['kind']!='training':continue
+            b=checkpoint_bound(s,t)
+            pins=min(s['milestone_pins'],sum(m<=t['token_target'] for m in (25000000,100000000,400000000)))
+            if (b['checkpoint_bytes']>s['checkpoint_bytes'] or b['checkpoint_inodes']>s['checkpoint_inodes']
+                    or b['milestone_pins']!=pins):
+                raise ValueError('task checkpoint scope exceeds frozen storage')
     if complete_storage & set(s):
         if not complete_storage <= set(s) or s["task_store_bytes"] != sum(
             t["caps"]["disk_bytes"] for t in plans
         ):
             raise ValueError("complete simultaneous task storage partitions required")
+        from .storage_plan import checkpoint_bound
         if any(
             t["kind"] == "training"
-            and s["checkpoint_bytes"] * (2 + s["milestone_pins"]) > t["caps"]["disk_bytes"]
+            and checkpoint_bound(s,t)['checkpoint_bytes'] * (2 + checkpoint_bound(s,t)['milestone_pins']) > t["caps"]["disk_bytes"]
             for t in plans
         ):
             raise ValueError("task checkpoint storage partition insufficient")

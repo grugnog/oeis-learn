@@ -108,7 +108,7 @@ def test_resource_finalization_only_shrinks_disk_and_reports_slow_choices(tmp_pa
         p['caps']['disk_bytes']=1<<30
         p['initializer'].pop('parent_slot',None)
         p['initializer'].update(mode='random',artifact=None)
-    atomic_write(tmp_path/'policy.json',r.policy())
+    atomic_write(tmp_path/'policy.json',r.policy(global_storage=True))
     payload=dict(task_plans=plans,references=[dict(name='research_resource_policy',kind='policy',artifact=reference(tmp_path,'policy.json'))],
         checkpoint={},checkpoint_root='test-boundary',graph=c['payload']['graph'],caps=caps(disk_bytes=3<<30),deficits=[])
     for node in payload['graph']['nodes']:node['caps']['disk_bytes']=1<<30

@@ -55,6 +55,15 @@ def test_actual_installed_learner_two_tasks_timing_and_restore(tmp_path,monkeypa
         # Nested categories are exclusive, never double-counted into totals.
         assert sum(c['self_us'] for c in timing['components'].values()) <= timing['wall_us']
     if index==6:assert max(s['timing']['maximum_shard'] for s in (a,b))>0
+    # Successful terminal publication keeps one full cut per task; its successor
+    # has already restored it above. Historical event receipts remain present.
+    stores=list((output/'cases'/str(index)/'private/learner/learning').glob('*/checkpoints'))
+    assert len(stores)==2
+    for state in stores:
+        pointer=load(state/'generalization-latest.json')
+        generations=[p for p in state.glob('generalization-*') if p.is_dir()]
+        assert len(generations)==1 and (state/pointer['path']).is_file()
+        assert list(state.parent.glob('event-*.json'))
     assert t.report(output,inputs)['status']=='INCOMPLETE' # CPU cannot become HIP.
     with pytest.raises(ValueError,match='publication differs'):
         t.run_case(output,index,device='cpu')

@@ -429,10 +429,10 @@ def calibrate_iteration(package,output,*,source,image,device='cuda',checkpoint_b
         start=now()
         states=dict(weights=dict(encoder=runner.encoder.state_dict(),decoder=runner.decoder.state_dict()),optimizer=runner.state_dict(),scheduler={},data=dict(cursor=ledger.updates,pending_batch=None),replay={},history={},pins={},selection={},rng=dict(python=__import__('random').getstate(),numpy=__import__('numpy').random.get_state(),torch=torch.get_rng_state(),device=torch.cuda.get_rng_state_all() if device=='cuda' else []))
         # Bound the complete serialized generation before the first tensor write.
-        # The additional weights allowance matches checkpoint_size's conservative
-        # optimizer-growth headroom, even after Adam has allocated its moments.
+        # Both moments have been allocated by the completed update. Do not
+        # charge for a second hypothetical optimizer on top of that full state.
         pieces = [v for k,v in states.items() if k not in {'rng','data'}] + list(states['rng'].values())
-        measured = sum(len(store._encode(v)) for v in pieces) + 2*len(store._encode(states['weights'])) + (128 << 10)
+        measured = sum(len(store._encode(v)) for v in pieces) + (128 << 10)
         if measured > checkpoint_bytes:
             raise TimeoutError('calibration checkpoint exceeds prospective storage allowance')
         from oeis_learn.generalization.progressive.storage import preflight
@@ -441,8 +441,10 @@ def calibrate_iteration(package,output,*,source,image,device='cuda',checkpoint_b
         ref=store.save(states,ledger);store.load(ref)
         measurements['checkpoint_us']=max(measurements['checkpoint_us'],now()-start)
     from oeis_learn.generalization.progressive.storage import checkpoint_size
-    checkpoint_bytes,checkpoint_inodes=checkpoint_size(output/'checkpoints',ref,checkpoint_root='.',research=True)
-    result=seal(dict(version='progressive-iteration-calibration/v1',checkpoint_bytes=checkpoint_bytes,checkpoint_inodes=checkpoint_inodes,source=source,image=image,device='actual_HIP' if device=='cuda' else 'cpu',status='PASS',compatibility=compatibility(package),maximum_target_tokens=len(longest['tokens']),effective_batch=count,measurements={k:max(1,v) for k,v in measurements.items()},measurement_scope='two complete logical updates including initial Adam allocation; two probes; durable full-state save and verified restore; maximal prepared target and numeric input sizes'))
+    checkpoint_bytes,checkpoint_inodes=checkpoint_size(output/'checkpoints',ref,checkpoint_root='.',research=True,optimizer_allocated=True)
+    from oeis_learn.generalization.progressive.contracts import load
+    weights_bytes=load(output/'checkpoints'/ref['path'])['states']['weights']['bytes']
+    result=seal(dict(version='progressive-iteration-calibration/v2',weights_bytes=weights_bytes,checkpoint_bytes=checkpoint_bytes,checkpoint_inodes=checkpoint_inodes,source=source,image=image,device='actual_HIP' if device=='cuda' else 'cpu',status='PASS',compatibility=compatibility(package),maximum_target_tokens=len(longest['tokens']),effective_batch=count,measurements={k:max(1,v) for k,v in measurements.items()},measurement_scope='two complete logical updates including initial Adam allocation; two probes; durable full-state save and verified restore; maximal prepared target and numeric input sizes'))
     within_deadline()
     atomic_write(output/'producer.json',result)
     # Release owned tensors between serial prepared-input cases.

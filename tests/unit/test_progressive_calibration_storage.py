@@ -84,4 +84,5 @@ def test_resource_estimate_accounts_for_hourly_snapshots_and_legacy_policy():
     assert legacy['maximum_snapshots']==1000 and hourly['maximum_snapshots']==4
     assert hourly['estimated_work_us']==padded_us(1000000+4000000+125000)
     assert hourly['estimated_work_us']<legacy['estimated_work_us']/100
-    assert policy(legacy=True)['version'].endswith('/v1') and policy()['version'].endswith('/v2')
+    assert policy(legacy=True)['version'].endswith('/v1') and policy(global_storage=True)['version'].endswith('/v2')
+    assert policy()['version'].endswith('/v3')

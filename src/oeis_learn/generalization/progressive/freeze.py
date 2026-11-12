@@ -220,6 +220,7 @@ def freeze(
     declared_checkpoints = [r["artifact"] for r in refs if r["kind"] == "checkpoint"]
     initializer_closure = {}
     calibrated_bytes=calibrated_inodes=0
+    calibration_producers=[]
     for plan in all_plans:
         selected_runtime=trial_runtime(root,plan,runtime)
         if 'trial_runtime' in plan and not any(r['artifact']==plan['trial_runtime'] and r['kind']=='qualification' for r in refs):
@@ -229,6 +230,7 @@ def freeze(
         if work:
             from .iteration import validate_producer
             calibration=validate_producer(root,plan,selected_runtime,refs)
+            calibration_producers.append(calibration)
             calibrated_bytes=max(calibrated_bytes,calibration.get('checkpoint_bytes',0));calibrated_inodes=max(calibrated_inodes,calibration.get('checkpoint_inodes',0))
         if work+plan['startup_us']+plan['finalization_us']>=plan['caps']['elapsed_us']:raise IncompleteFreeze(['complete_iteration:'+plan['id']])
         if (
@@ -295,11 +297,20 @@ def freeze(
         research=b["purpose"] == "research",
     )
     measured=max(measured,calibrated_bytes);checkpoint_inodes=max(checkpoint_inodes,calibrated_inodes)
+    from oeis_learn.pipeline_validation.progressive_research_resources import policy as resource_policy
+    resource_refs=[r['artifact'] for r in refs if r['name']=='research_resource_policy']
+    scoped=(len(resource_refs)==1 and json.loads(verify_refs(root,resource_refs)[0])==resource_policy())
+    from .storage_plan import task_checkpoints
+    task_bounds=task_checkpoints(q['task_plans'],calibration_producers,q['milestone_pins']) if scoped else {}
+    if task_bounds:
+        measured=max(measured,max(b['checkpoint_bytes'] for b in task_bounds.values()))
+        checkpoint_inodes=max(checkpoint_inodes,max(b['checkpoint_inodes'] for b in task_bounds.values()))
     task_store_bytes = sum(t["caps"]["disk_bytes"] for t in q["task_plans"])
     for plan in q["task_plans"]:
+        bound=task_bounds.get(plan['id'],dict(checkpoint_bytes=measured,milestone_pins=q['milestone_pins']))
         if (
             plan["kind"] == "training"
-            and measured * (2 + q["milestone_pins"]) > plan["caps"]["disk_bytes"]
+            and bound['checkpoint_bytes'] * (2 + bound['milestone_pins']) > plan["caps"]["disk_bytes"]
         ):
             raise IncompleteFreeze(["task_checkpoint_storage:" + plan["id"]])
     # Frozen disjoint task partitions include all retained predecessor stores,
@@ -340,6 +351,7 @@ def freeze(
             "caps": q["caps"],
             "storage": {
                 "checkpoint_bytes": measured,
+                **({'task_checkpoints':[dict(task=k,**v) for k,v in task_bounds.items()]} if scoped else {}),
                 "atomic_generations": 2,
                 "milestone_pins": q["milestone_pins"],
                 "shard_bytes": q["shard_bytes"],

@@ -133,7 +133,8 @@ class Compiler:
         finalization=1 if shared else 1800
         elapsed=row['seconds']*1000000
         caps=dict.fromkeys(KEYS,0)
-        caps.update(elapsed_us=elapsed,disk_bytes=(2*checkpoint_bytes+(128<<20)) if operation=='train' else (checkpoint_bytes if operation=='generate' else 0)+(128<<20),
+        pins=sum(m<=row.get('token_target',0) for m in (25000000,100000000,400000000))
+        caps.update(elapsed_us=elapsed,disk_bytes=((2+pins)*checkpoint_bytes+(128<<20)) if operation=='train' else (checkpoint_bytes if operation=='generate' else 0)+(128<<20),
                     archive_bytes=16<<20)
         if operation=='train':
             target=row['token_target'];before=0 if row['parent'] is None else (1000000 if target==2000000 else 2000000)
@@ -441,7 +442,7 @@ def finish_plan(c,bound,study,targetref,state,checkpoint_root,*,data,design,mate
     # The named entry is required by the canonical acceptance selector.
     c.refs[-1]['name']='acceptance_plan'
     payload=dict(runtime=runtime,graph=graph,task_plans=c.plans,references=c.refs,caps=caps,
-        checkpoint=state,checkpoint_root=checkpoint_root,milestone_pins=0,
+        checkpoint=state,checkpoint_root=checkpoint_root,milestone_pins=1,
         shard_bytes=materials['support']['bytes'],package_bytes=512<<20,required_inodes=1000000,
         target_policy=targetref,deficits=[])
     preview=dict(purpose='research',track='synthetic_strict',payload=payload)
@@ -450,7 +451,7 @@ def finish_plan(c,bound,study,targetref,state,checkpoint_root,*,data,design,mate
         max(len(r['tokens']) for shard in x['package']['shards'] for r in shard) for x in cases)
     from oeis_learn.generalization.progressive.shared_support import projection_size
     inputs_bytes=projection_size(cases)
-    checkpoint_ceiling=max((p['caps']['disk_bytes']-(128<<20))//2 for p in c.plans if p['kind']=='training')
+    checkpoint_ceiling=max((p['caps']['disk_bytes']-(128<<20))//(2+sum(m<=p['token_target'] for m in (25000000,100000000,400000000))) for p in c.plans if p['kind']=='training')
     calibration_seconds=CALIBRATION_SECONDS if expanded else 12*3600
     setup=zeros();setup.update(tokens=tokens,elapsed_us=calibration_seconds*1000000,
         disk_bytes=required_bytes(len(cases),checkpoint_ceiling,inputs_bytes,retention=POLICY),archive_bytes=512<<20)

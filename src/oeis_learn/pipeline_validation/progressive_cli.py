@@ -26,6 +26,7 @@ CPU_TESTS = (
     "tests/unit/test_progressive_prepared_materials.py",
     "tests/unit/test_progressive_capability_partitions.py",
     "tests/unit/test_progressive_calibration_storage.py",
+    "tests/unit/test_progressive_storage_plan.py",
     "tests/unit/test_progressive_research_roster.py",
     "tests/unit/test_progressive_research_bindings.py",
     "tests/unit/test_progressive_research_feasibility.py",

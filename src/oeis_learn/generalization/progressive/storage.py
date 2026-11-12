@@ -38,7 +38,7 @@ def usage(roots):
     return total, files
 
 
-def checkpoint_size(root, ref, *, checkpoint_root=None, research=False):
+def checkpoint_size(root, ref, *, checkpoint_root=None, research=False, optimizer_allocated=False):
     """Measure every referenced tensor, with AdamW growth and metadata headroom.
 
     A weights-only file cannot establish a research storage measurement. Research
@@ -101,7 +101,9 @@ def checkpoint_size(root, ref, *, checkpoint_root=None, research=False):
         raise ValueError("bounded acyclic checkpoint closure required")
     if not weight_bytes:
         raise ValueError("original checkpoint weight tensor missing")
-    return sum(seen.values()) + 2 * weight_bytes + (64 << 10), len(seen) + 16
+    # Only a producer that has executed complete Adam updates may select the
+    # allocated case. Historical/imported snapshots retain growth headroom.
+    return sum(seen.values()) + (0 if optimizer_allocated else 2 * weight_bytes) + (64 << 10), len(seen) + 16
 
 
 def projection_size(root, refs):
@@ -170,8 +172,26 @@ def projection_size(root, refs):
 
 
 def copy_file(source, target):
+    """Use a private copy-on-write inode where supported, never a hard link.
+
+    Logical limits still reserve the full copy, including on filesystems without
+    reflinks. Worker writes cannot mutate the retained source through an alias.
+    """
+    import errno
+    import fcntl
+
     with writing(target, Path(source).stat().st_size, inodes=1):
-        return shutil.copyfile(source, target)
+        with Path(source).open('rb') as src, Path(target).open('xb') as dst:
+            try:
+                fcntl.ioctl(dst.fileno(), 0x40049409, src.fileno())  # Linux FICLONE
+            except OSError as exc:
+                if exc.errno not in {errno.EXDEV, errno.EOPNOTSUPP, errno.ENOTTY, errno.EINVAL, errno.ENOSYS}:
+                    raise
+                dst.truncate(0)
+                dst.seek(0)
+                src.seek(0)
+                shutil.copyfileobj(src, dst, 1 << 20)
+        return target
 
 
 def journal_limit(root):
@@ -195,13 +215,14 @@ def journal_write(root, path, value):
 
 class StorageGuard:
     def __init__(
-        self, roots, *, max_bytes, max_inodes, prior_bytes=0, prior_inodes=0, reserve_bytes=0
+        self, roots, *, max_bytes, max_inodes, prior_bytes=0, prior_inodes=0, reserve_bytes=0, free_reserve_bytes=0
     ):
         self.roots = [Path(r) for r in roots]
         self.max_bytes, self.max_inodes = max_bytes, max_inodes
         self.prior_bytes, self.prior_inodes = prior_bytes, prior_inodes
         self.reserve_bytes = reserve_bytes
-        for n in (max_bytes, max_inodes, prior_bytes, prior_inodes, reserve_bytes):
+        self.free_reserve_bytes = free_reserve_bytes
+        for n in (max_bytes, max_inodes, prior_bytes, prior_inodes, reserve_bytes, free_reserve_bytes):
             if type(n) is not int or n < 0:
                 raise ValueError("finite storage partition required")
 
@@ -218,7 +239,7 @@ class StorageGuard:
             while not existing.exists():
                 existing = existing.parent
         if (
-            added_bytes + self.reserve_bytes > shutil.disk_usage(existing).free
+            added_bytes + self.reserve_bytes + self.free_reserve_bytes > shutil.disk_usage(existing).free
             or added_inodes > os.statvfs(existing).f_favail
         ):
             raise TimeoutError("free storage byte/inode reserve exhausted")
@@ -266,7 +287,9 @@ def owned_guard(authority, *, output, state_root=None):
         max_inodes=prior.get("max_inodes", storage["required_inodes"]),
         prior_bytes=prior.get("prior_bytes", 0),
         prior_inodes=prior.get("prior_inodes", 0),
-        reserve_bytes=storage["package_bytes"],
+        # Packaging belongs to the shared frozen reserve, not every task's
+        # private partition. It must still remain physically free before writes.
+        free_reserve_bytes=storage["package_bytes"],
     )
 
 
