@@ -621,3 +621,20 @@ supplemental observer projections diagnose all fourteen terminal token-cap cases
 they cannot replace original producer bytes or become new HIP proof. T089 remains
 pending because generation extrapolations alone exceed the frozen role allocations.
 Do not repeat preparation just to discover this already-measured incompatibility.
+
+## Phase 22: Service timing and expected-runtime review
+
+- [X] T174 Add a bounded, CPU-only `measure-services` continuation over original round-002 publications. Select four native-verified training rows independently of outcomes, excluding probes; run two isolated repetitions of fitting, visible admission and full-horizon native/reference scoring. Preserve original data/costs, prohibit sibling allowance resets, retain failed/interrupted originals, continue independent cases and package diagnostics on failure. Register actual-native service coverage in mandatory CPU CI.
+- [X] T175 Publish a non-executable budget/runtime review separating measured unpadded costs, unexercised services, safety margins, finalization and original allocations. Count incremental continuation tokens correctly; report training/total ETA as unmeasured until representative HIP throughput exists. Document the operator command and remaining prospective schedule decision; do not change scientific budgets or transfer historical HIP authority.
+
+T174–T175 local validation: service selection/provenance, immutable originals,
+changed-source rejection, sibling allowance ownership, durable per-case recovery,
+independent fitting-failure diagnostics, CPU-only workstation dispatch, failure ZIP
+and standard-library CLI tests passed. The actual-native full-horizon service test
+is registered in mandatory Docker CI and skipped locally without the native service.
+Runtime coverage checks 364M incremental training tokens without counting parent
+milestones twice and keeps expected elapsed time distinct from safety reservations.
+Physical service timings and a prospectively feasible research schedule remain
+external requirements; these implementation tasks do not complete T089.
+Final affected workstation/feasibility/service/CI/CLI/inventory run: 136 passed,
+one local native-service skip. No physical HIP or CI completion is claimed.

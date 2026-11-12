@@ -599,3 +599,41 @@ Share `run-state/discovery/013-research-round-002/share/prepare-research.zip` on
 preparation stop; if research proceeds, its separate `run-research.zip` follows.
 The preparation bundle includes original reuse provenance, cumulative counts,
 source exclusions, panel deficits and rejection summaries even on failure.
+
+### Measure missing services before revising the research schedule
+
+Round-002 completed materials and its original selected HIP cases. Its generation
+timings show that the proposed evaluation allocations are insufficient. Repeating
+the preparation command cannot correct that. First collect the missing positive
+fitting/admission/full-horizon scoring measurements:
+
+```bash
+git pull --ff-only origin 013-progressive-mathematical-discovery &&
+python3 -S scripts/discovery_hip_handoff.py \
+  --engine podman \
+  --session run-state/discovery/013-services-001 \
+  measure-services \
+  --preparation-session run-state/discovery/013-research-round-002
+```
+
+This uses the current CPU qualification image and original verified training rows;
+it does not repeat census, generation, rehearsal or HIP qualification. It touches no
+evaluation panel and launches no scientific training. The image build may reuse
+cached layers; its duration is additional to the diagnostic's 22-minute maximum
+host allowance. That maximum is a safety bound, not a measured expected duration.
+Eight independent cases each have up to two minutes. They continue after ordinary
+case failures, with a separate original allowance retained for collection/cleanup.
+
+Share `run-state/discovery/013-services-001/share/measure-services.zip`, including
+after a failed invocation. The report lists original allocations, unpadded measured
+projections, unexercised costs and separate safety/finalization reserves. It also
+lists incremental training tokens and missing throughput measurements; no cap is
+presented as an expected training time. The full selected training roster is 364M
+tokens if all branches proceed. Training and total elapsed estimates remain unknown
+until representative HIP throughput and periodic overhead are available.
+
+Rerun the identical command at the same source/session to reconcile interruption.
+Completed case publications are verified and reused; failed/interrupted originals
+remain evidence, and unknown interruption time is conservatively charged. Do not
+switch destinations to reset the donor-owned allowance. Review the measurements
+before selecting a revised finite schedule; this command cannot freeze or launch it.

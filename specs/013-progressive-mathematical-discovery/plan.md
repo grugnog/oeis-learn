@@ -254,3 +254,49 @@ source correction does not transfer the old HIP authority to the new source.
 The real 376-role roster is 6,162,183 bytes. Its readers share a 64 MiB document
 bound, including execution-contract and reservation verification; short fixture
 identifiers must not hide this integration requirement.
+
+### Training-only service continuation and runtime review
+
+Before revising the scientific schedule, `measure-services` reads the original
+round-002 census, support, journal and fourteen generation/scoring publications.
+It does not repeat generation, native draws, sensitivity, rehearsal or selected
+HIP qualification. It rejects changed protected generation/service code, foreign
+originals, and preparation journals containing later research or assessment work.
+Historical measurements remain planning evidence for their original source.
+
+Select four distinct native-verified gradient-training rows, excluding training
+probes, by target length, visible integer size, full-horizon integer size and source
+length, with deterministic identity ordering. Run two cold repetitions of canonical
+fitting, independent visible admission and native/reference 100-term scoring.
+Known training programs establish service timings, never learned capability.
+Fresh native owners isolate the three services and each case runs in its own
+process. Independent cases continue after failures; failed/interrupted originals
+are retained, not automatically repeated. Reinvocation reuses checked completed
+publications and consumes only the original remaining allowance.
+
+The CPU-only installed role uses the current qualification image. Eight cases each
+have 120 seconds, including four-second fitting/admission deadlines and a 65-second
+scoring envelope around the existing two thirty-second executors. Its 1,200-second
+inner and 1,320-second host allowances leave startup/collection/cleanup slack and
+fit inside the original failed timing stage's remaining four-hour reservation.
+A donor-derived owner claim prevents moving the continuation to reset allowances.
+Image construction has its existing separate allowance. Case logs, original first
+failures, process cleanup, service measurements and budget review enter the support
+ZIP even when measurement is incomplete; private training rows remain local.
+
+The report is explicitly non-executable. It compares existing task allocations
+with measured generation, positive-witness scoring and unexercised service reserves,
+then shows the fourfold margin and finalization reserve separately. Roles exceeding
+24 hours need partitioning or a prospectively revised design. Screening, panel,
+method, attempt and token budgets do not change automatically.
+
+Expected runtime is distinct from reservations. Report unpadded generation/scoring
+projections by stage, cumulative-target-correct incremental training tokens, and
+explicitly missing costs. All eligible training in the selected round totals 364M
+tokens; early stopping may reduce that total but has no measured probability yet.
+Qualification elapsed time bundles initialization, updates, checkpointing and other
+work and is not representative tokens/second. Leave expected training and total
+elapsed time unknown until representative HIP update throughput, probes, checkpoint
+publication/restore and setup are measured separately. Neither the fourfold safety
+margin nor a hard cap is an ETA. Review the measurements with the operator before
+changing scientific budgets or freezing a new schedule.
