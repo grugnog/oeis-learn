@@ -68,10 +68,46 @@ def test_only_registered_data_fixtures_enter_image_context():
         # in both targets, failing the build immediately for an omitted fixture.
         assert recipe.count("COPY " + " ".join(paths) + " /opt/oeis-build/" + parent) == 2
     assert [line for line in ignored if line.startswith("!data/")] == expected_exceptions
-    # Audit the entire tracked data inventory, not just fixtures named by the
-    # first failing suite. New tracked data needs an explicit packaging decision.
-    tracked = subprocess.check_output(["git", "ls-files", "-z", "--", "data"], cwd=ROOT).decode().split("\0")
-    assert sorted(p for p in tracked if p and p != "data/.gitkeep") == sorted(expected_files)
+    # Check all tracked data in a checkout, and all copied data in an image.
+    # Container build contexts deliberately exclude Git metadata.
+    assert image_data_inventory(ROOT) == sorted(expected_files)
+
+
+def image_data_inventory(root):
+    if (root / ".git").exists():
+        tracked = subprocess.check_output(
+            ["git", "ls-files", "-z", "--", "data"], cwd=root
+        ).decode().split("\0")
+        return sorted(p for p in tracked if p and p != "data/.gitkeep")
+    return sorted(
+        p.relative_to(root).as_posix()
+        for p in (root / "data").rglob("*")
+        if p.is_file() and p.relative_to(root).as_posix() != "data/.gitkeep"
+    )
+
+
+def test_image_fixture_inventory_without_git_metadata(tmp_path, monkeypatch):
+    import shutil
+    import pytest
+    for path in ["Dockerfile", ".dockerignore", *image_data_inventory(ROOT)]:
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / path, target)
+    assert not (tmp_path / ".git").exists()
+    monkeypatch.setitem(globals(), "ROOT", tmp_path)
+    def no_git(*args, **kwargs):
+        raise AssertionError("image validation must not require Git metadata")
+    monkeypatch.setattr(subprocess, "check_output", no_git)
+    test_only_registered_data_fixtures_enter_image_context()
+    # The Git-free route still rejects unexpected data and missing fixtures.
+    extra = tmp_path / "data/unregistered-corpus.txt"
+    extra.write_text("must not enter an image")
+    with pytest.raises(AssertionError):
+        test_only_registered_data_fixtures_enter_image_context()
+    extra.unlink()
+    (tmp_path / "data/sample_oeis/stripped").unlink()
+    with pytest.raises(AssertionError):
+        test_only_registered_data_fixtures_enter_image_context()
 
 
 def test_curated_sample_is_complete_at_image_fixture_paths(tmp_path):
