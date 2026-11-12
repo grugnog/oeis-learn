@@ -503,3 +503,37 @@ requests, 1,296 calibration choices, emitted qualification command, preparation,
 freeze and reporting interfaces. Reduced native census/material publication is
 in the existing mandatory CPU Docker inventory. Local hardware doubles are
 explicit boundaries and cannot qualify HIP or mark scientific tasks complete.
+
+## Committed environment preflight
+
+Use the repository-owned checker instead of a downloaded standalone copy:
+
+```bash
+git switch 013-progressive-mathematical-discovery &&
+git pull --ff-only origin 013-progressive-mathematical-discovery &&
+python3 -S scripts/check_discovery_environment.py \
+  --engine podman --hash-all --probe-images
+```
+
+The standard-library host launcher checks the selected checkout, retained original
+files, host resource floors, permissions and existing-session source binding.
+`--hash-all` invokes the canonical original-input audit, writing new diagnostic
+receipts only; it may read large checkpoint/exposure files. `--probe-images` uses
+Podman/Docker for isolated CPU-only probes of the existing
+`oeis-learn:discovery-qualification` and `oeis-learn:discovery-gpu` images. Both
+probes have no network or GPU access, use a disposable output mount and reclaim
+their named container even on failure. Images are never built or pulled. Missing
+or stale images require the pipeline's normal build step; this check cannot
+establish HIP compatibility or sufficient model/checkpoint capacity.
+
+Missing repository imports are captured before relying on the regular collector;
+independent host/file checks continue when individual helpers are unavailable.
+Every completed or failed invocation prints a `preflight.zip` under a new
+`run-state/environment-preflight-*` directory. If that location is unwritable,
+bootstrap diagnostics use a new system temporary directory and print its path.
+The ZIP contains the public report and checker source, not original data,
+checkpoints or private audit files. Existing journals and budgets are unchanged.
+Do not delete old sessions or override a reported source mismatch. Exit codes are
+0 for no failed checks (warnings may remain), 1 for failures and 130 for an
+interrupted regular collection. The checker resolves its checkout independently
+of the current working directory; `--root` explicitly selects another checkout.
