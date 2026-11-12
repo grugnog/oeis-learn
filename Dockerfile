@@ -99,6 +99,7 @@ FROM qualification-native AS qualification
 COPY --from=synthesis-build /opt/oeis-build-info /opt/oeis-build-info
 # Explicit inputs fail the build immediately if context filtering drops fixtures.
 COPY data/benchmarks/symbolic_definitions_v1.json data/benchmarks/trustworthy_synthesis_v1.json /opt/oeis-build/data/benchmarks/
+COPY data/sample_oeis/names data/sample_oeis/stripped /opt/oeis-build/data/sample_oeis/
 COPY . /opt/oeis-build
 # Runtime-created mount parents can inherit a private umask. The parent must be
 # searchable by arbitrary numeric role UIDs; bind mounts retain their own modes.
@@ -138,6 +139,7 @@ FROM gpu-native AS gpu
 COPY --from=synthesis-build /opt/oeis-build-info /opt/oeis-build-info
 # Explicit inputs fail the build immediately if context filtering drops fixtures.
 COPY data/benchmarks/symbolic_definitions_v1.json data/benchmarks/trustworthy_synthesis_v1.json /opt/oeis-build/data/benchmarks/
+COPY data/sample_oeis/names data/sample_oeis/stripped /opt/oeis-build/data/sample_oeis/
 COPY . /opt/oeis-build
 RUN install -d -m 0755 /work /work/input /work/output && bash /opt/oeis-build/docker/dev/build-native.sh
 ENV PYTHONPATH=/workspace/src
