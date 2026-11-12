@@ -4,6 +4,8 @@ Research dispatch/24h entitlement belongs to the later registered training role.
 This rehearsal never grants research authority or bypasses device qualification.
 """
 
+from oeis_learn.pipeline_validation.learner_timing import timed
+
 import json
 import random
 import time
@@ -586,6 +588,7 @@ class PolicyUpdate:
             raise
         self.scheduler = checked
 
+    @timed('optimizer_update')
     def update(self, sequences, tokens, *, ledger, allocation=None):
         import torch
 
@@ -697,6 +700,7 @@ class RecoverableUpdate:
                 raise ValueError("checkpoint device RNG requires actual device")
             torch.cuda.set_rng_state_all(rng["device"])
 
+    @timed('checkpoint_capture')
     def capture(self, context):
         import copy
 
@@ -754,6 +758,7 @@ class RecoverableUpdate:
         self.context = context
         return record
 
+    @timed("update_transaction")
     def step(
         self,
         sequences,
@@ -937,6 +942,7 @@ class Progress:
         self.last = now
         return value
 
+    @timed("preflight")
     def preflight(
         self, *, bytes_required, inodes_required, remaining_us, finalization_us, research,work_us=0,shared_finalization_us=0
     ):

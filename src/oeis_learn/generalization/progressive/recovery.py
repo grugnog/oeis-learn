@@ -5,6 +5,8 @@ are never recovery authority. Supervisor clock proofs are supplied by the owner,
 not inferred from worker timestamps, files, or time spent powered off.
 """
 
+from oeis_learn.pipeline_validation.learner_timing import timed
+
 import copy
 from pathlib import Path
 
@@ -249,6 +251,7 @@ class Recovery:
         self.read()
         return self.initialize(restored['states'],state['payload']['cuts'])
 
+    @timed('checkpoint_save')
     def save(self, states, ledger, cuts, *, entries=None):
         if not self.owned:
             raise ValueError("exclusive task lease required")
@@ -275,6 +278,7 @@ class Recovery:
                                               weights=full['states']['weights']['sha256'])
         return record
 
+    @timed('checkpoint_restore')
     def restore(self):
         self.read()
         if self.state["checkpoint"] is None:
@@ -506,6 +510,7 @@ class Recovery:
         self.append(status="COMPLETE" if complete else "PARTIAL" if terminal else "PAUSED")
         del self.clock
 
+    @timed('checkpoint_retention')
     def retain(self, *, milestone_pins):
         """Prune owned tensors before the next write; never prune journal authority.
 

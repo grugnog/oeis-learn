@@ -678,3 +678,9 @@ The original physical measurements support component estimates, not measured
 hourly full-learner throughput. Scientific study sizes remain unchanged. Selecting
 a shorter trajectory must prospectively publish its derived support schedule and
 first-look feasibility before freeze; it never rewrites original prepared data.
+
+## Phase 25: Actual installed-learner runtime sampling
+
+- [X] T182 Add opt-in bounded timing to the canonical learner, measuring whole update loops, probes, budget bookkeeping and full snapshot operations without changing numerical decisions or checkpoint policy. Test real installed training and successor restore.
+- [ ] T183 Add a finite, separate full-learner HIP timing owner over original gradient-only support: four shapes, reference batch variants, refreshed consumption and four exact-input calibration samples. Reuse original service/timing publications, retain independent failures, verify cleanup and preserve diagnostic ZIPs. No rehearsal or panel exposure.
+- [ ] T184 Report unpadded all-eligible selected-round runtime scenarios with incremental continuation tokens, measured task overhead, historical evaluation costs and calibration sample bounds. Explicitly identify unmeasured interactions/conditional branches; retain scientific horizons, reservations and HIP gates unchanged.

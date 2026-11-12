@@ -1,6 +1,7 @@
 """Installed finite learner; public supervisor clocks, isolated training bytes only."""
 
 import copy
+from .learner_timing import timed, recording, completed_update
 import time
 from pathlib import Path
 
@@ -246,6 +247,7 @@ def _run(
     from oeis_learn.decoder.bigint_codec import BOS_ID, PAD_ID
     from oeis_learn.generalization.progressive.milestones import milestone
     from oeis_learn.pipeline_validation.generalization_curriculum import observe_targets
+    observe_targets = timed("probes")(observe_targets)
     from oeis_learn.pipeline_validation.progressive_evidence import publish
 
     if (
@@ -462,6 +464,7 @@ def _run(
         with Heartbeat(progress, device=device, initial=initial, clock=recovery.clock) as heartbeat:
             try:
                 while True:
+                    update_started = time.perf_counter_ns()
                     restored = recovery.current()
                     if restored["ledger"].consumed >= t["payload"]["token_target"]:
                         status='PARTIAL' if recovery.state['pending'] is not None else 'COMPLETE'
@@ -603,6 +606,7 @@ def _run(
                         phase="UPDATE_COMPLETE" if periodic else "CHECKPOINT_COMMITTED",
                         **({"recoverable": recovery.recoverable_useful} if periodic else {}),
                     )
+                    completed_update(update_started, charge, index)
                 if periodic:
                     recovery.finish_window(lambda: worker.capture(worker.context), failed=worker.failed)
             except (TimeoutError, InterruptedError) as exc:
@@ -727,7 +731,7 @@ def run(
     validate_task(authority["task"], campaign=authority["campaign"])
     # Preflight precedes the very first checkpoint and includes previous owned
     # invocation outputs supplied by the supervisor's append-only inventory.
-    with owned_guard(authority, output=output, state_root=state_root).activate():
+    with owned_guard(authority, output=output, state_root=state_root).activate(), recording(output):
         return _run(
             package,
             authority,

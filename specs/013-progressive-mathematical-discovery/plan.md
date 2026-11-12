@@ -396,3 +396,22 @@ all shards, probe exclusions, ordering, preparation omissions and provenance;
 returns explicit first-look deficits; and never uses model scores. All successive
 screening looks must share that schedule. A 500k/1M screening or 2M confirmation
 choice still requires its own prospective design; this repair selects none of them.
+
+### Full-learner timing follow-up (T182–T184)
+
+Use the installed training role on original gradient-only support with hourly
+persistence. Seven 128k-token diagnostic paths span four shapes, reference batches
+16/32/64 and a separate refreshed path. Each uses two linked tasks to exercise
+publication and full-state successor restore. Four independent maximal-input
+calibration samples estimate the cost of the original 1,296-case domain; they do
+not replace its qualification requirements. Diagnostic refresh cadence changes
+only in separate diagnostic packages, preserving all source rows and probes.
+
+Record bounded whole-loop windows and nested exclusive component times. Project
+training using incremental tokens, task setup/publication and periodic snapshots,
+and retain historical unpadded evaluation projections with their conservative
+random-model assumptions. Report conditional/unmeasured work separately; do not
+claim a statistical expected duration for the entire eventual research graph.
+Every case has its own process, durable start/result, cleanup proof and device
+health probe; independent cases continue after ordinary failures. Original
+completed sessions are immutable and historical timings never grant HIP authority.

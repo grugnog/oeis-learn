@@ -606,3 +606,47 @@ publications, and require `COMPLETE`. Construct the learner input from that deri
 support via `training_input(..., checkpoint_policy='hourly/v1')`. Never change
 cadence independently between cumulative screening looks or silently recycle
 shards. No scientific horizon or existing study budget has been changed here.
+
+### Full installed-learner runtime measurement
+
+Run this once under a separate finite diagnostic owner. It reuses the completed
+service and original component-training sessions, never the raw corpus or a new
+census. It builds/reuses the current HIP image, runs seven 128k-token paths with
+hourly persistence and full-state successor restore, then four independent
+maximal-input calibration samples. Scientific horizons and budgets remain unchanged.
+
+```bash
+git pull --ff-only origin 013-progressive-mathematical-discovery &&
+python3 -S scripts/discovery_hip_handoff.py \
+  --engine podman \
+  --session run-state/discovery/013-runtime-timing-001 \
+  measure-runtime \
+  --service-session run-state/discovery/013-services-001 \
+  --training-session run-state/discovery/013-training-timing-001
+```
+
+The provisional expectation is **20–40 minutes plus any image build**, based on
+prior component measurements, not a measured end-to-end ETA. The finite guard is
+much larger: 45 minutes per learner case, 15 minutes per calibration case and
+6 hours 35 minutes overall. Each learner case contains two tasks with 20-minute
+allowances and 60-second finalization reserves. Those are failure guards, not
+scheduled durations. A much slower case retains partial work and diagnostics;
+unrelated cases continue after proven cleanup and a device health check.
+
+Share `run-state/discovery/013-runtime-timing-001/share/measure-runtime.zip`, even
+if the command fails. It contains exact source/image/command bindings, environment
+telemetry, per-case process/health logs, producer failures, bounded update windows,
+checkpoint/probe/accounting timings and `runtime-review.json`. Training rows and
+weights remain local. A repeat invocation reuses completed steps and retains
+failed originals; it never creates another free training attempt. Collecting the
+existing session does not rerun training.
+
+The report estimates the currently selected capability/diversity/tuning round,
+including incremental continuation tokens and historical evaluation costs. Its
+low/high values are sampled planning scenarios, not confidence intervals. The
+historical generation estimate uses slow random-model measurements; training can
+change generation cost substantially. Four batch-16 calibration samples project
+preparation overhead but do not bound every batch/dropout/input combination.
+Unmeasured setup, remaining qualification, later conditional branches and final
+assessment remain explicit. Timing alone does not select shorter trial horizons
+or establish scientific progress, sustained execution or HIP qualification.

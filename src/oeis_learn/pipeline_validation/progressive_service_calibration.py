@@ -31,7 +31,6 @@ def gather(root, donor, output):
 
 def _gather(root, donor, output):
     """Read the original publications, not the raw corpus or a new census."""
-    from .progressive_handoff import original_authority
     from .progressive_timing_coverage import coverage
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from oeis_learn.generalization.progressive.training_rows import validate_row
@@ -103,21 +102,9 @@ def _gather(root, donor, output):
             raise ValueError('historical timing sample is not original training support')
     prompts=sorted([dict(id=r['id'],indices=r['indices'][:20],values=r['values'][:20])
                     for r in originals_samples],key=lambda r:r['id'])
-    q, qroot = original_authority(root, req['qualification'])
-    previous = _json(checked_file(qroot, q['source_closure']), maximum=64<<20)
-    current = collect_snapshot(root)
-    if digest(previous) != req['source'] or req['source'] != binding['source']:
+    if req['source'] != binding['source']:
         raise ValueError('original timing source differs from qualification')
-    prefixes = ('src/oeis_learn/decoder/', 'src/oeis_learn/synthesis/', 'src/oeis_learn/fresh/',
-                'src/oeis_learn/sandbox/', 'crates/')
-    names = {'Dockerfile', 'pyproject.toml', 'uv.lock',
-             'src/oeis_learn/pipeline_validation/progressive_evaluation.py',
-             'src/oeis_learn/pipeline_validation/pilot_clocks.py',
-             'src/oeis_learn/generalization/progressive/baselines.py',
-             'src/oeis_learn/generalization/progressive/models.py'}
-    protected = {k for k in set(previous)|set(current) if k in names or k.startswith(prefixes)}
-    if any(previous.get(k) != current.get(k) for k in protected):
-        raise ValueError('historical generation/service implementation changed; cannot extrapolate it')
+    validate_historical_source(root, req)
     measurements = []
     for i, case in enumerate(req['cases']):
         gpath = confined(root,timing/'cases'/str(i)/'generation/candidates.json')
@@ -150,7 +137,7 @@ def _gather(root, donor, output):
     result = seal(dict(version='progressive-service-inputs/v1',
         donor_session=reference(root,folder/'session.json'),donor_journal=reference(root,folder/'journal.json'),
         support=materials['support'],materials=reference(root,base/'materials/materials.json'),
-        native=census['native'],source=digest(current),original_source=req['source'],
+        native=census['native'],source=digest(collect_snapshot(root)),original_source=req['source'],
         original_request=reference(root,timing/'request.json'),original_request_identity=req['identity'],
         prior_timing_seconds=elapsed,additional_seconds=HOST_SECONDS,
         original_total_seconds=req['seconds'],historical_measurements=measurements,tasks=tasks,
@@ -420,3 +407,24 @@ def report(root, inputs):
             'aggregate ancillary/training caps require a new validated freeze before execution']))
     revise(root/'service-budget-review.json',value)
     return value
+
+
+def validate_historical_source(root, req):
+    """Historical costs may be reused only with unchanged measured code."""
+    from oeis_learn.experiments.source_snapshot import collect_snapshot
+    from .progressive_handoff import original_authority
+    q, qroot = original_authority(root, req['qualification'])
+    previous = _json(checked_file(qroot, q['source_closure']), maximum=64<<20)
+    current = collect_snapshot(root)
+    if digest(previous) != req['source']:
+        raise ValueError('original timing source differs from qualification')
+    prefixes = ('src/oeis_learn/decoder/', 'src/oeis_learn/synthesis/', 'src/oeis_learn/fresh/',
+                'src/oeis_learn/sandbox/', 'crates/')
+    names = {'Dockerfile', 'pyproject.toml', 'uv.lock',
+             'src/oeis_learn/pipeline_validation/progressive_evaluation.py',
+             'src/oeis_learn/pipeline_validation/pilot_clocks.py',
+             'src/oeis_learn/generalization/progressive/baselines.py',
+             'src/oeis_learn/generalization/progressive/models.py'}
+    protected = {k for k in set(previous)|set(current) if k in names or k.startswith(prefixes)}
+    if any(previous.get(k) != current.get(k) for k in protected):
+        raise ValueError('historical generation/service implementation changed; cannot extrapolate it')

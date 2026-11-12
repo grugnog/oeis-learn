@@ -41,6 +41,7 @@ NAMES.update({'checkpoint-retirement.json','checkpoint-retirement-intent.json',
               'calibration-case.json','calibration-cases.json'})
 NAMES.update({'attempt-index.json','portfolio-clocks.json','attempts.jsonl'})
 NAMES.update({'service-inputs.json','service-cases.json','service-budget-review.json','service-allowance.json','started.json'})
+NAMES.update({'runtime-inputs.json','prior-training.json','runtime-cases.json','runtime-review.json','runtime-allowance.json'})
 NAMES.update({'training-timing-inputs.json','training-timing-progress.json','training-runtime-review.json','training-timing-allowance.json','hardware.json'})
 NAMES.update({'preparation-allowance.json','prepare-allowance.json','qualify-allowance.json','qualification-allowance.json','calibration-allowance.json','hardware-allowance.json','census-host-allowance.json','reporting-allowance.json','census-allowance.json','research-reservation.json','construction-summary.json','execution-contract.json','evaluation-cases.json',
               'evaluation-feasibility.json','evaluation-progress.json','evaluation-diagnostics.json','resource-estimate.json','timing.json','running.json'})

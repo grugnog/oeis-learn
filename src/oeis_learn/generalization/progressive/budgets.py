@@ -1,5 +1,7 @@
 """Durable debit-before-work journals; pending work never restores entitlement."""
 
+from oeis_learn.pipeline_validation.learner_timing import timed
+
 from contextlib import contextmanager
 import fcntl
 import json
@@ -182,6 +184,7 @@ class BudgetJournal:
             raise ValueError("budget exceeded")
         self._cache = events, pending, finished, totals, previous
 
+    @timed('budget_read')
     def _read(self):
         # Cache only a file we fully verified or appended ourselves under flock.
         # Any external change (including same-size edits) forces full verification.
@@ -198,6 +201,7 @@ class BudgetJournal:
         self._verified_fingerprint = fingerprint
         return self._cache
 
+    @timed('budget_append')
     def _append(self, event):
         from .storage import append_json, StorageGuard
 
