@@ -19,7 +19,10 @@ def construct(design, panels, screening):
             or design['selected_stages']!=['capability','diversity','tuning']):
         raise ValueError('original prospective capability/diversity/tuning round required')
     from .tuning import validate_screening_panel
-    validate_screening_panel(screening,grouping=design['tuning'].get('screening_group_policy','paired-16/v1'))
+    grouping=design['tuning'].get('screening_group_policy','paired-16/v1')
+    expected='balanced-at-most-two/v2' if design['version'].endswith('/v2') else 'paired-16/v1'
+    if grouping!=expected:raise ValueError('screening grouping differs from prospective design version')
+    validate_screening_panel(screening,grouping=grouping)
     names={'development','confirmation-diversity',*[f'confirmation-tuning-{i}' for i in range(4)],
            'retention-development','retention-diversity','retention-tuning','assessment'}
     if set(panels)!=names:

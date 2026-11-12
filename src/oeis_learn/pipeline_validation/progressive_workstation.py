@@ -436,6 +436,8 @@ def main(root,argv=None):
             **{'prepare-research':(['verified-registration-reuse','rehearsal-scope-reference','CPU-native-census','independent-sensitivity','readiness-deficits'] if args.registration_session else ['original-inputs','selected-Q','exact-calibration','freeze','acceptance']),
                'run-research':['run-or-resume','report','verify'],'assess':['locked-assess','report','verify'],'collect':['package-existing']})[args.phase],
             launches=False,host_dependencies='Python standard library only',
+            census_reuse=args.reuse_census_session,
+            preparation_revision='v3: original native outcomes plus finite additional support-conditioned draws' if args.reuse_census_session else None,
             automatic_research='run-or-resume/report/verify after complete freeze and acceptance; never assess' if args.run_after_prepare else None),indent=2))
         return 0
     from oeis_learn.experiments.source_snapshot import collect_snapshot

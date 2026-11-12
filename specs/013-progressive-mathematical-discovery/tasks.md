@@ -601,3 +601,12 @@ may reuse reviewed original native data, but cannot inherit execution authority.
 - [X] T169 Introduce explicitly versioned screening and refresh rules: 32 tasks per stratum from at least 16 original groups, at most two members per group; per-effective-batch eight-update-aligned cadence over the same immutable support and 25M horizon. Bind both rules through compiler, trial materialization, learner compatibility, calibration and study validation. Historical paired-16 and fixed-cadence records retain their definitions.
 - [X] T170 Add reviewed data-only cross-session census reuse with original request/journal/artifact/native identities, a single durable revision owner, remaining-time accounting and no original native reexecution. Reuse unchanged synthetic sensitivity evidence. Preserve failure ZIPs and distinguish semantic material deficits from producer failures. No rehearsal, corpus fetch, exposure reimport or old HIP authority transfer.
 - [X] T171 Classify exact source integers outside the 4096-bit evaluation profile as explicitly ineligible, without truncation, replacement or dropping source denominators. Keep malformed originals and native failures blocking. Add connected regression coverage for revision, native replay avoidance, costs, changed inputs, source scope, sibling-budget reset, screening/refresh policies and publication boundaries; document exact operator command and remaining hardware/scientific gates.
+
+T168–T171 validation: 168 affected checks passed (two local native skips); 101
+inventory/packaging/projection checks passed (one local native skip, overlapping
+coverage); original and revised full-domain compiler variants passed all four
+cases, each retaining 376 requests and 1,296 calibration combinations. A separate
+reference-only supply probe supports the revised sampling design but does not
+include the workstation history or confer native/HIP authority. Actual native
+revision/publication is registered in mandatory Docker CI. T089 research readiness
+and scientific/HIP tasks remain pending until original workstation evidence exists.

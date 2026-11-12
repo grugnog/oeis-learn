@@ -79,3 +79,53 @@ Actual exposure import remains pending the corrected workstation invocation. Use
 new session `013-research-inputs-002` because these source changes invalidate the
 old session binding; no HIP repetition is needed for this CPU registration step.
 The automatic research construction work listed above remains outstanding.
+
+### Unscored preparation diagnosis and prospective revision (2026-11-12)
+
+The uploaded `013-research-round-001` preparation bundle records 8,192 accepted
+training draws, 1,344 evaluation candidates and 31,424 rejected draws: all 40,960
+native attempts completed. One of the 4,096 OEIS candidates exceeded the 4,096-bit
+evaluation profile; 4,007 were available and 88 exposed. The final role-roster
+exception was downstream of genuinely INCOMPLETE materials, not an import or HIP
+failure. No model training/scoring or final assessment began.
+
+The earlier deficit diagnosis was correct but insufficiently specific about its
+causes. Blind draws from the same narrow literal law did not supply enough new
+parameter variants or combinations relative to actual initial gradient support.
+Reserving parameter structures exclusively across all ten panels also exceeded
+what that small shared support could supply, despite the declared parameter
+structure-sharing policy. Screening's exact-pair requirement rejected a valid
+OEIS panel of singleton groups. Finally, using the minimum batch's refresh interval
+for batch 64 made the worst-case first refresh occur after the 25M horizon.
+Connected tests additionally found that reservation missed composition links to
+parameter witnesses that canonical publication correctly rejected.
+
+Request v3 and research-round-design/v2 address these causes prospectively; see
+plan.md and workstation-handoff.md. The old session and all its counts, failures,
+reservations, exclusions and costs remain unchanged. An unsupported OEIS value is
+explicitly ineligible for this numerical profile, never truncated or replaced.
+All original native data are reused under exact original producer/native/byte
+checks, while the new 32,768-attempt evaluation commitment consumes the remaining
+original six-hour census clock. A durable single owner prevents sibling retries
+from resetting that allowance. Original sensitivity cases are reused unchanged;
+current-source research qualification/calibration/acceptance remain mandatory.
+
+A reference-only local diagnostic reproduced the 8,192-draw training law and
+examined the additional sampler. It yielded 14,739 parameter and 12,070 composition
+candidates after excluding overlaps with those training draws. Under the corrected
+whole-relation grouping, all parameter and composition panel targets reached 128
+members: 17–18 parameter groups per panel and 58–78 composition groups per panel.
+These are feasibility diagnostics, not research/native/HIP evidence: the local
+probe lacks the workstation's historical exposure index, uses diagnostic support
+identity and does not evaluate a model. The workstation must independently check
+all original exclusions and publication quotas; success is not promised.
+
+Software validation: 168 affected unit/contract checks passed, with two native
+checks skipped locally; 101 inventory/packaging/projection checks passed, with one
+native skip (overlap between these suites is not counted as distinct coverage).
+Both original and revised full campaign compiler variants passed: 376 canonical
+role requests and all 1,296 exact calibration combinations each. The revised
+variant includes singleton screening groups and batch-specific cadence all the
+way through material binding, construction and frozen-study validation. Real
+native revision/publication acceptance is registered in mandatory Docker CI;
+Docker/Podman and physical HIP were unavailable locally. No CI result is claimed.
