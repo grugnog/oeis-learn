@@ -682,5 +682,18 @@ first-look feasibility before freeze; it never rewrites original prepared data.
 ## Phase 25: Actual installed-learner runtime sampling
 
 - [X] T182 Add opt-in bounded timing to the canonical learner, measuring whole update loops, probes, budget bookkeeping and full snapshot operations without changing numerical decisions or checkpoint policy. Test real installed training and successor restore.
-- [ ] T183 Add a finite, separate full-learner HIP timing owner over original gradient-only support: four shapes, reference batch variants, refreshed consumption and four exact-input calibration samples. Reuse original service/timing publications, retain independent failures, verify cleanup and preserve diagnostic ZIPs. No rehearsal or panel exposure.
-- [ ] T184 Report unpadded all-eligible selected-round runtime scenarios with incremental continuation tokens, measured task overhead, historical evaluation costs and calibration sample bounds. Explicitly identify unmeasured interactions/conditional branches; retain scientific horizons, reservations and HIP gates unchanged.
+- [X] T183 Add a finite, separate full-learner HIP timing owner over original gradient-only support: four shapes, reference batch variants, refreshed consumption and four exact-input calibration samples. Reuse original service/timing publications, retain independent failures, verify cleanup and preserve diagnostic ZIPs. No rehearsal or panel exposure.
+- [X] T184 Report unpadded all-eligible selected-round runtime scenarios with incremental continuation tokens, measured task overhead, historical evaluation costs and calibration sample bounds. Explicitly identify unmeasured interactions/conditional branches; retain scientific horizons, reservations and HIP gates unchanged.
+
+T182–T184 validation: 79 affected observer/learner, workstation and wheel-packaging
+checks passed; a separate 41-check service/CI run passed with one unavailable
+native-service skip. Final recovery, selected-profile, supervision and timing
+checks passed (58 tests), followed by the real constructed-roster projection
+check. These suites overlap. The 14 new timing tests cover actual CPU updates,
+refreshed consumption, full-state successor restore, maximal-input calibration,
+exact dropout/RNG equivalence, original donor/source bindings, finite ownership,
+independent failure continuation, failed cleanup, killed-worker accounting ZIPs,
+unchanged originals and stdlib CLI dispatch. The constructed roster retains 364M
+incremental training tokens without duplicate parent exposure. New cases are in
+the mandatory CPU inventory. No actual HIP run, sustained proof, research
+qualification, revised scientific horizon or completed T089 is claimed.

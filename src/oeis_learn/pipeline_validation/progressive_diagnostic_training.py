@@ -71,3 +71,30 @@ def prepare(root, package, *, target_tokens, seconds=1800, arm='static'):
     for task in tasks:validate_input(package,task)
     atomic_write(root/'campaign.json',campaign)
     return campaign,tasks,channel
+
+
+def collect(root, destination):
+    """Original public accounting/recovery bytes, excluding data and tensors."""
+    import zipfile
+    root,destination=Path(root),Path(destination)
+    paths=[]
+    for name in ('campaign.json','accounting/budget.jsonl','accounting/budget-binding.json',
+                 'accounting/journal-storage.json'):
+        if (root/name).is_file():paths.append(root/name)
+    for pattern in ('invocation-*/process.json','invocation-*/authority.json',
+                    'invocation-*/role/result.json','invocation-*/role/timing.json',
+                    'invocation-*/role/checkpoint.json','invocation-*/role/accounting-final.json',
+                    'invocation-*/role/milestone.json','invocation-*/role/diversity.json','learning/*/binding.json','learning/*/event-*.json'):
+        paths.extend(root.glob(pattern))
+    paths=sorted(set(paths))
+    manifest=[]
+    destination.parent.mkdir(parents=True,exist_ok=True)
+    with destination.open('xb') as stream, zipfile.ZipFile(stream,'w',compression=zipfile.ZIP_DEFLATED) as z:
+        for path in paths:
+            # Preserve complete required public evidence. Size limits in the
+            # enclosing ZIP collector report omissions rather than truncating it.
+            ref=reference(root,path);manifest.append(ref)
+            z.write(path,str(path.relative_to(root)))
+        z.writestr('inventory.json',json.dumps(dict(files=manifest,
+            excluded='training inputs, weights, optimizer tensors and private targets stay local'),indent=2))
+    return reference(destination.parent,destination)

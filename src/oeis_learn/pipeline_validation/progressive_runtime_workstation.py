@@ -35,6 +35,7 @@ def measure(w):
         if value['status']!='PASS':raise RuntimeError('runtime cases incomplete; original results retained')
         paths=[folder/'runtime-cases.json',folder/'hardware.json']
         paths.extend(folder/r['producer']['path'] for r in value['cases'])
+        paths.extend(folder/r['diagnostics']['path'] for r in value['cases'] if r.get('diagnostics'))
         return value,paths
     s.step('runtime-measurements',execute,dependencies=(phase+'/timing-plan',))
     def review():

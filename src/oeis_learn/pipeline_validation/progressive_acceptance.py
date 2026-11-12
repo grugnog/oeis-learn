@@ -798,25 +798,36 @@ raise SystemExit(0 if r['mechanical_status']=='COMPLETE' else 2 if r['mechanical
     env = dict(os.environ)
     if pythonpath is not None:
         env["PYTHONPATH"] = str(pythonpath)
-    process = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            code,
-            str(output / "inputs"),
-            str(output / "role"),
-            str(output / "authority.json"),
-            str(accounting),
-            str(control),
-            str(state),
-            str(parent_state),
-        ],
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=max(1, (remaining["elapsed_us"] // 1000000)),
-    )
+    try:
+        process = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                code,
+                str(output / "inputs"),
+                str(output / "role"),
+                str(output / "authority.json"),
+                str(accounting),
+                str(control),
+                str(state),
+                str(parent_state),
+            ],
+            env=env,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=max(1, (remaining["elapsed_us"] // 1000000)),
+        )
+    except subprocess.TimeoutExpired as exc:
+        # The outer case supervisor still owns descendant cleanup. Keep the
+        # original reservation pending rather than asserting termination here.
+        def text_tail(value):
+            if isinstance(value, bytes):value=value.decode('utf-8',errors='replace')
+            return (value or '')[-4096:]
+        atomic_write(output/'process.json',seal(dict(returncode=None,
+            elapsed_us=time.monotonic_ns()//1000-start,stdout=text_tail(exc.stdout),
+            stderr=text_tail(exc.stderr),failure='TimeoutExpired',termination_proven=False)))
+        raise
     # subprocess.run returns only after owned process termination. This is a
     # measured proof, not a worker timestamp or a simulated multi-hour interval.
     end = time.monotonic_ns() // 1000

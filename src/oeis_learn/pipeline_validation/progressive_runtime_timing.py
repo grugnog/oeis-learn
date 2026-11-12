@@ -175,8 +175,15 @@ def run_case(root, index, *, device='cuda'):
             (output/f'producer-{ordinal}-traceback.log').write_bytes(trace.read_bytes()[:4<<20])
         raise
     finally:
+        from .progressive_diagnostic_training import collect
+        try:
+            value['diagnostics']=collect(output/'private/learner',output/'diagnostics.zip')
+        except Exception as exc:
+            value.setdefault('collector_errors',[]).append(dict(error=type(exc).__name__,message=str(exc),traceback=traceback.format_exc()))
+            value['status']='FAIL'
         value['elapsed_seconds']=time.monotonic()-began
         retain(output/'producer.json',seal(value))
+    if value['status']!='PASS':raise ValueError('runtime diagnostic evidence collection incomplete')
     return value
 
 
@@ -191,12 +198,16 @@ def run_inside(root, seconds):
     began=time.monotonic();rows=[];blocked=None
     previous=read(root/'runtime-cases.json') if (root/'runtime-cases.json').exists() else None
     if previous:blocked=previous.get('device_block')
+    previous_rows={r['index']:r for r in previous['cases']} if previous else {}
     originals={r['index']:r['producer'] for r in previous['cases'] if 'producer' in r} if previous else {}
     if previous and previous['request']!=req['identity']:raise ValueError('original case journal differs')
     for index,case in enumerate(req['cases']):
         output=root/'cases'/str(index);path=output/'producer.json'
+        case_error = previous_rows.get(index,{}).get('status') not in {None,'PASS'}
         if path.exists():
-            if index in originals:checked_file(root,originals[index])
+            if index in originals:
+                checked_file(root,originals[index])
+                if previous_rows[index].get('diagnostics'):checked_file(root,previous_rows[index]['diagnostics'])
             else:blocked='UNJOURNALED_PREVIOUS_CASE'
             producer=read(path)
             if producer.get('request')!=req['identity'] or producer.get('case')!=case:
@@ -217,6 +228,9 @@ def run_inside(root, seconds):
                 launch([sys.executable,'-c',code,str(root),str(index)],output/'execution',
                        seconds=min(limit,seconds-(time.monotonic()-began)-30),cleanup_seconds=15)
             except Exception as exc:
+                case_error=True
+                retain(output/'failures.json',seal(dict(request=req['identity'],case=case,
+                    error=type(exc).__name__,message=str(exc),traceback=traceback.format_exc())))
                 if not path.exists():retain(path,seal(dict(status='FAIL',request=req['identity'],case=case,
                     error=type(exc).__name__,message=str(exc),traceback=traceback.format_exc())))
                 process=_json(output/'execution/process.json',maximum=1<<20) if (output/'execution/process.json').exists() else {}
@@ -232,8 +246,21 @@ def run_inside(root, seconds):
                     launch([sys.executable,'-c',
                         'from oeis_learn.pipeline_validation.progressive_qualification import require_hip; t=require_hip(); x=t.ones(1,device="cuda"); assert x.item()==1; t.cuda.synchronize()'],
                         output/'health',seconds=min(120,left-15),cleanup_seconds=15)
-                except Exception:blocked='DEVICE_HEALTH_FAILED'
-        rows.append(dict(index=index,status=producer['status'],producer=reference(root,path)))
+                except Exception:
+                    blocked='DEVICE_HEALTH_FAILED'
+                    case_error=True
+        # A killed worker cannot execute its finally block. After acknowledged
+        # cleanup, the surviving owner still collects original public journals.
+        diagnostics=output/'diagnostics.zip'
+        if not blocked and not diagnostics.exists():
+            try:
+                from .progressive_diagnostic_training import collect
+                collect(output/'private/learner',diagnostics)
+            except Exception:
+                case_error=True
+                (output/'collection.log').write_text(traceback.format_exc())
+        rows.append(dict(index=index,status='FAIL' if case_error else producer['status'],producer=reference(root,path),
+                         diagnostics=reference(root,diagnostics) if diagnostics.exists() else None))
         revise(root/'runtime-cases.json',seal(dict(version=VERSION,request=req['identity'],cases=rows,status='RUNNING',device_block=blocked)))
     value=seal(dict(version=VERSION,request=req['identity'],cases=rows,
         status='PASS' if len(rows)==len(req['cases']) and all(r['status']=='PASS' for r in rows) and not blocked else 'FAIL',
@@ -253,8 +280,9 @@ def report(root, inputs):
     results={r['index']:r for r in batch['cases']} if batch else {}
     for i,case in enumerate(req['cases']):
         ref=results.get(i,{}).get('producer')
-        if not ref:
+        if not ref or results[i]['status']!='PASS':
             deficits.append(case['id']);continue
+        if results[i].get('diagnostics'):checked_file(root,results[i]['diagnostics'])
         p=read(checked_file(root,ref))
         if p.get('request')!=req['identity'] or p.get('case')!=case:raise ValueError('runtime case binding differs')
         if p['status']!='PASS' or p.get('device')!='actual_HIP':

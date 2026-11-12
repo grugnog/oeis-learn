@@ -14,10 +14,10 @@ from oeis_learn.generalization.progressive.contracts import seal, digest, refere
 from tests.unit.test_progressive_training_timing import package_fixture
 
 
-def request_fixture(root, package):
+def request_fixture(root, package, review=None):
     output=root/'run-state/runtime/measure-runtime/timing'
     write(output/'private/training-input.json',package)
-    review=dict(runtime_estimate=dict(training_tasks=[
+    review=review or dict(runtime_estimate=dict(training_tasks=[
         dict(task='first',stage='capability',domain='baseline',incremental_tokens=1000000),
         dict(task='continuation',stage='tuning',domain='all',incremental_tokens=3000000)],
         stages={s:dict(observed_generation_projection_seconds=100,
@@ -122,6 +122,7 @@ def test_installed_case_batch_continues_failure_but_blocks_unsafe_cleanup(tmp_pa
         if folder.name=='health':return {}
         index=int(argv[-1]);calls.append(index)
         if index in (0,2):
+            write(folder.parent/'private/learner/accounting/budget.jsonl',{'original_debit':'retained'})
             write(folder/'process.json',dict(returncode=1,cleanup_failure='still alive' if index==2 else None))
             raise RuntimeError('injected case failure')
         write(folder.parent/'producer.json',fake_producer(req,req['cases'][index]))
@@ -132,6 +133,9 @@ def test_installed_case_batch_continues_failure_but_blocks_unsafe_cleanup(tmp_pa
     assert result['status']=='FAIL' and result['device_block']=='UNPROVEN_CASE_CLEANUP'
     assert [c['status'] for c in result['cases']][:4]==['FAIL','PASS','FAIL','BLOCKED']
     assert t.report(output,inputs)['status']=='INCOMPLETE'
+    import zipfile
+    with zipfile.ZipFile(output/'cases/0/diagnostics.zip') as z:
+        assert b'retained' in z.read('accounting/budget.jsonl')
 
 
 def test_workstation_packages_failure_no_restart(tmp_path,monkeypatch):
@@ -234,3 +238,80 @@ def test_observer_preserves_real_dropout_weights_and_rng(tmp_path,monkeypatch):
     assert torch.equal(outcomes[0][1],outcomes[1][1])
     assert not (tmp_path/'0/timing.json').exists()
     assert read(tmp_path/'1/timing.json')['components']['optimizer_update']['calls']==2
+
+
+def test_real_cpu_maximal_input_calibration_sample(tmp_path,monkeypatch):
+    monkeypatch.delenv('OEIS_PROGRESSIVE_ACCEPTANCE_DEVICE',raising=False)
+    monkeypatch.setenv('OEIS_PROGRESSIVE_TIMING','0')
+    output,_,_=request_fixture(tmp_path,package_fixture(tmp_path))
+    value=t.run_case(output,8,device='cpu')
+    assert value['status']=='PASS' and value['calibration']['device']=='cpu'
+    assert set(value['calibration']['measurements'])=={'update_us','probe_us','checkpoint_us'}
+    assert min(value['calibration']['measurements'].values())>0
+
+
+def test_installed_timeout_keeps_stderr_budget_and_failure_zip(tmp_path,monkeypatch):
+    output,_,_=request_fixture(tmp_path,package_fixture(tmp_path))
+    monkeypatch.setenv('OEIS_PROGRESSIVE_TIMING','1')
+    monkeypatch.delenv('OEIS_PROGRESSIVE_ACCEPTANCE_DEVICE',raising=False)
+    def timeout(*a,**kw):
+        raise subprocess.TimeoutExpired('installed train',1200,output=b'last progress',stderr=b'original device error')
+    monkeypatch.setattr(subprocess,'run',timeout)
+    with pytest.raises(subprocess.TimeoutExpired):t.run_case(output,0,device='cpu')
+    value=read(output/'cases/0/producer.json')
+    assert value['status']=='FAIL' and value['error']=='TimeoutExpired'
+    import zipfile
+    with zipfile.ZipFile(output/'cases/0/diagnostics.zip') as z:
+        process=json.loads(z.read('invocation-0/process.json'))
+        assert process['stderr']=='original device error' and not process['termination_proven']
+        assert 'accounting/budget.jsonl' in z.namelist()
+        assert not any('training-input' in n or n.endswith('.pt') for n in z.namelist())
+
+
+def test_successful_producer_does_not_hide_supervisor_failure(tmp_path,monkeypatch):
+    output,inputs,req=request_fixture(tmp_path,package_fixture(tmp_path))
+    monkeypatch.setattr('oeis_learn.experiments.source_snapshot.source_snapshot',lambda:{})
+    monkeypatch.setenv('OEIS_QUALIFICATION_IMAGE',req['image'])
+    monkeypatch.setattr('oeis_learn.pipeline_validation.progressive_qualification.hardware_facts',lambda:{})
+    calls=[]
+    def launch(argv,folder,**kwargs):
+        folder=Path(folder);folder.mkdir(parents=True,exist_ok=True)
+        if folder.name=='health':return {}
+        i=int(argv[-1]);calls.append(i)
+        write(folder.parent/'producer.json',fake_producer(req,req['cases'][i]))
+        if i==0:
+            write(folder/'process.json',dict(returncode=1,cleanup_failure=None))
+            raise RuntimeError('late subprocess failure')
+        return {}
+    monkeypatch.setattr('oeis_learn.pipeline_validation.supervision.launch',launch)
+    result=t.run_inside(output,t.HOST_SECONDS)
+    assert result['status']=='FAIL' and result['cases'][0]['status']=='FAIL'
+    assert calls==list(range(11))
+    assert t.report(output,inputs)['status']=='INCOMPLETE'
+    assert t.run_inside(output,t.HOST_SECONDS)==result and calls==list(range(11))
+
+
+def test_runtime_review_consumes_actual_constructed_research_roster(tmp_path):
+    from tests.unit.test_progressive_service_calibration import fixture,producer
+    from oeis_learn.pipeline_validation import progressive_service_calibration as service
+    output,inputs,req=fixture(tmp_path)
+    cases=[]
+    for i in range(8):
+        producer(output,req,i)
+        cases.append(dict(index=i,producer=reference(output,output/'cases'/str(i)/'producer.json')))
+    write(output/'service-cases.json',seal(dict(request=req['identity'],cases=cases)))
+    review=service.report(output,inputs)
+    assert review['status']=='MEASURED'
+    folder,bound,request=request_fixture(tmp_path,package_fixture(tmp_path),review)
+    cases=[]
+    for i,case in enumerate(request['cases']):
+        path=folder/'cases'/str(i)/'producer.json';write(path,fake_producer(request,case))
+        cases.append(dict(index=i,status='PASS',producer=reference(folder,path)))
+    write(folder/'runtime-cases.json',seal(dict(request=request['identity'],cases=cases,device_block=None)))
+    result=t.report(folder,bound)
+    assert result['status']=='MEASURED'
+    assert sum(r['incremental_tokens'] for r in result['training_tasks'])==364000000
+    assert result['runtime_estimate']['all_eligible_incremental_tokens']==364000000
+    assert result['runtime_estimate']['selected_round_low_seconds']>364000000/2000
+    assert len(result['training_tasks'])==len(review['runtime_estimate']['training_tasks'])
+    assert result['runtime_estimate']['full_campaign_expected_seconds'] is None
