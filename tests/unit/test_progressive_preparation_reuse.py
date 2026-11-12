@@ -41,6 +41,48 @@ def test_completed_data_reuses_original_refs_with_single_recipient(donor):
     with pytest.raises(ValueError):adopt(root,str(folder.relative_to(root)),root/'run-state/discovery/sibling')
 
 
+def test_owner_transfer_recovers_after_pointer_publication_before_local_copy(donor,monkeypatch):
+    from oeis_learn.pipeline_validation import progressive_preparation_owner as owner
+    from oeis_learn.pipeline_validation.progressive_workstation_state import read,Session
+    root,folder,source,_=donor;first=root/'run-state/discovery/first';second=root/'run-state/discovery/second'
+    original=adopt(root,str(folder.relative_to(root)),first)[2];failed_owner(root,first,original)
+    retain=owner.retain
+    def interrupted(path,value):
+        if path==second/'preparation-owner.json':raise OSError('local publication interrupted')
+        return retain(path,value)
+    monkeypatch.setattr(owner,'retain',interrupted)
+    with pytest.raises(OSError,match='interrupted'):adopt(root,str(folder.relative_to(root)),second)
+    claim=next((root/'run-state/discovery-preparation-revisions').glob('runtime-*.json'))
+    committed=claim.read_bytes()
+    monkeypatch.setattr(owner,'retain',retain)
+    assert adopt(root,str(folder.relative_to(root)),second)[2]==read(claim)['receipt']
+    assert claim.read_bytes()==committed
+    session=Session(root,str(second.relative_to(root)),dict(source=digest(source)),'prepare-research')
+    with session.own():pass
+    import zipfile
+    with zipfile.ZipFile(second/'share/prepare-research.zip') as z:
+        assert {'preparation-owner.json','preparation-owner-proof.json'}<=set(z.namelist())
+
+
+def test_chained_cpu_failures_preserve_all_owners_and_never_revive_a_predecessor(donor):
+    from oeis_learn.pipeline_validation.progressive_workstation_state import read
+    root,folder,source,_=donor
+    receipts=[]
+    for name in ('first','second','third'):
+        target=root/'run-state/discovery'/name
+        receipt=adopt(root,str(folder.relative_to(root)),target)[2];receipts.append(receipt)
+        failed_owner(root,target,receipt)
+    claim=next((root/'run-state/discovery-preparation-revisions').glob('runtime-*.json'))
+    current=read(claim)
+    assert current['receipt']==receipts[2]
+    previous=read(root/current['previous']['path'])
+    assert previous['receipt']==receipts[1]
+    assert read(root/previous['previous']['path'])==receipts[0]
+    for name in ('first','second'):
+        with pytest.raises(ValueError,match='superseded'):
+            adopt(root,str(folder.relative_to(root)),root/'run-state/discovery'/name)
+
+
 @pytest.mark.parametrize('change',['source','run','construction','incomplete','tamper'])
 def test_changed_or_scored_donors_cannot_be_reused(donor,change):
     root,folder,source,steps=donor
@@ -103,3 +145,85 @@ def test_reused_workstation_publishes_paths_consumed_by_real_subprocess_handoff(
     assert session.journal['steps']['prepare-research/materials']['status']=='COMPLETE'
     assert session.journal['steps']['prepare-research/sensitivity']['status']=='COMPLETE'
     assert session.journal['steps']['prepare-research/native-census']['outputs']==[reference(tmp_path,paths['native-census'][0])]
+
+
+def failed_owner(root, folder, receipt):
+    """Small original-style CPU failure; no synthetic HIP success."""
+    write(folder/'session.json',seal(dict(binding=dict(source=receipt['current_source']))))
+    (folder/'session.lock').touch()
+    write(folder/'journal.json',seal(dict(steps={
+        'prepare-research/base-qualification':dict(status='FAILED'),
+        'prepare-research/qualification-profiles':dict(status='COMPLETE'),
+        'prepare-research/matrix':dict(status='BLOCKED')},errors=[])))
+    base=folder/'prepare-research'
+    write(base/'matrix/profiles.json',dict(profiles='metadata only'))
+    stages={}
+    for name,state in {'cpu.semantic':'FAIL','hip.preflight':'BLOCKED',
+                       'image.gpu':'PASS','image.qualification':'PASS'}.items():
+        stage=base/'base-qualification/pipeline/stages'/name
+        files={}
+        if state!='BLOCKED':
+            for path,value in [('process.json',dict(returncode=1 if state=='FAIL' else 0,cleanup_failure=None)),
+                               ('cleanup.json',dict(acknowledged=True,within_bound=True,failure=None))]:
+                write(stage/path,value);files[path]=reference(root,stage/path)['sha256']
+        stages[name]=seal(dict(stage=name,state=state,files=files,binding=dict(contract=receipt['current_source'])))
+        write(stage/'receipt.json',stages[name])
+    write(base/'base-qualification/pipeline/summary.json',dict(stages=stages))
+
+
+def test_failed_cpu_owner_transfers_once_with_history_and_old_client_fence(donor):
+    from oeis_learn.pipeline_validation.progressive_workstation_state import read
+    from oeis_learn.pipeline_validation.preparation_recovery import retain
+    root,folder,source,_=donor;first=root/'run-state/discovery/first';second=root/'run-state/discovery/second'
+    original=adopt(root,str(folder.relative_to(root)),first)[2]
+    failed_owner(root,first,original)
+    originals={p:p.read_bytes() for p in first.rglob('*') if p.is_file()}
+    source['tests/contract/test_progressive_bundle.py']=digest('fixed schema test')
+    receipt=adopt(root,str(folder.relative_to(root)),second)[2]
+    claim=next((root/'run-state/discovery-preparation-revisions').glob('runtime-*.json'))
+    owner=read(claim)
+    assert owner['receipt']==receipt
+    assert read(root/owner['previous']['path'])==original
+    proof=read(root/owner['proof']['path'])
+    assert proof['predecessor']==original and proof['original_costs_retained']
+    assert proof['scientific_allowance_transferred'] is False
+    assert all(p.read_bytes()==value for p,value in originals.items())
+    assert adopt(root,str(folder.relative_to(root)),second)[2]==receipt
+    assert read(second/'preparation-owner-proof.json')==proof
+    with pytest.raises(ValueError,match='superseded'):adopt(root,str(folder.relative_to(root)),first)
+    # Even an old checkout's immutable publication cannot revive its old owner.
+    with pytest.raises(ValueError,match='publication differs'):retain(claim,original)
+    with pytest.raises(ValueError):adopt(root,str(folder.relative_to(root)),root/'run-state/discovery/sibling')
+
+
+@pytest.mark.parametrize('change',['running','history','training','qualification','artifact','cleanup','process','tamper','source','lock'])
+def test_owner_transfer_rejects_started_work_unreclaimed_processes_and_changed_proof(donor,change):
+    import fcntl
+    from oeis_learn.pipeline_validation.progressive_workstation_state import read
+    root,folder,source,_=donor;first=root/'run-state/discovery/first'
+    original=adopt(root,str(folder.relative_to(root)),first)[2];failed_owner(root,first,original)
+    journal=read(first/'journal.json')
+    if change=='running':journal['steps']['prepare-research/environment']=dict(status='RUNNING')
+    if change=='history':journal['steps']['prepare-research/matrix']['history']=[dict(status='FAILED')]
+    if change=='training':journal['steps']['run-research/start']=dict(status='BLOCKED')
+    if change=='qualification':journal['steps']['prepare-research/matrix']['status']='COMPLETE'
+    write(first/'journal.json',seal(journal))
+    base=first/'prepare-research';stage=base/'base-qualification/pipeline/stages/cpu.semantic'
+    if change=='artifact':(base/'construction').mkdir()
+    if change in {'cleanup','process','tamper'}:
+        name='process.json' if change=='process' else 'cleanup.json'
+        value=__import__('json').loads((stage/name).read_bytes())
+        value.update(returncode=None) if change=='process' else value.update(acknowledged=False)
+        write(stage/name,value)
+        if change!='tamper':
+            row=read(stage/'receipt.json');row['files'][name]=reference(root,stage/name)['sha256']
+            row=seal(row);write(stage/'receipt.json',row)
+            summary=__import__('json').loads((base/'base-qualification/pipeline/summary.json').read_bytes())
+            summary['stages']['cpu.semantic']=row;write(base/'base-qualification/pipeline/summary.json',summary)
+    if change=='source':write(first/'session.json',seal(dict(binding=dict(source=digest('different')))))
+    claim=next((root/'run-state/discovery-preparation-revisions').glob('runtime-*.json'));before=claim.read_bytes()
+    with (first/'session.lock').open('a') as lock:
+        if change=='lock':fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        with pytest.raises((ValueError,BlockingIOError)):
+            adopt(root,str(folder.relative_to(root)),root/'run-state/discovery/second')
+    assert claim.read_bytes()==before

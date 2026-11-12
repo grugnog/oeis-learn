@@ -3,7 +3,7 @@ from pathlib import Path
 import fcntl
 from .identity import confined,seal,digest
 from .progressive_research_inputs import checked_file,_json
-from .preparation_recovery import retain
+from .progressive_preparation_owner import claim_owner
 from oeis_learn.generalization.progressive.contracts import reference
 
 
@@ -63,5 +63,5 @@ def adopt(root,donor,recipient):
             recipient=str(recipient.relative_to(root)),hardware_authority_transferred=False,
             original_costs_retained=True,assessment_exposed=False))
         claim=root/'run-state/discovery-preparation-revisions'/('runtime-'+census['identity'][7:]+'.json')
-        retain(claim,receipt)
+        claim_owner(root,claim,receipt)
         return values,outputs,receipt

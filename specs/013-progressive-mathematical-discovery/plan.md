@@ -471,3 +471,21 @@ headroom, not a second empty campaign disk. This is not lifetime-based sharing o
 task budgets. Actual writes, inode checks and enclosing caps remain enforced.
 Current-source qualification/calibration/freeze/acceptance are required in a fresh
 research session; prior rehearsal remains historical and need not be repeated.
+
+### Replacement after a pre-HIP CPU qualification failure
+
+T192 adds a narrow replacement route to the existing single-recipient preparation
+guard. `progressive_preparation_owner.py` holds both the census ownership lock and
+the previous session lock, checks the failed CPU pipeline's original sealed stage
+receipts and process/cleanup hashes, and rejects started downstream work, unresolved
+attempts, scientific execution or changed inputs. The permitted case has failed
+CPU semantics, blocked HIP preflight and no selected-model matrix execution.
+Configuration profiles alone are metadata and do not count as matrix execution.
+
+An atomic owner pointer retains content-addressed predecessor claims and a snapshot
+of the previous session/journal/termination evidence. Both new and old code are
+fenced from restarting a superseded owner; the latest recipient can recover after
+interruption between pointer publication and local diagnostic publication. The
+new ZIP includes owner/proof records. Historical costs remain in the original
+attempt and its immutable proof; no scientific allowance transfers or resets.
+Later-stage failures remain blocked rather than receiving this replacement route.

@@ -762,3 +762,18 @@ fresh current-source qualification; no original failure is relabelled a pass.
 After the fix, all 48 local report/bundle/schema, scoped-storage, calibrated-freeze
 and implementation-binding checks passed. This includes both legacy report
 coverage and the new scoped-storage roundtrip; no HIP execution is claimed.
+
+- [X] T192 Permit replacement of a preparation-data recipient that demonstrably failed CPU base qualification before HIP or scientific work. Preserve the original claim and cost history, verify original worker cleanup under ownership/session locks, atomically fence superseded clients, recover interrupted owner publication, package the proof and reject later-stage or unproven attempts. Keep the original census/materials unchanged and document the fresh round-005 command.
+
+The replacement verifier was exercised directly against round 003's uploaded
+original records, accepting its failed CPU stage and all eight process/cleanup
+records while retaining the original source identity. Unit cases cover blocked
+siblings, active locks, started downstream work, historical interrupted attempts,
+changed receipts, unacknowledged cleanup, multiple replacements and old-version
+fencing. This is recovery of unused preparation ownership, not transferred HIP
+qualification or a renewed scientific budget.
+
+Validation passed 87 preparation-reuse, revision, workstation and implementation
+binding tests, with one unavailable native dependency skipped. The restart and
+ZIP tests include interruption after atomic ownership publication and recovery
+without changing that committed pointer. No local HIP execution is claimed.
