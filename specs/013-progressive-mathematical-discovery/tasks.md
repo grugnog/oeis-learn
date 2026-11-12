@@ -713,3 +713,15 @@ reservation/reuse/cleanup/workstation/governance checks passed. These suites
 overlap. New tests enter the mandatory CPU inventory. No HIP work or real user
 file deletion was performed here. T089 and physical research acceptance remain
 subject to current-source qualification, exact calibration and storage feasibility.
+
+Follow-up integration review also carries the explicit design version into the
+real selected-profile qualifier; both versions retain all 12 profiles/48 cases.
+The subsequent tuning/runtime/calibration-storage/CI suite passed 35 tests, with
+11 unavailable installed/native dependency cases skipped locally (mandatory in
+CI). No claim of those installed paths passing locally is made.
+
+Final handoff validation passed 83 tests, including the actual workstation
+metadata paths passed to the roster/construction boundary, original references
+without a native-data rerun, both selected-profile design versions and legacy
+workstation behavior. Reused materials/sensitivity publish small metadata copies
+at their canonical local paths; large original data remain referenced in place.

@@ -10,7 +10,7 @@ from oeis_learn.generalization.progressive.contracts import record, reference
 def selected_profiles(root, data, design):
     from oeis_learn.generalization.progressive.models import resolve_profile
     from .progressive_research_design import scientific_round
-    if design!=scientific_round(data):
+    if design!=scientific_round(data,expanded=design.get('version')=='progressive-research-round-design/v3'):
         raise ValueError('original prospective scientific round required')
     recipe=_json(checked_file(root,data['recipe']))
     # A model seed is not a distinct arithmetic/update capability. Actual cases

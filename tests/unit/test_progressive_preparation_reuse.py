@@ -52,3 +52,54 @@ def test_changed_or_scored_donors_cannot_be_reused(donor,change):
     write(folder/'journal.json',seal(dict(steps=steps)))
     with pytest.raises(ValueError):adopt(root,str(folder.relative_to(root)),root/'run-state/discovery/new')
     assert not (root/'run-state/discovery-preparation-revisions').exists()
+
+
+def test_reused_workstation_publishes_paths_consumed_by_real_subprocess_handoff(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import progressive_research_workstation as work
+    from oeis_learn.pipeline_validation import progressive_preparation_reuse as reuse
+    from oeis_learn.pipeline_validation import progressive_research_launch as launch
+    from oeis_learn.pipeline_validation import progressive_research_bridge as bridge
+    from oeis_learn.pipeline_validation import supervision
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session,read
+    from oeis_learn.generalization.progressive.contracts import load
+    session=Session(tmp_path,'run-state/discovery/new',dict(source=digest('current')),'prepare-research')
+    base=session.folder/'prepare-research';donor=tmp_path/'run-state/discovery/old'
+    write(donor/'session.json',seal(dict(binding=dict(registration_session='registration'))))
+    data=seal(dict(version='progressive-registered-data/v1',source=digest('original'),design=seal(dict(seeds=[17,19]))))
+    values={'registered-data':data,'native-census':seal(dict(deficits=[])),
+        'materials':seal(dict(status='COMPLETE',deficits=[])), 'sensitivity':seal(dict(status='COMPLETE'))}
+    paths={}
+    for name,v in values.items():
+        path=donor/(name+'.json');write(path,v);paths[name]=[path]
+    monkeypatch.setattr(reuse,'adopt',lambda *a:(values,paths,seal(dict(original_source=digest('original')))))
+    monkeypatch.setattr(bridge,'request',lambda data:seal(dict(seed=17,token_target=25000000,seconds=21600)))
+    monkeypatch.setattr(bridge,'rehearsal',lambda *a:(dict(status='HISTORICAL_ONLY'),[]))
+    visited=[]
+    def execute_roster(argv,*a,**kw):
+        assert '--roster-only' in argv
+        for flag,expected in (('--materials',values['materials']),('--data',data)):
+            assert load(tmp_path/argv[argv.index(flag)+1])==expected
+        design=load(tmp_path/argv[argv.index('--design')+1]);assert design['version'].endswith('/v3')
+        for rel in ('roster-summary.json','private/role-roster.json','research-reservation.json'):
+            write(base/'roster'/rel,seal(dict(TEST_BOUNDARY=True,status='COMPLETE')))
+        visited.append('roster')
+    monkeypatch.setattr(supervision,'launch',execute_roster)
+    def prepare(w,data,design,materials):
+        assert load(base/'materials/materials.json')==values['materials']
+        assert load(base/'sensitivity/sensitivity.json')==values['sensitivity']
+        assert design['version'].endswith('/v3');visited.append('qualification-boundary')
+    monkeypatch.setattr(launch,'prepare',prepare)
+    monkeypatch.setattr(launch,'readiness',lambda *a:(dict(status='TEST_BOUNDARY_NOT_HIP'),[]))
+    def images(*a,**kw):
+        session.journal['steps']['prepare-research/image-qualification']=dict(status='COMPLETE',outputs=[])
+        return dict(qualification=digest('cpu'))
+    w=SimpleNamespace(root=tmp_path,base=base,s=session,images=images,
+        args=SimpleNamespace(reuse_preparation_data='run-state/discovery/old',registration_session='registration',
+            expanded_runtime_budgets=True,rehearsal_session='historical'),
+        host=lambda:SimpleNamespace(engine=SimpleNamespace(facts=lambda:{}),policy={}))
+    with session.own():work.prepare(w)
+    assert visited==['roster','qualification-boundary']
+    assert session.journal['steps']['prepare-research/materials']['status']=='COMPLETE'
+    assert session.journal['steps']['prepare-research/sensitivity']['status']=='COMPLETE'
+    assert session.journal['steps']['prepare-research/native-census']['outputs']==[reference(tmp_path,paths['native-census'][0])]

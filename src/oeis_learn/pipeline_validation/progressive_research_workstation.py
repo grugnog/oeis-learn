@@ -30,10 +30,10 @@ def prepare(workflow):
         donor=getattr(w.args,'reuse_census_session',None)
         if donor:
             from .progressive_research_revision import adopt
-            reuse=adopt(root,donor,s.folder,data)
-            data=seal(dict(data,census_reuse=reuse))
+            census_reuse=adopt(root,donor,s.folder,data)
+            data=seal(dict(data,census_reuse=census_reuse))
             write(base/'registered/registered-data.json',data)
-            write(base/'census-reuse.json',reuse);files.append(base/'census-reuse.json')
+            write(base/'census-reuse.json',census_reuse);files.append(base/'census-reuse.json')
         return data,files
     data = s.step('registered-data', registered)
     s.step('rehearsal-reference',lambda: bridge.rehearsal(root,w.args.rehearsal_session,base,s.binding['source']))
@@ -99,7 +99,9 @@ def prepare(workflow):
             return census_action(left)
     counted=s.step('native-census',census,recover=True,dependencies=('prepare-research/census-plan','prepare-research/image-qualification'))
     def materials():
-        if reuse:return reuse[0]['materials'],reuse[1]['materials']
+        if reuse:
+            path=base/'materials/materials.json';write(path,reuse[0]['materials'])
+            return reuse[0]['materials'],[*reuse[1]['materials'],path]
         from .supervision import launch
         # Stdlib byte projection only; no model, native execution, download or
         # original exposure import runs outside the installed container roles.
@@ -130,7 +132,9 @@ def prepare(workflow):
             base/'roster/private/role-roster.json',base/'roster/research-reservation.json']
     s.step('role-roster',role_roster,dependencies=('prepare-research/materials',))
     def sensitivity():
-        if reuse:return reuse[0]['sensitivity'],reuse[1]['sensitivity']
+        if reuse:
+            path=base/'sensitivity/sensitivity.json';write(path,reuse[0]['sensitivity'])
+            return reuse[0]['sensitivity'],[*reuse[1]['sensitivity'],path]
         # Original registered assumptions, not real panel/model outcomes.
         original=confined(root,data['donor_session']['path']).parent/'register-inputs/design/sensitivity-design.json'
         design=load(original)

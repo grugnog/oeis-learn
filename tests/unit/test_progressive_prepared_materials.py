@@ -179,7 +179,8 @@ def test_screening_uses_fixed_two_by_sixteen_groups_and_reports_shortages():
     assert short['status']=='INCOMPLETE' and short['deficits']==['screening_support:composition']
 
 
-def test_round_retains_full_optimization_domain_and_separate_panels(tmp_path):
+@pytest.mark.parametrize('expanded',[False,True])
+def test_round_retains_full_optimization_domain_and_separate_panels(tmp_path,expanded):
     from oeis_learn.fresh.bigint_config import resolve
     from oeis_learn.pipeline_validation.progressive_workstation_state import write
     from oeis_learn.generalization.progressive.contracts import reference
@@ -191,10 +192,10 @@ def test_round_retains_full_optimization_domain_and_separate_panels(tmp_path):
     write(tmp_path/'recipe.json',resolve(dict(version='bigint-bootstrap/v1')))
     data=seal(dict(version='progressive-registered-data/v1',design=seal(dict(seeds=[17,19])),
         recipe=reference(tmp_path,'recipe.json'),candidates={},exposure={}))
-    design=scientific_round(data)
+    design=scientific_round(data,expanded=expanded)
     assert design['selected_stages']==['capability','diversity','tuning']
     assert design['tuning']['learning_trials']==12 and design['tuning']['sizing_trials']==4
-    assert design['tuning']['screen_seconds']==7200
+    assert design['tuning']['screen_seconds']==(96*3600 if expanded else 7200)
     assert design['tuning']['screening_looks']==[1000000,2000000,4000000]
     profiles=selected_profiles(tmp_path,data,design)
     assert len(profiles['profiles'])==12
