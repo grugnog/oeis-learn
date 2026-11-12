@@ -30,7 +30,7 @@ def test_native_and_python_policy():
 
 def test_runtime_state_is_excluded_from_images():
     ignored = (ROOT / ".dockerignore").read_text().splitlines()
-    for name in ("run-state/", "container-cache/", "system/", "**/.ssh/"):
+    for name in ("run-state/", "container-cache/", "system/", "**/.ssh/", "data/*", "downloads/", "**/*.duckdb"):
         assert name in ignored
 
 
@@ -43,3 +43,22 @@ def test_host_help_needs_only_standard_library():
         )
         assert result.returncode == 0, result.stderr
         assert "--engine" in result.stdout
+
+
+def test_only_registered_benchmark_fixtures_enter_image_context():
+    ignored = (ROOT / ".dockerignore").read_text().splitlines()
+    fixtures = ("symbolic_definitions_v1.json", "trustworthy_synthesis_v1.json")
+    # Parent traversal is explicit; arbitrary siblings, caches and future datasets
+    # must not become image inputs just because benchmarks need their directory.
+    exceptions = [line for line in ignored if line.startswith("!data/")]
+    assert exceptions == ["!data/benchmarks/", *["!data/benchmarks/" + name for name in fixtures]]
+    assert ignored.index("data/*") < ignored.index("!data/benchmarks/")
+    assert ignored.index("!data/benchmarks/") < ignored.index("data/benchmarks/*")
+    for name in fixtures:
+        assert ignored.index("data/benchmarks/*") < ignored.index("!data/benchmarks/" + name)
+        assert (ROOT / "data/benchmarks" / name).is_file()
+    # COPY is resolved against Docker's actual filtered context in both builds.
+    # It fails before installation/qualification if either fixture is omitted.
+    recipe = (ROOT / "Dockerfile").read_text()
+    copy = "COPY " + " ".join("data/benchmarks/" + name for name in fixtures) + " /opt/oeis-build/data/benchmarks/"
+    assert recipe.count(copy) == 2

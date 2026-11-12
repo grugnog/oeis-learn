@@ -83,6 +83,11 @@ system/
 pytest-of-*/
 
 # Full corpus and retained caches are mounted explicitly, never image inputs.
-data/
+data/*
+!data/benchmarks/
+data/benchmarks/*
+# Only these tracked qualification fixtures belong in the image.
+!data/benchmarks/symbolic_definitions_v1.json
+!data/benchmarks/trustworthy_synthesis_v1.json
 downloads/
 **/*.duckdb
