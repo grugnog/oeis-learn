@@ -49,7 +49,7 @@ def rank(rows, *, target=4000000, root=None):
     }
 
 
-def confirmation(rows, *, baseline, panels, seeds, target=4000000, root=None):
+def confirmation(rows, *, baseline, panels, seeds, target=4000000, root=None, operational_revision=False):
     ranking = rank(rows, target=target, root=root)
     if baseline not in ranking["ordered"]:
         raise ValueError("feasible baseline required")
@@ -102,7 +102,7 @@ def confirmation(rows, *, baseline, panels, seeds, target=4000000, root=None):
             "initialization": "fresh_random",
             "optimizer": "fresh",
             "tokens": 25000000,
-            "seconds": 43200,
+            "seconds": 86400 if operational_revision else 43200,
             "schedule_horizon_tokens": 400000000,
             "warmup_tokens": 1250000,
             "final_multiplier": 0.1,

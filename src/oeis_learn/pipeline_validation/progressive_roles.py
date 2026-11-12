@@ -63,7 +63,7 @@ IMPLEMENTED = frozenset(
 )
 
 
-def deadline_for(task, *, remaining_us, seconds, runtime=None, operation):
+def deadline_for(task, *, remaining_us, seconds, runtime=None, operation, expanded=False):
     """Only validated discovery authority can extend the generic six-hour cap."""
     from oeis_learn.generalization.budgets import integer
     from oeis_learn.generalization.progressive.campaign import VerifiedRuntime, validate_task
@@ -71,7 +71,8 @@ def deadline_for(task, *, remaining_us, seconds, runtime=None, operation):
     t = validate_task(task)
     p = t["payload"]
     integer(remaining_us, 1)
-    if type(seconds) not in (int, float) or not 0 < seconds <= 86400:
+    maximum=72*3600 if expanded and p["kind"]!="training" and operation in {"generate","score"} else 86400
+    if type(seconds) not in (int, float) or not 0 < seconds <= maximum:
         raise ValueError("bounded discovery role duration")
     if int(seconds * 1_000_000) > remaining_us or remaining_us > p["caps"]["elapsed_us"]:
         raise ValueError("enclosing remaining deadline exceeded")
@@ -154,6 +155,7 @@ def _invoke_reserved(
         seconds=seconds,
         runtime=runtime,
         operation=operation,
+        expanded=any(r["name"]=="research-reservation-v2" for r in c["payload"]["references"]),
     )
     from oeis_learn.generalization.progressive.budgets import WORK_ROLES, role_work_requirements
     from oeis_learn.generalization.progressive.contracts import (

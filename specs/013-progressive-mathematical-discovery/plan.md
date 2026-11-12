@@ -415,3 +415,30 @@ claim a statistical expected duration for the entire eventual research graph.
 Every case has its own process, durable start/result, cleanup proof and device
 health probe; independent cases continue after ordinary failures. Original
 completed sessions are immutable and historical timings never grant HIP authority.
+
+### Measured runtime amendment and storage maintenance (2026-11-12)
+
+T185–T187 resolve the two measured planning deficits without reducing the initial
+scientific study. `runtime_reservation.py` owns explicit v2 operational accounting;
+round-design v3/study-policy v3/calibration-plan v2 select it prospectively.
+Canonical construction, freeze and installed adapters carry these finite limits
+through every enclosing clock. Historical defaults retain their identities and
+behavior. See the exact limits and unchanged expected duration in
+`contracts/execution.md`.
+
+`progressive_preparation_reuse.py` reuses original unscored data only, verifying
+journal-bound files and unchanged data producers (with one exact reviewed
+prepared-support delta for the already implemented hourly/recadence helpers).
+Qualification, evaluation timing, exact calibration and acceptance are fresh.
+The original census and all prior expenses stay in their original session;
+a donor-derived owner prevents a sibling campaign from resetting entitlement.
+
+`discovery_cleanup.py` is reusable stdlib maintenance code, exposed by
+`scripts/discovery_cleanup.py`. Planning inventories local disk usage. Apply
+revalidates original completed diagnostic scopes and immutable files under the
+session/global GPU locks, inventories all tensor hashes durably before deletion,
+and retires only diagnostic `weights.pt`/`optimizer.pt`. It retains checkpoint
+manifests, other state, inputs, receipts and archives, and explicitly labels these
+models non-resumable. It does not delete a generalization/research run or infer
+absence of dependencies from filenames. Interrupted cleanup can resume from the
+same plan and intent. No native toolchain, engine or host package is needed.

@@ -139,7 +139,8 @@ def test_resource_finalization_only_shrinks_disk_and_reports_slow_choices(tmp_pa
 
 
 @pytest.mark.parametrize('failed_timing',[False,True])
-def test_registered_handoff_uses_canonical_dependencies_and_stops_before_expensive_calibration(tmp_path,monkeypatch,failed_timing):
+@pytest.mark.parametrize('expanded',[False,True])
+def test_registered_handoff_uses_canonical_dependencies_and_stops_before_expensive_calibration(tmp_path,monkeypatch,failed_timing,expanded):
     from types import SimpleNamespace
     from oeis_learn.pipeline_validation import progressive_research_launch as launch
     from oeis_learn.pipeline_validation.progressive_workstation_state import Session,write
@@ -148,12 +149,16 @@ def test_registered_handoff_uses_canonical_dependencies_and_stops_before_expensi
     session=Session(tmp_path,'run-state/research',{},'prepare-research');base=session.folder/'prepare-research'
     for name in ('role-roster','sensitivity'):
         session.journal['steps']['prepare-research/'+name]=dict(status='COMPLETE')
-    roster=construct(*fixture());atomic_write(base/'roster/private/role-roster.json',roster)
+    design,panels,screening=fixture()
+    if expanded:
+        from oeis_learn.pipeline_validation.progressive_research_design import scientific_round
+        design=scientific_round(seal(dict(version='progressive-registered-data/v1',design=seal(dict(seeds=[17,19])))),expanded=True)
+    roster=construct(design,panels,screening);atomic_write(base/'roster/private/role-roster.json',roster)
     (tmp_path/'weights.pt').write_bytes(b'original byte identity; model loading boundary is simulated')
     atomic_write(tmp_path/'manifest.json',dict(retained=dict(checkpoints=dict(D=dict(root='.',descriptor=dict(weights=reference(tmp_path,'weights.pt')))))))
     atomic_write(tmp_path/'support.json',{'explicit_native_producer_boundary':True})
     data=dict(manifest=reference(tmp_path,'manifest.json'));materials=dict(support=reference(tmp_path,'support.json'))
-    for name,value in [('registered/registered-data.json',data),('materials/materials.json',materials),('research-round-design.json',{})]:
+    for name,value in [('registered/registered-data.json',data),('materials/materials.json',materials),('research-round-design.json',design)]:
         atomic_write(base/name,value)
     calls=[]
     def qualify(w,*args):
@@ -187,11 +192,13 @@ def test_registered_handoff_uses_canonical_dependencies_and_stops_before_expensi
         def action():
             calls.append(operation)
             assert kwargs['output'].startswith('run-state/research/prepare-research/')
-            if operation=='prepare':assert kwargs['blueprint'].endswith('/construction/blueprint.json')
+            if operation=='prepare':
+                assert kwargs['blueprint'].endswith('/construction/blueprint.json')
+                assert seconds==design['operational_reservation']['setup_seconds']['prepare']
             return {'explicit_command_boundary':operation},[]
         return session.step(name,action,dependencies=dependencies)
     w=SimpleNamespace(s=session,root=tmp_path,base=base,host=lambda:object(),run_command=command)
-    with session.own():launch.prepare(w,data,{},materials)
+    with session.own():launch.prepare(w,data,design,materials)
     assert calls==(['timing'] if failed_timing else ['timing','construction','prepare','freeze','acceptance'])
     accepted=session.journal['steps']['prepare-research/acceptance']['status']
     assert accepted==('BLOCKED' if failed_timing else 'COMPLETE')

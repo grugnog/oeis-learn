@@ -20,6 +20,9 @@ ROLE_SECONDS=dict(generate=4200,score=1980,audit_language=3600)
 
 
 def reservation(roster):
+    if roster.get('version')=='progressive-research-role-roster/v2':
+        from .runtime_reservation import reservation as revised
+        return revised(roster)
     if seal(roster)!=roster or roster.get('version')!='progressive-research-role-roster/v1':
         raise ValueError('original finite research roster required')
     trials={i:[] for i in range(16)};training=[];outside=[]
@@ -60,10 +63,13 @@ def verify_reservation(root,refs,plans,contract):
     import json
     from .research_roster import ROSTER_DOCUMENT_BYTES
     from .contracts import verify_refs
-    selected=[r['artifact'] for r in refs if r['name']=='research-reservation']
+    selected=[r['artifact'] for r in refs if r['name'] in {'research-reservation','research-reservation-v2'}]
     if len(selected)!=1:raise ValueError('one original prospective research reservation required')
     roster=json.loads(verify_refs(root,[contract['roster']],max_bytes=ROSTER_DOCUMENT_BYTES)[0])
     expected=reservation(roster)
+    name='research-reservation-v2' if expected['version'].endswith('/v2') else 'research-reservation'
+    if not any(r['name']==name and r['artifact']==selected[0] for r in refs):
+        raise ValueError('reservation version marker differs')
     if expected['status']!='READY' or json.loads(verify_refs(root,selected)[0])!=expected:
         raise ValueError('original research ancillary/aggregate reservation differs')
     ceilings={row['id']:row['seconds']*1000000 for row in roster['tasks']}

@@ -650,3 +650,58 @@ preparation overhead but do not bound every batch/dropout/input combination.
 Unmeasured setup, remaining qualification, later conditional branches and final
 assessment remain explicit. Timing alone does not select shorter trial horizons
 or establish scientific progress, sustained execution or HIP qualification.
+
+### Measured runtime reservation and completed-timing cleanup
+
+Use the new operational reservation only in a fresh research preparation. The
+measured initial capability/diversity/tuning workload remains approximately
+367–401 hours plus preparation, not the much larger hard ceiling. Exact calibration
+samples project about 13.15 hours before overhead; the 72-hour calibration cap
+allows substantial variation. These estimates exclude later conditional stages.
+
+The following command reuses the original completed native data and sensitivity
+from round 002, retains rehearsal 007 as historical evidence, obtains fresh
+current-source qualification/evaluation timing/exact calibration, freezes and
+accepts the selected campaign, then runs it only if every gate passes. It does
+not rerun the census or rehearsal and does not expose assessment:
+
+```bash
+git pull --ff-only origin 013-progressive-mathematical-discovery &&
+python3 -S scripts/discovery_hip_handoff.py \
+  --engine podman --session run-state/discovery/013-research-round-003 \
+  prepare-research \
+  --registration-session run-state/discovery/013-research-inputs-003 \
+  --rehearsal-session run-state/discovery/013-hip-007 \
+  --reuse-preparation-data run-state/discovery/013-research-round-002 \
+  --expanded-runtime-budgets --run-after-prepare
+```
+
+Before launching that work, the completed runtime/training timing models may be
+retired. Do not delete either session wholesale: their original observations and
+inputs remain useful. Planning is read-only apart from the maintenance report and
+lock files, and reports the precise candidate bytes plus a broader disk inventory:
+
+```bash
+python3 -S scripts/discovery_cleanup.py plan \
+  --session run-state/discovery/013-runtime-timing-001 \
+  --session run-state/discovery/013-training-timing-001 \
+  --output run-state/maintenance/timing-cleanup-001
+```
+
+Review `run-state/maintenance/timing-cleanup-001/plan.json`, then apply:
+
+```bash
+python3 -S scripts/discovery_cleanup.py apply \
+  --output run-state/maintenance/timing-cleanup-001
+```
+
+Apply hashes all selected tensors before deleting any, preserves a durable
+inventory, and safely resumes with the same command after interruption. It keeps
+all original metadata, logs, budgets, input references, state manifests and ZIPs;
+the disposable timing models become non-resumable. It refuses active/unreconciled
+GPU owners and changed/aliased files. Share
+`run-state/maintenance/timing-cleanup-001/cleanup-report.zip` for review of the
+remaining storage. No generalization, rehearsal or research run is automatically
+removed. In particular retain `pac-012-bcd-r1-002`, all research-input sessions,
+round 002's original native materials and service measurements. Unknown older
+runs and `tmp-validation` require a dependency review, not a name-based `rm -rf`.

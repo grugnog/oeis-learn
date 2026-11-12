@@ -51,7 +51,7 @@ def generate(
 
     from .pilot_clocks import DRAIN, FullClockEvidence
 
-    if type(seconds) not in (int, float) or not 0 < seconds <= 21600:
+    if type(seconds) not in (int, float) or not 0 < seconds <= _maximum_seconds(budget):
         raise ValueError("bounded installed generation required")
     if (
         not isinstance(methods, tuple)
@@ -315,7 +315,7 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None)
         }
     ):
         raise ValueError("sealed generator candidate artifact required")
-    if type(seconds) not in (int, float) or not 0 < seconds <= 21600:
+    if type(seconds) not in (int, float) or not 0 < seconds <= _maximum_seconds(budget):
         raise ValueError("bounded scorer required")
     truth = list(truth)
     by_id = {}
@@ -454,3 +454,8 @@ def score_short(source, truth, *, client):
             primary_scaling_eligible=False,
         )
     )
+
+
+def _maximum_seconds(budget):
+    from oeis_learn.generalization.progressive.budgets import RoleWorkBudget
+    return budget.evaluation_seconds if isinstance(budget,RoleWorkBudget) else 21600

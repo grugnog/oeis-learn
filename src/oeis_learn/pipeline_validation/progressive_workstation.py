@@ -36,6 +36,8 @@ def parser():
     p.add_argument('--blueprint',help='original concrete research blueprint; never a template with guessed inputs')
     p.add_argument('--selection',help='original locked assessment selection')
     p.add_argument('--registration-session',help='verified completed input registration to reuse for research preparation')
+    p.add_argument('--reuse-preparation-data',help='completed unscored census/materials donor; fresh runtime authority required')
+    p.add_argument('--expanded-runtime-budgets',action='store_true',help='prospective measured runtime reservation; fresh preparation only')
     p.add_argument('--reuse-census-session',help='explicit unscored v2 preparation to reuse under the prospective v3 design')
     p.add_argument('--preparation-session',help='original failed preparation for CPU-only service measurement')
     p.add_argument('--training-session',help='completed original training diagnostic for full-learner timing')
@@ -431,6 +433,10 @@ def main(root,argv=None):
         parser().error('input manifest, source snapshot and exposure reuse belong to register-inputs')
     if (args.registration_session or args.rehearsal_session or args.reuse_census_session) and args.phase != 'prepare-research':
         parser().error('registration/rehearsal session references belong to prepare-research')
+    if args.reuse_preparation_data and (args.phase!='prepare-research' or not args.expanded_runtime_budgets or not args.registration_session or args.reuse_census_session):
+        parser().error('--reuse-preparation-data requires expanded registered-data preparation, without --reuse-census-session')
+    if args.expanded_runtime_budgets and (args.phase!='prepare-research' or not args.registration_session):
+        parser().error('--expanded-runtime-budgets requires registered-data prepare-research')
     if args.run_after_prepare and args.phase != 'prepare-research':
         parser().error('--run-after-prepare belongs to prepare-research; assessment is always separate')
     if args.reuse_census_session and not args.registration_session:
@@ -471,10 +477,12 @@ def main(root,argv=None):
         binding['input_manifest'] = dict(path=args.input_manifest, sha256=sha(confined(root,args.input_manifest)))
         if args.reuse_exposure_session:
             binding['reuse_exposure_session'] = args.reuse_exposure_session
-    for key in ('input_manifest','reuse_exposure_session','registration_session','rehearsal_session','reuse_census_session','preparation_session','service_session'):
-        selected=getattr(args,key,None) if key in {'registration_session','rehearsal_session','reuse_census_session','preparation_session','service_session'} else None
+    for key in ('input_manifest','reuse_exposure_session','registration_session','rehearsal_session','reuse_census_session','preparation_session','service_session','reuse_preparation_data'):
+        selected=getattr(args,key,None) if key in {'registration_session','rehearsal_session','reuse_census_session','preparation_session','service_session','reuse_preparation_data'} else None
         if selected is not None: binding[key]=selected
         elif key in old and key not in binding: binding[key]=old[key]
+    if args.expanded_runtime_budgets:binding['expanded_runtime_budgets']=True
+    elif old.get('expanded_runtime_budgets'):binding['expanded_runtime_budgets']=True
     if args.phase=='collect' and old: binding=old # Recovery collects old evidence; never executes it.
     s=Session(root,args.session,binding,args.phase)
     from .progressive_workstation_state import TelemetryCollector

@@ -18,7 +18,7 @@ from oeis_learn.generalization.progressive.research_roster import construct
 
 
 def inputs(root, data, design, materials):
-    if design!=scientific_round(data):
+    if design!=scientific_round(data,expanded=design.get('version')=='progressive-research-round-design/v3'):
         raise ValueError('original registered scientific design required')
     if (seal(materials)!=materials or materials.get('version')!='progressive-research-materials/v1'
             or materials['status']!='COMPLETE' or materials['diagnostic'] or materials['deficits']):
@@ -239,6 +239,7 @@ def compile_plan(root,output,data,design,materials,*,qualification,checkpoint_by
     budget=reservation(roster)
     if budget['status']!='READY':raise ValueError('prospective research reservation cannot fit')
     c.put('research-reservation.json',budget,kind='policy')
+    if budget['version'].endswith('/v2'):c.refs[-1]['name']='research-reservation-v2'
     c.put('registered-research-data.json',data,kind='source')
     c.put('images.json',dict(version='discovery-images/v1',images=c.q['images']),kind='image')
     from .progressive_research_resources import policy as resource_policy
@@ -273,6 +274,9 @@ def compile_plan(root,output,data,design,materials,*,qualification,checkpoint_by
                        training_us=2700*1000000,finalization_us=1800*1000000),
         panel=bound['screening'],evaluations=evaluations,
         confirmation=dict(panels=[panelrefs[f'confirmation-tuning-{i}'] for i in range(4)],seeds=design['seeds'])))
+    if design['version'].endswith('/v3'):
+        from oeis_learn.generalization.progressive.runtime_reservation import screening,TRIAL_SECONDS
+        study=seal(dict(study,version='progressive-study-policy/v3',elapsed_cap_us=TRIAL_SECONDS*1000000,screening=screening(roster)))
     c.put('study-policy.json',study,kind='policy',role='proposal')
     targets=defaults();targets.update(purpose='research',created_at=c.created_at)
     targets['payload']['selected']=True
@@ -426,7 +430,10 @@ def finish_plan(c,bound,study,targetref,state,checkpoint_root,*,data,design,mate
     caps['archive_bytes']=max(caps['archive_bytes'],512<<20)
     graph=dict(selected_stages=['capability','diversity','tuning'],nodes=nodes,edges=[],diagnostic_pool=zeros())
     validate_graph(graph,caps=caps)
-    if sum(p['caps']['elapsed_us'] for p in c.plans if p['kind']!='training')>136*3600*1000000:
+    expanded=design['version'].endswith('/v3')
+    from oeis_learn.generalization.progressive.runtime_reservation import CALIBRATION_SECONDS,LIMITS_SECONDS
+    ancillary=LIMITS_SECONDS['evaluation_analysis'] if expanded else 136*3600
+    if sum(p['caps']['elapsed_us'] for p in c.plans if p['kind']!='training')>ancillary*1000000:
         raise ValueError('scientific auxiliary roles exceed the original campaign ceiling')
     profile=__import__('oeis_learn.generalization.progressive.models',fromlist=['resolve_profile']).resolve_profile(c.recipe,seed=0,dropout=0)
     runtime=c.runtime(profile)
@@ -444,9 +451,10 @@ def finish_plan(c,bound,study,targetref,state,checkpoint_root,*,data,design,mate
     from oeis_learn.generalization.progressive.shared_support import projection_size
     inputs_bytes=projection_size(cases)
     checkpoint_ceiling=max((p['caps']['disk_bytes']-(128<<20))//2 for p in c.plans if p['kind']=='training')
-    setup=zeros();setup.update(tokens=tokens,elapsed_us=12*3600*1000000,
+    calibration_seconds=CALIBRATION_SECONDS if expanded else 12*3600
+    setup=zeros();setup.update(tokens=tokens,elapsed_us=calibration_seconds*1000000,
         disk_bytes=required_bytes(len(cases),checkpoint_ceiling,inputs_bytes,retention=POLICY),archive_bytes=512<<20)
-    calibration=seal(dict(version='progressive-calibration-plan/v1',seconds=12*3600,
+    calibration=seal(dict(version='progressive-calibration-plan/v2' if expanded else 'progressive-calibration-plan/v1',seconds=calibration_seconds,
         caps=setup,checkpoint_bytes=checkpoint_ceiling,maximum_inodes=64*len(cases)+256,checkpoint_retention=POLICY))
     calibration_ref=c.put('calibration-plan.json',calibration)
     preparation_ref=c.put('preparation-plan.json',dict(version='progressive-preparation-plan/v1',payload=payload))
@@ -462,7 +470,7 @@ def finish_plan(c,bound,study,targetref,state,checkpoint_root,*,data,design,mate
         registration=data['identity'],tasks=len(c.plans),exact_calibration_cases=len(cases),
         panel_truth_isolated=True,assessment_exposed=False,
         role_hours=sum(p['caps']['elapsed_us'] for p in c.plans)/3600000000,
-        shared_screening_finalization_hours=8,calibration_hours=12,
+        shared_screening_finalization_hours=8,calibration_hours=calibration_seconds/3600,
         storage_ceiling_bytes=proposed['disk_bytes'],checkpoint_ceiling_bytes=checkpoint_ceiling,
         frozen_campaign_required=True,measured_feasibility_required=True))
     c.put('construction-summary.json',summary)

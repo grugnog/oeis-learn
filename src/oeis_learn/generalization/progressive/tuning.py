@@ -99,7 +99,7 @@ def validate_screening_panel(rows, *, grouping="paired-16/v1"):
     return digest(rows)
 
 
-def preflight(*, startup_us, evaluation_us, training_us, finalization_us, cap_us=7200000000):
+def preflight(*, startup_us, evaluation_us, training_us, finalization_us, cap_us=7200000000, operational_revision=False):
     for n in (startup_us, training_us, finalization_us, cap_us):
         integer(n, 1)
     if len(evaluation_us) != 3:
@@ -107,7 +107,7 @@ def preflight(*, startup_us, evaluation_us, training_us, finalization_us, cap_us
     for n in evaluation_us:
         integer(n, 1)
     required = startup_us + sum(evaluation_us) + training_us + finalization_us
-    if cap_us > 7200000000 or required > cap_us:
+    if cap_us > (96*3600*1000000 if operational_revision else 7200000000) or required > cap_us:
         raise ValueError("screening startup/training/evaluations/finalization cannot fit")
     return required
 

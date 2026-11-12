@@ -7,7 +7,7 @@ from .progressive_research_inputs import _json, checked_file
 from oeis_learn.generalization.progressive.contracts import reference, record
 
 
-def scientific_round(data):
+def scientific_round(data, *, expanded=False):
     """Prospective extension of the registered fixed-reference design.
 
     The requested optimization round retains the full registered search space.
@@ -19,7 +19,7 @@ def scientific_round(data):
         raise ValueError('original registered-data receipt required')
     from oeis_learn.generalization.progressive.research_budget import ROLE_SECONDS,SETUP_SECONDS,LIMITS_SECONDS
     revised='census_reuse' in data
-    return seal(dict(version='progressive-research-round-design/v2' if revised else 'progressive-research-round-design/v1',executable=False,
+    result=seal(dict(version='progressive-research-round-design/v2' if revised else 'progressive-research-round-design/v1',executable=False,
         original_design=data['design']['identity'],registration=data['identity'],
         selected_stages=['capability','diversity','tuning'],
         seeds=data['design']['seeds'],precision='float32',gpu_owners=1,
@@ -51,6 +51,16 @@ def scientific_round(data):
             'source_pilot':'assess independent eligibility after capability; no primary scaling claim',
             'assessment':'never part of preparation or adaptive run'},
         later_reservations='no automatic borrowing or unbounded continuation; explicit finite freeze required'))
+
+    if expanded:
+        from oeis_learn.generalization.progressive import runtime_reservation as rr
+        result['version']='progressive-research-round-design/v3'
+        result['tuning'].update(screen_seconds=rr.TRIAL_SECONDS,confirmation_seconds=rr.TRAINING_SECONDS)
+        result['operational_reservation']=dict(version='runtime-reservation/v2',
+            setup_seconds=rr.setup_seconds(),ancillary_limits_seconds=rr.LIMITS_SECONDS,
+            selected_training_seconds=536*3600,selected_total_seconds=rr.TOTAL_SECONDS)
+        result=seal(result)
+    return result
 
 
 def construct(root, output, manifest, registration):

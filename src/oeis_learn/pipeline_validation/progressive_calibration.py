@@ -272,7 +272,7 @@ def _prepare(root, blueprint, prepared, output, args, host_factory, *, allowance
                 raise TimeoutError("calibration allowance exhausted during inspection")
             request = seal(
                 {
-                    "version": "progressive-calibration-request/v1",
+                    "version": "progressive-calibration-request/v2" if plan["version"].endswith("/v2") else "progressive-calibration-request/v1",
                     "source": source,
                     "image": q["images"][1],
                     "engine": host.engine.name,
@@ -445,12 +445,14 @@ def validate_request(request):
     from .progressive_calibration_storage import POLICY as RETIREMENT_POLICY
     if 'checkpoint_retention' in request and request['checkpoint_retention']!=RETIREMENT_POLICY:
         raise ValueError('registered calibration snapshot retention policy required')
+    from oeis_learn.generalization.progressive.runtime_reservation import CALIBRATION_SECONDS
+    maximum=CALIBRATION_SECONDS if request.get("version")=="progressive-calibration-request/v2" else MAX_SECONDS
     if (
         set(request)-{'checkpoint_retention'} != fields
         or seal(request) != request
-        or request["version"] != "progressive-calibration-request/v1"
+        or request["version"] not in {"progressive-calibration-request/v1","progressive-calibration-request/v2"}
         or type(request["seconds"]) is not int
-        or not 0 < request["seconds"] <= MAX_SECONDS
+        or not 0 < request["seconds"] <= maximum
         or not isinstance(request["cases"], list)
         or not 1 <= len(request["cases"]) <= MAX_CASES
         or any(set(c) != {"compatibility", "artifact"} for c in request["cases"])

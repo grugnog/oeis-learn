@@ -184,6 +184,8 @@ def freeze(
         raise ValueError("qualification producer route differs")
     validate_runtime(runtime, root=root, current_facts=facts)
     execution_contracts=[r['artifact'] for r in refs if r['name']=='measured_evaluation_feasibility']
+    if any(r['name']=='research-reservation-v2' for r in refs) and len(execution_contracts)!=1:
+        raise ValueError('expanded reservation requires its measured execution contract')
     if execution_contracts:
         from oeis_learn.pipeline_validation.progressive_research_feasibility import verify_contract
         if len(execution_contracts)!=1:raise ValueError('one research execution contract required')

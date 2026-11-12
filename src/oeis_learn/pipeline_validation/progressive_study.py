@@ -28,14 +28,17 @@ def policy(root, campaign, study):
         doc = json.loads(verify_refs(root, [item["artifact"]], max_bytes=32 << 20)[0])
         if (
             isinstance(doc, dict)
-            and doc.get("version") in {"progressive-study-policy/v1","progressive-study-policy/v2"}
+            and doc.get("version") in {"progressive-study-policy/v1","progressive-study-policy/v2","progressive-study-policy/v3"}
             and doc.get("identity") == study
         ):
             matches.append(doc)
     if len(matches) != 1 or seal(matches[0]) != matches[0]:
         raise ValueError("one original frozen study policy required")
     p = matches[0]
-    revised=p["version"]=="progressive-study-policy/v2"
+    expanded=p["version"]=="progressive-study-policy/v3"
+    if expanded and not any(r["name"]=="research-reservation-v2" for r in campaign["payload"]["references"]):
+        raise ValueError("expanded study requires its frozen operational reservation")
+    revised=p["version"]=="progressive-study-policy/v2" or (expanded and "screening_group_policy" in p)
     if revised and p.get("screening_group_policy")!="balanced-at-most-two/v2":
         raise ValueError("registered prospective screening group policy required")
     if set(p) - {"diagnostic_pruning_coordinate"} - ({"screening_group_policy"} if revised else set()) != {
@@ -55,9 +58,9 @@ def policy(root, campaign, study):
         or p["diagnostic_pruning_coordinate"] not in (1000000, 2000000)
     ):
         raise ValueError("short pruning coordinates are diagnostic-only")
-    preflight(**p["screening"], cap_us=p["elapsed_cap_us"])
+    preflight(**p["screening"], cap_us=p["elapsed_cap_us"],operational_revision=expanded)
     if campaign["purpose"] == "research":
-        if p["target_tokens"] != 4000000 or p["elapsed_cap_us"] != 7200000000:
+        if p["target_tokens"] != 4000000 or p["elapsed_cap_us"] != (96*3600*1000000 if expanded else 7200000000):
             raise ValueError("fixed research screening horizon required")
         validate_screening_panel(p["panel"],grouping=p.get("screening_group_policy","paired-16/v1"))
     if not 0 < p["target_tokens"] <= p["token_cap"] <= 2**63 - 1:
@@ -551,6 +554,7 @@ def prepare_selection(root, store, task, output):
         panels=panels[:count],
         seeds=config["seeds"],
         target=p["target_tokens"],
+        operational_revision=p["version"].endswith("/v3"),
         root=root,
     )
     if store.campaign["purpose"] == "research" and expected != set(range(16)):
@@ -597,7 +601,7 @@ def commit_selection(root, store, task, result):
             plan["initializer"]["mode"] != "random"
             or plan["initializer"]["artifact"] is not None
             or plan["seed"] not in selected["seeds"]
-            or plan["caps"]["elapsed_us"] > 43200000000
+            or plan["caps"]["elapsed_us"] > ((86400 if plan["kind"]=="training" else 72*3600)*1000000 if p["version"].endswith("/v3") else 43200000000)
         ):
             raise ValueError("fresh paired confirmation entitlement required")
         source = j.trials[selected["selected"][position]]["proposal"]["parameters"]

@@ -13,7 +13,19 @@ def prepare(workflow):
     from . import progressive_research_bridge as bridge
     from .supervision import diagnostic_program
     w = workflow; s = w.s; root = w.root; base = w.base
+    reuse=None
+    if getattr(w.args,'reuse_preparation_data',None):
+        from .progressive_preparation_reuse import adopt
+        donor=load(confined(root,w.args.reuse_preparation_data)/'session.json')
+        if donor['binding'].get('registration_session')!=w.args.registration_session:
+            raise ValueError('data reuse requires the original registration session')
+        reuse=adopt(root,w.args.reuse_preparation_data,s.folder)
+        write(base/'preparation-data-reuse.json',reuse[2])
     def registered():
+        if reuse:
+            data=reuse[0]['registered-data']
+            write(base/'registered/registered-data.json',data)
+            return data,[base/'registered/registered-data.json',base/'preparation-data-reuse.json']
         data,files=bridge.adopt(root,w.args.registration_session,base/'registered')
         donor=getattr(w.args,'reuse_census_session',None)
         if donor:
@@ -31,7 +43,7 @@ def prepare(workflow):
         from oeis_learn.generalization.progressive.prepared_support import policy
         write(base/'support-policy.json',policy(seed=request['seed'],target_tokens=request['token_target'],batch_cadence='reuse' in request))
         from .progressive_research_design import scientific_round
-        design=scientific_round(data)
+        design=scientific_round(data,expanded=getattr(w.args,'expanded_runtime_budgets',False))
         write(base/'research-round-design.json',design)
         updated=seal(dict(version='progressive-research-preflight/v1',registration=data['identity'],
             source=data['source'], source_resolved=True, executable=False, research_ready=False,
@@ -66,6 +78,7 @@ def prepare(workflow):
             readonly_inputs=[(checked_file(root,r),'/work/inputs/'+r['path']) for r in inputs])
         return load(folder/outputs[0]),[folder/n for n in outputs]
     def census_action(seconds):
+        if reuse:return reuse[0]['native-census'],reuse[1]['native-census']
         if (base/'census/census.json').exists():
             result=load(base/'census/census.json')
             if result['request']!=req['identity']:raise ValueError('original census request differs')
@@ -86,6 +99,7 @@ def prepare(workflow):
             return census_action(left)
     counted=s.step('native-census',census,recover=True,dependencies=('prepare-research/census-plan','prepare-research/image-qualification'))
     def materials():
+        if reuse:return reuse[0]['materials'],reuse[1]['materials']
         from .supervision import launch
         # Stdlib byte projection only; no model, native execution, download or
         # original exposure import runs outside the installed container roles.
@@ -116,6 +130,7 @@ def prepare(workflow):
             base/'roster/private/role-roster.json',base/'roster/research-reservation.json']
     s.step('role-roster',role_roster,dependencies=('prepare-research/materials',))
     def sensitivity():
+        if reuse:return reuse[0]['sensitivity'],reuse[1]['sensitivity']
         # Original registered assumptions, not real panel/model outcomes.
         original=confined(root,data['donor_session']['path']).parent/'register-inputs/design/sensitivity-design.json'
         design=load(original)

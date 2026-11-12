@@ -524,6 +524,7 @@ class RoleWorkBudget:
         work_end=authority.get('work_end_us',hard_end)
         if type(work_end) is not int or not reservation['start_us']<=work_end<=hard_end:
             raise ValueError('original bounded supervisor work deadline required')
+        self.evaluation_seconds=72*3600 if any(r["name"]=="research-reservation-v2" for r in c["payload"]["references"]) else 21600
         self.deadline=(work_end-t['payload']['finalization_us'])/1e6
         if time.monotonic() >= self.deadline:
             raise TimeoutError("role work allowance exhausted before dispatch")

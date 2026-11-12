@@ -18,7 +18,7 @@ def _evaluation_seconds(budget):
     remaining=budget.deadline-time.monotonic()
     if remaining<=0:
         raise TimeoutError('enclosing evaluation deadline exhausted')
-    return min(21600,remaining)
+    return min(getattr(budget,"evaluation_seconds",21600),remaining)
 
 
 def _execute(

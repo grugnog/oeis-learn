@@ -21,9 +21,13 @@ def named_plan(root, document, name, version, fields, optional=()):
     if len(refs)!=1:
         raise ValueError('one immutable '+name+' required')
     value=json.loads(verify_refs(root,refs,max_bytes=32<<20)[0])
-    if not isinstance(value,dict) or not set(fields)|{'version','identity'}<=set(value) or set(value)-set(fields)-{'version','identity'}-set(optional) or value['version']!=version or seal(value)!=value:
+    versions=(version,'progressive-calibration-plan/v2') if version=='progressive-calibration-plan/v1' else (version,)
+    if not isinstance(value,dict) or not set(fields)|{'version','identity'}<=set(value) or set(value)-set(fields)-{'version','identity'}-set(optional) or value['version'] not in versions or seal(value)!=value:
         raise ValueError('closed original '+name+' required')
     maximum_seconds = 86400 if version == 'progressive-calibration-plan/v1' else ACCEPTANCE_SECONDS if version == 'progressive-acceptance-plan/v1' else 3600
+    if value['version']=='progressive-calibration-plan/v2':
+        from oeis_learn.generalization.progressive.runtime_reservation import CALIBRATION_SECONDS
+        maximum_seconds=CALIBRATION_SECONDS
     if type(value['seconds']) is not int or not 1<=value['seconds']<=maximum_seconds:
         raise ValueError('finite handoff stage allowance required')
     return value

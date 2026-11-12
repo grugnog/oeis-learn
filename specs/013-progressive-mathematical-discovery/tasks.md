@@ -697,3 +697,19 @@ unchanged originals and stdlib CLI dispatch. The constructed roster retains 364M
 incremental training tokens without duplicate parent exposure. New cases are in
 the mandatory CPU inventory. No actual HIP run, sustained proof, research
 qualification, revised scientific horizon or completed T089 is claimed.
+
+## Phase 26: Measured runtime reservation and diagnostic storage retirement
+
+- [X] T185 Resolve the measured calibration/evaluation planning deficits through an explicit prospective runtime reservation version. Preserve the 376-role scientific roster, all panels, token horizons and per-prompt budgets. Carry larger limits through calibration, shared trial accounting, confirmation, campaign freeze, installed role deadlines and reports; preserve historical limits and the 24-hour training-task invariant.
+- [X] T186 Reuse the completed, unscored native census/materials/sensitivity from the previous research preparation without copying/recomputing them. Verify original journal references and reviewed producer bytes, forbid scored/constructed donors and sibling entitlement, and obtain fresh current-source qualification/calibration/freeze/acceptance.
+- [X] T187 Add stdlib-only disk inventory and explicit plan/apply retirement of completed diagnostic timing weights/optimizer tensors. Preserve original metadata, logs, inputs and ZIPs; reject changed files/aliases/live owners; write hash inventory before deletion and support interrupted cleanup. Do not infer generalization-history disposability from folder names.
+
+T185–T187 validation: the complete old/revised construction and affected evaluation
+run passed 55 checks before two handoff test fixtures were updated to carry their
+actual design. The subsequent focused boundary run passed 173 tests with one
+unavailable native-service skip. The final expanded construction rerun passed
+both full-domain checks (376 roles, 1,296 exact calibration cases); 74 final
+reservation/reuse/cleanup/workstation/governance checks passed. These suites
+overlap. New tests enter the mandatory CPU inventory. No HIP work or real user
+file deletion was performed here. T089 and physical research acceptance remain
+subject to current-source qualification, exact calibration and storage feasibility.

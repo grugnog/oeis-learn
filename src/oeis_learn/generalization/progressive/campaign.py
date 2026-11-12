@@ -153,10 +153,12 @@ def validate_campaign(campaign):
     if c["purpose"] == "research":
         training = sum(t["caps"]["elapsed_us"] for t in plans if t["kind"] == "training")
         ancillary = sum(t["caps"]["elapsed_us"] for t in plans if t["kind"] != "training")
+        expanded=any(r['name']=='research-reservation-v2' for r in p['references'])
+        from .runtime_reservation import LIMITS_SECONDS,TOTAL_SECONDS
         if (
             training > 536 * 3600 * 1_000_000
-            or ancillary > 136 * 3600 * 1_000_000
-            or p["caps"]["elapsed_us"] > 672 * 3600 * 1_000_000
+            or ancillary > (LIMITS_SECONDS['evaluation_analysis'] if expanded else 136*3600)*1_000_000
+            or p["caps"]["elapsed_us"] > (TOTAL_SECONDS if expanded else 672*3600)*1_000_000
         ):
             raise ValueError("maximum research campaign reservation exceeded")
     s = p["storage"]

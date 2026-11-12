@@ -79,3 +79,49 @@ actual-HIP calibration; CPU records remain diagnostic. Generic short-case timing
 cannot authorize an exact research iteration. Both learner preflight and the
 write-ahead debit refuse work unless the complete next iteration and finalization
 can fit. The independent supervisor hard deadline remains in force.
+
+## Prospective measured runtime amendment (2026-11-12)
+
+The maintainer requested resolution of the actual workstation planning deficits:
+full-domain exact calibration projects about 13.15 hours before overhead, versus
+the original 12-hour allowance; selected initial-round evaluation projects about
+330.49 hours, versus the original 136-hour ancillary envelope. The original
+536/136/672-hour defaults and old frozen records remain unchanged.
+
+A fresh, explicitly selected `progressive-research-round-design/v3` and
+`progressive-research-reservation/v2` may reserve the same capability, diversity
+and tuning design under the following operational limits. These are ceilings,
+not required work or expected duration; no trial, look, panel member, token,
+learning setting, per-prompt 60-second portfolio, 4-second fit, or assessment rule
+changes. This amendment does not authorize later scaling/OEIS/component/source
+branches without their separate finite reservation and eligibility.
+
+| Boundary | New prospective ceiling |
+| --- | --- |
+| Exact-input calibration | 72 hours aggregate; existing independent per-case watchdog/cleanup remains |
+| Enclosing preparation command | 72 hours + 30 minutes dispatch/publication headroom |
+| Screening | 96 hours shared per trial, including all three looks and 30-minute finalization |
+| Screening training child | 4 hours; cumulative tokens remain 1M → 2M → 4M |
+| Diversity/confirmation training | 24 hours per task; 25M targets and 400M schedule unchanged |
+| Evaluation role | At most 72 hours, with a frozen member-based allocation |
+| Selected acquisition/preparation/qualification/evaluation/packaging pools | 24 / 96 / 24 / 3,000 / 4 hours |
+| Selected aggregate ceiling | 3,600 hours, with at most 536 training-task hours |
+
+Generation allocates 300 seconds/member for primary methods or 900 for the full
+control set; scoring allocates 30 seconds/member. These operational estimates
+include measured safety margin and previously unexercised services, plus the
+original role finalization reserve. They do not enlarge each program's scientific
+budget. The exact 376-role construction reserves 480 training-task hours and
+2,685.99 evaluation/analysis hours, 3,265.45 hours including setup/reporting. Shared
+trial evaluation is counted once under evaluation, rather than called training.
+The much smaller unpadded measured initial-round projection remains approximately
+367–401 hours plus preparation; conditional early stops may reduce it.
+
+The new campaign marker must bind the original revised reservation and measured
+execution contract at freeze. Generic/legacy roles retain six-hour guards and
+old study/calibration versions retain their original bounds. Only validated
+installed discovery evaluation authority receives the expanded deadline.
+Training never exceeds 24 hours. Both sampled evaluation and exact-input measured
+feasibility remain mandatory; raising ceilings cannot manufacture qualification
+or bypass infeasibility. Rollback means selecting the historical version in a
+fresh unexecuted preparation, never editing an existing freeze or refunding costs.

@@ -8,7 +8,7 @@ from oeis_learn.generalization.progressive.contracts import atomic_write,digest,
 from oeis_learn.pipeline_validation import progressive_research_bindings as b
 
 
-@pytest.fixture(scope='module',params=[False,True],ids=['original','preparation-v3'])
+@pytest.fixture(scope='module',params=[False,True,'expanded'],ids=['original','preparation-v3','runtime-v3'])
 def compiled(tmp_path_factory,request):
     revised=request.param
     from tests.unit.test_progressive_research_roster import fixture
@@ -40,7 +40,7 @@ def compiled(tmp_path_factory,request):
         candidates=reference(root,'candidates.json'),exposure=reference(root,'original-exposure.sqlite'),
         recipe=reference(root,'recipe.json'),manifest=reference(root,'manifest.json'),
         **({'census_reuse':seal(dict(TEST_BOUNDARY_ONLY=True))} if revised else {})))
-    design=scientific_round(data)
+    design=scientific_round(data,expanded=revised=="expanded")
     _,rosters,screening=fixture();panels={};reservations={};pubs=[]
     if revised:
         rosters['development']=[dict(r,group=r['id']) for r in rosters['development']]

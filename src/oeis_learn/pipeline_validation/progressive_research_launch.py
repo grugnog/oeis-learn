@@ -13,6 +13,7 @@ def prepare(workflow,data,design,materials):
     w=workflow;s=w.s;root=w.root;base=w.base
     from .progressive_research_qualification import qualify
     qualify(w,data,design)
+    setup=design['operational_reservation']['setup_seconds']
     qroot=base/'qualification';timing=base/'evaluation-timing'
     def timing_request():
         from .progressive_research_feasibility import request
@@ -55,7 +56,7 @@ def prepare(workflow,data,design,materials):
             '--materials',str((base/'materials/materials.json').relative_to(root)),
             '--qualification',str(qroot.relative_to(root)),
             '--execution-contract',str((base/'execution-contract.json').relative_to(root))]
-        launch(argv,base/'logs/construction',seconds=SETUP_SECONDS['construction'],stream_cap=4<<20)
+        launch(argv,base/'logs/construction',seconds=setup['construction'],stream_cap=4<<20)
         result=load(base/'construction/construction-summary.json')
         # Bind every constructed immutable channel/request. A resumed wrapper
         # cannot treat changed private inputs as completed preparation.
@@ -63,13 +64,13 @@ def prepare(workflow,data,design,materials):
     s.step('construction',construction,dependencies=('prepare-research/evaluation-feasibility',))
     blueprint=str((base/'construction/blueprint.json').relative_to(root));q=str(qroot.relative_to(root))
     w.run_command('prepare','prepare',resume=True,blueprint=blueprint,qualification=q,
-        output=str((base/'prepared').relative_to(root)),seconds=SETUP_SECONDS['prepare'],
+        output=str((base/'prepared').relative_to(root)),seconds=setup['prepare'],
         dependencies=('prepare-research/construction','prepare-research/sensitivity'))
     w.run_command('freeze','freeze',blueprint=blueprint,qualification=q,
         prepared=str((base/'prepared').relative_to(root)),output=str((base/'frozen').relative_to(root)),
-        seconds=SETUP_SECONDS['freeze'],dependencies=('prepare-research/prepare',))
+        seconds=setup['freeze'],dependencies=('prepare-research/prepare',))
     w.run_command('acceptance','acceptance',campaign=str((base/'frozen/campaign.json').relative_to(root)),
-        output=str((base/'acceptance').relative_to(root)),seconds=SETUP_SECONDS['acceptance'],dependencies=('prepare-research/freeze',))
+        output=str((base/'acceptance').relative_to(root)),seconds=setup['acceptance'],dependencies=('prepare-research/freeze',))
 
 
 def readiness(workflow,data,census,sensitivity,materials):
