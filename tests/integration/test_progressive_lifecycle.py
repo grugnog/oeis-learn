@@ -397,8 +397,9 @@ def test_installed_initial_checkpoint_preflights_storage(tmp_path):
         dict(
             version="progressive-supervisor/v1", campaign=c, task=t, clock={}, invocation="no-room",
             # Keep the frozen simultaneous storage graph valid. Previously
-            # retained invocation bytes leave too little room for finalization.
-            storage=dict(prior_bytes=t['payload']['caps']['disk_bytes']-c['payload']['storage']['package_bytes']+1,
+            # retained invocation bytes exhaust the private task partition.
+            # Shared package headroom is checked against physical free space.
+            storage=dict(prior_bytes=t['payload']['caps']['disk_bytes']+1,
                          prior_inodes=0, max_inodes=c['payload']['storage']['required_inodes']),
         )
     )

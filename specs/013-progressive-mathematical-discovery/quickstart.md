@@ -705,3 +705,18 @@ remaining storage. No generalization, rehearsal or research run is automatically
 removed. In particular retain `pac-012-bcd-r1-002`, all research-input sessions,
 round 002's original native materials and service measurements. Unknown older
 runs and `tmp-validation` require a dependency review, not a name-based `rm -rf`.
+
+The current code reduces redundant terminal checkpoints and reserves storage by
+each task's measured model size. The latest full state and milestone pins remain;
+temporary evaluation inputs use private filesystem reflinks when available and
+are removed after confirmed worker cleanup. Ordinary-copy filesystems remain
+supported and receive the same conservative logical reservation.
+
+Applying the new formulas to the previous timing measurements estimates about
+316.4 GiB of task partitions, down from about 1.36 TiB. This excludes shared
+projection/journal/data/package allowances and new preparation outputs. It is a
+planning estimate, not a measured freeze result: aim for roughly 500 GiB free
+before the preparation command above, and let fresh calibration/freezing establish
+the exact requirement. Existing user runs are not automatically deleted. The tiny
+rehearsal need not be repeated; current-source research qualification and acceptance
+remain part of preparation. Training budgets and runtime estimates are unchanged.

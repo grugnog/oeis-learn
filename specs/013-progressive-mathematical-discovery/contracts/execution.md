@@ -125,3 +125,26 @@ Training never exceeds 24 hours. Both sampled evaluation and exact-input measure
 feasibility remain mandatory; raising ceilings cannot manufacture qualification
 or bypass infeasibility. Rollback means selecting the historical version in a
 fresh unexecuted preparation, never editing an existing freeze or refunding costs.
+
+## Prospective measured storage amendment (2026-11-12)
+
+Measured-resource policy v3 may reduce disk partitions from original exact-input
+calibration v2. The producer measures allocated Adam state once and separately
+identifies weights. Each task reserves its largest permitted calibrated shape,
+128 MiB context per generation, two publication generations and applicable first
+milestone pins. The initial 25M round reserves one milestone pin; screening tasks
+below 25M need none. Evaluation projections reserve weights rather than optimizer
+state. All role metadata and every retained task partition remain charged.
+
+Clean terminal publication may retire a redundant predecessor, preserving the
+latest full state, milestone pins and immutable recovery history. Copy-on-write
+projections must have distinct inodes and an ordinary-copy fallback; their full
+logical bytes remain reserved. No projection with an unreclaimed worker may be
+removed. Shared package bytes must remain physically free but are not duplicated
+inside each task quota. Runtime checks protect the next atomic publication, while
+the complete campaign storage requirement remains a freeze gate.
+
+These changes do not reduce token horizons, trial count, panels, precision,
+runtime limits, recovery authority or required historical evidence. Old frozen
+campaigns and calibration records are not rewritten. A fresh source-bound
+preparation must establish the new reservation before training.

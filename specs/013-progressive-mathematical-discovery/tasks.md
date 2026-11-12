@@ -725,3 +725,25 @@ metadata paths passed to the roster/construction boundary, original references
 without a native-data rerun, both selected-profile design versions and legacy
 workstation behavior. Reused materials/sensitivity publish small metadata copies
 at their canonical local paths; large original data remain referenced in place.
+
+## Phase 27: Scoped checkpoint storage and temporary-copy retirement
+
+- [X] T188 Measure allocated full-state and weights bytes separately; preserve historical calibration policies. Bind per-task storage to every applicable calibrated model scope and reachable milestone, and reserve evaluation weights only. Keep simultaneous task partitions, original-input verification and finite write limits.
+- [X] T189 Retire redundant predecessor generations after durable clean stops, retaining latest full state, first milestone pins and recovery history. Use private copy-on-write evaluation projections with an ordinary-copy fallback; clean setup failures and only reclaim dispatched copies after proven worker cleanup.
+- [X] T190 Correct shared package headroom and runtime next-publication free-space checks. Cover exact calibration, scoped freeze/tamper rejection, complete finite roster construction, cleanup failures, actual CPU training/successor restore and retention. Document the prospective disk estimate and fresh research qualification requirement.
+
+Initial validation passed all 31 construction/runtime/role/storage checks, including
+the original and both revised 376-role plans, plus 12 focused storage/freeze/hash
+checks. The broader calibration/budget batch passed 122 checks with one native
+dependency skip; its three cleanup-fixture failures were corrected and all nine
+storage tests then passed. Actual CPU static/refreshed linked training confirms
+one retained current generation per task with full-state successor restore.
+Hardware qualification, final disk sizing and research acceptance remain pending;
+historical rehearsal and existing user data are not rewritten or deleted.
+
+The additional recovery/lifecycle/assets/packaging run passed 58 checks; its one
+failure was an old fixture charging the ZIP reserve to each task. After updating
+that fixture to exhaust the actual private quota, all 70 focused workstation,
+storage, calibration-retirement and lifecycle-boundary checks passed. These
+overlapping runs include real CPU updates, interrupted publication, exact resume,
+milestone retention and successor restore. No HIP or container run was claimed.

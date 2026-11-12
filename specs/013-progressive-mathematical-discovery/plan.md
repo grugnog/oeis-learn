@@ -442,3 +442,32 @@ manifests, other state, inputs, receipts and archives, and explicitly labels the
 models non-resumable. It does not delete a generalization/research run or infer
 absence of dependencies from filenames. Interrupted cleanup can resume from the
 same plan and intent. No native toolchain, engine or host package is needed.
+
+### Measured storage and terminal retention (2026-11-12)
+
+T188–T190 reduce redundant storage without changing the finite scientific graph.
+Exact calibration v2 reports the serialized full state after Adam allocation and
+the separate weights size. Imported/unallocated and historical v1 measurements
+keep their conservative growth allowance. Measured-resource policy v3 derives
+each training partition from its applicable calibrated scopes, including every
+finite trial alternative, 128 MiB of context per generation, two atomic slots and
+only the milestones reachable by that task. Generation reserves weights-only
+input bytes plus its existing metadata allowance. Frozen closed per-task bounds
+are checked against the original calibrations; v1/v2 policies remain readable.
+
+After a durable COMPLETE, PAUSED or PARTIAL stop, the learner invokes the existing
+retention journal to keep the latest complete state and first milestone pins,
+removing only redundant older generations. This preserves successor initialization,
+same-task resume, comparisons and final selection. Event receipts remain intact.
+Role projections use distinct copy-on-write inodes where the filesystem supports
+them, falling back to ordinary copies; logical reservation assumes the full copy.
+Setup failure removes undispatched projections. Dispatched projections are removed
+only with affirmative worker-reclamation evidence.
+
+The ZIP reserve is shared physical headroom rather than a repeated charge against
+each private task quota. Freeze still reserves all task partitions simultaneously;
+runtime free-space checks require the next publication plus packaging/context
+headroom, not a second empty campaign disk. This is not lifetime-based sharing of
+task budgets. Actual writes, inode checks and enclosing caps remain enforced.
+Current-source qualification/calibration/freeze/acceptance are required in a fresh
+research session; prior rehearsal remains historical and need not be repeated.
