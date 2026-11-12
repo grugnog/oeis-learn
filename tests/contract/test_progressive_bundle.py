@@ -61,6 +61,40 @@ def test_bounded_closed_export_and_independent_incomplete_verdict(tmp_path):
         assert all("private" not in p and not p.endswith(".pt") for p in z.namelist())
 
 
+def test_scoped_checkpoint_campaign_exports_and_independently_verifies(tmp_path):
+    request = fixture(tmp_path)
+    campaign = request['campaign_record']
+    payload = campaign['payload']
+    storage = payload['storage']
+    storage.update(task_store_bytes=sum(t['caps']['disk_bytes'] for t in payload['tasks']),
+                   projection_bytes=100, journal_bytes=128 << 20, checkpoint_inodes=10,
+                   required_inodes=100000, available_inodes=100000,
+                   task_checkpoints=[dict(task=t['id'], checkpoint_bytes=100,
+                       checkpoint_inodes=10, milestone_pins=0)
+                       for t in payload['tasks'] if t['kind']=='training'])
+    storage['required_bytes'] = sum(storage[k] for k in
+        ('task_store_bytes','projection_bytes','journal_bytes','shard_bytes','package_bytes'))
+    storage['available_bytes'] = storage['required_bytes']
+    from oeis_learn.pipeline_validation.progressive_research_resources import policy
+    atomic_write(tmp_path/'resources.json', policy())
+    payload['references'].append(dict(name='research_resource_policy',role='custodian',
+        kind='policy',artifact=reference(tmp_path,'resources.json')))
+    campaign = seal(campaign)
+    request = seal(dict(request,campaign=campaign['identity'],campaign_record=campaign))
+    build(tmp_path,tmp_path/'scoped.zip',request)
+    result = verify(tmp_path/'scoped.zip')
+    assert result['status']=='VERIFIED' and result['decision']=='INCOMPLETE'
+    with zipfile.ZipFile(tmp_path/'scoped.zip') as archive:
+        manifest=json.loads(archive.read('manifest.json'))
+        assert manifest['campaign_record']==campaign
+    # The new storage rows remain closed even when nested in a public report.
+    campaign['payload']['storage']['task_checkpoints'][0]['unchecked_allowance']=1
+    campaign=seal(campaign)
+    with pytest.raises(ValueError):
+        build(tmp_path,tmp_path/'invalid.zip',seal(dict(request,
+            campaign=campaign['identity'],campaign_record=campaign)))
+
+
 def rewrite(path, edit):
     with zipfile.ZipFile(path) as z:
         docs = {n: z.read(n) for n in z.namelist()}

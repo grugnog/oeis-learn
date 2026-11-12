@@ -668,13 +668,19 @@ not rerun the census or rehearsal and does not expose assessment:
 ```bash
 git pull --ff-only origin 013-progressive-mathematical-discovery &&
 python3 -S scripts/discovery_hip_handoff.py \
-  --engine podman --session run-state/discovery/013-research-round-003 \
+  --engine podman --session run-state/discovery/013-research-round-004 \
   prepare-research \
   --registration-session run-state/discovery/013-research-inputs-003 \
   --rehearsal-session run-state/discovery/013-hip-007 \
   --reuse-preparation-data run-state/discovery/013-research-round-002 \
   --expanded-runtime-budgets --run-after-prepare
 ```
+
+Round 003 stopped at the CPU report-schema consistency check before HIP matrix
+qualification, exact-input calibration or training. The corrected report schema
+changes the source identity, so use fresh round 004 above and preserve round 003's
+original failure receipts. Data still come from round 002 and rehearsal 007 is not
+repeated; current-source base qualification must run again.
 
 Before launching that work, the completed runtime/training timing models may be
 retired. Do not delete either session wholesale: their original observations and

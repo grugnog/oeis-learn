@@ -747,3 +747,18 @@ that fixture to exhaust the actual private quota, all 70 focused workstation,
 storage, calibration-retirement and lifecycle-boundary checks passed. These
 overlapping runs include real CPU updates, interrupted publication, exact resume,
 milestone retention and successor restore. No HIP or container run was claimed.
+
+## Phase 28: Scoped-storage report compatibility
+
+- [X] T191 Synchronize the public report's embedded campaign schema with the new closed task-checkpoint storage inventory. Reproduce the original CPU contract failure, test actual report export and independent verification with scoped storage, retain rejection of unknown nested fields and legacy reports, and document a fresh source-bound restart that reuses original preparation data.
+
+Round 003's original base qualification recorded 2,620 passing tests, 82 passing
+subtests and one report/campaign schema-consistency failure. It stopped before
+HIP matrix qualification, exact calibration or training. The newly added report
+roundtrip also failed before the schema fix and passed afterward. Existing data
+reuse and historical rehearsal remain valid inputs, but round 004 must obtain
+fresh current-source qualification; no original failure is relabelled a pass.
+
+After the fix, all 48 local report/bundle/schema, scoped-storage, calibrated-freeze
+and implementation-binding checks passed. This includes both legacy report
+coverage and the new scoped-storage roundtrip; no HIP execution is claimed.
