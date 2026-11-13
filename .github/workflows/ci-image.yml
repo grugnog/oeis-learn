@@ -13,8 +13,6 @@ on:
         value: ${{ jobs.build.outputs.transport }}
       artifact:
         value: ${{ jobs.build.outputs.artifact }}
-      podman_build:
-        value: ${{ jobs.build.outputs.podman_build }}
 permissions:
   contents: read
   packages: write
@@ -26,12 +24,9 @@ jobs:
       reference: ${{ steps.result.outputs.reference }}
       transport: ${{ steps.plan.outputs.transport }}
       artifact: ${{ steps.plan.outputs.artifact }}
-      podman_build: ${{ steps.plan.outputs.podman_build }}
     steps:
       - uses: actions/checkout@v4
         with:
-          # PR merge commit plus both parents, including the base used for the recipe diff.
-          fetch-depth: 2
           persist-credentials: false
       - name: Plan registry, cache and permission-free fallback
         id: plan

@@ -30,8 +30,22 @@ try:
     return prefix+textwrap.indent(body,'    ')+'\nfinally:\n    _diagnostic_stop.set()\n'
 
 
+def _live_process_group(group):
+    """Observe owned descendants, ignoring zombies awaiting init's reap."""
+    proc=Path('/proc')
+    if (proc/'self/stat').exists():
+        for path in proc.glob('[0-9]*/stat'):
+            try:fields=path.read_text().rsplit(')',1)[1].split()
+            except (OSError,IndexError):continue
+            if len(fields)>2 and fields[2]==str(group) and fields[0]!='Z':return True
+        return False
+    try:os.killpg(group,0)
+    except ProcessLookupError:return False
+    return True
+
+
 def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartbeat=30,
-           cleanup_state=None, grace_seconds=None):
+           cleanup_state=None, grace_seconds=None,allowed_returncodes=(0,)):
     output=Path(output); output.mkdir(parents=True,exist_ok=True)
     start=time.monotonic();next_beat=start+heartbeat
     process=None;omitted={'stdout':0,'stderr':0}
@@ -65,7 +79,7 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
                     rest=block[keep:]
                     if rest and tail_cap:tails[key.data]=(tails[key.data]+rest)[-tail_cap:]
                     omitted[key.data]=received[key.data]-stream.tell()-len(tails[key.data])
-            if process.returncode:
+            if process.returncode not in allowed_returncodes:
                 raise RuntimeError(f'exit {process.returncode}: {output}/stderr.log')
     except KeyboardInterrupt:
         interrupted=True;outcome='INTERRUPTED';failure='KeyboardInterrupt'
@@ -109,6 +123,17 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
             except subprocess.TimeoutExpired:
                 cleanup_failure='process-group termination unacknowledged within cleanup deadline'
                 outcome='FAIL' if not interrupted else 'INTERRUPTED'
+            # killpg delivery is asynchronous: waiting only for the leader can
+            # leave a descendant runnable when cleanup is reported complete.
+            # Use the existing shared envelope, retaining time for engine rm.
+            observed_end=cleanup_end
+            if cleanup_state is not None:
+                observed_end=min(cleanup_end,time.monotonic()+max(0,(cleanup_end-time.monotonic())/4))
+            while _live_process_group(process.pid) and time.monotonic()<observed_end:
+                time.sleep(min(.01,max(0,observed_end-time.monotonic())))
+            if _live_process_group(process.pid):
+                cleanup_failure='owned descendant termination unacknowledged within cleanup deadline'
+                outcome='FAIL' if not interrupted else 'INTERRUPTED'
             process.stdout.close();process.stderr.close()
         for name,stream in streams.items():
             try:stream.write(tails[name])
@@ -142,10 +167,45 @@ def reclaim(engine, name, output, cleanup_state):
         engine.remove(name,timeout=left)
         if time.monotonic()>deadline:
             raise TimeoutError('container reclamation exceeded cleanup deadline')
-    except (OSError,RuntimeError,subprocess.SubprocessError) as exc:
+    except Exception as exc:
         failure=f'{type(exc).__name__}: {exc}'
         raise ResourceBreach('container termination unacknowledged: '+failure) from exc
     finally:
         write(Path(output)/'cleanup.json',dict(seconds=time.monotonic()-started,
             allowance_seconds=allowance,within_bound=failure is None and time.monotonic()<=deadline,
             acknowledged=failure is None,failure=failure))
+
+
+def pending_gpu(host, name):
+    """Durable owner marker; only engine acknowledgment permits its removal."""
+    import re
+    from .identity import write
+    state = host.policy.get('state_root')
+    if state is None:  # Explicit engine-boundary test doubles have no workspace.
+        return None
+    if not re.fullmatch(r'(?:oeis-phase5|generalization-inspect)-[0-9a-f]{32}', name):
+        raise ValueError('owned preparation container required')
+    path = Path(state) / 'gpu-pending.json'
+    write(path, dict(version='preparation-gpu-owner/v1', engine=host.engine.name, name=name))
+    return path
+
+
+def reconcile_gpu(state, engine):
+    """Called under the global GPU lock, before any new engine-owned work."""
+    import json,re
+    from .runner import ResourceBreach
+    path = Path(state) / 'gpu-pending.json'
+    if not path.exists():
+        return
+    if path.is_symlink() or path.stat().st_size > 4096:
+        raise ResourceBreach('invalid pending GPU owner; no new GPU work')
+    value = json.loads(path.read_bytes())
+    if (set(value) != {'version','engine','name'} or value['version'] != 'preparation-gpu-owner/v1'
+            or value['engine'] != engine.name
+            or not re.fullmatch(r'(?:oeis-phase5|generalization-inspect)-[0-9a-f]{32}', value['name'])):
+        raise ResourceBreach('pending GPU owner scope differs; no new GPU work')
+    # Retain the marker if the engine cannot acknowledge termination. Original
+    # producer/cleanup errors remain in their original stage directory.
+    from uuid import uuid4
+    reclaim(engine, value['name'], Path(state) / 'gpu-recovery' / uuid4().hex, {'allowance_seconds':120})
+    path.unlink()

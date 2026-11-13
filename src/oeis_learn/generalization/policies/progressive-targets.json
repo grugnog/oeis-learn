@@ -1,0 +1,1319 @@
+{
+  "version": "discovery-target-policy/v1",
+  "created_at": "2026-11-08T00:00:00Z",
+  "parents": [],
+  "purpose": "acceptance",
+  "track": "synthetic_strict",
+  "payload": {
+    "selected": false,
+    "targets": [
+      {
+        "id": "exact",
+        "class": "integrity_invariant",
+        "metric": "independent_exact_verification",
+        "scope": "selected_campaign",
+        "baseline": "frozen_baseline",
+        "threshold": "1",
+        "evidence": [
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "isolation",
+        "class": "integrity_invariant",
+        "metric": "isolated_truth",
+        "scope": "selected_campaign",
+        "baseline": "frozen_baseline",
+        "threshold": "1",
+        "evidence": [
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "accounting",
+        "class": "integrity_invariant",
+        "metric": "retained_spent_work",
+        "scope": "selected_campaign",
+        "baseline": "frozen_baseline",
+        "threshold": "1",
+        "evidence": [
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "qualification",
+        "class": "integrity_invariant",
+        "metric": "compatible_original_producers",
+        "scope": "selected_campaign",
+        "baseline": "frozen_baseline",
+        "threshold": "1",
+        "evidence": [
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "task_lifetime",
+        "class": "execution_limit",
+        "metric": "active_microseconds",
+        "scope": "selected_campaign",
+        "baseline": "frozen_baseline",
+        "threshold": "86400000000",
+        "evidence": [
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "completion",
+        "class": "claim_criterion",
+        "metric": "completion_parts_per_million",
+        "scope": "selected_campaign",
+        "baseline": "frozen_baseline",
+        "threshold": "950000",
+        "evidence": [
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "gain",
+        "class": "claim_criterion",
+        "metric": "gain_parts_per_million",
+        "scope": "selected_campaign",
+        "baseline": "frozen_baseline",
+        "threshold": "20000",
+        "evidence": [
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "retention",
+        "class": "claim_criterion",
+        "metric": "maximum_loss_parts_per_million",
+        "scope": "selected_campaign",
+        "baseline": "frozen_baseline",
+        "threshold": "20000",
+        "evidence": [
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "groups",
+        "class": "claim_criterion",
+        "metric": "minimum_groups",
+        "scope": "selected_campaign",
+        "baseline": "frozen_baseline",
+        "threshold": "16",
+        "evidence": [
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "replication",
+        "class": "claim_criterion",
+        "metric": "minimum_seeds",
+        "scope": "selected_campaign",
+        "baseline": "frozen_baseline",
+        "threshold": "2",
+        "evidence": [
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "efficiency",
+        "class": "research_aspiration",
+        "metric": "cost_reduction_parts_per_million",
+        "scope": "selected_campaign",
+        "baseline": "frozen_baseline",
+        "threshold": "200000",
+        "evidence": [
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "breadth",
+        "class": "research_aspiration",
+        "metric": "additional_positive_groups",
+        "scope": "selected_campaign",
+        "baseline": "frozen_baseline",
+        "threshold": "2",
+        "evidence": [
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "progress",
+        "class": "execution_limit",
+        "metric": "maximum_gap_microseconds",
+        "scope": "selected_campaign",
+        "baseline": "frozen_baseline",
+        "threshold": "60000000",
+        "evidence": [
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "visible_terms",
+        "class": "execution_limit",
+        "metric": "visible_terms",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "20",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "total_terms",
+        "class": "execution_limit",
+        "metric": "total_terms",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "100",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "portfolio_attempts",
+        "class": "execution_limit",
+        "metric": "portfolio_attempts",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "8",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "portfolio_us",
+        "class": "execution_limit",
+        "metric": "portfolio_us",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "60000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "fit_us",
+        "class": "execution_limit",
+        "metric": "fit_us",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "4000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "generation_tokens",
+        "class": "execution_limit",
+        "metric": "generation_tokens",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "1024",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "roster_tasks_per_stratum",
+        "class": "claim_criterion",
+        "metric": "roster_tasks_per_stratum",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "128",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "bootstrap_replicates",
+        "class": "claim_criterion",
+        "metric": "bootstrap_replicates",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "10000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "alpha_parts_per_million",
+        "class": "claim_criterion",
+        "metric": "alpha_parts_per_million",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "50000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "retention_tolerance_ppm",
+        "class": "claim_criterion",
+        "metric": "retention_tolerance_ppm",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "20000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "efficiency_noninferiority_ppm",
+        "class": "claim_criterion",
+        "metric": "efficiency_noninferiority_ppm",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "-10000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "efficiency_cost_reduction_ppm",
+        "class": "claim_criterion",
+        "metric": "efficiency_cost_reduction_ppm",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "200000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "finalization_min_us",
+        "class": "execution_limit",
+        "metric": "finalization_min_us",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "1800000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "full_training_max_us",
+        "class": "execution_limit",
+        "metric": "full_training_max_us",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "1929600000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "full_ancillary_max_us",
+        "class": "execution_limit",
+        "metric": "full_ancillary_max_us",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "489600000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "scaling_routine_max_us",
+        "class": "execution_limit",
+        "metric": "scaling_routine_max_us",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "604800000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "diagnostic_pool_max_us",
+        "class": "execution_limit",
+        "metric": "diagnostic_pool_max_us",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "86400000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "diagnostic_tasks",
+        "class": "execution_limit",
+        "metric": "diagnostic_tasks",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "4",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "diagnostic_task_max_us",
+        "class": "execution_limit",
+        "metric": "diagnostic_task_max_us",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "43200000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "screen_trials",
+        "class": "execution_limit",
+        "metric": "screen_trials",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "16",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "learning_trials",
+        "class": "execution_limit",
+        "metric": "learning_trials",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "12",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "size_trials",
+        "class": "execution_limit",
+        "metric": "size_trials",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "4",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "nonbaseline_finalists",
+        "class": "execution_limit",
+        "metric": "nonbaseline_finalists",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "3",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "screen_tokens",
+        "class": "execution_limit",
+        "metric": "screen_tokens",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "4000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "screen_us",
+        "class": "execution_limit",
+        "metric": "screen_us",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "7200000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "screen_tasks_per_stratum",
+        "class": "claim_criterion",
+        "metric": "screen_tasks_per_stratum",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "32",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "grace_tokens",
+        "class": "execution_limit",
+        "metric": "grace_tokens",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "1000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "pruning_references",
+        "class": "execution_limit",
+        "metric": "pruning_references",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "5",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "confirmation_tokens",
+        "class": "execution_limit",
+        "metric": "confirmation_tokens",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "25000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "milestone_100m",
+        "class": "research_aspiration",
+        "metric": "milestone_100m",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "100000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "milestone_400m",
+        "class": "research_aspiration",
+        "metric": "milestone_400m",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "400000000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "familiar_fraction_ppm",
+        "class": "execution_limit",
+        "metric": "familiar_fraction_ppm",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "200000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "frontier_fraction_ppm",
+        "class": "execution_limit",
+        "metric": "frontier_fraction_ppm",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "100000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "adaptive_fraction_ppm",
+        "class": "execution_limit",
+        "metric": "adaptive_fraction_ppm",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "700000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "shard_rows",
+        "class": "execution_limit",
+        "metric": "shard_rows",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "4096",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "shard_draws",
+        "class": "execution_limit",
+        "metric": "shard_draws",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "65536",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "shard_bytes",
+        "class": "execution_limit",
+        "metric": "shard_bytes",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "268435456",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "archive_targets",
+        "class": "execution_limit",
+        "metric": "archive_targets",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "4096",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "programs_per_task",
+        "class": "execution_limit",
+        "metric": "programs_per_task",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "2",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "oeis_pool_tasks",
+        "class": "execution_limit",
+        "metric": "oeis_pool_tasks",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "512",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "oeis_min_groups",
+        "class": "claim_criterion",
+        "metric": "oeis_min_groups",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "32",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "oeis_min_structures",
+        "class": "claim_criterion",
+        "metric": "oeis_min_structures",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "16",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "oeis_replay_ppm",
+        "class": "execution_limit",
+        "metric": "oeis_replay_ppm",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "250000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "library_components",
+        "class": "execution_limit",
+        "metric": "library_components",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "64",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "component_depth",
+        "class": "execution_limit",
+        "metric": "component_depth",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "4",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "component_arguments",
+        "class": "execution_limit",
+        "metric": "component_arguments",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "8",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "expanded_nodes",
+        "class": "execution_limit",
+        "metric": "expanded_nodes",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "4096",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "expanded_bytes",
+        "class": "execution_limit",
+        "metric": "expanded_bytes",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "262144",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "source_statistics",
+        "class": "execution_limit",
+        "metric": "source_statistics",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "32",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "source_visible",
+        "class": "execution_limit",
+        "metric": "source_visible",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "4",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "source_total",
+        "class": "execution_limit",
+        "metric": "source_total",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "9",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "source_min_groups",
+        "class": "claim_criterion",
+        "metric": "source_min_groups",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "4",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "package_metadata_bytes",
+        "class": "execution_limit",
+        "metric": "package_metadata_bytes",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "536870912",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "STOP_AFFECTED",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "sensitivity_detection_ppm",
+        "class": "research_aspiration",
+        "metric": "sensitivity_detection_ppm",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "800000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      },
+      {
+        "id": "measurement_cost_fraction_ppm",
+        "class": "research_aspiration",
+        "metric": "measurement_cost_fraction_ppm",
+        "scope": "prospective_selected_profile",
+        "baseline": "frozen_baseline",
+        "threshold": "250000",
+        "evidence": [
+          "frozen_policy",
+          "independent_receipts"
+        ],
+        "on_miss": "RETAIN_BASELINE",
+        "allowed_actions": [
+          "RETAIN_BASELINE",
+          "DEFER_BRANCH",
+          "STOP_AFFECTED"
+        ],
+        "budget_ref": null
+      }
+    ],
+    "verdict_precedence": [
+      "INVALID",
+      "INCOMPLETE",
+      "REGRESSION",
+      "CONFIRMED_GAIN",
+      "CONFIRMED_EFFICIENCY",
+      "NO_MATERIAL_GAIN",
+      "INCONCLUSIVE"
+    ],
+    "diagnostics": [],
+    "statistics": {
+      "version": "progressive-family-bootstrap/v1",
+      "replicates": 10000,
+      "minimum_groups": 16,
+      "max_comparisons": 500,
+      "primary_weights": {
+        "composition": "1/2",
+        "unseen_structure": "1/2"
+      },
+      "seed_weights": "equal_observed_seeds",
+      "uncertainty_scope": "family_sampling_conditional_on_observed_seeds",
+      "resampling": "stratified_multinomial; linked_strata_union_dependency_components; within_stratum_renormalization",
+      "empty_stratum_draw": "redraw_whole_linked_block; maximum_128_attempts; fail_closed",
+      "lower_censoring": "candidate_unresolved=failure; baseline_unresolved=success",
+      "upper_censoring": "candidate_unresolved=success; baseline_unresolved=failure",
+      "lower_order_statistic": "max(1,floor(B/(20*K)))",
+      "upper_order_statistic": "min(B,ceil(B*(20*K-1)/(20*K)))",
+      "nominal_order_statistics": [
+        "max(1,floor(B/40))",
+        "min(B,ceil(39*B/40))"
+      ],
+      "indexing": "one_based; integer_arithmetic; no_interpolation",
+      "no_material_gain": "conservative_adjusted_upper < 0.02",
+      "confirmed_regression": "conservative_adjusted_upper < 0"
+    }
+  },
+  "identity": "sha256:214a95da2032662a38590e8c3312ea137b31f65f78339e12a8eff47ddacda6bf"
+}

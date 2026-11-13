@@ -1,0 +1,70 @@
+{
+  "version": "calibration-preflight-review/v1",
+  "session": "013-research-round-008",
+  "archive_sha256": "sha256:30610eecb65171dde4532cd59ddea492f1550692ee26a26cbfd7a6e33438376b",
+  "source": "sha256:7ac537e90f1e01b86e5d8b2d31bc59226f0e7d0fc2ea79f9df8e9ddb3310f64b",
+  "observed_steps": {
+    "prepare-research/acceptance": {
+      "status": "BLOCKED"
+    },
+    "prepare-research/base-qualification": {
+      "elapsed_seconds": 2402.5513237142004,
+      "status": "COMPLETE"
+    },
+    "prepare-research/construction": {
+      "elapsed_seconds": 238.01941505400464,
+      "status": "COMPLETE"
+    },
+    "prepare-research/evaluation-feasibility": {
+      "elapsed_seconds": 0.24246913194656372,
+      "status": "COMPLETE"
+    },
+    "prepare-research/evaluation-timing": {
+      "elapsed_seconds": 988.4920346736908,
+      "status": "COMPLETE"
+    },
+    "prepare-research/freeze": {
+      "status": "BLOCKED"
+    },
+    "prepare-research/prepare": {
+      "elapsed_seconds": 176.3613142138347,
+      "status": "FAILED"
+    },
+    "prepare-research/qualify": {
+      "elapsed_seconds": 1088.6910792198032,
+      "status": "COMPLETE"
+    }
+  },
+  "construction": {
+    "tasks": 376,
+    "exact_calibration_cases": 1296,
+    "status": "COMPLETE"
+  },
+  "failure": {
+    "identity": "sha256:d2c5602ef9cce3ecd8d77f4d8dd34c6e1af972b34f747fbaf896c77d46d1c159",
+    "mechanical_status": "FAILED",
+    "missing_evidence": [],
+    "next_action": "STOP_AFFECTED",
+    "operation": "prepare",
+    "producer_error": {
+      "code": "PRODUCER_FAILURE",
+      "local_traceback": {
+        "bytes": 1163,
+        "path": "private/host-traceback.txt",
+        "sha256": "sha256:b01b2f1f58bb42af60e2d42f23acc4e3cdc5f4a49ab6b51698fa180714abf854"
+      },
+      "message": "owned storage byte/inode reservation exhausted",
+      "producer": "host",
+      "type": "TimeoutError"
+    },
+    "reason": "HOST_FAILURE",
+    "scientific_status": "UNMEASURED",
+    "version": "discovery-result/v1"
+  },
+  "limits": {
+    "private_traceback_in_review": false,
+    "original_calibration_allowance_in_review": false,
+    "actual_HIP_calibration_tested_locally": false
+  },
+  "diagnosis": "Exact total inode reservation is incorrectly passed as additional allocation after output ownership files exist. Recovery verifies the original traceback and allowance locally before transferring unused ownership."
+}

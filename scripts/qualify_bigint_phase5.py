@@ -189,49 +189,44 @@ def archive(output, *, cap=64 << 20):
     return target
 
 
-def launch(command, output, *, seconds):
-    output = Path(output)
-    output.mkdir(parents=True, exist_ok=True)
-    print("RUN", " ".join(map(str, command)), "logs:", output, flush=True)
-    with (output / "stdout.log").open("wb") as stdout, (output / "stderr.log").open("wb") as stderr:
-        process = subprocess.Popen(command, stdout=stdout, stderr=stderr)
-        start = time.monotonic()
-        try:
-            while True:
-                remaining = seconds - (time.monotonic() - start)
-                if remaining <= 0:
-                    raise subprocess.TimeoutExpired(command, seconds)
-                try:
-                    code = process.wait(timeout=min(30, remaining))
-                    break
-                except subprocess.TimeoutExpired:
-                    print(
-                        "  running",
-                        int(time.monotonic() - start),
-                        "seconds;",
-                        output / "stdout.log",
-                        flush=True,
-                    )
-        finally:
-            if process.poll() is None:
-                process.kill()
-                process.wait(timeout=5)
-    if code:
-        raise RuntimeError(f"exit {code}; inspect {output}/stdout.log and stderr.log")
+def launch(command, output, *, seconds, cleanup_state=None):
+    """Use the shared bounded process-group supervisor for installed stages."""
+    from oeis_learn.pipeline_validation.supervision import launch as supervised
+    return supervised(command, output, seconds=seconds, stream_cap=4 << 20,
+                      cleanup_seconds=120, grace_seconds=30,
+                      cleanup_state=cleanup_state)
 
 
-def container_stage(host, image, output, argv, *, gpu=False, seconds=3600):
+def container_stage(host, image, output, argv, *, gpu=False, seconds=3600, readonly_inputs=()):
     from oeis_learn.container_runtime import private_runtime_environment
 
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
+    # Explicit file-only custodian inputs; never a workspace or engine socket.
+    # Qualification callers retain the original output-only default.
+    import stat
+    from pathlib import PurePosixPath
+    inputs = []
+    destinations = set()
+    expected_sources = {}
+    for source, destination in readonly_inputs:
+        source = Path(source)
+        parts = PurePosixPath(destination).parts
+        if (source.is_symlink() or not stat.S_ISREG(source.stat().st_mode)
+            or len(parts) < 4 or parts[:3] != ('/', 'work', 'inputs')
+            or '..' in parts or destination in destinations
+            or str(PurePosixPath(destination)) != destination):
+            raise ValueError('distinct confined read-only input files required')
+        destinations.add(destination)
+        expected_sources[destination] = str(source.resolve())
+        inputs.append((source, destination, False))
     name = "oeis-phase5-" + uuid.uuid4().hex
     if gpu:
         host.select_gpu()
     command = host.engine.command(
         image=image,
         name=name,
-        mounts=[(output, "/work/output", True)],
+        mounts=[(output, "/work/output", True), *inputs],
         argv=argv,
         gpu=gpu,
         render_node=host.policy.get("render_node") if gpu else None,
@@ -247,37 +242,53 @@ def container_stage(host, image, output, argv, *, gpu=False, seconds=3600):
             "OEIS_REQUIRE_BIGINT_BUILD": "1",
             "OEIS_REQUIRE_NATIVE": "1",
             "OEIS_QUALIFICATION_IMAGE": image,
+            "OEIS_QUALIFICATION_ENGINE": host.engine.name,
         },
     )
-    try:
-        with host.gpu_lock() if gpu else nullcontext():
-            launch(command, output, seconds=seconds)
-            inspected = host.engine.call(["inspect", name], capture_output=True, timeout=30)
-            inspection = json.loads(inspected.stdout)
-            write(output / "container-inspect.json", inspection)
-            record = inspection[0]
-            policy = record["HostConfig"]
-            if (
-                policy.get("NetworkMode") != "none"
-                or not policy.get("ReadonlyRootfs")
-                or policy.get("Privileged")
-                or any(
-                    m.get("Destination") != "/work/output"
-                    for m in record.get("Mounts", [])
-                    if m.get("Type") == "bind"
-                )
-            ):
-                raise RuntimeError("actual role network/root/mount isolation audit failed")
-    finally:
-        start = time.monotonic()
-        host.engine.remove(name)
-        elapsed = time.monotonic() - start
-        write(
-            output / "cleanup.json",
-            dict(seconds=elapsed, allowance_seconds=5, within_bound=elapsed <= 5),
-        )
-        if elapsed > 5:
-            raise RuntimeError("role cleanup exceeded declared5second allowance")
+    from oeis_learn.pipeline_validation.supervision import reclaim, pending_gpu
+    failure = None
+    cleanup_state = {'allowance_seconds': 120}
+    # The lease includes inspection and engine reclamation, even on failure.
+    with host.gpu_lock() if gpu else nullcontext():
+        pending = pending_gpu(host, name) if gpu else None
+        try:
+            launch(command, output, seconds=seconds, cleanup_state=cleanup_state)
+        except BaseException as exc:
+            failure = exc
+            raise
+        finally:
+            try:
+                # Inspect before removal; preserve OOM and actual mount facts.
+                inspected = host.engine.call(["inspect", name], capture_output=True, timeout=30)
+                inspection = json.loads(inspected.stdout)
+                write(output / "container-inspect.json", inspection)
+                record = inspection[0]
+                policy = record["HostConfig"]
+                binds = [m for m in record.get('Mounts', []) if m.get('Type') == 'bind']
+                if (policy.get("NetworkMode") != "none" or not policy.get("ReadonlyRootfs")
+                        or policy.get("Privileged") or any(
+                            m.get('Destination') not in destinations | {'/work/output'}
+                            or m.get('Destination') in destinations and (
+                                m.get('RW') is not False
+                                or m.get('Source') != expected_sources[m['Destination']])
+                            for m in binds)
+                        or not destinations <= {m.get('Destination') for m in binds}):
+                    raise RuntimeError("actual role network/root/mount isolation audit failed")
+            except Exception as exc:
+                write(output / "inspection-error.json", dict(type=type(exc).__name__, message=str(exc)))
+                if failure is None:
+                    failure = exc
+            try:
+                reclaim(host.engine, name, output, cleanup_state)
+                if pending is not None:
+                    pending.unlink()
+            except Exception as exc:
+                # The durable pending marker blocks future GPU work until a
+                # fresh lease holder can acknowledge removal of this owner.
+                if failure is None:
+                    failure = exc
+            if failure is not None and sys.exc_info()[0] is None:
+                raise failure
 
 
 def shape_manifest(inputs):

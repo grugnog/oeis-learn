@@ -131,3 +131,25 @@ def test_runtime_environment_uses_explicit_mount_and_rejects_escape(tmp_path):
         with pytest.raises(ValueError):private_runtime_environment(tmp_path,destination=destination)
     (tmp_path/'.runtime/tmp').rmdir();(tmp_path/'.runtime/tmp').symlink_to(tmp_path)
     with pytest.raises(ValueError,match='symlink'):private_runtime_environment(tmp_path)
+
+
+@pytest.mark.parametrize('name', ['docker', 'podman'])
+def test_explicit_readonly_files_preserve_mount_and_network_boundary(tmp_path, name):
+    source = tmp_path / 'original.json'
+    source.write_text('{}')
+    engine = Engine(name, executable=name, details={})
+    args = dict(image=IMAGE, name='custodian', argv=['python'], mounts=[(source, '/work/inputs/original.json', False)])
+    command = engine.command(**args)
+    assert f'type=bind,src={source},dst=/work/inputs/original.json,readonly' in command
+    assert '--network=none' in command and '--read-only' in command
+    with pytest.raises(ValueError, match='read-only regular file'):
+        engine.command(**dict(args, mounts=[(source, '/work/inputs/original.json', True)]))
+    alias = tmp_path / 'alias.json'
+    alias.symlink_to(source)
+    with pytest.raises(ValueError, match='read-only regular file'):
+        engine.command(**dict(args, mounts=[(alias, '/work/inputs/original.json', False)]))
+    import os
+    pipe = tmp_path / 'pipe'
+    os.mkfifo(pipe)
+    with pytest.raises(ValueError, match='read-only regular file'):
+        engine.command(**dict(args, mounts=[(pipe, '/work/inputs/original.json', False)]))

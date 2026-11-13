@@ -1,0 +1,80 @@
+# Experiment and advancement contract — discovery-experiment/v1
+
+Proposed contract; not implemented. Authority: FR-002–021, FR-025–027 and FR-030–032.
+
+## Membership and panels
+
+A frozen roster labels each record with source, offset, exact values, relation group, structure and finite-behavior fingerprints, permitted role and transfer stratum. Roles are training, development, confirmation and assessment. Transfer strata are parameter, composition, unseen_structure and OEIS. Structural comparisons group equivalent canonical structures; parameter tests deliberately retain structures while holding out variants. Composition tests hold out declared AST combinations of seen primitives/subtrees. A record cannot acquire a favorable stratum after its outcome.
+
+The proposed primary profile is 20 visible terms, 100 total terms, eight attempts and 60 seconds per portfolio under the drain policy. Per-fit service remains four seconds; generation cap remains 1,024 tokens. Limits apply separately to each registered method; combined learned/template methods divide a single total allowance. No late result or silent token increase is admitted.
+
+Default roster target: 128 tasks per stratum, at least 16 independent family/relation groups, normally eight tasks/group. Perform an outcome-blind census first. Freeze exact allocation and grouping limitations, including prior observed cohorts and cross-source duplicate/shift exclusions. Do not force every stratum into the old 32-family catalog. If fresh support cannot meet the target, publish a deficit; any smaller design is a newly justified freeze before model scoring. Never draw repeatedly until a favorable cohort emerges.
+
+Development is intentionally reusable and exposed. Reserve separate confirmation panels for diversity choice, tuning finalists, scaling and OEIS/library decisions, and separate final assessment. Freeze the finite number of candidates and looks per panel. If insufficient support exists, stop the dependent research rather than reuse one panel while calling it fresh. Preallocate training-only difficulty/reward probes and retention panels separately; an absence of reward probes for a bin makes its policy incomplete.
+
+## Measurement and decision
+
+For each task, record exact verified success, completed failure or unresolved, plus failure class and candidate identity. `success/tasks` is verified yield; unresolved cases are retained in the denominator. Report completion separately, conservative success bounds and raw versus fitted versus selected outcomes. A scored returned candidate does not imply every attempt completed. A ledger marked cost_complete does not imply scientific completion.
+
+Let d[s,g] be the difference in all-task success fractions for paired seed s and family g. The primary synthetic endpoint is the equal average of family-macro composition and unseen-structure yield. Parameter/OEIS metrics are separately reported; familiar-task retention is a separate frozen panel. The OEIS adaptation endpoint is OEIS family/relation-macro yield; the library endpoint is the frozen harder-task macro panel. Never select an endpoint after outcomes.
+
+The following is the default **confirmed capability adoption** route. Target classes and separate bounded exploratory/efficiency routes are defined in [contingencies.md](contingencies.md). Its frozen thresholds are never waived.
+
+Confirmed capability adoption requires:
+
+1. Mean paired primary gain >=0.02, positive gain for both confirmation seeds, >=0.95 completion separately for every compared arm × seed × designated primary stratum, and retention loss <=0.02 separately for each seed on the frozen familiar-task aggregate, conservatively treating candidate unresolved retention tasks as failures and baseline unresolved retention tasks as possible successes.
+2. A positive conservative adjusted uncertainty lower bound. Resample whole family groups within each primary stratum, identically across treatments and both seeds; retain all within-group tasks and weight seeds equally. Preserve the endpoint’s fixed 1/2 composition and 1/2 unseen-structure weights, rather than pooling all families. Cross-stratum linked groups use common resampling weights with within-stratum renormalization; freeze those links before scoring. Use 10,000 deterministic replicates with a recorded seed. For the decision bound, candidate unresolved outcomes count as failures and baseline unresolved outcomes count as possible successes. Report ordinary observed-yield intervals and censoring bounds alongside it.
+3. Report a nominal conditional 95% interval and a simultaneous decision bound using alpha=0.05 divided by the frozen number of candidate/look comparisons on that panel. For K frozen candidate/look comparisons and B=10,000 sorted replicates, the one-sided decision lower bound is order statistic max(1, floor(B × 0.05/K)); nominal two-sided interval endpoints use fixed 2.5%/97.5% empirical quantiles. Reject an unsupported comparison count rather than change quantiles post hoc. The confidence statement concerns family sampling conditional on the measured seeds; it is NOT population uncertainty across training seeds. Report each seed effect and range. Existing seed-population interval routines retain their >=3-seed requirement.
+4. Validate support and grouping before inference. Fewer than 16 eligible groups in a primary stratum yields INCOMPLETE in the default profile. This is a reproducibility rule, not a guarantee of statistical power or validity under undetected dependence.
+
+Record an evidence verdict separately from a next action using the contingency contract. CONFIRMED_GAIN requires all criteria above. NO_MATERIAL_GAIN requires an appropriately adjusted upper bound below the 2 pp materiality target; otherwise an unpassed gain criterion is INCONCLUSIVE, not evidence of zero learning. Confirmed deterioration is REGRESSION; insufficient completion/support is INCOMPLETE; invalid authority is INVALID. A frozen efficiency route can yield CONFIRMED_EFFICIENCY, never CONFIRMED_GAIN. Actions are ADVANCE_REGISTERED, RETAIN_BASELINE, EXPLORE_RESERVED, DEFER_BRANCH or STOP_AFFECTED. A diagnostic action needs its own frozen trigger and task, and cannot upgrade its evidence verdict or borrow unreserved allowance. No post-outcome fallback to a more favorable metric.
+
+## Structural refresh and allocation
+
+Use a deterministic finite draw stream of typed ASTs with explicit operator/depth/control-flow laws. Partition it into bounded independently verified shards; a shard must be sealed before learner access. Counter-based draw identity = policy/source commitment + seed + draw ordinal, including rejected draws. Keep fixed policy bins by capability/operator/difficulty rather than growing the EXP3.S arm vector after each new structure. Initial D-style eight-update blocks and training-only gain feedback apply within that fixed inventory. Freeze 20% familiar-support sampling and 10% frontier exploration as initial new-profile defaults, with the remaining 70% allocated adaptively; apply identically to both static/refreshed arms. These percentages are proposed and must be in the study identity.
+
+The first comparison uses the same initial sealed shard, bins, probes, random initialization and allocation law. Static reuses it; refresh introduces new verified structures at frozen boundaries. Record parameters, structure hashes, behavior signatures, exercised operators/branches/loops and rejection costs separately. Static/refresh pilot: 25M charged tokens per arm, two paired seeds; no batch clipping at boundaries. Exact prior D weights are evaluation references, not the fresh initializations for this data intervention.
+
+## Tuning policy
+
+Two serial stages within a total of 16 screening trials: 12 learning-setting trials at the retained architecture, then four sizing candidates at the selected learning settings. Include the unchanged baseline in each stage; the four sizing entries include reference size, smaller width, shallower depth and one larger candidate. Resolve exact dimensions from the verified recipe and round to valid head/position constraints before freezing. Hardware-only m8/m32/m100 constructors are not research profiles.
+
+Learning search space: learning-rate multiplier {0.3, 1, 3} around verified baseline; constant or linear-warmup/cosine schedule (warmup 5% of token budget, final multiplier 0.1); effective batch {16,32,64}; weight decay {0,0.01,0.1}; dropout {0,0.1,0.2}. Unsupported combinations fail preflight, not silently change settings. Keep representation, data, allocation, evaluation and precision fixed. Define objective normalization over programs exactly as the existing supervised objective; accumulation must reproduce the same logical update, not take several optimizer steps.
+
+For screening, freeze an outcome-blind development subset of 32 tasks/stratum (two tasks from each of 16 groups) and reuse its exact membership across trials and pruning looks. The full confirmation panels remain 128 tasks/stratum. Screening scalar ranks do not confer scientific advancement. Calibrate the three screening evaluations plus startup/training/finalization together; reject the two-hour trial design if it cannot fit, rather than silently omit evaluation or reserves.
+
+Default screening cap: 4M charged tokens and two active hours per trial, whichever stops first; at 1M and 2M tokens use scalar capability reports for pruning. No performance pruning before 1M; use the median of completed comparable trials at the same coordinate, requiring five references. Baseline and one prospectively fixed nonbaseline learning trial are unpruned. In the small sizing stage run all four to the allowance. A wall-limited shortfall is PARTIAL and cannot win an equal-token comparison. Finite/containment failures may stop any trial.
+
+Rank feasible trials on development primary yield, then measured total cost, then stable trial identity; report equal-wall-time results separately, including selection uncertainty. The baseline plus at most three nonbaseline finalists receive fresh independent confirmation at 25M tokens and at least two seeds, at most 12 active hours per run. Screening and confirmation are separate studies: no partially trained screening state is disguised as a fresh confirmation seed. Before confirmation, freeze the selected schedule over the intended 400M-token trajectory (for cosine candidates, warmup is 5% of the 25M confirmation allowance, then cosine decay to the 400M endpoint). Stopping at 25M is a milestone, not a schedule restart. Declare this horizon policy for every finalist in advance. Confirmation outcomes select among that locked finite set using the simultaneous bounds above. Do not feed confirmation values back to the sampler. Extra trials or seeds require preallocated slots or a new study.
+
+## Scaling and scientific cost
+
+Use prospective cumulative milestones 25M, 100M, 400M. Milestones record actual full-update exposure, useful/discarded charges and overshoot, never truncate targets to manufacture equality. Continue a compatible selected model; architecture, target language or objective changes create new child studies with initialization and earlier exposure declared.
+
+Freeze which checkpoints are compared at each milestone and which learning-rate schedule spans the entire intended trajectory. A stop at 25M does not retroactively change its schedule. Fixed checkpoints under equal inference budgets separate learning gains from more search. Report both new-task cost and all ancestor training/discovery cost.
+
+A maximum research preset is only a resource reservation, not an instruction to run all branches: stage decisions stop unnecessary dependent work. See execution contract. Long-run acceptance needs sustained actual-device evidence; a 24-hour allowance is not a promise of 24 hours of updates or improved capability.
+
+## Sensitivity and negative-result handling
+
+Before confirming a candidate, perform the outcome-blind gate sensitivity checks in the contingency contract; sparse-group/censoring and repeated-look uncertainty can dominate a 2 pp target. A useful baseline remains available if refresh or tuning does not improve it. The HPO count, 400M milestone and library/source expansion are not completion obligations for a live research campaign. Every branch has a bounded negative/inconclusive path while software acceptance still covers all stages.
+
+### Prospective preparation v3 amendment
+
+For a newly frozen research-round-design/v2 only, screening uses 32 tasks in each
+stratum, at least 16 actual relation groups and at most two tasks per group. Select
+one member of each outcome-blind ordered group before second members; retain the
+exact roster for every trial/look. Existing study-policy/v1 continues to require
+exactly 16 pairs. Singleton groups are not duplicated or combined artificially.
+
+Parameter and familiar retention endpoints may share program structures between
+panels while exact finite values/windows and declared relation groups remain
+exclusive. Within each panel, parameter variants of a structure form one
+statistical cluster. Composition/unseen endpoints continue to reserve structural
+and composition relation components exclusively. No declaration implies that
+undetected mathematical dependencies are absent.
+
+Support-projection-policy/v2 freezes per-batch update intervals over the same
+25M-token support horizon. The interval, its batch map, support and update policy
+are bound to each exact learning compatibility. Changing batch therefore selects
+its prospectively frozen interval; it never rewrites a live trajectory.

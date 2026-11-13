@@ -513,3 +513,57 @@ class GeneralizationCheckpointStore:
             # verify_artifact also rejects symlinks before any recursive removal.
             verify_artifact(self.root,history[key])
             shutil.rmtree(self.root/relative)
+
+
+class ProgressiveCheckpointStore:
+    """Explicit discovery-state/v1 adapter; legacy tensor serialization unchanged.
+
+    A new task requires separately validated authority and explicit import. This
+    store never treats an output path as a new resource allowance.
+    """
+    def __init__(self, root, *, compatibility, campaign, task, token_cap):
+        self.root = Path(root)
+        self.compatibility, self.campaign, self.task = compatibility, campaign, task
+        self.store = GeneralizationCheckpointStore(self.root, compatibility, token_cap)
+
+    def save(self, states, ledger, *, cuts, created_at, purpose, track, maximum_bytes=None):
+        import copy
+        from oeis_learn.generalization.progressive.state import snapshot
+        if ledger.pending is not None or states['data']['pending_batch'] is not None:
+            raise ValueError('only complete discovery updates can checkpoint')
+        if states['data']['cursor'] != ledger.updates:
+            raise ValueError('model/update ledger cut differs')
+        snapshot(compatibility=self.compatibility,campaign=self.campaign,task=self.task,
+            full_state={'path':'pending.json','bytes':0,'sha256':self.compatibility},
+            model_update=ledger.updates,cuts=cuts,created_at=created_at,purpose=purpose,track=track)
+        bound = copy.deepcopy(states)
+        bound['selection'] = dict(version='progressive-checkpoint-cut/v1',
+            selection=states['selection'], cuts=cuts, campaign=self.campaign,task=self.task)
+        # Measure actual current tensors before any generation is written.
+        # AdamW allocation and growing context must fit the frozen generation.
+        from oeis_learn.generalization.progressive.storage import preflight
+        pieces = [v for k,v in bound.items() if k not in {'rng','data'}] + list(bound['rng'].values())
+        measured = sum(len(self.store._encode(v)) for v in pieces) + (64 << 10)
+        if maximum_bytes is not None and measured > maximum_bytes:
+            raise TimeoutError('checkpoint growth exceeds frozen storage measurement')
+        preflight(measured, len(pieces) + 4)
+        ref = self.store.save(bound, ledger)
+        return snapshot(compatibility=self.compatibility,campaign=self.campaign,task=self.task,
+            full_state=ref,model_update=ledger.updates,cuts=cuts,created_at=created_at,
+            purpose=purpose,track=track)
+
+    def load(self, record):
+        from oeis_learn.generalization.progressive.state import restore
+        p = restore(record,root=self.root,compatibility=self.compatibility,
+                    campaign=self.campaign,task=self.task)
+        restored = self.store.load(p['full_state'])
+        states,ledger=restored['states'],restored['ledger']
+        meta=states['selection']
+        if (set(meta)!={'version','selection','cuts','campaign','task'}
+            or meta['version']!='progressive-checkpoint-cut/v1'
+            or meta['cuts']!=p['cuts'] or meta['campaign']!=self.campaign or meta['task']!=self.task
+            or ledger.pending is not None or states['data']['pending_batch'] is not None
+            or states['data']['cursor']!=p['model_update'] or ledger.updates!=p['model_update']):
+            raise ValueError('discovery tensor and dynamic cut mismatch')
+        states['selection']=meta['selection']
+        return restored

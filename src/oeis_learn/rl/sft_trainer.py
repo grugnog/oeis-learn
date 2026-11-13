@@ -116,35 +116,89 @@ def predictive_entropy(logits, targets, pad_id):
         return float((entropy * mask).sum() / mask.sum().clamp_min(1))
 
 
-def supervised_step(encoder, decoder, optimizer, sequences, tokens, *, device, pad_id,timer=None,observe=True,learning_metrics=False):
-    """Shared measured update for legacy warmup/bridge and strict SFT consumers."""
+def logical_update(
+    encoder, decoder, optimizer, sequences, tokens, *, device, pad_id,
+    microbatch_size=None, scheduler=None, allocation_clock=None, timer=None,
+    observe=True, learning_metrics=False,
+):
+    """One per-program-mean update, optionally accumulated over smaller batches.
+
+    Preserve caller-owned modes/RNG policy. No optimizer or clock advances until
+    every microbatch has backpropagated and the combined gradient is finite.
+    On failure gradients are discarded; the caller retains its reserve debit and
+    restores the last complete checkpoint (an optimizer may fail mid-step).
+    This primitive never publishes a checkpoint or grants execution authority.
+    """
     from oeis_learn.rl.policy import trajectory_mean
     from oeis_learn.tracking.foundation_metrics import PhaseTimer, resource_metrics, sensor_metrics
 
+    examples = len(sequences)
+    if not examples or tokens.ndim != 2 or tokens.shape[0] != examples or tokens.shape[1] < 2:
+        raise ValueError("nonempty matching logical batch required")
+    size = examples if microbatch_size is None else microbatch_size
+    if type(size) is not int or size < 1:
+        raise ValueError("positive integer microbatch size required")
     timer = timer or PhaseTimer(device)
+    params = [p for group in optimizer.param_groups for p in group["params"]]
     optimizer.zero_grad(set_to_none=True)
-    logits = teacher_forced_logits(encoder, decoder, sequences, tokens,
-                                  device=device, pad_id=pad_id, timer=timer)
-    targets = tokens[:, 1:]
-    with timer.phase("objective"):
-        loss = trajectory_mean(token_cross_entropy(logits, targets), targets.ne(pad_id))
-    if not torch.isfinite(loss):
-        raise FloatingPointError("nonfinite supervised loss")
-    with timer.phase("backward_optimizer"):
-        loss.backward()
-        params = [p for group in optimizer.param_groups for p in group["params"]]
-        norm = nn.utils.clip_grad_norm_(params, 1.0, error_if_nonfinite=True)
-        optimizer.step()
-    if any(not bool(torch.isfinite(p).all()) for p in params):
-        raise FloatingPointError("nonfinite supervised parameters")
-    extra={}
-    if learning_metrics:
-        from oeis_learn.fresh.pilot_metrics import tensor_metrics
-        extra["token_metrics"]=tensor_metrics(logits,targets,pad_id)
-    return dict(**extra,loss=float(loss.detach()), gradient_norm=float(norm),
-                entropy=predictive_entropy(logits, targets, pad_id),
-                phase_timings_ns=timer.values, resources=resource_metrics(device) if observe else {},
-                sensors=sensor_metrics(device) if observe else {})
+    loss_total = 0.0
+    entropy_total = 0.0
+    token_count = 0
+    extra = {}
+    try:
+        for start in range(0, examples, size):
+            end = min(start + size, examples)
+            batch = tokens[start:end]
+            logits = teacher_forced_logits(
+                encoder, decoder, sequences[start:end], batch,
+                device=device, pad_id=pad_id, timer=timer,
+            )
+            targets = batch[:, 1:]
+            with timer.phase("objective"):
+                loss = trajectory_mean(token_cross_entropy(logits, targets), targets.ne(pad_id))
+            if not torch.isfinite(loss):
+                raise FloatingPointError("nonfinite supervised loss")
+            weight = (end - start) / examples
+            with timer.phase("backward_optimizer"):
+                (loss * weight).backward()
+            loss_total += float(loss.detach()) * weight
+            count = int(targets.ne(pad_id).sum())
+            entropy_total += predictive_entropy(logits, targets, pad_id) * count
+            token_count += count
+            if learning_metrics:
+                from oeis_learn.fresh.pilot_metrics import tensor_metrics
+                metrics = tensor_metrics(logits, targets, pad_id)
+                totals = extra.setdefault("token_metrics", {k: 0 for k in metrics})
+                for key, value in metrics.items():
+                    totals[key] += value
+            # Release each graph/logit allocation before the next forward pass.
+            del loss, logits
+        with timer.phase("backward_optimizer"):
+            norm = nn.utils.clip_grad_norm_(params, 1.0, error_if_nonfinite=True)
+            optimizer.step()
+        if any(not bool(torch.isfinite(p).all()) for p in params):
+            raise FloatingPointError("nonfinite supervised parameters")
+        if scheduler is not None:
+            scheduler.step()
+        if allocation_clock is not None:
+            allocation_clock.step()
+    except BaseException:
+        optimizer.zero_grad(set_to_none=True)
+        raise
+    return dict(
+        **extra, loss=loss_total, gradient_norm=float(norm),
+        entropy=entropy_total / max(1, token_count), phase_timings_ns=timer.values,
+        resources=resource_metrics(device) if observe else {},
+        sensors=sensor_metrics(device) if observe else {},
+    )
+
+
+def supervised_step(encoder, decoder, optimizer, sequences, tokens, *, device, pad_id,timer=None,observe=True,learning_metrics=False):
+    """Legacy single-batch interface; no scheduler or allocation behavior added."""
+    return logical_update(
+        encoder, decoder, optimizer, sequences, tokens, device=device, pad_id=pad_id,
+        timer=timer, observe=observe, learning_metrics=learning_metrics,
+    )
 
 
 class SftTrainer:

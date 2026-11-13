@@ -1,0 +1,410 @@
+"""Installed native, outcome-blind research supply census; no model execution.
+
+Produces private candidate/support reservoirs and public deficits. A reservoir is
+not a frozen learner input or scoreable cohort. No assessment truth is exported.
+"""
+from collections import Counter, defaultdict
+from pathlib import Path
+import json
+import sqlite3
+import time
+import traceback
+
+from .identity import seal
+from .progressive_workstation_state import write
+from .progressive_research_inputs import ExposureIndex, checked_file, _json
+from oeis_learn.generalization.progressive.contracts import digest, reference
+
+
+class Union:
+    def __init__(self, count):
+        self.parent = list(range(count))
+    def root(self, i):
+        while self.parent[i] != i:
+            self.parent[i] = self.parent[self.parent[i]]
+            i = self.parent[i]
+        return i
+    def join(self, a, b):
+        a, b = self.root(a), self.root(b)
+        if a != b:
+            self.parent[max(a,b)] = min(a,b)
+
+
+def features(source):
+    """Exact normalized subtree combinations, not a mathematical family claim."""
+    from oeis_learn.synthesis.reference_parser import parse
+    p = parse(source)
+    roots = [*p.statements, p.result]
+    nodes, proper, operators = set(), set(), set()
+    def normalized(node):
+        if isinstance(node, tuple):
+            return (node[0], '0') if node[0] in {'int','control'} else tuple(normalized(x) for x in node)
+        return node
+    def visit(node, depth):
+        if not isinstance(node, tuple):
+            return
+        operators.add(node[0]); nodes.add(digest(normalized(node)))
+        if depth and node[0] not in {'int','control'}:
+            proper.add(digest(normalized(node)))
+        for child in node[1:]:
+            visit(child, depth+1)
+    for root in roots:
+        visit(root, 0)
+    return dict(nodes=nodes, proper=proper, operators=operators)
+
+
+def classify(row, support):
+    if row['structure'] in support['structures']:
+        return 'parameter'
+    f = features(row['source'])
+    if f['proper'] <= support['nodes'] and f['operators'] <= support['operators']:
+        return 'composition'
+    return 'unseen_structure'
+
+
+def reserve_panels(rows, *, seed, required, minimum_groups, panels, deadline=None,
+                   retention_panels=('retention',), parameter_sharing=False):
+    """Assign whole detected components before quotas; never substitute/reseed."""
+    linked, seen = Union(len(rows)), {}
+    from oeis_learn.generalization.progressive.prepared_panels import composition
+    composition_keys={composition(r) for r in rows if r['stratum']=='composition'}
+    for i, row in enumerate(rows):
+        if deadline is not None and time.monotonic() >= deadline:
+            raise TimeoutError('panel grouping exhausted census finalization allowance')
+        keys = [('window', digest(row['values'][j:j+20])) for j in range(81)]
+        keys += [('behavior', digest(row['values'])), ('id', row['id'])]
+        if row.get('structure') and not (parameter_sharing and row['stratum']=='parameter'):
+            keys.append(('structure', row['structure']))
+        # Publication detects a composition relation even when the other row
+        # is a parameter witness. Reserve the same whole component here.
+        relation=composition(row) if row.get('source') else None
+        if relation in composition_keys:keys.append(('composition',relation))
+        keys += [('group', row[k]) for k in ('group','family') if row.get(k)]
+        for key in keys:
+            if key in seen:
+                linked.join(i, seen[key])
+            else:
+                seen[key] = i
+    components = defaultdict(list)
+    for i, row in enumerate(rows):
+        components[linked.root(i)].append(row)
+    assigned = defaultdict(lambda: defaultdict(list))
+    # The retention panel is independent and uses parameter-transfer candidates.
+    owners = [*panels, *retention_panels]
+    if len(set(owners))!=len(owners):
+        raise ValueError('distinct prospective panel names required')
+    for group in components.values():
+        identity = digest(sorted(r['id'] for r in group))
+        eligible=owners if all(r['stratum']=='parameter' for r in group) else panels
+        owner = eligible[int(digest([seed, identity])[7:23], 16) % len(eligible)]
+        for row in group:
+            if owner in retention_panels and row['stratum'] != 'parameter':
+                continue
+            assigned[(owner, row['stratum'])][identity].append(row)
+    if parameter_sharing:
+        # Structure is permitted across parameter/retention panels, but remains
+        # the statistical grouping unit WITHIN each panel. Exact value/window
+        # and declared relations were assigned whole above and cannot split.
+        for key,groups in list(assigned.items()):
+            if key[1]!='parameter':continue
+            entries=list(groups.values()); union=Union(len(entries)); seen_structures={}
+            for i,members in enumerate(entries):
+                for row in members:
+                    structure=row.get('structure')
+                    if structure:
+                        if structure in seen_structures:union.join(i,seen_structures[structure])
+                        else:seen_structures[structure]=i
+            merged=defaultdict(list)
+            for i,members in enumerate(entries):merged[union.root(i)].extend(members)
+            assigned[key]={digest(sorted(r['id'] for r in members)):members for members in merged.values()}
+    roster, counts, deficits = {}, {}, []
+    for panel in owners:
+        roster[panel] = []
+        strata = ['parameter'] if panel in retention_panels else ['parameter','composition','unseen_structure','oeis']
+        for stratum in strata:
+            chosen = []
+            groups = assigned[(panel, stratum)]
+            for group in sorted(groups, key=lambda g: digest([seed, panel, stratum, g])):
+                for row in sorted(groups[group], key=lambda r: digest([seed, r['id']]))[:8]:
+                    if len(chosen) < required:
+                        chosen.append(dict(row, group=group, role=panel,
+                            declared_groups=sorted(set(row[k] for k in ('group','family') if row.get(k)))))
+            n = len({r['group'] for r in chosen})
+            counts[panel+'/'+stratum] = dict(tasks=len(chosen), groups=n,
+                available_groups=len(groups), available_rows=sum(map(len,groups.values())),
+                task_deficit=max(0, required-len(chosen)),
+                group_deficit=max(0, minimum_groups-n))
+            if len(chosen) < required or n < minimum_groups:
+                deficits.append('panel_supply:'+panel+'/'+stratum)
+            roster[panel].extend(chosen)
+    return roster, counts, deficits
+
+
+def validate_request(request):
+    from .progressive_research_bridge import request as expected
+    required = set(expected(seal(dict(version='progressive-registered-data/v1',
+        candidates={}, exposure={}, recipe={}))))
+    revised=isinstance(request,dict) and request.get('version')=='progressive-research-census-request/v3'
+    if revised:required.add('reuse')
+    if not isinstance(request, dict) or set(request) != required or seal(request) != request:
+        raise ValueError('closed sealed census request required')
+    if request['version'] not in {'progressive-research-census-request/v2','progressive-research-census-request/v3'}:
+        raise ValueError('unknown census request')
+    if type(request['diagnostic']) is not bool:
+        raise ValueError('explicit census purpose required')
+    if not request['diagnostic']:
+        dummy = seal(dict(version='progressive-registered-data/v1',
+                         **{k: request[k] for k in ('candidates','exposure','recipe')},
+                         **({'census_reuse':request['reuse']} if revised else {})))
+        template = expected(dummy)
+        if any(request[k] != template[k] for k in template if k not in {'identity','registration'}):
+            raise ValueError('prospective research census limits changed')
+    for field, cap in [('training_draws',8192),('evaluation_draws',65536 if revised else 32768),('seconds',21600),
+                       ('shard_rows',256),('required_per_stratum',128),('minimum_groups',16)]:
+        if type(request[field]) is not int or not 1 <= request[field] <= cap:
+            raise ValueError('bounded census field: '+field)
+    if (request['panels'] != ['development','confirmation-diversity',
+                             *['confirmation-tuning-'+str(i) for i in range(4)],'assessment']
+            or request['retention_panels'] != ['retention-development','retention-diversity','retention-tuning']
+            or request['per_case_seconds'] != 4 or request['max_shards'] != 64
+            or request['disk_bytes'] != 8 << 30 or request['memory_bytes'] != 64 << 30
+            or request['token_target'] != 25000000 or request['proposed_refresh_updates'] != 8
+            or type(request['seed']) is not int or not 0 <= request['seed'] < 2**32):
+        raise ValueError('fixed census scope required')
+    if revised:
+        reuse=request['reuse']
+        if (seal(reuse)!=reuse or reuse.get('version')!='progressive-census-data-reuse/v1'
+                or reuse['additional_draws']!=32768 or reuse['hardware_authority_transferred'] is not False
+                or reuse['assessment_exposed'] is not False
+                or reuse['seconds_remaining']!=request['seconds']-reuse['prior_elapsed_seconds']
+                or not 0<reuse['seconds_remaining']<=request['seconds']):
+            raise ValueError('bounded original census reuse required')
+    return request
+
+
+def run(root,output,request,*,client):
+    from .preparation_recovery import Allowance
+    request=validate_request(request);output=Path(output)
+    for key in ('candidates','exposure','recipe'):checked_file(root,request[key])
+    if (output/'census.json').exists():
+        original=_json(output/'census.json',maximum=32<<20)
+        if (seal(original)!=original or original['request']!=request['identity']
+                or original['native']!=client.runtime_identity('bigint-body/v1')):
+            raise ValueError('original census recovery scope differs')
+        for ref in original['artifacts']:checked_file(output,ref)
+        # A terminal census (including negative supply) never reruns native work.
+        return original
+    original_spent=request.get('reuse',{}).get('prior_elapsed_seconds',0)
+    with Allowance(output/'census-allowance.json',dict(request=request['identity'],native=client.runtime_identity('bigint-body/v1')),
+                   request['seconds']-original_spent).attempt() as (left,ordinal):
+        began=time.monotonic()
+        if 'reuse' in request:
+            from .progressive_research_revision import initialize
+            initialize(root,output,request,client)
+        left=max(0,left-(time.monotonic()-began))
+        return _run(root,output,request,client=client,allowance=left,prior_spent=request['seconds']-left)
+
+
+def _run(root, output, request, *, client, allowance=None, prior_spent=0):
+    from oeis_learn.generalization.progressive.generator import default_policy, draw
+    from .progressive_preparation import verify_draw
+    request = validate_request(request)
+    root, output = Path(root), Path(output)
+    private = output / 'private'; private.mkdir(parents=True, exist_ok=True, mode=0o700)
+    path = private / 'census.sqlite'
+    resumed=path.exists()
+    candidates = _json(checked_file(root, request['candidates']), maximum=128 << 20)
+    recipe = _json(checked_file(root, request['recipe']))
+    batch=recipe['learning']['batch_size']
+    if type(batch) is not int or batch < 1:
+        raise ValueError('positive original effective batch required')
+    exposure = checked_file(root, request['exposure'])
+    if not isinstance(candidates,list) or len(candidates)>4096 or len({r['id'] for r in candidates}) != len(candidates):
+        raise ValueError('bounded unique original OEIS projection required')
+    began = time.monotonic(); deadline = began + (request['seconds'] if allowance is None else allowance)
+    work_deadline = deadline-min(600,max(1,request['seconds']//10))
+    counters, failures, evaluation, training = Counter(), [], [], []
+    source_dispositions=[]
+    support = dict(structures=set(), nodes=set(), operators=set())
+    support_binding=None
+    from oeis_learn.generalization.progressive.prepared_support import policy, project, transfer_support
+    support_rule=policy(seed=request['seed'],shard_rows=request['shard_rows'],
+        max_shards=request['max_shards'],target_tokens=request['token_target'],batch_cadence='reuse' in request)
+    law = default_policy(seed=request['seed'])
+    total = request['training_draws'] + request['evaluation_draws']
+    law.update(max_draws=min(65536,total), max_work_units=total)
+    sampler=None
+    db = sqlite3.connect(path)
+    db.execute('PRAGMA journal_mode=DELETE')
+    page_size=db.execute('PRAGMA page_size').fetchone()[0]
+    # Two 1-GiB SQLite stores plus their rollback journals, <=512 MiB of
+    # reservoir JSON (including atomic-write headroom), and a 512-MiB native
+    # cache fit within the declared 8-GiB output reservation.
+    db.execute('PRAGMA max_page_count='+str((request['disk_bytes']//8)//page_size))
+    if resumed:
+        binding=json.loads(db.execute('SELECT value FROM binding').fetchone()[0])
+        if binding!=request:raise ValueError('original census recovery binding differs')
+        if db.execute('SELECT value FROM native').fetchone()[0]!=client.runtime_identity('bigint-body/v1'):
+            raise ValueError('original native census identity changed')
+    else:
+        db.execute('CREATE TABLE draws(ordinal INTEGER PRIMARY KEY,status TEXT,row TEXT,reason TEXT)')
+        db.execute('CREATE TABLE binding(value TEXT)')
+        db.execute('CREATE TABLE native(value TEXT)')
+        db.execute('INSERT INTO native VALUES (?)',(client.runtime_identity('bigint-body/v1'),))
+        db.execute('INSERT INTO binding VALUES (?)', (json.dumps(request),));db.commit()
+    previous={r[0]:r[1:] for r in db.execute('SELECT ordinal,status,row,reason FROM draws ORDER BY ordinal')}
+    def progress():
+        write(output/'census-progress.json',seal(dict(version='progressive-census-progress/v1',
+            requested=total, outcomes=dict(counters), elapsed_seconds=prior_spent+time.monotonic()-began,
+            failures=failures[:32], private_outputs_retained=True)))
+    def classify_fresh(row, historical, training_index):
+        stratum = classify(row, support)
+        # Structure sharing alone is allowed only for parameter transfer.
+        forbidden = set(historical.matches(row)) | set(training_index.matches(row))
+        if stratum == 'parameter':
+            forbidden.discard('structure')
+        if forbidden:
+            return None, 'exposed:'+','.join(sorted(forbidden))
+        return seal(dict(row, stratum=stratum, membership='evaluation_candidate')), None
+    from types import SimpleNamespace
+    try:
+        with ExposureIndex(exposure, readonly=True) as history, ExposureIndex(private/'training-exposure.sqlite',resume=resumed) as train_index:
+            index_page_size=train_index.db.execute('PRAGMA page_size').fetchone()[0]
+            train_index.db.execute('PRAGMA max_page_count='+str((request['disk_bytes']//8)//index_page_size))
+            for ordinal in range(total):
+                if ordinal==request['training_draws']:
+                    published,_=project(training,support_rule,diagnostic=request['diagnostic'])
+                    support,support_binding=transfer_support(published)
+                    if 'reuse' in request:
+                        from oeis_learn.generalization.progressive.research_sampling import Sampler
+                        sampler=Sampler(published,seed=request['seed'])
+                if ordinal in previous:
+                    status,raw,reason=previous[ordinal]
+                    row=json.loads(raw) if raw else None
+                    if row is not None and seal(row)!=row:raise ValueError('changed original census row')
+                    if status=='TRAINING':
+                        if ordinal>=request['training_draws']:raise ValueError('foreign original training ordinal')
+                        training.append(row)
+                    elif status=='EVALUATION':
+                        if ordinal<request['training_draws'] or classify(row,support)!=row['stratum']:
+                            raise ValueError('original reserved transfer classification changed')
+                        evaluation.append(row)
+                    elif status=='RESERVED':
+                        status='FAILED';reason='interrupted original draw; no repetition'
+                    if status=='FAILED' and len(failures)<32:failures.append(dict(ordinal=ordinal,reason=reason))
+                    counters[status]+=1
+                    continue
+                if time.monotonic() >= work_deadline:
+                    counters['unattempted'] += total-ordinal
+                    break
+                with db:
+                    db.execute('INSERT INTO draws VALUES (?,?,?,?)',(ordinal,'RESERVED',None,None))
+                row, reason, status = None, None, 'REJECTED'
+                try:
+                    measurements = {}
+                    value=(sampler.draw(ordinal-request['reuse']['original_draws']) if sampler else draw(law,ordinal))
+                    row, reason = verify_draw(value, client=client, measurements=measurements,
+                        budget=SimpleNamespace(deadline=min(work_deadline,time.monotonic()+request['per_case_seconds'])))
+                    if row is not None:
+                        row = seal(dict(row, id='mechanical:'+row['draw_identity']))
+                        if ordinal < request['training_draws']:
+                            with train_index.db:
+                                train_index.add(row, origin='prospective-support', role='training')
+                            training.append(row)
+                            status='TRAINING'
+                        else:
+                            row, reason=classify_fresh(row,history,train_index)
+                            if row is not None:
+                                from oeis_learn.generalization.progressive.complexity import measure
+                                row=seal(dict(row,difficulty=measure(row['source'],reference_steps=measurements['reference_steps'])))
+                                evaluation.append(row); status='EVALUATION'
+                except Exception as exc:
+                    status='FAILED'; reason=type(exc).__name__+': '+str(exc)
+                    if len(failures)<32:
+                        failures.append(dict(ordinal=ordinal,reason=reason,traceback=traceback.format_exc()))
+                with db:
+                    db.execute('UPDATE draws SET status=?,row=?,reason=? WHERE ordinal=?',
+                               (status,json.dumps(row) if row else None,reason,ordinal))
+                counters[status]+=1
+                if ordinal % 64 == 0:
+                    progress(); print('Research native census: '+str(ordinal+1)+'/'+str(total),flush=True)
+            # No generation/model is involved in the independent source census.
+            for ordinal, original in enumerate(candidates):
+                if time.monotonic() >= work_deadline:
+                    counters['oeis_unattempted'] += len(candidates)-ordinal
+                    break
+                try:
+                    if 'reuse' in request:
+                        from oeis_learn.generalization.progressive.research_sampling import source_eligibility
+                        ineligible=source_eligibility(original)
+                        if ineligible:
+                            counters['oeis_ineligible']+=1
+                            source_dispositions.append(dict(ordinal=ordinal,id=original['id'],status='INELIGIBLE',reason=ineligible))
+                            continue
+                    hits=set(history.matches(original)) | set(train_index.matches(original))
+                    if hits:
+                        counters['oeis_exposed']+=1
+                    else:
+                        evaluation.append(dict(original,stratum='oeis')); counters['oeis_available']+=1
+                except Exception as exc:
+                    counters['oeis_failed']+=1
+                    if len(failures)<32:
+                        failures.append(dict(source_ordinal=ordinal,reason=type(exc).__name__+': '+str(exc),
+                                             traceback=traceback.format_exc()))
+        roster, panels, deficits=reserve_panels(evaluation,seed=request['seed'],
+            required=request['required_per_stratum'],minimum_groups=request['minimum_groups'],panels=request['panels'],
+            retention_panels=request['retention_panels'],deadline=deadline,parameter_sharing='reuse' in request)
+        # Reservoirs remain private and are not scoreable cohorts/learner channels.
+        for value in (training,roster):
+            if len(json.dumps(value,sort_keys=True,indent=2,allow_nan=False).encode()) > 128 << 20:
+                raise ValueError('private reservoir exceeds original 128-MiB publication bound')
+        write(private/'training-reservoir.json',training)
+        write(private/'panel-reservations.json',roster)
+        minimum=min((len(r['tokens']) for r in training), default=0)
+        shards=min(request['max_shards'],len(training)//request['shard_rows'])
+        updates=(request['token_target']+minimum*batch-1)//(minimum*batch) if minimum else None
+        required=(updates+request['proposed_refresh_updates']-1)//request['proposed_refresh_updates'] if updates else None
+        bins=Counter('frontier' if {'loop','select'} & set(r['operations']) else 'familiar' for r in training)
+        if not shards or any(bins[k]<2 for k in ('frontier','familiar')):
+            deficits.append('native_training_support_or_probe_supply')
+        if required is None or required>shards:
+            deficits.append('refresh_cadence_requires_prospective_revision')
+        if counters['FAILED'] or counters['unattempted'] or counters['oeis_unattempted'] or counters['oeis_failed']:
+            deficits.append('incomplete_native_or_source_census')
+        result=seal(dict(version='progressive-research-census/v1',request=request['identity'],
+            status='INCOMPLETE' if deficits else 'COMPLETE', diagnostic=request['diagnostic'],
+            research_ready=False, qualification=False, training_started=False, assessment_exposed=False,
+            native=client.runtime_identity('bigint-body/v1'), elapsed_seconds=prior_spent+time.monotonic()-began,
+            counts=dict(counters), panels=panels, deficits=deficits, failures=failures,
+            **(dict(data_reuse=request['reuse'],source_dispositions=source_dispositions,
+                rejection_reasons=dict(db.execute("SELECT coalesce(reason,'unspecified'),count(*) FROM draws WHERE status='REJECTED' GROUP BY reason")),
+                additional_sampling=sampler.identity if sampler else None) if 'reuse' in request else {}),
+            transfer_support=support_binding,
+            reserved_panel_rows=sum(len(rows) for rows in roster.values()),
+            unreserved_evaluation_rows=len(evaluation)-sum(len(rows) for rows in roster.values()),
+            support=dict(rows=len(training),bins=dict(bins),canonical_structures=len(support['structures']),
+                minimum_target_tokens=minimum,effective_batch=batch,maximum_updates=updates,
+                available_full_shards=shards,proposed_refresh_updates=request['proposed_refresh_updates'],
+                required_shards=required,minimum_feasible_refresh_updates=(updates+shards-1)//shards if shards and updates else None,
+                scope='conservative supply estimate; no schedule revision applied'),
+            artifacts=[reference(output,private/name) for name in
+                       ('training-reservoir.json','panel-reservations.json','census.sqlite','training-exposure.sqlite')],
+            detector_limits='exact finite 20-term windows, normalized structures and source identities; not semantic equivalence',
+            strata_rule='parameter/composition relative to frozen common initial gradient support; probe-only and later-refreshed support excluded; all raw draws remain exposure exclusions',
+            disposition='private reservations only; independent proof/census/publication and exact-input calibration required before freeze'))
+        write(output/'census.json',result)
+        return result
+    finally:
+        db.close(); progress()
+
+
+def main():
+    from oeis_learn.synthesis.client import SynthesisClient
+    root=Path('/work/inputs'); output=Path('/work/output')
+    request=_json(output/'request.json')
+    with SynthesisClient(digest(['research-census',request['identity']]),cache_root=output/'private/native') as client:
+        run(root,output,request,client=client)
+
+
+if __name__=='__main__':
+    main()

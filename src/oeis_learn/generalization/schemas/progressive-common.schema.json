@@ -1,0 +1,345 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-common.schema.json",
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$"
+    },
+    "integer": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807
+    },
+    "decimal": {
+      "type": "string",
+      "pattern": "^(0|-?[1-9][0-9]*)$"
+    },
+    "caps": {
+      "type": "object",
+      "properties": {
+        "tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "draws": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "rejections": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "native_work": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "elapsed_us": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "disk_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "archive_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        }
+      },
+      "required": [
+        "tokens",
+        "draws",
+        "rejections",
+        "attempts",
+        "native_work",
+        "elapsed_us",
+        "disk_bytes",
+        "archive_bytes"
+      ],
+      "additionalProperties": false
+    },
+    "artifact": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "pattern": "^(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "path",
+        "bytes",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "graph": {
+      "type": "object",
+      "properties": {
+        "selected_stages": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "capability",
+              "diversity",
+              "tuning",
+              "scaling",
+              "oeis",
+              "components",
+              "source_pilot"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 7,
+          "uniqueItems": true
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "stage": {
+                "enum": [
+                  "capability",
+                  "diversity",
+                  "tuning",
+                  "scaling",
+                  "oeis",
+                  "components",
+                  "source_pilot"
+                ]
+              },
+              "kind": {
+                "enum": [
+                  "routine",
+                  "diagnostic",
+                  "ancillary"
+                ]
+              },
+              "dependencies": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "minItems": 0,
+                "maxItems": 4096,
+                "uniqueItems": true
+              },
+              "maximum_visits": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1
+              },
+              "caps": {
+                "$ref": "progressive-common.schema.json#/$defs/caps"
+              }
+            },
+            "required": [
+              "id",
+              "stage",
+              "kind",
+              "dependencies",
+              "maximum_visits",
+              "caps"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 256
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "target": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "condition": {
+                "enum": [
+                  "COMPLETE",
+                  "CONFIRMED_GAIN",
+                  "CONFIRMED_EFFICIENCY",
+                  "INCONCLUSIVE",
+                  "INCOMPLETE",
+                  "NO_MATERIAL_GAIN",
+                  "REGRESSION"
+                ]
+              },
+              "action": {
+                "enum": [
+                  "ADVANCE_REGISTERED",
+                  "RETAIN_BASELINE",
+                  "EXPLORE_RESERVED",
+                  "DEFER_BRANCH",
+                  "STOP_AFFECTED"
+                ]
+              }
+            },
+            "required": [
+              "source",
+              "target",
+              "condition",
+              "action"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 512
+        },
+        "diagnostic_pool": {
+          "$ref": "progressive-common.schema.json#/$defs/caps"
+        }
+      },
+      "required": [
+        "selected_stages",
+        "nodes",
+        "edges",
+        "diagnostic_pool"
+      ],
+      "additionalProperties": false
+    },
+    "initializer": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "random",
+            "full_state",
+            "weights_only"
+          ]
+        },
+        "artifact": {
+          "oneOf": [
+            {
+              "$ref": "progressive-common.schema.json#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "compatibility": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "parent_slot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$"
+        },
+        "parent_task": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$"
+        },
+        "origin": {
+          "$ref": "progressive-common.schema.json#/$defs/artifact"
+        }
+      },
+      "required": [
+        "mode",
+        "artifact",
+        "compatibility"
+      ],
+      "additionalProperties": false
+    },
+    "reference": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "role": {
+          "enum": [
+            "custodian",
+            "learner",
+            "generator",
+            "admission",
+            "scorer",
+            "assessment",
+            "proposal",
+            "component",
+            "review",
+            "verifier"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "checkpoint",
+            "recipe",
+            "source",
+            "image",
+            "groups",
+            "policy",
+            "qualification",
+            "prepared"
+          ]
+        },
+        "artifact": {
+          "$ref": "progressive-common.schema.json#/$defs/artifact"
+        }
+      },
+      "required": [
+        "name",
+        "role",
+        "kind",
+        "artifact"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

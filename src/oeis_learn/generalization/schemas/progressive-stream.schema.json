@@ -1,0 +1,133 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "discovery-stream/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "parents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "enum": [
+        "acceptance",
+        "research"
+      ]
+    },
+    "track": {
+      "enum": [
+        "synthetic_strict",
+        "oeis_derived",
+        "external_assisted"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "source_policy": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ledger_tip": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "progressive-common.schema.json#/$defs/artifact"
+          },
+          "minItems": 0,
+          "maxItems": 4096
+        },
+        "membership": {
+          "const": "training"
+        },
+        "native_verified": {
+          "type": "boolean"
+        },
+        "behavior_scope": {
+          "const": "finite_100_terms_only"
+        },
+        "draw_high": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65536
+        },
+        "accepted": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "rejected": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65536
+        },
+        "work_units": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 131072
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 268435456
+        },
+        "preparation_elapsed_us": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            }
+          ]
+        }
+      },
+      "required": [
+        "source_policy",
+        "ledger_tip",
+        "rows",
+        "membership",
+        "native_verified",
+        "behavior_scope",
+        "draw_high",
+        "accepted",
+        "rejected",
+        "work_units",
+        "bytes"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "created_at",
+    "parents",
+    "purpose",
+    "track",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-stream.schema.json"
+}

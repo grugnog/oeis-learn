@@ -1,0 +1,370 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "discovery-target-policy/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "parents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "enum": [
+        "acceptance",
+        "research"
+      ]
+    },
+    "track": {
+      "enum": [
+        "synthetic_strict",
+        "oeis_derived",
+        "external_assisted"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "selected": {
+          "type": "boolean"
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "class": {
+                "enum": [
+                  "integrity_invariant",
+                  "execution_limit",
+                  "claim_criterion",
+                  "research_aspiration"
+                ]
+              },
+              "metric": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "scope": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "baseline": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "threshold": {
+                "$ref": "progressive-common.schema.json#/$defs/decimal"
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "minItems": 1,
+                "maxItems": 4096
+              },
+              "on_miss": {
+                "enum": [
+                  "RETAIN_BASELINE",
+                  "EXPLORE_RESERVED",
+                  "DEFER_BRANCH",
+                  "STOP_AFFECTED"
+                ]
+              },
+              "allowed_actions": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "ADVANCE_REGISTERED",
+                    "RETAIN_BASELINE",
+                    "EXPLORE_RESERVED",
+                    "DEFER_BRANCH",
+                    "STOP_AFFECTED"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 5,
+                "uniqueItems": true
+              },
+              "budget_ref": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "class",
+              "metric",
+              "scope",
+              "baseline",
+              "threshold",
+              "evidence",
+              "on_miss",
+              "allowed_actions",
+              "budget_ref"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 4096
+        },
+        "verdict_precedence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 1,
+          "maxItems": 4096
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "failure_class": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "trigger": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "signal": {
+                "enum": [
+                  "heldout_yield",
+                  "seed_disagreement",
+                  "runtime_bottleneck",
+                  "support_deficit"
+                ]
+              },
+              "task_slots": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "minItems": 1,
+                "maxItems": 4,
+                "uniqueItems": true
+              },
+              "panel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "reservation": {
+                "$ref": "progressive-common.schema.json#/$defs/caps"
+              },
+              "maximum_visits": {
+                "const": 1
+              },
+              "terminal_action": {
+                "enum": [
+                  "RETAIN_BASELINE",
+                  "DEFER_BRANCH",
+                  "STOP_AFFECTED"
+                ]
+              },
+              "assessment": {
+                "const": false
+              },
+              "design": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "runtime_rule": {
+                "type": "object",
+                "properties": {
+                  "producer": {
+                    "$ref": "progressive-common.schema.json#/$defs/artifact"
+                  },
+                  "metric": {
+                    "enum": [
+                      "elapsed_us",
+                      "training_us",
+                      "inference_us",
+                      "verification_us",
+                      "checkpoint_us"
+                    ]
+                  },
+                  "ceiling_us": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 86400000000
+                  }
+                },
+                "required": [
+                  "producer",
+                  "metric",
+                  "ceiling_us"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "failure_class",
+              "trigger",
+              "signal",
+              "task_slots",
+              "panel",
+              "reservation",
+              "maximum_visits",
+              "terminal_action",
+              "assessment",
+              "design"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 4
+        },
+        "statistics": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "const": "progressive-family-bootstrap/v1"
+            },
+            "replicates": {
+              "const": 10000
+            },
+            "minimum_groups": {
+              "const": 16
+            },
+            "max_comparisons": {
+              "const": 500
+            },
+            "primary_weights": {
+              "const": {
+                "composition": "1/2",
+                "unseen_structure": "1/2"
+              }
+            },
+            "seed_weights": {
+              "const": "equal_observed_seeds"
+            },
+            "uncertainty_scope": {
+              "const": "family_sampling_conditional_on_observed_seeds"
+            },
+            "resampling": {
+              "const": "stratified_multinomial; linked_strata_union_dependency_components; within_stratum_renormalization"
+            },
+            "empty_stratum_draw": {
+              "const": "redraw_whole_linked_block; maximum_128_attempts; fail_closed"
+            },
+            "lower_censoring": {
+              "const": "candidate_unresolved=failure; baseline_unresolved=success"
+            },
+            "upper_censoring": {
+              "const": "candidate_unresolved=success; baseline_unresolved=failure"
+            },
+            "lower_order_statistic": {
+              "const": "max(1,floor(B/(20*K)))"
+            },
+            "upper_order_statistic": {
+              "const": "min(B,ceil(B*(20*K-1)/(20*K)))"
+            },
+            "nominal_order_statistics": {
+              "const": [
+                "max(1,floor(B/40))",
+                "min(B,ceil(39*B/40))"
+              ]
+            },
+            "indexing": {
+              "const": "one_based; integer_arithmetic; no_interpolation"
+            },
+            "no_material_gain": {
+              "const": "conservative_adjusted_upper < 0.02"
+            },
+            "confirmed_regression": {
+              "const": "conservative_adjusted_upper < 0"
+            }
+          },
+          "required": [
+            "version",
+            "replicates",
+            "minimum_groups",
+            "max_comparisons",
+            "primary_weights",
+            "seed_weights",
+            "uncertainty_scope",
+            "resampling",
+            "empty_stratum_draw",
+            "lower_censoring",
+            "upper_censoring",
+            "lower_order_statistic",
+            "upper_order_statistic",
+            "nominal_order_statistics",
+            "indexing",
+            "no_material_gain",
+            "confirmed_regression"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "selected",
+        "targets",
+        "verdict_precedence",
+        "diagnostics",
+        "statistics"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "created_at",
+    "parents",
+    "purpose",
+    "track",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-target-policy.schema.json"
+}
