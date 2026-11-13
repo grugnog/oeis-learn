@@ -700,6 +700,9 @@ current-source qualification, reconstructs the plan and continues through calibr
 into training only when all gates pass. Trial counts, 4M screening / 25M confirmation
 horizons and panels remain unchanged. The two-hour construction safety bound is
 unchanged; the fix removes redundant work rather than funding more compiler work.
+A local synthetic 38.2 MB / 8,192-row construction check completed the full
+376-role / 1,296-case plan in 6.96 minutes, including fixture setup. This excludes
+HIP qualification and actual iteration calibration; workstation timing may differ.
 
 Before launching that work, the completed runtime/training timing models may be
 retired. Do not delete either session wholesale: their original observations and

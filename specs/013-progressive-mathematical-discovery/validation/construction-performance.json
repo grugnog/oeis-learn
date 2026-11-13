@@ -1,0 +1,16 @@
+{
+  "version": "construction-performance-check/v1",
+  "source_commit": "70249c01f3bf9e009652fad2602b27afa5dc029c",
+  "status": "PASS",
+  "elapsed_seconds": 417.471,
+  "training_rows": 8192,
+  "training_package_bytes": 38207146,
+  "roles": 376,
+  "exact_calibration_cases": 1296,
+  "construction_guard_seconds": 7200,
+  "scope": "Local CPU synthetic construction including fixture setup; no HIP qualification or scientific evidence",
+  "fixture": "test_progressive_research_bindings.compiled, runtime-v3, two 4096-row shards repeating original fixture rows",
+  "native_provenance": "explicit test boundary, not actual native verification",
+  "diagnostics": "Python stack sampling every 30 seconds; normal completion",
+  "private_originals_used": false
+}

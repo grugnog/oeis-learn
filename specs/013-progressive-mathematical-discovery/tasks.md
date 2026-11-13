@@ -846,3 +846,12 @@ passed; one native-dependent calibration case was unavailable locally. A further
 32 revision/packaging/CLI/implementation checks passed with one unavailable native
 dependency. Additional large-support benchmarking uses synthetic data and cannot
 qualify HIP or replace original data checks.
+
+Final large-support benchmark completed in **417.471 seconds (6.96 minutes)**,
+including fixture setup: 8,192 repeated synthetic rows, a 38,207,146-byte training
+package, all 376 roles and all 1,296 exact calibration cases. The unchanged two-hour
+guard is over 17 times this local measurement. This is representative volume, not
+the workstation's private data or a hardware/runtime guarantee. Python-level stack
+sampling ran throughout without changing successful completion. Five focused
+immutability, failure-ZIP and stdlib periodic/SIGTERM diagnostics tests passed.
+See `validation/construction-performance.json`; no calibration choices were removed.
