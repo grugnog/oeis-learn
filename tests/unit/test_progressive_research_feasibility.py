@@ -140,7 +140,8 @@ def test_resource_finalization_only_shrinks_disk_and_reports_slow_choices(tmp_pa
 
 @pytest.mark.parametrize('failed_timing',[False,True])
 @pytest.mark.parametrize('expanded',[False,True])
-def test_registered_handoff_uses_canonical_dependencies_and_stops_before_expensive_calibration(tmp_path,monkeypatch,failed_timing,expanded):
+@pytest.mark.parametrize('positive',[False,True])
+def test_registered_handoff_uses_canonical_dependencies_and_stops_before_expensive_calibration(tmp_path,monkeypatch,failed_timing,expanded,positive):
     from types import SimpleNamespace
     from oeis_learn.pipeline_validation import progressive_research_launch as launch
     from oeis_learn.pipeline_validation.progressive_workstation_state import Session,write
@@ -157,7 +158,7 @@ def test_registered_handoff_uses_canonical_dependencies_and_stops_before_expensi
     (tmp_path/'weights.pt').write_bytes(b'original byte identity; model loading boundary is simulated')
     atomic_write(tmp_path/'manifest.json',dict(retained=dict(checkpoints=dict(D=dict(root='.',descriptor=dict(weights=reference(tmp_path,'weights.pt')))))))
     atomic_write(tmp_path/'support.json',{'explicit_native_producer_boundary':True})
-    data=dict(manifest=reference(tmp_path,'manifest.json'));materials=dict(support=reference(tmp_path,'support.json'))
+    data=dict(manifest=reference(tmp_path,'manifest.json'));materials=dict(support=reference(tmp_path,'support.json'),native=digest('native producer boundary'))
     for name,value in [('registered/registered-data.json',data),('materials/materials.json',materials),('research-round-design.json',design)]:
         atomic_write(base/name,value)
     calls=[]
@@ -166,9 +167,13 @@ def test_registered_handoff_uses_canonical_dependencies_and_stops_before_expensi
         atomic_write(base/'matrix/profiles.json',{'profiles':[]})
         session.journal['steps']['prepare-research/qualify']=dict(status='COMPLETE')
     monkeypatch.setattr('oeis_learn.pipeline_validation.progressive_research_qualification.qualify',qualify)
-    def req(root,output,support,profiles,q,*,checkpoint):
+    def req(root,output,support,profiles,q,*,checkpoint,native=None):
         assert support=={'explicit_native_producer_boundary':True}
-        r=request_fixture(output)
+        assert native==materials['native']
+        if positive:
+            from tests.unit.test_progressive_scoring_calibration import fixture
+            r,_=fixture(output)
+        else:r=request_fixture(output)
         r=seal(dict(r,qualification=q,checkpoint=checkpoint));write(output/'request.json',r)
         return r
     monkeypatch.setattr(f,'request',req)

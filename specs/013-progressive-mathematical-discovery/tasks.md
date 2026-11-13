@@ -777,3 +777,25 @@ Validation passed 87 preparation-reuse, revision, workstation and implementation
 binding tests, with one unavailable native dependency skipped. The restart and
 ZIP tests include interruption after atomic ownership publication and recovery
 without changing that committed pointer. No local HIP execution is claimed.
+
+
+## Phase 29: Positive scoring feasibility and diagnostic replacement
+
+- [X] T193 Integrate existing positive training-program service calibration into research preparation, bind all eight native/reference producers into prospective timing and execution-contract replay, estimate scoring against the generation task's three/eight-arm scope, and retain fourfold margins and legacy report behavior. Continue independent model timing after ordinary service failure, package original public diagnostics and keep all token horizons/panels unchanged. Cover original witness selection, tampering, incomplete scoring, method scope, installed native producer compatibility and the handoff pipeline.
+
+- [X] T194 Permit an evidenced replacement of the unused preparation owner after the legacy training-only scoring-feasibility stop. Replay the original report, verify successful qualification and training membership, require clean worker termination and no construction/calibration/science, retain costs/history, fence superseded clients, and require current-source qualification. Reject changed evidence, unresolved attempts, scientific work and use of this exception for new positive-scoring requests. Document the fresh round-006 restart using original round-002 data and historical rehearsal 007.
+
+Round 005's uploaded originals show successful base qualification, selected-model
+HIP qualification and all 14 evaluation timings. Its 146 deficits are exclusively
+scoring-time estimates; construction, exact calibration and training never began.
+Its private original support/roster remain on the workstation. Recovery tests use
+explicit producer boundaries; they do not claim a local replay of those absent
+private files or new HIP evidence. The new native producer/consumer test requires
+the installed fitting service and is mandatory in Docker qualification.
+
+Validation: 150 focused scoring/service/handoff/reuse/workstation checks passed
+with two unavailable native-service cases skipped. A further 61 ownership,
+revision, contract, packaging and implementation-identity checks passed with one
+unavailable native dependency skipped. The overlapping suites include immutable
+execution-contract replay and actual host journal/ZIP publication. Stdlib-only
+host imports and CLI help passed. No local HIP or container qualification is claimed.

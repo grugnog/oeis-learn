@@ -21,7 +21,7 @@ SECONDS=4*3600
 METHODS=('correct','shuffled','absent','template','polynomial','linear_recurrence')
 
 
-def request(root, output, support, profiles, qualification, *, checkpoint):
+def request(root, output, support, profiles, qualification, *, checkpoint, native=None):
     """Select the largest original training inputs, without reading held-out truth."""
     from .progressive_handoff import original_authority,validate_device_proofs
     from oeis_learn.generalization.progressive.training_rows import validate_row
@@ -57,7 +57,12 @@ def request(root, output, support, profiles, qualification, *, checkpoint):
     if len(base)!=1:raise ValueError('one fixed reference scope required')
     cases.extend(dict(profile=base[0],control=control,methods=list(METHODS)) for control in ('random','retained_D'))
     # Copy no checkpoint: the pinned installed role receives the original read-only mount.
-    value=seal(dict(version=VERSION,source=source,image=q['images'][1],engine=matrix['engine'],hardware=matrix['hardware'],
+    extra={}
+    if native is not None:
+        from .progressive_scoring_calibration import prepare
+        prepare(output/'scoring-services',support,source=source,image=q['images'][1],native=native)
+        extra['scoring_services']=reference(output,output/'scoring-services/request.json')
+    value=seal(dict(version='progressive-research-evaluation-request/v2' if extra else VERSION,**extra,source=source,image=q['images'][1],engine=matrix['engine'],hardware=matrix['hardware'],
         execution_policy=q['runtime']['execution_policy'],qualification=qualification,support=support['identity'],
         samples=sample_ref,checkpoint=checkpoint,cases=[seal(c) for c in cases],seconds=SECONDS,
         scope='training-only prospective throughput; no panel exposure',safety_multiplier=TIMING_MULTIPLIER))
@@ -68,7 +73,8 @@ def request(root, output, support, profiles, qualification, *, checkpoint):
 def validate_request(value):
     fields={'version','identity','source','image','engine','hardware','execution_policy','qualification',
             'support','samples','checkpoint','cases','seconds','scope','safety_multiplier'}
-    if (set(value)!=fields or seal(value)!=value or value.get('version')!=VERSION or value.get('seconds')!=SECONDS
+    if value.get('version')=='progressive-research-evaluation-request/v2':fields.add('scoring_services')
+    if (set(value)!=fields or seal(value)!=value or value.get('version') not in {VERSION,'progressive-research-evaluation-request/v2'} or value.get('seconds')!=SECONDS
             or value.get('safety_multiplier')!=TIMING_MULTIPLIER or len(value.get('cases',[]))!=14
             or len({c['identity'] for c in value['cases']})!=14):
         raise ValueError('complete bounded prospective evaluation request required')
@@ -151,6 +157,17 @@ def run_inside(root):
             or req['hardware']!=hardware_facts() or req['execution_policy']!=verify_execution()):
         raise ValueError('current original HIP timing scope required')
     outcomes=[];failures=[];blocked=None
+    if 'scoring_services' in req:
+        # Eight CPU-native cases share this timing allowance and image. An
+        # ordinary witness failure does not suppress independent HIP timings.
+        from . import progressive_scoring_calibration as scoring
+        from .progressive_service_calibration import run_inside as run_services,SECONDS as service_seconds
+        try:
+            service_root,_,_=scoring.request(root,req)
+            run_services(service_root,min(service_seconds,req['seconds']-(time.monotonic()-began)))
+            scoring.measurements(root,req)
+        except Exception as error:
+            _record_failure(root,failures,dict(case='positive-scoring-services',error=type(error).__name__,traceback=traceback.format_exc()))
     for i,case in enumerate(req['cases']):
         row=dict(index=i,case=case['identity'],status='BLOCKED' if blocked else 'RUNNING')
         if blocked:row['reason']=blocked
@@ -185,7 +202,7 @@ def run_inside(root):
         atomic_write(root/'case-events'/str(i)/'evaluation-progress.json',seal(dict(version='progressive-research-evaluation-cases/v1',
             request=req['identity'],status='FAIL' if failures else 'RUNNING',cases=outcomes)))
     result=seal(dict(version='progressive-research-evaluation-run/v1',request=req['identity'],
-        status='PASS' if all(r['status']=='PASS' for r in outcomes) else 'FAIL',cases=outcomes,
+        status='PASS' if not failures and all(r['status']=='PASS' for r in outcomes) else 'FAIL',cases=outcomes,
         actual_elapsed_us=max(1,int((time.monotonic()-began)*1000000))))
     atomic_write(root/'evaluation-cases.json',result)
     if failures:atomic_write(root/'failures.json',failures)
@@ -249,7 +266,11 @@ def estimates(root,request_value,roster,*,publish=True):
     if (seal(result)!=result or result['request']!=req['identity'] or result['status']!='PASS'
             or len(result['cases'])!=len(req['cases'])):
         raise ValueError('complete original evaluation measurement batch required')
-    times={};receipts=[]
+    times={};receipts=[];measured_scores={}
+    service=None
+    if 'scoring_services' in req:
+        from .progressive_scoring_calibration import measurements
+        service=measurements(root,req)
     for index,(expected,row) in enumerate(zip(req['cases'],result['cases'])):
         if row.get('status')!='PASS' or row.get('index')!=index or row.get('case')!=expected['identity']:
             raise ValueError('complete ordered original evaluation cases required')
@@ -261,11 +282,12 @@ def estimates(root,request_value,roster,*,publish=True):
                 or p['actual_elapsed_us']>req['seconds']*1000000):
             raise ValueError('original measured evaluation case differs')
         key='all' if len(expected['methods'])>1 else 'primary'
+        measured_scores[key]=max(measured_scores.get(key,0),p['scoring_us'])
         for operation,field in [('generate','generation_us'),('score','scoring_us')]:
             reserve=p.get('coverage',{}).get('unmeasured_'+('native' if operation=='generate' else 'scoring')+'_reserve_us',0)
             times[key,operation]=max(times.get((key,operation),0),p[field]+reserve)
         receipts.append(row['producer'])
-    deficits=[];tasks=[]
+    deficits=[];tasks=[];by_id={r['id']:r for r in roster['tasks']}
     for row in roster['tasks']:
         if row['operation'] not in {'generate','score'}:continue
         shared=row['trial'] and row['trial']['phase'] not in {'confirmation','selection'}
@@ -273,11 +295,18 @@ def estimates(root,request_value,roster,*,publish=True):
         # Each measurement contains two members and model startup. Charging the
         # whole batch per pair, then applying the frozen 4x margin, deliberately repeats startup cost.
         estimate=padded_us(times['all' if row.get('all_methods') or row['operation']=='score' else 'primary',row['operation']]*((len(row['members'])+1)//2))
+        if service and row['operation']=='score':
+            generation=by_id[row['generation']]
+            arms=8 if generation.get('all_methods') else 3
+            measured=measured_scores['all' if arms==8 else 'primary']*((len(row['members'])+1)//2)
+            # Count every selected arm separately: never assume cache reuse.
+            positive=service['owner_overhead_us']+len(row['members'])*arms*service['score_us']
+            estimate=padded_us(max(measured,positive))
         tasks.append(dict(task=row['id'],estimated_us=estimate,available_us=available))
         if estimate>available:deficits.append('evaluation_time:'+row['id'])
     value=seal(dict(version='progressive-research-evaluation-feasibility/v1',request=req['identity'],
         roster=roster['identity'],status='READY' if not deficits else 'BLOCKED',deficits=deficits,tasks=tasks,
-        producers=receipts,assessment_exposed=False,
+        producers=receipts,assessment_exposed=False,**({'positive_scoring':service} if service else {}),
         limits='training-only sampled estimate with 4x margin; later task clocks remain hard bounds'))
     if publish:atomic_write(root/'evaluation-feasibility.json',value)
     return value

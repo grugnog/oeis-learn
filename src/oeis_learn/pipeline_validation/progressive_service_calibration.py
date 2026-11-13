@@ -18,6 +18,28 @@ HOST_SECONDS = SECONDS + 120
 CASE_SECONDS = 120
 
 
+def training_samples(support):
+    """Four size-selected known training programs, excluding reserved probes."""
+    from oeis_learn.generalization.progressive.training_rows import validate_row
+    if (seal(support)!=support or support.get('diagnostic') is not False
+            or support.get('version')!='progressive-prepared-support/v1'):
+        raise ValueError('original native training support required')
+    rows={r['draw_identity']:r for shard in support['shards'] for r in shard}
+    for row in rows.values():validate_row(row,native_verified=True)
+    probes={p['id'] for p in support['layout']['probes'].values()}
+    order=sorted((r for k,r in rows.items() if k not in probes),key=lambda r:r['identity'])
+    if len(order)<4:raise ValueError('four distinct original training members required')
+    chosen={}
+    for key in (lambda r:len(r['tokens']),lambda r:max(len(v) for v in r['values'][:20]),
+                lambda r:sum(len(v) for v in r['values']),lambda r:len(r['source'])):
+        row=max(order,key=lambda r:(key(r),r['identity']));chosen[row['draw_identity']]=row
+    for row in order:
+        if len(chosen)==4:break
+        chosen.setdefault(row['draw_identity'],row)
+    return [dict(id=k,source=r['source'],indices=r['indices'],values=r['values'],
+                 training_row=r['identity']) for k,r in sorted(chosen.items())]
+
+
 def gather(root, donor, output):
     import fcntl
     root=Path(root);folder=confined(root,donor)
@@ -69,22 +91,7 @@ def _gather(root, donor, output):
     allrows = {r['draw_identity']:r for shard in support['shards'] for r in shard}
     for row in allrows.values():
         validate_row(row, native_verified=True)
-    probes={p['id'] for p in support['layout']['probes'].values()}
-    rows={k:r for k,r in allrows.items() if k not in probes}
-    if len(rows) < 4:
-        raise ValueError('four distinct original training members required')
-    # Deliberately no probes, panels, model scores or replacement after outcomes.
-    order = sorted(rows.values(), key=lambda r:r['identity'])
-    chosen = {}
-    for key in (lambda r:len(r['tokens']), lambda r:max(len(v) for v in r['values'][:20]),
-                lambda r:sum(len(v) for v in r['values']), lambda r:len(r['source'])):
-        row = max(order, key=lambda r:(key(r), r['identity']))
-        chosen[row['draw_identity']] = row
-    for row in order:
-        if len(chosen) == 4:break
-        chosen.setdefault(row['draw_identity'], row)
-    samples = [dict(id=k, source=r['source'], indices=r['indices'], values=r['values'],
-                    training_row=r['identity']) for k,r in sorted(chosen.items())]
+    samples = training_samples(support)
     retain(output/'private/training-services.json', samples)
 
     timing = base/'evaluation-timing'

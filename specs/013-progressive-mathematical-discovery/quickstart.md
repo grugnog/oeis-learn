@@ -668,7 +668,7 @@ not rerun the census or rehearsal and does not expose assessment:
 ```bash
 git pull --ff-only origin 013-progressive-mathematical-discovery &&
 python3 -S scripts/discovery_hip_handoff.py \
-  --engine podman --session run-state/discovery/013-research-round-005 \
+  --engine podman --session run-state/discovery/013-research-round-006 \
   prepare-research \
   --registration-session run-state/discovery/013-research-inputs-003 \
   --rehearsal-session run-state/discovery/013-hip-007 \
@@ -676,15 +676,26 @@ python3 -S scripts/discovery_hip_handoff.py \
   --expanded-runtime-budgets --run-after-prepare
 ```
 
-Round 003 stopped at the CPU report-schema consistency check before HIP matrix
-qualification, exact-input calibration or training. Round 004 then stopped at
-the original single-recipient data-reuse guard. Use fresh round 005 above: the
-wrapper now verifies the original CPU failure and worker cleanup before replacing
-that unused preparation owner. It preserves ownership history and prevents the
-old recipient from resuming. Replacement is blocked if HIP matrix qualification,
-evaluation, calibration or research began, or cleanup is unproven. Data still come
-from round 002 and rehearsal 007 is not repeated; current-source base qualification
-must run again. Do not delete or edit the global ownership record by hand.
+Round 005 passed base qualification (41.5 minutes), selected-model HIP qualification
+(26.4 minutes) and all 14 evaluation timings (16.2 minutes). Preparation then stopped
+before calibration or training: model timing produced no selected scoring programs,
+so the planner reserved the full unmeasured scoring allowance and applied the
+all-method maximum to every scoring task. All 146 deficits were scoring estimates.
+
+Fresh round 006 adds eight positive native/reference service measurements using
+four original training programs selected by input size, excluding reserved probes.
+These are resource diagnostics, never learned capability or scientific observations.
+Scoring estimates use the larger of observed scoring and measured positive scoring,
+with the appropriate three/eight-arm scope and the existing fourfold margin.
+Trial counts, 4M screening / 25M confirmation horizons and panels are unchanged.
+
+The wrapper may replace round 005's unused preparation ownership only after
+replaying its original legacy timing report, confirming scoring-only deficits,
+training-only inputs, clean worker termination and no campaign construction,
+calibration or research. Historical qualification remains historical: fresh
+current-source qualification must run again. Data still come from round 002 and
+rehearsal 007 is not repeated. Original claims, evidence and costs are retained,
+and superseded clients are fenced. Do not delete or edit ownership records by hand.
 
 Before launching that work, the completed runtime/training timing models may be
 retired. Do not delete either session wholesale: their original observations and

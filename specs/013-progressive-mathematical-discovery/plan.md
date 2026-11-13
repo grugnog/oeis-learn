@@ -489,3 +489,28 @@ interruption between pointer publication and local diagnostic publication. The
 new ZIP includes owner/proof records. Historical costs remain in the original
 attempt and its immutable proof; no scientific allowance transfers or resets.
 Later-stage failures remain blocked rather than receiving this replacement route.
+
+### Positive scoring measurements before research freeze
+
+T193 integrates the existing isolated service calibration into prospective
+preparation. Select four deterministic native training witnesses by size, excluding
+reserved probes; run two repeats with fresh fitting, raw-admission and independent
+native/reference scoring owners. All eight complete original producers must bind
+source, image, native identity and prepared support. Ordinary service failures do
+not suppress independent model-timing cases, but prevent a feasible execution
+contract. Diagnostic programs never enter scientific candidate outputs.
+
+Evaluation request v2 measures scoring paths absent from sampled model outputs.
+Use the maximum of observed scoring and positive-witness scoring extrapolated per
+member and per actual generation arm (three primary, eight all-method), including
+owner overhead and the existing fourfold timing margin. Keep generation reserves,
+role clocks, finite study graph, token horizons and held-out panels unchanged.
+Legacy requests/reports replay their original estimates byte-for-byte.
+
+T194 permits one additional evidenced preparation replacement: a legacy
+training-only timing attempt with successful qualification, complete original
+measurements, scoring-only feasibility deficits, clean termination and no campaign
+construction/calibration/science. Replay the old report, preserve its source,
+costs and owner history, and require new current-source qualification. This does
+not authorize replacement after scientific exposure or after the new positive
+measurement gate fails. Ownership transfer remains atomic and fences old clients.

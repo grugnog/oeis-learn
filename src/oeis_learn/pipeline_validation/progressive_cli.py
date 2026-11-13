@@ -31,6 +31,7 @@ CPU_TESTS = (
     "tests/unit/test_progressive_research_bindings.py",
     "tests/unit/test_progressive_research_feasibility.py",
     "tests/unit/test_progressive_service_calibration.py",
+    "tests/unit/test_progressive_scoring_calibration.py",
     "tests/unit/test_progressive_training_timing.py",
     "tests/unit/test_progressive_runtime_timing.py",
     "tests/unit/test_progressive_runtime_reservations.py",

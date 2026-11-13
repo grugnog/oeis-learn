@@ -227,3 +227,76 @@ def test_owner_transfer_rejects_started_work_unreclaimed_processes_and_changed_p
         with pytest.raises((ValueError,BlockingIOError)):
             adopt(root,str(folder.relative_to(root)),root/'run-state/discovery/second')
     assert claim.read_bytes()==before
+
+
+def feasibility_owner(root,monkeypatch):
+    from tests.unit.test_progressive_service_calibration import donor_fixture
+    from tests.unit.test_progressive_research_feasibility import producer
+    from tests.unit.test_progressive_research_roster import fixture as roster_fixture
+    from oeis_learn.generalization.progressive.research_roster import construct
+    from oeis_learn.pipeline_validation import progressive_research_feasibility as feasibility
+    from oeis_learn.generalization.progressive.contracts import load
+    folder,support,source=donor_fixture(root,monkeypatch);base=folder/'prepare-research';timing=base/'evaluation-timing'
+    req=load(timing/'request.json');roster=construct(*roster_fixture())
+    write(base/'roster/private/role-roster.json',roster)
+    materials=load(base/'materials/materials.json');write(base/'materials/materials.json',seal(dict(materials,assessment_exposed=False)))
+    rows=[]
+    for i,case in enumerate(req['cases']):
+        ref=producer(timing,req,i);path=timing/ref['path'];p=load(path)
+        write(path,seal(dict(p,scoring_us=1000000000,actual_elapsed_us=1000001000)))
+        rows.append(dict(index=i,case=case['identity'],status='PASS',producer=reference(timing,path)))
+    write(timing/'evaluation-cases.json',seal(dict(version='progressive-research-evaluation-run/v1',request=req['identity'],
+        status='PASS',cases=rows,actual_elapsed_us=14000014000)))
+    assert feasibility.estimates(timing,req,roster)['status']=='BLOCKED'
+    journal=load(folder/'journal.json')
+    for name,row in journal['steps'].items():
+        if row.get('outputs'):row['outputs']=[reference(root,root/r['path']) for r in row['outputs']]
+    journal['steps']['prepare-research/base-qualification']=dict(status='COMPLETE',outputs=[])
+    journal['steps']['prepare-research/evaluation-feasibility']=dict(status='BLOCKED')
+    journal['steps']['prepare-research/evaluation-timing']=dict(status='COMPLETE',outputs=[
+        reference(root,timing/'evaluation-cases.json'),*[reference(root,timing/r['producer']['path']) for r in rows]])
+    write(folder/'journal.json',seal(journal))
+    write(timing/'process.json',dict(returncode=0,cleanup_failure=None))
+    write(timing/'cleanup.json',dict(acknowledged=True,within_bound=True,failure=None))
+    (folder/'session.lock').touch()
+    receipt=seal(dict(version='progressive-preparation-data-reuse/v1',recipient=str(folder.relative_to(root)),current_source=req['source']))
+    return folder,receipt
+
+
+def test_scoring_deficit_replacement_preserves_diagnostics_and_requires_requalification(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation.progressive_preparation_owner import failure_proof,claim_owner
+    from oeis_learn.pipeline_validation.progressive_workstation_state import read
+    folder,receipt=feasibility_owner(tmp_path,monkeypatch)
+    original=(folder/'journal.json').read_bytes()
+    proof=failure_proof(tmp_path,receipt)
+    assert proof['historical_qualification_only'] and proof['current_source_requalification_required']
+    assert proof['scientific_allowance_transferred'] is False
+    claim=tmp_path/'run-state/discovery-preparation-revisions/test.json';write(claim,receipt)
+    new=seal(dict(receipt,recipient='run-state/discovery/next',current_source=digest('corrected planning')))
+    claim_owner(tmp_path,claim,new)
+    assert read(claim)['receipt']==new and (folder/'journal.json').read_bytes()==original
+    with pytest.raises(ValueError,match='superseded'):claim_owner(tmp_path,claim,receipt)
+
+
+@pytest.mark.parametrize('change',['run','construction','attempt','cleanup','process','support','report','new-request'])
+def test_scoring_deficit_replacement_cannot_reset_science_or_accept_incomplete_proof(tmp_path,monkeypatch,change):
+    from oeis_learn.pipeline_validation.progressive_preparation_owner import failure_proof
+    from oeis_learn.generalization.progressive.contracts import load
+    folder,receipt=feasibility_owner(tmp_path,monkeypatch);base=folder/'prepare-research';timing=base/'evaluation-timing'
+    journal=load(folder/'journal.json')
+    if change=='run':journal['steps']['run-research/start']=dict(status='COMPLETE')
+    if change=='attempt':journal['steps']['prepare-research/prepare']=dict(status='BLOCKED',history=[dict(status='FAILED')])
+    if change=='new-request':
+        path=timing/'request.json';req=load(path)
+        write(path,seal(dict(req,version='progressive-research-evaluation-request/v2',scoring_services={'path':'boundary'})))
+        journal['steps']['prepare-research/evaluation-plan']['outputs']=[reference(tmp_path,path)]
+    write(folder/'journal.json',seal(journal))
+    if change=='construction':(base/'construction').mkdir()
+    if change=='cleanup':write(timing/'cleanup.json',dict(acknowledged=False,within_bound=True))
+    if change=='process':write(timing/'process.json',dict(returncode=None))
+    if change=='support':
+        support=load(base/'materials/private/support.json');support['diagnostic']=True
+        write(base/'materials/private/support.json',seal(support))
+    if change=='report':
+        report=load(timing/'evaluation-feasibility.json');write(timing/'evaluation-feasibility.json',seal(dict(report,deficits=[])))
+    with pytest.raises((ValueError,OSError)):failure_proof(tmp_path,receipt)

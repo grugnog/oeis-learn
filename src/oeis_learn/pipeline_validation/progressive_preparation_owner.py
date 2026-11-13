@@ -1,4 +1,4 @@
-"""Single-owner data reuse with a narrow, evidenced pre-HIP failure transfer."""
+"""Single-owner data reuse with evidenced pre-campaign diagnostic replacement."""
 import fcntl
 from pathlib import Path
 
@@ -22,6 +22,9 @@ def failure_proof(root, receipt):
     if session['binding']['source'] != receipt['current_source']:
         raise Blocked('previous preparation source differs')
     steps = journal['steps']
+    if steps.get('prepare-research/base-qualification', {}).get('status') == 'COMPLETE':
+        from .progressive_preparation_feasibility_recovery import proof
+        return proof(root,receipt,session,journal)
     if steps.get('prepare-research/base-qualification', {}).get('status') != 'FAILED':
         raise Blocked('previous preparation must have failed base qualification')
     for key, row in steps.items():

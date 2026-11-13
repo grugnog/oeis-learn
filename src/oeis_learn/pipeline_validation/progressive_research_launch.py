@@ -21,8 +21,11 @@ def prepare(workflow,data,design,materials):
         retained=manifest['retained']['checkpoints']['D']
         checkpoint=reference(root,checked_file(root/retained['root'],retained['descriptor']['weights']))
         value=request(root,timing,_json(checked_file(root,materials['support']),maximum=256<<20),
-            load(base/'matrix/profiles.json')['profiles'],reference(root,qroot/'qualification.json'),checkpoint=checkpoint)
-        return value,[timing/'request.json',timing/'private/training-samples.json']
+            load(base/'matrix/profiles.json')['profiles'],reference(root,qroot/'qualification.json'),checkpoint=checkpoint,
+            native=materials['native'])
+        files=[timing/'request.json',timing/'private/training-samples.json']
+        if 'scoring_services' in value:files.extend([timing/'scoring-services/request.json',timing/'scoring-services/private/training-services.json'])
+        return value,files
     req=s.step('evaluation-plan',timing_request,dependencies=('prepare-research/qualify','prepare-research/role-roster'))
     def measure():
         from .progressive_handoff import stage
@@ -34,6 +37,10 @@ def prepare(workflow,data,design,materials):
         value=load(timing/'evaluation-cases.json')
         files=[timing/'evaluation-cases.json']
         files.extend(checked_file(timing,r['producer']) for r in value['cases'])
+        if 'scoring_services' in req:
+            services=timing/'scoring-services'
+            files.append(services/'service-cases.json')
+            files.extend(checked_file(services,r['producer']) for r in load(services/'service-cases.json')['cases'])
         return value,files
     s.step('evaluation-timing',measure,dependencies=('prepare-research/evaluation-plan',))
     def feasibility():

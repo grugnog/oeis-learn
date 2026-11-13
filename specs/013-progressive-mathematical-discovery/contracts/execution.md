@@ -148,3 +148,25 @@ These changes do not reduce token horizons, trial count, panels, precision,
 runtime limits, recovery authority or required historical evidence. Old frozen
 campaigns and calibration records are not rewritten. A fresh source-bound
 preparation must establish the new reservation before training.
+
+## Positive service timing amendment (2026-11-13)
+
+Prospective evaluation requests v2 must exercise successful full-horizon scoring
+with four size-selected original training programs, excluding reserved probes,
+and two isolated repeats each. Bind original native/reference results, source,
+image and support; partial or mismatched service evidence blocks freeze. These
+witnesses measure resources only and cannot establish learned capability.
+
+For scoring feasibility, extrapolate the greater of measured model scoring and
+positive service timing using the generation task's actual three/eight-arm scope.
+Charge every selected arm independently, retain owner overhead, and apply the
+existing fourfold margin. Samples are estimates, not guarantees: existing runtime
+clocks and all other resource limits remain authoritative. Legacy requests retain
+their old unmeasured-path reservation on replay; do not rewrite historical results.
+
+An unused preparation owner stopped specifically by the legacy scoring-only
+feasibility gate may be replaced after original training-only inputs, successful
+qualification, complete measurements, clean termination and absence of campaign
+construction are verified. Preserve evidence and consumed diagnostic costs, fence
+the old owner, and obtain current-source qualification again. No scientific
+allowance or historical qualification authority transfers.
