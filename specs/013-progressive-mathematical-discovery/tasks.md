@@ -855,3 +855,27 @@ the workstation's private data or a hardware/runtime guarantee. Python-level sta
 sampling ran throughout without changing successful completion. Five focused
 immutability, failure-ZIP and stdlib periodic/SIGTERM diagnostics tests passed.
 See `validation/construction-performance.json`; no calibration choices were removed.
+
+
+## Phase 32: Exact calibration storage preflight and unused-owner recovery
+
+- [X] T199 Distinguish a total peak reservation from an additional write allocation. Calibration's preflight must count the output root, owner metadata and retained files once, while preserving actual-usage, prior-invocation, reserved/free bytes and inode limits. Exercise canonical prepare/freeze/resume with exact compiler-style byte and inode caps, plus real shortage/overuse regressions.
+
+- [X] T200 Permit unused-owner replacement only for the original exact-total calibration storage preflight failure. Verify original completed construction and qualified training-only timing, the local hash-bound traceback at the pre-dispatch check, canonical cleanly terminated host command, closed consumed operational allowance, and absence of inspection, calibration budget, request/cases, freeze or science. Preserve all originals/costs and fence superseded owners; require current-source qualification. Include the regression suite in mandatory CPU acceptance and document round 009.
+
+
+Round 008 completed construction in 238.019 seconds, retaining all 376 roles and
+1,296 exact calibration cases. Preparation failed with the owned storage inode
+reservation error after 176.36 seconds. The exact-size fixture reproduced the
+preflight error; the fix counts existing root/metadata once. The original private
+traceback and calibration allowance were not included in the supplied ZIP; recovery
+validates them on the workstation before transferring ownership. See
+`validation/calibration-preflight.json` for the observed public evidence.
+
+Validation: 293 tests passed across storage/budgets, real CPU checkpoint/restore,
+canonical prepare/freeze/resume with exact byte/inode caps, recovery/ownership,
+workstation/feasibility, CI partitioning, packaging/CLI and implementation identity.
+Three native-service dependent tests were unavailable locally. The new recovery
+suite is in the mandatory installed CPU inventory. Stdlib-only recovery imports,
+host CLI help and whitespace checks passed. No local HIP qualification or exact
+HIP calibration is claimed; original hardware evidence remains historical.

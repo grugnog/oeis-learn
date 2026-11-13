@@ -36,6 +36,7 @@ CPU_TESTS = (
     "tests/unit/test_progressive_runtime_timing.py",
     "tests/unit/test_progressive_runtime_reservations.py",
     "tests/unit/test_progressive_preparation_reuse.py",
+    "tests/unit/test_progressive_calibration_recovery.py",
     "tests/unit/test_discovery_cleanup.py",
     "tests/unit/test_progressive_qualification_cleanup.py",
     "tests/unit/test_progressive_workstation.py",

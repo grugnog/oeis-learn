@@ -668,7 +668,7 @@ not rerun the census or rehearsal and does not expose assessment:
 ```bash
 git pull --ff-only origin 013-progressive-mathematical-discovery &&
 python3 -S scripts/discovery_hip_handoff.py \
-  --engine podman --session run-state/discovery/013-research-round-008 \
+  --engine podman --session run-state/discovery/013-research-round-009 \
   prepare-research \
   --registration-session run-state/discovery/013-research-inputs-003 \
   --rehearsal-session run-state/discovery/013-hip-007 \
@@ -748,3 +748,20 @@ before the preparation command above, and let fresh calibration/freezing establi
 the exact requirement. Existing user runs are not automatically deleted. The tiny
 rehearsal need not be repeated; current-source research qualification and acceptance
 remain part of preparation. Training budgets and runtime estimates are unchanged.
+
+
+Round 008 completed construction in 238.019 seconds with all 376 roles and 1,296
+calibration cases. Prepare then failed before calibration dispatch: the preflight
+added the entire planned inode allowance to the output directory and its existing
+metadata, exceeding the exactly sized limit. This error does not demonstrate that
+the workstation ran out of physical disk space. The corrected total-peak check
+retains actual free-space and write limits.
+
+The round-009 command above retains round-002 data and historical rehearsal 007.
+Unused ownership transfers only if round 008's local original traceback, closed
+operational allowance, process and construction records prove this precise failure
+preceded calibration reservation/inspection/dispatch. Keep round 008 and its
+`run-state/discovery-calibration/` records intact. The wrapper validates them locally;
+the share ZIP intentionally omits the private traceback. No completed calibration
+or training work is being discarded or represented as success. Current-source
+qualification repeats because the implementation changed; census/rehearsal do not.

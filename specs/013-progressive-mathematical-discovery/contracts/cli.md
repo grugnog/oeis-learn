@@ -102,3 +102,13 @@ nonbaseline configurations. Confirmation uses separately frozen fresh model and
 optimizer starts, paired seeds and the 400M schedule horizon; its outcomes never
 enter sampler feedback. All actual-HIP calibration and qualification requirements
 remain separate from CPU/native software acceptance.
+
+Calibration preflight distinguishes a total owned-output peak from an incremental
+write. Existing output directories, owner metadata and retained files count once;
+real writes still reserve their temporary additional bytes/inodes. Exact finite
+reservations must work, while actual overuse and insufficient free storage remain
+failures. The workstation can replace an unused preparation owner after this
+historical preflight bug only with original hash-bound local traceback, canonical
+process, closed consumed allowance and completed construction/timing proof, with
+no calibration reservation, inspection, cases or subsequent science. Original
+costs and files remain unchanged and current-source qualification is required.

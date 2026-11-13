@@ -22,6 +22,9 @@ def failure_proof(root, receipt):
     if session['binding']['source'] != receipt['current_source']:
         raise Blocked('previous preparation source differs')
     steps = journal['steps']
+    if steps.get('prepare-research/prepare', {}).get('status') == 'FAILED':
+        from .progressive_calibration_recovery import proof
+        return proof(root,receipt,session,journal)
     if steps.get('prepare-research/construction', {}).get('status') == 'FAILED':
         from .progressive_construction_recovery import proof
         return proof(root,receipt,session,journal)

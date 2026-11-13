@@ -554,3 +554,24 @@ metadata-compiler timeout with original successful qualification, feasible timin
 clean process-group termination and no completed construction/calibration/science.
 Keep original costs and partial files, fence superseded owners and requalify current
 source. A timeout never becomes completion or a renewed scientific allowance.
+
+
+### Exact-total calibration storage preflight
+
+T199 treats the finite calibration storage estimate as the total peak inside its
+owned output roots. Existing owner/binding metadata and retained files count once;
+preflight checks only the remaining allocation against physical free bytes/inodes.
+Actual usage above the partition remains a failure, including when it exceeds the
+estimated peak. Prior-invocation charges, reserves and additive temporary-write
+checks retain their semantics. No caps, calibration cases or token horizons change.
+
+T200 permits replacement of unused preparation ownership only after the original
+calibration storage preflight fails before any scientific debit or device dispatch.
+Require completed original construction and qualified training-only timing, exact
+inode reservation, original owner/binding/result, hash-bound local traceback at the
+old total-as-additional call, one cleanly terminated canonical prepare process, and
+one closed operational allowance containing the consumed time. Reject inspection,
+requests, cases, recovery attempts, any budget journal, freeze, acceptance or
+scientific work. Preserve the old source, costs and all artifacts; new source must
+qualify again. The private traceback remains local; the recovery proof includes its
+identity and the original public result. This is not a calibration pass or refund.

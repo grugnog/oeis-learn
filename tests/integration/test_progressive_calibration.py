@@ -208,7 +208,9 @@ def host_inputs(root, monkeypatch):
             "seconds": 60,
             "caps": caps,
             "checkpoint_bytes": 64 << 20,
-            "maximum_inodes": 1024,
+            # The research compiler reserves exactly 64*cases+256. Canonical
+            # prepare already creates owner/binding files before this preflight.
+            "maximum_inodes": 64 + 256,
         }
     )
     put(root / "calibration-plan.json", plan)
@@ -249,6 +251,28 @@ def host_inputs(root, monkeypatch):
 
     monkeypatch.setattr(io, "current_facts", lambda *a, **kw: {k: q[k] for k in FACTS})
     return b
+
+
+def test_canonical_prepare_accepts_exact_total_bytes_and_inodes(tmp_path, monkeypatch, capsys):
+    from oeis_learn.pipeline_validation.progressive_calibration import selected_inputs
+    from oeis_learn.pipeline_validation.progressive_calibration_storage import POLICY, required_bytes
+    from oeis_learn.generalization.progressive.shared_support import projection_size
+    original = host_inputs
+
+    def exact(root, patch):
+        b = original(root, patch)
+        plan = load(root/'calibration-plan.json')
+        p = load(root/'preparation-plan.json')
+        cases, _ = selected_inputs(root, dict(payload=p['payload'], purpose=b['purpose'], track=b['track']))
+        plan['checkpoint_retention'] = POLICY
+        plan['caps']['disk_bytes'] = required_bytes(len(cases), plan['checkpoint_bytes'], projection_size(cases), retention=POLICY)
+        (root/'calibration-plan.json').write_text(json.dumps(seal(plan)))
+        next(r for r in b['payload']['references'] if r['name']=='iteration_calibration_plan')['artifact'] = reference(root,'calibration-plan.json')
+        (root/'blueprint.json').write_text(json.dumps(seal(b)))
+        return seal(b)
+
+    monkeypatch.setattr(sys.modules[__name__], 'host_inputs', exact)
+    test_canonical_prepare_calibrates_then_freezes_or_preserves_failed_debit(tmp_path, monkeypatch, capsys, 'none', True)
 
 
 @pytest.mark.parametrize("change", ["none", "cpu", "stale", "missing", "timeout", "overspend"])

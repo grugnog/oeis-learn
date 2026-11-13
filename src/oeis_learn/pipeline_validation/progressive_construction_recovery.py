@@ -7,8 +7,6 @@ from oeis_learn.generalization.progressive.contracts import reference
 
 def proof(root,receipt,session,journal):
     from .progressive_preparation_owner import EARLY
-    from .progressive_handoff import original_authority
-    from .progressive_research_feasibility import validate_request,verify_contract
     folder=confined(root,receipt['recipient']);base=folder/'prepare-research'
     allowed=EARLY|{'base-qualification','matrix','qualification-plan','qualify',
                    'evaluation-plan','evaluation-timing','evaluation-feasibility','construction'}
@@ -25,6 +23,34 @@ def proof(root,receipt,session,journal):
                 raise Blocked('completed construction cannot be replaced')
     if any((base/name).exists() for name in ('prepared','frozen','acceptance','construction/execution','construction/construction-summary.json')):
         raise Blocked('calibration, campaign or completed construction already exists')
+    req,contract=prerequisites(root,receipt,journal)
+    logs=base/'logs/construction';command=_json(logs/'command.json');process=_json(logs/'process.json')
+    code='import sys;sys.path.insert(0,sys.argv.pop(1));from oeis_learn.pipeline_validation.progressive_research_bindings import main;main()'
+    args=command['argv']
+    expected=['-S','-c',code,str(root/'src'),'--root',str(root)]
+    for flag,path in [('output','construction'),('data','registered/registered-data.json'),('design','research-round-design.json'),
+                      ('materials','materials/materials.json'),('qualification','qualification'),('execution-contract','execution-contract.json')]:
+        expected+=['--'+flag,str((base/path).relative_to(root))]
+    if (args[1:]!=expected or command.get('seconds')!=7200 or command.get('cleanup_seconds')!=5
+            or process.get('returncode') not in {-15,-9} or process.get('cleanup_failure') is not None
+            or process.get('outcome')!='FAIL' or not str(process.get('failure','')).startswith('TimeoutError: external deadline:')
+            or not 7200<=process.get('elapsed_seconds',0)<=7235):
+        raise Blocked('original bounded compiler timeout with acknowledged termination required')
+    return seal(dict(version='progressive-preparation-owner-proof/v3',predecessor=receipt,session=session,journal=journal,
+        qualification=req['qualification'],execution_contract=contract,
+        command=dict(original=reference(root,logs/'command.json'),value=command),
+        process=dict(original=reference(root,logs/'process.json'),value=process),
+        reason='metadata-only construction timeout before calibration or scientific execution',
+        original_costs_retained=True,scientific_allowance_transferred=False,
+        historical_qualification_only=True,current_source_requalification_required=True))
+
+
+def prerequisites(root,receipt,journal):
+    """Verify historical qualified, feasible timing used only training members."""
+    from .progressive_handoff import original_authority
+    from .progressive_research_feasibility import validate_request,verify_contract
+    base=confined(root,receipt["recipient"])/"prepare-research"
+    steps=journal["steps"]
     originals={}
     for name in ('base-qualification','qualify','materials','role-roster','evaluation-plan','evaluation-timing','evaluation-feasibility'):
         row=steps.get('prepare-research/'+name,{})
@@ -59,22 +85,4 @@ def proof(root,receipt,session,journal):
                 or any(sample[k]!=row[k] for k in ('indices','values'))
                 or ('source' in sample and (sample['source']!=row['source'] or sample['training_row']!=row['identity']))):
             raise Blocked('construction timing must use original training members')
-    logs=base/'logs/construction';command=_json(logs/'command.json');process=_json(logs/'process.json')
-    code='import sys;sys.path.insert(0,sys.argv.pop(1));from oeis_learn.pipeline_validation.progressive_research_bindings import main;main()'
-    args=command['argv']
-    expected=['-S','-c',code,str(root/'src'),'--root',str(root)]
-    for flag,path in [('output','construction'),('data','registered/registered-data.json'),('design','research-round-design.json'),
-                      ('materials','materials/materials.json'),('qualification','qualification'),('execution-contract','execution-contract.json')]:
-        expected+=['--'+flag,str((base/path).relative_to(root))]
-    if (args[1:]!=expected or command.get('seconds')!=7200 or command.get('cleanup_seconds')!=5
-            or process.get('returncode') not in {-15,-9} or process.get('cleanup_failure') is not None
-            or process.get('outcome')!='FAIL' or not str(process.get('failure','')).startswith('TimeoutError: external deadline:')
-            or not 7200<=process.get('elapsed_seconds',0)<=7235):
-        raise Blocked('original bounded compiler timeout with acknowledged termination required')
-    return seal(dict(version='progressive-preparation-owner-proof/v3',predecessor=receipt,session=session,journal=journal,
-        qualification=req['qualification'],execution_contract=contract,
-        command=dict(original=reference(root,logs/'command.json'),value=command),
-        process=dict(original=reference(root,logs/'process.json'),value=process),
-        reason='metadata-only construction timeout before calibration or scientific execution',
-        original_costs_retained=True,scientific_allowance_transferred=False,
-        historical_qualification_only=True,current_source_requalification_required=True))
+    return req,contract

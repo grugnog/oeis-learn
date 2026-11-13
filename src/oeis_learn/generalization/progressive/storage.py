@@ -228,6 +228,20 @@ class StorageGuard:
 
     def check(self, added_bytes=0, added_inodes=0):
         used, inodes = usage(self.roots)
+        self._check(used, inodes, added_bytes, added_inodes)
+
+    def check_total(self, total_bytes, total_inodes):
+        """Preflight a total peak within these roots, including existing files.
+
+        Prior invocations and reserves remain additional charges. Actual writes
+        still use check(): their temporary allocations must fit at publication.
+        """
+        if any(type(n) is not int or n < 0 for n in (total_bytes, total_inodes)):
+            raise ValueError("finite total storage reservation required")
+        used, inodes = usage(self.roots)
+        self._check(used, inodes, max(0, total_bytes-used), max(0, total_inodes-inodes))
+
+    def _check(self, used, inodes, added_bytes, added_inodes):
         if (
             used + self.prior_bytes + added_bytes + self.reserve_bytes > self.max_bytes
             or inodes + self.prior_inodes + added_inodes > self.max_inodes

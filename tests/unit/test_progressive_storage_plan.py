@@ -50,6 +50,42 @@ def test_shared_package_reserve_is_not_duplicated_inside_each_task(tmp_path,monk
     with pytest.raises(TimeoutError,match='free storage'):guard.check(100)
 
 
+@pytest.mark.parametrize('present', [False, True])
+def test_total_peak_reservation_counts_owned_files_once(tmp_path, monkeypatch, present):
+    from oeis_learn.generalization.progressive.storage import StorageGuard
+    root=tmp_path/'output'
+    if present:
+        root.mkdir();(root/'owner.json').write_bytes(b'x'*40)
+    monkeypatch.setattr('shutil.disk_usage',lambda _:SimpleNamespace(free=60 if present else 100))
+    monkeypatch.setattr('os.statvfs',lambda _:SimpleNamespace(f_favail=8 if present else 10))
+    guard=StorageGuard([root],max_bytes=100,max_inodes=10)
+    guard.check_total(100,10)
+    with pytest.raises(TimeoutError,match='owned storage'):guard.check_total(101,10)
+    with pytest.raises(TimeoutError,match='owned storage'):guard.check_total(100,11)
+    # A total peak never changes the additive semantics of an actual write.
+    if present:
+        with pytest.raises(TimeoutError,match='owned storage'):guard.check(100,10)
+
+
+@pytest.mark.parametrize('fault', ['actual-bytes','actual-inodes','prior-bytes','prior-inodes',
+                                  'reserved-bytes','free-bytes','free-inodes','free-reserve'])
+def test_total_peak_preserves_actual_usage_and_all_limits(tmp_path,monkeypatch,fault):
+    from oeis_learn.generalization.progressive.storage import StorageGuard
+    (tmp_path/'file').write_bytes(b'x'*40)
+    monkeypatch.setattr('shutil.disk_usage',lambda _:SimpleNamespace(free=59 if fault=='free-bytes' else 60))
+    monkeypatch.setattr('os.statvfs',lambda _:SimpleNamespace(f_favail=7 if fault=='free-inodes' else 8))
+    kwargs=dict(max_bytes=100,max_inodes=10)
+    if fault=='actual-bytes':kwargs['max_bytes']=39
+    if fault=='actual-inodes':kwargs['max_inodes']=1
+    if fault=='prior-bytes':kwargs['prior_bytes']=1
+    if fault=='prior-inodes':kwargs['prior_inodes']=1
+    if fault=='reserved-bytes':kwargs['reserve_bytes']=1
+    if fault=='free-reserve':kwargs['free_reserve_bytes']=1
+    guard=StorageGuard([tmp_path],**kwargs)
+    with pytest.raises(TimeoutError):
+        guard.check_total(0,0) if fault.startswith('actual-') else guard.check_total(100,10)
+
+
 def test_next_publication_does_not_require_a_second_empty_campaign_disk():
     storage=dict(checkpoint_bytes=900,checkpoint_inodes=90,milestone_pins=1,
         package_bytes=500,required_bytes=10**12,required_inodes=10**6,

@@ -211,7 +211,9 @@ def _prepare(root, blueprint, prepared, output, args, host_factory, *, allowance
     ):
         raise ValueError("calibration token/storage reservation deficit")
     guard = StorageGuard([output], max_bytes=caps["disk_bytes"], max_inodes=plan["maximum_inodes"])
-    guard.check(required_bytes, 64 * len(cases) + 256)
+    # These bounds already include metadata and the output directory. They are
+    # total peaks, not another full allocation on top of retained/resumed files.
+    guard.check_total(required_bytes, 64 * len(cases) + 256)
     runtime = validate("runtime", load(confined(root, prepared["payload"]["runtime"]["path"])))
     qref = reference(root, confined(root, args.qualification) / "qualification.json")
     if qref not in runtime["payload"]["qualification"]:
