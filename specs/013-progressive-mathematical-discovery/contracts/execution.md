@@ -170,3 +170,20 @@ qualification, complete measurements, clean termination and absence of campaign
 construction are verified. Preserve evidence and consumed diagnostic costs, fence
 the old owner, and obtain current-source qualification again. No scientific
 allowance or historical qualification authority transfers.
+
+## Qualified service-role correction
+
+Evaluation request v3 binds the CPU image for positive native/reference services
+and the GPU image for model timing, both from original current qualification.
+Historical census native identity remains unchanged; runtime binary equality is
+still checked exactly in the CPU service role. The serial CPU stage is charged
+against the existing aggregate evaluation timing allowance. Case success alone
+cannot authorize freeze: original stage completion, process exit and acknowledged
+cleanup must also verify. Preserve failed stages and continue independent GPU
+cases only after safe CPU termination.
+
+A historical v2 attempt whose eight services all failed the CPU/GPU native identity
+check before any fitting/scoring may replace unused preparation ownership after
+its original training membership, successful qualification, 14 complete independent
+model timings and clean termination verify. Retain costs/history and require new
+source-bound qualification. No post-construction or scientific work qualifies.

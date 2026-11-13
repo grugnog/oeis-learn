@@ -514,3 +514,26 @@ construction/calibration/science. Replay the old report, preserve its source,
 costs and owner history, and require new current-source qualification. This does
 not authorize replacement after scientific exposure or after the new positive
 measurement gate fails. Ownership transfer remains atomic and fences old clients.
+
+### Qualified CPU/GPU service separation
+
+T195 fixes the v2 service-role identity mismatch found in round 006. Evaluation
+request v3 binds separate CPU scoring and GPU model images from the same current
+qualification. The host runs eight service cases in the CPU image, then GPU timing
+serially; CPU stage elapsed time reduces the remaining aggregate four-hour timer.
+Native equality remains exact against the census identity. Do not normalize binary
+hashes or assume different compiled workers are identical. Both expected/observed
+native identities are retained on future mismatches.
+
+The CPU stage binds original process/cleanup records as well as individual cases.
+A failed isolation audit or cleanup cannot be hidden by successful case producers;
+unacknowledged cleanup blocks further owners. A clean ordinary CPU failure leaves
+independent GPU diagnostics runnable but blocks preparation. Execution-contract
+verification binds both image roles and replays the CPU stage closure.
+
+T196 extends unused-owner recovery only for the historical v2 mismatch before any
+fitting/scoring. Require eight original identity failures with empty measurements,
+original training witnesses, all 14 complete model timings, qualified source and
+clean termination. Preserve originals and costs, fence the old owner, and obtain
+new qualification. Later service failures or v3 attempts do not receive this
+exception. No campaign construction, calibration or scientific allowance resets.

@@ -668,7 +668,7 @@ not rerun the census or rehearsal and does not expose assessment:
 ```bash
 git pull --ff-only origin 013-progressive-mathematical-discovery &&
 python3 -S scripts/discovery_hip_handoff.py \
-  --engine podman --session run-state/discovery/013-research-round-006 \
+  --engine podman --session run-state/discovery/013-research-round-007 \
   prepare-research \
   --registration-session run-state/discovery/013-research-inputs-003 \
   --rehearsal-session run-state/discovery/013-hip-007 \
@@ -676,26 +676,28 @@ python3 -S scripts/discovery_hip_handoff.py \
   --expanded-runtime-budgets --run-after-prepare
 ```
 
-Round 005 passed base qualification (41.5 minutes), selected-model HIP qualification
-(26.4 minutes) and all 14 evaluation timings (16.2 minutes). Preparation then stopped
-before calibration or training: model timing produced no selected scoring programs,
-so the planner reserved the full unmeasured scoring allowance and applied the
-all-method maximum to every scoring task. All 146 deficits were scoring estimates.
+Round 006 passed base qualification (44.4 minutes), selected-model HIP
+qualification (36.7 minutes) and all 14 independent GPU timing cases. All eight
+positive service cases failed before fitting/scoring because their request bound
+the CPU census worker identity while the combined timing stage ran in the GPU
+image. Original package inspections prove the CPU worker still matches the census;
+the GPU image has a different worker binary hash. This is a role-routing defect,
+not evidence of incorrect arithmetic or a failed model update.
 
-Fresh round 006 adds eight positive native/reference service measurements using
-four original training programs selected by input size, excluding reserved probes.
-These are resource diagnostics, never learned capability or scientific observations.
-Scoring estimates use the larger of observed scoring and measured positive scoring,
-with the appropriate three/eight-arm scope and the existing fourfold margin.
+Fresh round 007 runs positive services in the qualified CPU image and model timing
+in the qualified GPU image. Their aggregate four-hour allowance includes CPU
+execution; the eight CPU cases retain their existing 20-minute batch limit.
+Original stage/cleanup records and all producers must pass. Independent GPU timing
+still runs after an ordinary CPU failure with confirmed cleanup, but that failure
+blocks feasibility and cannot be hidden by successful case files.
+
+The wrapper may replace round 006's unused owner only after verifying all eight
+original identity failures occurred before service work, all 14 independent model
+cases completed, worker cleanup succeeded, and construction/calibration/science
+never began. It retains the original claim, evidence and costs and fences old
+clients. Fresh current-source qualification is required; data still come from
+round 002 and rehearsal 007 is not repeated. Do not edit ownership records by hand.
 Trial counts, 4M screening / 25M confirmation horizons and panels are unchanged.
-
-The wrapper may replace round 005's unused preparation ownership only after
-replaying its original legacy timing report, confirming scoring-only deficits,
-training-only inputs, clean worker termination and no campaign construction,
-calibration or research. Historical qualification remains historical: fresh
-current-source qualification must run again. Data still come from round 002 and
-rehearsal 007 is not repeated. Original claims, evidence and costs are retained,
-and superseded clients are fenced. Do not delete or edit ownership records by hand.
 
 Before launching that work, the completed runtime/training timing models may be
 retired. Do not delete either session wholesale: their original observations and

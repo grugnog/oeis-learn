@@ -198,11 +198,12 @@ def run_one(root,index):
     samples=_json(checked_file(root,req['samples']))
     case=req['cases'][index];row=samples[case['sample']]
     prompt=VisiblePrompt(tuple(row['indices'][:20]),tuple(row['values'][:20]))
-    timings={};fit={};outcome=None;errors=[]
+    timings={};fit={};outcome=None;errors=[];observed_native=None
     try:
         for phase in ('fit','raw','score'):
             with SynthesisClient(digest([req['identity'],index,phase])) as client:
-                if client.runtime_identity('bigint-body/v1') != req['native']:
+                observed_native=client.runtime_identity('bigint-body/v1')
+                if observed_native != req['native']:
                     raise ValueError('original native runtime identity differs')
                 start=time.monotonic()
                 if phase=='fit':
@@ -240,6 +241,7 @@ def run_one(root,index):
     except Exception as error:
         value=seal(dict(version=VERSION,status='FAIL',request=req['identity'],case=case,
             error=type(error).__name__,message=str(error),traceback=traceback.format_exc(),
+            expected_native=req['native'],observed_native=observed_native,
             measurements=timings,fit=fit,actual_elapsed_us=max(1,int((time.monotonic()-began)*1e6))))
         retain(root/'cases'/str(index)/'producer.json',value)
         raise

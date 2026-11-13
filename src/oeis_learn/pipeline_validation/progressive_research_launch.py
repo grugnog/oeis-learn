@@ -1,6 +1,8 @@
 """Registered research preparation through the canonical installed workflow."""
 from pathlib import Path
 import sys
+import time
+import traceback
 
 from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES,load,reference,seal
 from .progressive_research_inputs import checked_file,_json
@@ -30,9 +32,32 @@ def prepare(workflow,data,design,materials):
     def measure():
         from .progressive_handoff import stage
         from .supervision import diagnostic_program
+        elapsed=0
+        if 'scoring_image' in req:
+            from .progressive_service_calibration import SECONDS as service_seconds
+            started=time.monotonic()
+            services=timing/'scoring-services'
+            service_error=None
+            try:
+                stage(w.host(),root,req['scoring_image'],services,
+                    ['python','-c',diagnostic_program("from oeis_learn.pipeline_validation.progressive_service_calibration import run_inside;run_inside('/work/output',"+str(service_seconds)+")",'research-scoring-services')],
+                    gpu=False,seconds=service_seconds+30)
+            except (OSError,ValueError,RuntimeError,TimeoutError):
+                service_error=traceback.format_exc()
+                write(services/'failures.json',dict(traceback=traceback.format_exc()))
+                # An ordinary CPU failure keeps independent GPU measurements.
+                # Unacknowledged cleanup must not launch another worker owner.
+                cleanup=_json(services/'cleanup.json')
+                if cleanup.get('acknowledged') is not True or cleanup.get('within_bound') is not True or cleanup.get('failure'):raise
+            elapsed=time.monotonic()-started
+            write(services/'service-stage.json',seal(dict(status='FAIL' if service_error else 'PASS',
+                request=load(services/'request.json')['identity'],source=req['source'],image=req['scoring_image'],
+                process=reference(services,services/'process.json'),cleanup=reference(services,services/'cleanup.json'),
+                elapsed_seconds=elapsed,error=service_error)))
+        if elapsed>=req['seconds']:raise TimeoutError('aggregate evaluation timing deadline')
         stage(w.host(),root,req['image'],timing,
-            ['python','-c',diagnostic_program("from oeis_learn.pipeline_validation.progressive_research_feasibility import run_inside;run_inside('/work/output')",'research-evaluation-timing')],
-            gpu=True,seconds=req['seconds']+30,
+            ['python','-c',diagnostic_program("from oeis_learn.pipeline_validation.progressive_research_feasibility import run_inside;run_inside('/work/output',elapsed_before="+repr(elapsed)+")",'research-evaluation-timing')],
+            gpu=True,seconds=req['seconds']-elapsed+30,
             readonly_inputs=[(checked_file(root,req['checkpoint']),'/work/inputs/'+req['checkpoint']['path'])])
         value=load(timing/'evaluation-cases.json')
         files=[timing/'evaluation-cases.json']
@@ -40,6 +65,7 @@ def prepare(workflow,data,design,materials):
         if 'scoring_services' in req:
             services=timing/'scoring-services'
             files.append(services/'service-cases.json')
+            if 'scoring_image' in req:files.append(services/'service-stage.json')
             files.extend(checked_file(services,r['producer']) for r in load(services/'service-cases.json')['cases'])
         return value,files
     s.step('evaluation-timing',measure,dependencies=('prepare-research/evaluation-plan',))

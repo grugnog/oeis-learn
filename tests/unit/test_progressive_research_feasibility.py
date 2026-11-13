@@ -140,8 +140,8 @@ def test_resource_finalization_only_shrinks_disk_and_reports_slow_choices(tmp_pa
 
 @pytest.mark.parametrize('failed_timing',[False,True])
 @pytest.mark.parametrize('expanded',[False,True])
-@pytest.mark.parametrize('positive',[False,True])
-def test_registered_handoff_uses_canonical_dependencies_and_stops_before_expensive_calibration(tmp_path,monkeypatch,failed_timing,expanded,positive):
+@pytest.mark.parametrize('positive,cpu_failure',[(False,None),(True,None),('cpu',None),('cpu','post-execution'),('cpu','cleanup')])
+def test_registered_handoff_uses_canonical_dependencies_and_stops_before_expensive_calibration(tmp_path,monkeypatch,failed_timing,expanded,positive,cpu_failure):
     from types import SimpleNamespace
     from oeis_learn.pipeline_validation import progressive_research_launch as launch
     from oeis_learn.pipeline_validation.progressive_workstation_state import Session,write
@@ -172,18 +172,31 @@ def test_registered_handoff_uses_canonical_dependencies_and_stops_before_expensi
         assert native==materials['native']
         if positive:
             from tests.unit.test_progressive_scoring_calibration import fixture
-            r,_=fixture(output)
+            r,_=fixture(output,version=3 if positive=='cpu' else 2)
         else:r=request_fixture(output)
         r=seal(dict(r,qualification=q,checkpoint=checkpoint));write(output/'request.json',r)
         return r
     monkeypatch.setattr(f,'request',req)
     def stage(host,root,image,output,argv,**kw):
+        if not kw['gpu']:
+            assert positive=='cpu' and output==base/'evaluation-timing/scoring-services'
+            r=load(base/'evaluation-timing/request.json')
+            assert image==r['scoring_image'] and image!=r['image']
+            assert kw['seconds']==1230 and 'readonly_inputs' not in kw
+            calls.append('cpu-services')
+            if cpu_failure:
+                if cpu_failure=='cleanup':write(output/'cleanup.json',dict(acknowledged=False,within_bound=False))
+                raise RuntimeError('explicit CPU post-execution failure')
+            return
         calls.append('timing')
         assert kw['gpu'] and kw['readonly_inputs']==[(tmp_path/'weights.pt','/work/inputs/weights.pt')]
         if failed_timing:raise RuntimeError('explicit failed HIP process boundary')
         r=load(output/'request.json')
         rows=[dict(index=i,case=c['identity'],status='PASS',producer=producer(output,r,i)) for i,c in enumerate(r['cases'])]
         atomic_write(output/'evaluation-cases.json',seal(dict(version='progressive-research-evaluation-run/v1',request=r['identity'],status='PASS',cases=rows,actual_elapsed_us=1000)))
+        if positive=='cpu':
+            from oeis_learn.pipeline_validation.progressive_scoring_calibration import measurements
+            measurements(output,r)
     monkeypatch.setattr('oeis_learn.pipeline_validation.progressive_handoff.stage',stage)
     def construct_process(argv,*args,**kw):
         calls.append('construction')
@@ -204,13 +217,17 @@ def test_registered_handoff_uses_canonical_dependencies_and_stops_before_expensi
         return session.step(name,action,dependencies=dependencies)
     w=SimpleNamespace(s=session,root=tmp_path,base=base,host=lambda:object(),run_command=command)
     with session.own():launch.prepare(w,data,design,materials)
-    assert calls==(['timing'] if failed_timing else ['timing','construction','prepare','freeze','acceptance'])
+    blocked=failed_timing or cpu_failure
+    expected=['cpu-services'] if positive=='cpu' else []
+    if cpu_failure!='cleanup':expected+=['timing'] if blocked else ['timing','construction','prepare','freeze','acceptance']
+    assert calls==expected
     accepted=session.journal['steps']['prepare-research/acceptance']['status']
-    assert accepted==('BLOCKED' if failed_timing else 'COMPLETE')
+    assert accepted==('BLOCKED' if blocked else 'COMPLETE')
     import zipfile
     with zipfile.ZipFile(session.folder/'share/prepare-research.zip') as z:
         assert not any('/private/' in n for n in z.namelist())
-        if not failed_timing:assert any(n.endswith('evaluation-feasibility.json') for n in z.namelist())
+        if not blocked:assert any(n.endswith('evaluation-feasibility.json') for n in z.namelist())
+        if positive=='cpu' and cpu_failure!='cleanup':assert any(n.endswith('service-stage.json') for n in z.namelist())
 
 
 def test_timing_request_cannot_replace_reference_control_with_another_primary_profile(tmp_path):

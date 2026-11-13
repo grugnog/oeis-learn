@@ -799,3 +799,25 @@ revision, contract, packaging and implementation-identity checks passed with one
 unavailable native dependency skipped. The overlapping suites include immutable
 execution-contract replay and actual host journal/ZIP publication. Stdlib-only
 host imports and CLI help passed. No local HIP or container qualification is claimed.
+
+
+## Phase 30: Qualified native service image routing
+
+- [X] T195 Route positive service measurements through the qualified CPU image and GPU model timing through the qualified GPU image. Bind both in request v3/execution verification, preserve exact census-native identity checks, retain expected/observed native identities on failure, charge serial CPU time against the aggregate timing limit and require original stage/process/cleanup closure. Continue independent GPU diagnostics after clean ordinary CPU failure; reject failed audits or unreclaimed workers even if individual case files pass. Cover distinct CPU/GPU identities, real request construction, role routing, failed cleanup, stage tampering and ZIP publication.
+
+- [X] T196 Recover unused preparation ownership from the historical v2 service identity mismatch only after proving all eight failures preceded service work, all 14 model cases completed, original training inputs match, worker cleanup succeeded and no construction/calibration/science began. Preserve original evidence/costs and superseded-owner fencing. Reject partial service work, unrelated failures, incomplete model timings and v3 attempts. Document fresh round 007 with retained round-002 data and historical rehearsal 007.
+
+Round 006 originals establish the exact mismatch: CPU runtime identity
+`sha256:1f55e832d4b448f8377cd660b4f29638f57b421c3fc8d0a05104b27875a3c5ae`
+matches retained census/materials; the GPU package's worker computes runtime
+`sha256:14b0800ca7b92b458aed44242da9a406cb0e900fb91e25a5b51a8e1f18281323`.
+All eight service producers have empty measurements/fit and fail at native identity
+comparison. Base and selected-model qualification passed; all 14 model timings
+passed. No calibration or scientific training began. Private original support
+remains on the workstation; unit recovery fixtures do not claim otherwise.
+
+Validation passed 178 focused service, image-routing, feasibility, ownership and
+workstation tests (two unavailable native-service cases skipped), followed by 32
+revision, packaging, CLI and implementation-contract checks (one unavailable native
+dependency skipped). Host CLI help and whitespace checks passed. No local HIP or
+container run is claimed; the installed CPU suite retains actual native tests.

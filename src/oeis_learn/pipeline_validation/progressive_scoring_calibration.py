@@ -23,7 +23,7 @@ def prepare(output,support,*,source,image,native):
 
 def request(root,evaluation):
     path=checked_file(root,evaluation['scoring_services']);value=services.validate_request(read(path))
-    if (value['source']!=evaluation['source'] or value['image']!=evaluation['image']
+    if (value['source']!=evaluation['source'] or value['image']!=evaluation.get('scoring_image',evaluation['image'])
             or value['inputs']!=digest(dict(support=evaluation['support'],scope='positive training service timing'))):
         raise ValueError('positive scoring services differ from original evaluation scope')
     samples=_json(checked_file(path.parent,value['samples']))
@@ -36,6 +36,16 @@ def request(root,evaluation):
 
 def measurements(root,evaluation):
     base,req,samples=request(root,evaluation)
+    extra={}
+    if 'scoring_image' in evaluation:
+        stage=read(base/'service-stage.json')
+        process=_json(checked_file(base,stage['process']));cleanup=_json(checked_file(base,stage['cleanup']))
+        if (stage.get('status')!='PASS' or stage.get('error') or stage['request']!=req['identity']
+                or stage['source']!=req['source'] or stage['image']!=req['image']
+                or type(process.get('returncode'))is not int or process['returncode']!=0 or process.get('cleanup_failure')
+                or cleanup.get('acknowledged') is not True or cleanup.get('within_bound') is not True or cleanup.get('failure')):
+            raise ValueError('complete original CPU service stage and cleanup required')
+        extra['stage']=reference(root,base/'service-stage.json')
     result=read(base/'service-cases.json')
     if (result.get('request')!=req['identity'] or result.get('status')!='PASS'
             or [r['index'] for r in result.get('cases',[])]!=list(range(8))):
@@ -58,4 +68,4 @@ def measurements(root,evaluation):
         producers.append(p)
     return dict(score_us=max(p['measurements']['score_us'] for p in producers),
         owner_overhead_us=max(p['actual_elapsed_us']-sum(p['measurements'].values()) for p in producers),
-        result=reference(root,base/'service-cases.json'))
+        result=reference(root,base/'service-cases.json'),**extra)

@@ -300,3 +300,59 @@ def test_scoring_deficit_replacement_cannot_reset_science_or_accept_incomplete_p
     if change=='report':
         report=load(timing/'evaluation-feasibility.json');write(timing/'evaluation-feasibility.json',seal(dict(report,deficits=[])))
     with pytest.raises((ValueError,OSError)):failure_proof(tmp_path,receipt)
+
+
+def native_failure_owner(root,monkeypatch):
+    import shutil
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.pipeline_validation import progressive_scoring_calibration as scoring
+    from tests.unit.test_progressive_research_feasibility import producer
+    folder,receipt=feasibility_owner(root,monkeypatch);base=folder/'prepare-research';timing=base/'evaluation-timing'
+    support=load(base/'materials/private/support.json');req=load(timing/'request.json')
+    service=scoring.prepare(timing/'scoring-services',support,source=req['source'],image=req['image'],native=digest('CPU worker'))
+    req=seal(dict(req,version='progressive-research-evaluation-request/v2',scoring_services=reference(timing,timing/'scoring-services/request.json')))
+    write(timing/'request.json',req)
+    shutil.rmtree(timing/'cases')
+    rows=[dict(index=i,case=c['identity'],status='PASS',producer=producer(timing,req,i)) for i,c in enumerate(req['cases'])]
+    write(timing/'evaluation-cases.json',seal(dict(version='progressive-research-evaluation-run/v1',request=req['identity'],status='FAIL',cases=rows,actual_elapsed_us=300000)))
+    write(timing/'failures.json',[dict(case='positive-scoring-services',error='ValueError')])
+    service_root=timing/'scoring-services';rows=[]
+    for i,case in enumerate(service['cases']):
+        p=seal(dict(version=service['version'],request=service['identity'],case=case,status='FAIL',error='ValueError',
+            message='original native runtime identity differs',measurements={},fit={},actual_elapsed_us=25000))
+        path=service_root/'cases'/str(i)/'producer.json';write(path,p)
+        rows.append(dict(index=i,status='FAIL',producer=reference(service_root,path)))
+    write(service_root/'service-cases.json',seal(dict(version=service['version'],request=service['identity'],status='FAIL',cases=rows)))
+    materials=load(base/'materials/materials.json');write(base/'materials/materials.json',seal(dict(materials,native=service['native'])))
+    journal=load(folder/'journal.json')
+    journal['steps']['prepare-research/materials']['outputs']=[reference(root,base/'materials/materials.json')]
+    journal['steps']['prepare-research/evaluation-plan']['outputs']=[reference(root,timing/'request.json'),reference(root,service_root/'request.json')]
+    journal['steps']['prepare-research/evaluation-timing']=dict(status='FAILED',reason='exit 1')
+    write(folder/'journal.json',seal(journal));write(timing/'process.json',dict(returncode=1,cleanup_failure=None))
+    return folder,receipt
+
+
+@pytest.mark.parametrize('fault',[None,'work-started','other-error','model-failed','new-version'])
+def test_native_identity_prework_failure_recovery_is_narrow_and_preserves_originals(tmp_path,monkeypatch,fault):
+    from oeis_learn.pipeline_validation.progressive_preparation_owner import failure_proof
+    from oeis_learn.generalization.progressive.contracts import load
+    folder,receipt=native_failure_owner(tmp_path,monkeypatch);timing=folder/'prepare-research/evaluation-timing';services=timing/'scoring-services'
+    if fault in {'work-started','other-error'}:
+        path=services/'cases/0/producer.json';p=load(path)
+        if fault=='work-started':p['measurements']={'fit_us':1}
+        else:p['message']='some other failure'
+        write(path,seal(p));batch=load(services/'service-cases.json');batch['cases'][0]['producer']=reference(services,path)
+        write(services/'service-cases.json',seal(batch))
+    if fault=='model-failed':
+        p=load(timing/'evaluation-cases.json');p['cases'][0]['status']='FAIL';write(timing/'evaluation-cases.json',seal(p))
+    if fault=='new-version':
+        p=load(timing/'request.json');write(timing/'request.json',seal(dict(p,version='progressive-research-evaluation-request/v3',scoring_image=digest('CPU'))))
+        journal=load(folder/'journal.json');journal['steps']['prepare-research/evaluation-plan']['outputs']=[reference(tmp_path,timing/'request.json')]
+        write(folder/'journal.json',seal(journal))
+    if fault:
+        with pytest.raises((ValueError,OSError)):failure_proof(tmp_path,receipt)
+    else:
+        before={p:p.read_bytes() for p in folder.rglob('*.json')}
+        proof=failure_proof(tmp_path,receipt)
+        assert 'native identity prework failure' in proof['reason'] and proof['current_source_requalification_required']
+        assert all(p.read_bytes()==raw for p,raw in before.items())

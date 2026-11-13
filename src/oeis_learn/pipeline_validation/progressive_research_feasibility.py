@@ -6,6 +6,7 @@ resource estimates, never research observations or guarantees about trained mode
 from .research_limits import case_allowance, HEALTH_SECONDS, TIMING_MULTIPLIER, padded_us
 
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -60,9 +61,10 @@ def request(root, output, support, profiles, qualification, *, checkpoint, nativ
     extra={}
     if native is not None:
         from .progressive_scoring_calibration import prepare
-        prepare(output/'scoring-services',support,source=source,image=q['images'][1],native=native)
+        prepare(output/'scoring-services',support,source=source,image=q['images'][0],native=native)
         extra['scoring_services']=reference(output,output/'scoring-services/request.json')
-    value=seal(dict(version='progressive-research-evaluation-request/v2' if extra else VERSION,**extra,source=source,image=q['images'][1],engine=matrix['engine'],hardware=matrix['hardware'],
+        extra['scoring_image']=q['images'][0]
+    value=seal(dict(version='progressive-research-evaluation-request/v3' if extra else VERSION,**extra,source=source,image=q['images'][1],engine=matrix['engine'],hardware=matrix['hardware'],
         execution_policy=q['runtime']['execution_policy'],qualification=qualification,support=support['identity'],
         samples=sample_ref,checkpoint=checkpoint,cases=[seal(c) for c in cases],seconds=SECONDS,
         scope='training-only prospective throughput; no panel exposure',safety_multiplier=TIMING_MULTIPLIER))
@@ -73,8 +75,9 @@ def request(root, output, support, profiles, qualification, *, checkpoint, nativ
 def validate_request(value):
     fields={'version','identity','source','image','engine','hardware','execution_policy','qualification',
             'support','samples','checkpoint','cases','seconds','scope','safety_multiplier'}
-    if value.get('version')=='progressive-research-evaluation-request/v2':fields.add('scoring_services')
-    if (set(value)!=fields or seal(value)!=value or value.get('version') not in {VERSION,'progressive-research-evaluation-request/v2'} or value.get('seconds')!=SECONDS
+    if value.get('version') in {'progressive-research-evaluation-request/v2','progressive-research-evaluation-request/v3'}:fields.add('scoring_services')
+    if value.get('version')=='progressive-research-evaluation-request/v3':fields.add('scoring_image')
+    if (set(value)!=fields or seal(value)!=value or value.get('version') not in {VERSION,'progressive-research-evaluation-request/v2','progressive-research-evaluation-request/v3'} or value.get('seconds')!=SECONDS
             or value.get('safety_multiplier')!=TIMING_MULTIPLIER or len(value.get('cases',[]))!=14
             or len({c['identity'] for c in value['cases']})!=14):
         raise ValueError('complete bounded prospective evaluation request required')
@@ -145,12 +148,15 @@ def run_one(root,index,seconds):
     return value
 
 
-def run_inside(root):
+def run_inside(root, *, elapsed_before=0):
     from .progressive_qualification import require_hip,hardware_facts
     from .generalization_execution import verify_execution
     from oeis_learn.experiments.source_snapshot import source_snapshot
     from .progressive_acceptance import _bounded_process,_record_failure
     root=Path(root);req=validate_request(load(root/'request.json'));began=time.monotonic()
+    if type(elapsed_before) not in (float,int) or not math.isfinite(elapsed_before) or not 0<=elapsed_before<req['seconds']:
+        raise ValueError('bounded original service elapsed time required')
+    began-=elapsed_before
     require_hip()
     if (req['source']!=digest(source_snapshot()) or req['image']!=os.environ.get('OEIS_QUALIFICATION_IMAGE')
             or req['engine']!=os.environ.get('OEIS_QUALIFICATION_ENGINE')
@@ -158,13 +164,14 @@ def run_inside(root):
         raise ValueError('current original HIP timing scope required')
     outcomes=[];failures=[];blocked=None
     if 'scoring_services' in req:
-        # Eight CPU-native cases share this timing allowance and image. An
+        # V3 runs CPU-native services in their qualified CPU image first. An
         # ordinary witness failure does not suppress independent HIP timings.
         from . import progressive_scoring_calibration as scoring
         from .progressive_service_calibration import run_inside as run_services,SECONDS as service_seconds
         try:
             service_root,_,_=scoring.request(root,req)
-            run_services(service_root,min(service_seconds,req['seconds']-(time.monotonic()-began)))
+            if 'scoring_image' not in req:
+                run_services(service_root,min(service_seconds,req['seconds']-(time.monotonic()-began)))
             scoring.measurements(root,req)
         except Exception as error:
             _record_failure(root,failures,dict(case='positive-scoring-services',error=type(error).__name__,traceback=traceback.format_exc()))
@@ -335,6 +342,7 @@ def verify_contract(root, ref, runtime):
     source=json.loads(verify_refs(confined(root,req['qualification']['path']).parent,[q['source_closure']],max_bytes=64<<20)[0])
     if (req['qualification'] not in runtime['payload']['qualification'] or req['source']!=digest(source)
             or req['image']!=runtime['payload']['scope']['images'][1]
+            or ('scoring_image' in req and req['scoring_image']!=runtime['payload']['scope']['images'][0])
             or req['execution_policy']!=runtime['payload']['scope']['execution_policy']):
         raise ValueError('research evaluation qualification/source scope differs')
     expected=estimates(confined(root,value['request']['path']).parent,req,roster,publish=False)
