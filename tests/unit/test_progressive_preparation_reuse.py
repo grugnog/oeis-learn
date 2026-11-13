@@ -356,3 +356,60 @@ def test_native_identity_prework_failure_recovery_is_narrow_and_preserves_origin
         proof=failure_proof(tmp_path,receipt)
         assert 'native identity prework failure' in proof['reason'] and proof['current_source_requalification_required']
         assert all(p.read_bytes()==raw for p,raw in before.items())
+
+
+def construction_owner(root,monkeypatch):
+    import shutil
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.pipeline_validation import progressive_research_feasibility as f,progressive_handoff
+    from tests.unit.test_progressive_research_feasibility import producer
+    folder,receipt=feasibility_owner(root,monkeypatch);base=folder/'prepare-research';timing=base/'evaluation-timing'
+    req=load(timing/'request.json');q,qroot=progressive_handoff.original_authority(root,req['qualification'])
+    q=dict(q,images=[digest('CPU'),req['image']],runtime=dict(execution_policy=req['execution_policy']))
+    write(qroot/'qualification.json',q)
+    monkeypatch.setattr(progressive_handoff,'original_authority',lambda *a:(q,qroot))
+    req=seal(dict(req,qualification=reference(root,qroot/'qualification.json')));write(timing/'request.json',req)
+    shutil.rmtree(timing/'cases')
+    rows=[dict(index=i,case=c['identity'],status='PASS',producer=producer(timing,req,i)) for i,c in enumerate(req['cases'])]
+    write(timing/'evaluation-cases.json',seal(dict(version='progressive-research-evaluation-run/v1',request=req['identity'],status='PASS',cases=rows,actual_elapsed_us=300000)))
+    roster=load(base/'roster/private/role-roster.json',maximum=32<<20)
+    write(timing/'evaluation-feasibility.json',f.estimates(timing,req,roster,publish=False))
+    f.execution_contract(root,base/'execution-contract.json',request_path=timing/'request.json',roster_path=base/'roster/private/role-roster.json',report_path=timing/'evaluation-feasibility.json')
+    materials=load(base/'materials/materials.json');write(base/'materials/materials.json',seal(dict(materials,diagnostic=False)))
+    journal=load(folder/'journal.json')
+    for name,paths in {'qualify':[qroot/'qualification.json'],'materials':[base/'materials/materials.json'],
+        'evaluation-plan':[timing/'request.json'],'evaluation-timing':[timing/'evaluation-cases.json'],
+        'evaluation-feasibility':[timing/'evaluation-feasibility.json',base/'execution-contract.json']}.items():
+        journal['steps']['prepare-research/'+name]=dict(status='COMPLETE',outputs=[reference(root,p) for p in paths])
+    journal['steps']['prepare-research/construction']=dict(status='FAILED',reason='external deadline')
+    write(folder/'journal.json',seal(journal))
+    code='import sys;sys.path.insert(0,sys.argv.pop(1));from oeis_learn.pipeline_validation.progressive_research_bindings import main;main()'
+    argv=['python3','-S','-c',code,str(root/'src'),'--root',str(root)]
+    for flag,path in [('output','construction'),('data','registered/registered-data.json'),('design','research-round-design.json'),('materials','materials/materials.json'),('qualification','qualification'),('execution-contract','execution-contract.json')]:
+        argv+=['--'+flag,str((base/path).relative_to(root))]
+    write(base/'logs/construction/command.json',dict(argv=argv,seconds=7200,cleanup_seconds=5))
+    write(base/'logs/construction/process.json',dict(returncode=-15,outcome='FAIL',failure='TimeoutError: external deadline: original command',elapsed_seconds=7200.1,cleanup_failure=None))
+    write(base/'construction/research-reservation.json',dict(partial_metadata=True))
+    return folder,receipt
+
+
+@pytest.mark.parametrize('fault',[None,'calibration','complete','unreaped','other-command','changed-report'])
+def test_terminated_metadata_construction_recovery_preserves_prior_costs(tmp_path,monkeypatch,fault):
+    from oeis_learn.pipeline_validation.progressive_preparation_owner import failure_proof
+    from oeis_learn.generalization.progressive.contracts import load
+    folder,receipt=construction_owner(tmp_path,monkeypatch);base=folder/'prepare-research'
+    if fault=='calibration':(base/'prepared').mkdir()
+    if fault=='complete':write(base/'construction/construction-summary.json',seal(dict(status='COMPLETE')))
+    if fault=='unreaped':
+        p=load(base/'logs/construction/process.json');p['cleanup_failure']='process group remains';write(base/'logs/construction/process.json',p)
+    if fault=='other-command':
+        p=load(base/'logs/construction/command.json');p['argv'][3]='launch training';write(base/'logs/construction/command.json',p)
+    if fault=='changed-report':
+        p=base/'evaluation-timing/evaluation-feasibility.json';p.write_text(p.read_text()+' ')
+    if fault:
+        with pytest.raises((ValueError,OSError)):failure_proof(tmp_path,receipt)
+    else:
+        original=(folder/'journal.json').read_bytes();proof=failure_proof(tmp_path,receipt)
+        assert proof['original_costs_retained'] and not proof['scientific_allowance_transferred']
+        assert proof['current_source_requalification_required'] and 'metadata-only' in proof['reason']
+        assert (folder/'journal.json').read_bytes()==original

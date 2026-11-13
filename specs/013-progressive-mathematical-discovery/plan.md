@@ -537,3 +537,20 @@ original training witnesses, all 14 complete model timings, qualified source and
 clean termination. Preserve originals and costs, fence the old owner, and obtain
 new qualification. Later service failures or v3 attempts do not receive this
 exception. No campaign construction, calibration or scientific allowance resets.
+
+### Bounded construction with immutable row validation
+
+T197 moves repeated row/codec checks onto the existing detached immutable support
+tree. Cache successful validation by native-verification and short-profile flags;
+never cache mutable inputs or trust caller-supplied hashes as validation. Conflicts,
+row seals, codec binding and every task/profile/seed/arm/horizon constraint retain
+their checks. Canonical training and compatibility hashes do not change. The full
+376-role, 1,296-case finite plan remains required.
+
+T198 makes construction observable through durable phase/count records, periodic
+stack traces and SIGTERM stack capture. No truth/program content appears in these
+public records. Permit unused-owner replacement only for the original two-hour
+metadata-compiler timeout with original successful qualification, feasible timing,
+clean process-group termination and no completed construction/calibration/science.
+Keep original costs and partial files, fence superseded owners and requalify current
+source. A timeout never becomes completion or a renewed scientific allowance.

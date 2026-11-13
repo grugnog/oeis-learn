@@ -7,6 +7,41 @@ execution authority.
 from pathlib import Path
 from .research_limits import ACCEPTANCE_SECONDS
 import json
+import time
+from contextlib import contextmanager
+
+
+@contextmanager
+def diagnostics(interval=300):
+    """Python-level stack sampling avoids unsafe native frame unwinding."""
+    import os,signal,sys,threading,traceback
+    stop=threading.Event();main=threading.get_ident()
+    def dump(reason):
+        frame=sys._current_frames().get(main)
+        print('research construction stack: '+reason,file=sys.stderr,flush=True)
+        if frame is not None:print(''.join(traceback.format_stack(frame,limit=30)),file=sys.stderr,flush=True)
+    def watch():
+        while not stop.wait(interval):dump('periodic')
+    previous=signal.getsignal(signal.SIGTERM)
+    def terminated(signum,frame):
+        dump('termination')
+        signal.signal(signum,signal.SIG_DFL)
+        os.kill(os.getpid(),signum)
+    signal.signal(signal.SIGTERM,terminated)
+    worker=threading.Thread(target=watch,daemon=True,name='construction-diagnostics');worker.start()
+    try:yield
+    finally:
+        stop.set();worker.join(timeout=1)
+        signal.signal(signal.SIGTERM,previous)
+
+
+def progress(output, phase, **counts):
+    """Small durable phase/counter evidence, never private inputs or truth."""
+    from .progressive_workstation_state import write
+    value=seal(dict(version='progressive-construction-progress/v1',phase=phase,
+        unix=time.time(),**counts))
+    write(Path(output)/'construction-progress.json',value)
+    print('research construction: '+json.dumps(value,sort_keys=True),flush=True)
 
 from .identity import confined
 from .progressive_research_inputs import checked_file, _json
@@ -94,11 +129,14 @@ class Compiler:
         self.qref=reference(root,self.qroot/'qualification.json')
         self.recipe=recipe;self.checkpoint=checkpoint
         self.refs=[];self.plans=[];self.runtimes={};self.channels={}
+        self.publications=0
 
     def put(self,name,value,*,kind=None,role='custodian'):
         path=self.output/name
         atomic_write(path,value)
         ref=reference(self.root,path)
+        self.publications+=1
+        if self.publications%256==0:progress(self.output,'publishing',files=self.publications)
         if kind:self.refs.append(dict(name=name.removesuffix('.json'),kind=kind,role=role,artifact=ref))
         return ref
 
@@ -190,7 +228,9 @@ def learner_scopes(compiler, support, summary):
             dict(membership='training',artifact=ref,compatibility=compatibility(base),profile='bigint-body/v1'))
         bases[trajectory]=dict(package=base,channel=channel,compatibility=compatibility(base))
         scopes[trajectory]={}
-        for params in choice_domain('all'):
+        domain=choice_domain('all')
+        for number,params in enumerate(domain):
+            if number%64==0:progress(compiler.output,'learner-scopes',trajectory=trajectory,completed=number,total=len(domain))
             profile=resolve_profile(compiler.recipe,seed=0,shape=params['shape'],dropout=params['dropout'])
             policy=resolve_update_policy(profile,schedule_horizon_tokens=horizon,
                 **{k:v for k,v in params.items() if k not in {'shape','dropout'}},
@@ -216,6 +256,7 @@ def compile_plan(root,output,data,design,materials,*,qualification,checkpoint_by
     from .progressive_training import resolve_update_policy
     from .progressive_learner import compatibility
     root=Path(root);output=Path(output)
+    progress(output,'binding-original-inputs')
     bound=inputs(root,data,design,materials)
     manifest=_json(checked_file(root,data['manifest']))
     retained=manifest['retained']['checkpoints']['D']
@@ -225,6 +266,7 @@ def compile_plan(root,output,data,design,materials,*,qualification,checkpoint_by
     c=Compiler(root,output,qualification=qualification,recipe=recipe,checkpoint=checkpoint,
                created_at='2026-11-11T00:00:00Z')
     base,scopes=learner_scopes(c,bound['support'],bound['support_summary'])
+    progress(output,'publishing-role-channels')
     basecomp=base['confirmation']['compatibility']
     maximum_update=64*bound['support_summary']['maximum_target_tokens']
     roster=bound['roster'];allrows=roster['tasks']
@@ -320,7 +362,8 @@ def compile_plan(root,output,data,design,materials,*,qualification,checkpoint_by
             profile_channels[key]=c.channel(f'profile-{seed}-{trajectory}','recipe','generator',
                 dict(artifact=profile_ref,compatibility=comp,profile='bigint-body/v1'))
         return profile_channels[key]
-    for row in allrows:
+    for number,row in enumerate(allrows):
+        if number%32==0:progress(output,'compiling-roles',completed=number,total=len(allrows))
         meta=row['trial'];ordinal=meta['ordinal'] if meta else None
         seed=row['seed'] if row['seed'] is not None else int(digest([study['identity'],ordinal])[7:15],16)
         trajectory='screening' if meta and meta['phase'] not in {'confirmation','selection'} else 'confirmation'
@@ -446,7 +489,8 @@ def finish_plan(c,bound,study,targetref,state,checkpoint_root,*,data,design,mate
         shard_bytes=materials['support']['bytes'],package_bytes=512<<20,required_inodes=1000000,
         target_policy=targetref,deficits=[])
     preview=dict(purpose='research',track='synthetic_strict',payload=payload)
-    cases,_=selected_inputs(c.root,preview)
+    progress(c.output,'resolving-exact-calibration-inputs')
+    cases,_=selected_inputs(c.root,preview,progress=lambda **counts:progress(c.output,'resolving-exact-calibration-inputs',**counts))
     tokens=sum(2*x['package']['update_policy']['effective_batch']*
         max(len(r['tokens']) for shard in x['package']['shards'] for r in shard) for x in cases)
     from oeis_learn.generalization.progressive.shared_support import projection_size
@@ -475,6 +519,7 @@ def finish_plan(c,bound,study,targetref,state,checkpoint_root,*,data,design,mate
         storage_ceiling_bytes=proposed['disk_bytes'],checkpoint_ceiling_bytes=checkpoint_ceiling,
         frozen_campaign_required=True,measured_feasibility_required=True))
     c.put('construction-summary.json',summary)
+    progress(c.output,'complete',tasks=len(c.plans),exact_calibration_cases=len(cases))
     return summary
 
 
@@ -508,4 +553,4 @@ def main():
         publish_roster(*inputs)
     else:
         if not args.qualification or not args.execution_contract:p.error('construction requires original qualification and measured contract')
-        build(*inputs,qualification=confined(root,args.qualification),execution_contract=confined(root,args.execution_contract))
+        with diagnostics():build(*inputs,qualification=confined(root,args.qualification),execution_contract=confined(root,args.execution_contract))

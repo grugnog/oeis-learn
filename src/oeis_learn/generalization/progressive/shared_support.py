@@ -64,6 +64,32 @@ def seal_package(value):
     return dict(payload,identity=package_digest(payload))
 
 
+def validated_rows(shards, *, native_verified, short=False):
+    """Validate immutable support once per scope; mutable inputs never use a cache.
+
+    The cache belongs to the detached frozen tree, not an identity supplied by a
+    caller or a process-global table. Task/profile/supply checks remain separate.
+    """
+    from .training_rows import validate_row
+    key=(native_verified,short)
+    cacheable=isinstance(shards,FrozenList) and hasattr(shards,'_canonical')
+    cached=getattr(shards,'_validated_rows',{}) if cacheable else {}
+    if key in cached:return cached[key]
+    seen={}
+    for shard in shards:
+        if not isinstance(shard,list) or not 1<=len(shard)<=4096:
+            raise ValueError('bounded nonempty verified shard required')
+        for row in shard:
+            validate_row(row,native_verified=native_verified,short=short)
+            if row['draw_identity'] in seen and seen[row['draw_identity']]!=row:
+                raise ValueError('conflicting training row')
+            seen[row['draw_identity']]=row
+    if cacheable:
+        seen=FrozenDict(seen)
+        object.__setattr__(shards,'_validated_rows',FrozenDict({**cached,key:seen}))
+    return seen
+
+
 def projection_size(cases):
     """Exact pretty-JSON byte counts plus atomic-publication headroom."""
     encoder=json.JSONEncoder(sort_keys=True,indent=2,allow_nan=False)

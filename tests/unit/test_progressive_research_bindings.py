@@ -130,3 +130,69 @@ def test_compiler_retains_complete_original_finite_domain_and_reference_controls
     assert rows['confirmation-baseline-1-17-generate']['slot']=='tuning-confirmation-1'
     packages=list((root/'compiled/private/packages').glob('*.json'))
     assert packages and all('weights' not in load(p) for p in packages)
+
+
+def test_immutable_row_validation_is_shared_without_weakening_scope(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation.progressive_acceptance import fixture
+    from oeis_learn.generalization.progressive import shared_support as shared,training_rows
+    fixture(tmp_path,interrupt=False);p=load(tmp_path/'training-input.json')
+    package=shared.shared(p);before=shared.raw(package)
+    calls=[];validate=training_rows.validate_row
+    def counted(row,**kw):calls.append(row['identity']);return validate(row,**kw)
+    monkeypatch.setattr(training_rows,'validate_row',counted)
+    for _ in range(100):shared.validated_rows(package['shards'],native_verified=False)
+    assert len(calls)==sum(map(len,p['shards']))
+    assert shared.raw(package)==before and seal(package)==package
+    with pytest.raises(ValueError,match='native verification'):
+        shared.validated_rows(package['shards'],native_verified=True)
+    with pytest.raises(ValueError,match='target/codec'):
+        shared.validated_rows(package['shards'],native_verified=False,short=True)
+    with pytest.raises(TypeError):package['shards'][0][0]['tokens'].append(999)
+    # A serialized/mutable copy cannot inherit any in-memory validation.
+    import json
+    mutable=json.loads(before);row=mutable['shards'][0][0]
+    row['tokens']=row['tokens'][:-1];mutable['shards'][0][0]=seal(row)
+    with pytest.raises(ValueError,match='target/codec'):
+        shared.validated_rows(mutable['shards'],native_verified=False)
+
+
+def test_shallow_frozen_wrapper_does_not_cache_mutable_descendants(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_acceptance import fixture
+    from oeis_learn.generalization.progressive.shared_support import FrozenList,validated_rows
+    fixture(tmp_path,interrupt=False);p=load(tmp_path/'training-input.json')
+    shards=FrozenList(p['shards']);validated_rows(shards,native_verified=False)
+    row=shards[0][0];row['tokens']=row['tokens'][:-1];shards[0][0]=seal(row)
+    with pytest.raises(ValueError,match='target/codec'):validated_rows(shards,native_verified=False)
+
+
+def test_construction_progress_is_packaged_even_when_compilation_fails(tmp_path):
+    import json,zipfile
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session
+    session=Session(tmp_path,'run-state/progress',{},'prepare-research')
+    def fail():
+        b.progress(session.folder/'prepare-research/construction','resolving-exact-calibration-inputs',completed_tasks=7,total_tasks=376)
+        raise RuntimeError('explicit compiler failure')
+    with session.own():session.step('construction',fail)
+    with zipfile.ZipFile(session.folder/'share/prepare-research.zip') as archive:
+        value=json.loads(archive.read('prepare-research/construction/construction-progress.json'))
+        assert value['completed_tasks']==7 and value['total_tasks']==376
+        assert set(value)=={'version','identity','phase','unix','completed_tasks','total_tasks'}
+
+
+@pytest.mark.parametrize('terminate',[False,True])
+def test_stdlib_stack_diagnostics_preserve_normal_and_signal_exit(terminate):
+    import os,signal,subprocess,sys
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[2]
+    code='from oeis_learn.pipeline_validation.progressive_research_bindings import diagnostics;import time,signal\n'
+    code+='with diagnostics(interval=0.01):\n print("ready",flush=True)\n '+('signal.pause()' if terminate else 'time.sleep(0.05)')
+    child=subprocess.Popen([sys.executable,'-S','-c',code],cwd=root,env=dict(os.environ,PYTHONPATH=str(root/'src')),
+        stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+    try:
+        assert child.stdout.readline().strip()=='ready'
+        if terminate:child.send_signal(signal.SIGTERM)
+        _,errors=child.communicate(timeout=10)
+        assert child.returncode==(-signal.SIGTERM if terminate else 0)
+        assert 'research construction stack: '+('termination' if terminate else 'periodic') in errors
+    finally:
+        if child.poll() is None:child.kill();child.wait()

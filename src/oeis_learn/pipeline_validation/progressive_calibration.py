@@ -28,7 +28,7 @@ MAX_SECONDS = 86400
 METADATA_BYTES = 16 << 20
 
 
-def selected_inputs(root, prepared):
+def selected_inputs(root, prepared, *, progress=None):
     """Resolve only frozen learner channels, including every finite trial choice."""
     from oeis_learn.generalization.progressive.projections import _validate_channel
     from oeis_learn.generalization.progressive.trial_scopes import materialize, variants
@@ -62,6 +62,7 @@ def selected_inputs(root, prepared):
                 originals[key]=shared(originals[key])
         return originals[key]
     for index, original in enumerate(prepared["payload"]["task_plans"]):
+        if progress:progress(completed_tasks=index,total_tasks=len(prepared['payload']['task_plans']),exact_cases=len(selected),validated_scopes=len(validated))
         for plan in variants(original):
             if plan["kind"] != "training":
                 continue
@@ -122,6 +123,7 @@ def selected_inputs(root, prepared):
             bindings.append({"task": index, "choice": plan.get("trial_choice"), "case": key})
     if not 1 <= len(selected) <= MAX_CASES:
         raise ValueError("bounded nonempty prepared calibration inventory required")
+    if progress:progress(completed_tasks=len(prepared['payload']['task_plans']),total_tasks=len(prepared['payload']['task_plans']),exact_cases=len(selected),validated_scopes=len(validated))
     return [selected[k] for k in sorted(selected)], bindings
 
 

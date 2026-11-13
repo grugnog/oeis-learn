@@ -821,3 +821,28 @@ workstation tests (two unavailable native-service cases skipped), followed by 32
 revision, packaging, CLI and implementation-contract checks (one unavailable native
 dependency skipped). Host CLI help and whitespace checks passed. No local HIP or
 container run is claimed; the installed CPU suite retains actual native tests.
+
+
+## Phase 31: Construction validation cost and timeout diagnostics
+
+- [X] T197 Avoid reparsing identical immutable training rows across finite calibration variants while retaining separate native/short-profile validation and every task/profile/seed/arm/token boundary. Mutable and shallow-frozen inputs must never inherit cached validation. Preserve canonical bytes, full 376-role/1,296-case construction and source/native data reuse. Test mutation, scope changes and repeated validation, and benchmark representative support volume.
+
+- [X] T198 Publish durable construction phase/counter diagnostics, periodic/on-termination stacks and failure ZIP inclusion. Recover unused ownership only from the original cleanly terminated two-hour metadata compiler with completed qualified/feasible training-only timing and no completed construction, calibration or scientific work. Preserve original costs, partial files and owner fencing; require new current-source qualification. Document the round-008 command.
+
+Round 007's original evaluation report is READY with no deficits; positive scoring
+measured 191,556 microseconds at the slowest witness, plus 82,907 microseconds owner
+overhead. Construction terminated at 7,200.07 seconds with return code -15 and no
+cleanup failure. Empty original stdout/stderr do not identify its exact stack.
+Repeated full row validation is a reproduced scaling bottleneck: eight validations
+over 8,192 synthetic rows took 7.465 seconds before the cache and 1.073 seconds
+afterward locally. These are CPU implementation timings, not HIP/scientific evidence
+or a guarantee of workstation construction time. Private original support remains
+on the workstation, so recovery fixtures do not claim replay of those missing bytes.
+
+Full finite-domain checks passed for all three existing design versions (six tests),
+preserving 376 roles and 1,296 exact cases. The initial row-cache/progress checks,
+40 ownership/recovery checks, and 130 calibration/workstation/feasibility checks
+passed; one native-dependent calibration case was unavailable locally. A further
+32 revision/packaging/CLI/implementation checks passed with one unavailable native
+dependency. Additional large-support benchmarking uses synthetic data and cannot
+qualify HIP or replace original data checks.

@@ -204,17 +204,13 @@ def validate_input(package, task, *, allow_pending=False):
         or not isinstance(fault["slot"], str)
     ):
         raise ValueError("closed diagnostic fault coordinate required")
-    seen = {}
-    shards=package['shards'] + ([package['short_rows']] if package.get('short_rows') else [])
-    for shard in shards:
-        if not isinstance(shard, list) or not 1 <= len(shard) <= 4096:
-            raise ValueError("bounded nonempty verified shard required")
-        for row in shard:
-            from oeis_learn.generalization.progressive.training_rows import validate_row
-            validate_row(row, native_verified=package["scope"] == "NATIVE_VERIFIED", short=short)
-            if row["draw_identity"] in seen and seen[row["draw_identity"]] != row:
-                raise ValueError("conflicting training row")
-            seen[row["draw_identity"]] = row
+    from oeis_learn.generalization.progressive.shared_support import validated_rows
+    seen=validated_rows(package['shards'],native_verified=package['scope']=='NATIVE_VERIFIED',short=short)
+    if package.get('short_rows'):
+        seen=dict(seen)
+        for key,row in validated_rows([package['short_rows']],native_verified=package['scope']=='NATIVE_VERIFIED',short=short).items():
+            if key in seen and seen[key]!=row:raise ValueError('conflicting training row')
+            seen[key]=row
     probe_ids = {v["id"] for v in package["layout"]["probes"].values()}
     if not probe_ids <= set(seen):
         raise ValueError("complete frozen training probes required")

@@ -668,7 +668,7 @@ not rerun the census or rehearsal and does not expose assessment:
 ```bash
 git pull --ff-only origin 013-progressive-mathematical-discovery &&
 python3 -S scripts/discovery_hip_handoff.py \
-  --engine podman --session run-state/discovery/013-research-round-007 \
+  --engine podman --session run-state/discovery/013-research-round-008 \
   prepare-research \
   --registration-session run-state/discovery/013-research-inputs-003 \
   --rehearsal-session run-state/discovery/013-hip-007 \
@@ -676,28 +676,30 @@ python3 -S scripts/discovery_hip_handoff.py \
   --expanded-runtime-budgets --run-after-prepare
 ```
 
-Round 006 passed base qualification (44.4 minutes), selected-model HIP
-qualification (36.7 minutes) and all 14 independent GPU timing cases. All eight
-positive service cases failed before fitting/scoring because their request bound
-the CPU census worker identity while the combined timing stage ran in the GPU
-image. Original package inspections prove the CPU worker still matches the census;
-the GPU image has a different worker binary hash. This is a role-routing defect,
-not evidence of incorrect arithmetic or a failed model update.
+Round 007 passed base qualification, selected-model qualification, all 14 model
+timings, all eight positive CPU service cases and evaluation feasibility. Its
+metadata-only construction process reached the two-hour guard and terminated
+cleanly before exact-input calibration or training. The original logs had no
+phase markers, so they do not identify the exact instruction at termination.
 
-Fresh round 007 runs positive services in the qualified CPU image and model timing
-in the qualified GPU image. Their aggregate four-hour allowance includes CPU
-execution; the eight CPU cases retain their existing 20-minute batch limit.
-Original stage/cleanup records and all producers must pass. Independent GPU timing
-still runs after an ordinary CPU failure with confirmed cleanup, but that failure
-blocks feasibility and cannot be hidden by successful case files.
+Round 008 removes repeated full row/codec validation across parameter variants.
+Only detached immutable support caches successful row validation, separately by
+native/short-profile scope; mutable inputs and every task/model/seed/batch/token
+boundary still validate normally. Canonical identities and calibration's complete
+1,296-case inventory remain unchanged. The compiler publishes durable phase and
+count progress, plus periodic/on-termination stack traces in the diagnostic logs.
 
-The wrapper may replace round 006's unused owner only after verifying all eight
-original identity failures occurred before service work, all 14 independent model
-cases completed, worker cleanup succeeded, and construction/calibration/science
-never began. It retains the original claim, evidence and costs and fences old
-clients. Fresh current-source qualification is required; data still come from
-round 002 and rehearsal 007 is not repeated. Do not edit ownership records by hand.
-Trial counts, 4M screening / 25M confirmation horizons and panels are unchanged.
+The wrapper can replace round 007's unused owner only after verifying its original
+qualified, feasible training-only timings and the exact terminated metadata compiler
+command, with no completed construction, calibration, frozen campaign or scientific
+execution. Original costs, partial files and owner history remain intact; old
+clients are fenced. Do not delete the old construction directory or ownership files.
+
+The command reuses round-002 data and historical rehearsal 007, obtains fresh
+current-source qualification, reconstructs the plan and continues through calibration
+into training only when all gates pass. Trial counts, 4M screening / 25M confirmation
+horizons and panels remain unchanged. The two-hour construction safety bound is
+unchanged; the fix removes redundant work rather than funding more compiler work.
 
 Before launching that work, the completed runtime/training timing models may be
 retired. Do not delete either session wholesale: their original observations and

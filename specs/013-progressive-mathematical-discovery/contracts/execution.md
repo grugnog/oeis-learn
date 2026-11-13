@@ -187,3 +187,19 @@ check before any fitting/scoring may replace unused preparation ownership after
 its original training membership, successful qualification, 14 complete independent
 model timings and clean termination verify. Retain costs/history and require new
 source-bound qualification. No post-construction or scientific work qualifies.
+
+## Construction validation and timeout recovery
+
+Immutable support may reuse successful row/codec validation separately for native
+and short-profile scopes. Mutable inputs must be revalidated; task, profile, seed,
+batch, initializer, arm and token-supply constraints remain independent. This is
+an implementation optimization with byte-identical canonical package identities,
+not a reduced calibration or scientific domain.
+
+Construction must emit public phase/count progress and diagnostic stack traces
+without private inputs. A terminated original two-hour metadata-only construction
+attempt may release unused preparation ownership after successful qualification,
+complete feasible training-only timings, exact command identity and acknowledged
+process-group termination verify. Reject completed construction, calibration,
+frozen campaigns, execution output and scientific work. Preserve partial metadata,
+original journals/costs and require current-source requalification.
