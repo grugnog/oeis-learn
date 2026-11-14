@@ -96,9 +96,14 @@ def prepare(workflow,data,design,materials):
         return result,sorted((base/'construction').rglob('*.json'))
     s.step('construction',construction,dependencies=('prepare-research/evaluation-feasibility',))
     blueprint=str((base/'construction/blueprint.json').relative_to(root));q=str(qroot.relative_to(root))
+    preparation_dependencies=('prepare-research/construction','prepare-research/sensitivity')
+    if getattr(getattr(w,'args',None),'reuse_calibration_session',None):
+        from .progressive_calibration_reuse_workstation import prepare as reuse_calibration
+        blueprint=reuse_calibration(w)
+        preparation_dependencies+=('prepare-research/calibration-reuse-plan',)
     w.run_command('prepare','prepare',resume=True,blueprint=blueprint,qualification=q,
         output=str((base/'prepared').relative_to(root)),seconds=setup['prepare'],
-        dependencies=('prepare-research/construction','prepare-research/sensitivity'))
+        dependencies=preparation_dependencies)
     w.run_command('freeze','freeze',blueprint=blueprint,qualification=q,
         prepared=str((base/'prepared').relative_to(root)),output=str((base/'frozen').relative_to(root)),
         seconds=setup['freeze'],dependencies=('prepare-research/prepare',))

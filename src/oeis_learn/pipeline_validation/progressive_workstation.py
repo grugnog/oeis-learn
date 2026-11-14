@@ -36,6 +36,7 @@ def parser():
     p.add_argument('--blueprint',help='original concrete research blueprint; never a template with guessed inputs')
     p.add_argument('--selection',help='original locked assessment selection')
     p.add_argument('--registration-session',help='verified completed input registration to reuse for research preparation')
+    p.add_argument('--reuse-calibration-session',help='complete exact-input calibration donor blocked only by training-time feasibility')
     p.add_argument('--reuse-preparation-data',help='completed unscored census/materials donor; fresh runtime authority required')
     p.add_argument('--expanded-runtime-budgets',action='store_true',help='prospective measured runtime reservation; fresh preparation only')
     p.add_argument('--reuse-census-session',help='explicit unscored v2 preparation to reuse under the prospective v3 design')
@@ -433,6 +434,8 @@ def main(root,argv=None):
         parser().error('input manifest, source snapshot and exposure reuse belong to register-inputs')
     if (args.registration_session or args.rehearsal_session or args.reuse_census_session) and args.phase != 'prepare-research':
         parser().error('registration/rehearsal session references belong to prepare-research')
+    if args.reuse_calibration_session and (args.phase!='prepare-research' or not args.reuse_preparation_data or not args.expanded_runtime_budgets):
+        parser().error('--reuse-calibration-session requires expanded preparation with --reuse-preparation-data')
     if args.reuse_preparation_data and (args.phase!='prepare-research' or not args.expanded_runtime_budgets or not args.registration_session or args.reuse_census_session):
         parser().error('--reuse-preparation-data requires expanded registered-data preparation, without --reuse-census-session')
     if args.expanded_runtime_budgets and (args.phase!='prepare-research' or not args.registration_session):
@@ -448,13 +451,15 @@ def main(root,argv=None):
         print(json.dumps(dict(phase=args.phase,engine=args.engine,session=args.session,
             source_policy='exact current closure; changes require requalification',
             sequence=dict(**{'register-inputs':['source-inventory','project-explicit-source','verify-originals','prospective-design','CPU-image','private-exposure-import','registration-status']},rehearse=['inventory','images','base-qualification','tiny-Q','prepare','freeze','CPU+HIP-acceptance'],
-            **{'prepare-research':(['verified-registration-reuse','rehearsal-scope-reference','CPU-native-census','independent-sensitivity','readiness-deficits'] if args.registration_session else ['original-inputs','selected-Q','exact-calibration','freeze','acceptance']),
+            **{'prepare-research':(['verify-original-complete-calibration','reuse-unscored-preparation-data','current-source-qualification','training-only-evaluation-timing','construct-current-plan','13-learner-trajectory-cases','reuse-exact-calibration','prepare','freeze','acceptance','readiness'] if args.reuse_calibration_session else ['verified-registration-reuse','rehearsal-scope-reference','CPU-native-census','independent-sensitivity','readiness-deficits'] if args.registration_session else ['original-inputs','selected-Q','exact-calibration','freeze','acceptance']),
                'measure-services':['verify-original-training-inputs','CPU-image','eight-native-service-cases','budget-review'],
                'measure-training':['verify-original-service-inputs','HIP-image','training-only-update-timing','runtime-review'],
                'measure-runtime':['verify-original-timing-inputs','HIP-image','seven-installed-learner-cases','four-calibration-samples','runtime-review'],
                'run-research':['run-or-resume','report','verify'],'assess':['locked-assess','report','verify'],'collect':['package-existing']})[args.phase],
             launches=False,host_dependencies='Python standard library only',
             census_reuse=args.reuse_census_session,
+            calibration_reuse=args.reuse_calibration_session,
+            training_feasibility='13 current-source canonical learner cases; original exact calibration retained' if args.reuse_calibration_session else None,
             preparation_revision='v3: original native outcomes plus finite additional support-conditioned draws' if args.reuse_census_session else None,
             automatic_research='run-or-resume/report/verify after complete freeze and acceptance; never assess' if args.run_after_prepare else None),indent=2))
         return 0
@@ -477,8 +482,8 @@ def main(root,argv=None):
         binding['input_manifest'] = dict(path=args.input_manifest, sha256=sha(confined(root,args.input_manifest)))
         if args.reuse_exposure_session:
             binding['reuse_exposure_session'] = args.reuse_exposure_session
-    for key in ('input_manifest','reuse_exposure_session','registration_session','rehearsal_session','reuse_census_session','preparation_session','service_session','reuse_preparation_data'):
-        selected=getattr(args,key,None) if key in {'registration_session','rehearsal_session','reuse_census_session','preparation_session','service_session','reuse_preparation_data'} else None
+    for key in ('input_manifest','reuse_exposure_session','registration_session','rehearsal_session','reuse_census_session','preparation_session','service_session','reuse_preparation_data','reuse_calibration_session'):
+        selected=getattr(args,key,None) if key in {'registration_session','rehearsal_session','reuse_census_session','preparation_session','service_session','reuse_preparation_data','reuse_calibration_session'} else None
         if selected is not None: binding[key]=selected
         elif key in old and key not in binding: binding[key]=old[key]
     if args.expanded_runtime_budgets:binding['expanded_runtime_budgets']=True

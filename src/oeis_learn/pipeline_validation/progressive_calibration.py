@@ -396,9 +396,11 @@ def verify_result(root, request, result):
     producers = []
     if 'checkpoint_retention' in request and set(result['retirements'])!=keys:
         raise ValueError('complete original calibration retirement inventory required')
+    from .progressive_calibration_replay import Inputs
+    inputs=Inputs(root)
     for case in request["cases"]:
         producer_ref=result['producers'][case['compatibility']]
-        producer=verify_case(root,request,case,producer_ref)
+        producer=verify_case(root,request,case,producer_ref,package=inputs.restore(case['artifact']))
         if 'checkpoint_retention' in request:
             from .progressive_calibration_storage import verify as verify_retirement
             base=confined(root,producer_ref['path']).parent
@@ -412,16 +414,17 @@ def verify_result(root, request, result):
     return producers
 
 
-def verify_case(root,request,case,producer_ref):
+def verify_case(root,request,case,producer_ref,*,package=None):
     """Verify original measurements before optional temporary snapshot cleanup."""
     from oeis_learn.generalization.progressive.iteration import measured_producer
     producer=json.loads(verify_refs(root,[producer_ref])[0])
     measured_producer(producer,source=request['source'],images=[request['image']],
                       compatibility=case['compatibility'])
     from oeis_learn.generalization.progressive.shared_support import restore
-    package=restore(root,case['artifact'])
+    if package is None:package=restore(root,case['artifact'])
+    from .progressive_calibration_replay import maximum_target
     if (producer['effective_batch']!=package['update_policy']['effective_batch']
-            or producer['maximum_target_tokens']!=max(len(r['tokens']) for s in package['shards'] for r in s)
+            or producer['maximum_target_tokens']!=maximum_target(package)
             or producer['checkpoint_bytes']>request['checkpoint_bytes']):
         raise ValueError('calibration prepared work/storage scope differs')
     return producer
@@ -480,6 +483,9 @@ def validate_request(request):
 
 def validate_prepared(root, blueprint, prepared):
     """Freeze replays the retained original setup run, not just its timing labels."""
+    if any(r['name']=='calibration_reuse' for r in prepared['payload']['references']):
+        from .progressive_calibration_reuse import validate_prepared as replay
+        return replay(root,blueprint,prepared)
     names = {
         "iteration_calibration",
         "iteration_calibration_request",

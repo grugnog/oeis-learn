@@ -70,6 +70,8 @@ def prepare(args, root, host_factory=None):
         prepared = seal(dict(prepared, payload=dict(payload, deficits=sorted(set(deficits)))))
     else:
         from .progressive_calibration import prepare as calibrate
+        if any(r['name']=='calibration_reuse' for r in prepared['payload']['references']):
+            from .progressive_calibration_reuse import prepare as calibrate
 
         prepared = calibrate(root, blueprint, prepared, output, args, host_factory)
         deficits = prepared['payload']['deficits']

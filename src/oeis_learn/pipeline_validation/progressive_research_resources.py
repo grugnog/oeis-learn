@@ -52,6 +52,12 @@ def finalize(root,payload,cases,producers):
         replayed=replay(root,confined(root,original['request']['path']).parent,cases=cases,
                         qualification=runtime['payload']['qualification'][0])
         if replayed!=original:raise ValueError('original trajectory report differs')
+        if any(r['name']=='research-reservation-v2' for r in payload['references']):
+            from .progressive_trajectory import reservation
+            request=json.loads(verify_refs(root,[original['request']])[0])
+            reserved=[r['artifact'] for r in payload['references'] if r['name']=='trajectory_reservation']
+            if len(reserved)!=1 or json.loads(verify_refs(root,reserved)[0])!=reservation(root,payload['references'],request,research=True):
+                raise ValueError('original additional trajectory reservation required')
         trajectory=cost_context(cases,producers,original)
     estimate_cache={}
     from oeis_learn.generalization.progressive.storage_plan import task_checkpoints

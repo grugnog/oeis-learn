@@ -22,6 +22,9 @@ def failure_proof(root, receipt):
     if session['binding']['source'] != receipt['current_source']:
         raise Blocked('previous preparation source differs')
     steps = journal['steps']
+    if steps.get('prepare-research/prepare', {}).get('status') == 'BLOCKED' and (folder/'prepare-research/prepared/calibration/producer.json').exists():
+        from .progressive_completed_calibration_recovery import proof
+        return proof(root,receipt,session,journal)
     if steps.get('prepare-research/prepare', {}).get('status') == 'FAILED':
         from .progressive_calibration_recovery import proof
         return proof(root,receipt,session,journal)

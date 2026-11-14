@@ -765,3 +765,43 @@ preceded calibration reservation/inspection/dispatch. Keep round 008 and its
 the share ZIP intentionally omits the private traceback. No completed calibration
 or training work is being discarded or represented as success. Current-source
 qualification repeats because the implementation changed; census/rehearsal do not.
+
+### Recover completed round009 calibration into round010
+
+Use this only with the original round009 session and retained round002 data on
+this workstation. Keep both directories: the new freeze references their original
+files and budget history. This does not rerun the census, tiny rehearsal or 1,296
+exact-input calibration cases. It validates their originals, qualifies the current
+source, measures thirteen short training-only trajectories, then prepares/freezes
+and runs acceptance. Training starts automatically only after readiness succeeds.
+
+```bash
+cd ~/workspace/oies-learn &&
+git pull --ff-only origin 013-progressive-mathematical-discovery &&
+python3 -S scripts/discovery_hip_handoff.py \
+  --engine podman \
+  --session run-state/discovery/013-research-round-010 \
+  prepare-research \
+  --registration-session run-state/discovery/013-research-inputs-003 \
+  --rehearsal-session run-state/discovery/013-hip-007 \
+  --reuse-preparation-data run-state/discovery/013-research-round-002 \
+  --reuse-calibration-session run-state/discovery/013-research-round-009 \
+  --expanded-runtime-budgets \
+  --run-after-prepare
+```
+
+The trajectory benchmark is small, but current-source qualification, retained
+input verification and acceptance add time. Its 10-hour allowance is a watchdog,
+not an expected duration. New per-task sampled and guarded estimates appear in
+`prepare-research/prepared/resource-estimate.json`; detailed observations are in
+`prepare-research/training-trajectory/trajectory-report.json`. No scientific token
+budgets or parallelism settings change. Some large configurations may still exceed
+their original hard task limits even under the corrected estimator; readiness
+reports those deficits rather than dropping a configuration or extending a cap.
+
+Reinvocation checks completed journal outputs. It replays completed preparation
+metadata without calibration dispatch. Unproven device termination or an interrupted
+benchmark requires investigation using the retained ZIP; it is never silently
+turned into fresh scientific or diagnostic allowance. Share
+`run-state/discovery/013-research-round-010/share/prepare-research.zip` on a stop.
+Final assessment still requires its separate explicit command.

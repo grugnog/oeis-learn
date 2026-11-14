@@ -84,10 +84,14 @@ def validate_producer(root, plan, runtime, references):
     source_identity = digest(source)
     producer = json.loads(verify_refs(root, [ref])[0])
     if producer.get("version") in {"progressive-iteration-calibration/v1", "progressive-iteration-calibration/v2"}:
+        images=runtime['payload']['scope']['images']
+        if any(r['name']=='calibration_reuse' for r in references):
+            from oeis_learn.pipeline_validation.progressive_calibration_reuse import producer_authority
+            source_identity,images=producer_authority(root,references,qref,ref)
         measured_producer(
             producer,
             source=source_identity,
-            images=runtime["payload"]["scope"]["images"],
+            images=images,
             compatibility=plan["initializer"]["compatibility"],
         )
         for phase in ("update_us", "probe_us", "checkpoint_us"):

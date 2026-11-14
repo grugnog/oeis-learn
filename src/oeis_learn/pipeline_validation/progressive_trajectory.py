@@ -16,6 +16,26 @@ from .progressive_runtime_timing import (
 from .progressive_workstation_state import read
 
 
+def reservation(root, references, request, *, research):
+    """Book additional diagnostics inside remaining outer preparation headroom."""
+    refs=[r['artifact'] for r in references if r['name']=='research-reservation-v2']
+    if len(refs)>1 or (research and len(refs)!=1):
+        raise ValueError('original expanded outer reservation required for trajectory work')
+    value=dict(version='progressive-trajectory-reservation/v1',request=request['identity'],
+        seconds=FEASIBILITY_SECONDS,maximum_cases=len(request['cases']),
+        target_tokens_per_case=request['target_tokens'],scientific=False,original_calibration_debit_retained=True)
+    if refs:
+        outer=_json(checked_file(root,refs[0]))
+        if seal(outer)!=outer or outer.get('version')!='progressive-research-reservation/v2' or outer.get('status')!='READY':
+            raise ValueError('original ready outer reservation required')
+        preparation=outer['ancillary_seconds']['preparation']+FEASIBILITY_SECONDS
+        total=outer['total_seconds']+FEASIBILITY_SECONDS
+        if preparation>outer['limits_seconds']['preparation'] or total>outer['selected_maximum_seconds']:
+            raise ValueError('additional trajectory diagnostic exceeds original outer headroom')
+        value.update(original_reservation=refs[0],reserved_preparation_seconds=preparation,reserved_total_seconds=total)
+    return seal(value)
+
+
 def training_scope(package):
     """Rows and probes must match; the finite setting variants may differ."""
     from oeis_learn.generalization.progressive.shared_support import FrozenList
@@ -24,9 +44,13 @@ def training_scope(package):
     if identity is None:
         identity=digest(rows)
         if isinstance(rows,FrozenList):object.__setattr__(rows,'_trajectory_identity',identity)
-    return digest({k: identity if k=='shards' else v for k, v in package.items() if k not in {
+    if package['update_policy']['microbatch_size']!=16:
+        raise ValueError('trajectory comparison requires the measured microbatch size 16')
+    value={k: identity if k=='shards' else v for k, v in package.items() if k not in {
         'identity', 'profile', 'update_policy', 'refresh_by_batch', 'refresh_updates',
-        'scope', 'diagnostic_fault'}})
+        'scope', 'diagnostic_fault'}}
+    value['recipe']=package['profile']['base_recipe']
+    return digest(value)
 
 
 def plan(root, output, cases, qualification):
@@ -52,6 +76,13 @@ def plan(root, output, cases, qualification):
 
 
 def clean_stage(folder):
+    inspected=_json(Path(folder)/'container-inspect.json')
+    if not isinstance(inspected,list) or len(inspected)!=1:
+        raise ValueError('one original container termination inspection required')
+    state=inspected[0].get('State',{})
+    if (state.get('Running') is not False or state.get('OOMKilled') is not False
+            or state.get('ExitCode')!=0 or state.get('Error') or state.get('Restarting')):
+        raise ValueError('successful non-OOM container termination required')
     process = _json(Path(folder)/'process.json')
     cleanup = _json(Path(folder)/'cleanup.json')
     if (process.get('returncode') != 0 or process.get('failure') or process.get('cleanup_failure')
@@ -156,11 +187,14 @@ def estimate(package, producer, context, *, delta, target, available, arm):
     steady = math.ceil(delta*selected['measured_steady_us']/selected['measured_tokens']*ratio*refresh)
     checkpoint = max(selected['checkpoint_us'], producer['measurements']['checkpoint_us'])
     milestones = sum(target-delta < n <= target for n in MILESTONES)
-    expected_snapshots = 2+steady//(INTERVAL*1000000)+milestones
+    expected_snapshots = steady//(INTERVAL*1000000)+milestones
     maximum_snapshots = 2+max(0, available)//(INTERVAL*1000000)+milestones
     # Steady windows already contain the periodic pair of probes. Do not charge
     # probe_us twice, or add the same probe work again on top of the trajectory.
-    expected = steady+selected['fixed_us']+expected_snapshots*checkpoint
+    # Measured task overhead already contains startup/final publication and
+    # restore. Expected time adds only periodic/milestone saves. The feasibility
+    # guard deliberately retains extra initial/final maximal save/restore slack.
+    expected = steady+selected['fixed_us']+expected_snapshots*selected['checkpoint_us']
     guarded = padded_us(steady+selected['fixed_us']+maximum_snapshots*checkpoint)
     return dict(checkpoint_policy='hourly/v1', maximum_snapshots=maximum_snapshots,
         expected_work_us=expected, estimated_work_us=guarded, available_work_us=available,

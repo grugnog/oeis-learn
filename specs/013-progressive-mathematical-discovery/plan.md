@@ -575,3 +575,56 @@ requests, cases, recovery attempts, any budget journal, freeze, acceptance or
 scientific work. Preserve the old source, costs and all artifacts; new source must
 qualify again. The private traceback remains local; the recovery proof includes its
 identity and the original public result. This is not a calibration pass or refund.
+
+### Whole-trajectory feasibility and completed calibration recovery (T201–T203)
+
+Round 009 completed all 1,296 maximal-input calibration cases and their retirement
+inventories. Its only preparation deficits were whole-training-time estimates.
+The v3 estimator priced the number of updates using the shortest programs but
+priced every update using the longest-program stress test. Preserve that policy
+for historical replay; select resource policy v4 explicitly in a new blueprint.
+
+Before the new freeze, measure thirteen separate 128k-token diagnostic paths:
+four registered shapes times effective batches 16/32/64, plus reference batch16
+with refreshed support. Reuse the canonical installed learner, two linked tasks,
+hourly persistence, original training-only rows/probes and serial GPU ownership.
+The existing diagnostic-only cadence must cross a refresh boundary. No scientific
+panel is exposed and no trial, seed, token target or hard time limit changes.
+Each case retains its original supervised process, hardware, timing windows,
+checkpoint/restore evidence, diagnostic ZIP and failure status. The finite
+additional diagnostic reservation is 36,300 seconds, recorded separately from
+scientific accounting and from the original consumed calibration reservation.
+It must fit remaining outer preparation and aggregate headroom without refunding
+that original reservation; freeze replays the additional reservation too.
+
+Resource policy v4 uses mixed-length whole-loop throughput (already including
+periodic probe pairs), measured fixed task overhead, and hourly/milestone saves.
+It reports an unpadded sampled task estimate separately from the fourfold
+feasibility guard. The latter also retains conservative maximal checkpoint and
+initial/final publication slack. Exact baseline calibration ratios account for
+setting-dependent overhead, never granting a speedup from a noisy stress case;
+refreshed overhead is bounded by the measured reference comparison. These are
+sampled projections, not confidence intervals or claims about model quality.
+Every finite choice must fit; a real deficit still blocks freeze. Existing exact
+per-update safety margins remain four times the original measurements.
+
+`--reuse-calibration-session` is a narrow migration of the completed round009
+calibration, not a generic source-authority bypass. It requires the original
+time-only stop, completed unexposed construction, canonical exit 2, clean GPU
+termination, closed operational allowance, complete producer/input/retirement
+inventory and the original conservative budget debit. The data-owner transition
+fences the old session. Original receipts retain their old source/image labels.
+Current-source qualification and equality of hardware, numerical/runtime,
+resource and engine policies are mandatory. All measured learner, checkpoint,
+native and dependency code stays byte-identical; mixed modules additionally
+pin the protected execution syntax while allowing only reviewed host verification
+changes. Unknown code changes, missing evidence and partial calibration fail closed.
+
+Prepare and freeze replay both the old resource publication and the new
+trajectory-based publication. They require the same complete input compatibility
+set and reconstruct every original iteration budget and consumed cost reference.
+A bounded per-replay immutable support cache avoids repeatedly parsing identical
+large support JSON, without changing canonical identities or measured execution.
+Fresh qualification, acceptance and the ordinary scientific runner remain required.
+The wrapper retains all new diagnostics on failure; a completed metadata result
+can be replayed without launching device calibration again.
