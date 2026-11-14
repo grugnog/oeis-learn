@@ -8,9 +8,15 @@ from .research_limits import padded_us
 from oeis_learn.generalization.progressive.contracts import seal,verify_refs
 
 POLICY='progressive-measured-research-resources/v3'
+TRAJECTORY_POLICY='progressive-measured-research-resources/v4'
 
 
-def policy(*, legacy=False, global_storage=False):
+def policy(*, legacy=False, global_storage=False, trajectory=False):
+    if trajectory:
+        return seal(dict(version=TRAJECTORY_POLICY, metadata_bytes=128<<20, generations=2,
+            checkpoint_scope='per-task exact calibrated full state plus 128 MiB context; evaluation weights only',
+            training_estimate='4x current mixed-length trajectory; exact setting ratios; probes already included; bounded hourly snapshots',
+            permits='decrease disk only; no scientific budget or search-domain changes'))
     return seal(dict(version='progressive-measured-research-resources/v1' if legacy else 'progressive-measured-research-resources/v2' if global_storage else POLICY,metadata_bytes=128<<20,generations=2,
         checkpoint_scope='maximum original retained or exact calibrated full state' if legacy or global_storage else 'per-task exact calibrated full state plus 128 MiB context; evaluation weights only',
         training_estimate=('4x measured update and checkpoint per complete update; two probes per eight updates' if legacy else '4x measured updates/probes plus bounded hourly, milestone and terminal snapshots'),
@@ -22,7 +28,7 @@ def finalize(root,payload,cases,producers):
     if not refs:return None
     if len(refs)!=1:raise ValueError('original prospective measured-resource rule required')
     registered=json.loads(verify_refs(root,refs)[0])
-    if registered not in (policy(),policy(legacy=True),policy(global_storage=True)):
+    if registered not in (policy(),policy(legacy=True),policy(global_storage=True),policy(trajectory=True)):
         raise ValueError('original prospective measured-resource rule required')
     if registered==policy(legacy=True) and any(c['package'].get('checkpoint_policy')=='hourly/v1' for c in cases):
         raise ValueError('hourly resource estimates require the prospective v2 policy')
@@ -34,7 +40,20 @@ def finalize(root,payload,cases,producers):
     inputs={c['compatibility']:c['package'] for c in cases}
     if set(inputs)!=set(by_scope):raise ValueError('complete exact resource measurement inventory required')
     plans=payload['task_plans'];by_id={p['id']:p for p in plans}
-    scoped = registered == policy()
+    scoped = registered in (policy(), policy(trajectory=True))
+    trajectory = None
+    if registered == policy(trajectory=True):
+        from .progressive_trajectory import replay, cost_context
+        trefs=[r['artifact'] for r in payload['references'] if r['name']=='training_trajectory']
+        if len(trefs)!=1:raise ValueError('original training trajectory required')
+        original=json.loads(verify_refs(root,trefs)[0])
+        from oeis_learn.pipeline_validation.identity import confined
+        runtime=json.loads(verify_refs(root,[payload['runtime']])[0])
+        replayed=replay(root,confined(root,original['request']['path']).parent,cases=cases,
+                        qualification=runtime['payload']['qualification'][0])
+        if replayed!=original:raise ValueError('original trajectory report differs')
+        trajectory=cost_context(cases,producers,original)
+    estimate_cache={}
     from oeis_learn.generalization.progressive.storage_plan import task_checkpoints
     bounds = task_checkpoints(plans, producers, payload['milestone_pins']) if scoped else {}
     old_total=sum(p['caps']['disk_bytes'] for p in plans)
@@ -50,8 +69,15 @@ def finalize(root,payload,cases,producers):
             delta=task['token_target']-(by_id[parent]['token_target'] if parent else 0)
             for selected in variants(task):
                 key=selected['initializer']['compatibility'];package=inputs[key];producer=by_scope[key]
-                row=estimate_training(package,producer['measurements'],delta=delta,
-                    target=task['token_target'],available=task['caps']['elapsed_us']-task['startup_us']-task['finalization_us'])
+                args=dict(delta=delta,target=task['token_target'],
+                    available=task['caps']['elapsed_us']-task['startup_us']-task['finalization_us'])
+                cache_key=(key,delta,task['token_target'],args['available'],task['arm'])
+                if cache_key not in estimate_cache:
+                    if trajectory:
+                        from .progressive_trajectory import estimate
+                        estimate_cache[cache_key]=estimate(package,producer,trajectory,arm=task['arm'],**args)
+                    else:estimate_cache[cache_key]=estimate_training(package,producer['measurements'],**args)
+                row=dict(estimate_cache[cache_key])
                 row.update(task=task['id'],compatibility=key)
                 if worst is None or row['estimated_work_us']>worst['estimated_work_us']:worst=row
             estimates.append(worst)
@@ -82,7 +108,7 @@ def finalize(root,payload,cases,producers):
         deficits=deficits,checkpoint_bytes=measured,storage_before_bytes=old_total,
         storage_after_bytes=sum(p['caps']['disk_bytes'] for p in plans),training=estimates,
         all_choices_retained=True,exposure_caps_unchanged=True,time_caps_unchanged=True,
-        interpretation='conservative exact-input feasibility; actual task clocks remain authoritative'))
+        interpretation=('sampled trajectory with 4x margin; actual task clocks and exact iteration guards remain authoritative' if trajectory else 'conservative exact-input feasibility; actual task clocks remain authoritative')))
 
 
 def estimate_training(package, measurements, *, delta, target, available):

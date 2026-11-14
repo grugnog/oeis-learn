@@ -34,6 +34,7 @@ CPU_TESTS = (
     "tests/unit/test_progressive_scoring_calibration.py",
     "tests/unit/test_progressive_training_timing.py",
     "tests/unit/test_progressive_runtime_timing.py",
+    "tests/unit/test_progressive_trajectory.py",
     "tests/unit/test_progressive_runtime_reservations.py",
     "tests/unit/test_progressive_preparation_reuse.py",
     "tests/unit/test_progressive_calibration_recovery.py",

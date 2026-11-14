@@ -879,3 +879,10 @@ Three native-service dependent tests were unavailable locally. The new recovery
 suite is in the mandatory installed CPU inventory. Stdlib-only recovery imports,
 host CLI help and whitespace checks passed. No local HIP qualification or exact
 HIP calibration is claimed; original hardware evidence remains historical.
+
+
+## Phase 33: Trajectory feasibility and completed calibration reuse
+
+- [ ] T201 Add an explicit prospective resource-policy revision separating complete-update safety margins from full-trajectory time estimates. Measure current-source canonical learner throughput on training-only data, bind the finite model/batch coverage and original producers, apply fourfold operational headroom, count probe pairs once, preserve historical policy replay, and retain every task, token target and hard cap. Report expected and guarded times separately; genuinely infeasible plans remain blocked.
+- [ ] T202 Reuse a complete original exact-input calibration after the training-time-only preparation stop. Verify all producers, input compatibility, retirement inventories, original cost/cleanup/session evidence and a narrow reviewed source-equivalence boundary. Preserve original source/image labels and consumed costs; require current-source qualification and hardware/policy equality. Fence old owners and never rerun completed calibration as a side effect of planning changes.
+- [ ] T203 Wire a stdlib/Podman preparation command through recovery, current-source trajectory measurement, canonical prepare/freeze/acceptance and optional automatic research execution. Test partial failures, restart, tampering, unsupported source/model/input changes, exact evidence replay and diagnostic ZIPs; document the next command and commit incrementally.

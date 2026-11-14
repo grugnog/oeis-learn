@@ -16,6 +16,14 @@ TARGET=128000
 LEARN_SECONDS=2700
 CALIBRATION_SECONDS=900
 HOST_SECONDS=7*LEARN_SECONDS+4*CALIBRATION_SECONDS+1200
+FEASIBILITY_VERSION='progressive-training-feasibility/v1'
+FEASIBILITY_SECONDS=13*LEARN_SECONDS+1200
+
+
+def feasibility_scopes():
+    return ([dict(id=f'{shape}-b{batch}-static',kind='learner',shape=shape,batch=batch,arm='static')
+             for shape in ('reference','smaller_width','shallower','larger') for batch in (16,32,64)]
+            + [dict(id='reference-b16-refreshed',kind='learner',shape='reference',batch=16,arm='refreshed')])
 
 
 def scopes():
@@ -100,9 +108,11 @@ def plan(root, output, inputs, image, recipient):
 def validate_request(req):
     fields={'version','identity','source','image','inputs','original_inputs','package','cases','target_tokens',
             'learner_seconds','calibration_seconds','seconds','scope'}
-    if (set(req)!=fields or seal(req)!=req or req['version']!=VERSION or req['cases']!=scopes()
+    feasibility=req.get('version')==FEASIBILITY_VERSION
+    if (set(req)!=fields or seal(req)!=req or req['version'] not in {VERSION,FEASIBILITY_VERSION}
+        or req['cases']!=(feasibility_scopes() if feasibility else scopes())
         or req['target_tokens']!=TARGET or req['learner_seconds']!=LEARN_SECONDS
-        or req['calibration_seconds']!=CALIBRATION_SECONDS or req['seconds']!=HOST_SECONDS
+        or req['calibration_seconds']!=CALIBRATION_SECONDS or req['seconds']!=(FEASIBILITY_SECONDS if feasibility else HOST_SECONDS)
         or req['scope']!='DIAGNOSTIC_ONLY; no scientific selection or qualification'):
         raise ValueError('closed finite runtime diagnostic required')
     return req
@@ -193,7 +203,7 @@ def run_inside(root, seconds):
     from .supervision import launch
     root=Path(root);req=validate_request(read(root/'request.json'))
     if (req['source']!=digest(source_snapshot()) or req['image']!=os.environ.get('OEIS_QUALIFICATION_IMAGE')
-            or not 0<seconds<=HOST_SECONDS):raise ValueError('current bounded runtime source/image required')
+            or not 0<seconds<=req['seconds']):raise ValueError('current bounded runtime source/image required')
     retain(root/'hardware.json',hardware_facts())
     began=time.monotonic();rows=[];blocked=None
     previous=read(root/'runtime-cases.json') if (root/'runtime-cases.json').exists() else None
