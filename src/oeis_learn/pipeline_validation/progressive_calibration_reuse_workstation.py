@@ -9,14 +9,42 @@ from .progressive_workstation_state import read, Blocked
 
 
 def fenced_original(w):
-    """The existing data owner transfer must have fenced this exact donor."""
-    proof = read(w.s.folder/'preparation-owner-proof.json')
+    """Follow original ownership proofs through failed pre-HIP qualifications."""
+    from .progressive_preparation_owner import VERSION, failure_proof
+    node = read(w.s.folder/'preparation-owner.json')
+    local = read(w.s.folder/'preparation-owner-proof.json')
     donor = w.args.reuse_calibration_session
-    if (proof.get('version') != 'progressive-preparation-owner-proof/v5'
-            or proof['predecessor']['recipient'] != donor
-            or proof['original_costs_retained'] is not True):
-        raise Blocked('the selected complete calibration donor must be the fenced preparation owner')
-    return checked_file(w.root, proof['blueprint']).parent.parent
+    if node.get('receipt', {}).get('recipient') != str(w.s.folder.relative_to(w.root)):
+        raise Blocked('calibration donor ownership belongs to another recipient')
+    stable = lambda r: {k:v for k,v in r.items() if k not in {'identity','recipient','current_source'}}
+    for depth in range(16):
+        if node.get('version') != VERSION or seal(node) != node:
+            raise Blocked('original calibration ownership history required')
+        proof = read(checked_file(w.root, node['proof']))
+        previous = read(checked_file(w.root, node['previous']))
+        predecessor = previous['receipt'] if previous.get('version') == VERSION else previous
+        if (seal(proof) != proof or seal(previous) != previous
+                or proof.get('predecessor') != predecessor
+                or stable(node['receipt']) != stable(predecessor)
+                or proof.get('original_costs_retained') is not True
+                or proof.get('scientific_allowance_transferred') is not False
+                or (depth == 0 and proof != local)):
+            raise Blocked('original calibration ownership proof differs')
+        if proof.get('version') == 'progressive-preparation-owner-proof/v5':
+            if predecessor['recipient'] != donor:
+                raise Blocked('selected calibration donor differs from original fenced owner')
+            path = checked_file(w.root, proof['blueprint'])
+            if path != Path(w.root)/donor/'prepare-research/construction/blueprint.json':
+                raise Blocked('original fenced calibration blueprint differs')
+            return path.parent.parent
+        # Only an evidenced CPU failure before HIP can sit between the completed
+        # calibration donor and this recipient. Replay its unchanged original
+        # journal/process/cleanup proof; started or unclean work remains blocked.
+        if (proof.get('version') != 'progressive-preparation-owner-proof/v1'
+                or failure_proof(w.root, predecessor) != proof):
+            raise Blocked('only original pre-HIP CPU failures may retain the calibration donor')
+        node = previous
+    raise Blocked('bounded calibration ownership history exhausted')
 
 
 def prepare(w):

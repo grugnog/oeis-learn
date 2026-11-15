@@ -931,3 +931,21 @@ identity. Actual supervisor output is accepted; mismatched results, missing or
 ambiguous JSON, duplicate keys, nonfinite numbers, truncated logs and failed
 termination remain rejected. Python 3.13 stdlib-only reader and round012 CLI dry-run
 passed. No new HIP evidence is claimed and CI is not awaited after publication.
+
+
+## Phase 36: Qualification headroom and retained calibration ancestry
+
+- [X] T206 Give research CPU qualification a three-hour watchdog with a correctly enclosing pipeline budget; retain the full CPU/native inventory and original failure receipts.
+- [X] T207 Preserve the exact original completed calibration donor through evidenced pre-HIP CPU qualification failures, verifying ownership-history links and rejecting altered, unrelated or scientifically started intermediaries. Document the fresh round013 handoff.
+
+
+T206–T207 validation: reproduced both the insufficient qualification interface and
+the lost-donor condition before repair. After repair, 150 focused qualification,
+recovery, reuse, ownership, runtime-reservation and provenance tests passed, plus
+one research-workstation wiring test (151 total). The real runner passes the full
+CPU allowance into its supervised container stage and retains failures/archives.
+Recovery covers an actual ownership transfer followed by CPU failure and another
+transfer, rejects mismatched donors, altered history/proofs and scientific work.
+The original round012 ZIP's process/cleanup/journal records independently passed
+the canonical pre-HIP replacement proof without device mocks. Python 3.13 CLI
+dry-run passed. No new HIP or scientific success is claimed; CI is not awaited.

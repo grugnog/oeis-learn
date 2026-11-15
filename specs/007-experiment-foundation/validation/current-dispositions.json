@@ -1,7 +1,7 @@
 {
   "schema_version": "review-disposition/v1",
   "phase": 13,
-  "code_revision": "Spec 013 T205 retained console-result recovery after supervisor heartbeats",
+  "code_revision": "Spec 013 T206-T207 qualification headroom and retained calibration ancestry",
   "source_sha256": "sha256:fcf84cd2f6f420daf2f5ef3fe11beee0f04543aa5032bb580752347ae19b787a",
   "scope": "Original-input/task traceability with phase-13 code repairs. Missing source/model and phase-14 acceptance remain pending; no checklist grants release authorization.",
   "full_007_complete": false,
@@ -1755,7 +1755,7 @@
     }
   ],
   "original_inputs": 68,
-  "implementation_sha256": "sha256:7d6db070e13afa6bfb40a020e38647a8bf0a3d3c1c4448d64695c0c40baee4c0",
+  "implementation_sha256": "sha256:dc3d9f58bc3dc58af570777b7fbbc72d6ce8b34abf3b858159741348ec08aa06",
   "implementation_hash_method": "experiment_runner.implementation_identity()",
   "task_inventory_sha256": "sha256:87b554eb1482ac30aab8229d456b0f92665635c21ad210b150658a38f26b9053",
   "historical_template": {

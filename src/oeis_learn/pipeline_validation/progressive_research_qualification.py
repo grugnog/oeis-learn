@@ -53,7 +53,7 @@ def qualify(workflow, data, design):
     def foundation():
         from .generalization_qualification_io import produce
         result=produce(w.host(),root,base/'base-qualification',
-            images=[built[t] for t in ('qualification','gpu')],contract=s.binding['source'])
+            images=[built[t] for t in ('qualification','gpu')],contract=s.binding['source'],cpu_seconds=3*3600)
         if result['status']!='PASS':
             raise RuntimeError('current-source base qualification failed; original receipts retained')
         return str((base/'base-qualification').relative_to(root)),[base/'base-qualification/qualification.json']

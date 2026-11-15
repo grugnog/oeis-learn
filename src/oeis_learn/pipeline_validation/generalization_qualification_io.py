@@ -108,13 +108,15 @@ def consume_original(host,workspace,producer_root,output,*,required_suites,requi
     return dict(original=result['original'],authority=authority,root=producer_root)
 
 
-def produce(host,workspace,output,*,images,contract,pac_seconds=None):
+def produce(host,workspace,output,*,images,contract,pac_seconds=None,cpu_seconds=2100):
     """Canonical runner executes each required CPU/native and HIP scope once."""
     from .registry import Stage
     from .runner import execute
     from oeis_learn.container_validation import _stages,inspect_current_image
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from .generalization_roles import project_and_invoke
+    if type(cpu_seconds) is not int or not 2100 <= cpu_seconds <= 10800:
+        raise ValueError('CPU qualification allowance must be 2100..10800 seconds')
     workspace=Path(workspace);output=Path(output)
     if output.exists():raise ValueError('fresh qualification output required')
     if len(images)!=2:raise ValueError('prebuilt qualification/GPU image pair required')
@@ -133,11 +135,11 @@ def produce(host,workspace,output,*,images,contract,pac_seconds=None):
             else:result=_stages(host,'bigint-cpu',target,external_seconds=stage.seconds)[1]
             return dict(suite='bigint-gpu' if gpu else 'bigint-cpu',result=result)
     stages=[Stage('image.qualification',1,seconds=900,adapter='inspect'),
-        Stage('cpu.semantic',1,('image.qualification',),seconds=2100,adapter='cpu'),
+        Stage('cpu.semantic',1,('image.qualification',),seconds=cpu_seconds,adapter='cpu'),
         Stage('image.gpu',2,seconds=900,adapter='inspect'),
         Stage('hip.preflight',2,('image.gpu','cpu.semantic'),seconds=2400,adapter='hip')]
     code=execute(stages,output/'pipeline',adapter=Adapter(),binding=dict(source=collect_snapshot(workspace),contract=contract),
-                 cap=6600,reserve=300)
+                 cap=sum(s.seconds for s in stages)+300+(300 if cpu_seconds>2100 else 0),reserve=300)
     if code:
         # The serial fallback archive preserves stdout, even when no authority
         # exists for the normal report. Keep the original stage reasons visible.

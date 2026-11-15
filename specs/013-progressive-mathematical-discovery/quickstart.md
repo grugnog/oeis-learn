@@ -766,7 +766,7 @@ the share ZIP intentionally omits the private traceback. No completed calibratio
 or training work is being discarded or represented as success. Current-source
 qualification repeats because the implementation changed; census/rehearsal do not.
 
-### Recover completed round009 calibration into round012
+### Recover completed round009 calibration into round013
 
 Use this only with the original round009 session and retained round002 data on
 this workstation. Keep both directories: the new freeze references their original
@@ -780,7 +780,7 @@ cd ~/workspace/oies-learn &&
 git pull --ff-only origin 013-progressive-mathematical-discovery &&
 python3 -S scripts/discovery_hip_handoff.py \
   --engine podman \
-  --session run-state/discovery/013-research-round-012 \
+  --session run-state/discovery/013-research-round-013 \
   prepare-research \
   --registration-session run-state/discovery/013-research-inputs-003 \
   --rehearsal-session run-state/discovery/013-hip-007 \
@@ -803,7 +803,7 @@ Reinvocation checks completed journal outputs. It replays completed preparation
 metadata without calibration dispatch. Unproven device termination or an interrupted
 benchmark requires investigation using the retained ZIP; it is never silently
 turned into fresh scientific or diagnostic allowance. Share
-`run-state/discovery/013-research-round-012/share/prepare-research.zip` on a stop.
+`run-state/discovery/013-research-round-013/share/prepare-research.zip` on a stop.
 Final assessment still requires its separate explicit command.
 
 
@@ -821,7 +821,16 @@ the canonical freeze continues to enforce measured free-space requirements.
 Round011 passed the portable fingerprint check but stopped before owner transfer:
 the retained canonical console log starts with supervisor heartbeat lines before
 its terminal JSON result. T205 accepts that precise console format while retaining
-strict result equality and process-termination checks. Use round012 above with the
+strict result equality and process-termination checks. Use the fresh session above with the
 same round009 calibration donor; no new GPU work ran in round011. Keep both failed
 handoff sessions unchanged. Round011 telemetry recorded about 606 GiB free; the
 canonical freeze still checks the complete measured storage requirement.
+
+
+Round012 recovered the ownership lineage and reused the inputs, then exhausted the
+35-minute CPU qualification watchdog after pytest passed 94% without a reported
+failure. T206 provides a three-hour research CPU watchdog and a 4h20m enclosing
+pipeline reservation; these are ceilings, not runtime predictions. T207 retains
+round009's original calibration through that pre-HIP failure. Use fresh round013
+above, keeping round009 and round012 intact. The CPU qualification must complete;
+the 1,296-case calibration census is still reused rather than rerun.

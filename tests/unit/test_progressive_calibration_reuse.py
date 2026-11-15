@@ -98,13 +98,25 @@ def test_fenced_original_is_exact_selected_donor(tmp_path):
     from oeis_learn.pipeline_validation.progressive_workstation_state import Blocked
     donor=tmp_path/'run-state/old/prepare-research';write(donor/'construction/blueprint.json',{})
     current=tmp_path/'run-state/new'
-    proof=seal(dict(version='progressive-preparation-owner-proof/v5',predecessor=dict(recipient='run-state/old'),
-        original_costs_retained=True,blueprint=reference(tmp_path,donor/'construction/blueprint.json')))
+    previous=seal(dict(version='progressive-preparation-data-reuse/v1',recipient='run-state/old'))
+    proof=seal(dict(version='progressive-preparation-owner-proof/v5',predecessor=previous,
+        original_costs_retained=True,scientific_allowance_transferred=False,blueprint=reference(tmp_path,donor/'construction/blueprint.json')))
     write(current/'preparation-owner-proof.json',proof)
+    write(tmp_path/'history/previous.json',previous);write(tmp_path/'history/proof.json',proof)
+    write(current/'preparation-owner.json',seal(dict(version='progressive-preparation-owner/v2',
+        receipt=seal(dict(previous,recipient='run-state/new')),previous=reference(tmp_path,'history/previous.json'),
+        proof=reference(tmp_path,'history/proof.json'))))
     w=SimpleNamespace(root=tmp_path,s=SimpleNamespace(folder=current),args=SimpleNamespace(reuse_calibration_session='run-state/old'))
     assert fenced_original(w)==donor
     w.args.reuse_calibration_session='run-state/other'
     with pytest.raises(Blocked):fenced_original(w)
+    w.args.reuse_calibration_session='run-state/old'
+    retained=(tmp_path/'history/previous.json').read_bytes()
+    write(tmp_path/'history/previous.json',seal(dict(previous,recipient='run-state/unrelated')))
+    with pytest.raises(ValueError):fenced_original(w)
+    (tmp_path/'history/previous.json').write_bytes(retained)
+    write(current/'preparation-owner-proof.json',seal(dict(proof,original_costs_retained=False)))
+    with pytest.raises(ValueError):fenced_original(w)
 
 
 @pytest.mark.parametrize('fail',[False,True])
@@ -252,6 +264,23 @@ def test_completed_calibration_owner_transfer_is_time_only_and_fenced(tmp_path,m
         assert (folder/'journal.json').read_bytes()==original
         assert load(claim)['receipt']==recipient
         with pytest.raises(ValueError,match='superseded'):claim_owner(tmp_path,claim,receipt)
+        # Round012 acquired the donor then failed CPU qualification. A fresh
+        # recipient must follow that original ownership chain back to round009.
+        from tests.unit.test_progressive_preparation_reuse import failed_owner
+        from oeis_learn.pipeline_validation.progressive_calibration_reuse_workstation import fenced_original
+        failed_owner(tmp_path,tmp_path/recipient['recipient'],recipient)
+        latest=seal(dict(recipient,recipient='run-state/next',current_source=digest('timeout fix')))
+        claim_owner(tmp_path,claim,latest)
+        w=SimpleNamespace(root=tmp_path,s=SimpleNamespace(folder=tmp_path/latest['recipient']),
+            args=SimpleNamespace(reuse_calibration_session=str(folder.relative_to(tmp_path))))
+        assert fenced_original(w)==base
+        w.args.reuse_calibration_session=recipient['recipient']
+        with pytest.raises(ValueError):fenced_original(w)
+        w.args.reuse_calibration_session=str(folder.relative_to(tmp_path))
+        middle=tmp_path/recipient['recipient']
+        journal=load(middle/'journal.json');journal['steps']['run-research/start']=dict(status='COMPLETE')
+        write(middle/'journal.json',seal(journal))
+        with pytest.raises(ValueError):fenced_original(w)
 
 
 @pytest.mark.parametrize('body',[
@@ -283,3 +312,21 @@ def test_recovery_reads_real_supervisor_progress_before_terminal_json(tmp_path,c
     assert path.read_text()==output
     with pytest.raises(ValueError,match='bounded canonical result stdout'):
         stdout_result(path,maximum=10)
+
+
+def test_research_workstation_passes_cpu_headroom_to_canonical_qualification(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import progressive_research_qualification as research
+    from oeis_learn.pipeline_validation import generalization_qualification_io as io
+    seen=[]
+    def produce(host,root,output,**kwargs):
+        seen.append(kwargs)
+        return {'status':'PASS'}  # Host boundary only, not a hardware receipt.
+    monkeypatch.setattr(io,'produce',produce)
+    def step(name,action,**kwargs):
+        return action()[0] if name=='base-qualification' else None
+    w=SimpleNamespace(root=tmp_path,base=tmp_path/'prepare-research',
+        s=SimpleNamespace(step=step,binding={'source':digest('current')}),
+        host=lambda:object(),images=lambda:{'qualification':'cpu','gpu':'hip'},
+        installed=lambda *a,**kw:None,run_command=lambda *a,**kw:None)
+    research.qualify(w,{}, {})
+    assert seen==[dict(images=['cpu','hip'],contract=digest('current'),cpu_seconds=10800)]

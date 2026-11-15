@@ -655,3 +655,24 @@ Continue to verify canonical command, termination, cleanup and exact equality wi
 the independently validated original result; do not change original evidence or
 GPU execution. Regressions exercise real supervisor output and ownership transfer
 with progress present. Fresh round012 retains the round009 donor and prior costs.
+
+
+### Qualification headroom and calibration ancestry (T206–T207)
+
+Round012 completed ownership recovery and reused the input inventory, but the
+2,100-second CPU/native qualification watchdog terminated pytest after 94% with no
+reported test failure. Research preparation now explicitly reserves 10,800 seconds
+for that complete CPU suite; its enclosing pipeline has 15,600 seconds, including
+unchanged image/HIP stages and cleanup/publication headroom. This is operational
+headroom, not a training budget or expected duration. Other callers retain their
+existing qualification defaults, and no test or qualification check is removed.
+
+A recipient that acquires round009's calibration lineage and then fails CPU
+qualification before HIP must not erase that lineage. Resolve the exact selected
+donor through hash-bound ownership history (maximum sixteen links). Replay each
+intermediate CPU-failure proof and reject mismatched links, changed originals or
+started downstream/scientific work. Keep the original v5 calibration proof and
+costs; fresh current-source qualification and calibration compatibility checks
+remain mandatory. Only the host qualification scheduler joins the reviewed source
+migration set; no calibrated learner/device operation changes. Round013 retains
+round009 as its explicit calibration donor and round002 as its input donor.
