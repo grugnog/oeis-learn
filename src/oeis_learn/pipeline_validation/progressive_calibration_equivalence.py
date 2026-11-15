@@ -6,6 +6,7 @@ allows them to supply unchanged complete-iteration bounds.
 """
 import ast
 import hashlib
+import inspect
 from pathlib import Path
 
 from oeis_learn.generalization.progressive.contracts import digest
@@ -57,7 +58,11 @@ def validate(original, current, *, package_root=None):
                 tree.body = [n for n in tree.body if not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) or n.name not in (excluded if isinstance(excluded,tuple) else (excluded,))]
             else:
                 tree.body = [n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name in {'case_package', 'run_case'}]
-            actual = hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest()
+            # The reviewed pins were computed on Python 3.12. Python 3.13
+            # omits empty fields by default; explicitly retain them where the
+            # new option exists. Do not re-pin or relax protected code checks.
+            options = {'show_empty': True} if 'show_empty' in inspect.signature(ast.dump).parameters else {}
+            actual = hashlib.sha256(ast.dump(tree, include_attributes=False, **options).encode()).hexdigest()
             if actual != expected:
                 raise ValueError('protected calibration execution changed: '+name)
     return changed

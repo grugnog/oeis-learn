@@ -628,3 +628,16 @@ large support JSON, without changing canonical identities or measured execution.
 Fresh qualification, acceptance and the ordinary scientific runner remain required.
 The wrapper retains all new diagnostics on failure; a completed metadata result
 can be replayed without launching device calibration again.
+
+
+### Portable protected-source fingerprints (T204)
+
+The original pins use Python 3.12's AST representation, including empty fields.
+Python 3.13 introduced `ast.dump(show_empty=False)` and changed the default
+representation of identical code. Select `show_empty=True` when supported, leaving
+older interpreters on their original API. Do not replace the original pins, skip
+protected modules or change source-authority requirements. Regressions cover both
+API shapes on every CI interpreter and actual stdlib-only Python 3.12/3.13 processes
+when available, including rejection of an altered iteration guard. Round010's
+handoff failed before owner publication or any pipeline stage; a fresh round011
+session retains the original round009 donor and all completed calibration evidence.

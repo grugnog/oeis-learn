@@ -904,3 +904,16 @@ evidence. No scientific task, token target, checkpoint cadence or GPU concurrenc
 changed. The corrected estimator may still report a real hard-cap deficit. Use the
 round010 command in `quickstart.md`; original round009 files remain immutable and
 must stay available. CI is not awaited after publication.
+
+## Phase 34: Portable protected-source verification
+
+- [X] T204 Preserve the original protected execution fingerprints on Python 3.12 and 3.13+ by explicitly retaining empty AST fields. Reproduce the default-dump mismatch, exercise actual stdlib-only interpreters when available, retain rejection of protected-code changes, and document a fresh round011 handoff without repeating completed calibration or changing original session bindings.
+
+
+T204 validation: reproduced the fingerprint failure on actual Python 3.13 before
+repair; all three original pins match after repair on Python 3.12 and 3.13. The
+focused calibration reuse, integration, trajectory and provenance suite passed
+45 tests. Both AST API shapes are exercised on every test interpreter; actual
+stdlib-only subprocesses also reject an altered protected iteration guard. No HIP
+execution was repeated locally. Round010 failed before owner publication and had
+no pipeline steps; the next handoff keeps the round009 calibration donor immutable.

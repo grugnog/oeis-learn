@@ -13,6 +13,56 @@ from oeis_learn.pipeline_validation.progressive_workstation_state import write, 
 from oeis_learn.pipeline_validation import progressive_calibration_equivalence as eq
 
 
+@pytest.mark.parametrize('show_empty_supported',[False,True])
+def test_protected_fingerprints_keep_empty_fields_on_both_dump_apis(monkeypatch,show_empty_supported):
+    import inspect
+    original_dump=eq.ast.dump
+    options={'show_empty':True} if 'show_empty' in inspect.signature(original_dump).parameters else {}
+    calls=[]
+    def old_dump(node,*,include_attributes=False):
+        calls.append('legacy')
+        return original_dump(node,include_attributes=include_attributes,**options)
+    def new_dump(node,*,include_attributes=False,show_empty=False):
+        calls.append(show_empty)
+        # Python 3.13's new default is unsuitable for the original 3.12 pins.
+        assert show_empty is True
+        return original_dump(node,include_attributes=include_attributes,**options)
+    monkeypatch.setattr(eq.ast,'dump',new_dump if show_empty_supported else old_dump)
+    old={eq.PREFIX+p:digest('old') for p in eq.PROTECTED}
+    current={p:digest('host verifier changed') for p in old}
+    monkeypatch.setattr(eq,'ORIGINAL_SOURCE',digest(old))
+    assert eq.validate(old,current)==sorted(current)
+    assert calls==[True if show_empty_supported else 'legacy']*3
+
+
+@pytest.mark.parametrize('binary',['python3.12','python3.13'])
+def test_actual_stdlib_interpreters_preserve_pins_and_reject_code_changes(tmp_path,binary):
+    executable=shutil.which(binary)
+    if executable is None:pytest.skip(binary+' is not installed; both dump APIs are tested separately')
+    code='''import sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from oeis_learn.pipeline_validation import progressive_calibration_equivalence as eq
+from oeis_learn.generalization.progressive.contracts import digest
+original={eq.PREFIX+p:digest('original') for p in eq.PROTECTED}
+eq.ORIGINAL_SOURCE=digest(original)
+current={p:digest('host-only change') for p in original}
+assert eq.validate(original,current)==sorted(current)
+relative='generalization/progressive/iteration.py'
+base=Path(sys.argv[2]); path=base/relative;path.parent.mkdir(parents=True)
+path.write_text((Path(eq.__file__).resolve().parents[1]/relative).read_text().replace('return sum(phases)','return 0'))
+original={eq.PREFIX+relative:digest('original')};eq.ORIGINAL_SOURCE=digest(original)
+try:eq.validate(original,{eq.PREFIX+relative:digest('changed')},package_root=base)
+except ValueError as exc:assert 'protected calibration execution changed' in str(exc)
+else:raise AssertionError('modified iteration guard accepted')
+assert not {'torch','numpy','optuna','jsonschema'} & set(sys.modules)
+print(sys.version.split()[0], 'all original pins match; changed guard rejected')
+'''
+    result=subprocess.run([executable,'-S','-c',code,str(Path(__file__).resolve().parents[2]/'src'),str(tmp_path)],capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stdout+result.stderr
+    assert 'changed guard rejected' in result.stdout
+
+
 def test_reviewed_source_boundary_keeps_tensor_native_and_lock_bytes(monkeypatch):
     old={'src/oeis_learn/pipeline_validation/progressive_training.py':digest('original'), 'uv.lock':digest('lock')}
     monkeypatch.setattr(eq,'ORIGINAL_SOURCE',digest(old))

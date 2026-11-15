@@ -766,7 +766,7 @@ the share ZIP intentionally omits the private traceback. No completed calibratio
 or training work is being discarded or represented as success. Current-source
 qualification repeats because the implementation changed; census/rehearsal do not.
 
-### Recover completed round009 calibration into round010
+### Recover completed round009 calibration into round011
 
 Use this only with the original round009 session and retained round002 data on
 this workstation. Keep both directories: the new freeze references their original
@@ -780,7 +780,7 @@ cd ~/workspace/oies-learn &&
 git pull --ff-only origin 013-progressive-mathematical-discovery &&
 python3 -S scripts/discovery_hip_handoff.py \
   --engine podman \
-  --session run-state/discovery/013-research-round-010 \
+  --session run-state/discovery/013-research-round-011 \
   prepare-research \
   --registration-session run-state/discovery/013-research-inputs-003 \
   --rehearsal-session run-state/discovery/013-hip-007 \
@@ -803,5 +803,16 @@ Reinvocation checks completed journal outputs. It replays completed preparation
 metadata without calibration dispatch. Unproven device termination or an interrupted
 benchmark requires investigation using the retained ZIP; it is never silently
 turned into fresh scientific or diagnostic allowance. Share
-`run-state/discovery/013-research-round-010/share/prepare-research.zip` on a stop.
+`run-state/discovery/013-research-round-011/share/prepare-research.zip` on a stop.
 Final assessment still requires its separate explicit command.
+
+
+Round010 stopped before any pipeline stage or owner transfer because Python 3.13
+changed the default AST diagnostic representation. T204 explicitly retains empty
+fields, preserving all original Python 3.12 execution fingerprints. Use the fresh
+round011 session above after pulling; keep round010's original failure evidence.
+No qualification, trajectory benchmark or calibration work ran in round010.
+Its telemetry reported about 193 GiB free, below round009's approximately 316 GiB
+training-task storage reservation alone. Restore enough free space for that
+reservation plus input projections, images and diagnostic outputs before launch;
+the canonical freeze continues to enforce measured free-space requirements.
