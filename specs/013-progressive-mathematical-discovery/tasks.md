@@ -973,4 +973,20 @@ passed. No new HIP evidence is claimed; CI is not awaited after publication.
 - [X] T210 Add an explicit prospective research design with two linked 12.5M-token confirmation tasks per seed, protected continuation state, unchanged scientific horizons and aggregate training reservations within 536 hours.
 - [X] T211 Keep all learning-trial screening looks but evaluate unpruned sizing trials only at 4M; validate the precise reduced roster, selection and final confirmation bindings.
 - [X] T212 Recover the original calibration donor through a verified, clean pre-freeze reused-calibration time deficit; preserve original evidence and costs and reject scientific execution or changed inputs.
-- [ ] T213 Add narrowly scoped qualification/trajectory tensor retirement and test revised construction, freeze, selection, continuation and recovery; replay round014 measurements against new allocations and document the next command and storage requirements.
+- [X] T213 Add narrowly scoped qualification/trajectory tensor retirement and test revised construction, freeze, selection, continuation and recovery; replay round014 measurements against new allocations and document the next command and storage requirements.
+
+
+T210–T213 validation: full v4 construction, all frozen variants and finalist
+selection passed four integration-sized compiler tests. The focused suites passed
+156 calibration/recovery checks, 171 handoff/workstation checks and 35 final
+recovery/reservation/identity checks (some overlap). Actual CPU lifecycle,
+full-state successor and optimizer/recovery integration passed 21 tests; seven
+native-solver checks require the pinned qualification image and skipped locally.
+The three legacy design fixtures also passed before the final v4 validator fix.
+Replayed all 68 revised training segments against round014's original measured
+inputs: 3,730 configuration estimates, zero time deficits, unchanged fourfold
+margin. Python 3.13 stdlib-only handoff dry-run and cleanup CLI passed. Retirement
+tests preserve every non-tensor byte, reject active/scientific/tampered sessions,
+and exercise idempotent apply. The v6-to-v5 ownership test retains the original
+calibration donor. No new HIP evidence is claimed; current qualification and
+trajectory remain mandatory, and CI is not awaited after publication.
