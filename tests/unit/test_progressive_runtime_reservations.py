@@ -73,3 +73,61 @@ def test_evaluation_deadline_uses_only_validated_installed_authority(tmp_path):
     assert _maximum_seconds(SimpleNamespace(evaluation_seconds=10**9))==21600
     budget.deadline=time.monotonic()+50*3600
     assert 49*3600<_evaluation_seconds(budget)<=50*3600
+
+
+def test_recovery_setup_headroom_is_counted_with_trajectory_and_preserves_original(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_preparation_preflight import reservation as extra, verified
+    from oeis_learn.pipeline_validation.progressive_trajectory import reservation as trajectory
+    from oeis_learn.pipeline_validation.research_limits import case_allowance,ACCEPTANCE_SECONDS
+    from oeis_learn.generalization.progressive.contracts import atomic_write,reference,digest
+    _,panels,screen=fixture()
+    data=seal(dict(version='progressive-registered-data/v1',design=seal(dict(seeds=[17,19]))))
+    outer=reservation(construct(scientific_round(data,expanded=True),panels,screen))
+    atomic_write(tmp_path/'roster/outer.json',outer)
+    old=(tmp_path/'roster/outer.json').read_bytes()
+    value=extra(tmp_path,reference(tmp_path,'roster/outer.json'))
+    assert value['additional_seconds']==11800
+    assert value['setup_seconds']['base_qualification']>=15600+4*120
+    assert case_allowance(value['setup_seconds']['qualify'],maximum=4200)>3600
+    assert case_allowance(value['setup_seconds']['acceptance'],maximum=7800)>ACCEPTANCE_SECONDS
+    assert value['reserved_qualification_seconds']<=outer['limits_seconds']['qualification_acceptance']
+    # Compiler republishes identical original budget bytes at its own path.
+    atomic_write(tmp_path/'construction/outer.json',outer)
+    atomic_write(tmp_path/'headroom.json',value)
+    refs=[dict(name='research-reservation-v2',artifact=reference(tmp_path,'construction/outer.json')),
+          dict(name='preparation_headroom',artifact=reference(tmp_path,'headroom.json'))]
+    assert verified(tmp_path,refs)==value
+    req=dict(identity=digest('request'),cases=[{}]*13,target_tokens=128000)
+    combined=trajectory(tmp_path,refs,req,research=True)
+    assert combined['reserved_total_seconds']==outer['total_seconds']+11800+36300
+    assert combined['reserved_qualification_seconds']==value['reserved_qualification_seconds']
+    assert (tmp_path/'roster/outer.json').read_bytes()==old
+    altered=dict(outer,limits_seconds=dict(outer['limits_seconds'],qualification_acceptance=1))
+    atomic_write(tmp_path/'tight.json',seal(altered))
+    with pytest.raises(ValueError,match='outer limits'):extra(tmp_path,reference(tmp_path,'tight.json'))
+    from oeis_learn.pipeline_validation.progressive_workstation_state import write
+    write(tmp_path/'headroom.json',seal(dict(value,additional_seconds=0)))
+    refs[1]['artifact']=reference(tmp_path,'headroom.json')
+    with pytest.raises(ValueError,match='differs'):verified(tmp_path,refs)
+
+
+def test_incompatible_calibration_is_reported_before_any_qualification(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import progressive_research_launch as launch
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session,write
+    from oeis_learn.generalization.progressive.contracts import digest
+    session=Session(tmp_path,'run-state/new',{},'prepare-research');base=session.folder/'prepare-research'
+    for name in ('role-roster','research-prerequisites'):
+        session.journal['steps']['prepare-research/'+name]={'status':'COMPLETE'}
+    _,panels,screen=fixture()
+    data=seal(dict(version='progressive-registered-data/v1',design=seal(dict(seeds=[17,19]))))
+    design=scientific_round(data,expanded=True)
+    write(base/'roster/research-reservation.json',reservation(construct(design,panels,screen)))
+    def invalid(w):raise ValueError('original calibration lineage changed')
+    monkeypatch.setattr('oeis_learn.pipeline_validation.progressive_calibration_reuse_workstation.fenced_original',invalid)
+    monkeypatch.setattr('oeis_learn.pipeline_validation.progressive_research_qualification.qualify',lambda *a,**kw:pytest.fail('expensive qualification started'))
+    w=SimpleNamespace(root=tmp_path,base=base,s=session,args=SimpleNamespace(reuse_calibration_session='old'))
+    with session.own():launch.prepare(w,data,design,{})
+    row=session.journal['steps']['prepare-research/execution-preflight']
+    assert row['status']=='FAILED' and 'lineage changed' in row['reason']
+    assert (session.folder/'share/prepare-research.zip').is_file()

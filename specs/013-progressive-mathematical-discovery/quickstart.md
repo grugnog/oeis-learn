@@ -766,7 +766,7 @@ the share ZIP intentionally omits the private traceback. No completed calibratio
 or training work is being discarded or represented as success. Current-source
 qualification repeats because the implementation changed; census/rehearsal do not.
 
-### Recover completed round009 calibration into round013
+### Recover completed round009 calibration into round014
 
 Use this only with the original round009 session and retained round002 data on
 this workstation. Keep both directories: the new freeze references their original
@@ -780,7 +780,7 @@ cd ~/workspace/oies-learn &&
 git pull --ff-only origin 013-progressive-mathematical-discovery &&
 python3 -S scripts/discovery_hip_handoff.py \
   --engine podman \
-  --session run-state/discovery/013-research-round-013 \
+  --session run-state/discovery/013-research-round-014 \
   prepare-research \
   --registration-session run-state/discovery/013-research-inputs-003 \
   --rehearsal-session run-state/discovery/013-hip-007 \
@@ -803,7 +803,7 @@ Reinvocation checks completed journal outputs. It replays completed preparation
 metadata without calibration dispatch. Unproven device termination or an interrupted
 benchmark requires investigation using the retained ZIP; it is never silently
 turned into fresh scientific or diagnostic allowance. Share
-`run-state/discovery/013-research-round-013/share/prepare-research.zip` on a stop.
+`run-state/discovery/013-research-round-014/share/prepare-research.zip` on a stop.
 Final assessment still requires its separate explicit command.
 
 
@@ -831,6 +831,16 @@ Round012 recovered the ownership lineage and reused the inputs, then exhausted t
 35-minute CPU qualification watchdog after pytest passed 94% without a reported
 failure. T206 provides a three-hour research CPU watchdog and a 4h20m enclosing
 pipeline reservation; these are ceilings, not runtime predictions. T207 retains
-round009's original calibration through that pre-HIP failure. Use fresh round013
+round009's original calibration through that pre-HIP failure. Use the fresh session
 above, keeping round009 and round012 intact. The CPU qualification must complete;
 the 1,296-case calibration census is still reused rather than rerun.
+
+
+Round013 completed CPU/native tests (2,802 passed) but qualification rejected one
+skipped optional interpreter check. T208 selects only installed supplementary
+interpreters and always runs the current interpreter plus both AST API cases;
+the zero-skip qualification rule remains unchanged. T209 validates donor ancestry
+and source compatibility before expensive qualification, and records supplementary
+setup headroom without changing historical budgets. Use fresh round014 above.
+Keep rounds009, 012 and 013 and their ownership history intact. Neither a new tiny
+rehearsal nor the 1,296-case calibration census is requested by this command.

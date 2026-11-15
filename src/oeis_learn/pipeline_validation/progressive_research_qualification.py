@@ -40,7 +40,7 @@ def qualification_blueprint(root, output, *, matrix, base):
     return output/'qualification-blueprint.json'
 
 
-def qualify(workflow, data, design):
+def qualify(workflow, data, design, *, setup=None):
     """No tiny rehearsal call; obtain base/current research scope only once."""
     w=workflow;s=w.s;root=w.root;base=w.base
     def profiles():
@@ -71,5 +71,5 @@ def qualify(workflow, data, design):
         return str(path.relative_to(root)),[path,base/'plans/qualification-plan.json']
     blueprint=s.step('qualification-plan',plan,dependencies=('prepare-research/matrix',))
     return w.run_command('qualify','qualify',resume=True,blueprint=blueprint or 'missing',
-        output=str((base/'qualification').relative_to(root)),seconds=3700,
+        output=str((base/'qualification').relative_to(root)),seconds=(setup or {}).get('qualify',4200),
         dependencies=('prepare-research/qualification-plan',))

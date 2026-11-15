@@ -9,7 +9,7 @@ from .progressive_workstation_state import Blocked, read, write
 from oeis_learn.generalization.progressive.contracts import reference
 
 VERSION = 'progressive-preparation-owner/v2'
-EARLY = {'registered-data', 'rehearsal-reference', 'census-plan', 'environment',
+EARLY = {'execution-preflight', 'registered-data', 'rehearsal-reference', 'census-plan', 'environment',
          'image-qualification', 'image-gpu', 'native-census', 'materials',
          'role-roster', 'sensitivity', 'research-prerequisites', 'qualification-profiles'}
 

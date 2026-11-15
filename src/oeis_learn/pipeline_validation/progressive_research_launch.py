@@ -13,9 +13,15 @@ from oeis_learn.generalization.progressive.research_roster import ROSTER_DOCUMEN
 
 def prepare(workflow,data,design,materials):
     w=workflow;s=w.s;root=w.root;base=w.base
-    from .progressive_research_qualification import qualify
-    qualify(w,data,design)
     setup=design['operational_reservation']['setup_seconds']
+    if getattr(getattr(w,'args',None),'reuse_calibration_session',None):
+        from .progressive_preparation_preflight import prepare as preflight
+        checked=s.step('execution-preflight',lambda:preflight(w),
+            dependencies=('prepare-research/research-prerequisites','prepare-research/role-roster'))
+        if checked is None:return
+        setup=checked['setup_seconds']
+    from .progressive_research_qualification import qualify
+    qualify(w,data,design,setup=setup)
     qroot=base/'qualification';timing=base/'evaluation-timing'
     def timing_request():
         from .progressive_research_feasibility import request

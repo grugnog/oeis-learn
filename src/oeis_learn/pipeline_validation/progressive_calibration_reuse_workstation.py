@@ -54,6 +54,10 @@ def prepare(w):
     from .progressive_runtime_timing import FEASIBILITY_SECONDS
     from .progressive_research_resources import policy
     base = w.base; folder = base/'training-trajectory'; output = base/'calibration-reuse'
+    def headroom_refs():
+        path=base/'preparation-headroom.json'
+        return ([dict(name='preparation_headroom',role='custodian',kind='policy',artifact=reference(w.root,path))]
+                if path.is_file() else [])
     def qualification():
         return reference(w.root, base/'qualification/qualification.json')
     def request():
@@ -66,7 +70,7 @@ def prepare(w):
         value = timing.plan(w.root, folder, cases, qualification())
         # Separate diagnostic allowance, with no scientific exposure or refunds
         # of the original 72-hour calibration reservation.
-        reservation = timing.reservation(w.root,raw['payload']['references'],value,research=raw['purpose']=='research')
+        reservation = timing.reservation(w.root,[*raw['payload']['references'],*headroom_refs()],value,research=raw['purpose']=='research')
         retain(folder/'trajectory-reservation.json', reservation)
         return value, [output/'calibration-reuse.json', folder/'request.json', folder/'trajectory-inputs.json',
                        folder/'private/training-input.json', folder/'trajectory-reservation.json']
@@ -98,6 +102,7 @@ def prepare(w):
         retain(output/'resource-policy.json', policy(trajectory=True))
         payload = copy.deepcopy(raw['payload']); payload.pop('blueprint')
         payload['references'] = [r for r in payload['references'] if r['name'] != 'research_resource_policy']
+        payload['references'].extend(headroom_refs())
         for name, kind, path in [('research_resource_policy', 'policy', output/'resource-policy.json'),
                                   (NAME, 'policy', output/'calibration-reuse.json'),
                                   ('training_trajectory', 'source', folder/'trajectory-report.json'),

@@ -676,3 +676,35 @@ costs; fresh current-source qualification and calibration compatibility checks
 remain mandatory. Only the host qualification scheduler joins the reviewed source
 migration set; no calibrated learner/device operation changes. Round013 retains
 round009 as its explicit calibration donor and round002 as its input donor.
+
+
+### Zero-skip qualification and early recovery preflight (T208–T209)
+
+Round013's CPU/native suite finished with 2,802 passed and one skipped optional
+Python 3.13 subprocess test; the unchanged zero-skip qualification rule correctly
+rejected it. Always select the running interpreter and add installed supplementary
+interpreters, while running both AST API compatibility cases unconditionally.
+Missing optional interpreter installations must not create skipped qualification
+cases. Do not weaken the qualification authority or install host dependencies.
+
+For completed-calibration recovery, validate the exact retained donor ancestry and
+reviewed source migration before expensive base qualification. Publish an explicit
+additional setup reservation: base qualification 18,000 seconds (enclosing its
+15,600-second pipeline plus final inspection/publication), qualify command 4,200
+seconds, and acceptance command 7,800 seconds. The latter two enclose inner 3,600/
+7,200-second budgets after the wrapper's 120-second cleanup reserve. Record the
+11,800-second increment within the existing qualification/aggregate headroom;
+do not modify historical reservations or scientific token budgets. Bind that
+record into the recovery preparation plan and include its increment alongside the
+separate 36,300-second trajectory reservation in independent resource replay.
+Compiler copies of the original outer reservation must have identical verified
+contents even when their relative paths differ. Ordinary historical preparation
+plans retain their previous interpretation.
+
+Review evidence: round009's original model qualification took 947.7 seconds,
+evaluation timing 986.1 seconds and construction 239.3 seconds. Their current
+inner limits exceed three times those observations. Round013's CPU suite took
+2,077.9 seconds, below its repaired three-hour watchdog. Review also follows the
+trajectory projection, canonical prepare/freeze, campaign acceptance, automatic
+run/resume and failure/report collection boundaries. Local process doubles do not
+establish HIP readiness; the next original device receipts remain required.

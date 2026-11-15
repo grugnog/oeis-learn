@@ -16,6 +16,7 @@ PREFIX = 'src/oeis_learn/'
 # None of these modules executes learner updates, tensor persistence, native
 # evaluation or device calibration. Their new behavior is qualified afresh.
 HOST_ONLY = {
+    'pipeline_validation/progressive_preparation_preflight.py',
     # Only fresh qualification scheduling changes; old HIP authority is never reused.
     'pipeline_validation/generalization_qualification_io.py',
     'pipeline_validation/progressive_research_qualification.py',

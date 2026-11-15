@@ -162,7 +162,7 @@ def test_registered_handoff_uses_canonical_dependencies_and_stops_before_expensi
     for name,value in [('registered/registered-data.json',data),('materials/materials.json',materials),('research-round-design.json',design)]:
         atomic_write(base/name,value)
     calls=[]
-    def qualify(w,*args):
+    def qualify(w,*args,**kwargs):
         atomic_write(base/'qualification/qualification.json',{'explicit_qualification_boundary':True})
         atomic_write(base/'matrix/profiles.json',{'profiles':[]})
         session.journal['steps']['prepare-research/qualify']=dict(status='COMPLETE')

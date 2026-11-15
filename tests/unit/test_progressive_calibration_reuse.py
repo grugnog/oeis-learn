@@ -35,10 +35,19 @@ def test_protected_fingerprints_keep_empty_fields_on_both_dump_apis(monkeypatch,
     assert calls==[True if show_empty_supported else 'legacy']*3
 
 
-@pytest.mark.parametrize('binary',['python3.12','python3.13'])
-def test_actual_stdlib_interpreters_preserve_pins_and_reject_code_changes(tmp_path,binary):
-    executable=shutil.which(binary)
-    if executable is None:pytest.skip(binary+' is not installed; both dump APIs are tested separately')
+def available_stdlib_interpreters():
+    # The running interpreter is mandatory. Extra installed versions supplement
+    # it; absent optional binaries are not selected into zero-skip qualification.
+    return sorted({sys.executable,*(p for name in ('python3.12','python3.13') if (p:=shutil.which(name)))})
+
+
+def test_stdlib_selection_always_includes_current_python_without_optional_binaries(monkeypatch):
+    monkeypatch.setattr(shutil,'which',lambda name:None)
+    assert available_stdlib_interpreters()==[sys.executable]
+
+
+@pytest.mark.parametrize('executable',available_stdlib_interpreters())
+def test_actual_stdlib_interpreters_preserve_pins_and_reject_code_changes(tmp_path,executable):
     code='''import sys
 from pathlib import Path
 sys.path.insert(0,sys.argv[1])
@@ -119,8 +128,9 @@ def test_fenced_original_is_exact_selected_donor(tmp_path):
     with pytest.raises(ValueError):fenced_original(w)
 
 
+@pytest.mark.parametrize('with_headroom',[False,True])
 @pytest.mark.parametrize('fail',[False,True])
-def test_wrapper_recovery_measure_revision_resume_and_failure_zip(tmp_path,monkeypatch,fail):
+def test_wrapper_recovery_measure_revision_resume_and_failure_zip(tmp_path,monkeypatch,fail,with_headroom):
     from tests.integration.test_progressive_calibration_reuse import recovery_fixture
     from oeis_learn.pipeline_validation import progressive_calibration_reuse_workstation as wmodule
     from oeis_learn.pipeline_validation import progressive_trajectory as trajectory
@@ -137,6 +147,19 @@ def test_wrapper_recovery_measure_revision_resume_and_failure_zip(tmp_path,monke
     for r in payload['references']:
         if r['kind']=='qualification':r['artifact']=reference(tmp_path,base/'qualification/qualification.json')
     payload['references']=[r for r in payload['references'] if r['name'] not in {'calibration_reuse','training_trajectory','research_resource_policy'}]
+    if with_headroom:
+        from tests.unit.test_progressive_research_roster import fixture
+        from oeis_learn.generalization.progressive.research_roster import construct
+        from oeis_learn.generalization.progressive.research_budget import reservation
+        from oeis_learn.pipeline_validation.progressive_research_design import scientific_round
+        from oeis_learn.pipeline_validation.progressive_preparation_preflight import reservation as extra
+        _,panels,screen=fixture()
+        data=seal(dict(version='progressive-registered-data/v1',design=seal(dict(seeds=[17,19]))))
+        outer=reservation(construct(scientific_round(data,expanded=True),panels,screen))
+        write(base/'roster/research-reservation.json',outer)
+        write(base/'construction/research-reservation.json',outer)
+        payload['references'].append(dict(name='research-reservation-v2',role='custodian',kind='policy',artifact=reference(tmp_path,base/'construction/research-reservation.json')))
+        write(base/'preparation-headroom.json',extra(tmp_path,reference(tmp_path,base/'roster/research-reservation.json')))
     write(base/'construction/preparation-plan.json',dict(version='progressive-preparation-plan/v1',payload=payload))
     b=copy.deepcopy(revised)
     for ref in b['payload']['references']:
@@ -175,6 +198,10 @@ def test_wrapper_recovery_measure_revision_resume_and_failure_zip(tmp_path,monke
     else:
         assert (tmp_path/path).is_file()
         assert session.journal['steps']['prepare-research/calibration-reuse-plan']['status']=='COMPLETE'
+        if with_headroom:
+            from oeis_learn.pipeline_validation.progressive_preparation_preflight import verified
+            assert verified(tmp_path,raw_prepared(tmp_path,load(tmp_path/path))['payload']['references'])
+            assert load(base/'training-trajectory/trajectory-reservation.json')['reserved_qualification_seconds']==load(base/'preparation-headroom.json')['reserved_qualification_seconds']
     with session.own():assert wmodule.prepare(w)==path
     assert calls==['trajectory']
     with zipfile.ZipFile(session.folder/'share/prepare-research.zip') as z:
@@ -274,6 +301,22 @@ def test_completed_calibration_owner_transfer_is_time_only_and_fenced(tmp_path,m
         w=SimpleNamespace(root=tmp_path,s=SimpleNamespace(folder=tmp_path/latest['recipient']),
             args=SimpleNamespace(reuse_calibration_session=str(folder.relative_to(tmp_path))))
         assert fenced_original(w)==base
+        # Two successive CPU qualification failures match rounds 012 and 013.
+        failed_owner(tmp_path,tmp_path/latest['recipient'],latest)
+        newer=seal(dict(latest,recipient='run-state/final',current_source=digest('skip fix')))
+        claim_owner(tmp_path,claim,newer)
+        w.s.folder=tmp_path/newer['recipient']
+        assert fenced_original(w)==base
+        from oeis_learn.pipeline_validation.progressive_preparation_preflight import prepare as preflight
+        w.base=w.s.folder/'prepare-research'
+        write(w.base/'roster/research-reservation.json',seal(dict(
+            version='progressive-research-reservation/v2',status='READY',
+            setup_seconds=dict(base_qualification=7200,qualify=3700,acceptance=7300),
+            ancillary_seconds=dict(qualification_acceptance=20000),total_seconds=30000,
+            limits_seconds=dict(qualification_acceptance=86400),selected_maximum_seconds=100000)))
+        headroom,files=preflight(w)
+        assert headroom['additional_seconds']==11800 and all(p.is_file() for p in files)
+        assert load(w.base/'execution-preflight.json')['calibration_donor']==str(base.relative_to(tmp_path))
         w.args.reuse_calibration_session=recipient['recipient']
         with pytest.raises(ValueError):fenced_original(w)
         w.args.reuse_calibration_session=str(folder.relative_to(tmp_path))

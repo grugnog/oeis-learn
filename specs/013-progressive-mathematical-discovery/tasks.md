@@ -949,3 +949,20 @@ transfer, rejects mismatched donors, altered history/proofs and scientific work.
 The original round012 ZIP's process/cleanup/journal records independently passed
 the canonical pre-HIP replacement proof without device mocks. Python 3.13 CLI
 dry-run passed. No new HIP or scientific success is claimed; CI is not awaited.
+
+
+## Phase 37: Zero-skip qualification and prospective pipeline preflight
+
+- [X] T208 Select the running Python interpreter and available supplementary versions without skipped cases in mandatory installed qualification. Keep both AST API regressions mandatory and retain the zero-skip authority rule.
+- [X] T209 Validate retained calibration lineage/source and prospective operational headroom before expensive qualification. Enclose inner qualify/acceptance deadlines, account added setup ceilings without rewriting original reservations, and test the next preparation handoffs.
+
+
+T208–T209 validation: 271 focused unit/integration checks passed; two native-image
+checks skipped locally and still require installed qualification. The portability
+subset passed seven checks with zero skips, including actual Python 3.12/3.13
+stdlib subprocesses and simulated absence of supplementary interpreters. Recovery
+tests cover two successive CPU-failed owners, early donor rejection, setup/trajectory
+reservation replay and tamper rejection, directory creation, resume without repeat
+dispatch, and failure ZIP retention. The original round013 ZIP independently passed
+the canonical pre-HIP replacement proof. Python 3.13 stdlib-only round014 CLI dry-run
+passed. No new HIP evidence is claimed; CI is not awaited after publication.

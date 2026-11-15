@@ -29,7 +29,10 @@ def reservation(root, references, request, *, research):
         if seal(outer)!=outer or outer.get('version')!='progressive-research-reservation/v2' or outer.get('status')!='READY':
             raise ValueError('original ready outer reservation required')
         preparation=outer['ancillary_seconds']['preparation']+FEASIBILITY_SECONDS
-        total=outer['total_seconds']+FEASIBILITY_SECONDS
+        from .progressive_preparation_preflight import verified
+        headroom=verified(root,references)
+        total=(headroom['reserved_total_seconds'] if headroom else outer['total_seconds'])+FEASIBILITY_SECONDS
+        if headroom:value['reserved_qualification_seconds']=headroom['reserved_qualification_seconds']
         if preparation>outer['limits_seconds']['preparation'] or total>outer['selected_maximum_seconds']:
             raise ValueError('additional trajectory diagnostic exceeds original outer headroom')
         value.update(original_reservation=refs[0],reserved_preparation_seconds=preparation,reserved_total_seconds=total)
