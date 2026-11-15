@@ -990,3 +990,20 @@ tests preserve every non-tensor byte, reject active/scientific/tampered sessions
 and exercise idempotent apply. The v6-to-v5 ownership test retains the original
 calibration donor. No new HIP evidence is claimed; current qualification and
 trajectory remain mandatory, and CI is not awaited after publication.
+
+
+## Phase 39: Complete mandatory test registration
+
+- [X] T214 Register the three new streamlined-screening/recovery/retirement test modules in the canonical CPU inventory; reproduce round015's packaging failure, verify inventory/partition closure and original pre-HIP recovery, and document the round016 handoff without repeated cleanup or calibration.
+
+
+T214 validation: reproduced the exact missing-three-modules packaging assertion
+before repair. After registration, 141 focused tests passed with zero skips,
+including packaging inventory closure, CI partition completeness/merge rejection,
+all three newly registered modules, calibration ancestry and package provenance.
+The extended owner test traverses v1 -> v6 -> v5 after a CPU failure without
+altering either predecessor journal, and rejects a substituted calibration donor.
+Round015's actual original ZIP independently passed the canonical pre-HIP failure
+proof using its original receipts/processes/cleanup, without hardware mocks.
+Python 3.13 stdlib-only round016 handoff dry-run passed. No HIP success is claimed;
+current qualification still runs. CI is not awaited after publication.

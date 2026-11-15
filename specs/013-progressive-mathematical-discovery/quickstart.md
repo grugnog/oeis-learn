@@ -895,3 +895,34 @@ projection. Learning-trial pruning/control data and final confirmation panels
 remain intact. Confirmations now have two linked 21-hour task ceilings per seed,
 with unchanged 25M cumulative tokens. These ceilings are not expected durations;
 no single task may exceed 24 hours. Final assessment remains a separate command.
+
+
+### Round016: repair round015 test inventory
+
+Round015 stopped during CPU qualification on the missing mandatory registration
+of three new regression modules. There were 2,818 passing tests, 82 passing
+subtests and zero skips. HIP and scientific execution remained blocked. The
+original terminated process/cleanup receipts permit a fresh owner, and the
+v1 -> v6 -> v5 ownership chain retains round009's complete calibration donor.
+Keep round015 and previous sessions; the diagnostic cleanup already ran and
+should not be repeated. Run:
+
+```bash
+cd ~/workspace/oies-learn &&
+git pull --ff-only origin 013-progressive-mathematical-discovery &&
+python3 -S scripts/discovery_hip_handoff.py \
+  --engine podman \
+  --session run-state/discovery/013-research-round-016 \
+  prepare-research \
+  --registration-session run-state/discovery/013-research-inputs-003 \
+  --rehearsal-session run-state/discovery/013-hip-007 \
+  --reuse-preparation-data run-state/discovery/013-research-round-002 \
+  --reuse-calibration-session run-state/discovery/013-research-round-009 \
+  --expanded-runtime-budgets \
+  --streamlined-research \
+  --run-after-prepare
+```
+
+Current-source qualification and short timing measurements still run. The tiny
+rehearsal and 1,296-case calibration census are retained, not repeated. Research
+starts automatically only after successful preparation, freeze and acceptance.

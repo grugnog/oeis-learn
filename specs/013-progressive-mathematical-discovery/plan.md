@@ -755,3 +755,15 @@ hashes and durable retirement intent are verified. Keep all manifests, RNG/state
 logs, original journals, diagnostic ZIPs, calibration evidence and scientific
 inputs/checkpoints. Failed, active, frozen or scientifically started sessions
 remain ineligible. Original calibration replay must continue after retirement.
+
+
+### Round015 mandatory-inventory repair
+
+Round015 completed 2,818 CPU/native tests and 82 subtests with no skips, but the
+packaging contract failed because three new test modules were absent from
+`progressive_cli.CPU_TESTS`. Register all three explicitly, preserving the strict
+inventory contract and CI partition coverage. No learner, token horizon,
+checkpoint cadence, timing guard or evaluation policy changes are required.
+Verify the original pre-HIP failure receipts and the v1 -> v6 -> v5 ownership
+chain before handing off a fresh round016. Keep the original round009 calibration
+donor and all historical journals; do not repeat completed diagnostic cleanup.

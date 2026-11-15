@@ -101,3 +101,16 @@ def test_clean_time_only_recovery_is_fenced(tmp_path,monkeypatch,fault):
             args=SimpleNamespace(reuse_calibration_session='run-state/original'))
         assert fenced_original(w)==tmp_path/'run-state/original/prepare-research'
         with pytest.raises(ValueError,match='superseded'):claim_owner(tmp_path,claim,receipt)
+        # Round015 failed CPU qualification after round014's v6 transfer. A
+        # subsequent owner must traverse v1 -> v6 -> v5 to the original donor.
+        from tests.unit.test_progressive_preparation_reuse import failed_owner
+        failed_owner(tmp_path,w.s.folder,new)
+        failed_journal=(w.s.folder/'journal.json').read_bytes()
+        latest=seal(dict(new,recipient='run-state/after-cpu',current_source=digest('registration fix')))
+        claim_owner(tmp_path,claim,latest)
+        assert (w.s.folder/'journal.json').read_bytes()==failed_journal
+        w.s.folder=tmp_path/latest['recipient']
+        assert fenced_original(w)==tmp_path/'run-state/original/prepare-research'
+        assert (folder/'journal.json').read_bytes()==before
+        w.args.reuse_calibration_session=new['recipient']
+        with pytest.raises(ValueError,match='selected calibration donor differs'):fenced_original(w)
