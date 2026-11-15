@@ -7,7 +7,7 @@ from .progressive_research_inputs import _json, checked_file
 from oeis_learn.generalization.progressive.contracts import reference, record
 
 
-def scientific_round(data, *, expanded=False):
+def scientific_round(data, *, expanded=False, streamlined=False):
     """Prospective extension of the registered fixed-reference design.
 
     The requested optimization round retains the full registered search space.
@@ -59,6 +59,12 @@ def scientific_round(data, *, expanded=False):
         result['operational_reservation']=dict(version='runtime-reservation/v2',
             setup_seconds=rr.setup_seconds(),ancillary_limits_seconds=rr.LIMITS_SECONDS,
             selected_training_seconds=536*3600,selected_total_seconds=rr.TOTAL_SECONDS)
+        result=seal(result)
+    if streamlined:
+        if not expanded:raise ValueError('streamlined research requires expanded operational reservations')
+        result['version']='progressive-research-round-design/v4'
+        result['tuning'].update(sizing_looks=[4000000],confirmation_targets=[12500000,25000000],
+            confirmation_seconds=21*3600)
         result=seal(result)
     return result
 

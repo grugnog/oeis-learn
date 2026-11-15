@@ -28,14 +28,14 @@ def policy(root, campaign, study):
         doc = json.loads(verify_refs(root, [item["artifact"]], max_bytes=32 << 20)[0])
         if (
             isinstance(doc, dict)
-            and doc.get("version") in {"progressive-study-policy/v1","progressive-study-policy/v2","progressive-study-policy/v3"}
+            and doc.get("version") in {"progressive-study-policy/v1","progressive-study-policy/v2","progressive-study-policy/v3","progressive-study-policy/v4"}
             and doc.get("identity") == study
         ):
             matches.append(doc)
     if len(matches) != 1 or seal(matches[0]) != matches[0]:
         raise ValueError("one original frozen study policy required")
     p = matches[0]
-    expanded=p["version"]=="progressive-study-policy/v3"
+    expanded=p["version"] in {"progressive-study-policy/v3","progressive-study-policy/v4"}
     if expanded and not any(r["name"]=="research-reservation-v2" for r in campaign["payload"]["references"]):
         raise ValueError("expanded study requires its frozen operational reservation")
     revised=p["version"]=="progressive-study-policy/v2" or (expanded and "screening_group_policy" in p)
@@ -554,7 +554,7 @@ def prepare_selection(root, store, task, output):
         panels=panels[:count],
         seeds=config["seeds"],
         target=p["target_tokens"],
-        operational_revision=p["version"].endswith("/v3"),
+        operational_revision=p["version"].endswith(("/v3","/v4")),
         root=root,
     )
     if store.campaign["purpose"] == "research" and expected != set(range(16)):
@@ -598,10 +598,10 @@ def commit_selection(root, store, task, result):
             tasks[plan["id"]] = "SKIPPED"
             continue
         if (
-            plan["initializer"]["mode"] != "random"
+            not confirmation_initialization(plan, store.campaign["payload"]["tasks"], p)
             or plan["initializer"]["artifact"] is not None
             or plan["seed"] not in selected["seeds"]
-            or plan["caps"]["elapsed_us"] > ((86400 if plan["kind"]=="training" else 72*3600)*1000000 if p["version"].endswith("/v3") else 43200000000)
+            or plan["caps"]["elapsed_us"] > ((86400 if plan["kind"]=="training" else 72*3600)*1000000 if p["version"].endswith(("/v3","/v4")) else 43200000000)
         ):
             raise ValueError("fresh paired confirmation entitlement required")
         source = j.trials[selected["selected"][position]]["proposal"]["parameters"]
@@ -680,8 +680,10 @@ def validate_frozen(root, campaign):
             if campaign["purpose"] == "research":
                 if {
                     t["trial"]["coordinate"] for t in members if t["trial"]["phase"] == "scoring"
-                } != {1000000, 2000000, 4000000}:
-                    raise ValueError("all three original screening looks must be reserved")
+                } != ({4000000} if p["version"].endswith("/v4") and ordinal>=12 else {1000000, 2000000, 4000000}):
+                    raise ValueError("all registered screening looks must be reserved")
+        if p['version'].endswith('/v4'):
+            confirmation_chains(plans,p)
         members_by_id = {t["id"]: t for t in plans}
         for score_id, evaluation in p["evaluations"].items():
             scored = members_by_id.get(score_id)
@@ -782,12 +784,12 @@ def validate_frozen(root, campaign):
                     )
                 if meta["phase"] == "confirmation":
                     if (
-                        variant["initializer"]["mode"] != "random"
+                        not confirmation_initialization(variant, plans, p)
                         or variant["initializer"]["artifact"] is not None
                     ):
-                        raise ValueError("confirmation must initialize fresh optimizer and weights")
+                        raise ValueError("confirmation must start fresh or restore its frozen same-seed predecessor")
                     if campaign["purpose"] == "research" and (
-                        variant["token_target"] != 25000000
+                        variant["token_target"] not in ({12500000,25000000} if p["version"].endswith("/v4") else {25000000})
                         or package["update_policy"]["schedule_horizon_tokens"] != 400000000
                         or (
                             params["schedule"] == "warmup_cosine"
@@ -885,3 +887,31 @@ def prepare_inputs(root, store, task, request, output, budget):
             monotonic_us=time.monotonic_ns() // 1000,
             termination_proven=True,
         )
+
+
+def confirmation_initialization(plan, plans, policy):
+    """A locked finalist may continue only its same-seed full-state predecessor."""
+    init=plan['initializer']
+    if init['mode']=='random':return 'parent_task' not in init
+    if not policy['version'].endswith('/v4') or plan['kind']!='training' or init['mode']!='full_state':return False
+    parents=[p for p in plans if p['id']==init.get('parent_task')]
+    if len(parents)!=1:return False
+    parent=parents[0]
+    return (parent['kind']=='training' and parent.get('trial')==plan.get('trial')
+        and parent['seed']==plan['seed'] and parent['slot']==plan['slot']
+        and parent['token_target']==12500000 and plan['token_target']==25000000
+        and parent['initializer']['mode']=='random' and parent['initializer']['artifact'] is None
+        and 'parent_task' not in parent['initializer']
+        and parent.get('trial_choices')==plan.get('trial_choices'))
+
+
+def confirmation_chains(plans, policy):
+    selected=[p for p in plans if p['trial']['phase']=='confirmation' and p['kind']=='training']
+    if len(selected)!=16:raise ValueError('four paired two-part confirmations required')
+    for position in range(4):
+        for seed in policy['confirmation']['seeds']:
+            pair=[p for p in selected if p['trial']['ordinal']==position and p['seed']==seed]
+            if (len(pair)!=2 or sorted(p['token_target'] for p in pair)!=[12500000,25000000]
+                    or any(not confirmation_initialization(p,plans,policy) for p in pair)
+                    or any(p['caps']['elapsed_us']!=21*3600*1000000 for p in pair)):
+                raise ValueError('original paired full-state confirmation continuation required')

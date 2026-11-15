@@ -22,9 +22,14 @@ def setup_seconds():
     return dict(SETUP_SECONDS,prepare=CALIBRATION_SECONDS+1800)
 
 
-def role_seconds(row):
+def role_seconds(row, *, streamlined=False):
     shared=row['trial'] and row['trial']['phase'] not in {'selection','confirmation'}
-    if row['operation']=='train':return SCREEN_CHILD_SECONDS if shared else TRAINING_SECONDS
+    if row['operation']=='train':
+        if streamlined:
+            if shared:return (2 if row['trial']['ordinal']<12 else 4)*3600
+            if row['trial'] and row['trial']['phase']=='confirmation':return 21*3600
+            if row['stage']=='diversity':return 20*3600
+        return SCREEN_CHILD_SECONDS if shared else TRAINING_SECONDS
     if row['operation'] in {'generate','score'}:
         per_member=30 if row['operation']=='score' else 900 if row.get('all_methods') else 300
         seconds=len(row['members'])*per_member+(2 if shared else 1801)
@@ -42,22 +47,24 @@ def screening(roster):
         evaluation_us=[sum(r['seconds'] for r in evals[:6])*1000000,
                        sum(r['seconds'] for r in evals[6:10])*1000000,
                        sum(r['seconds'] for r in evals[10:])*1000000],
-        training_us=sum(r['seconds'] for r in rows if r['operation']=='train')*1000000,
+        training_us=max(sum(r['seconds'] for r in roster['tasks'] if r['operation']=='train' and r['trial'] and r['trial']['phase']=='training' and r['trial']['ordinal']==i) for i in range(16))*1000000,
         finalization_us=1800*1000000)
 
 
 def reservation(roster):
     if seal(roster)!=roster or roster.get('version')!='progressive-research-role-roster/v2':
         raise ValueError('original revised roster required')
-    if any(r['seconds']!=role_seconds(r) for r in roster['tasks']):
+    streamlined=roster.get('execution_revision')=='linked-confirmation-final-sizing/v1'
+    if 'execution_revision' in roster and not streamlined:raise ValueError('unknown execution revision')
+    if any(r['seconds']!=role_seconds(r,streamlined=streamlined) for r in roster['tasks']):
         raise ValueError('revised role reservations differ')
     for i in range(16):
         rows=[r for r in roster['tasks'] if r['trial'] and r['trial']['ordinal']==i
               and r['trial']['phase'] not in {'selection','confirmation'}]
-        if len(rows)!=18 or sum(r['seconds'] for r in rows)+1800>TRIAL_SECONDS:
+        if len(rows)!=(10 if streamlined and i>=12 else 18) or sum(r['seconds'] for r in rows)+1800>TRIAL_SECONDS:
             raise ValueError('revised screening children exceed shared trial')
     training=[r for r in roster['tasks'] if r['operation']=='train']
-    if len(training)!=60:raise ValueError('complete original learning roster required')
+    if len(training)!=(68 if streamlined else 60):raise ValueError('complete original learning roster required')
     setup=setup_seconds()
     ancillary=dict(acquisition=0,
         preparation=sum(setup[k] for k in ('census','sensitivity','materials','roster','construction','prepare','preparation_host')),

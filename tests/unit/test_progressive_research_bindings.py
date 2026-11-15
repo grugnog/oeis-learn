@@ -8,7 +8,7 @@ from oeis_learn.generalization.progressive.contracts import atomic_write,digest,
 from oeis_learn.pipeline_validation import progressive_research_bindings as b
 
 
-@pytest.fixture(scope='module',params=[False,True,'expanded'],ids=['original','preparation-v3','runtime-v3'])
+@pytest.fixture(scope='module',params=[False,True,'expanded','streamlined'],ids=['original','preparation-v3','runtime-v3','streamlined-v4'])
 def compiled(tmp_path_factory,request):
     revised=request.param
     from tests.unit.test_progressive_research_roster import fixture
@@ -40,7 +40,7 @@ def compiled(tmp_path_factory,request):
         candidates=reference(root,'candidates.json'),exposure=reference(root,'original-exposure.sqlite'),
         recipe=reference(root,'recipe.json'),manifest=reference(root,'manifest.json'),
         **({'census_reuse':seal(dict(TEST_BOUNDARY_ONLY=True))} if revised else {})))
-    design=scientific_round(data,expanded=revised=="expanded")
+    design=scientific_round(data,expanded=revised in {"expanded","streamlined"},streamlined=revised=="streamlined")
     _,rosters,screening=fixture();panels={};reservations={};pubs=[]
     if revised:
         rosters['development']=[dict(r,group=r['id']) for r in rosters['development']]
@@ -88,7 +88,7 @@ def compiled(tmp_path_factory,request):
 
 def test_full_registered_plan_has_real_closed_requests_and_exact_cases(compiled):
     root,(compiler,bound,study,*_),summary=compiled
-    assert summary['tasks']==376 and summary['exact_calibration_cases']==1296
+    assert summary['tasks']==(352 if study['version'].endswith('/v4') else 376) and summary['exact_calibration_cases']==1296
     assert summary['executable'] is False and summary['assessment_exposed'] is False
     from oeis_learn.pipeline_validation.progressive_outputs import validate_requests
     from oeis_learn.pipeline_validation.progressive_study import validate_frozen
@@ -102,7 +102,7 @@ def test_full_registered_plan_has_real_closed_requests_and_exact_cases(compiled)
     validate_requests(root,plan['task_plans'],plan['references'],plan['graph'],purpose='research')
     validate_frozen(root,dict(purpose='research',track='synthetic_strict',payload=dict(tasks=plan['task_plans'],references=plan['references'])))
     requests=[load(root/r['artifact']['path']) for r in plan['references'] if r['kind']=='policy' and r['name'].startswith('requests/')]
-    assert len(requests)==376
+    assert len(requests)==summary['tasks']
     from oeis_learn.generalization.progressive.budgets import role_work_requirements
     audit=next(r for r in requests if r['operation']=='audit-language')
     need=role_work_requirements('audit-language',[load(root/p) for p in audit['artifacts']['sources']])
@@ -196,3 +196,57 @@ def test_stdlib_stack_diagnostics_preserve_normal_and_signal_exit(terminate):
         assert 'research construction stack: '+('termination' if terminate else 'periodic') in errors
     finally:
         if child.poll() is None:child.kill();child.wait()
+
+
+def test_confirmation_continuation_is_frozen_and_token_caps_are_incremental(compiled):
+    root,(compiler,bound,study,*_),_=compiled
+    if not study['version'].endswith('/v4'):return
+    from oeis_learn.pipeline_validation.progressive_study import confirmation_chains
+    import copy
+    plans=compiler.plans
+    selected=[p for p in plans if p.get('trial',{}).get('phase')=='confirmation']
+    confirmation_chains(selected,study)
+    byid={p['id']:p for p in plans}
+    for p in selected:
+        if p['kind']!='training':continue
+        assert 12500000<p['caps']['tokens']<12600000
+        if p['token_target']==25000000:
+            parent=byid[p['initializer']['parent_task']]
+            assert parent['trial_choices']==p['trial_choices']
+    for fault in ('seed','parent','choice','missing'):
+        altered=copy.deepcopy(selected)
+        child=next(p for p in altered if p['kind']=='training' and p['token_target']==25000000)
+        if fault=='seed':child['seed']+=1
+        if fault=='parent':child['initializer']['parent_task']='unrelated'
+        if fault=='choice':child['trial_choices']=[]
+        if fault=='missing':altered.remove(child)
+        with pytest.raises(ValueError):confirmation_chains(altered,study)
+
+
+def test_finalist_lock_applies_identical_settings_to_both_confirmation_segments(compiled,tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import progressive_study as s
+    from oeis_learn.generalization.progressive.tuning import BASELINE,CONTROL
+    root,(compiler,bound,study,*_),_=compiled
+    if not study['version'].endswith('/v4'):return
+    selected=dict(selected=['0','1'],seeds=[17,19])
+    atomic_write(root/'selection-test/finalists.json',selected)
+    atomic_write(root/'selection-test/result.json',{})
+    journal=SimpleNamespace(root=tmp_path,trials={str(i):dict(proposal=dict(parameters=params)) for i,params in enumerate([BASELINE,CONTROL])})
+    monkeypatch.setattr(s,'journal',lambda *a:journal)
+    monkeypatch.setattr(s,'policy',lambda *a:study)
+    store=SimpleNamespace(campaign=dict(payload=dict(tasks=compiler.plans)),state=dict(choices={},tasks={},outputs={
+        'tuning-selection':dict(result=reference(root,'selection-test/result.json'))}))
+    store.append=lambda state:setattr(store,'state',state)
+    task=dict(payload=dict(id='tuning-selection',trial=dict(study=study['identity'])))
+    result=dict(metrics=dict(finalists=reference(root/'selection-test','finalists.json')))
+    s.commit_selection(root,store,task,result)
+    for position in (0,1):
+        for seed in (17,19):
+            name=f'confirmation-{position}-{seed}'
+            assert store.state['choices'][name]==store.state['choices'][name+'-part1']
+    for position in (2,3):
+        for seed in (17,19):
+            for suffix in ('','-part1'):assert store.state['tasks'][f'confirmation-{position}-{seed}'+suffix]=='SKIPPED'
+    original=dict(store.state['choices']);s.commit_selection(root,store,task,result)
+    assert store.state['choices']==original

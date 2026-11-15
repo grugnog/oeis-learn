@@ -94,7 +94,7 @@ def clean_stage(folder):
         raise ValueError('successful trajectory process and acknowledged cleanup required')
 
 
-def replay(root, folder, *, cases, qualification):
+def replay(root, folder, *, cases, qualification, historical=False):
     """Recompute projections from original installed receipts, never summary labels."""
     from .progressive_handoff import original_authority, validate_device_proofs
     from oeis_learn.experiments.source_snapshot import collect_snapshot
@@ -103,7 +103,7 @@ def replay(root, folder, *, cases, qualification):
     inputs = read(folder/'trajectory-inputs.json')
     package = _json(checked_file(folder, req['package']), maximum=256 << 20)
     q, qroot = original_authority(root, qualification)
-    source = digest(collect_snapshot(root))
+    source = digest(_json(checked_file(qroot,q['source_closure']))) if historical else digest(collect_snapshot(root))
     if (req['version'] != FEASIBILITY_VERSION or req['source'] != source or req['image'] != q['images'][1]
             or inputs['qualification'] != qualification or inputs['identity'] != req['inputs']
             or inputs['cases'] != sorted(c['compatibility'] for c in cases)

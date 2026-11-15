@@ -53,7 +53,7 @@ from oeis_learn.generalization.progressive.research_roster import construct
 
 
 def inputs(root, data, design, materials):
-    if design!=scientific_round(data,expanded=design.get('version')=='progressive-research-round-design/v3'):
+    if design!=scientific_round(data,expanded=design.get('version') in {'progressive-research-round-design/v3','progressive-research-round-design/v4'},streamlined=design.get('version')=='progressive-research-round-design/v4'):
         raise ValueError('original registered scientific design required')
     if (seal(materials)!=materials or materials.get('version')!='progressive-research-materials/v1'
             or materials['status']!='COMPLETE' or materials['diagnostic'] or materials['deficits']):
@@ -175,7 +175,7 @@ class Compiler:
         caps.update(elapsed_us=elapsed,disk_bytes=((2+pins)*checkpoint_bytes+(128<<20)) if operation=='train' else (checkpoint_bytes if operation=='generate' else 0)+(128<<20),
                     archive_bytes=16<<20)
         if operation=='train':
-            target=row['token_target'];before=0 if row['parent'] is None else (1000000 if target==2000000 else 2000000)
+            target=row['token_target'];before=next(p['token_target'] for p in self.plans if p['id']==row['parent']) if row['parent'] else 0
             caps['tokens']=target-before+maximum_update
         # Include per-member native validation of every retained selection.
         members=len(row.get('members',[]))
@@ -317,9 +317,11 @@ def compile_plan(root,output,data,design,materials,*,qualification,checkpoint_by
                        training_us=2700*1000000,finalization_us=1800*1000000),
         panel=bound['screening'],evaluations=evaluations,
         confirmation=dict(panels=[panelrefs[f'confirmation-tuning-{i}'] for i in range(4)],seeds=design['seeds'])))
-    if design['version'].endswith('/v3'):
+    if design['version'].endswith(('/v3','/v4')):
         from oeis_learn.generalization.progressive.runtime_reservation import screening,TRIAL_SECONDS
         study=seal(dict(study,version='progressive-study-policy/v3',elapsed_cap_us=TRIAL_SECONDS*1000000,screening=screening(roster)))
+    if design['version'].endswith('/v4'):
+        study=seal(dict(study,version='progressive-study-policy/v4'))
     c.put('study-policy.json',study,kind='policy',role='proposal')
     targets=defaults();targets.update(purpose='research',created_at=c.created_at)
     targets['payload']['selected']=True
@@ -474,7 +476,7 @@ def finish_plan(c,bound,study,targetref,state,checkpoint_root,*,data,design,mate
     caps['archive_bytes']=max(caps['archive_bytes'],512<<20)
     graph=dict(selected_stages=['capability','diversity','tuning'],nodes=nodes,edges=[],diagnostic_pool=zeros())
     validate_graph(graph,caps=caps)
-    expanded=design['version'].endswith('/v3')
+    expanded=design['version'].endswith(('/v3','/v4'))
     from oeis_learn.generalization.progressive.runtime_reservation import CALIBRATION_SECONDS,LIMITS_SECONDS
     ancillary=LIMITS_SECONDS['evaluation_analysis'] if expanded else 136*3600
     if sum(p['caps']['elapsed_us'] for p in c.plans if p['kind']!='training')>ancillary*1000000:

@@ -708,3 +708,50 @@ inner limits exceed three times those observations. Round013's CPU suite took
 trajectory projection, canonical prepare/freeze, campaign acceptance, automatic
 run/resume and failure/report collection boundaries. Local process doubles do not
 establish HIP readiness; the next original device receipts remain required.
+
+
+### Round014 time-deficit correction and final-only sizing evaluation
+
+The user authorized fixing round014's stop and simplifying screening evaluations.
+Use an explicit `--streamlined-research` switch for a fresh design/v4 and study/v4;
+old designs, reservations and freezes retain their original interpretation. All
+16 trial choices and their 4M-token horizons remain. The 12 learning-setting trials
+keep retention/development evaluations at 1M, 2M and 4M, including the baseline and
+lower-learning-rate controls. Four unpruned sizing trials retain their random
+retention baseline and final 4M retention/development evaluations; remove their
+1M/2M evaluation pairs (32 roles). They still train cumulatively through the same
+three segments with the same optimizer schedule and deterministic trial seed.
+
+Each baseline/finalist confirmation seed gets fresh 12.5M-token training followed
+by a full-state successor to 25M. Both segments lock the identical finalist scope,
+seed, support and 400M schedule horizon; the final checkpoint alone feeds the
+unchanged independent confirmation/retention panels. No interim confirmation
+score is exposed. Reserve 21 hours per segment, 20 hours per diversity task,
+two hours per learning-setting screening segment and four hours per sizing segment.
+This totals exactly 536 training-task hours; every task remains below 24 hours.
+The 96-hour shared screening envelope and all original exposure limits remain.
+The v4 roster has 352 roles, including 68 training tasks and 40 development looks.
+
+Replay of round014's 1,296 exact-input calibrations and 13 trajectory measurements
+covers 3,730 distinct configuration/segment estimates: all fit their task work
+allowances using the existing 4x guard. Worst guarded confirmation segment is
+20.065 hours versus 20.5 hours available; diversity is 14.551 versus 19.5 hours;
+learning screening is at most 1.523 versus 1.999 hours and largest sizing segment
+3.620 versus 3.999 hours. These observations inform prospective planning, not
+current-source hardware qualification or a guarantee of research completion.
+
+A v6 ownership proof admits only the original clean pre-freeze training-time stop
+after reused calibration. It independently replays historical preparation,
+trajectory, source/input authority, command/result equality and terminated
+processes. It follows the earlier ownership history back to the original complete
+calibration donor; no chain of newly manufactured calibrations is accepted. The
+next source still requires current HIP qualification and trajectory measurements.
+
+The measured storage projection rises from about 332.4 to 365.8 GiB. Extend the
+existing explicit plan/apply retirement tool to completed pre-freeze qualification
+and DIAGNOSTIC_ONLY trajectory checkpoints. Retire only manifest-bound weights.pt
+and optimizer.pt after original successful producers, session/GPU locks, byte
+hashes and durable retirement intent are verified. Keep all manifests, RNG/state,
+logs, original journals, diagnostic ZIPs, calibration evidence and scientific
+inputs/checkpoints. Failed, active, frozen or scientifically started sessions
+remain ineligible. Original calibration replay must continue after retirement.

@@ -19,11 +19,12 @@ def construct(design, panels, screening):
     positions are fixed before model outcomes. Later conditional branches retain
     separate reservation requirements; a negative result never creates a task.
     """
-    if (seal(design)!=design or design.get('version') not in {'progressive-research-round-design/v1','progressive-research-round-design/v2','progressive-research-round-design/v3'}
+    if (seal(design)!=design or design.get('version') not in {'progressive-research-round-design/v1','progressive-research-round-design/v2','progressive-research-round-design/v3','progressive-research-round-design/v4'}
             or design['selected_stages']!=['capability','diversity','tuning']):
         raise ValueError('original prospective capability/diversity/tuning round required')
     from .tuning import validate_screening_panel
-    expanded=design['version'].endswith('/v3')
+    streamlined=design['version'].endswith('/v4')
+    expanded=streamlined or design['version'].endswith('/v3')
     grouping=design['tuning'].get('screening_group_policy','paired-16/v1')
     expected='balanced-at-most-two/v2' if design['version'].endswith('/v2') or (expanded and 'screening_group_policy' in design['tuning']) else 'paired-16/v1'
     if grouping!=expected:raise ValueError('screening grouping differs from prospective design version')
@@ -53,8 +54,10 @@ def construct(design, panels, screening):
             or t['shapes']!=list(SHAPES) or t['unchanged_baseline']!=BASELINE
             or t['screening_looks']!=[1000000,2000000,4000000]
             or t['screen_seconds']!=(96*3600 if expanded else 7200) or t['protected_finalization_seconds']!=1800
-            or t['confirmation_tokens']!=25000000 or t['confirmation_seconds']!=(86400 if expanded else 43200)):
+            or t['confirmation_tokens']!=25000000 or t['confirmation_seconds']!=(75600 if streamlined else 86400 if expanded else 43200)):
         raise ValueError('complete registered study domain and horizons required')
+    if streamlined and (t.get('sizing_looks')!=[4000000] or t.get('confirmation_targets')!=[12500000,25000000]):
+        raise ValueError('original streamlined evaluation and continuation coordinates required')
     from .research_budget import ROLE_SECONDS
     tasks=[];comparisons=[]
     # Duration allocations are ceilings, not measurements or promised throughput.
@@ -115,6 +118,9 @@ def construct(design, panels, screening):
             train=add(name+'-train','tuning','train',trial=dict(meta,phase='training'),
                 token_target=coordinate,horizon=4000000,parent=parent,
                 domain='learning' if ordinal<12 else SHAPES[ordinal-12],seconds=900)
+            if streamlined and ordinal>=12 and coordinate!=4000000:
+                parent=train
+                continue
             retention=evaluation(name+'-retention','tuning','retention-development',train,
                 seed=None,trial=dict(meta,phase='retention'),seconds=250)
             primary=evaluation(name+'-development','tuning','development',train,
@@ -131,8 +137,12 @@ def construct(design, panels, screening):
         for seed in design['seeds']:
             name=f'confirmation-{position}-{seed}'
             meta=dict(ordinal=position,phase='confirmation',coordinate=0)
-            train=add(name,'tuning','train',seed=seed,trial=meta,token_target=25000000,
-                      horizon=400000000,parent=None,domain='baseline' if position==0 else 'all',seconds=43200)
+            parent=None
+            for target in (t['confirmation_targets'] if streamlined else [25000000]):
+                task_name=name if target==25000000 else name+'-part1'
+                train=add(task_name,'tuning','train',seed=seed,trial=meta,token_target=target,
+                          horizon=400000000,parent=parent,domain='baseline' if position==0 else 'all',seconds=43200)
+                parent=train
             primary=evaluation(name+'-primary','tuning',f'confirmation-tuning-{position}',train,
                 seed=seed,trial=meta,retention='retention-tuning')
             confirmations[position,seed]=dict(checkpoint=train,primary=primary,retention=primary)
@@ -156,8 +166,9 @@ def construct(design, panels, screening):
         raise ValueError('bounded unique scientific role roster required')
     if expanded:
         from .runtime_reservation import role_seconds
-        for row in tasks:row['seconds']=role_seconds(row)
+        for row in tasks:row['seconds']=role_seconds(row,streamlined=streamlined)
     return seal(dict(version='progressive-research-role-roster/v2' if expanded else 'progressive-research-role-roster/v1',design=design['identity'],
+        **({'execution_revision':'linked-confirmation-final-sizing/v1'} if streamlined else {}),
         panels={k:digest(v) for k,v in panels.items()},screening=digest(screening),tasks=tasks,
         comparisons=comparisons,study_evaluations=evaluations,
         partition_rule='lexicographic original member identity; groups/panels remain original; 64 members per capability task',

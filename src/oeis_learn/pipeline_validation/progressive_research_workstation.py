@@ -43,7 +43,7 @@ def prepare(workflow):
         from oeis_learn.generalization.progressive.prepared_support import policy
         write(base/'support-policy.json',policy(seed=request['seed'],target_tokens=request['token_target'],batch_cadence='reuse' in request))
         from .progressive_research_design import scientific_round
-        design=scientific_round(data,expanded=getattr(w.args,'expanded_runtime_budgets',False))
+        design=scientific_round(data,expanded=getattr(w.args,'expanded_runtime_budgets',False),streamlined=getattr(w.args,'streamlined_research',False))
         write(base/'research-round-design.json',design)
         updated=seal(dict(version='progressive-research-preflight/v1',registration=data['identity'],
             source=data['source'], source_resolved=True, executable=False, research_ready=False,

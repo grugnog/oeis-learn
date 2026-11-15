@@ -38,6 +38,7 @@ def parser():
     p.add_argument('--registration-session',help='verified completed input registration to reuse for research preparation')
     p.add_argument('--reuse-calibration-session',help='complete exact-input calibration donor blocked only by training-time feasibility')
     p.add_argument('--reuse-preparation-data',help='completed unscored census/materials donor; fresh runtime authority required')
+    p.add_argument('--streamlined-research',action='store_true',help='prospective linked confirmations and final-only sizing evaluations; fresh preparation')
     p.add_argument('--expanded-runtime-budgets',action='store_true',help='prospective measured runtime reservation; fresh preparation only')
     p.add_argument('--reuse-census-session',help='explicit unscored v2 preparation to reuse under the prospective v3 design')
     p.add_argument('--preparation-session',help='original failed preparation for CPU-only service measurement')
@@ -438,6 +439,8 @@ def main(root,argv=None):
         parser().error('--reuse-calibration-session requires expanded preparation with --reuse-preparation-data')
     if args.reuse_preparation_data and (args.phase!='prepare-research' or not args.expanded_runtime_budgets or not args.registration_session or args.reuse_census_session):
         parser().error('--reuse-preparation-data requires expanded registered-data preparation, without --reuse-census-session')
+    if args.streamlined_research and (args.phase!='prepare-research' or not args.expanded_runtime_budgets):
+        parser().error('--streamlined-research requires expanded prepare-research')
     if args.expanded_runtime_budgets and (args.phase!='prepare-research' or not args.registration_session):
         parser().error('--expanded-runtime-budgets requires registered-data prepare-research')
     if args.run_after_prepare and args.phase != 'prepare-research':
@@ -488,6 +491,7 @@ def main(root,argv=None):
         elif key in old and key not in binding: binding[key]=old[key]
     if args.expanded_runtime_budgets:binding['expanded_runtime_budgets']=True
     elif old.get('expanded_runtime_budgets'):binding['expanded_runtime_budgets']=True
+    if args.streamlined_research or old.get('streamlined_research'):binding['streamlined_research']=True
     if args.phase=='collect' and old: binding=old # Recovery collects old evidence; never executes it.
     s=Session(root,args.session,binding,args.phase)
     from .progressive_workstation_state import TelemetryCollector

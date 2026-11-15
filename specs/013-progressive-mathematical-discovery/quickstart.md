@@ -844,3 +844,54 @@ and source compatibility before expensive qualification, and records supplementa
 setup headroom without changing historical budgets. Use fresh round014 above.
 Keep rounds009, 012 and 013 and their ownership history intact. Neither a new tiny
 rehearsal nor the 1,296-case calibration census is requested by this command.
+
+
+### Round015: recover round014 and simplify sizing evaluation
+
+Round014 passed current-source base/HIP model qualification, all 13 trajectory
+cases and complete calibration reuse, then stopped on six confirmation time
+estimates. No scientific task or assessment ran. Do not edit or rerun round014
+under changed source. Keep rounds009, 012, 013 and 014 and all ownership-history
+files. The new design preserves the 1,296 calibration cases and token horizons;
+current-source qualification and the 13 short trajectory cases still rerun.
+
+First reclaim only successful diagnostic tensors from rounds009 and 014 with the
+existing stdlib host utility. The plan records exactly what will be removed; apply
+rehashes those bytes and retains a retirement ZIP. No container is needed for
+metadata inspection or unlinking these disposable local tensors. Then prepare
+round015 and automatically launch research after freeze and scoped acceptance:
+
+```bash
+cd ~/workspace/oies-learn &&
+git pull --ff-only origin 013-progressive-mathematical-discovery &&
+python3 -S scripts/discovery_cleanup.py plan \
+  --session run-state/discovery/013-research-round-009 \
+  --session run-state/discovery/013-research-round-014 \
+  --output run-state/discovery-maintenance/round015-diagnostics &&
+python3 -S scripts/discovery_cleanup.py apply \
+  --output run-state/discovery-maintenance/round015-diagnostics &&
+python3 -S scripts/discovery_hip_handoff.py \
+  --engine podman \
+  --session run-state/discovery/013-research-round-015 \
+  prepare-research \
+  --registration-session run-state/discovery/013-research-inputs-003 \
+  --rehearsal-session run-state/discovery/013-hip-007 \
+  --reuse-preparation-data run-state/discovery/013-research-round-002 \
+  --reuse-calibration-session run-state/discovery/013-research-round-009 \
+  --expanded-runtime-budgets \
+  --streamlined-research \
+  --run-after-prepare
+```
+
+If the cleanup plan already exists, resume with its `apply` command, then the
+handoff command; do not create another plan to overwrite the first one. The
+retirement operation is restartable. Actual reclaimed space is printed; the
+campaign requires roughly 366 GiB plus temporary preparation headroom, and
+canonical freeze remains responsible for the measured storage gate.
+
+There are still 16 screening trials. Only the four unpruned sizing trials omit
+intermediate evaluations, saving approximately 25 hours in the all-eligible
+projection. Learning-trial pruning/control data and final confirmation panels
+remain intact. Confirmations now have two linked 21-hour task ceilings per seed,
+with unchanged 25M cumulative tokens. These ceilings are not expected durations;
+no single task may exceed 24 hours. Final assessment remains a separate command.

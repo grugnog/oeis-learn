@@ -137,3 +137,15 @@ def test_immutable_compact_input_replay_verifies_shared_support_once(tmp_path,mo
     envelope=load(tmp_path/'projected'/projected[1]['artifact']['path'])
     envelope['support']['sha256']=digest('corrupt');write(tmp_path/'projected/bad.json',seal(envelope))
     with pytest.raises(ValueError):cache.restore(reference(tmp_path/'projected','bad.json'))
+
+
+def test_historical_replay_does_not_grant_current_source_authority(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation import progressive_handoff as h
+    folder,cases,qref=fixture(tmp_path,monkeypatch)
+    q=load(tmp_path/'qualification.json');write(tmp_path/'old-source.json',{})
+    q['source_closure']=reference(tmp_path,'old-source.json')
+    monkeypatch.setattr(h,'original_authority',lambda *a:(q,tmp_path))
+    before=t.replay(tmp_path,folder,cases=cases,qualification=qref)
+    monkeypatch.setattr('oeis_learn.experiments.source_snapshot.collect_snapshot',lambda root:{'changed':'source'})
+    with pytest.raises(ValueError,match='current exact trajectory'):t.replay(tmp_path,folder,cases=cases,qualification=qref)
+    assert t.replay(tmp_path,folder,cases=cases,qualification=qref,historical=True)==before

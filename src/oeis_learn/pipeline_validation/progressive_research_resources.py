@@ -23,7 +23,7 @@ def policy(*, legacy=False, global_storage=False, trajectory=False):
         permits='decrease disk only; no scientific budget or search-domain changes'))
 
 
-def finalize(root,payload,cases,producers):
+def finalize(root,payload,cases,producers, *, historical=False):
     refs=[r['artifact'] for r in payload['references'] if r['name']=='research_resource_policy']
     if not refs:return None
     if len(refs)!=1:raise ValueError('original prospective measured-resource rule required')
@@ -50,7 +50,7 @@ def finalize(root,payload,cases,producers):
         from oeis_learn.pipeline_validation.identity import confined
         runtime=json.loads(verify_refs(root,[payload['runtime']])[0])
         replayed=replay(root,confined(root,original['request']['path']).parent,cases=cases,
-                        qualification=runtime['payload']['qualification'][0])
+                        qualification=runtime['payload']['qualification'][0],historical=historical)
         if replayed!=original:raise ValueError('original trajectory report differs')
         if any(r['name']=='research-reservation-v2' for r in payload['references']):
             from .progressive_trajectory import reservation

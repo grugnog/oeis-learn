@@ -966,3 +966,11 @@ reservation replay and tamper rejection, directory creation, resume without repe
 dispatch, and failure ZIP retention. The original round013 ZIP independently passed
 the canonical pre-HIP replacement proof. Python 3.13 stdlib-only round014 CLI dry-run
 passed. No new HIP evidence is claimed; CI is not awaited after publication.
+
+
+## Phase 38: Linked confirmations and economical sizing evaluations
+
+- [X] T210 Add an explicit prospective research design with two linked 12.5M-token confirmation tasks per seed, protected continuation state, unchanged scientific horizons and aggregate training reservations within 536 hours.
+- [X] T211 Keep all learning-trial screening looks but evaluate unpruned sizing trials only at 4M; validate the precise reduced roster, selection and final confirmation bindings.
+- [X] T212 Recover the original calibration donor through a verified, clean pre-freeze reused-calibration time deficit; preserve original evidence and costs and reject scientific execution or changed inputs.
+- [ ] T213 Add narrowly scoped qualification/trajectory tensor retirement and test revised construction, freeze, selection, continuation and recovery; replay round014 measurements against new allocations and document the next command and storage requirements.

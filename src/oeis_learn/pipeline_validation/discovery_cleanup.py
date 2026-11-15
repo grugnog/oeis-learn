@@ -64,6 +64,10 @@ def candidates(root,session):
         raise ValueError('explicit discovery timing session required')
     binding=read(safe(root,folder/'session.json'))
     if seal(binding)!=binding:raise ValueError('original session seal differs')
+    if (folder/'prepare-research').is_dir():
+        from .progressive_preparation_retirement import roots as preparation_roots
+        roots,evidence=preparation_roots(root,folder)
+        return tensor_inventory(root,roots,evidence)
     runtime=folder/'measure-runtime/timing';training=folder/'measure-training/timing'
     if runtime.is_dir()==training.is_dir():raise ValueError('one recognized timing phase required')
     phase='measure-runtime' if runtime.is_dir() else 'measure-training';base=runtime if runtime.is_dir() else training
@@ -102,6 +106,10 @@ def candidates(root,session):
             raise ValueError('complete diagnostic training producer required')
         if reference(root,path) not in refs.values():raise ValueError('producer not journal-bound')
         evidence.append(reference(root,path));roots.append(base/'measurement/checkpoints')
+    return tensor_inventory(root,roots,evidence)
+
+
+def tensor_inventory(root,roots,evidence):
     files=[]
     for checkpoint_root in roots:
         checkpoint_root=safe(root,checkpoint_root,exists=False)

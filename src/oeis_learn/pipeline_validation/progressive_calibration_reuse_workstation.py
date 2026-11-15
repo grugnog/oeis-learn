@@ -40,9 +40,9 @@ def fenced_original(w):
         # Only an evidenced CPU failure before HIP can sit between the completed
         # calibration donor and this recipient. Replay its unchanged original
         # journal/process/cleanup proof; started or unclean work remains blocked.
-        if (proof.get('version') != 'progressive-preparation-owner-proof/v1'
+        if (proof.get('version') not in {'progressive-preparation-owner-proof/v1','progressive-preparation-owner-proof/v6'}
                 or failure_proof(w.root, predecessor) != proof):
-            raise Blocked('only original pre-HIP CPU failures may retain the calibration donor')
+            raise Blocked('only original pre-science qualification or time-feasibility stops may retain the calibration donor')
         node = previous
     raise Blocked('bounded calibration ownership history exhausted')
 

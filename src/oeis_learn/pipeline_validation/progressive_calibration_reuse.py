@@ -73,7 +73,7 @@ def raw_prepared(root, blueprint):
         created_at=blueprint['created_at'], purpose=blueprint['purpose'], track=blueprint['track'])
 
 
-def assemble(root, blueprint, original, output):
+def assemble(root, blueprint, original, output, *, historical=False):
     from .progressive_completed_calibration_recovery import originals
     from .progressive_calibration import selected_inputs
     from .progressive_research_resources import finalize
@@ -111,7 +111,7 @@ def assemble(root, blueprint, original, output):
     # Producers and cases are independently sorted by compatibility before the
     # estimator associates per-setting measurements with training inputs.
     by_scope = {p['compatibility']: p for p in producers}
-    resources = finalize(root, payload, cases, [by_scope[c['compatibility']] for c in cases])
+    resources = finalize(root, payload, cases, [by_scope[c['compatibility']] for c in cases],historical=historical)
     if resources is None:
         raise ValueError('prospective trajectory resource finalization required')
     return seal(dict(original, payload=payload)), resources
@@ -149,10 +149,10 @@ def prepare(root, blueprint, prepared, output, args, host_factory):
     return seal(result)
 
 
-def validate_prepared(root, blueprint, prepared):
+def validate_prepared(root, blueprint, prepared, *, historical=False):
     original = raw_prepared(root, blueprint)
     output = confined(root, named(prepared, 'measured_research_resources')['path']).parent
-    expected, resources = assemble(root, blueprint, original, output)
+    expected, resources = assemble(root, blueprint, original, output,historical=historical)
     rref = named(prepared, 'measured_research_resources')
     if _json(checked_file(root, rref)) != resources:
         raise ValueError('replayed trajectory resource estimate differs')
