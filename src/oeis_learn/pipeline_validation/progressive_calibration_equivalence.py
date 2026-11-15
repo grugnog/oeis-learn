@@ -22,6 +22,8 @@ HOST_ONLY = {
     'pipeline_validation/progressive_calibration_replay.py',
     'pipeline_validation/progressive_calibration_reuse_workstation.py',
     'pipeline_validation/progressive_completed_calibration_recovery.py',
+    'pipeline_validation/progressive_calibration_recovery.py',
+    'pipeline_validation/progressive_process_result.py',
     'pipeline_validation/progressive_research_resources.py',
     'pipeline_validation/progressive_capability.py',
     'pipeline_validation/progressive_preparation_owner.py',

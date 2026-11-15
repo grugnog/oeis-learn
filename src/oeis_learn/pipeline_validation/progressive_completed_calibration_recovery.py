@@ -1,6 +1,8 @@
 """Transfer data ownership only after complete calibration and a time-only stop."""
 from pathlib import Path
 
+from .progressive_process_result import stdout_result
+
 from .identity import confined, digest, seal
 from .progressive_workstation_state import Blocked, read
 from .progressive_research_inputs import checked_file, _json
@@ -113,7 +115,8 @@ def proof(root, receipt, session, journal):
         'discovery', 'prepare', '--blueprint', str((base/'construction/blueprint.json').relative_to(root)),
         '--qualification', str((base/'qualification').relative_to(root)), '--output', str((base/'prepared').relative_to(root))]
     if (command['argv'][1:] != expected or process.get('returncode') != 2 or process.get('cleanup_failure')
-            or process.get('failure') or process.get('outcome') != 'COMPLETE' or _json(logs/'stdout.log') != result):
+            or process.get('failure') or process.get('outcome') != 'COMPLETE' or process.get('omitted_bytes', {}).get('stdout', 0) != 0
+            or stdout_result(logs/'stdout.log') != result):
         raise Blocked('cleanly terminated original time-blocked canonical prepare required')
     return seal(dict(version='progressive-preparation-owner-proof/v5', predecessor=receipt,
         session=session, journal=journal, qualification=req['qualification'], execution_contract=contract,

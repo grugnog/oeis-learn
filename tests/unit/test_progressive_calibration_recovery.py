@@ -56,6 +56,8 @@ def failed_preflight(root, monkeypatch):
         '--qualification',str((base/'qualification').relative_to(root)),'--output',str(out.relative_to(root))]))
     write(logs/'process.json',dict(returncode=1,cleanup_failure=None,failure=None,outcome='COMPLETE',elapsed_seconds=3))
     write(logs/'stdout.log',result)
+    path=logs/'stdout.log'
+    path.write_text('  running 30.0s; remaining 90.0s; logs /workspace/inspection\n'+path.read_text())
     return folder,receipt,state
 
 

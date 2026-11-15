@@ -641,3 +641,17 @@ API shapes on every CI interpreter and actual stdlib-only Python 3.12/3.13 proce
 when available, including rejection of an altered iteration guard. Round010's
 handoff failed before owner publication or any pipeline stage; a fresh round011
 session retains the original round009 donor and all completed calibration evidence.
+
+
+### Retained console-result recovery (T205)
+
+Canonical host supervision emits progress lines on stdout before the discovery
+command emits its terminal JSON result. Both completed-calibration and preflight
+recovery must read this console format, rather than treat the whole log as JSON.
+Use a bounded stdlib-only reader accepting only the exact supervisor heartbeat
+prefix, followed by one strict JSON object. Reject truncated logs, duplicate keys,
+nonfinite numbers, additional documents, malformed JSON and unknown output.
+Continue to verify canonical command, termination, cleanup and exact equality with
+the independently validated original result; do not change original evidence or
+GPU execution. Regressions exercise real supervisor output and ownership transfer
+with progress present. Fresh round012 retains the round009 donor and prior costs.

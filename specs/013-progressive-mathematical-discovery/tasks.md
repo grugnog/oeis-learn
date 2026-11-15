@@ -917,3 +917,17 @@ focused calibration reuse, integration, trajectory and provenance suite passed
 stdlib-only subprocesses also reject an altered protected iteration guard. No HIP
 execution was repeated locally. Round010 failed before owner publication and had
 no pipeline steps; the next handoff keeps the round009 calibration donor immutable.
+
+
+## Phase 35: Canonical console-result recovery
+
+- [X] T205 Parse the canonical preparation result after supervisor heartbeat lines in retained stdout. Keep strict JSON, terminal-process and original-result equality checks; reject missing, malformed or ambiguous results. Exercise actual supervisor output and both calibration ownership recovery paths, retaining original calibration evidence and documenting a fresh round012 handoff.
+
+
+T205 validation: the progress-bearing owner transfer failed before repair. After
+repair, 130 focused unit/integration checks passed, including both recovery paths,
+original-cost replay, ownership fencing, trajectory feasibility and package review
+identity. Actual supervisor output is accepted; mismatched results, missing or
+ambiguous JSON, duplicate keys, nonfinite numbers, truncated logs and failed
+termination remain rejected. Python 3.13 stdlib-only reader and round012 CLI dry-run
+passed. No new HIP evidence is claimed and CI is not awaited after publication.

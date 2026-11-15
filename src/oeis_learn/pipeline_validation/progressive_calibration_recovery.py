@@ -1,5 +1,6 @@
 """Replace only an evidenced metadata preflight failure before calibration work."""
 import re
+from .progressive_process_result import stdout_result
 
 from .identity import confined, digest, seal
 from .progressive_workstation_state import Blocked, read
@@ -118,7 +119,8 @@ def proof(root, receipt, session, journal):
     if (command['argv'][1:] != expected or process.get('returncode') != 1
             or process.get('cleanup_failure') is not None or process.get('failure') is not None
             or process.get('outcome') != 'COMPLETE' or process.get('elapsed_seconds', 0) <= 0
-            or _json(logs/'stdout.log') != result):
+            or process.get('omitted_bytes', {}).get('stdout', 0) != 0
+            or stdout_result(logs/'stdout.log') != result):
         raise Blocked('original cleanly terminated canonical prepare process required')
     return seal(dict(version='progressive-preparation-owner-proof/v4', predecessor=receipt, session=session, journal=journal,
         qualification=req['qualification'], execution_contract=contract, construction=summary,

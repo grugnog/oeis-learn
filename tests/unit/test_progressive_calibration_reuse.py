@@ -186,8 +186,9 @@ def test_stdlib_cli_recovery_flags():
     assert subprocess.run(args,capture_output=True).returncode!=0
 
 
-@pytest.mark.parametrize('fault',[None,'science','frozen','running','history','command','cleanup','result','construction'])
-def test_completed_calibration_owner_transfer_is_time_only_and_fenced(tmp_path,monkeypatch,fault):
+@pytest.mark.parametrize('with_progress',[False,True])
+@pytest.mark.parametrize('fault',[None,'science','frozen','running','history','command','cleanup','result','construction','stdout','truncated-log'])
+def test_completed_calibration_owner_transfer_is_time_only_and_fenced(tmp_path,monkeypatch,fault,with_progress):
     from tests.unit.test_progressive_preparation_reuse import construction_owner
     from oeis_learn.pipeline_validation.progressive_preparation_owner import failure_proof,claim_owner
     from oeis_learn.pipeline_validation import progressive_completed_calibration_recovery as recovery
@@ -224,6 +225,9 @@ def test_completed_calibration_owner_transfer_is_time_only_and_fenced(tmp_path,m
         '--qualification',str((base/'qualification').relative_to(tmp_path)),'--output',str((base/'prepared').relative_to(tmp_path))]))
     write(logs/'process.json',dict(returncode=2,cleanup_failure=None,failure=None,outcome='COMPLETE'))
     write(logs/'stdout.log',result)
+    if with_progress:
+        path=logs/'stdout.log'
+        path.write_text('  running 30.0s; remaining 259170.0s; logs /workspace/calibration\n'+path.read_text())
     if fault=='science':journal['steps']['run-research/start']=dict(status='COMPLETE')
     if fault=='frozen':(base/'frozen').mkdir()
     if fault=='running':journal['steps']['prepare-research/prepare']['status']='RUNNING'
@@ -232,6 +236,9 @@ def test_completed_calibration_owner_transfer_is_time_only_and_fenced(tmp_path,m
     if fault=='command':write(logs/'command.json',dict(argv=['python','unsafe']))
     if fault=='cleanup':write(logs/'process.json',dict(returncode=2,cleanup_failure='still running'))
     if fault=='result':write(base/'prepared/result.json',seal(dict(result,producer_error={'message':'unrelated failure'})))
+    if fault=='stdout':write(logs/'stdout.log',dict(result,mechanical_status='INVALID'))
+    if fault=='truncated-log':
+        process=load(logs/'process.json');process['omitted_bytes']={'stdout':1};write(logs/'process.json',process)
     write(folder/'journal.json',seal(journal))
     if fault:
         with pytest.raises((ValueError,OSError)):failure_proof(tmp_path,receipt)
@@ -245,3 +252,34 @@ def test_completed_calibration_owner_transfer_is_time_only_and_fenced(tmp_path,m
         assert (folder/'journal.json').read_bytes()==original
         assert load(claim)['receipt']==recipient
         with pytest.raises(ValueError,match='superseded'):claim_owner(tmp_path,claim,receipt)
+
+
+@pytest.mark.parametrize('body',[
+    '', '  running 30.0s; remaining 90.0s; logs /workspace/calibration\n',
+    '{"ok": true}\n{"ok": true}', '{"ok": true}\ntrailing output',
+    '{"ok": true, "ok": false}', '{"ok": NaN}', '{"ok": Infinity}',
+    '{"ok": true', 'unexpected failure\n{"ok": true}',
+])
+def test_recovery_stdout_rejects_missing_ambiguous_or_invalid_results(tmp_path,body):
+    from oeis_learn.pipeline_validation.progressive_process_result import stdout_result
+    path=tmp_path/'stdout.log';path.write_text(body)
+    with pytest.raises(ValueError,match='canonical result stdout'):
+        stdout_result(path)
+
+
+def test_recovery_reads_real_supervisor_progress_before_terminal_json(tmp_path,capsys):
+    import json
+    from oeis_learn.pipeline_validation.supervision import launch
+    from oeis_learn.pipeline_validation.progressive_process_result import stdout_result
+    expected={'operation':'prepare','mechanical_status':'PARTIAL','missing_evidence':['training_time:first']}
+    # The canonical host supervisor writes heartbeats to its own stdout, before
+    # progressive_commands prints its single terminal result. Exercise that path.
+    launch([sys.executable,'-S','-c','pass'],tmp_path/'child',seconds=10,heartbeat=0)
+    print(json.dumps(expected,sort_keys=True))
+    output=capsys.readouterr().out
+    assert output.startswith('  running ')
+    path=tmp_path/'stdout.log';path.write_text(output)
+    assert stdout_result(path)==expected
+    assert path.read_text()==output
+    with pytest.raises(ValueError,match='bounded canonical result stdout'):
+        stdout_result(path,maximum=10)
