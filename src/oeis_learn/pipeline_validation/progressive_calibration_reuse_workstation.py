@@ -40,7 +40,7 @@ def fenced_original(w):
         # Only an evidenced CPU failure before HIP can sit between the completed
         # calibration donor and this recipient. Replay its unchanged original
         # journal/process/cleanup proof; started or unclean work remains blocked.
-        if (proof.get('version') not in {'progressive-preparation-owner-proof/v1','progressive-preparation-owner-proof/v6'}
+        if (proof.get('version') not in {'progressive-preparation-owner-proof/v1','progressive-preparation-owner-proof/v6','progressive-preparation-owner-proof/v7'}
                 or failure_proof(w.root, predecessor) != proof):
             raise Blocked('only original pre-science qualification or time-feasibility stops may retain the calibration donor')
         node = previous
@@ -48,7 +48,7 @@ def fenced_original(w):
 
 
 def prepare(w):
-    from .progressive_calibration_reuse import build_proof, raw_prepared, NAME
+    from .progressive_calibration_reuse import build_proof, raw_prepared, bind_original_reservation, NAME
     from .progressive_calibration import selected_inputs
     from . import progressive_trajectory as timing
     from .progressive_runtime_timing import FEASIBILITY_SECONDS
@@ -65,6 +65,8 @@ def prepare(w):
         proof = build_proof(w.root, original_base, qualification())
         retain(output/'calibration-reuse.json', proof)
         blueprint = _json(base/'construction/blueprint.json', maximum=CAMPAIGN_DOCUMENT_BYTES)
+        # Check the original debit before spending time on trajectory cases.
+        bind_original_reservation(w.root, blueprint, proof)
         raw=raw_prepared(w.root,blueprint)
         cases, _ = selected_inputs(w.root,raw)
         value = timing.plan(w.root, folder, cases, qualification())
@@ -112,7 +114,7 @@ def prepare(w):
         revised = copy.deepcopy(blueprint)
         for r in revised['payload']['references']:
             if r['name'] == 'preparation_plan': r['artifact'] = reference(w.root, output/'preparation-plan.json')
-        revised = seal(revised); validate('blueprint', revised)
+        revised = bind_original_reservation(w.root, seal(revised), read(output/'calibration-reuse.json'))
         retain(output/'blueprint.json', revised)
         return str((output/'blueprint.json').relative_to(w.root)), [folder/'trajectory-report.json', output/'resource-policy.json',
             output/'preparation-plan.json', output/'blueprint.json']

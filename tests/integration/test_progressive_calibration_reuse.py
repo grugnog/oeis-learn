@@ -140,11 +140,32 @@ def recovery_fixture(root, monkeypatch):
     return b, old, revised, proof
 
 
-def test_canonical_reuse_preserves_originals_and_freezes_without_device_calibration(tmp_path, monkeypatch, capsys):
+@pytest.mark.parametrize('reservation_delta', [0, -1, 1])
+def test_canonical_reuse_preserves_originals_and_freezes_without_device_calibration(tmp_path, monkeypatch, capsys, reservation_delta):
     from oeis_learn.pipeline_validation.progressive_commands import main
     from oeis_learn.pipeline_validation import progressive_handoff as h
     from oeis_learn.pipeline_validation.progressive_calibration import validate_prepared
     oldb, old, b, proof = recovery_fixture(tmp_path, monkeypatch)
+    if reservation_delta:
+        # Recompiling the same input scopes can change the metadata/storage
+        # estimate. The original completed calibration debit must not change.
+        plan = load(checked_file(tmp_path, reuse.named(b, 'iteration_calibration_plan')))
+        plan['caps']['disk_bytes'] += reservation_delta
+        atomic_write(tmp_path/'revision/calibration-plan.json', seal(plan))
+        for ref in b['payload']['references']:
+            if ref['name'] == 'iteration_calibration_plan':
+                ref['artifact'] = reference(tmp_path, 'revision/calibration-plan.json')
+        b['payload']['proposed_caps']['disk_bytes'] += reservation_delta
+        b = seal(b)
+        with pytest.raises(ValueError, match='full original calibration debit'):
+            reuse.assemble(tmp_path, b, reuse.raw_prepared(tmp_path, b), tmp_path/'next-prepared')
+    import runpy
+    script=runpy.run_path(str(Path(__file__).resolve().parents[2]/'scripts/discovery_repair_reservation.py'))
+    fixed = reuse.bind_original_reservation(tmp_path, b, proof)
+    assert script['bind_reservation'](tmp_path,b,proof)==fixed
+    b = fixed
+    atomic_write(tmp_path/'revision/blueprint.json', b)
+    assert reuse.named(b, 'iteration_calibration_plan') == reuse.named(oldb, 'iteration_calibration_plan')
     originals = {p:p.read_bytes() for p in (tmp_path/'prepared').rglob('*') if p.is_file()}
     cost = checked_file(tmp_path, reuse.named(old, 'iteration_calibration_cost')); original_cost = cost.read_bytes()
     monkeypatch.setattr(h, 'stage', lambda *a, **kw: pytest.fail('calibration must not execute again'))
@@ -191,3 +212,74 @@ def test_reuse_rejects_changed_authority_or_original_debit(tmp_path, monkeypatch
         else: q['runtime']['driver'] = 'changed'
         publish_q(qpath.parent, q)
     with pytest.raises(ValueError): reuse.assemble(tmp_path, b, reuse.raw_prepared(tmp_path, b), tmp_path/'next-prepared')
+
+
+@pytest.mark.parametrize('fault', [None, 'result', 'trace', 'inspection', 'published', 'empty-work', 'no-mismatch', 'original-cost'])
+def test_reservation_failure_replays_originals_without_publication(tmp_path, monkeypatch, fault):
+    from oeis_learn.pipeline_validation.progressive_reused_preparation_recovery import reservation_failure
+    _, old, b, proof = recovery_fixture(tmp_path, monkeypatch)
+    plan = load(checked_file(tmp_path, reuse.named(b, 'iteration_calibration_plan')))
+    plan['caps']['disk_bytes'] += 1
+    atomic_write(tmp_path/'revision/calibration-plan.json', seal(plan))
+    for ref in b['payload']['references']:
+        if ref['name'] == 'iteration_calibration_plan':
+            ref['artifact'] = reference(tmp_path, 'revision/calibration-plan.json')
+    b = seal(b)
+    raw = reuse.raw_prepared(tmp_path, b)
+    base = tmp_path/'failed/prepare-research'; out = base/'prepared'
+    trace = out/'private/host-traceback.txt'; trace.parent.mkdir(parents=True)
+    message = 'full original calibration debit must remain reserved'
+    trace.write_text(f'  File "{tmp_path}/src/oeis_learn/pipeline_validation/progressive_calibration_reuse.py", line 96, in assemble\n    raise ValueError(message)\nValueError: {message}\n')
+    result = dict(operation='prepare', mechanical_status='INVALID', scientific_status='INVALID',
+        reason='CONTRACT_MISMATCH', missing_evidence=[], producer_error=dict(code='PRODUCER_FAILURE',
+        producer='host', type='ValueError', message=message, local_traceback=reference(out, trace)))
+    atomic_write(out/'result.json', seal(result))
+    for name in ('image-0', 'image-1', 'device'):
+        folder = out/'reuse-inspection'/name
+        atomic_write(folder/'logs/process.json', dict(returncode=0, outcome='COMPLETE', failure=None, cleanup_failure=None))
+        atomic_write(folder/('logs/cleanup.json' if name=='device' else 'cleanup.json'),
+            dict(acknowledged=True, within_bound=True, failure=None))
+    if fault=='result': atomic_write(out/'result.json', seal(dict(result, reason='OTHER_FAILURE')))
+    if fault=='trace': trace.write_text('different failure')
+    if fault=='inspection': atomic_write(out/'reuse-inspection/device/logs/cleanup.json', dict(acknowledged=False))
+    if fault=='published': atomic_write(out/'prepared.json', old)
+    if fault=='empty-work': (out/'calibration').mkdir()
+    if fault=='no-mismatch':
+        plan['caps']['disk_bytes'] -= 1; atomic_write(tmp_path/'revision/calibration-plan.json', seal(plan))
+        for ref in b['payload']['references']:
+            if ref['name']=='iteration_calibration_plan': ref['artifact']=reference(tmp_path,'revision/calibration-plan.json')
+        b=seal(b)
+    if fault=='original-cost': checked_file(tmp_path,reuse.named(old,'iteration_calibration_cost')).write_text('changed')
+    originals = {p:p.read_bytes() for p in tmp_path.rglob('*') if p.is_file()}
+    if fault:
+        with pytest.raises((ValueError,OSError)):
+            reservation_failure(tmp_path, base, b, raw)
+    else:
+        result = reservation_failure(tmp_path, base, b, raw)
+        assert result['original_reservation'] != result['retained_reservation']
+        assert len(result['inspection_termination']) == 6
+        assert result['replayed_resources']['status'] == 'READY'
+        assert not (out/'prepared.json').exists()
+    assert all(p.read_bytes()==value for p,value in originals.items())
+    if fault is None:
+        import runpy,json,shutil
+        shutil.copytree(tmp_path/'next-qualification',base/'qualification')
+        script=runpy.run_path(str(Path(__file__).resolve().parents[2]/'scripts/discovery_repair_reservation.py'))
+        atomic_write(base/'calibration-reuse/blueprint.json',b)
+        atomic_write(base/'calibration-reuse/calibration-reuse.json',proof)
+        logs=base/'logs/prepare/0000'
+        atomic_write(logs/'process.json',dict(returncode=3,outcome='COMPLETE',failure=None,cleanup_failure=None))
+        (logs/'stdout.log').write_text(json.dumps(load(out/'result.json'))+'\n')
+        binding=dict(source=digest('qualified fixture'))
+        arguments=dict(blueprint=str((base/'calibration-reuse/blueprint.json').relative_to(tmp_path)),
+            qualification=str((base/'qualification').relative_to(tmp_path)),output=str(out.relative_to(tmp_path)))
+        atomic_write(base/'prepare-allowance.json',seal(dict(seconds=10000,spent_seconds=123,active=None,
+            binding=seal(dict(scope=binding,operation='prepare',arguments=arguments)))))
+        local_script=tmp_path/'run-state/repair.py';local_script.parent.mkdir(exist_ok=True);local_script.write_text('# exact external script\n')
+        session=SimpleNamespace(folder=base.parent,binding=binding,journal=dict(steps={
+            'prepare-research/prepare':dict(status='FAILED')}))
+        repaired,files=script['repair_plan'](tmp_path,session,local_script)
+        assert repaired['remaining_seconds']==9877 and all(p.exists() for p in files)
+        new=load(checked_file(tmp_path,repaired['revised_blueprint']))
+        assert new==reuse.bind_original_reservation(tmp_path,b,proof)
+        assert all(p.read_bytes()==value for p,value in originals.items())

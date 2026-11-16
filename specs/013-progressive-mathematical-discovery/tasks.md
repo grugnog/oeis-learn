@@ -1007,3 +1007,10 @@ Round015's actual original ZIP independently passed the canonical pre-HIP failur
 proof using its original receipts/processes/cleanup, without hardware mocks.
 Python 3.13 stdlib-only round016 handoff dry-run passed. No HIP success is claimed;
 current qualification still runs. CI is not awaited after publication.
+
+
+## Phase 40: Preserve completed calibration debit and qualified continuation
+
+- [X] T215 Retain the exact original calibration plan and consumed debit when a changed scientific graph regenerates setup estimates; test both larger and smaller projections through canonical preparation and freeze.
+- [X] T216 Verify the specific pre-publication reservation mismatch for historical ownership recovery, preserving original inputs, inspected process termination, journals and costs.
+- [ ] T217 Provide a stdlib round016 repair script that runs under the exact qualified source/images, retains completed tests/timing/calibration, uses remaining original preparation time, and continues through canonical freeze/acceptance/research with original failure packaging and resume checks.

@@ -13,6 +13,7 @@ from oeis_learn.generalization.progressive.contracts import digest
 
 ORIGINAL_SOURCE = 'sha256:3e9c50d0ef29797d77448e44f0aa0d4daf29e2b73e3d6789bddbf7d1608df797'
 PREFIX = 'src/oeis_learn/'
+HOST_SCRIPTS = {'scripts/discovery_repair_reservation.py'}
 # None of these modules executes learner updates, tensor persistence, native
 # evaluation or device calibration. Their new behavior is qualified afresh.
 HOST_ONLY = {
@@ -62,6 +63,8 @@ def validate(original, current, *, package_root=None):
     for name in changed:
         relative = name.removeprefix(PREFIX)
         if name.startswith('tests/'):
+            continue
+        if name in HOST_SCRIPTS and name in current:
             continue
         if not name.startswith(PREFIX) or relative not in HOST_ONLY | PROTECTED.keys():
             raise ValueError('calibrated execution source changed: '+name)

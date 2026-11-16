@@ -22,7 +22,7 @@ def failure_proof(root, receipt):
     if session['binding']['source'] != receipt['current_source']:
         raise Blocked('previous preparation source differs')
     steps = journal['steps']
-    if (steps.get('prepare-research/prepare', {}).get('status') == 'BLOCKED'
+    if (steps.get('prepare-research/prepare', {}).get('status') in {'BLOCKED','FAILED'}
             and (folder/'prepare-research/calibration-reuse/blueprint.json').exists()):
         from .progressive_reused_preparation_recovery import proof
         return proof(root,receipt,session,journal)

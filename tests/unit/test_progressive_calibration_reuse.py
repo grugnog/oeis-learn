@@ -77,8 +77,10 @@ def test_reviewed_source_boundary_keeps_tensor_native_and_lock_bytes(monkeypatch
     monkeypatch.setattr(eq,'ORIGINAL_SOURCE',digest(old))
     current=dict(old, **{'src/oeis_learn/pipeline_validation/progressive_research_resources.py':digest('planner')})
     assert eq.validate(old,current)==['src/oeis_learn/pipeline_validation/progressive_research_resources.py']
+    assert 'scripts/discovery_repair_reservation.py' in eq.validate(old,dict(current,**{
+        'scripts/discovery_repair_reservation.py':digest('external metadata repair only')}))
     for path in ('uv.lock','src/oeis_learn/pipeline_validation/progressive_training.py',
-                 'crates/oeis_wasm_evaluator/src/lib.rs','src/oeis_learn/decoder/new_kernel.py'):
+                 'crates/oeis_wasm_evaluator/src/lib.rs','src/oeis_learn/decoder/new_kernel.py','scripts/unreviewed.py'):
         with pytest.raises(ValueError,match='execution source'):
             eq.validate(old,dict(current,**{path:digest('changed')}))
     with pytest.raises(ValueError,match='reviewed original'):eq.validate({},current)

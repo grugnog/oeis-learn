@@ -73,6 +73,39 @@ def raw_prepared(root, blueprint):
         created_at=blueprint['created_at'], purpose=blueprint['purpose'], track=blueprint['track'])
 
 
+def bind_original_reservation(root, blueprint, proof):
+    """Carry the completed calibration's exact debit into a new scientific graph.
+
+    The compiler estimates a hypothetical fresh calibration. Reusing evidence
+    must retain the original reservation instead, even if metadata sizes differ.
+    This does not execute calibration or refund any original allocation.
+    """
+    from .progressive_handoff import named_plan
+    from oeis_learn.generalization.progressive.budgets import vector
+    old = validate('blueprint', _json(checked_file(root, proof['blueprint']), maximum=CAMPAIGN_DOCUMENT_BYTES))
+    request = _json(checked_file(root, proof['request']))
+    fields = {'seconds', 'caps', 'checkpoint_bytes', 'maximum_inodes'}
+    previous = named_plan(root, old, 'iteration_calibration_plan', 'progressive-calibration-plan/v1', fields,
+        optional={'checkpoint_retention'})
+    current = named_plan(root, blueprint, 'iteration_calibration_plan', 'progressive-calibration-plan/v1', fields,
+        optional={'checkpoint_retention'})
+    if (previous is None or current is None or previous['caps'] != request['caps']
+            or previous['seconds'] * 1000000 != previous['caps']['elapsed_us']
+            or previous['seconds'] != current['seconds']):
+        raise ValueError('original calibration reservation and unchanged time allowance required')
+    debit = vector(previous['caps'])
+    raw = raw_prepared(root, blueprint)
+    result = copy.deepcopy(blueprint)
+    for ref in result['payload']['references']:
+        if ref['name'] == 'iteration_calibration_plan':
+            ref['artifact'] = named(old, 'iteration_calibration_plan')
+    # Reserve the retained debit in addition to the entire new scientific graph.
+    # Never reduce a prospective ceiling or an original consumed resource.
+    result['payload']['proposed_caps'] = {k: max(result['payload']['proposed_caps'][k],
+        raw['payload']['caps'][k] + debit[k]) for k in debit}
+    return validate('blueprint', seal(result))
+
+
 def assemble(root, blueprint, original, output, *, historical=False):
     from .progressive_completed_calibration_recovery import originals
     from .progressive_calibration import selected_inputs

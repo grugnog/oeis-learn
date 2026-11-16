@@ -767,3 +767,28 @@ checkpoint cadence, timing guard or evaluation policy changes are required.
 Verify the original pre-HIP failure receipts and the v1 -> v6 -> v5 ownership
 chain before handing off a fresh round016. Keep the original round009 calibration
 donor and all historical journals; do not repeat completed diagnostic cleanup.
+
+
+### Round016 original-debit repair and qualified continuation
+
+The qualified streamlined graph regenerated a calibration reservation that differed
+from the original consumed calibration request. Reuse requires retaining that exact
+original debit, not replacing it with a fresh estimate. Bind the original immutable
+calibration plan into the revised blueprint and enclose it alongside the complete
+new scientific graph in proposed caps. Never reduce original consumed time/tokens
+or rerun calibration to satisfy a metadata equality. Keep canonical input, source,
+producer and cost replay mandatory. The v7 ownership proof admits only this exact
+terminated pre-publication failure, with original traceback and successful device/
+image inspections; it does not grant current-source qualification.
+
+At the user's request, the preferred round016 continuation instead keeps the exact
+qualified commit 2faa8e43fb772b7ad5d4232fe99ff93b3d96b81d. A run-specific stdlib
+script is copied outside the qualified source closure before checkout. It checks
+that closure, qualified images, active preparation owner and completed outputs,
+publishes a separately bound repaired blueprint, and invokes the unchanged
+canonical prepare/freeze/acceptance/run/report/verify commands. The failed prepare
+row remains in journal history and its output files remain untouched. The repair
+receives only the remaining original preparation allowance. No existing test,
+qualification, timing or calibration execution repeats. The as-yet-unexecuted
+campaign-bound acceptance remains mandatory. Repository source must remain pinned
+while this campaign runs; no evidence is relabelled for a newer source revision.
