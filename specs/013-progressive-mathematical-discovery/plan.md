@@ -813,3 +813,30 @@ exceptions and all exact-value/window/source restrictions; never redraw to fill
 new deficits. Run canonical frozen-panel validation at materials publication so
 these defects are found before qualification/calibration. The unchanged exact
 learner-input replay still governs reuse of historical calibration measurements.
+
+### Prospective correction of the confirmed round016 allocation defect
+
+The completed second audit found only direct unseen-composition overlaps: three
+groups, seven rows and five panel pairs among 3,456 checked non-assessment rows.
+The training-only timing producers did not expose these panels. Before scoring,
+reconstruct the exact original evaluation pool from its hash-bound native census
+database and original finite OEIS projection/exposure indexes. Reproduce the old
+reservations exactly, then apply the corrected composition grouping once with
+the same seed and quotas. This explicitly revises unscored panel membership;
+it is not an adaptive replacement search or a new generation interval. Component
+hash ownership can change more memberships than the seven reported rows.
+
+Publish a separate census/materials revision, preserving every original file and
+native receipt. Assert byte-identical training support and support summary. Run
+canonical counts and private detector/exposure validation across all revised
+panels, including assessment separation, without scoring or exporting assessment
+truth. Retain all deficits rather than reseeding, drawing replacements or reducing
+quotas. The standalone host operation stays outside the original qualified source
+closure and launches no tests, calibration, native draws or model work.
+
+The workstation must establish complete revised support before role requests,
+study memberships and measured resource estimates are rebound. The original
+training-only timing and exact-input calibration may be replayed only against
+unchanged compatible inputs. Canonical preparation replay, freeze and scoped
+campaign acceptance remain required; a PANELS_READY report is not execution
+authority and does not mark T220 complete.

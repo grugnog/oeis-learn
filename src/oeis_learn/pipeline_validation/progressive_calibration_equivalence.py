@@ -20,6 +20,7 @@ HOST_ONLY = {
     # Outcome-blind panel grouping/diagnosis; exact prepared learner inputs must
     # still match individually before old calibration bounds may be reused.
     'pipeline_validation/progressive_panel_audit.py',
+    'pipeline_validation/progressive_panel_revision.py',
     'pipeline_validation/progressive_research_census.py',
     'pipeline_validation/progressive_research_materials.py',
     'pipeline_validation/discovery_cleanup.py',

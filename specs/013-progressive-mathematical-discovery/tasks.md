@@ -1037,8 +1037,9 @@ CI is not awaited after publication.
 
 - [X] T218 Keep unseen-structure composition relations indivisible during new panel allocation and run the canonical freeze panel guard during materials publication, before expensive preparation. Preserve parameter-sharing exceptions and all original no-replacement rules.
 - [X] T219 Provide an outcome-blind, stdlib panel audit that can be copied outside the qualified source tree, uses the installed original detector, reports hashed overlap categories, continues independent malformed-row checks, and packages results without launching qualification/calibration/scoring or opening assessment panels.
-- [ ] T220 Use the original round016 panel audit to identify the actual retained conflicts and implement any justified prospective correction before canonical freeze/acceptance. **Externally blocked**: the uploaded support archive intentionally excludes the original private cohorts/truth; the audit must run on the workstation. No successful freeze or training is claimed.
+- [ ] T220 Use the original round016 panel audit to identify the actual retained conflicts and implement any justified prospective correction before canonical freeze/acceptance. The second audit identifies three composition groups involving seven unseen-structure rows and five panel pairs, with no direct value/window overlaps. **Externally blocked** on applying and validating the prospective T222 allocation against the original workstation candidate pool, then rebinding the canonical campaign documents. No successful freeze or training is claimed.
 - [X] T221 Correct the audit's preparation lookup to follow the production journal → hash-bound result → hash-bound prepared artifact chain. Retain the failed v1 inspection while running a distinct v2 diagnostic step; verify the actual uploaded preparation publication and replace the inaccurate direct-prepared fixture with production wrapper journal serialization.
+- [X] T222 Provide a stdlib, pinned-source prospective panel revision using only the original native census and OEIS candidates. Replay the old allocation before applying corrected grouping; retain original seeds, quotas, exposure checks and training support; publish separate materials, validate every panel, and package shortages without new draws or model work. Keep campaign rebinding/freeze/acceptance pending actual workstation validation.
 
 T218–T219 validation: the regression reproduces declared-metadata validation
 passing while canonical freeze rejects two distinct unseen ASTs with one
@@ -1060,3 +1061,13 @@ Python 3.13 `-S` CLI run preserved the old failed inspection and prepare/freeze
 records, produced the conflict ZIP, reused the completed v2 audit on repetition,
 and retained the exact qualified source digest. Actual private panel inspection
 still requires the workstation; preparation, calibration and tests do not repeat.
+
+T222 validation: portable grouping exactly matches the corrected main allocator
+across sixteen seed/sharing cases when using the actual old pinned allocator.
+Tests reconstruct a real diagnostic census SQLite publication using a named
+reference-execution boundary, reject changed original bytes, retain all inputs,
+and package deficient allocation without draws or model calls. The actual second
+audit, prepared publication, active-owner record and material bindings were
+authenticated on the exact pinned checkout. Local code checks are not evidence
+that the private workstation pool meets the revised quotas; that remains the
+explicit next external step.

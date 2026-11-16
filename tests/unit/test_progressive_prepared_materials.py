@@ -19,6 +19,87 @@ def composition_pair():
                  values=[str((i+1)*10000+n*n) for n in range(100)]) for i,s in enumerate(sources)]
 
 
+@pytest.mark.parametrize('sharing',[False,True])
+def test_portable_panel_revision_matches_corrected_allocator(sharing):
+    import copy
+    from oeis_learn.pipeline_validation.progressive_panel_revision import regroup
+    rows=composition_pair()
+    rows.extend(dict(r,id=r['id']+'-parameter',stratum='parameter',group='parameter-'+r['id'],
+                     values=[str(int(v)+90000) for v in r['values']]) for r in list(rows))
+    rows.append(dict(id='oeis',stratum='oeis',group='original-0',family='source-family',
+                     indices=list(map(str,range(100))),values=[str(999999+i**3) for i in range(100)]))
+    before=copy.deepcopy(rows)
+    for seed in range(8):
+        req=dict(seed=seed,required_per_stratum=128,minimum_groups=1,
+                 panels=['development','confirmation-diversity'],retention_panels=['retention'])
+        if sharing:req['reuse']={}
+        expected=reserve_panels(rows,seed=seed,required=128,minimum_groups=1,panels=req['panels'],
+                                retention_panels=req['retention_panels'],parameter_sharing=sharing)
+        assert regroup(rows,req)==expected
+    assert rows==before
+
+
+def test_panel_revision_reconstructs_original_native_database_without_draws(tmp_path,monkeypatch):
+    from oeis_learn.pipeline_validation.progressive_panel_revision import reconstruct,regroup
+    from oeis_learn.pipeline_validation import progressive_research_census as census
+    from oeis_learn.pipeline_validation.progressive_workstation_state import write
+    from oeis_learn.generalization.progressive.contracts import reference
+    from tests.unit.test_progressive_research_census import inputs,ReferenceDouble
+    req=inputs(tmp_path);write(tmp_path/'request.json',req)
+    original=census.run(tmp_path,tmp_path/'census',req,client=ReferenceDouble())
+    materials=dict(census=reference(tmp_path,tmp_path/'census/census.json'),
+        request=reference(tmp_path,tmp_path/'request.json'),native=original['native'],diagnostic=True)
+    before={p:p.read_bytes() for p in tmp_path.rglob('*') if p.is_file()}
+    monkeypatch.setattr(census,'run',lambda *a,**k:pytest.fail('new native draw'))
+    rows,roster,result,request,files=reconstruct(tmp_path,materials)
+    assert result==original and request==req
+    assert regroup(rows,request)[0]==roster
+    assert all(p.read_bytes()==raw for p,raw in before.items())
+    files['census.sqlite'].write_bytes(b'changed')
+    with pytest.raises(ValueError,match='identity'):
+        reconstruct(tmp_path,materials)
+
+
+def test_panel_revision_does_not_generate_replacements_for_deficits(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_panel_revision import regroup
+    rows=composition_pair();req=dict(seed=13,required_per_stratum=128,minimum_groups=16,
+        panels=['development','confirmation-diversity'],retention_panels=[],reuse={})
+    roster,counts,deficits=regroup(rows,req)
+    assert deficits and sum(len(members) for members in roster.values())==2
+    assert all(row['id'] in {r['id'] for r in rows} for members in roster.values() for row in members)
+    assert any(v['task_deficit'] for v in counts.values())
+
+
+def test_panel_revision_packages_original_supply_deficits_without_new_work(tmp_path,monkeypatch):
+    import zipfile
+    from oeis_learn.pipeline_validation import progressive_panel_revision as revision
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session,write,NAMES
+    from oeis_learn.pipeline_validation.progressive_research_census import run
+    from oeis_learn.generalization.progressive.contracts import reference
+    from tests.unit.test_progressive_research_census import inputs,ReferenceDouble
+    req=inputs(tmp_path);write(tmp_path/'request.json',req)
+    c=run(tmp_path,tmp_path/'run-state/original/census',req,client=ReferenceDouble())
+    materials=dict(census=reference(tmp_path,tmp_path/'run-state/original/census/census.json'),
+        request=reference(tmp_path,tmp_path/'request.json'),native=c['native'],diagnostic=True)
+    write(tmp_path/'materials.json',materials)
+    s=Session(tmp_path,'run-state/revision',{},'panel-revision')
+    script=tmp_path/'run-state/revision.py';script.write_text('fixture')
+    # Original ownership is an explicit boundary double; reconstruction and
+    # original native outcomes, allocation, journal and ZIP are real.
+    monkeypatch.setattr(revision,'authenticated_materials',lambda _: (materials,dict(identity=digest('audit')),reference(tmp_path,tmp_path/'materials.json')))
+    before={p:p.read_bytes() for p in (tmp_path/'run-state/original').rglob('*') if p.is_file()}
+    NAMES.update({'panel-revision-allocation.json','panel-revision-progress.json'})
+    with s.own():
+        assert s.step('regroup',lambda:revision.revise_panels(s,script)) is None
+    assert s.journal['steps']['panel-revision/regroup']['status']=='BLOCKED'
+    with zipfile.ZipFile(s.folder/'share/panel-revision.zip') as z:
+        report=json.loads(z.read('panel-revision/panel-revision-allocation.json'))
+        assert report['status']=='INCOMPLETE' and report['deficits']
+        assert not report['research_ready'] and report['new_draws']==report['model_calls']==0
+        assert not any('/private/' in n for n in z.namelist())
+    assert all(p.read_bytes()==raw for p,raw in before.items())
+
+
 def split_composition_panels(root):
     exposure=record('exposure',dict(previous=None,detector_limits=['exact'],events=[]),
         created_at='2026-11-11T00:00:00Z',purpose='acceptance',track='synthetic_strict')
