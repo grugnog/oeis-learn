@@ -99,24 +99,30 @@ def test_panel_campaign_rebind_preserves_full_scientific_task_domain(compiled):
     # Change actual cohort membership, then use the real compiler and all 1,296
     # exact-input resolutions. No detector, model or hardware success is mocked.
     reservations=copy.deepcopy(bound['reservations'])
-    reservations['confirmation-diversity'][0]['id']+='-replacement'
     from oeis_learn.generalization.progressive.prepared_panels import cohort
-    panel=cohort(root,root/'revised/private/panel',reservations['confirmation-diversity'],
-        panel='confirmation-diversity',role='confirmation',decision='test-boundary',
-        exposure=bound['exposure'],created_at=bound['exposure']['created_at'])
-    atomic_write(root/'revised/cohort.json',panel)
+    material=copy.deepcopy(materials);screen=copy.deepcopy(bound['screening'])
+    for name in ('development','confirmation-diversity','confirmation-tuning-0'):
+        original_id=reservations[name][0]['id'];reservations[name][0]['id']+='-replacement'
+        for row in screen:
+            if row['id']==original_id:row['id']+='-replacement'
+        role='development' if name=='development' else 'confirmation'
+        panel=cohort(root,root/'revised/private'/name,reservations[name],panel=name,role=role,
+            decision='test-boundary',exposure=bound['exposure'],created_at=bound['exposure']['created_at'])
+        atomic_write(root/'revised'/name/'cohort.json',panel)
+        for p in material['panels']:
+            if p['panel']==name:p['cohort']=reference(root,root/'revised'/name/'cohort.json')
+    atomic_write(root/'revised/screening.json',screen);material['screening']=reference(root,'revised/screening.json')
     atomic_write(root/'revised/private/panel-reservations.json',reservations)
     census=load(root/'census/census.json')
     census=seal(dict(census,artifacts=[reference(root/'revised','private/panel-reservations.json')]))
     atomic_write(root/'revised/census.json',census)
-    material=copy.deepcopy(materials);material['census']=reference(root,'revised/census.json')
-    for p in material['panels']:
-        if p['panel']=='confirmation-diversity':p['cohort']=reference(root,'revised/cohort.json')
+    material['census']=reference(root,'revised/census.json')
     material=seal(material)
     b.build(root,root/'rebound',data,design,material,qualification=root/'qualification',checkpoint_bytes=64<<20)
     old=load(root/'compiled/blueprint.json');new=load(root/'rebound/blueprint.json')
     oldraw=raw_prepared(root,old);newraw=raw_prepared(root,new)
-    invariant_tasks(oldraw['payload']['task_plans'],newraw['payload']['task_plans'])
+    checked=invariant_tasks(oldraw['payload']['task_plans'],newraw['payload']['task_plans'])
+    assert len(checked['derived_seed_changes'])==256 and not checked['mismatches']
     assert oldraw['payload']['task_plans']!=newraw['payload']['task_plans']
     from oeis_learn.pipeline_validation.progressive_outputs import validate_requests
     from oeis_learn.pipeline_validation.progressive_study import validate_frozen

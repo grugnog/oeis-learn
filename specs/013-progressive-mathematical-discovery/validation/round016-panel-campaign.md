@@ -22,8 +22,8 @@ qualified source closure unchanged. The existing hash-bound
 cd ~/workspace/oies-learn &&
 git fetch origin 013-progressive-mathematical-discovery &&
 mkdir -p run-state/discovery-tools &&
-git show 6fed4bd1d6c6:src/oeis_learn/pipeline_validation/progressive_panel_campaign.py > run-state/discovery-tools/continue-round016.py &&
-python3 -S run-state/discovery-tools/continue-round016.py
+git show origin/013-progressive-mathematical-discovery:src/oeis_learn/pipeline_validation/progressive_panel_campaign.py > run-state/discovery-tools/continue-round016-v2.py &&
+python3 -S run-state/discovery-tools/continue-round016-v2.py
 ```
 
 The helper reads Podman, memory, CPU and device settings from the original
@@ -89,3 +89,32 @@ pinned package and original reservation helper. All 352 closed requests and
 study bindings passed without importing Torch, NumPy, Optuna or jsonschema.
 The qualified source digest remained
 `sha256:e3592c86ab55c8aad83763cbaae686eaca895bfe58b560e1b64b422231b17ce5`.
+
+
+## V2: recover the study-derived seed guard
+
+`prepare-research(20261116-152014).zip` records successful reconstruction in
+275 seconds, followed by a 5.3-second metadata rejection. No new preparation,
+freeze, acceptance or research command ran. The original and revised construction
+both contain 352 tasks and 1,296 calibration cases with identical registered
+design and resource ceilings. All 16 screening-profile seeds differ because
+these seeds are derived from the study identity, which binds the repaired panels.
+The original test changed only diversity membership and missed that dependency.
+
+V2 verifies the exact canonical formula for both sides, permits only those
+prospective screening-seed changes, and keeps registered fixed seeds and other
+settings unchanged. The installed study validator requires this derivation;
+keeping obsolete screening seeds would be invalid. Completed measurements remain
+subject to exact input compatibility and canonical replay. The public
+`panel-campaign/calibration-reuse/task-rebind.json` reports every seed change and
+any unexpected field mismatch, without panel truth.
+
+Keep the old `continue-round016.py` file: its original hash is part of the
+retained enrollment. Save V2 under the separate filename in the command above.
+V2 reuses the completed roster, feasibility and construction, and the original
+remaining allowance; it retries only the known original metadata failure.
+The original failed freeze is archived from its retained journal history even
+though its current row is dependency-blocked. Successful preparation still rolls
+straight into canonical freeze, campaign acceptance and research. No tests,
+qualification or calibration measurements are launched by this metadata repair;
+the outstanding campaign-bound acceptance still runs its mandatory checks.

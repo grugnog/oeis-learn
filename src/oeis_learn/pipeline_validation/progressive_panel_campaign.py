@@ -14,6 +14,9 @@ import sys
 import threading
 
 SESSION='run-state/discovery/013-research-round-016'
+REBIND_ERROR='panel rebind changed scientific tasks, settings, tokens, time or learning compatibility'
+ORIGINAL_HELPER_SHA='sha256:3812c4c1214bd2c1379336cdc347a69915d75df6dda425083d55679425691b62'
+SEED_PHASES={'proposal','training','generation','scoring','retention'}
 
 
 def checked_step(session, key):
@@ -66,19 +69,43 @@ def remaining_setup(session, script, repair_receipt):
         scope='one remaining original preparation allowance shared by metadata, prepare and freeze; acceptance retains its separate original reservation'))
 
 
-def invariant_tasks(old,new):
-    """Only panel-bound policy/study/output identities may change before replay."""
+def invariant_tasks(old,new,*,report=None):
+    """Keep scientific settings fixed; verify canonical study-derived seeds."""
+    from oeis_learn.generalization.progressive.contracts import digest,seal
+    changes=[];errors=[]
     def normalized(plan):
         value=copy.deepcopy(plan)
         for key in ('policy','output'):value.pop(key,None)
-        if value.get('trial'):value['trial'].pop('study',None)
+        meta=value.get('trial')
+        if meta:
+            if meta['phase'] in SEED_PHASES:
+                expected=int(digest([meta['study'],meta['ordinal']])[7:15],16)
+                if value['seed']!=expected:
+                    errors.append(dict(task=value['id'],field='noncanonical_trial_seed'))
+                value['seed']='canonical-study-and-ordinal'
+            meta.pop('study',None)
         for choice in value.get('trial_choices',[]):
             choice.pop('policy',None)
             if isinstance(choice.get('runtime'),dict):choice['runtime'].pop('path',None)
         if isinstance(value.get('trial_runtime'),dict):value['trial_runtime'].pop('path',None)
         return value
-    if len(old)!=len(new) or [normalized(p) for p in old]!=[normalized(p) for p in new]:
-        raise ValueError('panel rebind changed scientific tasks, settings, tokens, time or learning compatibility')
+    if len(old)!=len(new):errors.append(dict(field='task_count'))
+    for before,after in zip(old,new):
+        left,right=normalized(before),normalized(after)
+        for key in sorted(left.keys()|right.keys()):
+            if key not in left or key not in right or left[key]!=right[key]:
+                errors.append(dict(task=before['id'],field=key))
+        if before['seed']!=after['seed']:
+            changes.append(dict(task=before['id'],before=before['seed'],after=after['seed'],
+                original_study=before.get('trial',{}).get('study'),revised_study=after.get('trial',{}).get('study')))
+    value=seal(dict(version='round016-task-rebind/v2',status='PASS' if not errors else 'FAIL',
+        tasks=len(new),derived_seed_changes=changes,mismatches=errors,
+        policy='Only canonical study-and-ordinal seeds may change; fixed and confirmation seeds, settings and budgets remain exact'))
+    if report is not None:
+        from oeis_learn.pipeline_validation.preparation_recovery import retain
+        retain(report,value)
+    if errors:raise ValueError(REBIND_ERROR+'; see task-rebind.json' if report else REBIND_ERROR)
+    return value
 
 
 def bind_calibration(root, old_blueprint, new_blueprint, output, *, bind_reservation):
@@ -88,7 +115,7 @@ def bind_calibration(root, old_blueprint, new_blueprint, output, *, bind_reserva
     from oeis_learn.pipeline_validation.progressive_trajectory import reservation
     from oeis_learn.generalization.progressive.contracts import seal,reference
     old=raw_prepared(root,old_blueprint);new=raw_prepared(root,new_blueprint)
-    invariant_tasks(old['payload']['task_plans'],new['payload']['task_plans'])
+    invariant_tasks(old['payload']['task_plans'],new['payload']['task_plans'],report=output/'task-rebind.json')
     if old['payload']['graph']!=new['payload']['graph'] or old['payload']['caps']!=new['payload']['caps']:
         raise ValueError('original scientific graph/reservations changed')
     payload=copy.deepcopy(new['payload']);payload.pop('blueprint')
@@ -122,9 +149,11 @@ def archive_failed_freeze(session, output):
     from oeis_learn.generalization.progressive.contracts import reference,seal
     path=session.folder/'prepare-research/frozen'
     result=read(path/'result.json')
+    row=session.journal['steps'].get('prepare-research/freeze',{})
+    failed=row.get('status')=='FAILED' or (row.get('status')=='BLOCKED' and any(h.get('status')=='FAILED' for h in row.get('history',[])))
     if ((path/'campaign.json').exists() or result.get('producer_error',{}).get('message')
             !='cross-panel detectable related group leakage'
-            or session.journal['steps'].get('prepare-research/freeze',{}).get('status')!='FAILED'):
+            or not failed):
         raise ValueError('only the original failed pre-publication freeze may be archived')
     target=output/'original-failed-freeze'
     if target.exists():raise ValueError('original freeze archive already exists')
@@ -136,6 +165,21 @@ def archive_failed_freeze(session, output):
     value=seal(dict(version='round016-failed-freeze-archive/v1',originals=before,archived=after))
     retain(output/'freeze-archive.json',value)
     return value,[output/'freeze-archive.json',*[session.root/r['path'] for r in after]]
+
+
+def retry_seed_rebind(session,script,enrolled,folder):
+    """Retry the known v1 metadata rejection without resetting its allowance."""
+    from oeis_learn.generalization.progressive.contracts import reference
+    row=session.journal['steps'].get('prepare-research/panel-campaign-calibration',{})
+    if row.get('status')!='FAILED' or row.get('reason')!=REBIND_ERROR:return False
+    if (row.get('history') or enrolled['script']['sha256']!=ORIGINAL_HELPER_SHA
+            or enrolled['script']==reference(session.root,script)
+            or any((folder/n).exists() for n in ('calibration-reuse','prepared','original-failed-freeze'))
+            or (session.folder/'prepare-research/frozen/campaign.json').exists()
+            or (session.folder/'prepare-research/acceptance/acceptance.json').exists()
+            or (session.folder/'run-research').exists()):
+        raise ValueError('only the original unexecuted v1 seed rebind rejection may resume')
+    return True
 
 
 def continue_campaign(session,args,script):
@@ -155,11 +199,27 @@ def continue_campaign(session,args,script):
         retain(folder/'continuation-original-journal.json',seal(session.journal))
         retain(folder/'continuation.json',value)
         return value,[folder/'continuation-original-journal.json',folder/'continuation.json']
-    enrolled=session.step('panel-campaign-enroll',enroll,dependencies=('panel-revision/regroup',),binding=reference(root,script))
+    previous=session.journal['steps'].get('prepare-research/panel-campaign-enroll',{})
+    if previous.get('status')=='COMPLETE':
+        from oeis_learn.pipeline_validation.progressive_research_inputs import checked_file
+        checked_file(root,previous['value']['script'])
+        if previous['binding']!=previous['value']['script']:
+            raise ValueError('original continuation enrollment binding differs')
+    enrolled=session.step('panel-campaign-enroll',enroll,dependencies=('panel-revision/regroup',),
+        binding=previous['binding'] if previous.get('status')=='COMPLETE' else reference(root,script))
     if enrolled is None:return
     def attempt():
         return Allowance(folder/'continuation-allowance.json',enrolled['identity'],enrolled['remaining_seconds']).attempt()
     prefix='prepare-research/'
+    retry=retry_seed_rebind(session,script,enrolled,folder)
+    def helper():
+        value=seal(dict(version='round016-continuation-helper/v2',original_script=enrolled['script'],
+            script=reference(root,script),original_allowance=enrolled['identity'],
+            seed_policy='canonical study-and-ordinal derivation; fixed seeds unchanged'))
+        retain(folder/'continuation-helper.json',value)
+        return value,[folder/'continuation-helper.json']
+    active=session.step('panel-campaign-helper',helper,dependencies=(prefix+'panel-campaign-enroll',),binding=reference(root,script))
+    if active is None:return
     data=load(base/'registered/registered-data.json');design=load(base/'research-round-design.json')
     qroot=base/'qualification';original_timing=base/'evaluation-timing'
     def roster():
@@ -195,7 +255,7 @@ def continue_campaign(session,args,script):
             value=bind_calibration(root,load(base/'reservation-repair/blueprint.json'),
                 load(folder/'construction/blueprint.json'),folder/'calibration-reuse',bind_reservation=repair.bind_reservation)
             return value,sorted((folder/'calibration-reuse').glob('*.json'))
-    session.step('panel-campaign-calibration',calibration,dependencies=(prefix+'panel-campaign-construction',))
+    session.step('panel-campaign-calibration',calibration,dependencies=(prefix+'panel-campaign-construction',prefix+'panel-campaign-helper'),recover=retry)
     def archive():
         with attempt():return archive_failed_freeze(session,folder)
     session.step('panel-campaign-archive',archive,
@@ -259,7 +319,7 @@ def main(argv=None):
     NAMES.update({'continuation.json','continuation-original-journal.json','continuation-allowance.json',
         'freeze-archive.json','preparation-headroom.json','reservation-repair.json','original-journal.json',
         'panel-revision.json','panel-revision-allocation.json','panel-revision-progress.json','panel-revision-census.json',
-        'panel-audit.json','panel-audit-progress.json'})
+        'panel-audit.json','panel-audit-progress.json','task-rebind.json','continuation-helper.json'})
     stop=threading.Event()
     def observe():
         while not stop.wait(30):

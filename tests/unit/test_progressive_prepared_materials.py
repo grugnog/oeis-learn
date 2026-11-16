@@ -574,7 +574,7 @@ def test_shorter_horizons_retime_original_support_without_new_data(reservoir):
         with pytest.raises(ValueError):support.recadence(original,report,target_tokens=target)
 
 
-@pytest.mark.parametrize('failure',[None,'construction','prepare','freeze','acceptance'])
+@pytest.mark.parametrize('failure',[None,'construction','prepare','freeze','acceptance','seed-rebind'])
 @pytest.mark.parametrize('research_status',['COMPLETE','PAUSED'])
 def test_panel_campaign_retains_measurements_and_uses_canonical_execution(tmp_path,monkeypatch,failure,research_status):
     from types import SimpleNamespace
@@ -619,6 +619,7 @@ def test_panel_campaign_retains_measurements_and_uses_canonical_execution(tmp_pa
     monkeypatch.setattr(f,'estimates',lambda *a,**k:seal(dict(status='READY')))
     monkeypatch.setattr(f,'execution_contract',lambda root,output,**kw:doc(output,test_boundary=True))
     def bind(root,old,new,output,**kw):
+        if failure=='seed-rebind':raise ValueError(m.REBIND_ERROR)
         doc(output/'blueprint.json',test_boundary=True)
         return load(output/'blueprint.json')
     monkeypatch.setattr(m,'bind_calibration',bind)  # Full compiler/rebind is tested without this double.
@@ -656,7 +657,8 @@ def test_panel_campaign_retains_measurements_and_uses_canonical_execution(tmp_pa
         m.continue_campaign(s,args,script)
     operations=[x[0] for x in visited]
     sequence=['construction','prepare','freeze','acceptance','run','report','verify-bundle']
-    assert operations==sequence if failure is None else operations==sequence[:sequence.index(failure)+1]
+    expected_first=sequence if failure is None else ['construction'] if failure=='seed-rebind' else sequence[:sequence.index(failure)+1]
+    assert operations==expected_first
     assert all(p.read_bytes()==raw for p,raw in originals.items())
     assert load(folder/'continuation.json')['remaining_seconds']==99870
     if failure is None:
@@ -673,12 +675,28 @@ def test_panel_campaign_retains_measurements_and_uses_canonical_execution(tmp_pa
     with zipfile.ZipFile(saved) as z:
         assert 'journal.json' in z.namelist()
         assert not any('/private/' in n for n in z.namelist())
+    recovering=failure=='seed-rebind'
+    if recovering:
+        # Project the v1 journal shape: it had no helper-upgrade stage. All
+        # completed construction files and consumed allowance stay unchanged.
+        s.journal['steps'].pop('prepare-research/panel-campaign-helper')
+        (folder/'continuation-helper.json').unlink();s.save()
+        before_allowance=load(folder/'continuation-allowance.json')['spent_seconds']
+        monkeypatch.setattr(m,'ORIGINAL_HELPER_SHA',reference(tmp_path,script)['sha256'])
+        script=tmp_path/'run-state/continue-v2.py';script.write_text('explicit revised helper fixture')
+        failure=None
     visited.clear()
     s=Session(tmp_path,'run-state/round',dict(source=digest('source')),'prepare-research')
     with s.own():m.continue_campaign(s,args,script)
     # Completed stages and archives never repeat. Paused research uses canonical
     # resume and then publishes its new report and verification.
     expected=['resume','report','verify-bundle'] if not failure and research_status=='PAUSED' else []
+    if recovering:
+        expected=['prepare','freeze','acceptance','run','report','verify-bundle']
+        assert s.code()==0
+        assert load(folder/'continuation-allowance.json')['spent_seconds']>=before_allowance
+        assert s.journal['steps']['prepare-research/panel-campaign-calibration']['history'][0]['reason']==m.REBIND_ERROR
+        assert load(folder/'continuation.json')['remaining_seconds']==99870
     assert [x[0] for x in visited]==expected
 
 
@@ -701,3 +719,28 @@ def test_panel_campaign_authenticates_receipt_and_unchanged_training_bytes(tmp_p
     row['new_draws']=0
     (tmp_path/'support.json').write_text('tampered')
     with pytest.raises(ValueError):authenticate(s)
+
+
+@pytest.mark.parametrize('fault',['none','fixed','confirmation','arbitrary','original','budget'])
+def test_panel_seed_rebind_is_exact_derivation_not_general_seed_exemption(tmp_path,fault):
+    import copy
+    from oeis_learn.pipeline_validation.progressive_panel_campaign import invariant_tasks
+    from oeis_learn.generalization.progressive.contracts import load
+    def trial(study):
+        return dict(id='screen',seed=int(digest([study,2])[7:15],16),caps=dict(tokens=4000000),
+            trial=dict(study=study,ordinal=2,phase='training'))
+    old=[trial(digest('original')),dict(id='fixed',seed=17),
+        dict(id='confirmation',seed=19,trial=dict(study=digest('original'),ordinal=2,phase='confirmation'))]
+    new=[trial(digest('revised')),*copy.deepcopy(old[1:])]
+    if fault=='fixed':new[1]['seed']+=1
+    if fault=='confirmation':new[2]['seed']+=1
+    if fault=='arbitrary':new[0]['seed']+=1
+    if fault=='original':old[0]['seed']+=1
+    if fault=='budget':new[0]['caps']['tokens']-=1
+    report=tmp_path/'task-rebind.json'
+    if fault=='none':
+        value=invariant_tasks(old,new,report=report)
+        assert value['status']=='PASS' and len(value['derived_seed_changes'])==1
+    else:
+        with pytest.raises(ValueError,match='scientific tasks'):invariant_tasks(old,new,report=report)
+        assert load(report)['status']=='FAIL' and load(report)['mismatches']

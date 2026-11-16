@@ -1091,3 +1091,6 @@ pinned package and original reservation helper. All 352 closed requests and
 study bindings passed without importing Torch, NumPy, Optuna or jsonschema.
 The qualified source digest remained
 `sha256:e3592c86ab55c8aad83763cbaae686eaca895bfe58b560e1b64b422231b17ce5`.
+
+
+- [ ] T224 Correct the prospective panel rebind guard for canonical study-derived screening seeds; keep fixed seeds and all other scientific settings exact. Add a durable task-difference report, narrow recovery of the original v1 metadata failure with unchanged allowance/completed construction, and preserve the failed freeze after dependency blocking. Extend the full compiler regression to development and tuning panels, plus arbitrary/fixed-seed tampering, budget changes, real journal reuse and pinned Python `-S` checks. Actual revised-campaign freeze/acceptance remains T220.

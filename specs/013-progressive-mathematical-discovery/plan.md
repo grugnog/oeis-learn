@@ -849,7 +849,7 @@ with no deficits. Training support and its summary remained byte-identical;
 36 memberships changed, with no new native draws, model calls or assessment
 scoring. Reconstruct panel-bound role requests, study definitions and evaluation
 contracts from these accepted materials using the original compiler. Require
-identical task order, dependencies, graph, settings, seeds, token/time ceilings,
+identical task order, dependencies, graph, settings, fixed seeds, token/time ceilings,
 learning compatibilities and runtime identities; permit only panel-bound policy,
 study, output and relocated runtime references to differ.
 
@@ -871,3 +871,31 @@ Acceptance retains its separately reserved startup/cleanup headroom. Scientific
 budgets do not change. Reinvocation reuses complete metadata and invokes canonical
 research resume; unknown preparation interruptions require explicit reconciliation.
 Failures retain their diagnostics, block descendants and package public evidence.
+
+
+### Study-derived seed rebinding after outcome-blind panel repair
+
+Screening seeds are canonically `digest([study_identity, trial_ordinal])[:8]`.
+The study includes the development screening roster and confirmation panels;
+revising those unscored panels therefore changes the 16 derived screening seeds.
+The prior T223 regression changed only a diversity panel, which did not exercise
+this dependency. The workstation guard correctly stopped before model execution,
+but its blanket seed equality was too strong for this prospective repair.
+
+Authenticate both original and revised screening seeds against the canonical
+formula. Permit only that deterministic recomputation, for proposal, training,
+generation, scoring and retention members of the same screening trial. Preserve
+all fixed capability/diversity/confirmation/selection seeds exactly, together
+with token/time budgets, settings, graph, learning compatibility and runtime
+identities. Do not preserve obsolete screening seeds by overriding the canonical
+study validator. No screening results exist, so this is prospective rebinding,
+not seed selection from observed performance. Record every derived-seed change
+and any other task mismatch in a shareable metadata report.
+
+The v2 host helper reuses the completed roster, estimates and construction. It
+retains the v1 enrollment/script and the consumed shared preparation allowance;
+only the specific original metadata rejection may be retried, before any new
+prepare, freeze, acceptance or research execution. Preserve failed freeze bytes
+even when dependency blocking moved its FAILED journal row into history. Keep
+all other failures/unknown intervals closed for explicit reconciliation. The
+qualified checkout and installed validators remain unchanged.
