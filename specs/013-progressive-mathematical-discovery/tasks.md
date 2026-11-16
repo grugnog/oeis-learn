@@ -1038,6 +1038,7 @@ CI is not awaited after publication.
 - [X] T218 Keep unseen-structure composition relations indivisible during new panel allocation and run the canonical freeze panel guard during materials publication, before expensive preparation. Preserve parameter-sharing exceptions and all original no-replacement rules.
 - [X] T219 Provide an outcome-blind, stdlib panel audit that can be copied outside the qualified source tree, uses the installed original detector, reports hashed overlap categories, continues independent malformed-row checks, and packages results without launching qualification/calibration/scoring or opening assessment panels.
 - [ ] T220 Use the original round016 panel audit to identify the actual retained conflicts and implement any justified prospective correction before canonical freeze/acceptance. **Externally blocked**: the uploaded support archive intentionally excludes the original private cohorts/truth; the audit must run on the workstation. No successful freeze or training is claimed.
+- [X] T221 Correct the audit's preparation lookup to follow the production journal → hash-bound result → hash-bound prepared artifact chain. Retain the failed v1 inspection while running a distinct v2 diagnostic step; verify the actual uploaded preparation publication and replace the inaccurate direct-prepared fixture with production wrapper journal serialization.
 
 T218–T219 validation: the regression reproduces declared-metadata validation
 passing while canonical freeze rejects two distinct unseen ASTs with one
@@ -1048,3 +1049,14 @@ assessment exclusion, original prepared references, journal preservation,
 failure packaging and repeat-invocation reuse. The audit also runs under the
 actual pinned round016 source with Python 3.13 `-S`; its exact source digest stays
 unchanged. This diagnostic supplies no qualification or scientific authority.
+
+T221 validation: the uploaded `panel-audit.zip` records an audit lookup failure,
+not a panel-inspection result. The corrected resolver successfully verified its
+actual journal, result and 56,556,304-byte prepared artifact. Four audit checks
+passed on the current package and four on the actual pinned round016 package;
+the integration test now uses `Workflow.run_command` journal serialization with
+only external execution doubled, and rejects changed result/prepared bytes. A
+Python 3.13 `-S` CLI run preserved the old failed inspection and prepare/freeze
+records, produced the conflict ZIP, reused the completed v2 audit on repetition,
+and retained the exact qualified source digest. Actual private panel inspection
+still requires the workstation; preparation, calibration and tests do not repeat.

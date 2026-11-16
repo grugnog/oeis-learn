@@ -56,3 +56,22 @@ on that checkout emitted the expected composition conflict ZIP, reused it on
 reinvocation, and left the source digest exactly unchanged. No HIP or scientific
 success is inferred. The actual retained-panel diagnosis remains externally
 blocked on the workstation audit; no redraw or weakened exclusion is authorized.
+
+## Audit v2 publication lookup repair
+
+The uploaded `panel-audit.zip` contains no panel inspection: v1 failed in 0.045
+seconds because it expected `prepared.json` directly in journal outputs. The real
+wrapper journals `result.json`, whose `metrics.prepared` reference binds the
+prepared document relative to that result's directory. The initial integration
+fixture modeled this incorrectly. The v2 resolver follows and verifies the real
+chain, including the completed operation, output binding and both file hashes.
+It successfully replayed the original uploaded 56,556,304-byte document.
+
+The corrected test obtains its journal from production `Workflow.run_command`,
+doubling only external process execution. The CLI uses `panel-audit/inspect-v2`
+so the failed v1 step and binding remain intact. The new step cannot retry any
+qualification/preparation/scientific operation. Four audit checks passed on each
+of current and pinned packages; an actual pinned Python 3.13 `-S` invocation
+confirmed the v2 failure-to-diagnostic path, ZIP, repeat reuse and unchanged
+qualified source. Fetch the updated module with the command above and run the
+audit again; no checkout change or expensive preparation repetition is needed.

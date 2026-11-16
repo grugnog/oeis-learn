@@ -104,6 +104,35 @@ def audit(root, panels, exposures, *, progress=None):
         assessment_opened=False, original_inputs_modified=False, scientific_authority=False))
 
 
+def prepared_publication(session):
+    """Follow the real wrapper journal -> result -> prepared artifact chain."""
+    from oeis_learn.generalization.progressive.contracts import seal, validate, reference, CAMPAIGN_DOCUMENT_BYTES
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_research_inputs import checked_file, _json
+    from oeis_learn.pipeline_validation.progressive_workstation_state import read
+    row = session.journal['steps'].get('prepare-research/prepare', {})
+    value = row.get('value') or {}
+    if row.get('status') != 'COMPLETE' or value.get('operation') != 'prepare' or value.get('exit_code') != 0:
+        raise ValueError('one completed original preparation publication required')
+    output = confined(session.root,value['output'])
+    binding = row.get('binding')
+    if binding is not None and (seal(binding) != binding or binding.get('operation') != 'prepare'
+                               or binding.get('arguments',{}).get('output') != value['output']):
+        raise ValueError('original preparation output binding differs')
+    refs = [r for r in row.get('outputs',[]) if r['path'] == str((output/'result.json').relative_to(session.root))]
+    if len(refs) != 1:
+        raise ValueError('original journal-bound preparation result required')
+    result = read(checked_file(session.root,refs[0]))
+    if (result.get('operation') != 'prepare' or result.get('mechanical_status') != 'COMPLETE'
+            or result.get('producer_error') or result.get('missing_evidence')):
+        raise ValueError('completed original preparation result required')
+    prepared_ref = result.get('metrics',{}).get('prepared',{})
+    if prepared_ref.get('path') != 'prepared.json':
+        raise ValueError('original result-bound prepared publication required')
+    path = checked_file(output,prepared_ref)
+    return validate('prepared',_json(path,maximum=CAMPAIGN_DOCUMENT_BYTES)),reference(session.root,path),refs[0]
+
+
 def run(session, script):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from oeis_learn.generalization.progressive.contracts import digest, seal, validate, reference, CAMPAIGN_DOCUMENT_BYTES
@@ -111,11 +140,7 @@ def run(session, script):
     from oeis_learn.pipeline_validation.progressive_workstation_state import write
     if digest(collect_snapshot(session.root)) != session.binding['source']:
         raise ValueError('keep the original qualified checkout; fetch the audit file without pulling source')
-    row = session.journal['steps'].get('prepare-research/prepare', {})
-    refs = [r for r in row.get('outputs', []) if Path(r['path']).name == 'prepared.json']
-    if row.get('status') != 'COMPLETE' or len(refs) != 1:
-        raise ValueError('one completed original preparation publication required')
-    prepared = validate('prepared', _json(checked_file(session.root, refs[0]), maximum=CAMPAIGN_DOCUMENT_BYTES))
+    prepared, prepared_ref, result_ref = prepared_publication(session)
     panels, exposures, inputs = [], {}, []
     errors=[]
     for item in prepared['payload']['references']:
@@ -138,7 +163,7 @@ def run(session, script):
         print('Panel audit: '+str(value['processed'])+'/'+str(value['total'])+' rows; '+str(value['errors'])+' read errors',flush=True)
     result=audit(session.root,panels,exposures,progress=progress)
     result.update(source=session.binding['source'], auditor=reference(session.root,script),
-                  prepared=refs[0], inputs=inputs)
+                  prepared=prepared_ref, preparation_result=result_ref, inputs=inputs)
     if errors:
         result['errors'].extend(errors); result['status']='INCOMPLETE'
     result=seal(result)
@@ -165,7 +190,9 @@ def main(argv=None):
     with s.own():
         if digest(collect_snapshot(root)) != binding['source']:
             raise ValueError('keep the original qualified checkout; fetch the audit file without pulling source')
-        result=s.step('inspect',lambda:run(s,Path(__file__).resolve()),
+        # A new diagnostic step retains the failed v1 lookup and its binding.
+        # It grants no retry/allowance to preparation or any scientific operation.
+        result=s.step('inspect-v2',lambda:run(s,Path(__file__).resolve()),
                       binding=reference(root,Path(__file__).resolve()))
         return 1 if result is None else 3 if result['status']!='NO_DIRECT_OVERLAPS_FOUND' else 0
 

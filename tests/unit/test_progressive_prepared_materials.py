@@ -92,7 +92,11 @@ def test_panel_audit_respects_parameter_sharing_and_assessment_lock(tmp_path):
 
 def test_panel_audit_original_preparation_and_failure_packaging(tmp_path,monkeypatch):
     import zipfile
+    from pathlib import Path
+    from types import SimpleNamespace
     from oeis_learn.pipeline_validation import progressive_panel_audit as module
+    from oeis_learn.pipeline_validation import supervision
+    from oeis_learn.pipeline_validation.progressive_workstation import Workflow
     from oeis_learn.pipeline_validation.progressive_workstation_state import Session,write,read,NAMES
     from oeis_learn.experiments import source_snapshot
     from oeis_learn.generalization.progressive.contracts import reference
@@ -107,19 +111,30 @@ def test_panel_audit_original_preparation_and_failure_packaging(tmp_path,monkeyp
     p['payload']['references']=[r for r in p['payload']['references'] if r['kind']!='groups']+refs
     folder=tmp_path/'run-state/session'
     path=folder/'prepare-research/reservation-repair/prepared/prepared.json';write(path,seal(p))
+    result_path=path.parent/'result.json'
+    write(result_path,seal(dict(version='discovery-result/v1',operation='prepare',mechanical_status='COMPLETE',
+        producer_error=None,missing_evidence=[],metrics=dict(prepared=reference(path.parent,path)))))
     script=tmp_path/'run-state/audit.py';script.write_text('auditor fixture')
     source={'fixture':digest('original')}
     monkeypatch.setattr(source_snapshot,'collect_snapshot',lambda _:source)
-    s=Session(tmp_path,'run-state/session',dict(source=digest(source)),'panel-audit')
+    s=Session(tmp_path,'run-state/session',dict(source=digest(source)),'prepare-research')
     write(folder/'journal.json',seal(dict(version='progressive-workstation-journal/v1',errors=[],steps={
-        'prepare-research/prepare':dict(status='COMPLETE',outputs=[reference(tmp_path,path)]),
-        'prepare-research/freeze':dict(status='FAILED',reason='cross-panel detectable related group leakage')})))
+        'prepare-research/freeze':dict(status='FAILED',reason='cross-panel detectable related group leakage'),
+        'panel-audit/inspect':dict(status='FAILED',reason='one completed original preparation publication required')})))
+    # Exercise production journal serialization; only the external process is a
+    # double. The real wrapper records result.json, never prepared.json directly.
+    monkeypatch.setattr(supervision,'launch',lambda argv,logs,**kw:write(logs/'process.json',dict(returncode=0)))
+    with s.own():
+        w=Workflow(s,SimpleNamespace(phase='prepare-research',engine='podman',memory_gib=64,cpus=8,render_node=None))
+        w.run_command('prepare','prepare',resume=True,seconds=60,output=str(path.parent.relative_to(tmp_path)))
+    assert all(Path(r['path']).name!='prepared.json' for r in s.journal['steps']['prepare-research/prepare']['outputs'])
+    s.phase='panel-audit'
     original=read(folder/'journal.json')['steps']
     files={x:x.read_bytes() for x in (tmp_path/'private').rglob('*') if x.is_file()}
     monkeypatch.setattr(module,'main',lambda *a:pytest.fail('nested runner'))
     NAMES.update({'panel-audit.json','panel-audit-progress.json'})
     with s.own():
-        result=s.step('inspect',lambda:module.run(s,script))
+        result=s.step('inspect-v2',lambda:module.run(s,script))
     assert result['status']=='OVERLAPS_FOUND'
     assert all(x.read_bytes()==b for x,b in files.items())
     for k,v in original.items():assert read(folder/'journal.json')['steps'][k]==v
@@ -127,7 +142,16 @@ def test_panel_audit_original_preparation_and_failure_packaging(tmp_path,monkeyp
         assert 'panel-audit/panel-audit.json' in z.namelist()
         assert not any('/private/' in n for n in z.namelist())
     with s.own():
-        assert s.step('inspect',lambda:pytest.fail('duplicate audit'))==result
+        assert s.step('inspect-v2',lambda:pytest.fail('duplicate audit'))==result
+    before=path.read_bytes()
+    path.write_bytes(before+b' ')
+    with pytest.raises(ValueError,match='identity'):
+        module.prepared_publication(s)
+    path.write_bytes(before)
+    before=result_path.read_bytes();result_path.write_bytes(before+b' ')
+    with pytest.raises(ValueError,match='identity'):
+        module.prepared_publication(s)
+    result_path.write_bytes(before)
     monkeypatch.setattr(source_snapshot,'collect_snapshot',lambda _:{'changed':True})
     with pytest.raises(ValueError,match='original qualified checkout'):
         module.run(s,script)
