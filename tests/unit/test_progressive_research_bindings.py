@@ -76,6 +76,8 @@ def compiled(tmp_path_factory,request):
         census=reference(root,'census/census.json'),request=reference(root,'census/request.json'),native=native,
         panels=pubs,support=reference(root,'support.json'),support_summary=reference(root,'support-summary.json'),
         screening=reference(root,'screening.json'),exposure=reference(root,'exposure.json')))
+    for name,value in [('registered-data',data),('design',design),('materials',materials)]:
+        atomic_write(root/(name+'.json'),value)
     assert b.inputs(root,data,design,materials)==bound
     atomic_write(root/'qualification/source.json',{'test_boundary_only':True})
     q=dict(source_closure=reference(root/'qualification','source.json'),images=[digest('cpu'),digest('hip')],
@@ -84,6 +86,73 @@ def compiled(tmp_path_factory,request):
     args=b.compile_plan(root,root/'compiled',data,design,materials,qualification=root/'qualification',checkpoint_bytes=64<<20)
     result=b.finish_plan(*args,data=data,design=design,materials=materials)
     return root,args,result
+
+
+def test_panel_campaign_rebind_preserves_full_scientific_task_domain(compiled):
+    import copy
+    from oeis_learn.pipeline_validation.progressive_panel_campaign import invariant_tasks,bind_calibration
+    from oeis_learn.pipeline_validation.progressive_calibration_reuse import raw_prepared,named,bind_original_reservation
+    from oeis_learn.pipeline_validation.progressive_runtime_timing import feasibility_scopes,TARGET
+    root,(_,bound,study,*_),_=compiled
+    if not study['version'].endswith('/v4'):return
+    materials=load(root/'materials.json');data=load(root/'registered-data.json');design=load(root/'design.json')
+    # Change actual cohort membership, then use the real compiler and all 1,296
+    # exact-input resolutions. No detector, model or hardware success is mocked.
+    reservations=copy.deepcopy(bound['reservations'])
+    reservations['confirmation-diversity'][0]['id']+='-replacement'
+    from oeis_learn.generalization.progressive.prepared_panels import cohort
+    panel=cohort(root,root/'revised/private/panel',reservations['confirmation-diversity'],
+        panel='confirmation-diversity',role='confirmation',decision='test-boundary',
+        exposure=bound['exposure'],created_at=bound['exposure']['created_at'])
+    atomic_write(root/'revised/cohort.json',panel)
+    atomic_write(root/'revised/private/panel-reservations.json',reservations)
+    census=load(root/'census/census.json')
+    census=seal(dict(census,artifacts=[reference(root/'revised','private/panel-reservations.json')]))
+    atomic_write(root/'revised/census.json',census)
+    material=copy.deepcopy(materials);material['census']=reference(root,'revised/census.json')
+    for p in material['panels']:
+        if p['panel']=='confirmation-diversity':p['cohort']=reference(root,'revised/cohort.json')
+    material=seal(material)
+    b.build(root,root/'rebound',data,design,material,qualification=root/'qualification',checkpoint_bytes=64<<20)
+    old=load(root/'compiled/blueprint.json');new=load(root/'rebound/blueprint.json')
+    oldraw=raw_prepared(root,old);newraw=raw_prepared(root,new)
+    invariant_tasks(oldraw['payload']['task_plans'],newraw['payload']['task_plans'])
+    assert oldraw['payload']['task_plans']!=newraw['payload']['task_plans']
+    from oeis_learn.pipeline_validation.progressive_outputs import validate_requests
+    from oeis_learn.pipeline_validation.progressive_study import validate_frozen
+    plan=newraw['payload']
+    validate_requests(root,plan['task_plans'],plan['references'],plan['graph'],purpose='research')
+    validate_frozen(root,dict(purpose='research',track='synthetic_strict',payload=dict(tasks=plan['task_plans'],references=plan['references'])))
+    for field in ('token_target','seed','caps','compatibility'):
+        changed=copy.deepcopy(newraw['payload']['task_plans'])
+        task=next(p for p in changed if p['kind']=='training')
+        task[field]=0
+        with pytest.raises(ValueError,match='scientific tasks'):invariant_tasks(oldraw['payload']['task_plans'],changed)
+    # Named original measurement authorities are test-only metadata; the real
+    # reservation binder and budget guard still verify every retained reference.
+    proof=dict(blueprint=reference(root,'compiled/blueprint.json'))
+    atomic_write(root/'original-request.json',dict(caps=load(root/'compiled/calibration-plan.json')['caps']))
+    proof['request']=reference(root,'original-request.json')
+    atomic_write(root/'original-proof.json',proof)
+    atomic_write(root/'original-resource-policy.json',dict(test_boundary=True))
+    request=seal(dict(cases=feasibility_scopes(),target_tokens=TARGET))
+    atomic_write(root/'original-trajectory-request.json',request)
+    atomic_write(root/'original-trajectory.json',dict(request=reference(root,'original-trajectory-request.json')))
+    for name,path in [('calibration_reuse','original-proof.json'),('research_resource_policy','original-resource-policy.json'),('training_trajectory','original-trajectory.json')]:
+        oldraw['payload']['references']=[r for r in oldraw['payload']['references'] if r['name']!=name]
+        oldraw['payload']['references'].append(dict(name=name,kind='policy',role='custodian',artifact=reference(root,path)))
+    payload=copy.deepcopy(oldraw['payload']);payload.pop('blueprint')
+    atomic_write(root/'augmented-plan.json',dict(version='progressive-preparation-plan/v1',payload=payload))
+    augmented=copy.deepcopy(old)
+    for r in augmented['payload']['references']:
+        if r['name']=='preparation_plan':r['artifact']=reference(root,'augmented-plan.json')
+    result=bind_calibration(root,seal(augmented),new,root/'replay',bind_reservation=bind_original_reservation)
+    rebound=raw_prepared(root,result)
+    assert named(result,'iteration_calibration_plan')==named(old,'iteration_calibration_plan')
+    for name in ('calibration_reuse','research_resource_policy','training_trajectory'):
+        assert named(rebound,name)==named(oldraw,name)
+    from oeis_learn.pipeline_validation.progressive_preparation_preflight import verified
+    assert verified(root,rebound['payload']['references'])['original_reservation']==named(rebound,'research-reservation-v2')
 
 
 def test_full_registered_plan_has_real_closed_requests_and_exact_cases(compiled):

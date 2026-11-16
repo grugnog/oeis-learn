@@ -572,3 +572,132 @@ def test_shorter_horizons_retime_original_support_without_new_data(reservoir):
     assert too_early['status']=='INCOMPLETE' and len(too_early['deficits'])==3
     for target in (0,True,400000001):
         with pytest.raises(ValueError):support.recadence(original,report,target_tokens=target)
+
+
+@pytest.mark.parametrize('failure',[None,'construction','prepare','freeze','acceptance'])
+@pytest.mark.parametrize('research_status',['COMPLETE','PAUSED'])
+def test_panel_campaign_retains_measurements_and_uses_canonical_execution(tmp_path,monkeypatch,failure,research_status):
+    from types import SimpleNamespace
+    from pathlib import Path
+    import zipfile
+    from oeis_learn.pipeline_validation import progressive_panel_campaign as m
+    from oeis_learn.pipeline_validation import progressive_research_bindings as b
+    from oeis_learn.pipeline_validation import progressive_research_feasibility as f
+    from oeis_learn.pipeline_validation import supervision
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session,write,NAMES
+    from oeis_learn.generalization.progressive.contracts import reference,load
+    from oeis_learn.generalization.progressive import campaign as c
+    from oeis_learn.pipeline_validation import progressive_device_acceptance as acceptance
+    s=Session(tmp_path,'run-state/round',dict(source=digest('source')),'prepare-research')
+    base=s.folder/'prepare-research';folder=base/'panel-campaign'
+    script=tmp_path/'run-state/continue.py';script.write_text('explicit host script fixture')
+    def doc(path,**fields):write(path,seal(fields))
+    doc(base/'registered/registered-data.json',test_boundary=True)
+    doc(base/'research-round-design.json',test_boundary=True)
+    doc(base/'qualification/qualification.json',test_boundary=True)
+    doc(base/'reservation-repair/reservation-repair.json',remaining_seconds=100000)
+    doc(base/'reservation-repair/prepare-allowance.json',seconds=100000,spent_seconds=100,active=None)
+    doc(base/'reservation-repair/blueprint.json',test_boundary=True)
+    doc(base/'evaluation-timing/request.json',test_boundary=True)
+    doc(base/'preparation-headroom.json',setup_seconds=dict(acceptance=7800))
+    doc(base/'frozen/result.json',producer_error=dict(message='cross-panel detectable related group leakage'))
+    doc(base/'readiness.json',status='BLOCKED')
+    originals={p:p.read_bytes() for p in (base/'reservation-repair').glob('*')}
+    visited=[]
+    panel=dict(identity=digest('new panels'),materials=reference(tmp_path,base/'registered/registered-data.json'))
+    def authenticate(session):
+        for row in session.journal['steps'].values():
+            if row['status']=='COMPLETE':
+                for ref in row.get('outputs',[]):
+                    assert reference(tmp_path,ref['path'])==ref
+        return SimpleNamespace(bind_reservation=None),panel,dict(test_boundary=True)
+    monkeypatch.setattr(m,'authenticate',authenticate)  # Actual source/owner authentication tested separately.
+    def roster(root,output,*args):
+        doc(output/'private/role-roster.json',test_boundary=True)
+        return dict(test_boundary=True)
+    monkeypatch.setattr(b,'publish_roster',roster)
+    monkeypatch.setattr(f,'estimates',lambda *a,**k:seal(dict(status='READY')))
+    monkeypatch.setattr(f,'execution_contract',lambda root,output,**kw:doc(output,test_boundary=True))
+    def bind(root,old,new,output,**kw):
+        doc(output/'blueprint.json',test_boundary=True)
+        return load(output/'blueprint.json')
+    monkeypatch.setattr(m,'bind_calibration',bind)  # Full compiler/rebind is tested without this double.
+    monkeypatch.setattr(c,'validate_campaign',lambda value:value)
+    monkeypatch.setattr(acceptance,'consume_receipt',lambda *a:None)  # Device evidence is an explicit boundary.
+    def launch(argv,logs,**kw):
+        if '--data' in argv:operation='construction'
+        else:
+            assert '--engine' in argv and argv[argv.index('--engine')+1]=='podman'
+            operation=argv[argv.index('discovery')+1]
+        assert operation not in {'qualify','calibrate','rehearse','assess'}
+        visited.append((operation,kw['seconds']))
+        output=tmp_path/argv[argv.index('--output')+1]
+        if operation==failure:raise RuntimeError('explicit external '+operation+' failure')
+        doc(Path(logs)/'process.json',returncode=0)
+        if operation=='construction':
+            doc(output/'construction-summary.json',status='COMPLETE');doc(output/'blueprint.json',test_boundary=True)
+        elif operation=='prepare':doc(output/'resource-estimate.json',status='READY')
+        elif operation=='freeze':doc(output/'campaign.json',purpose='research',payload=dict(caps=dict(elapsed_us=10000000)))
+        elif operation=='acceptance':
+            campaign=load(base/'frozen/campaign.json');doc(output/'acceptance.json',campaign=campaign['identity'])
+        elif operation=='report':output.parent.mkdir(parents=True,exist_ok=True);output.write_bytes(b'EXPLICIT EXTERNAL ARCHIVE BOUNDARY');return
+        elif operation=='verify-bundle':doc(output/'verification.json',status='COMPLETE')
+        doc(output/'result.json',mechanical_status=research_status if operation=='run' else 'COMPLETE')
+    monkeypatch.setattr(supervision,'launch',launch)
+    args=SimpleNamespace(phase='prepare-research',engine='podman',memory_gib=64,cpus=8,render_node=None)
+    NAMES.update({'freeze-archive.json','continuation.json','continuation-allowance.json'})
+    with s.own():
+        s.journal['steps'].update({
+            'panel-revision/regroup':dict(status='COMPLETE',value=panel,outputs=[],elapsed_seconds=20),
+            'prepare-research/prepare':dict(status='COMPLETE',value='original',outputs=[],elapsed_seconds=100),
+            'prepare-research/freeze':dict(status='FAILED',reason='original leakage',elapsed_seconds=10),
+            'prepare-research/acceptance':dict(status='BLOCKED'),
+            'prepare-research/readiness':dict(status='BLOCKED')})
+        m.continue_campaign(s,args,script)
+    operations=[x[0] for x in visited]
+    sequence=['construction','prepare','freeze','acceptance','run','report','verify-bundle']
+    assert operations==sequence if failure is None else operations==sequence[:sequence.index(failure)+1]
+    assert all(p.read_bytes()==raw for p,raw in originals.items())
+    assert load(folder/'continuation.json')['remaining_seconds']==99870
+    if failure is None:
+        assert s.phase=='run-research' and s.code()==0
+        assert load(base/'readiness.json')['research_ready']
+        assert s.journal['steps']['prepare-research/prepare']['history'][0]['value']=='original'
+        assert s.journal['steps']['prepare-research/freeze']['history'][0]['reason']=='original leakage'
+        assert 7200<visited[3][1]<=7800  # Reserved cleanup and startup headroom.
+        saved=s.folder/'share/prepare-research.zip'
+    else:
+        assert s.code()!=0 and s.phase=='prepare-research'
+        assert s.journal['steps']['prepare-research/readiness']['status']=='BLOCKED'
+        saved=s.folder/'share/prepare-research.zip'
+    with zipfile.ZipFile(saved) as z:
+        assert 'journal.json' in z.namelist()
+        assert not any('/private/' in n for n in z.namelist())
+    visited.clear()
+    s=Session(tmp_path,'run-state/round',dict(source=digest('source')),'prepare-research')
+    with s.own():m.continue_campaign(s,args,script)
+    # Completed stages and archives never repeat. Paused research uses canonical
+    # resume and then publishes its new report and verification.
+    expected=['resume','report','verify-bundle'] if not failure and research_status=='PAUSED' else []
+    assert [x[0] for x in visited]==expected
+
+
+def test_panel_campaign_authenticates_receipt_and_unchanged_training_bytes(tmp_path):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation.progressive_panel_campaign import authenticate
+    from oeis_learn.generalization.progressive.contracts import reference,atomic_write
+    script=tmp_path/'repair.py';script.write_text('def verify_original(root,session):\n session.verified=True\n')
+    for n in ('support','support_summary'):atomic_write(tmp_path/(n+'.json'),seal(dict(name=n)))
+    materials=seal(dict(status='COMPLETE',diagnostic=False,deficits=[],**{n:reference(tmp_path,n+'.json') for n in ('support','support_summary')}))
+    atomic_write(tmp_path/'materials.json',materials)
+    row=dict(status='PANELS_READY',deficits=[],training_support_unchanged=True,source=digest('source'),model_calls=0,new_draws=0,
+        materials=reference(tmp_path,'materials.json'),original_materials=reference(tmp_path,'materials.json'))
+    s=SimpleNamespace(root=tmp_path,binding=dict(source=digest('source')),journal=dict(steps={
+        'prepare-research/reservation-repair':dict(status='COMPLETE',value=dict(script=reference(tmp_path,script))),
+        'panel-revision/regroup':dict(status='COMPLETE',value=row)}))
+    assert authenticate(s)[2]==materials and s.verified
+    row['new_draws']=1
+    with pytest.raises(ValueError,match='outcome-blind'):authenticate(s)
+    row['new_draws']=0
+    (tmp_path/'support.json').write_text('tampered')
+    with pytest.raises(ValueError):authenticate(s)

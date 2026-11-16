@@ -62,3 +62,21 @@ boundary. The Python 3.13 `-S` CLI also authenticated the original uploaded sess
 on the pinned checkout and packaged the missing external donor without changing
 the qualified source. Actual revised supply and full private panel validation remain pending
 the workstation command; no new HIP, successful freeze or research is claimed.
+
+
+## Workstation result
+
+The uploaded `panel-revision.zip` reports `PANELS_READY` in 1,267.25 seconds
+(1,268.25 seconds for the journaled step). All ten panel counts, groups and
+canonical isolation/exposure checks passed with no deficits. Training support
+and its summary are byte-identical. From the original 31,528 candidates, the
+revision changed 13 development memberships, 2 diversity memberships, 8/5/5/2
+tuning-confirmation memberships and 1 assessment membership: 36 replacements.
+Retention membership did not change. No new draws, model calls, qualification,
+calibration or assessment scoring occurred.
+
+The report identity is
+`sha256:46b50d8347f9f849958db5d8ae619687db4374da4012dc21d62453bead261676`.
+Panel allocation is complete; do not rerun this command. Continue with
+[the campaign rebind](round016-panel-campaign.md). Freeze and installed
+campaign acceptance still need workstation execution.

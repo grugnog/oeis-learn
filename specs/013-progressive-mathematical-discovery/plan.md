@@ -840,3 +840,34 @@ training-only timing and exact-input calibration may be replayed only against
 unchanged compatible inputs. Canonical preparation replay, freeze and scoped
 campaign acceptance remain required; a PANELS_READY report is not execution
 authority and does not mark T220 complete.
+
+
+### Round016 successful panel revision and qualified continuation
+
+The workstation's outcome-blind regrouping passed all ten canonical panel guards
+with no deficits. Training support and its summary remained byte-identical;
+36 memberships changed, with no new native draws, model calls or assessment
+scoring. Reconstruct panel-bound role requests, study definitions and evaluation
+contracts from these accepted materials using the original compiler. Require
+identical task order, dependencies, graph, settings, seeds, token/time ceilings,
+learning compatibilities and runtime identities; permit only panel-bound policy,
+study, output and relocated runtime references to differ.
+
+Replay the original training-only evaluation measurements for the new roster.
+Retain original exact-calibration and trajectory authorities, rederive the outer
+reservation bindings, and preserve the completed calibration's original debit.
+Do not run qualification, calibration measurements, timing or panel generation
+again. Canonical prepare still authenticates all original measurements and live
+device facts; canonical freeze still validates the entire revised publication.
+The outstanding campaign-bound installed acceptance is mandatory before research.
+
+The stdlib host continuation is copied into run-state and authenticates the
+original source, active preparation owner and completed output hashes. Preserve
+the original failed freeze directory and journal history before publishing the
+revised campaign at the canonical session path. Its metadata, prepare and freeze
+steps share only the original unused preparation allowance, less prior repair,
+audit and panel-revision costs. They do not each inherit a fresh two-hour timeout.
+Acceptance retains its separately reserved startup/cleanup headroom. Scientific
+budgets do not change. Reinvocation reuses complete metadata and invokes canonical
+research resume; unknown preparation interruptions require explicit reconciliation.
+Failures retain their diagnostics, block descendants and package public evidence.
