@@ -926,3 +926,49 @@ python3 -S scripts/discovery_hip_handoff.py \
 Current-source qualification and short timing measurements still run. The tiny
 rehearsal and 1,296-case calibration census are retained, not repeated. Research
 starts automatically only after successful preparation, freeze and acceptance.
+
+
+### Continue round016 without repeating successful qualification
+
+Round016 passed CPU/native and HIP qualification, all 13 trajectory cases and
+calibration-reuse planning. It stopped before prepared publication because the
+newly calculated calibration reservation did not exactly match the original
+consumed reservation. The repair preserves the original calibration plan/debit.
+
+The user requested avoiding repeated successful tests. Keep round016's exact
+qualified source commit and images, and copy the run-specific stdlib repair glue
+outside the source closure before switching to that commit. This stays in the
+same checkout path and session, preserving all existing reference paths. The
+command deliberately leaves Git detached at the qualified revision:
+
+```bash
+cd ~/workspace/oies-learn &&
+git pull --ff-only origin 013-progressive-mathematical-discovery &&
+mkdir -p run-state/discovery-tools &&
+git show HEAD:scripts/discovery_repair_reservation.py > run-state/discovery-tools/repair-round016.py &&
+git switch --detach 2faa8e43fb772b7ad5d4232fe99ff93b3d96b81d &&
+python3 -S run-state/discovery-tools/repair-round016.py
+```
+
+The script uses round016's original Podman settings and checks the exact source
+closure, images, active owner and completed output hashes. It creates a separate
+`prepare-research/reservation-repair/blueprint.json` and new prepared output,
+retaining the failed result and its journal history. Only the remaining original
+preparation allowance is available. No image, base/model qualification, evaluation
+timing, trajectory or calibration execution repeats. Canonical metadata replay
+still verifies the original evidence. Freeze and the previously unexecuted
+campaign-bound acceptance remain required before automatic research starts.
+
+Keep this checkout pinned while the campaign runs; do not pull newer source into
+it. To resume or collect after interruption, use the same script from this pinned
+checkout (completed stages are reused; unknown process/budget states still fail
+closed and require reconciliation):
+
+```bash
+cd ~/workspace/oies-learn &&
+python3 -S run-state/discovery-tools/repair-round016.py
+```
+
+Support ZIPs stay in round016's `share/prepare-research.zip` and
+`share/run-research.zip`. The canonical execution reports and independent
+verification stay under `run-research/`. No reserved final assessment is launched.

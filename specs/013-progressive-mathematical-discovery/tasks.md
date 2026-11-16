@@ -1013,4 +1013,21 @@ current qualification still runs. CI is not awaited after publication.
 
 - [X] T215 Retain the exact original calibration plan and consumed debit when a changed scientific graph regenerates setup estimates; test both larger and smaller projections through canonical preparation and freeze.
 - [X] T216 Verify the specific pre-publication reservation mismatch for historical ownership recovery, preserving original inputs, inspected process termination, journals and costs.
-- [ ] T217 Provide a stdlib round016 repair script that runs under the exact qualified source/images, retains completed tests/timing/calibration, uses remaining original preparation time, and continues through canonical freeze/acceptance/research with original failure packaging and resume checks.
+- [X] T217 Provide a stdlib round016 repair script that runs under the exact qualified source/images, retains completed tests/timing/calibration, uses remaining original preparation time, and continues through canonical freeze/acceptance/research with original failure packaging and resume checks.
+
+
+T215–T217 validation: 155 focused packaging, reservation, recovery, preparation,
+CI-inventory and provenance checks passed with zero skips. Eight continuation/
+source/owner checks also passed against the actual pinned round016 package, and
+eight final reservation-failure tests passed after adding the exact repair-script
+plan path. The canonical integration cases retain original debit/evidence through
+prepare and freeze for unchanged, increased and decreased regenerated storage
+estimates. Script/core projections match exactly. The script test calls only
+prepare/freeze/acceptance/run/report/verify, preserves failed output and journal
+history, and dispatches nothing on a second completed invocation. Source identity
+of the independently checked-out qualified commit exactly matches round016's
+original ZIP. The repair-plan test retains the original remaining allowance.
+Hardware/native boundaries are explicit test doubles; no new HIP success is
+claimed. The existing actual round016 qualification is retained by running its
+unchanged source/images, with mandatory as-yet-unexecuted campaign acceptance.
+CI is not awaited after publication.
