@@ -52,7 +52,13 @@ def adopt(root,donor,recipient):
             'sha256:dc53f0150ef28fbaf64f1d6cb9da69e984267016d25a3fde5b68dd4bc0aa287c',
             'sha256:7b331fd4b9feb844456add718f8e7b1b7397e95e255b264e59b1315eb2093471')
         changed=[k for k in set(current)|set(previous) if (k in names or k.startswith(prefixes)) and current.get(k)!=previous.get(k) and not (reviewed and k==support)]
-        if changed:raise ValueError('data producer changed; fresh review required: '+', '.join(sorted(changed)))
+        from .progressive_freeze_recovery import PANEL_PRODUCER_REVISIONS, verify_panel_data_reuse
+        panel_changes={k for k in changed if k in PANEL_PRODUCER_REVISIONS
+                       and (previous.get(k),current.get(k))==PANEL_PRODUCER_REVISIONS[k]}
+        unreviewed=set(changed)-panel_changes
+        if unreviewed:raise ValueError('data producer changed; fresh review required: '+', '.join(sorted(unreviewed)))
+        claim=root/'run-state/discovery-preparation-revisions'/('runtime-'+census['identity'][7:]+'.json')
+        if panel_changes:verify_panel_data_reuse(root,claim,materials)
         from .progressive_research_bindings import inputs
         from .progressive_research_design import scientific_round
         inputs(root,values['registered-data'],scientific_round(values['registered-data'],expanded=True),materials)
@@ -62,8 +68,7 @@ def adopt(root,donor,recipient):
             census=census['identity'],materials=materials['identity'],
             recipient=str(recipient.relative_to(root)),hardware_authority_transferred=False,
             original_costs_retained=True,assessment_exposed=False))
-        claim=root/'run-state/discovery-preparation-revisions'/('runtime-'+census['identity'][7:]+'.json')
         claim_owner(root,claim,receipt)
         from .progressive_freeze_recovery import adopt_panels
-        adopt_panels(root, recipient, values, outputs)
+        adopt_panels(root, recipient, values, outputs, required=bool(panel_changes))
         return values,outputs,receipt

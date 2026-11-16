@@ -939,3 +939,19 @@ not repeated or relabelled as current qualification. The ordinary diagnostic
 ZIP includes the owner proof and corrected-panel reuse receipt. The exact
 workstation command and measured setup estimate are in
 `validation/round016-freeze-repair.md`.
+
+
+### Producer compatibility before panel adoption (T228)
+
+Round017 stopped at the original data-producer closure guard, before ownership
+transfer or qualification. The source change in commit 4af2358 corrected panel
+composition grouping and added early canonical panel validation. It must not be
+treated as an arbitrary compatible generator change. Pin the exact reviewed old
+and new hashes of both census/material modules. Permit those transitions only
+when the active owner's authenticated, successful, unscored panel correction
+matches the original donor and byte-identical training support. Review this
+proof before claiming ownership, recheck termination during transfer, and
+require corrected-panel adoption afterward. Unknown source changes remain
+blocked. Existing fresh-source qualification requirements are unchanged.
+Round018 is the fresh successor because round017's session is source-bound and
+has no completed execution to migrate.

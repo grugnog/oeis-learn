@@ -176,11 +176,16 @@ def test_panel_revision_survives_an_intervening_failed_qualification(stopped):
 from tests.unit.test_progressive_preparation_reuse import donor  # noqa: E402,F401
 
 
-def test_canonical_data_adoption_selects_revised_panels_after_owner_transfer(stopped, donor):
+@pytest.mark.parametrize('producer_changes',[False,True])
+def test_canonical_data_adoption_selects_revised_panels_after_owner_transfer(stopped, donor, producer_changes):
     from oeis_learn.pipeline_validation.progressive_preparation_reuse import adopt
     root, folder, _, journal, original, _ = stopped
-    _, donor_folder, _, donor_steps = donor
+    _, donor_folder, source, donor_steps = donor
     donor_base = donor_folder/'prepare-research'
+    if producer_changes:
+        source.update({k:pair[0] for k,pair in recovery.PANEL_PRODUCER_REVISIONS.items()})
+        write(donor_base/'qualification/source.json',source)
+        write(donor_folder/'session.json',seal(dict(binding=dict(source=digest(source)))))
     write(donor_base/'materials/materials.json', original)
     donor_steps['prepare-research/materials']['outputs'] = [reference(root, donor_base/'materials/materials.json')]
     write(donor_folder/'journal.json', seal(dict(steps=donor_steps)))
@@ -191,6 +196,8 @@ def test_canonical_data_adoption_selects_revised_panels_after_owner_transfer(sto
     row['value'] = seal(dict(row['value'], source=first['current_source']))
     write(folder/'journal.json', seal(journal))
     recipient = root/'run-state/successor'
+    if producer_changes:
+        source.update({k:pair[1] for k,pair in recovery.PANEL_PRODUCER_REVISIONS.items()})
     values, outputs, receipt = adopt(root, str(donor_folder.relative_to(root)), recipient)
     assert values['materials']['panel'] == 'corrected'
     assert values['materials']['support'] == original['support']
@@ -199,3 +206,29 @@ def test_canonical_data_adoption_selects_revised_panels_after_owner_transfer(sto
     assert adopt(root, str(donor_folder.relative_to(root)), recipient)[0] == values
     with pytest.raises(ValueError, match='superseded'):
         adopt(root, str(donor_folder.relative_to(root)), folder)
+
+
+@pytest.mark.parametrize('fault', ['missing-repair', 'unknown-old', 'unknown-new', 'native-change'])
+def test_producer_review_is_exact_and_never_claims_unrepaired_data(donor, fault):
+    from oeis_learn.pipeline_validation.progressive_preparation_reuse import adopt
+    root, folder, source, _ = donor
+    source.update({k:pair[0] for k,pair in recovery.PANEL_PRODUCER_REVISIONS.items()})
+    census = next(iter(recovery.PANEL_PRODUCER_REVISIONS))
+    if fault == 'unknown-old': source[census] = digest('unreviewed earlier producer')
+    write(folder/'prepare-research/qualification/source.json', source)
+    write(folder/'session.json', seal(dict(binding=dict(source=digest(source)))))
+    source.update({k:pair[1] for k,pair in recovery.PANEL_PRODUCER_REVISIONS.items()})
+    if fault == 'unknown-new': source[census] = digest('new generation algorithm')
+    if fault == 'native-change': source['crates/oeis_synthesis_core/src/lib.rs'] = digest('changed native')
+    recipient = root/'run-state/replacement'
+    with pytest.raises(ValueError, match='panel recovery' if fault == 'missing-repair' else 'data producer changed'):
+        adopt(root, str(folder.relative_to(root)), recipient)
+    assert not (recipient/'preparation-owner.json').exists()
+    assert not list((root/'run-state/discovery-preparation-revisions').glob('runtime-*.json'))
+
+
+def test_reviewed_producer_hashes_match_the_installed_files():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    for name, (_, expected) in recovery.PANEL_PRODUCER_REVISIONS.items():
+        assert reference(root, name)['sha256'] == expected

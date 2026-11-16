@@ -64,7 +64,7 @@ a fresh session, with the original flags and data/calibration donors:
 ```bash
 python3 -S scripts/discovery_hip_handoff.py \
   --engine podman \
-  --session run-state/discovery/013-research-round-017 \
+  --session run-state/discovery/013-research-round-018 \
   prepare-research \
   --registration-session run-state/discovery/013-research-inputs-003 \
   --rehearsal-session run-state/discovery/013-hip-007 \
@@ -95,3 +95,33 @@ repeated adoption, intervening failures and normal failure/success ZIP behavior.
 Historical Q/timing boundaries are explicitly simulated. Broader reuse and
 canonical calibration/freeze integration tests pass locally; actual new-source
 HIP qualification and campaign acceptance remain external T220.
+
+
+## Round017 preflight stop / T228
+
+The workstation's round017 attempt stopped with `data producer changed; fresh
+review required` for `progressive_research_census.py` and
+`progressive_research_materials.py`. This guard precedes ownership transfer,
+images and qualification. The earlier recovery test used unchanged producer
+closures and missed the actual transition.
+
+The complete diff from the original qualified 2faa8e43 versions to 4af2358:
+
+- Census grouping includes every relevant non-parameter composition identity,
+  including unseen-structure rows, when reserving whole components.
+- Material projection invokes the canonical frozen-panel validation before
+  publication.
+
+Native generation and training support are unchanged by these edits. Original
+panels must nevertheless be replaced by the already authenticated successful
+outcome-blind revision. T228 therefore permits only the exact two reviewed hash
+pairs, checks that revision before ownership transfer, and requires its adoption
+after transfer. The old uncorrected panels cannot pass via this exception.
+All unrelated source guards and current-source qualification stay in force.
+
+Validation: 118 tests passed, including the canonical adoption path with actual
+producer hashes, repeated adoption, owner fencing, unknown producer/native
+changes, absent correction evidence and mandatory test registration. Python 3.13
+`-S` accepts the complete round018 handoff in dry-run. No hardware qualification
+is claimed. The command above now names round018; round017's source-bound
+preflight diagnostics remain retained, with no expensive work to repeat.

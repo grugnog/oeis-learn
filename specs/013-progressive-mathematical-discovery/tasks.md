@@ -1133,3 +1133,17 @@ Recovery and policy regression files are registered in the mandatory installed
 CPU suite. Source qualification is never transferred; completed calibration,
 corrected panels, original receipts and costs remain retained. Actual successor
 qualification, freeze, acceptance and research remain T220 hardware work.
+
+
+- [X] T228 Correct the producer-compatibility preflight for original census/materials followed by the successful panel isolation repair. Admit only the two reviewed exact hash transitions, require authenticated unscored correction before ownership transfer, and test real adoption with changed producer closures, rejection/tampering and repeat invocation. Preserve current-source qualification and all unrelated producer guards.
+
+
+T228 validation: 118 checks passed across freeze recovery, preparation ownership,
+calibration reuse and installed test registration. The canonical adoption test
+now exercises the exact two producer hash transitions (the prior fixture used
+unchanged producer hashes), including repeat invocation and fencing. Unknown
+old/new versions, native changes and missing correction evidence are rejected
+before ownership publication. The round018 command passes Python 3.13 `-S`
+dry-run. Round017 stopped before ownership transfer, images or qualification;
+round018 reuses the original round016 recovery evidence and round009 calibration.
+Actual new-source HIP execution remains T220.

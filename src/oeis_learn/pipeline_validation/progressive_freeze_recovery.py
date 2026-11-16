@@ -147,15 +147,26 @@ def proof(root, receipt, session, journal):
         historical_qualification_only=True, current_source_requalification_required=True))
 
 
-def adopt_panels(root, recipient, values, outputs):
-    """The new owner's immutable proof selects the already corrected panels."""
-    from .preparation_recovery import retain
+# Exact reviewed changes from the qualified producer to the panel-isolation
+# repair. They alter grouping/early validation, not native generation; reuse
+# therefore requires the already successful, unscored panel correction.
+PANEL_PRODUCER_REVISIONS = {
+    'src/oeis_learn/pipeline_validation/progressive_research_census.py': (
+        'sha256:7be162c87d512b66dfe44fd01966bf2744fec51984332aed40ac234a02e26daa',
+        'sha256:37b97c90067043e6e80b859e1ec365f714f4ab700ad54b5235d62af90ff0087f'),
+    'src/oeis_learn/pipeline_validation/progressive_research_materials.py': (
+        'sha256:7c0169e08f06422cf7b3cffe22eba8ff004209560f791184e7dbd631b1c9dc94',
+        'sha256:ff4959beca474ad689abd350ef339f75e1a51d7f03725bfc6901f247569c3bf9'),
+}
+
+
+def panel_proof(root, owner):
+    """Locate the immutable correction through bounded ownership ancestry."""
     from .progressive_preparation_owner import VERSION as OWNER_VERSION
-    owner = read(recipient/'preparation-owner.json')
     evidence = None; path = None
     for _ in range(16):
         if owner.get('version') != OWNER_VERSION:
-            return
+            return None
         path = checked_file(root, owner['proof'])
         candidate = read(path)
         previous = read(checked_file(root, owner['previous']))
@@ -168,6 +179,41 @@ def adopt_panels(root, recipient, values, outputs):
         owner = previous
     if evidence is None:
         raise Blocked('bounded panel recovery ownership history exhausted')
+    return evidence, path
+
+
+def verify_panel_data_reuse(root, claim, original_materials):
+    """Review before ownership changes; the transfer rechecks termination."""
+    import fcntl
+    from .progressive_preparation_owner import VERSION as OWNER_VERSION, failure_proof
+    if not claim.is_file():
+        raise Blocked('reviewed producer changes require original panel recovery')
+    owner = read(claim)
+    found = panel_proof(root, owner)
+    if found is None:
+        active = owner['receipt'] if owner.get('version') == OWNER_VERSION else owner
+        folder = confined(root, active['recipient'])
+        with confined(root, folder/'session.lock').open('a') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            evidence = failure_proof(root, active)
+        if evidence.get('version') != VERSION:
+            raise Blocked('reviewed producer changes require original panel recovery')
+    else:
+        evidence, _ = found
+    report, original, _ = revised_materials(root, evidence['journal'], evidence['predecessor']['current_source'])
+    if original != original_materials or report != evidence['panel_revision']:
+        raise Blocked('reviewed producer changes require the same corrected data donor')
+
+
+def adopt_panels(root, recipient, values, outputs, *, required=False):
+    """The new owner's immutable proof selects the already corrected panels."""
+    from .preparation_recovery import retain
+    found = panel_proof(root, read(recipient/'preparation-owner.json'))
+    if found is None:
+        if required:
+            raise Blocked('reviewed producer changes require original panel recovery')
+        return
+    evidence, path = found
     report, original, materials = revised_materials(root, evidence['journal'], evidence['predecessor']['current_source'])
     if original != values['materials'] or report != evidence['panel_revision']:
         raise Blocked('panel correction must retain the original unscored data donor')
