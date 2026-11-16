@@ -35,17 +35,63 @@ nor original debit is changed.
 
 The uploaded ZIP does not contain the 1563-byte original traceback, whose recorded
 SHA-256 is `841cfa0738de721ef5956102e54904addae93424708bb6a0247e1b02d4327f89`.
-Thus the first defect is an inevitable failure for this inventory, but its exact
-position as the first actual exception should be confirmed from the workstation:
+The user subsequently supplied `host-traceback.txt`. Its length and hash match
+that reference exactly. It confirms `freeze -> validate_studies -> policy ->
+verify_refs`, specifically the 32 MiB inventory scan; the diagnosis is confirmed.
+
+## Fresh-source continuation
+
+T227 adds a narrow v8 preparation-owner proof for this terminated host exception.
+It checks the original prepare publication, traceback frames/hash, command,
+process termination, stdout result, closed allowance and unscored panel report.
+Active work, published campaigns, acceptance, scientific execution, changed
+training support and unrelated exceptions remain ineligible. The old owner is
+fenced under the existing locks; originals and debits remain in history.
+
+The successor uses the existing canonical pipeline. It adopts the original
+census and training support, selects the successful corrected panels from the
+owner proof, and retains the original round009 calibration donor through that
+proof chain. Panel adoption also survives an intervening qualification failure.
+Current-source images/base qualification/model qualification and training-only
+timing run anew. Canonical preparation authenticates and reuses the exact
+calibration receipts, retains their original reservation, then freezes and runs
+campaign-bound acceptance before research. No tiny rehearsal or 1296-case
+calibration rerun is requested. No assessment command is invoked.
+
+The round016 v2 external helper must not be used with the updated checkout. Use
+a fresh session, with the original flags and data/calibration donors:
 
 ```bash
-cd ~/workspace/oies-learn &&
-cat run-state/discovery/013-research-round-016/prepare-research/frozen/private/host-traceback.txt
+python3 -S scripts/discovery_hip_handoff.py \
+  --engine podman \
+  --session run-state/discovery/013-research-round-017 \
+  prepare-research \
+  --registration-session run-state/discovery/013-research-inputs-003 \
+  --rehearsal-session run-state/discovery/013-hip-007 \
+  --reuse-preparation-data run-state/discovery/013-research-round-002 \
+  --reuse-calibration-session run-state/discovery/013-research-round-009 \
+  --expanded-runtime-budgets \
+  --streamlined-research \
+  --run-after-prepare
 ```
 
-Do not pull into the pinned checkout or rerun the old v2 helper as a repair.
-These changes affect qualified installed code; an updated-source qualification
-and correctly rebound continuation are still required. Completed preparation,
-original calibration and original qualification remain retained historical
-evidence. No automatic qualification transfer or completed hardware recovery is
-asserted by this software repair.
+Fetch the corrected branch and pin the supplied handoff commit before running.
+Keep that checkout fixed while the successor is active. Repeating the same
+command retains completed journal steps and canonical resume behavior. An
+unknown failure remains visible, not automatically retried as a success.
+
+The previous observed durations were 46.2 minutes base qualification, 16.3 model
+qualification, 16.3 evaluation timing, 25.0 trajectory timing, 4.7 construction,
+50.3 preparation replay and 27.6 until freeze failed. A rough successor setup
+estimate is 3–5 hours including successful freeze/acceptance; the existing
+larger operational allowances remain unchanged. This is not a new training ETA.
+Diagnostics continue under the successor's `share/` directory, including the
+owner proof, original failure frame identities and `panel-data-reuse.json`.
+
+T227 validation: 19 recovery checks cover real hashes, file publication,
+ownership transfer/fencing, bounded original failure evidence, changed/active/
+exposed work rejection, corrected-material adoption, calibration-donor ancestry,
+repeated adoption, intervening failures and normal failure/success ZIP behavior.
+Historical Q/timing boundaries are explicitly simulated. Broader reuse and
+canonical calibration/freeze integration tests pass locally; actual new-source
+HIP qualification and campaign acceptance remain external T220.

@@ -920,3 +920,22 @@ qualification before new freeze/acceptance. Do not edit the pinned checkout or
 silently transfer its qualification in the round016 continuation helper.
 
 See `validation/round016-freeze-repair.md` for the observed evidence and limits.
+
+
+### Confirmed freeze failure and fresh-source successor (T227)
+
+The 1563-byte original traceback confirms the study-policy size-limit diagnosis.
+Use the existing owner-chain protocol with a narrow v8 failure proof to move
+from the clean, unexecuted round016 campaign to a fresh-source session. The proof
+preserves original termination/debit evidence, requires completed preparation
+and outcome-blind panel revision, and rejects active/exposed/downstream work.
+Adopt corrected panels from this immutable ancestry, including after another
+qualification failure, while retaining the byte-identical training support and
+the original round009 exact-input calibration donor. Do not rerun calibration or
+reset its original reservation. Build and qualify the current source, repeat its
+small training-only timing cases, then use canonical prepare/freeze/acceptance
+before automatic research. The tiny rehearsal is a historical reference; it is
+not repeated or relabelled as current qualification. The ordinary diagnostic
+ZIP includes the owner proof and corrected-panel reuse receipt. The exact
+workstation command and measured setup estimate are in
+`validation/round016-freeze-repair.md`.
