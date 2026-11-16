@@ -1073,4 +1073,21 @@ that the private workstation pool meets the revised quotas; that remains the
 explicit next external step.
 
 
-- [ ] T223 Rebind the successful round016 panel revision into the original research graph under the unchanged qualified checkout. Preserve the exact original calibration debit and all task settings/token/time caps; rederive panel-bound rosters, studies and evaluation contracts from original training-only measurements. Share the unused original preparation allowance across metadata, prepare replay and freeze, retain the failed freeze publication, and run campaign acceptance before automatic research run/resume. Test full-domain compiler invariance, real journal/dependency/recovery behavior, failure ZIPs and pinned-source stdlib compatibility; actual hardware freeze/acceptance remains T220.
+- [X] T223 Rebind the successful round016 panel revision into the original research graph under the unchanged qualified checkout. Preserve the exact original calibration debit and all task settings/token/time caps; rederive panel-bound rosters, studies and evaluation contracts from original training-only measurements. Share the unused original preparation allowance across metadata, prepare replay and freeze, retain the failed freeze publication, and run campaign acceptance before automatic research run/resume. Test full-domain compiler invariance, real journal/dependency/recovery behavior, failure ZIPs and pinned-source stdlib compatibility; actual hardware freeze/acceptance remains T220.
+
+
+T223 software validation: 114 unit/construction checks passed, including all
+four supported research designs and a real 352-task, 1,296-case reconstruction
+with changed panel membership. Nineteen canonical prepare/replay/freeze
+integration checks passed with explicitly simulated hardware boundaries. Eleven
+continuation authentication, failure/dependency, reuse and run/resume checks also
+passed against the exact pinned round016 code. No live device qualification,
+calibration or research execution is claimed by these local tests. The actual
+PANELS_READY workstation evidence is recorded; T220 remains pending canonical
+freeze and campaign-bound acceptance on that workstation.
+
+The complete rebind also ran under system Python 3.13 `-S` against the actual
+pinned package and original reservation helper. All 352 closed requests and
+study bindings passed without importing Torch, NumPy, Optuna or jsonschema.
+The qualified source digest remained
+`sha256:e3592c86ab55c8aad83763cbaae686eaca895bfe58b560e1b64b422231b17ce5`.

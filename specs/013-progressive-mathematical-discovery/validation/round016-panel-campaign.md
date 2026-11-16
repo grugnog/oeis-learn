@@ -22,7 +22,7 @@ qualified source closure unchanged. The existing hash-bound
 cd ~/workspace/oies-learn &&
 git fetch origin 013-progressive-mathematical-discovery &&
 mkdir -p run-state/discovery-tools &&
-git show origin/013-progressive-mathematical-discovery:src/oeis_learn/pipeline_validation/progressive_panel_campaign.py > run-state/discovery-tools/continue-round016.py &&
+git show 6fed4bd1d6c6:src/oeis_learn/pipeline_validation/progressive_panel_campaign.py > run-state/discovery-tools/continue-round016.py &&
 python3 -S run-state/discovery-tools/continue-round016.py
 ```
 
@@ -69,3 +69,23 @@ The latter appears once research starts. Weights, raw data and private panel
 truth remain local. Canonical acceptance, run/report and independent verification
 retain their existing execution authority; local tests do not constitute HIP
 validation of the revised campaign. T220 remains pending that workstation run.
+
+
+## Local validation
+
+- 114 unit/construction tests passed across the four supported research designs.
+  The changed-panel reconstruction preserves all 352 tasks, 1,296 exact-input
+  cases and original scientific budgets; requests and study bindings validate.
+- 19 canonical prepare/replay/freeze integration tests passed with explicit
+  simulated device boundaries, including original reservation preservation.
+- 11 continuation tests passed against the actual pinned round016 code. They
+  exercise the real journal, allowance and workflow dispatch, completed-step
+  reuse, paused research resume, descendant blocking and ZIP collection. Only
+  external execution/measurement producers are doubled; those doubles confer
+  no hardware authority.
+
+The complete rebind also ran under system Python 3.13 `-S` against the actual
+pinned package and original reservation helper. All 352 closed requests and
+study bindings passed without importing Torch, NumPy, Optuna or jsonschema.
+The qualified source digest remained
+`sha256:e3592c86ab55c8aad83763cbaae686eaca895bfe58b560e1b64b422231b17ce5`.
