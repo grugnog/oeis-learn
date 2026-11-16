@@ -166,3 +166,13 @@ def test_projection_cleanup_requires_no_live_reader(tmp_path,monkeypatch,failure
         roles._invoke_reserved(host,'image',tmp_path,'admit-training',{'candidates':[item],'admission_truth':[]},
             output='failed',campaign=c,task=t,journal=j,ordinal=1,reservation=cost,seconds=1,runtime=runtime)
     assert (tmp_path/'failed/private-input').exists()==(failure=='worker_unreclaimed')
+
+
+def test_scoped_resource_rule_requires_exact_registered_policy():
+    from oeis_learn.generalization.progressive.contracts import seal
+    assert resources.uses_task_checkpoint_bounds(resources.policy())
+    assert resources.uses_task_checkpoint_bounds(resources.policy(trajectory=True))
+    assert not resources.uses_task_checkpoint_bounds(resources.policy(legacy=True))
+    assert not resources.uses_task_checkpoint_bounds(resources.policy(global_storage=True))
+    modified=seal(dict(resources.policy(trajectory=True),generations=1))
+    assert not resources.uses_task_checkpoint_bounds(modified)

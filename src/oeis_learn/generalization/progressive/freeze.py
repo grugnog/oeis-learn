@@ -297,9 +297,9 @@ def freeze(
         research=b["purpose"] == "research",
     )
     measured=max(measured,calibrated_bytes);checkpoint_inodes=max(checkpoint_inodes,calibrated_inodes)
-    from oeis_learn.pipeline_validation.progressive_research_resources import policy as resource_policy
+    from oeis_learn.pipeline_validation.progressive_research_resources import uses_task_checkpoint_bounds
     resource_refs=[r['artifact'] for r in refs if r['name']=='research_resource_policy']
-    scoped=(len(resource_refs)==1 and json.loads(verify_refs(root,resource_refs)[0])==resource_policy())
+    scoped=(len(resource_refs)==1 and uses_task_checkpoint_bounds(json.loads(verify_refs(root,resource_refs)[0])))
     from .storage_plan import task_checkpoints
     task_bounds=task_checkpoints(q['task_plans'],calibration_producers,q['milestone_pins']) if scoped else {}
     if task_bounds:

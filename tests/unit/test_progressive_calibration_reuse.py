@@ -77,6 +77,8 @@ def test_reviewed_source_boundary_keeps_tensor_native_and_lock_bytes(monkeypatch
     monkeypatch.setattr(eq,'ORIGINAL_SOURCE',digest(old))
     current=dict(old, **{'src/oeis_learn/pipeline_validation/progressive_research_resources.py':digest('planner')})
     assert eq.validate(old,current)==['src/oeis_learn/pipeline_validation/progressive_research_resources.py']
+    assert 'src/oeis_learn/generalization/progressive/freeze.py' in eq.validate(old,dict(current,**{
+        'src/oeis_learn/generalization/progressive/freeze.py':digest('host storage admission changed')}))
     assert 'scripts/discovery_repair_reservation.py' in eq.validate(old,dict(current,**{
         'scripts/discovery_repair_reservation.py':digest('external metadata repair only')}))
     for path in ('uv.lock','src/oeis_learn/pipeline_validation/progressive_training.py',

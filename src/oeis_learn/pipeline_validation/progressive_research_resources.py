@@ -23,6 +23,11 @@ def policy(*, legacy=False, global_storage=False, trajectory=False):
         permits='decrease disk only; no scientific budget or search-domain changes'))
 
 
+def uses_task_checkpoint_bounds(registered):
+    """Both reviewed per-task policies use identical calibrated storage rules."""
+    return registered in (policy(), policy(trajectory=True))
+
+
 def finalize(root,payload,cases,producers, *, historical=False):
     refs=[r['artifact'] for r in payload['references'] if r['name']=='research_resource_policy']
     if not refs:return None
@@ -40,7 +45,7 @@ def finalize(root,payload,cases,producers, *, historical=False):
     inputs={c['compatibility']:c['package'] for c in cases}
     if set(inputs)!=set(by_scope):raise ValueError('complete exact resource measurement inventory required')
     plans=payload['task_plans'];by_id={p['id']:p for p in plans}
-    scoped = registered in (policy(), policy(trajectory=True))
+    scoped = uses_task_checkpoint_bounds(registered)
     trajectory = None
     if registered == policy(trajectory=True):
         from .progressive_trajectory import replay, cost_context

@@ -28,6 +28,10 @@ HOST_ONLY = {
     'pipeline_validation/progressive_preparation_retirement.py',
     # Prospective roster/scheduling and ownership replay; exact input compatibility
     # still checks every original package and all calibrated execution stays pinned.
+    # Host storage admission recognizes the same exact v3/v4 policies as
+    # preparation. No update, checkpoint serialization or measurement changes;
+    # new-source qualification is still required before consuming these bounds.
+    'generalization/progressive/freeze.py',
     'generalization/progressive/research_roster.py',
     'generalization/progressive/runtime_reservation.py',
     'pipeline_validation/progressive_research_design.py',

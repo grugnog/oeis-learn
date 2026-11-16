@@ -1037,7 +1037,7 @@ CI is not awaited after publication.
 
 - [X] T218 Keep unseen-structure composition relations indivisible during new panel allocation and run the canonical freeze panel guard during materials publication, before expensive preparation. Preserve parameter-sharing exceptions and all original no-replacement rules.
 - [X] T219 Provide an outcome-blind, stdlib panel audit that can be copied outside the qualified source tree, uses the installed original detector, reports hashed overlap categories, continues independent malformed-row checks, and packages results without launching qualification/calibration/scoring or opening assessment panels.
-- [ ] T220 Use the original round016 panel audit to identify the actual retained conflicts and implement any justified prospective correction before canonical freeze/acceptance. The second audit identifies three composition groups involving seven unseen-structure rows and five panel pairs, with no direct value/window overlaps. The uploaded `panel-revision.zip` now proves the T222 allocation passed all ten panels in 1,267 seconds, with byte-identical training support and 36 membership replacements. **Externally blocked** only on executing the T223 canonical rebind/replay, freeze and scoped acceptance on the workstation. No successful freeze or training is claimed.
+- [ ] T220 Use the original round016 panel audit to identify the actual retained conflicts and implement any justified prospective correction before canonical freeze/acceptance. The second audit identifies three composition groups involving seven unseen-structure rows and five panel pairs, with no direct value/window overlaps. The uploaded `panel-revision.zip` now proves the T222 allocation passed all ten panels in 1,267 seconds, with byte-identical training support and 36 membership replacements. **Pending**: the 2026-11-16 upload proves revised prepare completed, but freeze failed with `artifact inventory cap`. T225/T226 fix two installed host-code defects; updated-source qualification and an evidence-preserving continuation are required before freeze/acceptance. The exact original traceback is outside the ZIP. No successful freeze or training is claimed.
 - [X] T221 Correct the audit's preparation lookup to follow the production journal → hash-bound result → hash-bound prepared artifact chain. Retain the failed v1 inspection while running a distinct v2 diagnostic step; verify the actual uploaded preparation publication and replace the inaccurate direct-prepared fixture with production wrapper journal serialization.
 - [X] T222 Provide a stdlib, pinned-source prospective panel revision using only the original native census and OEIS candidates. Replay the old allocation before applying corrected grouping; retain original seeds, quotas, exposure checks and training support; publish separate materials, validate every panel, and package shortages without new draws or model work. Keep campaign rebinding/freeze/acceptance pending actual workstation validation.
 
@@ -1106,3 +1106,18 @@ pass. A Python 3.13 `-S` replay of the uploaded FAILED/BLOCKED journal accepted
 only the narrow metadata recovery and preserved the original failed freeze bytes,
 with the qualified source digest unchanged. Existing completed construction and
 consumed allowance are reused. Actual freeze/acceptance remains external T220.
+
+
+- [X] T225 Fix bounded mixed-policy study discovery for the real 49 MB calibration input, preserving the study-specific cap, original hashes, and duplicate detection. Add realistic byte-size regression tests.
+- [X] T226 Make freeze and resource preparation agree on exact registered v3/v4 per-task checkpoint storage. Test canonical prepare/freeze and tamper rejection with explicit simulated trajectory/device boundaries; retain the requirement for fresh qualification after installed code changes.
+
+
+T225/T226 validation: the 49 MiB mixed-policy regression failed before the fix;
+the trajectory-policy canonical prepare/freeze regression independently failed
+with `task_checkpoint_storage:first` before the storage fix. Both now pass.
+143 distinct CPU tests passed across study policy, storage, freeze, tuning,
+calibration and calibration reuse; one native-image-dependent case was not executed locally.
+The integration fixtures explicitly simulate device/trajectory measurements.
+The reviewed host-only calibration compatibility list now includes freeze's
+storage admission; it does not transfer qualification or change original
+measurements. Actual updated-source freeze/acceptance remains pending T220.

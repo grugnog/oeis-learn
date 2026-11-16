@@ -9,6 +9,7 @@ from oeis_learn.generalization.progressive.contracts import (
     atomic_write,
     seal,
     digest,
+    CAMPAIGN_DOCUMENT_BYTES,
 )
 from oeis_learn.generalization.progressive.trials import TrialJournal
 from oeis_learn.generalization.progressive.trial_evidence import objective
@@ -25,12 +26,16 @@ def policy(root, campaign, study):
     for item in campaign["payload"]["references"]:
         if item["kind"] != "policy":
             continue
-        doc = json.loads(verify_refs(root, [item["artifact"]], max_bytes=32 << 20)[0])
+        # The policy inventory also contains complete calibration inputs. Those
+        # use the campaign-document limit; only a matching study uses 32 MiB.
+        doc = json.loads(verify_refs(root, [item["artifact"]], max_bytes=CAMPAIGN_DOCUMENT_BYTES)[0])
         if (
             isinstance(doc, dict)
             and doc.get("version") in {"progressive-study-policy/v1","progressive-study-policy/v2","progressive-study-policy/v3","progressive-study-policy/v4"}
             and doc.get("identity") == study
         ):
+            if item["artifact"]["bytes"] > 32 << 20:
+                raise ValueError("study policy byte cap")
             matches.append(doc)
     if len(matches) != 1 or seal(matches[0]) != matches[0]:
         raise ValueError("one original frozen study policy required")

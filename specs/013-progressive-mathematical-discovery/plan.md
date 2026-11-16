@@ -899,3 +899,24 @@ prepare, freeze, acceptance or research execution. Preserve failed freeze bytes
 even when dependency blocking moved its FAILED journal row into history. Keep
 all other failures/unknown intervals closed for explicit reconciliation. The
 qualified checkout and installed validators remain unchanged.
+
+
+### Round016 installed freeze repair (2026-11-16)
+
+The revised prepare succeeded on the workstation. The following freeze failed
+with `artifact inventory cap`. Mixed policy inventories contain the original
+48,779,754-byte calibration input as well as the much smaller study policy.
+Study discovery must authenticate bounded campaign-sized documents (128 MiB),
+then enforce its existing 32 MiB limit on the matched study itself. Preserve
+original hashes, closed study schemas and duplicate-authority rejection.
+
+Freeze and resource finalization must share exact recognition of registered
+v3 and trajectory-v4 per-task checkpoint rules. Their scientific budgets and
+storage laws are unchanged; global fallback must not reject the already sized
+small-model task partitions. These are installed host-code fixes, not an
+external-script metadata repair. Preserve original calibration measurements
+through the reviewed compatibility route, but require updated-source
+qualification before new freeze/acceptance. Do not edit the pinned checkout or
+silently transfer its qualification in the round016 continuation helper.
+
+See `validation/round016-freeze-repair.md` for the observed evidence and limits.
