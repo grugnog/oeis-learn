@@ -64,4 +64,6 @@ def adopt(root,donor,recipient):
             original_costs_retained=True,assessment_exposed=False))
         claim=root/'run-state/discovery-preparation-revisions'/('runtime-'+census['identity'][7:]+'.json')
         claim_owner(root,claim,receipt)
+        from .progressive_freeze_recovery import adopt_panels
+        adopt_panels(root, recipient, values, outputs)
         return values,outputs,receipt

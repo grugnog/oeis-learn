@@ -1121,3 +1121,6 @@ The integration fixtures explicitly simulate device/trajectory measurements.
 The reviewed host-only calibration compatibility list now includes freeze's
 storage admission; it does not transfer qualification or change original
 measurements. Actual updated-source freeze/acceptance remains pending T220.
+
+
+- [ ] T227 Recover the confirmed pre-science study-policy freeze failure through a fresh-source owner, preserving the original calibration donor/debit and the successful outcome-blind panel revision. Fence the old session, reject active or exposed work, retain bounded original traceback/process evidence, and use canonical qualification/prepare/freeze/acceptance before automatic research. Test ownership, revised-material adoption, original reservation reuse and failure diagnostics.

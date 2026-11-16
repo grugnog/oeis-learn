@@ -37,12 +37,12 @@ def fenced_original(w):
             if path != Path(w.root)/donor/'prepare-research/construction/blueprint.json':
                 raise Blocked('original fenced calibration blueprint differs')
             return path.parent.parent
-        # Only an evidenced CPU failure before HIP can sit between the completed
-        # calibration donor and this recipient. Replay its unchanged original
-        # journal/process/cleanup proof; started or unclean work remains blocked.
-        if (proof.get('version') not in {'progressive-preparation-owner-proof/v1','progressive-preparation-owner-proof/v6','progressive-preparation-owner-proof/v7'}
+        # Only reviewed pre-science qualification, preparation or host-freeze
+        # stops may sit between the complete calibration and this recipient.
+        # Replay original termination evidence; scientific/unclean work blocks.
+        if (proof.get('version') not in {'progressive-preparation-owner-proof/v1','progressive-preparation-owner-proof/v6','progressive-preparation-owner-proof/v7','progressive-preparation-owner-proof/v8'}
                 or failure_proof(w.root, predecessor) != proof):
-            raise Blocked('only original pre-science qualification or time-feasibility stops may retain the calibration donor')
+            raise Blocked('only reviewed pre-science qualification, preparation or freeze stops may retain the calibration donor')
         node = previous
     raise Blocked('bounded calibration ownership history exhausted')
 

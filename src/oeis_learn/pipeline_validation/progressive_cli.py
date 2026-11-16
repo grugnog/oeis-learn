@@ -76,6 +76,8 @@ CPU_TESTS = (
     "tests/unit/test_progressive_exposure.py",
     "tests/unit/test_progressive_failures.py",
     "tests/unit/test_progressive_freeze.py",
+    "tests/unit/test_progressive_study_policy.py",
+    "tests/unit/test_progressive_freeze_recovery.py",
     "tests/unit/test_progressive_metrics.py",
     "tests/unit/test_progressive_targets.py",
     "tests/unit/test_progressive_scaling.py",
