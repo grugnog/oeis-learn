@@ -1093,4 +1093,16 @@ The qualified source digest remained
 `sha256:e3592c86ab55c8aad83763cbaae686eaca895bfe58b560e1b64b422231b17ce5`.
 
 
-- [ ] T224 Correct the prospective panel rebind guard for canonical study-derived screening seeds; keep fixed seeds and all other scientific settings exact. Add a durable task-difference report, narrow recovery of the original v1 metadata failure with unchanged allowance/completed construction, and preserve the failed freeze after dependency blocking. Extend the full compiler regression to development and tuning panels, plus arbitrary/fixed-seed tampering, budget changes, real journal reuse and pinned Python `-S` checks. Actual revised-campaign freeze/acceptance remains T220.
+- [X] T224 Correct the prospective panel rebind guard for canonical study-derived screening seeds; keep fixed seeds and all other scientific settings exact. Add a durable task-difference report, narrow recovery of the original v1 metadata failure with unchanged allowance/completed construction, and preserve the failed freeze after dependency blocking. Extend the full compiler regression to development and tuning panels, plus arbitrary/fixed-seed tampering, budget changes, real journal reuse and pinned Python `-S` checks. Actual revised-campaign freeze/acceptance remains T220.
+
+
+T224 validation: 67 material/recovery and canonical calibration-reuse tests
+passed; 19 focused seed/continuation checks also passed against the actual pinned
+round016 package. The full changed-development/diversity/tuning compiler regression
+passed with 352 tasks, 1,296 exact-input cases and 256 deterministic seed bindings
+across 16 screening trials. Fixed/confirmation seeds, arbitrary seed changes and
+budget tampering remain protected; canonical closed requests and study validation
+pass. A Python 3.13 `-S` replay of the uploaded FAILED/BLOCKED journal accepted
+only the narrow metadata recovery and preserved the original failed freeze bytes,
+with the qualified source digest unchanged. Existing completed construction and
+consumed allowance are reused. Actual freeze/acceptance remains external T220.

@@ -22,7 +22,7 @@ qualified source closure unchanged. The existing hash-bound
 cd ~/workspace/oies-learn &&
 git fetch origin 013-progressive-mathematical-discovery &&
 mkdir -p run-state/discovery-tools &&
-git show origin/013-progressive-mathematical-discovery:src/oeis_learn/pipeline_validation/progressive_panel_campaign.py > run-state/discovery-tools/continue-round016-v2.py &&
+git show 1c1d24182923:src/oeis_learn/pipeline_validation/progressive_panel_campaign.py > run-state/discovery-tools/continue-round016-v2.py &&
 python3 -S run-state/discovery-tools/continue-round016-v2.py
 ```
 
@@ -118,3 +118,13 @@ though its current row is dependency-blocked. Successful preparation still rolls
 straight into canonical freeze, campaign acceptance and research. No tests,
 qualification or calibration measurements are launched by this metadata repair;
 the outstanding campaign-bound acceptance still runs its mandatory checks.
+
+
+V2 validation: 67 material/recovery and canonical reuse integration tests passed,
+plus 19 focused checks against the pinned package. The expanded full compiler
+regression passed with development, diversity and tuning-panel changes: 352 tasks,
+1,296 exact-input cases, and 256 correctly derived seed bindings across 16 trials.
+Canonical requests/studies validate; fixed/confirmation seed and budget tampering
+are rejected. The actual uploaded FAILED/BLOCKED journal was exercised under
+Python 3.13 `-S`, including preservation of the failed freeze from journal history.
+No private workstation measurement was regenerated during local validation.
