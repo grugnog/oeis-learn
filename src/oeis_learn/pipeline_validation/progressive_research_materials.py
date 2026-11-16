@@ -13,7 +13,7 @@ from .progressive_research_census import validate_request
 from .progressive_workstation_state import write
 from oeis_learn.generalization.progressive.contracts import record, reference
 from oeis_learn.generalization.progressive import prepared_support, prepared_panels
-from oeis_learn.generalization.progressive.cohorts import publish_many
+from oeis_learn.generalization.progressive.cohorts import publish_many, validate_frozen_panels
 
 
 def build(root, census_path, request_path, output, rule):
@@ -74,6 +74,9 @@ def build(root, census_path, request_path, output, rule):
             decision=decision,exposure=exposure,required=request['required_per_stratum'],
             minimum_groups=request['minimum_groups'],purpose=exposure['purpose'],created_at=exposure['created_at'])
         publications.append((str((private/'published'/panel).relative_to(root)),value))
+    # Run the exact value-derived freeze guard before expensive qualification
+    # and calibration. This is a private custodian check, never model scoring.
+    validate_frozen_panels(root,[p for _,p in publications],{exposure['identity']:exposure})
     outcomes=publish_many(root,publications,exposure=exposure)
     deficits=list(summary['deficits'])
     deficits.extend(screening_summary['deficits'])

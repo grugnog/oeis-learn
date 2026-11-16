@@ -792,3 +792,24 @@ receives only the remaining original preparation allowance. No existing test,
 qualification, timing or calibration execution repeats. The as-yet-unexecuted
 campaign-bound acceptance remains mandatory. Repository source must remain pinned
 while this campaign runs; no evidence is relabelled for a newer source revision.
+
+### Round016 retained panel-isolation diagnosis
+
+The original-debit repair completed canonical preparation; freeze then rejected
+a detected cross-panel relation. Keep that completed preparation and all original
+tests/calibration. A stdlib audit copied into run-state may read only the original
+prepared development/confirmation cohorts and their custodian truth, recompute
+the installed detector's groups, and export aggregate counts and hashed member
+identities through the existing support ZIP machinery. It never opens reserved
+assessment, scores candidates, rewrites inputs, patches the guard, or authorizes
+scientific execution. Fetching this standalone diagnostic must not change the
+qualified checkout. Missing/malformed inputs remain explicit; independent rows
+continue. A real retained-data correction requires the workstation audit first.
+
+For future construction, reserve shared composition identities for unseen
+structures as well as composition-transfer rows. Distinct ASTs can have equal
+normalized proper-subtree/operator inventories. Preserve parameter-sharing
+exceptions and all exact-value/window/source restrictions; never redraw to fill
+new deficits. Run canonical frozen-panel validation at materials publication so
+these defects are found before qualification/calibration. The unchanged exact
+learner-input replay still governs reuse of historical calibration measurements.

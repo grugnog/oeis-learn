@@ -1031,3 +1031,20 @@ Hardware/native boundaries are explicit test doubles; no new HIP success is
 claimed. The existing actual round016 qualification is retained by running its
 unchanged source/images, with mandatory as-yet-unexecuted campaign acceptance.
 CI is not awaited after publication.
+
+
+## Phase 41: Diagnose retained panel isolation before scientific execution
+
+- [X] T218 Keep unseen-structure composition relations indivisible during new panel allocation and run the canonical freeze panel guard during materials publication, before expensive preparation. Preserve parameter-sharing exceptions and all original no-replacement rules.
+- [X] T219 Provide an outcome-blind, stdlib panel audit that can be copied outside the qualified source tree, uses the installed original detector, reports hashed overlap categories, continues independent malformed-row checks, and packages results without launching qualification/calibration/scoring or opening assessment panels.
+- [ ] T220 Use the original round016 panel audit to identify the actual retained conflicts and implement any justified prospective correction before canonical freeze/acceptance. **Externally blocked**: the uploaded support archive intentionally excludes the original private cohorts/truth; the audit must run on the workstation. No successful freeze or training is claimed.
+
+T218–T219 validation: the regression reproduces declared-metadata validation
+passing while canonical freeze rejects two distinct unseen ASTs with one
+composition identity. Revised allocation keeps these together across eight seeds
+and both grouping policies. Audit tests cover composition and shifted-window
+overlap, damaged truth with independent continuation, parameter sharing,
+assessment exclusion, original prepared references, journal preservation,
+failure packaging and repeat-invocation reuse. The audit also runs under the
+actual pinned round016 source with Python 3.13 `-S`; its exact source digest stays
+unchanged. This diagnostic supplies no qualification or scientific authority.

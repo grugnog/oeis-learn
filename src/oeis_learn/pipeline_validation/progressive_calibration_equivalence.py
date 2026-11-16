@@ -17,6 +17,11 @@ HOST_SCRIPTS = {'scripts/discovery_repair_reservation.py'}
 # None of these modules executes learner updates, tensor persistence, native
 # evaluation or device calibration. Their new behavior is qualified afresh.
 HOST_ONLY = {
+    # Outcome-blind panel grouping/diagnosis; exact prepared learner inputs must
+    # still match individually before old calibration bounds may be reused.
+    'pipeline_validation/progressive_panel_audit.py',
+    'pipeline_validation/progressive_research_census.py',
+    'pipeline_validation/progressive_research_materials.py',
     'pipeline_validation/discovery_cleanup.py',
     'pipeline_validation/progressive_preparation_retirement.py',
     # Prospective roster/scheduling and ownership replay; exact input compatibility

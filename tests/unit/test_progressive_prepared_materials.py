@@ -10,6 +10,129 @@ from oeis_learn.generalization.progressive.cohorts import publish_many, validate
 from oeis_learn.pipeline_validation.progressive_research_census import reserve_panels
 
 
+def composition_pair():
+    from oeis_learn.generalization.progressive.generator import structure_id
+    sources=['(program (return (add (mul $index $index) (int 10000))))',
+             '(program (return (add (int 20000) (mul $index $index))))']
+    return [dict(id='unseen-'+str(i),stratum='unseen_structure',source=s,structure=structure_id(s),
+                 group='original-'+str(i),indices=list(map(str,range(100))),
+                 values=[str((i+1)*10000+n*n) for n in range(100)]) for i,s in enumerate(sources)]
+
+
+def split_composition_panels(root):
+    exposure=record('exposure',dict(previous=None,detector_limits=['exact'],events=[]),
+        created_at='2026-11-11T00:00:00Z',purpose='acceptance',track='synthetic_strict')
+    result=[]
+    for row,name in zip(composition_pair(),['development','confirmation-diversity']):
+        result.append(panels.cohort(root,root/'private'/name,[dict(row,role=name)],panel=name,
+            role='development' if name=='development' else 'confirmation',decision='diversity',
+            exposure=exposure,required=1,minimum_groups=1,purpose='acceptance',created_at=exposure['created_at']))
+    return result,exposure
+
+
+def test_unseen_composition_relation_is_indivisible_before_freeze(tmp_path):
+    from oeis_learn.generalization.progressive.cohorts import validate_cohort
+    rows=composition_pair()
+    assert rows[0]['structure']!=rows[1]['structure']
+    assert panels.composition(rows[0])==panels.composition(rows[1])
+    old,e=split_composition_panels(tmp_path)
+    for c in old:validate_cohort(c,exposure=e,other_cohorts=old)
+    with pytest.raises(ValueError,match='cross-panel detectable'):
+        validate_frozen_panels(tmp_path,old,{e['identity']:e})
+    for sharing in (False,True):
+        for seed in range(8):
+            roster,_,_=reserve_panels(rows,seed=seed,required=128,minimum_groups=1,
+                panels=['development','confirmation-diversity'],retention_panels=(),parameter_sharing=sharing)
+            owners={r['id']:name for name,members in roster.items() for r in members}
+            assert owners['unseen-0']==owners['unseen-1']
+
+
+def test_panel_audit_classifies_composition_without_exporting_values(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_panel_audit import audit
+    cs,e=split_composition_panels(tmp_path)
+    progress=[]
+    result=audit(tmp_path,cs,{e['identity']:e},progress=progress.append)
+    assert result['status']=='OVERLAPS_FOUND' and not result['errors']
+    assert len(result['panel_pairs'])==1
+    reason=result['panel_pairs'][0]['reasons']
+    assert set(reason)=={'composition'}
+    assert reason['composition']['strata']=={'unseen_structure/unseen_structure':1}
+    assert reason['composition']['row_pair_occurrences']==1
+    assert progress[-1]==dict(processed=2,total=2,errors=0)
+    encoded=json.dumps(result)
+    assert 'unseen-0' not in encoded and '(program' not in encoded and '10001' not in encoded
+    assert not result['scientific_authority'] and not result['assessment_opened']
+
+
+def test_panel_audit_detects_shift_and_continues_after_bad_truth(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_panel_audit import audit
+    from tests.unit.test_progressive_cohorts import fixture
+    a,e=fixture(tmp_path,panel='a',counts=(2,0,0,0))
+    b,_=fixture(tmp_path,panel='b',counts=(2,0,0,0))
+    (tmp_path/a['payload']['rows'][0]['truth']['path']).write_text('PRIVATE_DAMAGED_TRUTH')
+    result=audit(tmp_path,[a,b],{e['identity']:e})
+    assert result['status']=='INCOMPLETE' and len(result['errors'])==1
+    assert sum(p['checked'] for p in result['panels'])==3
+    assert result['panel_pairs'][0]['reasons']['window']['shared_keys']>0
+    assert 'PRIVATE_DAMAGED_TRUTH' not in json.dumps(result)
+
+
+def test_panel_audit_respects_parameter_sharing_and_assessment_lock(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_panel_audit import audit
+    cs,e=split_composition_panels(tmp_path)
+    for c in cs:
+        c['payload']['rows'][0]['stratum']='parameter'
+        c['payload']['rows'][0]['structure']=digest('shared-parameter-structure')
+    cs=list(map(seal,cs))
+    assert audit(tmp_path,cs,{e['identity']:e})['status']=='NO_DIRECT_OVERLAPS_FOUND'
+    cs[1]['payload']['role']='assessment';cs[1]=seal(cs[1])
+    with pytest.raises(ValueError,match='reserved assessment'):
+        audit(tmp_path,cs,{e['identity']:e})
+
+
+def test_panel_audit_original_preparation_and_failure_packaging(tmp_path,monkeypatch):
+    import zipfile
+    from oeis_learn.pipeline_validation import progressive_panel_audit as module
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session,write,read,NAMES
+    from oeis_learn.experiments import source_snapshot
+    from oeis_learn.generalization.progressive.contracts import reference
+    from tests.unit.test_progressive_freeze import prepared
+    from tests.helpers.progressive_fixture import blueprint
+    cs,e=split_composition_panels(tmp_path)
+    p=prepared(tmp_path,blueprint())
+    refs=[]
+    for i,c in enumerate([*cs,e]):
+        path=tmp_path/'private'/f'group-{i}.json';write(path,c)
+        refs.append(dict(name='group-'+str(i),role='custodian',kind='groups',artifact=reference(tmp_path,path)))
+    p['payload']['references']=[r for r in p['payload']['references'] if r['kind']!='groups']+refs
+    folder=tmp_path/'run-state/session'
+    path=folder/'prepare-research/reservation-repair/prepared/prepared.json';write(path,seal(p))
+    script=tmp_path/'run-state/audit.py';script.write_text('auditor fixture')
+    source={'fixture':digest('original')}
+    monkeypatch.setattr(source_snapshot,'collect_snapshot',lambda _:source)
+    s=Session(tmp_path,'run-state/session',dict(source=digest(source)),'panel-audit')
+    write(folder/'journal.json',seal(dict(version='progressive-workstation-journal/v1',errors=[],steps={
+        'prepare-research/prepare':dict(status='COMPLETE',outputs=[reference(tmp_path,path)]),
+        'prepare-research/freeze':dict(status='FAILED',reason='cross-panel detectable related group leakage')})))
+    original=read(folder/'journal.json')['steps']
+    files={x:x.read_bytes() for x in (tmp_path/'private').rglob('*') if x.is_file()}
+    monkeypatch.setattr(module,'main',lambda *a:pytest.fail('nested runner'))
+    NAMES.update({'panel-audit.json','panel-audit-progress.json'})
+    with s.own():
+        result=s.step('inspect',lambda:module.run(s,script))
+    assert result['status']=='OVERLAPS_FOUND'
+    assert all(x.read_bytes()==b for x,b in files.items())
+    for k,v in original.items():assert read(folder/'journal.json')['steps'][k]==v
+    with zipfile.ZipFile(folder/'share/panel-audit.zip') as z:
+        assert 'panel-audit/panel-audit.json' in z.namelist()
+        assert not any('/private/' in n for n in z.namelist())
+    with s.own():
+        assert s.step('inspect',lambda:pytest.fail('duplicate audit'))==result
+    monkeypatch.setattr(source_snapshot,'collect_snapshot',lambda _:{'changed':True})
+    with pytest.raises(ValueError,match='original qualified checkout'):
+        module.run(s,script)
+
+
 @pytest.fixture(scope='module')
 def reservoir():
     from oeis_learn.generalization.progressive.generator import default_policy,draw

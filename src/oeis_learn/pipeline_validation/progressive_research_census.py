@@ -67,7 +67,11 @@ def reserve_panels(rows, *, seed, required, minimum_groups, panels, deadline=Non
     """Assign whole detected components before quotas; never substitute/reseed."""
     linked, seen = Union(len(rows)), {}
     from oeis_learn.generalization.progressive.prepared_panels import composition
-    composition_keys={composition(r) for r in rows if r['stratum']=='composition'}
+    # Freeze augments every non-parameter row with its composition identity,
+    # including unseen structures. Distinct ASTs can have the same normalized
+    # subtree/operator inventory; assigning these separately fails only at freeze.
+    composition_keys={composition(r) for r in rows
+                      if r.get('source') and not (parameter_sharing and r['stratum']=='parameter')}
     for i, row in enumerate(rows):
         if deadline is not None and time.monotonic() >= deadline:
             raise TimeoutError('panel grouping exhausted census finalization allowance')
