@@ -1147,3 +1147,18 @@ before ownership publication. The round018 command passes Python 3.13 `-S`
 dry-run. Round017 stopped before ownership transfer, images or qualification;
 round018 reuses the original round016 recovery evidence and round009 calibration.
 Actual new-source HIP execution remains T220.
+
+
+- [X] T229 Refresh the current spec007 disposition implementation fingerprint after T225-T228 without changing any historical input/task dispositions or completion claims. Reproduce the sole round018 CPU failure, validate the real uploaded clean CPU-failure ownership proof, and include a portable, fast fingerprint precheck in the successor handoff.
+
+T229 validation: round018 recorded 2,928 passing CPU tests, 82 passing subtests,
+and one stale implementation-fingerprint failure; HIP preflight was blocked.
+The actual uploaded process/cleanup receipts pass the canonical v1 recovery
+proof (eight termination/cleanup records). The corrected 68-input disposition
+record validates, and 146 local contract/handoff/recovery checks pass. The
+portable fingerprint precheck passes with `python3 -S`; executable source
+closure remains `sha256:71d69aec9f4a6902e0cb47e9326b666f78dc71d9d63ff9f66c1f355a891883b8`.
+No CPU qualification failure is relabelled as PASS. Fresh round019 will rebuild
+cached images with corrected metadata and rerun qualification, retaining the
+original calibration and corrected panel ancestry. Actual HIP/freeze/acceptance
+remains T220.

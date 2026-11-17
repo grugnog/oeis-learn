@@ -64,7 +64,7 @@ a fresh session, with the original flags and data/calibration donors:
 ```bash
 python3 -S scripts/discovery_hip_handoff.py \
   --engine podman \
-  --session run-state/discovery/013-research-round-018 \
+  --session run-state/discovery/013-research-round-019 \
   prepare-research \
   --registration-session run-state/discovery/013-research-inputs-003 \
   --rehearsal-session run-state/discovery/013-hip-007 \
@@ -125,3 +125,44 @@ changes, absent correction evidence and mandatory test registration. Python 3.13
 `-S` accepts the complete round018 handoff in dry-run. No hardware qualification
 is claimed. The command above now names round018; round017's source-bound
 preflight diagnostics remain retained, with no expensive work to repeat.
+
+
+## Round018 CPU qualification / T229
+
+Input: `prepare-research(20261117-012129).zip`. Data reuse, corrected-panel
+adoption, role roster, sensitivity and calibration-reuse preflight all completed.
+Base qualification stopped after 2549 seconds: 2,928 CPU tests and 82 subtests
+passed, but `test_current_dispositions_use_the_package_implementation_serializer`
+found a stale spec007 implementation fingerprint. HIP preflight was BLOCKED;
+both image stages passed. No HIP qualification, new calibration or science ran.
+
+The package's canonical function computes
+`sha256:a3c5d4a440346cdb83059fabe150d3afa66a5f6279cec2d3d7dc8b8174d41fb5`.
+The current disposition record still carried the earlier `fcdf96f6…` value.
+Only that current implementation stamp and its descriptive revision label are
+updated. All 68 original-input/task dispositions, original inventory identities,
+historical template and `full_007_complete: false` remain unchanged. No runtime
+code is modified; executable qualification source closure remains exactly
+`sha256:71d69aec9f4a6902e0cb47e9326b666f78dc71d9d63ff9f66c1f355a891883b8`.
+
+The actual uploaded files were replayed through `failure_proof`, which produced
+a canonical v1 clean CPU-failure proof with eight process/cleanup records. The
+existing owner chain retains the v8 panel correction behind this v1 failure and
+still points to the original round009 calibration. Round019 is the successor;
+round018's failed qualification remains immutable historical evidence.
+
+The normal image build runs again (with cached dependencies), so the Dockerfile's
+`COPY .` includes the corrected metadata. Qualification reruns as designed; no
+failed suite is changed into a PASS or selectively spliced into a new receipt.
+The old 1,296-case calibration and census are not rerun. Add this quick portable
+check after fetching/pinning the handoff commit and before the command above:
+
+```bash
+PYTHONPATH=src python3 -S -m unittest \
+  tests.unit.test_pipeline_contracts.Contracts.test_current_dispositions_use_the_package_implementation_serializer
+```
+
+Validation: the exact failing test reproduced locally before the correction,
+then passed. The full disposition validator accepted all 68 inputs, 146 focused
+contract/handoff/recovery tests passed, and the stdlib precheck completed in
+0.068 seconds. Actual successful workstation qualification remains pending.
