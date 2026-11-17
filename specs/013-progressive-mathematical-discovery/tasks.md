@@ -1162,3 +1162,16 @@ No CPU qualification failure is relabelled as PASS. Fresh round019 will rebuild
 cached images with corrected metadata and rerun qualification, retaining the
 original calibration and corrected panel ancestry. Actual HIP/freeze/acceptance
 remains T220.
+
+- [X] T230 Continue the confirmed round019 clean freeze timeout without repeating completed qualification, timing, calibration or preparation. Supply a run-specific stdlib helper outside the pinned source closure, preserve the interrupted publication and original journal, borrow at most 24 hours from unused preparation time after debiting the original freeze, retain canonical acceptance/run/resume and all scientific budgets, and capture periodic safe stacks plus bounded failure tracebacks in the existing diagnostic ZIP infrastructure.
+
+T230 validation: uploaded round019 process/result/command receipts identify an
+external 7,080-second deadline, clean termination and no truncated streams.
+The original preparation allowance has 257,979 seconds left before charging
+the interrupted freeze; the helper reserves at most 86,400 seconds including
+120 seconds for cleanup. This is a ceiling, not a runtime estimate. Tests cover
+failure identity and cleanup guards, finite accounting, actual stdlib bootstrap
+imports/arguments, archive preservation, retry refusal for a new failure,
+successful acceptance/run handoff and completed-stage reuse. The canonical CLI
+bootstrap and source identity were checked against a detached b616b116 checkout.
+No new hardware validation or successful freeze is claimed; T220 remains pending.

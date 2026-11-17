@@ -744,3 +744,114 @@ def test_panel_seed_rebind_is_exact_derivation_not_general_seed_exemption(tmp_pa
     else:
         with pytest.raises(ValueError,match='scientific tasks'):invariant_tasks(old,new,report=report)
         assert load(report)['status']=='FAIL' and load(report)['mismatches']
+
+
+def round019_helper():
+    import importlib.util
+    from pathlib import Path
+    path = Path(__file__).resolve().parents[2]/'specs/013-progressive-mathematical-discovery/validation/continue-round019.py'
+    spec = importlib.util.spec_from_file_location('round019_continuation', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_round019_original_allowance_and_unknown_intervals():
+    helper = round019_helper()
+    prior = dict(seconds=261000, spent_seconds=3020.622, active=None)
+    assert helper.allocation(prior, dict(elapsed_seconds=7080.426)) == 86400
+    assert helper.allocation(dict(prior, seconds=15000), dict(elapsed_seconds=7080)) == pytest.approx(4899.378)
+    for change in (dict(active={}), dict(spent_seconds=float('nan')), dict(seconds=4000)):
+        with pytest.raises(ValueError):
+            helper.allocation(dict(prior, **change), dict(elapsed_seconds=7080))
+
+
+def test_round019_rejects_unknown_failures():
+    helper = round019_helper()
+    argv = ['python', '-S', '/root/scripts/foundation_run.py', 'discovery', 'freeze']
+    row = dict(status='FAILED')
+    result = dict(identity=helper.RESULT, mechanical_status='INTERRUPTED', producer_error=dict(type='KeyboardInterrupt'))
+    recorded = dict(argv=argv, seconds=7080, cleanup_seconds=120)
+    process = dict(returncode=130, outcome='FAIL', cleanup_failure=None, omitted_bytes=dict(stdout=0, stderr=0),
+                   elapsed_seconds=7080.4, failure='TimeoutError: external deadline: '+str(argv))
+    helper.timeout_evidence(row, result, process, recorded, argv)
+    for changes in (dict(cleanup_failure='unacknowledged'), dict(returncode=-9), dict(failure='other failure'),
+                    dict(elapsed_seconds=12), dict(omitted_bytes=dict(stdout=1, stderr=0))):
+        with pytest.raises(ValueError):
+            helper.timeout_evidence(row, result, dict(process, **changes), recorded, argv)
+    with pytest.raises(ValueError):
+        helper.timeout_evidence(dict(row, history=[row]), result, process, recorded, argv)
+
+
+def test_round019_stack_wrapper_keeps_script_imports_and_arguments(tmp_path):
+    import subprocess
+    import sys
+    helper = round019_helper()
+    (tmp_path/'sibling.py').write_text('VALUE = 42\n')
+    script = tmp_path/'entry.py'
+    script.write_text('import sibling,sys,json;print(json.dumps([sibling.VALUE,sys.argv]))\n')
+    result = subprocess.run(helper.snapshot_argv([sys.executable, '-S', str(script), '--engine', 'podman']),
+                            capture_output=True, text=True, check=True)
+    assert json.loads(result.stdout) == [42, [str(script), '--engine', 'podman']]
+
+
+@pytest.mark.parametrize('fail_freeze', [False, True])
+def test_round019_continuation_preserves_completed_work(tmp_path, monkeypatch, fail_freeze):
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive.contracts import reference
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session, write, read
+    from oeis_learn.pipeline_validation.progressive_workstation import Workflow, command
+    from oeis_learn.pipeline_validation import supervision, progressive_research_launch
+    helper = round019_helper()
+    s = Session(tmp_path, helper.SESSION, dict(source=helper.SOURCE), 'prepare-research')
+    s.package = lambda: None
+    monkeypatch.setattr(helper, 'authenticate', lambda s: None)
+    base = s.folder/'prepare-research'
+    script = tmp_path/'run-state/helper.py';script.write_text('helper')
+    args = SimpleNamespace(engine='podman', memory_gib=64, cpus=8, render_node=None, phase='prepare-research')
+    relative = lambda p: str(p.relative_to(tmp_path))
+    arguments = dict(blueprint=relative(base/'calibration-reuse/blueprint.json'), qualification=relative(base/'qualification'),
+                     prepared=relative(base/'prepared'), output=relative(base/'frozen'))
+    argv = command(tmp_path, args, 'freeze', **arguments)
+    result = seal(dict(mechanical_status='INTERRUPTED', producer_error=dict(type='KeyboardInterrupt')))
+    monkeypatch.setattr(helper, 'RESULT', result['identity'])
+    write(base/'frozen/result.json', result)
+    write(base/'logs/freeze/command.json', dict(argv=argv, seconds=7080, cleanup_seconds=120))
+    write(base/'logs/freeze/process.json', dict(returncode=130, outcome='FAIL', cleanup_failure=None,
+        omitted_bytes=dict(stdout=0, stderr=0), elapsed_seconds=7080.4, failure='TimeoutError: external deadline: '+str(argv)))
+    prior = seal(dict(seconds=261000, spent_seconds=3020, active=None, binding=seal(dict(scope=s.binding,
+        operation='prepare', arguments={k:v for k,v in dict(arguments, output=relative(base/'prepared')).items() if k!='prepared'}))))
+    write(base/'prepare-allowance.json', prior)
+    s.journal['steps'] = {helper.PREFIX+'freeze':dict(status='FAILED'),
+        helper.PREFIX+'execution-preflight':dict(status='COMPLETE', value=dict(setup_seconds=dict(acceptance=7800)))}
+    for name in ('registered-data', 'native-census', 'sensitivity', 'materials'):
+        s.journal['steps'][helper.PREFIX+name] = dict(status='COMPLETE', value={'original':name})
+    calls=[]
+    def launch(argv, logs, **kwargs):
+        calls.append('freeze')
+        assert kwargs['seconds'] == 86280
+        write(logs/'process.json', dict(returncode=0))
+        if fail_freeze:
+            raise RuntimeError('new unknown failure')
+        write(base/'frozen/result.json', seal(dict(mechanical_status='COMPLETE')))
+        write(base/'frozen/campaign.json', seal(dict(purpose='research')))
+    monkeypatch.setattr(supervision, 'launch', launch)
+    def acceptance(w, name, operation, **kwargs):
+        assert operation == 'acceptance' and kwargs['seconds'] == 7800
+        def action():
+            calls.append('acceptance')
+            return {}, []
+        return w.s.step(name, action)
+    monkeypatch.setattr(Workflow, 'run_command', acceptance)
+    monkeypatch.setattr(Workflow, 'run_after_prepare', lambda w: calls.append('run'))
+    def ready(w, *values):
+        assert [v['original'] for v in values] == ['registered-data','native-census','sensitivity','materials']
+        return {}, []
+    monkeypatch.setattr(progressive_research_launch, 'readiness', ready)
+    helper.continue_campaign(s, args, script)
+    assert calls == (['freeze'] if fail_freeze else ['freeze', 'acceptance', 'run'])
+    assert read(base/'prepare-allowance.json') == prior
+    assert read(base/'freeze-continuation/original-failed-freeze/result.json') == result
+    helper.continue_campaign(s, args, script)
+    assert calls == (['freeze'] if fail_freeze else ['freeze', 'acceptance', 'run', 'run'])
+    assert s.journal['steps'][helper.PREFIX+'freeze']['history'][0]['status'] == 'FAILED'
