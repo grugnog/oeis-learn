@@ -90,7 +90,12 @@ def copy_trace(output, destination):
     from oeis_learn.pipeline_validation.progressive_research_inputs import checked_file
     if not (output/'result.json').exists():
         return
-    ref = read(output/'result.json').get('producer_error', {}).get('local_traceback')
+    error = read(output/'result.json').get('producer_error')
+    if error is None:
+        return
+    if not isinstance(error, dict):
+        raise ValueError('producer_error must be null or an object')
+    ref = error.get('local_traceback')
     if ref:
         if ref['bytes'] > 64 << 10:
             raise ValueError('unexpectedly large host traceback; original remains private')

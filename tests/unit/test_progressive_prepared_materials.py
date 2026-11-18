@@ -855,3 +855,182 @@ def test_round019_continuation_preserves_completed_work(tmp_path, monkeypatch, f
     helper.continue_campaign(s, args, script)
     assert calls == (['freeze'] if fail_freeze else ['freeze', 'acceptance', 'run', 'run'])
     assert s.journal['steps'][helper.PREFIX+'freeze']['history'][0]['status'] == 'FAILED'
+
+
+def round019_storage_helper():
+    import importlib.util
+    from pathlib import Path
+    path = Path(__file__).resolve().parents[2]/'specs/013-progressive-mathematical-discovery/validation/continue-round019-storage.py'
+    spec = importlib.util.spec_from_file_location('round019_storage', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize('producer_error', [None, {}])
+def test_round019_trace_collection_accepts_normal_no_error(tmp_path, producer_error):
+    from oeis_learn.pipeline_validation.progressive_workstation_state import write
+    write(tmp_path/'result.json', seal(dict(producer_error=producer_error, mechanical_status='BLOCKED')))
+    round019_helper().copy_trace(tmp_path, tmp_path/'copied.log')
+    round019_storage_helper().collect_trace(tmp_path, tmp_path)
+    assert not (tmp_path/'copied.log').exists()
+    assert not (tmp_path/'collector-error.log').exists()
+
+
+def test_round019_trace_collection_cannot_mask_original_failure(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_workstation_state import write
+    write(tmp_path/'result.json', seal(dict(producer_error='malformed')))
+    helper = round019_storage_helper()
+    with pytest.raises(RuntimeError, match='original failure'):
+        try:
+            raise RuntimeError('original failure')
+        finally:
+            helper.collect_trace(tmp_path, tmp_path)
+    assert 'producer_error must be null or an object' in (tmp_path/'collector-error.log').read_text()
+
+
+def test_round019_storage_lower_bound_stops_before_expensive_reads(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive.storage import JOURNAL_BYTES
+    helper = round019_storage_helper()
+    q = dict(task_plans=[dict(caps=dict(disk_bytes=375541145822))], shard_bytes=26620955,
+             package_bytes=536870912, required_inodes=1000000)
+    prepared = seal(dict(payload=q))
+    monkeypatch.setattr(helper.shutil, 'disk_usage', lambda _: SimpleNamespace(free=291429883904))
+    monkeypatch.setattr(helper.os, 'statvfs', lambda _: SimpleNamespace(f_favail=119541676))
+    result = helper.capacity(tmp_path, prepared)
+    assert result['status'] == 'BLOCKED' and result['scope'] == 'lower_bound'
+    assert result['required_bytes'] == 375541145822+JOURNAL_BYTES+26620955+536870912
+    assert result['additional_bytes'] > 86*10**9
+    # No checkpoint, runtime or private input paths were supplied or read.
+
+
+def test_round019_storage_allowance_retains_all_previous_costs():
+    helper = round019_storage_helper()
+    prior = dict(seconds=261000, spent_seconds=3020.622, active=None)
+    first = dict(previous_freeze_seconds=7080.426)
+    retry = dict(spent_seconds=39212.393, active=None)
+    assert helper.remaining_seconds(prior, first, retry) == 86400
+    assert helper.remaining_seconds(dict(prior, seconds=60000), first, retry) == pytest.approx(10686.559)
+    for invalid in (dict(active={}), dict(spent_seconds=float('nan')), dict(spent_seconds=999999)):
+        with pytest.raises(ValueError):
+            helper.remaining_seconds(prior, first, dict(retry, **invalid))
+
+
+@pytest.mark.parametrize('outcome', ['COMPLETE', 'BLOCKED'])
+def test_round019_storage_resume_reuses_history_and_reports_true_outcome(tmp_path, monkeypatch, outcome):
+    import copy
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive.contracts import reference
+    from oeis_learn.pipeline_validation.progressive_workstation_state import Session, write, read
+    from oeis_learn.pipeline_validation.progressive_workstation import Workflow
+    from oeis_learn.pipeline_validation import supervision, progressive_research_launch
+    helper = round019_storage_helper()
+    s = Session(tmp_path, helper.SESSION, dict(source='qualified'), 'prepare-research')
+    s.package = lambda: None
+    base = s.folder/'prepare-research';old = base/'freeze-continuation'
+    script = tmp_path/'run-state/new-helper.py';script.write_text('new-helper')
+    old_script = tmp_path/'run-state/original-helper.py';old_script.write_text('original-helper')
+    prior = seal(dict(seconds=261000, spent_seconds=3020, active=None))
+    write(base/'prepare-allowance.json', prior)
+    first = seal(dict(script=reference(tmp_path, old_script), prior_allowance=reference(tmp_path, base/'prepare-allowance.json'),
+                      remaining_seconds=86400, previous_freeze_seconds=7080))
+    bound = seal(dict(continuation=first['identity']))
+    retry = seal(dict(seconds=86400, spent_seconds=39212.4, active=None, binding=bound,
+        attempts=[dict(outcome='AttributeError', error=helper.MASKED_ERROR)]))
+    write(old/'continuation-allowance.json', retry)
+    result = seal(dict(mechanical_status='BLOCKED', producer_error=None, reason='FREEZE_DEFICIT', missing_evidence=['storage_bytes']))
+    monkeypatch.setattr(helper, 'BLOCKED_RESULT', result['identity'])
+    write(base/'frozen/result.json', result)
+    write(old/'logs/0000/stdout.log', result)
+    write(old/'logs/0000/process.json', dict(returncode=2, outcome='FAIL', cleanup_failure=None,
+        omitted_bytes=dict(stdout=0, stderr=0), elapsed_seconds=39212.39, failure='RuntimeError: exit 2: original/stderr.log'))
+    write(base/'prepared/prepared.json', seal(dict(payload={})))
+    s.journal['steps'] = {helper.PREFIX+'freeze':dict(status='FAILED', reason=helper.MASKED_ERROR, binding=bound,
+                                                    history=[dict(status='FAILED', reason='old timeout')]),
+        helper.PREFIX+'execution-preflight':dict(status='COMPLETE', value=dict(setup_seconds=dict(acceptance=7800)))}
+    for n in ('registered-data', 'native-census', 'sensitivity', 'materials'):
+        s.journal['steps'][helper.PREFIX+n] = dict(status='COMPLETE', value={})
+    monkeypatch.setattr(helper, 'original_helper', lambda _: (SimpleNamespace(snapshot_argv=lambda a:a), first))
+    monkeypatch.setattr(helper, 'capacity', lambda *a: dict(status='BLOCKED'))
+    args = SimpleNamespace(engine='podman', memory_gib=64, cpus=8, render_node=None, phase='prepare-research')
+    before = copy.deepcopy(s.journal)
+    assert helper.execute(s, args, script, proceed=True) == 2
+    assert s.journal == before and (base/'frozen/result.json').exists()
+    monkeypatch.setattr(helper, 'capacity', lambda *a: dict(status='READY'))
+    assert helper.execute(s, args, script) == 0
+    assert s.journal == before  # Check-only cannot archive or execute.
+    calls=[]
+    def launch(argv, logs, **kwargs):
+        assert kwargs['seconds'] == 86280 and kwargs['allowed_returncodes'] == (0,2,3)
+        calls.append('freeze')
+        write(logs/'process.json', dict(returncode=0 if outcome=='COMPLETE' else 2))
+        value = seal(dict(result, mechanical_status=outcome))
+        write(base/'frozen/result.json', value)
+        if outcome == 'COMPLETE':write(base/'frozen/campaign.json', seal(dict(purpose='research')))
+    monkeypatch.setattr(supervision, 'launch', launch)
+    def acceptance(w, name, operation, **kwargs):
+        return w.s.step(name, lambda: (calls.append('acceptance'), []))
+    monkeypatch.setattr(Workflow, 'run_command', acceptance)
+    monkeypatch.setattr(Workflow, 'run_after_prepare', lambda w: calls.append('run'))
+    monkeypatch.setattr(progressive_research_launch, 'readiness', lambda *a: ({}, []))
+    helper.execute(s, args, script, proceed=True)
+    assert calls == (['freeze','acceptance','run'] if outcome=='COMPLETE' else ['freeze'])
+    assert read(base/'prepare-allowance.json') == prior
+    assert read(old/'continuation-allowance.json') == retry
+    assert read(base/'storage-continuation/original-blocked-freeze/result.json') == result
+    row = s.journal['steps'][helper.PREFIX+'freeze']
+    assert len(row['history']) == 2 and row['history'][-1]['reason'] == helper.MASKED_ERROR
+    if outcome == 'BLOCKED':
+        assert row['reason'] == 'FREEZE_DEFICIT: storage_bytes'
+        helper.execute(s, args, script, proceed=True)
+        assert calls == ['freeze']
+    else:
+        monkeypatch.setattr(helper, 'capacity', lambda *a: (_ for _ in ()).throw(AssertionError('completed freeze must be reused')))
+        helper.execute(s, args, script, proceed=True)
+        assert calls == ['freeze','acceptance','run','run']
+
+
+def test_round019_full_storage_arithmetic_includes_projection_and_inodes(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive import storage, campaign
+    helper = round019_storage_helper()
+    ref = dict(path='reference.json', bytes=1, sha256='sha256:'+'0'*64)
+    q = dict(task_plans=[dict(id='train', kind='training', caps=dict(disk_bytes=100),
+                             initializer=dict(mode='weights_only', artifact=ref, origin=ref))],
+             references=[], runtime=ref, checkpoint=ref, target_policy=ref,
+             checkpoint_root='.', milestone_pins=1, shard_bytes=10, package_bytes=30, required_inodes=1)
+    prepared = seal(dict(payload=q, track='synthetic_strict', purpose='research'))
+    monkeypatch.setattr(helper.shutil, 'disk_usage', lambda _: SimpleNamespace(free=50 << 30))
+    monkeypatch.setattr(helper.os, 'statvfs', lambda _: SimpleNamespace(f_favail=100000))
+    monkeypatch.setattr(storage, 'checkpoint_size', lambda *a, **k: (20,3))
+    monkeypatch.setattr(storage, 'projection_size', lambda *a: (40,4))
+    monkeypatch.setattr(campaign, 'initializer_origin', lambda *a, **k: (None,[dict(path='origin.json', bytes=7)]))
+    result = helper.capacity(tmp_path, prepared)
+    assert result['status'] == 'READY' and result['scope'] == 'full'
+    assert result['required_bytes'] == storage.JOURNAL_BYTES+100+10+30+40+7+20
+    assert result['required_inodes'] == (3*3+256)+4+2+16384
+    monkeypatch.setattr(helper.os, 'statvfs', lambda _: SimpleNamespace(f_favail=5))
+    result = helper.capacity(tmp_path, prepared)
+    assert result['status'] == 'BLOCKED' and result['additional_inodes'] > 0
+
+
+def test_round019_storage_inspection_is_read_only_and_continues_on_failure(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import supervision, discovery_cleanup
+    from oeis_learn.pipeline_validation.progressive_workstation_state import write
+    helper = round019_storage_helper()
+    session = SimpleNamespace(root=tmp_path, folder=tmp_path/'run-state/session')
+    write(session.folder/'prepare-research/qualification/qualification.json', seal(dict(images=['cpu-id','gpu-id'])))
+    output = session.folder/'diagnostics';output.mkdir(parents=True)
+    calls=[]
+    def launch(argv, logs, **kwargs):
+        calls.append(argv)
+        assert kwargs['seconds'] == 120
+        if len(calls) == 1:raise RuntimeError('engine accounting temporarily unavailable')
+    monkeypatch.setattr(supervision, 'launch', launch)
+    monkeypatch.setattr(discovery_cleanup, 'inventory', lambda _: dict(groups=[], errors=[]))
+    helper.inspect_storage(session, SimpleNamespace(engine='podman'), output)
+    assert [a[1] for a in calls] == ['system','info','history','history']
+    assert list(output.rglob('disk-inventory.json'))
+    assert list(output.rglob('engine-disk-collector-error.log'))

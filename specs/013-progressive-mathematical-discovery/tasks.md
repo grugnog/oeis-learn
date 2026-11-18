@@ -1175,3 +1175,35 @@ imports/arguments, archive preservation, retry refusal for a new failure,
 successful acceptance/run handoff and completed-stage reuse. The canonical CLI
 bootstrap and source identity were checked against a detached b616b116 checkout.
 No new hardware validation or successful freeze is claimed; T220 remains pending.
+
+- [X] T231 Preserve the real round019 storage deficit when `producer_error` is null, add a pinned-source storage preflight and read-only image/workspace accounting, and permit only the reviewed clean storage-block continuation after capacity fits. Retain original helpers, failures and costs; check capacity before expensive trial validation; do not rebuild images, repeat qualification/calibration, delete history, reduce scientific reservations, or retry a new unknown failure.
+
+T231 evidence: the 2026-11-18 01:47:21 upload records canonical freeze exiting 2
+with FREEZE_DEFICIT/storage_bytes after 39,212 seconds, followed by a secondary
+AttributeError in the T230 traceback collector. The normal result contains
+`producer_error: null`. Free disk was 291,429,883,904 bytes; task partitions alone
+reserve 375,541,145,822 bytes. Including journal/shard/package overhead yields a
+378,252,121,337-byte lower bound before checkpoint/projection closure. No scientific
+training started. The new diagnostic reports that lower bound immediately, then
+uses pinned canonical storage measurements for the full calculation when the
+lower bound fits. It grants no qualification/freeze authority. The explicit
+`--continue` path reserves at most 24 hours from unused original parent preparation
+time after charging prepare and both failed freezes (about 49,313 seconds total).
+Original child ledgers and all scientific caps stay unchanged. Actual storage
+recovery, freeze and campaign acceptance remain workstation-dependent (T220).
+
+GPU build logs show cached dependencies and native compilation, with only final
+COPY/install steps rerunning. Final installation recursively chmods the entire
+venv, which may trigger large overlay copy-ups; exact physical attribution needs
+the added Podman history/system-df/store and workspace inventory. No image rebuild
+or pruning is part of this continuation. Freeze runtime is also a separate
+performance issue: sampled stacks show repeated study input and runtime validation;
+no durable successful validation receipt exists to skip that work safely.
+
+T231 validation: 70 local prepared-material/contract checks pass, including 14
+round019 continuation cases. Those 14 also pass with imports from a detached
+b616b116 checkout. The actual uploaded result/process/stdout/allowance records
+pass the narrow recovery predicate under system Python `-S`; its exact qualified
+source closure is unchanged. Expanded recovery-transaction tests were not run in
+the restored lightweight environment because their NumPy dependency is absent.
+No HIP/device validation or container build is claimed by these checks.
