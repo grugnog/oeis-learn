@@ -198,6 +198,21 @@ def inspect_storage(s, args, folder):
     print('Read-only storage diagnostics: '+str(output), flush=True)
 
 
+def qualified_images(root, session, args):
+    from oeis_learn.container_runtime import Engine
+    from oeis_learn.pipeline_validation.progressive_workstation_state import read
+    expected = read(session/'prepare-research/qualification/qualification.json')['images']
+    engine = Engine(args.engine)
+    rows = []
+    for image in expected:
+        try:
+            actual = engine.image(image)
+            rows.append(dict(expected=image, actual=actual, status='PRESENT' if actual == image else 'DIFFERENT'))
+        except Exception as exc:
+            rows.append(dict(expected=image, status='MISSING_OR_UNAVAILABLE', error=str(exc)[:4096]))
+    return dict(all_present=all(r['status']=='PRESENT' for r in rows), images=rows)
+
+
 def execute(s, args, script, *, proceed=False, inspect=False):
     from oeis_learn.generalization.progressive.contracts import load, seal, reference, CAMPAIGN_DOCUMENT_BYTES
     from oeis_learn.pipeline_validation.progressive_workstation import Workflow, command
@@ -213,6 +228,12 @@ def execute(s, args, script, *, proceed=False, inspect=False):
     relative = lambda p: str(p.relative_to(s.root))
     if inspect:
         inspect_storage(s, args, folder)
+    if proceed:
+        image_status = qualified_images(s.root, s.folder, args)
+        write(folder/('check-'+str(time.time_ns()))/'qualified-images.json', image_status)
+        if not image_status['all_present']:
+            print('Qualified images missing or unavailable; no freeze/acceptance/training started: '+json.dumps(image_status), flush=True)
+            return 2
     row = s.journal['steps'][PREFIX+'freeze']
     previous = s.journal['steps'].get(PREFIX+'storage-continuation-enroll', {}).get('value')
     if previous and row.get('binding', {}).get('continuation') == previous['identity'] and row['status'] != 'COMPLETE':
@@ -323,7 +344,7 @@ def main(argv=None):
     args = SimpleNamespace(phase='prepare-research', engine=binding['engine'], memory_gib=binding['memory_gib'], cpus=binding['cpus'], render_node=binding.get('render_node'))
     s = Session(root, SESSION, binding, 'prepare-research')
     s.observer = TelemetryCollector(s.folder)
-    NAMES.update({'continuation.json', 'original-journal.json', 'continuation-allowance.json', 'freeze-archive.json', 'storage-preflight.json', 'disk-inventory.json'})
+    NAMES.update({'continuation.json', 'original-journal.json', 'continuation-allowance.json', 'freeze-archive.json', 'storage-preflight.json', 'disk-inventory.json', 'qualified-images.json'})
     stop = threading.Event()
     def observe():
         while not stop.wait(30):

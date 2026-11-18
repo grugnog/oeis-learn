@@ -1207,3 +1207,27 @@ pass the narrow recovery predicate under system Python `-S`; its exact qualified
 source closure is unchanged. Expanded recovery-transaction tests were not run in
 the restored lightweight environment because their NumPy dependency is absent.
 No HIP/device validation or container build is claimed by these checks.
+
+- [X] T232 Add explicit plan/apply retirement for superseded preparation qualification test tensors, preserving all original metadata and scientific history. Protect the active session and declared input/calibration ancestors; verify original successful HIP case evidence and clean termination; delete only manifest-bound weights/optimizer files after hashing the full deletion set; retain durable intent and support interrupted cleanup. Replay qualification proof after retirement and report exact qualified image availability following pruning. Provide a stdlib standalone invocation against the pinned checkout without rebuilding or requalifying it.
+
+T232 scope: the workstation inventory identifies about 252 GiB in rounds
+005–008, including about 146 GiB of large candidate tensor files in its bounded
+largest-file listing. Actual reclaimable bytes are reported by the live plan;
+those directory sizes are not a deletion claim. The active round019, data donors
+002/016, calibration donor009, rehearsal007, original D checkpoint lineage, all
+source data, reports, JSON manifests and calibration tensors remain untouched.
+Whole-run deletion is unnecessary for this first substantial reclamation.
+Original qualification authority is replayed before/after retirement, without
+interpreting diagnostic test models as scientific research outputs. Local tests
+use explicit hardware-authority doubles and do not establish HIP evidence.
+
+T232 validation: 104 local cleanup/prepared-material/contract checks pass; 34
+cleanup/retirement checks also pass using the pinned b616b116 implementation's
+primitives. Cases cover reference protection, failed/incomplete qualification,
+active work, source changes, missing cleanup acknowledgements, symlinks, changed
+or extra tensors, immutable evidence, interrupted apply and repeat apply. The
+continuation now checks exact qualified image IDs before expensive freeze or
+acceptance/run work, with a regression proving missing images stop before
+capacity/validation work. The package implementation fingerprint was refreshed
+without changing the 68 historical dispositions. No workstation files were
+removed here; the live plan reports the actual eligible/reclaimable bytes.

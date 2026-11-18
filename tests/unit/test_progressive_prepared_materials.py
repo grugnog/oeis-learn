@@ -952,9 +952,16 @@ def test_round019_storage_resume_reuses_history_and_reports_true_outcome(tmp_pat
     for n in ('registered-data', 'native-census', 'sensitivity', 'materials'):
         s.journal['steps'][helper.PREFIX+n] = dict(status='COMPLETE', value={})
     monkeypatch.setattr(helper, 'original_helper', lambda _: (SimpleNamespace(snapshot_argv=lambda a:a), first))
+    monkeypatch.setattr(helper, 'qualified_images', lambda *a: dict(all_present=True, images=[]))
     monkeypatch.setattr(helper, 'capacity', lambda *a: dict(status='BLOCKED'))
     args = SimpleNamespace(engine='podman', memory_gib=64, cpus=8, render_node=None, phase='prepare-research')
     before = copy.deepcopy(s.journal)
+    monkeypatch.setattr(helper, 'qualified_images', lambda *a: dict(all_present=False, images=[]))
+    monkeypatch.setattr(helper, 'capacity', lambda *a: (_ for _ in ()).throw(AssertionError('missing image must stop before validation')))
+    assert helper.execute(s, args, script, proceed=True) == 2
+    assert s.journal == before
+    monkeypatch.setattr(helper, 'qualified_images', lambda *a: dict(all_present=True, images=[]))
+    monkeypatch.setattr(helper, 'capacity', lambda *a: dict(status='BLOCKED'))
     assert helper.execute(s, args, script, proceed=True) == 2
     assert s.journal == before and (base/'frozen/result.json').exists()
     monkeypatch.setattr(helper, 'capacity', lambda *a: dict(status='READY'))

@@ -135,3 +135,106 @@ def test_runtime_cleanup_follows_task_identities_not_display_names(tmp_path):
     assert c.apply(root,out)['files']==36
     assert all(not p.exists() for p in all_tensors)
     assert len(list(base.glob('cases/*/producer.json')))==11
+
+
+@pytest.fixture
+def superseded_qualification(tmp_path, monkeypatch):
+    from tests.unit.test_progressive_preparation_retirement import fixture
+    from oeis_learn.pipeline_validation import qualification_retirement as q
+    from oeis_learn.pipeline_validation import generalization_qualification_io as qualification
+    session, folder, tensors = fixture(tmp_path, monkeypatch)
+    qroot = folder/'prepare-research/qualification'
+    monkeypatch.setattr(qualification, 'public_closure', lambda root, authority: [reference(qroot, qroot/'source.json')])
+    active = 'run-state/discovery/current';a = tmp_path/active
+    write(a/'session.json', seal(dict(binding=dict(reuse_calibration_session='run-state/discovery/calibration'))))
+    write(a/'journal.json', seal(dict(steps={'prepare-research/freeze':dict(status='FAILED')})))
+    write(a/'prepare-research/prepared/prepared.json', seal(dict(payload=dict(references=[dict(artifact=dict(path='run-state/discovery/donor/input.json'))]))))
+    monkeypatch.setattr(q, 'images', lambda *a: dict(all_present=True, images=[]))
+    return q, tmp_path, session, folder, tensors, active, tmp_path/'run-state/maintenance/qualification-cleanup'
+
+
+def test_superseded_qualification_deletes_only_test_tensors(superseded_qualification):
+    q, root, session, folder, tensors, active, output = superseded_qualification
+    originals = {p:p.read_bytes() for p in folder.rglob('*') if p.is_file()}
+    plan = q.enroll(root, [session], active, output)
+    selected = {root/r['path'] for r in plan['files']}
+    assert len(selected) == 2
+    assert all('/qualification/device/cases/' in str(p) for p in selected)
+    assert selected < set(tensors)  # Trajectory/calibration/scientific models are not selected.
+    assert all(p.exists() for p in tensors)
+    receipt = q.apply(root, output)
+    assert receipt['qualification_evidence_revalidated']
+    assert all(not p.exists() for p in selected)
+    assert all(p.read_bytes() == raw for p,raw in originals.items() if p not in selected)
+    assert q.apply(root, output) == receipt
+    assert (output/'cleanup-report.zip').exists()
+
+
+@pytest.mark.parametrize('fault', ['protected','active','science','source','qualification','cleanup','unbound'])
+def test_superseded_qualification_rejects_unsafe_plan(superseded_qualification, fault):
+    q, root, session, folder, tensors, active, output = superseded_qualification
+    path = folder/'journal.json';j = read(path)
+    if fault == 'protected':
+        write(root/active/'session.json', seal(dict(binding=dict(reuse_preparation_data=session))))
+    if fault == 'active':j['steps']['prepare-research/prepare']['status'] = 'INTERRUPTED'
+    if fault == 'science':j['steps']['run-research/start'] = dict(status='COMPLETE')
+    if fault == 'source':write(folder/'session.json', seal(dict(binding=dict(source=digest('changed')))))
+    if fault == 'qualification':j['steps']['prepare-research/qualify']['status'] = 'FAILED'
+    if fault == 'unbound':j['steps']['prepare-research/qualify']['outputs'] = []
+    if fault == 'cleanup':write(folder/'prepare-research/qualification/device/cleanup.json', dict(acknowledged=False))
+    write(path, seal(j))
+    with pytest.raises(ValueError):q.enroll(root, [session], active, output)
+    assert all(p.exists() for p in tensors)
+
+
+@pytest.mark.parametrize('fault', ['tensor','evidence','new-dependency','symlink','extra'])
+def test_superseded_qualification_revalidates_before_any_deletion(superseded_qualification, fault):
+    q, root, session, folder, tensors, active, output = superseded_qualification
+    plan = q.enroll(root, [session], active, output)
+    target = root/plan['files'][0]['path']
+    if fault == 'tensor':target.write_bytes(b'changed')
+    if fault == 'evidence':write(folder/'prepare-research/qualification/source.json', dict(changed=True))
+    if fault == 'new-dependency':write(root/active/'session.json', seal(dict(binding=dict(donor=session))))
+    if fault == 'symlink':target.unlink();target.symlink_to(target.parent/'rng-torch.pt')
+    if fault == 'extra':
+        new = target.parent.with_name('generalization-'+'b'*32);new.mkdir()
+        (new/'weights.pt').write_bytes(b'new')
+        write(new/'state.json', seal(dict(version='generalization-learner-state/v1', states={'weights':reference(new.parent,new/'weights.pt')})))
+    with pytest.raises((OSError, ValueError)):q.apply(root, output)
+    assert (root/plan['files'][1]['path']).exists()
+
+
+def test_superseded_qualification_resumes_partial_deletion(superseded_qualification, monkeypatch):
+    q, root, session, folder, tensors, active, output = superseded_qualification
+    plan = q.enroll(root, [session], active, output)
+    unlink = Path.unlink;count = 0
+    def fail_second(path, *args, **kwargs):
+        nonlocal count
+        if path.name in {'weights.pt','optimizer.pt'}:
+            count += 1
+            if count == 2:raise OSError('simulated cleanup interruption')
+        return unlink(path, *args, **kwargs)
+    monkeypatch.setattr(Path, 'unlink', fail_second)
+    with pytest.raises(OSError, match='interruption'):q.apply(root, output)
+    assert (output/'retirement-intent.json').exists()
+    monkeypatch.setattr(Path, 'unlink', unlink)
+    assert q.apply(root, output)['files'] == 2
+
+
+def test_qualification_pruning_check_uses_exact_ids_without_build(tmp_path, monkeypatch):
+    from oeis_learn.pipeline_validation import qualification_retirement as q
+    from oeis_learn.container_runtime import Engine
+    active = 'run-state/discovery/current';folder=tmp_path/active
+    write(folder/'session.json', seal(dict(binding=dict(engine='podman'))))
+    write(folder/'prepare-research/qualification/qualification.json', seal(dict(images=['cpu-id','gpu-id'])))
+    monkeypatch.setattr(Engine, '__init__', lambda self, name: None)
+    calls=[]
+    def inspect(self, image):
+        calls.append(image)
+        if image == 'gpu-id':raise ValueError('image missing after prune')
+        return image
+    monkeypatch.setattr(Engine, 'image', inspect)
+    result = q.images(tmp_path, active)
+    assert calls == ['cpu-id','gpu-id'] and not result['all_present']
+    assert result['images'][0]['status'] == 'PRESENT'
+    assert result['images'][1]['status'] == 'MISSING_OR_UNAVAILABLE'
