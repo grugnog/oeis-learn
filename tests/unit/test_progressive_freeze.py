@@ -547,3 +547,52 @@ def test_research_storage_rejects_weights_only_or_incomplete_manifest(tmp_path):
         checkpoint_size(
             tmp_path, reference(tmp_path, "partial.json"), checkpoint_root=".", research=True
         )
+
+
+def test_research_freeze_publishes_template_and_checks_every_choice():
+    from oeis_learn.generalization.progressive.campaign import frozen_task_records
+    import copy
+    from oeis_learn.generalization.progressive.contracts import record
+    from oeis_learn.generalization.progressive.trial_scopes import resolve
+    from oeis_learn.generalization.progressive.tuning import BASELINE
+
+    c = campaign()
+    c['purpose'] = 'research'
+    p = c['payload']
+    plan, = p['tasks']
+    plan['trial'] = dict(study=digest('study'), ordinal=0, phase='confirmation', coordinate=0)
+    plan['finalization_us'] = 1_800_000_000
+    plan['caps']['elapsed_us'] = 2_000_000_000
+    budget = dict(update_us=20, probe_us=30, checkpoint_us=40,
+                  producer=dict(path='measurement.json', bytes=5, sha256=digest('case')))
+    choice = dict(parameters=BASELINE, compatibility=plan['initializer']['compatibility'],
+                  policy=plan['policy'], iteration_budget=budget)
+    plan['trial_choices'] = [choice, dict(choice, parameters=dict(BASELINE, dropout=0.1))]
+    slot = next(n for n in p['graph']['nodes'] if n['id'] == plan['slot'])
+    slot['caps']['elapsed_us'] = plan['caps']['elapsed_us']
+    storage = p['storage']
+    storage.update(task_store_bytes=plan['caps']['disk_bytes'], journal_bytes=128 << 20,
+                   projection_bytes=0, checkpoint_inodes=1, required_inodes=20000, available_inodes=20000)
+    required = storage['task_store_bytes'] + storage['journal_bytes'] + storage['shard_bytes'] + storage['package_bytes']
+    storage.update(required_bytes=required, available_bytes=required)
+
+    c = seal(c)
+    template, = frozen_task_records(c)
+    assert template['payload'] == dict(plan, campaign=c['identity'])
+    assert template['parents'] == [c['identity']]
+    with pytest.raises(ValueError, match='measured complete iteration budget'):
+        validate_task(template, campaign=c)
+    selected = resolve(plan, 1)
+    concrete = record('task', dict(selected, campaign=c['identity']), created_at=c['created_at'],
+                      purpose=c['purpose'], track=c['track'])
+    assert validate_task(concrete, campaign=c) == concrete
+
+    for change, message in [('missing', 'measured complete iteration budget'), ('oversized', 'cannot fit')]:
+        bad = copy.deepcopy(c)
+        later = bad['payload']['tasks'][0]['trial_choices'][1]
+        if change == 'missing':
+            del later['iteration_budget']
+        else:
+            later['iteration_budget']['update_us'] = plan['caps']['elapsed_us']
+        with pytest.raises(ValueError, match=message):
+            frozen_task_records(seal(bad))

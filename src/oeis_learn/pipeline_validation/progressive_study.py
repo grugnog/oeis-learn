@@ -643,6 +643,10 @@ def validate_frozen(root, campaign):
     """All adaptive alternatives are finite, paired and paid for before outcomes."""
     from oeis_learn.generalization.progressive.trial_scopes import variants
 
+    from oeis_learn.generalization.progressive.shared_support import shared
+
+    previous_artifact = None
+    base_package = None
     refs = {
         r["artifact"]["sha256"]: r["artifact"]
         for r in campaign["payload"]["references"]
@@ -757,18 +761,24 @@ def validate_frozen(root, campaign):
                         or envelope.get('kind')!='training_request' or envelope.get('role')!='learner'):
                     raise ValueError('original training-only variant channel required')
                 data = envelope["data"]
-                package = json.loads(verify_refs(root, [data["artifact"]], max_bytes=256 << 20)[0])
+                artifact = data["artifact"]
+                raw = verify_refs(root, [artifact], max_bytes=256 << 20)[0]
+                # Recheck the on-disk bytes each time. Keeping just the latest
+                # immutable support lets validated_rows reuse its row checks.
+                if artifact != previous_artifact:
+                    base_package = shared(json.loads(raw))
+                    previous_artifact = artifact
                 from .progressive_learner import compatibility,validate_input
                 from oeis_learn.generalization.progressive.projections import _validate_channel
                 from oeis_learn.generalization.progressive.trial_scopes import materialize
                 _validate_channel('training_request',data)
-                if compatibility(package)!=data['compatibility']:
+                if compatibility(base_package)!=data['compatibility']:
                     raise ValueError('original variant base compatibility differs')
                 # The retained package is the immutable data base. Calibration
                 # and installed execution both expand the selected finite law;
                 # freeze must validate that same input, not demand one copy of
                 # every training reservoir per possible hyperparameter choice.
-                package=materialize(package,variant)
+                package=materialize(base_package,variant)
                 validate_input(package,dict(purpose=campaign['purpose'],track=campaign['track'],payload=variant),allow_pending=True)
                 params = variant["trial_choices"][variant["trial_choice"]]["parameters"]
                 actual = {

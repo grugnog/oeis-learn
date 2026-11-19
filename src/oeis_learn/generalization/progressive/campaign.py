@@ -7,11 +7,8 @@ from .contracts import validate, verify_refs
 from .graph import validate_graph
 
 
-def validate_task(task, *, campaign=None, track=None, compatibility=None):
-    task = validate("task", task)
+def _check_task_limits(task, plans, compatibility=None):
     p = task["payload"]
-    if track is not None and task["track"] != track:
-        raise ValueError("wrong task track")
     if p["kind"] == "training" and p["caps"]["elapsed_us"] > 86_400_000_000:
         raise ValueError("24 hour task ceiling")
     if p["startup_us"] + p["finalization_us"] >= p["caps"]["elapsed_us"]:
@@ -21,8 +18,11 @@ def validate_task(task, *, campaign=None, track=None, compatibility=None):
     if task['purpose']=='research' and p['finalization_us']<1800000000 and not (shared and trial.get('shared_finalization_us',0)>=1800000000):
         raise ValueError('research finalization reserve below 30 minutes')
     from .iteration import margin
-    work=margin(p,research=task["purpose"]=="research" and p["kind"]=="training")
-    if work+p["startup_us"]+p["finalization_us"]>=p["caps"]["elapsed_us"]:raise ValueError("complete iteration cannot fit frozen task")
+    research_training = task["purpose"] == "research" and p["kind"] == "training"
+    for plan in plans:
+        work = margin(plan, research=research_training)
+        if work + p["startup_us"] + p["finalization_us"] >= p["caps"]["elapsed_us"]:
+            raise ValueError("complete iteration cannot fit frozen task")
     init = p["initializer"]
     if (
         task["track"] == "synthetic_strict"
@@ -43,6 +43,34 @@ def validate_task(task, *, campaign=None, track=None, compatibility=None):
         raise ValueError("explicit compatible initializer required")
     if compatibility is not None and init["compatibility"] != compatibility:
         raise ValueError("incompatible initializer")
+
+
+def frozen_task_records(campaign):
+    """Publish the declared roster, before the scheduler selects any trial choice."""
+    from .contracts import record
+    from .trial_scopes import variants
+
+    # The campaign validator checks graph membership and per-slot aggregate caps.
+    # Construct directly from that validated roster to retain exact plan identity.
+    c = validate_campaign(campaign)
+    tasks = []
+    for plan in c["payload"]["tasks"]:
+        task = record("task", dict(plan, campaign=c["identity"]), created_at=c["created_at"],
+                      parents=[c["identity"]], purpose=c["purpose"], track=c["track"])
+        choices = variants(plan)
+        if "trial_choices" in plan and "iteration_budget" in plan:
+            choices.append(plan)  # Validate a declared common budget as well as its overrides.
+        _check_task_limits(task, choices)
+        tasks.append(task)
+    return tasks
+
+
+def validate_task(task, *, campaign=None, track=None, compatibility=None):
+    task = validate("task", task)
+    p = task["payload"]
+    if track is not None and task["track"] != track:
+        raise ValueError("wrong task track")
+    _check_task_limits(task, [p], compatibility)
     if campaign is not None:
         c = validate_campaign(campaign)
         if (

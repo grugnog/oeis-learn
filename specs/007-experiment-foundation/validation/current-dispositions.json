@@ -1,7 +1,7 @@
 {
   "schema_version": "review-disposition/v1",
   "phase": 13,
-  "code_revision": "Spec 013 T232 superseded qualification diagnostic tensor retirement; historical dispositions unchanged",
+  "code_revision": "Spec 013 finite-choice freeze publication; historical dispositions unchanged",
   "source_sha256": "sha256:fcf84cd2f6f420daf2f5ef3fe11beee0f04543aa5032bb580752347ae19b787a",
   "scope": "Original-input/task traceability with phase-13 code repairs. Missing source/model and phase-14 acceptance remain pending; no checklist grants release authorization.",
   "full_007_complete": false,
@@ -1755,7 +1755,7 @@
     }
   ],
   "original_inputs": 68,
-  "implementation_sha256": "sha256:4c913b5fde07bcb88299a59f16e0779047781119b6c431fb1e98b22b4a08ed2f",
+  "implementation_sha256": "sha256:0ccc23cee8223f5eca11aa56836d75254bfe032e09bce322d2b2f439311cd580",
   "implementation_hash_method": "experiment_runner.implementation_identity()",
   "task_inventory_sha256": "sha256:87b554eb1482ac30aab8229d456b0f92665635c21ad210b150658a38f26b9053",
   "historical_template": {

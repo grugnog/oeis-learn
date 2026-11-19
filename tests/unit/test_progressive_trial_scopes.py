@@ -130,7 +130,16 @@ def test_study_freeze_uses_same_finite_materialization_as_calibration_and_execut
         schedule_horizon_tokens=4000000,lr_multiplier=3)))
     task['trial_choices'].append(dict(parameters=parameters,compatibility=compatibility(other),policy=task['policy']))
     campaign=seal(campaign)
+    from oeis_learn.pipeline_validation import progressive_learner
+    validate_input = progressive_learner.validate_input
+    training_support = []
+    def observe_input(package, task, **kwargs):
+        if task['payload']['id'] == 'train':
+            training_support.append(package['shards'])
+        return validate_input(package, task, **kwargs)
+    monkeypatch.setattr(progressive_learner, 'validate_input', observe_input)
     validate_frozen(tmp_path,campaign)
+    assert len(training_support) == 2 and training_support[0] is training_support[1]
     cases,_=selected_inputs(tmp_path,dict(purpose='acceptance',track=campaign['track'],payload=dict(
         task_plans=campaign['payload']['tasks'],references=campaign['payload']['references'])))
     assert len(cases)==2

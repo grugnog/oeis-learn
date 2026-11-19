@@ -6,7 +6,7 @@ from pathlib import Path
 
 from oeis_learn.pipeline_validation.identity import confined
 
-from .campaign import validate_campaign, validate_runtime, validate_task
+from .campaign import frozen_task_records, validate_runtime
 from .contracts import CAMPAIGN_DOCUMENT_BYTES, digest, load, record, reference, validate, verify_refs
 from .targets import validate_policy
 
@@ -372,7 +372,7 @@ def freeze(
         purpose=b["purpose"],
         track=b["track"],
     )
-    validate_campaign(campaign)
+    tasks = frozen_task_records(campaign)
     cycle_plans = set()
     for item in refs:
         if item["kind"] != "policy":
@@ -391,21 +391,6 @@ def freeze(
             cycle_plans.add(cycle["identity"])
     if len(cycle_plans) > 1:
         raise ValueError("a further OEIS cycle requires a new study")
-    tasks = []
-    for plan in q["task_plans"]:
-        tasks.append(
-            validate_task(
-                record(
-                    "task",
-                    dict(plan, campaign=campaign["identity"]),
-                    created_at=p["created_at"],
-                    parents=[campaign["identity"]],
-                    purpose=b["purpose"],
-                    track=b["track"],
-                ),
-                campaign=campaign,
-            )
-        )
     return campaign, runtime, tasks
 
 

@@ -301,6 +301,7 @@ class Cycle:
             from .progressive_source_cycle import validate_plan
             self.pool,self.panels=validate_plan(root,campaign,self.plan)
         else:self.pool, self.panels = validate_cycle(root, campaign, self.plan)
+        training_ids = {entry["task"] for entry in self.plan["training"]}
         self.tasks = {
             p["id"]: validate_task(
                 record(
@@ -312,7 +313,7 @@ class Cycle:
                 ),
                 campaign=campaign,
             )
-            for p in campaign["payload"]["tasks"]
+            for p in campaign["payload"]["tasks"] if p["id"] in training_ids
         }
         if manager["payload"]["id"] != self.plan["training"][0]["task"] or any(
             self.tasks[e["task"]]["payload"]["policy"] != manager["payload"]["policy"]
