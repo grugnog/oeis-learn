@@ -69,7 +69,22 @@ class Workflow:
 
     def run_command(self,name,operation,*,dependencies=(),seconds=3600,recover=False,resume=False,**arguments):
         from .supervision import launch
+        freeze_block = None
+        if operation == 'freeze':
+            old = self.s.journal['steps'].get(self.s.phase + '/' + name)
+            expected = seal(dict(operation=operation, arguments=arguments))
+            prior = [*old.get('history', []), old] if old else []
+            started = any(row['status'] != 'BLOCKED' or 'elapsed_seconds' in row for row in prior)
+            if started and old.get('binding') is not None and old['binding'] != expected:
+                raise Blocked('original freeze arguments changed')
+            resume = not started or old.get('binding') == expected
+            if started and not resume:
+                freeze_block = 'previous freeze has a different scope or allowance; retain its original evidence'
+            elif started and not (self.base / (name + '-allowance.json')).is_file():
+                freeze_block = 'original freeze allowance missing'
         def action():
+            if freeze_block:
+                raise Blocked(freeze_block)
             if resume:
                 from .preparation_recovery import Allowance
                 with Allowance(self.base/(name+'-allowance.json'),seal(dict(scope=self.s.binding,operation=operation,arguments=arguments)),seconds).attempt() as (left,ordinal):
@@ -103,6 +118,15 @@ class Workflow:
             result=confined(self.root,target,exists=False)/'result.json' if target else None
             files=[logs/'process.json']
             if result is not None and result.is_file(): files.append(result)
+            if operation == 'freeze' and result is not None and code == 0:
+                from .progressive_research_inputs import checked_file
+                manifest = result.parent / 'freeze-publication.json'
+                publication = read(manifest)
+                receipt = read(result)
+                if (receipt.get('mechanical_status') != 'COMPLETE' or receipt.get('operation') != 'freeze'
+                        or publication.get('campaign') != receipt.get('campaign')):
+                    raise ValueError('complete original freeze publication required')
+                files.extend([manifest, *(checked_file(result.parent, ref) for ref in publication['files'])])
             if operation=='report' and target:
                 archive=confined(self.root,target)
                 if not archive.is_file():raise ValueError('original report archive missing')

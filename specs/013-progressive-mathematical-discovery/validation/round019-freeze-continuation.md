@@ -31,3 +31,31 @@ traceback are copied into public diagnostic logs; no private datasets or weights
 are copied. Normal and failure paths use the existing session ZIP packaging under
 `share/`. The original frozen failure remains under
 `prepare-research/freeze-continuation/original-failed-freeze/`.
+
+## Checkpoints in the updated freeze validator
+
+The qualified round019 checkout at `b616b116` predates these checkpoints. Its
+failure receipts and stack traces cannot reconstruct completed trial checks.
+Keep that checkout and its images intact. Using the revised validator requires
+an explicit source and qualification transition.
+
+For a freeze started with the revised validator, keep both the output directory
+and its sibling `<output>.freeze-progress/`. Retry through the same workstation
+session with the same arguments. The supervisor retains the original time
+allowance and separate attempt logs. An unknown supervisor interruption can use
+up the remaining allowance even though validation checkpoints survive.
+
+- `freeze-progress.json` reports the phase and counts for the current attempt.
+  The private SQLite database commits each fully validated study training or
+  confirmation choice immediately. On retry, freeze checks the current request,
+  channel and package bytes before reusing that choice. Other validation stages
+  run again if the validator had not yet returned successfully.
+- Once validation succeeds, `private/validated-result.json` saves the campaign,
+  runtime and ordered task identities before public files are written. If
+  publication stops, freeze can reconstruct those exact task files and check
+  live capacity without repeating scientific validation. A finished staged
+  publication can also be promoted after interruption.
+- A successful freeze publishes `result.json`, `campaign.json`, `runtime.json`,
+  `tasks/` and `freeze-publication.json` together. Reopening it verifies the
+  manifest and roster. Campaign acceptance remains a separate prerequisite for
+  research. The private checkpoint files stay on the workstation.

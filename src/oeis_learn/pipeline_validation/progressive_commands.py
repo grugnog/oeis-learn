@@ -89,34 +89,37 @@ def init(args, root):
     ), 0
 
 
-def freeze_command(args, root):
+def freeze_command(args, root, *, stack=None):
+    from contextlib import ExitStack
     from oeis_learn.generalization.progressive.freeze import IncompleteFreeze, freeze
+    from oeis_learn.generalization.progressive.freeze_progress import FreezeProgress
 
-    b = load(confined(root, args.blueprint))
-    p = load(confined(root, args.prepared) / "prepared.json",maximum=CAMPAIGN_DOCUMENT_BYTES)
-    output = _output(root, args.output)
+    if stack is None:
+        with ExitStack() as local:
+            return freeze_command(args, root, stack=local)
+    progress = stack.enter_context(FreezeProgress(root, args.output).lock())
+    b, p = progress.bind(args)
+    for path in (progress.output, progress.stage):
+        complete = progress.finished(path)
+        if complete is not None:
+            if path == progress.stage:
+                progress.promote()
+            progress.mark_complete()
+            return complete, 0
+
+    progress.begin(_INVOCATION.get())
     try:
-        campaign, runtime, tasks = freeze(root, b, p, qualification_root=args.qualification)
+        validated = progress.restore_validated()
+        if validated is None:
+            validated = freeze(root, b, p, qualification_root=args.qualification, progress=progress)
+            progress.save_validated(*validated)
     except IncompleteFreeze as exc:
-        return publish(
-            output,
-            operation="freeze",
-            mechanical_status="BLOCKED",
-            scientific_status="INCOMPLETE",
-            reason="FREEZE_DEFICIT",
-            missing=exc.deficits,
-        ), 2
-    atomic_write(output / "campaign.json", campaign)
-    atomic_write(output / "runtime.json", runtime)
-    for t in tasks:
-        atomic_write(output / "tasks" / (t["identity"].split(":")[1] + ".json"), t)
-    return publish(
-        output,
-        operation="freeze",
-        mechanical_status="COMPLETE",
-        reason="FROZEN_EXECUTION_STILL_REQUIRES_CURRENT_ACCEPTANCE",
-        campaign=campaign["identity"],
-    ), 0
+        return publish(progress.output, operation="freeze", mechanical_status="BLOCKED",
+                       scientific_status="INCOMPLETE", reason="FREEZE_DEFICIT", missing=exc.deficits), 2
+    progress.phase('publishing')
+    result = progress.publish(*validated)
+    progress.phase('complete')
+    return result, 0
 
 
 def status(args, root):
@@ -250,6 +253,13 @@ def capability_report(args, root):
 
 
 def main(args, root, host_factory):
+    from contextlib import ExitStack
+    # Keep the freeze writer lock until terminal failure evidence is durable.
+    with ExitStack() as stack:
+        return _main(args, root, host_factory, stack)
+
+
+def _main(args, root, host_factory, stack):
     root = Path(root).resolve()
     invocation = uuid.uuid4().hex
     token = _INVOCATION.set(invocation)
@@ -267,7 +277,11 @@ def main(args, root, host_factory):
             from .progressive_capability import prepare
             result,code=prepare(args,root,host_factory)
         elif args.operation == "freeze":
-            result, code = freeze_command(args, root)
+            import sqlite3
+            try:
+                result, code = freeze_command(args, root, stack=stack)
+            except sqlite3.Error as exc:
+                raise RuntimeError('freeze checkpoint database failure: ' + str(exc)) from exc
         elif (
             args.operation == "report"
             and (confined(root, args.run) / "capability-inputs.json").is_file()

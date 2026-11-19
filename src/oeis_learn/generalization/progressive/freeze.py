@@ -117,7 +117,7 @@ def inventory(root, reference_campaign):
 
 
 def freeze(
-    root, blueprint, prepared, *, qualification_root, available_bytes=None, available_inodes=None
+    root, blueprint, prepared, *, qualification_root, available_bytes=None, available_inodes=None, progress=None
 ):
     b = validate("blueprint", blueprint)
     p = validate("prepared", prepared)
@@ -213,7 +213,12 @@ def freeze(
     from oeis_learn.pipeline_validation.progressive_outputs import validate_requests
     validate_requests(root,all_plans,refs,q["graph"], purpose=b["purpose"], track=b["track"])
     from oeis_learn.pipeline_validation.progressive_study import validate_frozen as validate_studies
-    validate_studies(root,dict(purpose=b['purpose'],track=b['track'],payload=dict(references=refs,tasks=q['task_plans'])))
+    if progress is not None:
+        progress.phase('validating study variants')
+    validate_studies(root, dict(purpose=b['purpose'], track=b['track'],
+                                payload=dict(references=refs, tasks=q['task_plans'])), progress=progress)
+    if progress is not None:
+        progress.phase('validating iteration producers and initializers')
     known_policies = {r["artifact"]["sha256"] for r in refs if r["kind"] == "policy"} | {
         policy["identity"]
     }

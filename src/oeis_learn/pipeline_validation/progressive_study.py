@@ -639,7 +639,7 @@ def commit_selection(root, store, task, result):
     store.append(dict(store.state, choices=choices, tasks=tasks))
 
 
-def validate_frozen(root, campaign):
+def validate_frozen(root, campaign, *, progress=None):
     """All adaptive alternatives are finite, paired and paid for before outcomes."""
     from oeis_learn.generalization.progressive.trial_scopes import variants
 
@@ -763,6 +763,10 @@ def validate_frozen(root, campaign):
                 data = envelope["data"]
                 artifact = data["artifact"]
                 raw = verify_refs(root, [artifact], max_bytes=256 << 20)[0]
+                if progress is not None:
+                    key = progress.study_key(plan['id'], variant['trial_choice'], envelope['identity'])
+                    if progress.completed(key):
+                        continue
                 # Recheck the on-disk bytes each time. Keeping just the latest
                 # immutable support lets validated_rows reuse its row checks.
                 if artifact != previous_artifact:
@@ -812,6 +816,8 @@ def validate_frozen(root, campaign):
                         )
                     ):
                         raise ValueError("frozen fresh confirmation horizon differs")
+                if progress is not None:
+                    progress.save(key)
 
 
 def project_variant(root, store, task, operation, artifacts, derived, output):
