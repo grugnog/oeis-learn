@@ -40,7 +40,7 @@ def fenced_original(w):
         # Only reviewed pre-science qualification, preparation or host-freeze
         # stops may sit between the complete calibration and this recipient.
         # Replay original termination evidence; scientific/unclean work blocks.
-        if (proof.get('version') not in {'progressive-preparation-owner-proof/v1','progressive-preparation-owner-proof/v6','progressive-preparation-owner-proof/v7','progressive-preparation-owner-proof/v8'}
+        if (proof.get('version') not in {'progressive-preparation-owner-proof/v1','progressive-preparation-owner-proof/v6','progressive-preparation-owner-proof/v7','progressive-preparation-owner-proof/v8','progressive-preparation-owner-proof/v9'}
                 or failure_proof(w.root, predecessor) != proof):
             raise Blocked('only reviewed pre-science qualification, preparation or freeze stops may retain the calibration donor')
         node = previous

@@ -67,7 +67,7 @@ class Workflow:
         self.s=session; self.root=session.root; self.args=args
         self.base=session.folder/args.phase
 
-    def run_command(self,name,operation,*,dependencies=(),seconds=3600,recover=False,resume=False,**arguments):
+    def run_command(self,name,operation,*,dependencies=(),seconds=3600,recover=False,resume=False,preflight=None,**arguments):
         from .supervision import launch
         freeze_block = None
         if operation == 'freeze':
@@ -88,6 +88,10 @@ class Workflow:
             if resume:
                 from .preparation_recovery import Allowance
                 with Allowance(self.base/(name+'-allowance.json'),seal(dict(scope=self.s.binding,operation=operation,arguments=arguments)),seconds).attempt() as (left,ordinal):
+                    if preflight is not None:
+                        began = time.monotonic()
+                        preflight()
+                        left -= time.monotonic() - began
                     return dispatch(left,ordinal)
             if recover:
                 from .preparation_recovery import Allowance

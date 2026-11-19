@@ -6,7 +6,7 @@ import traceback
 
 from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES,load,reference,seal
 from .progressive_research_inputs import checked_file,_json
-from .progressive_workstation_state import Blocked,write
+from .progressive_workstation_state import Blocked,read,write
 from oeis_learn.generalization.progressive.research_budget import SETUP_SECONDS
 from oeis_learn.generalization.progressive.research_roster import ROSTER_DOCUMENT_BYTES
 
@@ -14,12 +14,18 @@ from oeis_learn.generalization.progressive.research_roster import ROSTER_DOCUMEN
 def prepare(workflow,data,design,materials):
     w=workflow;s=w.s;root=w.root;base=w.base
     setup=design['operational_reservation']['setup_seconds']
+    storage_preflight = None
     if getattr(getattr(w,'args',None),'reuse_calibration_session',None):
         from .progressive_preparation_preflight import prepare as preflight
         checked=s.step('execution-preflight',lambda:preflight(w),
             dependencies=('prepare-research/research-prerequisites','prepare-research/role-roster'))
         if checked is None:return
         setup=checked['setup_seconds']
+        from . import progressive_round019_successor as round019
+        owner_proof = read(s.folder / 'preparation-owner-proof.json')
+        if owner_proof['version'] == round019.VERSION:
+            setup = round019.setup_limits(setup, owner_proof)
+            storage_preflight = lambda: round019.check_storage(root, base)
     from .progressive_research_qualification import qualify
     qualify(w,data,design,setup=setup)
     qroot=base/'qualification';timing=base/'evaluation-timing'
@@ -112,7 +118,7 @@ def prepare(workflow,data,design,materials):
         dependencies=preparation_dependencies)
     w.run_command('freeze','freeze',blueprint=blueprint,qualification=q,
         prepared=str((base/'prepared').relative_to(root)),output=str((base/'frozen').relative_to(root)),
-        seconds=setup['freeze'],dependencies=('prepare-research/prepare',))
+        seconds=setup['freeze'],preflight=storage_preflight,dependencies=('prepare-research/prepare',))
     w.run_command('acceptance','acceptance',campaign=str((base/'frozen/campaign.json').relative_to(root)),
         output=str((base/'acceptance').relative_to(root)),seconds=setup['acceptance'],dependencies=('prepare-research/freeze',))
 

@@ -55,11 +55,21 @@ HOST_ONLY = {
     'pipeline_validation/progressive_preparation_owner.py',
     'pipeline_validation/progressive_preparation_reuse.py',
     'pipeline_validation/progressive_freeze_recovery.py',
+    'pipeline_validation/progressive_round019_successor.py',
     'pipeline_validation/progressive_research_launch.py',
     'pipeline_validation/progressive_research_workstation.py',
     'pipeline_validation/progressive_workstation.py',
     'pipeline_validation/progressive_workstation_state.py',
     'pipeline_validation/progressive_cli.py',
+}
+# Runtime task validation and cycle dispatch changed; accept only the exact
+# reviewed bytes with the original round009 source and fresh device qualification.
+REVIEWED_FILES = {
+    'generalization/progressive/campaign.py': 'sha256:177707688b3e222d2c33c506daf736c363c44712de59e5d07ccc80056199668c',
+    'pipeline_validation/progressive_oeis.py': 'sha256:9ae730e18c6ff3eb32fed6ebeb89a5096a26a870eac684086eead6ffe20c07be',
+    'pipeline_validation/progressive_commands.py': 'sha256:80f1492074084a34ebff06d7cf74f21045bb9a4119d64ac71ec10c32142ea46b',
+    'generalization/progressive/freeze_progress.py': 'sha256:d19809fdb5cabe978cc96c93431d91419f9247e370c405531cad05aa2cef7232',
+    'pipeline_validation/qualification_retirement.py': 'sha256:d07bb9b6f11901825c96de6aa0ef3a9740264e2b33a8ed01f79b6670e3423b07',
 }
 PROTECTED = {
     'pipeline_validation/progressive_calibration.py': (('validate_prepared', 'verify_result', 'verify_case'), '9fa7b840a3c615c20be50e23c29763a208f72e6dafd1ab8125bf41a3be234d37'),
@@ -78,6 +88,8 @@ def validate(original, current, *, package_root=None):
         if name.startswith('tests/'):
             continue
         if name in HOST_SCRIPTS and name in current:
+            continue
+        if name.startswith(PREFIX) and relative in REVIEWED_FILES and current.get(name) == REVIEWED_FILES[relative]:
             continue
         if not name.startswith(PREFIX) or relative not in HOST_ONLY | PROTECTED.keys():
             raise ValueError('calibrated execution source changed: '+name)

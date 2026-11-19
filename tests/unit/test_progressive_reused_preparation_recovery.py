@@ -190,12 +190,15 @@ def test_pinned_repair_runs_only_unfinished_roles_and_retains_history(tmp_path,m
             assert '--blueprint' in argv and 'reservation-repair/blueprint.json' in argv[argv.index('--blueprint')+1]
             assert 9800<=kw['seconds']<=10000
             write(output/'resource-estimate.json',dict(status='READY'))
-        if op=='freeze':write(output/'campaign.json',dict(identity=digest('campaign'),purpose='research',payload=dict(caps=dict(elapsed_us=10000000))))
+        if op=='freeze':
+            write(output/'campaign.json',dict(identity=digest('campaign'),purpose='research',payload=dict(caps=dict(elapsed_us=10000000))))
+            write(output/'freeze-publication.json',seal(dict(campaign=digest('campaign'),files=[reference(output,'campaign.json')])))
+            write(output/'result.json',seal(dict(operation=op,mechanical_status='COMPLETE',campaign=digest('campaign'))))
         if op=='acceptance':write(output/'acceptance.json',seal(dict(campaign=digest('campaign'))))
         if op=='report':
             output.parent.mkdir(parents=True,exist_ok=True)
             with zipfile.ZipFile(output,'w') as z:z.writestr('result.json','{}')
-        else:write(output/'result.json',dict(mechanical_status='COMPLETE'))
+        elif op!='freeze':write(output/'result.json',dict(mechanical_status='COMPLETE'))
         if op=='verify-bundle':write(output/'verification.json',dict(status='PASS'))
         write(logs/'process.json',dict(returncode=0,outcome='COMPLETE'))
     monkeypatch.setattr('oeis_learn.pipeline_validation.supervision.launch',launch)
