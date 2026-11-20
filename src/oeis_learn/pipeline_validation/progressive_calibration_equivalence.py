@@ -57,6 +57,7 @@ HOST_ONLY = {
     'pipeline_validation/progressive_freeze_recovery.py',
     'pipeline_validation/progressive_round019_successor.py',
     'pipeline_validation/progressive_round020_successor.py',
+    'pipeline_validation/progressive_round022_successor.py',
     'pipeline_validation/progressive_acceptance_retry.py',
     'pipeline_validation/progressive_research_launch.py',
     'pipeline_validation/progressive_research_workstation.py',
@@ -67,9 +68,10 @@ HOST_ONLY = {
 # Runtime task validation and cycle dispatch changed; accept only the exact
 # reviewed bytes with the original round009 source and fresh device qualification.
 REVIEWED_FILES = {
+    'generalization/progressive/projections.py': 'sha256:b1c310f74aab5e02c9689d459a80b8b09e20cc0f2d876e34a59c0f8026742ac0',
     'generalization/progressive/campaign.py': 'sha256:177707688b3e222d2c33c506daf736c363c44712de59e5d07ccc80056199668c',
     'pipeline_validation/progressive_oeis.py': 'sha256:9ae730e18c6ff3eb32fed6ebeb89a5096a26a870eac684086eead6ffe20c07be',
-    'pipeline_validation/progressive_commands.py': 'sha256:80f1492074084a34ebff06d7cf74f21045bb9a4119d64ac71ec10c32142ea46b',
+    'pipeline_validation/progressive_commands.py': 'sha256:bb9406f67f2a44cb33435c422569a7c6fdf2307cb0a337f80ee1d9dc5f889e09',
     'generalization/progressive/freeze_progress.py': 'sha256:d19809fdb5cabe978cc96c93431d91419f9247e370c405531cad05aa2cef7232',
     'pipeline_validation/qualification_retirement.py': 'sha256:d07bb9b6f11901825c96de6aa0ef3a9740264e2b33a8ed01f79b6670e3423b07',
 }

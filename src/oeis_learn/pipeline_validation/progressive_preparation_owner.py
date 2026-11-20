@@ -27,6 +27,11 @@ def failure_proof(root, receipt):
     from . import progressive_round020_successor as round020
     if receipt['recipient'] == round020.SESSION:
         return round020.proof(root, receipt, session, journal)
+    from . import progressive_round022_successor as round022
+    if receipt['recipient'] == round022.SESSION:
+        return round022.proof(root, receipt, session, journal)
+    if receipt['recipient'] == round022.SUCCESSOR:
+        raise Blocked('another successor requires independent review of the one-audit authorization')
     steps = journal['steps']
     if steps.get('prepare-research/freeze', {}).get('status') == 'FAILED' and steps.get('prepare-research/prepare', {}).get('status') == 'COMPLETE':
         from .progressive_freeze_recovery import proof
@@ -117,8 +122,11 @@ def _claim_owner(root, claim, receipt):
         retain(claim, receipt)
     current = read(claim)
     node = current
+    from . import progressive_round022_successor as round022
+    # Allow exactly one additional reviewed ownership link for this successor.
+    history_limit = 17 if receipt['recipient'] == round022.SUCCESSOR else 16
     ancestors = []
-    for _ in range(16):
+    for _ in range(history_limit):
         previous = node['receipt'] if node.get('version') == VERSION else node
         if previous.get('version') != 'progressive-preparation-data-reuse/v1' or seal(previous) != previous:
             raise Blocked('original preparation ownership receipt required')
@@ -131,7 +139,7 @@ def _claim_owner(root, claim, receipt):
         raise Blocked('bounded preparation ownership history exhausted')
     active = ancestors[0]
     if receipt != active:
-        if len(ancestors) >= 16:
+        if len(ancestors) >= history_limit:
             raise Blocked('bounded preparation ownership history exhausted')
         if receipt['recipient'] in {r['recipient'] for r in ancestors}:
             raise Blocked('preparation recipient is superseded or its source changed; use a fresh session')
@@ -146,6 +154,8 @@ def _claim_owner(root, claim, receipt):
         with confined(root, previous_folder/'session.lock').open('a') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             proof = failure_proof(root, active)
+            if proof['version'] == round022.VERSION and receipt['recipient'] != round022.SUCCESSOR:
+                raise Blocked('round022 audit replacement belongs to round023')
             history = claim.parent/(claim.stem+'-history')
             prior_path = history/(current['identity'][7:]+'.json')
             proof_path = history/(proof['identity'][7:]+'.json')

@@ -520,7 +520,8 @@ def lifecycle_command(args, root, host_factory):
     checked = current_runtime(host, root, output, runtime, producer_root=producer_root)
     store = RunStore(control, campaign)
     journal = BudgetJournal(folder, campaign["identity"], campaign["payload"]["caps"], journal_bytes=campaign["payload"]["storage"].get("journal_bytes",64<<20))
-    with store.lease():
+    from .progressive_round022_successor import research_scope
+    with store.lease(), research_scope(root, campaign, campaign_path, store):
         store.append(
             {"tasks": store.state["tasks"], "status": "RUNNING", "invocation": _INVOCATION.get()}
         )
