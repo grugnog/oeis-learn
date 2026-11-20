@@ -88,6 +88,30 @@ def test_expired_evaluation_cannot_receive_a_fresh_clock():
         _evaluation_seconds(SimpleNamespace(deadline=time.monotonic()-1))
 
 
+def test_language_audit_counts_flattened_witness_files(tmp_path):
+    from oeis_learn.generalization.progressive.storage import StorageGuard, usage
+
+    inputs = tmp_path / "retained" / "round" / "prepared" / "private" / "channels"
+    witnesses = [
+        artifact(tmp_path, inputs / f"{i}.json", "coverage_witness", "custodian",
+                 dict(task=str(i), source=None, indices=["0"], values=["0"],
+                      operator_class=[], missing_operations=[], created_at="2026-11-11T00:00:00Z"))
+        for i in range(4)
+    ]
+    dest = tmp_path / "projection"
+    size = sum(w.ref["bytes"] for w in witnesses)
+    inode_count = 2 + len(witnesses)  # destination, sources directory, witness files
+    for byte_cap, inode_cap in [(size - 1, inode_count), (size, inode_count - 1)]:
+        with StorageGuard([dest], max_bytes=byte_cap, max_inodes=inode_cap).activate():
+            with pytest.raises(TimeoutError, match="owned storage"):
+                project(tmp_path, dest, "audit-language", {"sources": witnesses}, registry=REGISTRY)
+        assert not dest.exists()
+    with StorageGuard([dest], max_bytes=size, max_inodes=inode_count).activate():
+        project(tmp_path, dest, "audit-language", {"sources": witnesses}, registry=REGISTRY)
+    assert usage([dest]) == (size, inode_count)
+    remove_projection(dest)
+
+
 def test_generator_projection_contains_visible_only(tmp_path):
     p = artifact(
         tmp_path,

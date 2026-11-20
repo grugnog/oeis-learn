@@ -193,9 +193,12 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                 raise ValueError("overlapping input/output")
     from .storage import preflight, copy_file
 
+    # Each envelope is copied to one digest-named file in its channel.
+    # Only nested payloads retain directories from the source path.
     preflight(
         sum(r["bytes"] for r in refs) + sum(r["bytes"] for r in unique_nested.values()),
-        sum(len(Path(r["path"]).parts) + 1 for r in [*refs, *unique_nested.values()])
+        len(refs)
+        + sum(len(Path(r["path"]).parts) + 1 for r in unique_nested.values())
         + len(artifacts)
         + 1,
     )
