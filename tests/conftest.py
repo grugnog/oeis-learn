@@ -129,7 +129,9 @@ def fitting_client():
     from oeis_learn.synthesis.client import SynthesisClient
     from oeis_learn.synthesis.contracts import identity
     import os
-    binary = Path('/opt/oeis-build-info/synthesis-worker')
+    binary = Path(
+        os.environ.get('OEIS_SYNTHESIS_WORKER', '/opt/oeis-build-info/synthesis-worker')
+    )
     if not binary.is_file():
         if os.environ.get('OEIS_REQUIRE_BIGINT_BUILD') == '1':
             pytest.fail('packaged native synthesis worker required')

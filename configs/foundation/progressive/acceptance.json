@@ -1,0 +1,17 @@
+{
+  "version": "progressive-acceptance-blueprint/v1",
+  "executable": false,
+  "serial_gpu_owner": true,
+  "shapes": ["reference", "smaller_width", "shallower", "larger"],
+  "dropout": [0, 0.1, 0.2],
+  "input_lengths": [4, 20],
+  "microbatches": [7, 16],
+  "effective_batch": 16,
+  "precision": "float32",
+  "maximum_cases": 48,
+  "checks": ["finite_update", "parameter_change", "full_restore", "deterministic_continuation", "generation", "native_reference_score", "cleanup"],
+  "reuse": "original producer with exact current source/image/engine/model/input/update scope",
+  "mandatory_device_mode": "OEIS_REQUIRE_PROGRESSIVE_HIP=1",
+  "image_identity_environment": "OEIS_QUALIFICATION_IMAGE",
+  "unresolved": ["selected_model_profiles", "current_source", "pinned_image", "selected_engine", "actual_HIP_runtime"]
+}

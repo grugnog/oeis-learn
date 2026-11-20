@@ -1,0 +1,113 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "discovery-blueprint/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "parents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "enum": [
+        "acceptance",
+        "research"
+      ]
+    },
+    "track": {
+      "enum": [
+        "synthetic_strict",
+        "oeis_derived",
+        "external_assisted"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "executable": {
+          "const": false
+        },
+        "selected_stages": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "capability",
+              "diversity",
+              "tuning",
+              "scaling",
+              "oeis",
+              "components",
+              "source_pilot"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 7,
+          "uniqueItems": true
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "$ref": "progressive-common.schema.json#/$defs/reference"
+          },
+          "minItems": 0,
+          "maxItems": 4096
+        },
+        "unresolved": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 4096
+        },
+        "proposed_caps": {
+          "$ref": "progressive-common.schema.json#/$defs/caps"
+        },
+        "reference_campaign": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "pattern": "^(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$"
+        }
+      },
+      "required": [
+        "executable",
+        "selected_stages",
+        "references",
+        "unresolved",
+        "proposed_caps",
+        "reference_campaign"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "created_at",
+    "parents",
+    "purpose",
+    "track",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-blueprint.schema.json"
+}

@@ -1,0 +1,23 @@
+{
+  "version": "progressive-diversity-blueprint/v1",
+  "executable": false,
+  "purpose": "research",
+  "arms": ["static", "refreshed"],
+  "seeds": [20261016, 20261017],
+  "initializer": "paired_fresh_random",
+  "retained_D_initialization": false,
+  "target_charged_tokens": 25000000,
+  "maximum_full_update_tokens": 8192,
+  "execution_token_ceiling": 25008192,
+  "refresh_after_complete_updates": 8,
+  "initial_shard": null,
+  "recipe": null,
+  "qualification": null,
+  "allocation": {"familiar_ppm": 200000, "frontier_ppm": 100000, "adaptive_ppm": 700000},
+  "familiar_support": "initial_sealed_shard",
+  "frontier_support": "static_initial_or_prospectively_reserved_refreshed_shard",
+  "probes": "fixed_training_only_disjoint_from_gradients",
+  "optimizer": {"kind": "AdamW", "weight_decay": 0.01},
+  "comparison": "equal_charged_tokens_and_separate_equal_wall_utility",
+  "required_before_freeze": ["initial_shard", "recipe", "qualification", "refresh_roster", "total_preparation_receipt", "resource_reservations", "confirmation_panels"]
+}

@@ -17,6 +17,9 @@ from .replay import SynthesisReplay
 
 
 def models(recipe, device):
+    if recipe.get("version") == "progressive-research-model/v1":
+        from oeis_learn.generalization.progressive.models import construct
+        return construct(recipe, device=device)
     import numpy as np
     import torch
 

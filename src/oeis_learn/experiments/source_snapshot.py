@@ -32,6 +32,7 @@ def collect_snapshot(root):
         "specs/009-pipeline-throughput/contracts",
         "specs/011-controlled-generalization/contracts",
         "specs/012-parameterized-adaptive-curriculum/contracts",
+        "specs/013-progressive-mathematical-discovery/contracts",
     ):
         files.update(
             p
@@ -71,6 +72,10 @@ def collect_snapshot(root):
             )
         }
     )
+    resources.update({
+        "generalization/progressive/contracts/" + p.name: p
+        for p in (root / "specs/013-progressive-mathematical-discovery/contracts").glob("*.md")
+    })
     snapshot.update(
         {"src/oeis_learn/" + name: file_digest(p.read_bytes()) for name, p in resources.items()}
     )

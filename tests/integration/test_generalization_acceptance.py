@@ -288,8 +288,9 @@ def test_canonical_session_cases_report_and_verify_preserve_originals(tmp_path,m
     assert json.loads((tmp_path/'stale/refresh/result.json').read_text())['status']=='FAIL'
 
 
+@pytest.mark.parametrize('cpu_seconds', [2100, 10800])
 @pytest.mark.parametrize('failure', ['cpu', 'inspection'])
-def test_qualification_runner_owns_receipts_and_inspection_gets_fresh_child(tmp_path,monkeypatch,capsys,failure):
+def test_qualification_runner_owns_receipts_and_inspection_gets_fresh_child(tmp_path,monkeypatch,capsys,failure,cpu_seconds):
     """Keep the real runner and image inspector; replace only process/device work."""
     from types import SimpleNamespace
     from oeis_learn import container_validation
@@ -310,12 +311,16 @@ def test_qualification_runner_owns_receipts_and_inspection_gets_fresh_child(tmp_
     host=SimpleNamespace(engine=Engine(),policy=dict(workspace=str(workspace),memory_bytes=2<<30,cpus=1))
     def launch(*args,**kwargs):
         if failure=='inspection':raise RuntimeError('fixture inspection failure')
-    def cpu(*args,**kwargs):raise RuntimeError('fixture CPU stop before HIP')
+    def cpu(*args,**kwargs):
+        assert kwargs['external_seconds']==cpu_seconds
+        raise RuntimeError('fixture CPU stop before HIP')
     monkeypatch.setattr(supervision,'launch',launch)
     monkeypatch.setattr(supervision,'reclaim',lambda *args,**kwargs:None)
     monkeypatch.setattr(container_validation,'_stages',cpu)
     out=tmp_path/'qualification'
-    result=io.produce(host,workspace,out,images=['cpu-image','gpu-image'],contract={})
+    result=io.produce(host,workspace,out,images=['cpu-image','gpu-image'],contract={},cpu_seconds=cpu_seconds)
+    invocation=json.loads((out/'pipeline/invocation.json').read_text())
+    assert invocation['cap']>=cpu_seconds+900+900+2400+invocation['reserve']
     assert result['status']=='FAIL'
     failed={r['stage']:r for r in result['stages']}
     assert failed['hip.preflight']['status']=='BLOCKED'

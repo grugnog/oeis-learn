@@ -1,0 +1,233 @@
+{
+  "version": "progressive-acceptance-inventory/v1",
+  "cases": [
+    {
+      "id": "progressive-cpu-two-task-continuation",
+      "device": "cpu",
+      "scope": "DIAGNOSTIC_ONLY",
+      "test": "tests/integration/test_progressive_lifecycle.py",
+      "obligations": [
+        "installed wheel",
+        "interruption",
+        "resume",
+        "continuation",
+        "eligible diagnostic",
+        "partial",
+        "failed",
+        "bounded export"
+      ]
+    },
+    {
+      "id": "progressive-logical-update-restore",
+      "device": "actual_HIP",
+      "status": "QUEUED",
+      "owner": "T090",
+      "obligations": [
+        "every selected shape and dropout path",
+        "finite update",
+        "full optimizer scheduler RNG restore",
+        "deterministic qualified continuation"
+      ]
+    },
+    {
+      "id": "progressive-two-task-continuation-pause",
+      "device": "actual_HIP",
+      "status": "QUEUED",
+      "owner": "T090-T091",
+      "obligations": [
+        "two frozen tasks",
+        "owned update boundary pause",
+        "repeated cleanup and restart",
+        "bounded blocked worker",
+        "original budget journal",
+        "actual sustained active intervals",
+        "<=60s progress",
+        ">=30min finalization reserve",
+        "public export"
+      ]
+    },
+    {
+      "id": "progressive-claims-prospective-contracts",
+      "device": "cpu",
+      "scope": "DIAGNOSTIC_ONLY",
+      "status": "IMPLEMENTED",
+      "owner": "T071",
+      "test": "tests/unit/test_progressive_claims.py",
+      "obligations": [
+        "transitive refutation"
+      ]
+    },
+    {
+      "id": "progressive-scoped-dossier-review",
+      "device": "cpu",
+      "scope": "DIAGNOSTIC_ONLY",
+      "status": "IMPLEMENTED",
+      "owner": "T069",
+      "test": "tests/unit/test_progressive_dossiers.py",
+      "obligations": [
+        "original sealed candidate",
+        "finite independent execution",
+        "candidate-bound reviewer policy",
+        "training-ineligible review output"
+      ]
+    },
+    {
+      "id": "progressive-polynomial-proof-review",
+      "device": "cpu",
+      "scope": "DIAGNOSTIC_ONLY",
+      "status": "IMPLEMENTED",
+      "owner": "T070",
+      "test": "tests/integration/test_progressive_claims.py",
+      "obligations": [
+        "installed wheel and native replay",
+        "source-bound independent polynomial identity",
+        "separate finite numeric safety and unproved sequence law",
+        "immutable review and rejected forged proof scope",
+        "prepaid bounded symbolic work and retained failure charges"
+      ]
+    },
+    {
+      "id": "progressive-four-input-update-restore-generation",
+      "device": "actual_HIP",
+      "status": "QUEUED",
+      "owner": "T082",
+      "obligations": [
+        "combinatorial-short/v1 four-input update",
+        "full restore",
+        "generation",
+        "nine-index native/reference score"
+      ]
+    }
+  ],
+  "integrated": {
+    "version": "progressive-integrated-suite/v1",
+    "scope": "DIAGNOSTIC_ONLY",
+    "timeout_seconds": 2700,
+    "build_timeout_seconds": 360,
+    "maximum_log_bytes": 4194304,
+    "maximum_junit_bytes": 4194304,
+    "maximum_export_bytes": 1048576,
+    "cases": [
+      {
+        "stage": "capability",
+        "node": "tests/integration/test_progressive_preparation.py::test_canonical_host_routes_native_owned_outputs_to_public_readiness"
+      },
+      {
+        "stage": "diversity",
+        "node": "tests/integration/test_progressive_stream.py::test_matched_static_refresh_have_same_initial_model_and_support"
+      },
+      {
+        "stage": "diversity",
+        "node": "tests/integration/test_progressive_stream.py::test_native_shards_feed_actual_canonical_cpu_update"
+      },
+      {
+        "stage": "tuning",
+        "node": "tests/integration/test_progressive_tuning.py::test_canonical_installed_study_asks_learns_scores_and_tells_originals"
+      },
+      {
+        "stage": "tuning",
+        "node": "tests/integration/test_progressive_tuning.py::test_actual_installed_study_preserves_negative_and_interrupted_trials[failed]"
+      },
+      {
+        "stage": "tuning",
+        "node": "tests/integration/test_progressive_tuning.py::test_actual_installed_study_preserves_negative_and_interrupted_trials[partial]"
+      },
+      {
+        "stage": "tuning",
+        "node": "tests/integration/test_progressive_tuning.py::test_actual_installed_study_preserves_negative_and_interrupted_trials[interrupted]"
+      },
+      {
+        "stage": "tuning",
+        "node": "tests/integration/test_progressive_tuning.py::test_installed_selection_runs_fresh_paired_confirmation_without_sampler_feedback"
+      },
+      {
+        "stage": "scaling",
+        "node": "tests/integration/test_progressive_lifecycle.py::test_actual_installed_role_interrupt_resume_and_successor"
+      },
+      {
+        "stage": "scaling",
+        "node": "tests/integration/test_progressive_lifecycle.py::test_installed_eligible_diagnostic_and_complete_partial_failed_exports"
+      },
+      {
+        "stage": "scaling",
+        "node": "tests/integration/test_progressive_lifecycle.py::test_canonical_run_resume_after_real_owned_process_kill[pending]"
+      },
+      {
+        "stage": "oeis",
+        "node": "tests/integration/test_progressive_oeis.py::test_canonical_prepare_freeze_run_resume_oeis_deficit[False]"
+      },
+      {
+        "stage": "oeis",
+        "node": "tests/integration/test_progressive_oeis.py::test_real_native_search_admit_update_evaluate_cycle[True]"
+      },
+      {
+        "stage": "components",
+        "node": "tests/integration/test_progressive_components.py::test_installed_learner_binds_component_cut_and_rejects_changed_resume[1-library]"
+      },
+      {
+        "stage": "components",
+        "node": "tests/integration/test_progressive_components.py::test_installed_learner_binds_component_cut_and_rejects_changed_resume[1-no_library]"
+      },
+      {
+        "stage": "components",
+        "node": "tests/integration/test_progressive_components.py::test_training_only_distillation_rejects_exposure_mismatch_and_fake_source"
+      },
+      {
+        "stage": "components",
+        "node": "tests/integration/test_progressive_components.py::test_more_expensive_library_without_harder_task_yield_retains_baseline"
+      },
+      {
+        "stage": "source_pilot",
+        "node": "tests/integration/test_progressive_sources.py::test_actual_short_update_restore_generation_and_native_score"
+      },
+      {
+        "stage": "source_pilot",
+        "node": "tests/integration/test_progressive_sources.py::test_source_deficit_and_unsuitable_are_explicit"
+      },
+      {
+        "stage": "evidence",
+        "node": "tests/integration/test_progressive_claims.py::test_installed_wheel_replays_proof_with_native_execution_and_prepaid_work[False]"
+      },
+      {
+        "stage": "evidence",
+        "node": "tests/contract/test_progressive_roles.py::test_visible_envelope_cannot_smuggle_witness"
+      },
+      {
+        "stage": "evidence",
+        "node": "tests/contract/test_progressive_bundle.py::test_bounded_closed_export_and_independent_incomplete_verdict"
+      },
+      {
+        "stage": "components",
+        "node": "tests/integration/test_progressive_component_flow.py::test_canonical_freeze_component_slots_then_resume_without_remining"
+      },
+      {
+        "stage": "source_pilot",
+        "node": "tests/integration/test_progressive_short_cycle.py::test_canonical_prepare_freeze_run_resume_short_source_cycle"
+      },
+      {
+        "stage": "evidence",
+        "node": "tests/integration/test_progressive_reporting.py::test_run_report_verify_collects_owned_scores_and_resource_journal[COMPLETE]"
+      },
+      {
+        "stage": "tuning",
+        "node": "tests/integration/test_progressive_tuning.py::test_selected_trial_scope_updates_restores_and_continues_installed"
+      }
+    ]
+  },
+  "integrated_hip": {
+    "version": "progressive-integrated-device-roster/v1",
+    "owner": "T090",
+    "status": "PENDING_DEVICE",
+    "maximum_seconds": 1800,
+    "nodes": [
+      "tests/integration/test_progressive_lifecycle.py::test_actual_installed_role_interrupt_resume_and_successor",
+      "tests/integration/test_progressive_oeis.py::test_canonical_prepare_freeze_run_resume_oeis_deficit[False]",
+      "tests/integration/test_progressive_component_flow.py::test_canonical_freeze_component_slots_then_resume_without_remining",
+      "tests/integration/test_progressive_short_cycle.py::test_canonical_prepare_freeze_run_resume_short_source_cycle",
+      "tests/integration/test_progressive_handoff.py::test_installed_refreshed_learner_consumes_native_verified_new_structure",
+      "tests/integration/test_progressive_claims.py::test_installed_counterexample_quarantines_consumed_checkpoint_and_dossier[False]",
+      "tests/integration/test_progressive_tuning.py::test_selected_trial_scope_updates_restores_and_continues_installed"
+    ],
+    "scope": "exact selected model/dropout and paired diagnostic seeds; Q covers 4/20 inputs and accumulation"
+  }
+}

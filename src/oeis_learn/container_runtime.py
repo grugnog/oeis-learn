@@ -131,11 +131,13 @@ class Engine:
         )
         return normalized_image(result.stdout.decode())
 
-    def build(self, root, *, target="gpu", tag="oeis-learn:gpu", base_image=None):
+    def build(self, root, *, target="gpu", tag="oeis-learn:gpu", base_image=None, seconds=3600):
+        if type(seconds) is not int or not 1 <= seconds <= 86400:
+            raise ValueError("finite image-build deadline required")
         args = ["build", "--target", target, "--tag", tag]
         if base_image:
             args += ["--build-arg", "GPU_BASE_IMAGE=" + base_image]
-        self.call([*args, str(Path(root).resolve())], timeout=3600)
+        self.call([*args, str(Path(root).resolve())], timeout=seconds)
         return self.image(tag)
 
     def user_args(self):
@@ -217,9 +219,13 @@ class Engine:
         if auto_remove:
             args += ["--rm"]
         for source, destination, writable in mounts:
-            source = Path(source).resolve(strict=True)
-            if not source.is_dir() or any(c in str(source) + destination for c in (",", "\n")):
-                raise ValueError("regular directory mount with representable paths required")
+            original = Path(source)
+            source = original.resolve(strict=True)
+            readonly_file = (writable is False and source.is_file()
+                             and not any(p.is_symlink() for p in (original, *original.parents)))
+            if (not (source.is_dir() or readonly_file)
+                    or any(c in str(source) + destination for c in (",", "\n"))):
+                raise ValueError("regular directory or read-only regular file mount with representable paths required")
             if not destination.startswith("/") or type(writable) is not bool:
                 raise ValueError("explicit absolute mount target and write capability required")
             args += [

@@ -79,6 +79,8 @@ RUN pip install --no-cache-dir uv==0.8.22
 COPY docker/dev/install.sh /opt/oeis-setup/install.sh
 COPY pyproject.toml uv.lock /opt/oeis-build/
 RUN bash /opt/oeis-setup/install.sh cpu
+# Assert the committed CPU proposal dependency; never import it on the host.
+RUN /opt/oeis-venv/bin/python -c 'import optuna; assert optuna.__version__ == "4.5.0"'
 ENV VIRTUAL_ENV=/opt/oeis-venv
 
 # Compile the extension before the full checkout COPY. Only its exact native
@@ -95,6 +97,9 @@ RUN bash /opt/oeis-build/docker/dev/build-native-wheel.sh
 
 FROM qualification-native AS qualification
 COPY --from=synthesis-build /opt/oeis-build-info /opt/oeis-build-info
+# Explicit inputs fail the build immediately if context filtering drops fixtures.
+COPY data/benchmarks/symbolic_definitions_v1.json data/benchmarks/trustworthy_synthesis_v1.json /opt/oeis-build/data/benchmarks/
+COPY data/sample_oeis/names data/sample_oeis/stripped /opt/oeis-build/data/sample_oeis/
 COPY . /opt/oeis-build
 # Runtime-created mount parents can inherit a private umask. The parent must be
 # searchable by arbitrary numeric role UIDs; bind mounts retain their own modes.
@@ -118,6 +123,7 @@ ENV PATH=/opt/venv/bin:/opt/cargo/bin:${PATH} \
 COPY docker/dev/install.sh /opt/oeis-setup/install.sh
 COPY pyproject.toml uv.lock /opt/oeis-build/
 RUN bash /opt/oeis-setup/install.sh gpu
+RUN /opt/venv/bin/python -c 'import optuna; assert optuna.__version__ == "4.5.0"'
 
 FROM gpu-dependencies AS gpu-native
 COPY --from=native-dependencies /opt/cargo /opt/cargo
@@ -131,6 +137,9 @@ RUN bash /opt/oeis-build/docker/dev/build-native-wheel.sh
 
 FROM gpu-native AS gpu
 COPY --from=synthesis-build /opt/oeis-build-info /opt/oeis-build-info
+# Explicit inputs fail the build immediately if context filtering drops fixtures.
+COPY data/benchmarks/symbolic_definitions_v1.json data/benchmarks/trustworthy_synthesis_v1.json /opt/oeis-build/data/benchmarks/
+COPY data/sample_oeis/names data/sample_oeis/stripped /opt/oeis-build/data/sample_oeis/
 COPY . /opt/oeis-build
 RUN install -d -m 0755 /work /work/input /work/output && bash /opt/oeis-build/docker/dev/build-native.sh
 ENV PYTHONPATH=/workspace/src

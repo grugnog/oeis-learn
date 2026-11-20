@@ -126,6 +126,8 @@ def _stages(host, suite, output, *, external_seconds=None,generalization_policy=
         bigint_cpu += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'tests/unit').glob('test_pipeline_*.py'))]
         bigint_cpu += [str(p.relative_to(ROOT)) for area in ('unit','contract','integration')
                        for p in sorted((ROOT/'tests'/area).glob('test_generalization_*.py'))]
+        from .pipeline_validation.progressive_cli import CPU_TESTS as DISCOVERY_CPU_TESTS
+        bigint_cpu += list(DISCOVERY_CPU_TESTS)
         bigint_cpu += [str(p.relative_to(ROOT)) for area in ('unit','integration')
                        for p in sorted((ROOT/'tests'/area).glob('test_selector_fit_replay.py'))]
         bigint_cpu += [

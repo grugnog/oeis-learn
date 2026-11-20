@@ -1,0 +1,17 @@
+{
+  "version": "progressive-fixtures/v1",
+  "purpose": "acceptance",
+  "label": "DIAGNOSTIC_ONLY",
+  "autonomous_discoveries": 0,
+  "programs": [
+    {"id":"square", "source":"(program (return (mul $index $index)))", "indices":["-2","-1","0","1","2","3"], "values":["4","1","0","1","4","9"]},
+    {"id":"signed", "source":"(program (return (sub (int 0) $index)))", "indices":["-2","0","3"], "values":["2","0","-3"]},
+    {"id":"prefix-overfit", "source":"(program (return (select (lt $index (int 2)) $index (int 99))))", "indices":["0","1","2","3"], "values":["0","1","2","3"], "candidate_values":["0","1","99","99"]}
+  ],
+  "groups": [{"id":"fresh-002","exposed":true},{"id":"unseen-013","exposed":false}],
+  "interrupted_journal": [{"ordinal":0,"event":"RESERVE","tokens":12},{"ordinal":0,"event":"DEBIT","tokens":12}],
+  "cyclic_components": [{"id":"a","dependencies":["b"]},{"id":"b","dependencies":["a"]}],
+  "invalid_proof": {"claim":"n*n = n", "counterexample":{"n":"2","left":"4","right":"2"}},
+  "short_source": {"indices":["0","1","2","3","4","5","6","7","8"], "factorial_cardinalities":["1","1","2","6","24","120","720","5040","40320"], "padding_allowed":false},
+  "limitations": "Hand-checked finite cases, never research or hardware authority. Source programs and truth are custodian-only."
+}

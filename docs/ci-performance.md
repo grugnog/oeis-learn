@@ -31,23 +31,22 @@ of CI; portable-validation jobs can still dominate total PR latency. Training/re
 also runs as an independent CPU acceptance matrix entry.
 
 The container jobs now depend on one shared qualification-image build per
-workflow run. Same-repository PRs push that image to GHCR; Docker, Podman and
+workflow run. Same-repository PRs push that image to GHCR; Docker and
 native qualification pull the resulting **digest**, not a moving tag. The loader
 also checks that the image's source-revision label matches the tested checkout.
 The jobs still execute their tests; there is no cached passing-test result.
 
 Fork and Dependabot PRs do not publish or need registry write credentials. Their
 producer exports the freshly built image as a short-lived workflow artifact,
-which both engines load. A missing artifact, failed pull, or revision mismatch
+which the Docker CI jobs load. A missing artifact, failed pull, or revision mismatch
 fails the job rather than silently using an older image. Consumer jobs have only
 package-read permission and remove registry login credentials after pulling.
 
-A separate `podman-build` job retains native Podman build coverage when the
-Dockerfile, ignore file, shared installation scripts, Python build/dependency
-manifests, or native Rust crate change. Ordinary Python/test-only PRs no longer
-compile the same image again with Podman. This PR changes `.dockerignore`, so it
-still runs that separate build check; the regular Podman test job pulls the
-shared image.
+CI runs the shared container suites only with Docker. Duplicate Podman image
+build, portable acceptance and containment jobs are disabled to avoid repeating
+the same build and test work. Local Podman support remains available through
+`foundation_run.py --engine podman`; engine-neutral loader and launcher unit tests
+continue to exercise both engines.
 
 Merged changes publish a qualification image and refresh its registry build
 cache through `.github/workflows/container-images.yml`. PR builds import that

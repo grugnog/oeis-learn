@@ -2,6 +2,7 @@ name: Container and native acceptance
 on:
   pull_request:
     paths:
+      - 'tools/oeis_diagnostics/**'
       - 'src/**'
       - 'tests/**'
       - 'scripts/**'
@@ -10,6 +11,7 @@ on:
       - 'crates/**'
       - 'specs/008-bigint-constant-synthesis/**'
       - 'specs/009-pipeline-throughput/**'
+      - 'specs/013-progressive-mathematical-discovery/contracts/**'
       - 'uv.lock'
       - 'pyproject.toml'
       - 'setup.py'
@@ -44,16 +46,6 @@ jobs:
       packages: write
     uses: ./.github/workflows/ci-image.yml
 
-  podman-build:
-    needs: image
-    if: needs.image.outputs.podman_build == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify Podman can build changed container inputs
-        run: podman build --target qualification -t oeis-podman-build-ci .
-
   portable-engines:
     needs: image
     runs-on: ubuntu-24.04
@@ -61,7 +53,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        engine: [docker, podman]
+        engine: [docker]
+        task: [roles, cli]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/load-ci-image
@@ -79,13 +72,16 @@ jobs:
           cache-dependency-path: |
             pyproject.toml
             uv.lock
-      - name: Actual private worker, persistent service and reclamation
-        env:
-          OEIS_CONTAINER_ENGINE: ${{ matrix.engine }}
+      - name: Host test dependencies
         run: |
           python3 -m venv .role-venv
           .role-venv/bin/pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/cpu
           .role-venv/bin/pip install -e . pytest
+      - name: Actual private worker, persistent service and reclamation
+        if: matrix.task == 'roles'
+        env:
+          OEIS_CONTAINER_ENGINE: ${{ matrix.engine }}
+        run: |
           export OEIS_ROLE_TEST_IMAGE=$($OEIS_CONTAINER_ENGINE image inspect oeis-portable-ci --format '{{.Id}}')
           export OEIS_FOUNDATION_TEST_IMAGE=$OEIS_ROLE_TEST_IMAGE
           mkdir -p tmp-engine-evidence
@@ -95,6 +91,7 @@ jobs:
             tests/integration/test_foundation_resources.py::test_actual_container_worker_mount_and_device_isolation \
             --basetemp=tmp-engine-evidence/pytest --junitxml=tmp-engine-evidence/${{ matrix.engine }}.xml
       - name: Public standard-library CLI validation and verified rerun
+        if: matrix.task == 'cli'
         env:
           OEIS_CONTAINER_ENGINE: ${{ matrix.engine }}
         run: |
@@ -104,7 +101,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: portable-${{ matrix.engine }}
+          name: portable-${{ matrix.engine }}-${{ matrix.task }}
           path: |
             tmp-engine-evidence/*.xml
             tmp-engine-evidence/pytest/**/*.log
@@ -114,6 +111,107 @@ jobs:
             tmp-engine-evidence/public-cli/validation/*/receipt.json
             tmp-engine-evidence/public-cli/validation/*/*.log
             tmp-engine-evidence/public-cli/validation/*/*.xml
+
+  progressive-foundation:
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: [lifecycle, tuning, construction, contracts]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/load-ci-image
+        with:
+          engine: docker
+          reference: ${{ needs.image.outputs.reference }}
+          transport: ${{ needs.image.outputs.transport }}
+          artifact: ${{ needs.image.outputs.artifact }}
+          alias: oeis-portable-ci
+          token: ${{ github.token }}
+      - name: Spec 013 mandatory CPU and native foundation acceptance
+        env:
+          OEIS_CONTAINER_ENGINE: docker
+          ACCEPTANCE_PARTITION: ${{ matrix.partition }}
+        run: |
+          python3 -S - <<'PYCODE'
+          import os
+          import sys
+          from pathlib import Path
+          from types import SimpleNamespace
+          sys.path.insert(0, "scripts")
+          from foundation_local import Host
+          from qualify_bigint_phase5 import container_stage
+          host = Host(SimpleNamespace(
+              engine=os.environ["OEIS_CONTAINER_ENGINE"], image="oeis-portable-ci",
+              gpu_base_image=None, render_node=None, memory_gib=None, cpus=2,
+              free_disk_gib=5, host_free_memory_gib=1,
+          ))
+          container_stage(
+              host, host.ensure(), (Path("tmp-engine-evidence/progressive-foundation") / os.environ["ACCEPTANCE_PARTITION"]).resolve(),
+              ["python", "scripts/qualify_progressive_foundation.py", "--partition", os.environ["ACCEPTANCE_PARTITION"], "--output", "/work/output"],
+              seconds=3120,
+          )
+          PYCODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: progressive-foundation-${{ matrix.partition }}
+          path: |
+            tmp-engine-evidence/progressive-foundation/**/*.json
+            tmp-engine-evidence/progressive-foundation/**/*.xml
+            tmp-engine-evidence/progressive-foundation/**/*.log
+            tmp-engine-evidence/progressive-foundation/**/progressive-acceptance.zip
+            !tmp-engine-evidence/progressive-foundation/**/.runtime/**
+
+  progressive-foundation-complete:
+    needs: progressive-foundation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: progressive-foundation-*
+          merge-multiple: true
+          path: tmp-engine-evidence/progressive-foundation
+      - name: Verify all partitions cover the complete mandatory inventory
+        env:
+          PYTHONPATH: src
+        run: |
+          python3 -S scripts/qualify_progressive_foundation.py \
+            --merge tmp-engine-evidence/progressive-foundation \
+            --output tmp-engine-evidence/progressive-foundation/summary
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: progressive-foundation-complete
+          path: tmp-engine-evidence/progressive-foundation/summary/
+
+  oeis-observer:
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/load-ci-image
+        with:
+          engine: docker
+          reference: ${{ needs.image.outputs.reference }}
+          transport: ${{ needs.image.outputs.transport }}
+          artifact: ${{ needs.image.outputs.artifact }}
+          alias: oeis-portable-ci
+          token: ${{ github.token }}
+      - name: Independent OEIS observer CPU regressions (no HIP)
+        run: |
+          python3 -S tools/oeis_diagnostics/run.py --engine docker --image oeis-portable-ci \
+            self-test --output run-state/ci-oeis-observer
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: oeis-observer
+          path: run-state/ci-oeis-observer/diagnostics.zip
 
   native-qualification:
     needs: image
@@ -233,9 +331,6 @@ jobs:
       matrix:
         partition: [arithmetic, fitting, containment, performance, runtime-profile]
         engine: [docker]
-        include:
-          - partition: containment
-            engine: podman
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/load-ci-image

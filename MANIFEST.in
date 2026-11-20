@@ -38,3 +38,5 @@ recursive-include specs/011-controlled-generalization/validation *.py
 
 # Installed-source checks bind every versioned generalization policy.
 recursive-include src/oeis_learn/generalization/policies *.json
+recursive-include src/oeis_learn/generalization/schemas progressive-*.schema.json
+recursive-include specs/013-progressive-mathematical-discovery/contracts *.md

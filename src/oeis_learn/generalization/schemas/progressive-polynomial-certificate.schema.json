@@ -1,0 +1,275 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "progressive-polynomial-certificate/v1"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "coefficients": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 129,
+      "items": {
+        "type": "string",
+        "pattern": "^(0|-?[1-9][0-9]*)$",
+        "maxLength": 1235
+      }
+    },
+    "arithmetic": {
+      "const": "mathematical_integers"
+    },
+    "assumptions": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 0,
+      "items": {
+        "type": "string"
+      }
+    },
+    "machine_domain": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "lower": {
+              "type": "string",
+              "pattern": "^(0|-?[1-9][0-9]*)$",
+              "maxLength": 1235
+            },
+            "upper": {
+              "type": "string",
+              "pattern": "^(0|-?[1-9][0-9]*)$",
+              "maxLength": 1235
+            }
+          },
+          "required": [
+            "lower",
+            "upper"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "required": [
+    "version",
+    "source",
+    "coefficients",
+    "arithmetic",
+    "assumptions",
+    "machine_domain"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-polynomial-certificate.schema.json",
+  "$defs": {
+    "check": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "progressive-polynomial-check/v1"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "checker": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "certificate": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "statement": {
+          "const": "proved"
+        },
+        "scope": {
+          "const": "program_equals_polynomial_only"
+        },
+        "arithmetic": {
+          "const": "mathematical_integers"
+        },
+        "domain": {
+          "const": "all_integer_indices"
+        },
+        "coefficients": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 129,
+          "items": {
+            "type": "string",
+            "pattern": "^(0|-?[1-9][0-9]*)$",
+            "maxLength": 1235
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 0,
+          "items": {
+            "type": "string"
+          }
+        },
+        "machine_domain": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "lower": {
+                  "type": "string",
+                  "pattern": "^(0|-?[1-9][0-9]*)$",
+                  "maxLength": 1235
+                },
+                "upper": {
+                  "type": "string",
+                  "pattern": "^(0|-?[1-9][0-9]*)$",
+                  "maxLength": 1235
+                }
+              },
+              "required": [
+                "lower",
+                "upper"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "machine_safety": {
+          "enum": [
+            "unverified",
+            "finite_numeric_range_verified"
+          ]
+        },
+        "numeric_limits": {
+          "type": "object",
+          "properties": {
+            "input_bits": {
+              "const": 4096
+            },
+            "literal_bits": {
+              "const": 4096
+            },
+            "intermediate_bits": {
+              "const": 16384
+            },
+            "output_bytes": {
+              "const": 2048
+            }
+          },
+          "required": [
+            "input_bits",
+            "literal_bits",
+            "intermediate_bits",
+            "output_bytes"
+          ],
+          "additionalProperties": false
+        },
+        "resource_safety": {
+          "const": "unverified"
+        },
+        "sequence_law": {
+          "const": "unproved"
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "source_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65536
+            },
+            "nodes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4096
+            },
+            "nesting": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 32
+            },
+            "degree": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 128
+            },
+            "coefficient_bits": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4096
+            },
+            "work": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 131072
+            }
+          },
+          "required": [
+            "source_bytes",
+            "nodes",
+            "nesting",
+            "degree",
+            "coefficient_bits",
+            "work"
+          ],
+          "additionalProperties": false
+        },
+        "work": {
+          "type": "object",
+          "properties": {
+            "nodes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4096
+            },
+            "operations": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 131072
+            }
+          },
+          "required": [
+            "nodes",
+            "operations"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "identity",
+        "checker",
+        "source",
+        "certificate",
+        "statement",
+        "scope",
+        "arithmetic",
+        "domain",
+        "coefficients",
+        "assumptions",
+        "machine_domain",
+        "machine_safety",
+        "numeric_limits",
+        "resource_safety",
+        "sequence_law",
+        "limits",
+        "work"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

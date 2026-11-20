@@ -1,0 +1,144 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "discovery-state/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "parents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "enum": [
+        "acceptance",
+        "research"
+      ]
+    },
+    "track": {
+      "enum": [
+        "synthetic_strict",
+        "oeis_derived",
+        "external_assisted"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "compatibility": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "campaign": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "task": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "full_state": {
+          "$ref": "progressive-common.schema.json#/$defs/artifact"
+        },
+        "model_update": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "cuts": {
+          "type": "object",
+          "properties": {
+            "stream": {
+              "$ref": "progressive-common.schema.json#/$defs/hash"
+            },
+            "allocation": {
+              "$ref": "progressive-common.schema.json#/$defs/hash"
+            },
+            "archive": {
+              "oneOf": [
+                {
+                  "$ref": "progressive-common.schema.json#/$defs/hash"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "library": {
+              "oneOf": [
+                {
+                  "$ref": "progressive-common.schema.json#/$defs/hash"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cost_journal": {
+              "$ref": "progressive-common.schema.json#/$defs/hash"
+            },
+            "selection": {
+              "$ref": "progressive-common.schema.json#/$defs/hash"
+            },
+            "milestones": {
+              "$ref": "progressive-common.schema.json#/$defs/hash"
+            },
+            "consumed": {
+              "$ref": "progressive-common.schema.json#/$defs/hash"
+            }
+          },
+          "required": [
+            "stream",
+            "allocation",
+            "archive",
+            "library",
+            "cost_journal",
+            "selection",
+            "milestones",
+            "consumed"
+          ],
+          "additionalProperties": false
+        },
+        "kind": {
+          "enum": [
+            "full_state",
+            "weights_only"
+          ]
+        }
+      },
+      "required": [
+        "compatibility",
+        "campaign",
+        "task",
+        "full_state",
+        "model_update",
+        "cuts",
+        "kind"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "created_at",
+    "parents",
+    "purpose",
+    "track",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-stream.schema.json"
+}

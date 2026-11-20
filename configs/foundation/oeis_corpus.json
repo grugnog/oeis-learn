@@ -1,0 +1,13 @@
+{
+  "version": "oeis-corpus/v1",
+  "cache": "data/oeis-corpus-001",
+  "stripped": "data/oeis_cache/stripped.gz",
+  "revision": null,
+  "max_source_bytes": 274877906944,
+  "max_projection_bytes": 17179869184,
+  "free_disk_floor_bytes": 34359738368,
+  "seconds": 43200,
+  "attempts": 3,
+  "retry_seconds": 10,
+  "concurrent_transfers": 4
+}

@@ -21,9 +21,15 @@ def test_wheel_preserves_every_bound_source_resource(tmp_path):
     module=runpy.run_path(str(installed/'oeis_learn/experiments/source_snapshot.py'))
     snapshot=module['source_snapshot']()
     assert 'src/oeis_learn/generalization/policies/fit-core-amendment.json' in snapshot
+    import json
+    diagnostic = 'src/oeis_learn/generalization/policies/progressive-diagnostics.json'
+    assert diagnostic in snapshot
+    assert json.loads((installed/'oeis_learn/generalization/policies/progressive-diagnostics.json').read_text()) == json.loads((root/'configs/foundation/progressive/diagnostics.json').read_text())
     # The sdist must retain the same resources for a subsequent wheel build.
     files=(metadata/'oeis_learn.egg-info/SOURCES.txt').read_text().splitlines()
     assert 'src/oeis_learn/generalization/policies/fit-core-amendment.json' in files
+    assert 'configs/foundation/progressive/diagnostics.json' in files
+    assert 'tests/contract/test_progressive_diagnostic_blueprints.py' in files
     policy=installed/'oeis_learn/generalization/policies/fit-core-amendment.json'
     policy.write_text('{}')
     with pytest.raises(ValueError,match='installed wheel source identity mismatch'):

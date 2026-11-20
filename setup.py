@@ -28,6 +28,10 @@ class QualificationBuild(build_py):
         schemas.mkdir(parents=True, exist_ok=True)
         for source in (root / "specs/005-trustworthy-synthesis-readiness/contracts").glob("*.schema.json"):
             shutil.copyfile(source, schemas / source.name)
+        discovery = Path(self.build_lib) / "oeis_learn/generalization/progressive/contracts"
+        discovery.mkdir(parents=True, exist_ok=True)
+        for source in (root / "specs/013-progressive-mathematical-discovery/contracts").glob("*.md"):
+            shutil.copyfile(source, discovery / source.name)
 
 
 setup(cmdclass={"build_py": QualificationBuild})

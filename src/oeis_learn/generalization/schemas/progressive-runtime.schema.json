@@ -1,0 +1,141 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "discovery-runtime/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "parents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "enum": [
+        "acceptance",
+        "research"
+      ]
+    },
+    "track": {
+      "enum": [
+        "synthetic_strict",
+        "oeis_derived",
+        "external_assisted"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "images": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "model": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "language": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "precision": {
+              "const": "fp32"
+            },
+            "device": {
+              "enum": [
+                "cpu",
+                "hip"
+              ]
+            },
+            "execution_policy": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "source",
+            "images",
+            "model",
+            "language",
+            "precision",
+            "device",
+            "execution_policy"
+          ],
+          "additionalProperties": false
+        },
+        "qualification": {
+          "type": "array",
+          "items": {
+            "$ref": "progressive-common.schema.json#/$defs/artifact"
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "role_policy": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "fixture": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "scope",
+        "qualification",
+        "operations",
+        "role_policy",
+        "fixture"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "created_at",
+    "parents",
+    "purpose",
+    "track",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-runtime.schema.json"
+}

@@ -49,7 +49,7 @@ class HybridEncoder(TriStreamEncoder):
 class ChunkHybridEncoder(TriStreamEncoder):
     """Explicit width-extensible profile; historical HybridEncoder stays intact."""
 
-    def __init__(self, *, dropout=0.0, group_mask=None, ablation_mode="post_training", model_profile=None, **kwargs):
+    def __init__(self, *, dropout=0.0, group_mask=None, ablation_mode="post_training", model_profile=None, research_profile=None, **kwargs):
         from .large_integer_features import PRIMES
         from .integer_chunks import ChunkEncoder
 
@@ -73,12 +73,23 @@ class ChunkHybridEncoder(TriStreamEncoder):
             if dropout != 0:raise ValueError('sizing uses unchanged dropout0')
             fixed.update(d_model=shape['width'],n_heads=shape['heads'],
                 n_encoder_layers=shape['encoder_layers'],d_ff=shape['ff'])
+        if research_profile is not None:
+            if model_profile is not None:
+                raise ValueError("hardware and research profiles cannot be mixed")
+            from oeis_learn.generalization.progressive.models import validate_profile as validate_research
+            research=validate_research(research_profile)
+            shape=research["model"]
+            if dropout != shape["dropout"]:
+                raise ValueError("effective dropout differs from frozen research profile")
+            fixed.update(d_model=shape["d_model"],n_heads=shape["heads"],
+                n_encoder_layers=shape["encoder_layers"],d_ff=shape["ff"],
+                max_seq_len=research["encoder_positions"])
         for key, value in kwargs.items():
             if key in fixed and value != fixed[key]:
                 raise ValueError(f"hybrid-chunks/v1 requires frozen {key}")
         fixed.update(kwargs)
         super().__init__(dropout=dropout, **fixed)
-        self.chunk_encoder = ChunkEncoder(dropout=dropout, d_model=self.d_model)
+        self.chunk_encoder = ChunkEncoder(dropout=dropout, d_model=self.d_model, research_profile=research_profile)
         self.byte_gate = nn.Parameter(torch.full((self.d_model,), -2.0))
         from .ablation import InputMask
 
