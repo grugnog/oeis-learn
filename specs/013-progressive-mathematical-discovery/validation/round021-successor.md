@@ -13,30 +13,47 @@ reviewed test files into an isolated diagnostic test tree. Four HIP cases
 exercise the previously failing scenarios. Results and bounded logs are in
 `run-state/discovery-tools/round020-hip-rehearsal/diagnostics.zip`. A failed
 attempt retains its pytest working files. A successful attempt retains the
-results and removes its own temporary pytest data.
+results and attempts to remove its own temporary pytest data. A permission
+error during this last step leaves the remaining files available for inspection.
 
 ## After the rehearsal succeeds
 
 The following command reads the exact tested revision from the rehearsal,
-checks all four case outcomes and the container's termination, and tags the two
+checks all four case outcomes and container cleanup, and tags the two
 round020 images before building their successors. Run it from Owen's workstation.
 The original directory layout resolves the donor sessions' stored paths.
+The first rehearsal at `a5ab34b0` exited 1 after all four JUnit reports passed.
+Deleting a temporary pytest file raised PermissionError. Podman acknowledged
+container cleanup. The command accepts that exact reviewed archive and keeps
+the original process result intact.
 
 ```bash
 (
   set -eu
   cd ~/workspace/oies-learn
   test "$(git rev-parse HEAD)" = f08c2d16943bda3774385589e3b40ae65859ec5a
+  git fetch origin 013-progressive-mathematical-discovery
   revision=$(python3 -S - <<'PY'
-import json, re
+import hashlib, json, re, zipfile
 from pathlib import Path
 p = Path('run-state/discovery-tools/round020-hip-rehearsal')
 def read(name):
     return json.loads((p / name).read_bytes())
 cases = read('case-outcomes.json')
 process, cleanup, scope = (read(n) for n in ('process.json', 'cleanup.json', 'scope.json'))
+clean_exit = process['outcome'] == 'COMPLETE' and process['returncode'] == 0
+if not clean_exit:
+    archive = p / 'diagnostics.zip'
+    with archive.open('rb') as stream:
+        reviewed = hashlib.file_digest(stream, 'sha256').hexdigest()
+    if reviewed != '15cf9e7caba099e8fbb73289eb209c566db3f6d458f0cde1c860455659b46965':
+        raise SystemExit('Unreviewed rehearsal failure. Inspect diagnostics.zip.')
+    with zipfile.ZipFile(archive) as bundle:
+        for name in ('scope.json', 'case-outcomes.json', 'process.json', 'cleanup.json', 'stderr.log'):
+            if (p / name).read_bytes() != bundle.read(name):
+                raise SystemExit('Workstation record differs from the reviewed archive: ' + name)
 if (len(cases) != 4 or any(c['status'] != 'PASS' for c in cases)
-        or process['outcome'] != 'COMPLETE' or process['returncode'] != 0 or process['cleanup_failure']
+        or process['cleanup_failure']
         or cleanup['acknowledged'] is not True or cleanup['within_bound'] is not True or cleanup['failure']
         or scope['scope'] != 'DIAGNOSTIC_ONLY' or not re.fullmatch('[a-f0-9]{40}', scope['revision'])):
     raise SystemExit('Inspect the original rehearsal results before starting round021.')

@@ -59,7 +59,11 @@ def inside():
     if outcome == 0:
         # Only disposable pytest basetemps owned by this successful rehearsal.
         # Keep per-case XML, outcomes, logs, input hashes and supervisor records.
-        shutil.rmtree(output / 'private')
+        try:
+            shutil.rmtree(output / 'private')
+        except PermissionError as exc:
+            print(f"Four cases passed. Temporary pytest files remain in {output / 'private'}: {exc}",
+                  file=sys.stderr, flush=True)
     return outcome
 
 
