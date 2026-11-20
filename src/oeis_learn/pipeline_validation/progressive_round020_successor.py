@@ -7,6 +7,7 @@ from .progressive_research_inputs import checked_file
 from .progressive_workstation_state import Blocked, read
 
 SESSION = 'run-state/discovery/013-research-round-020'
+ROUND021 = 'run-state/discovery/013-research-round-021'
 VERSION = 'progressive-preparation-owner-proof/v10'
 FILES = (
     'session.json', 'journal.json', 'preparation-owner.json', 'preparation-owner-proof.json',
@@ -77,3 +78,25 @@ def setup_limits(setup, proof):
     if prepare <= 120:
         raise Blocked('insufficient original preparation allowance')
     return dict(setup, prepare=prepare, freeze=freeze)
+
+
+def replacement_limits(root, setup, failure):
+    """Carry the round020 reservation through round021's pre-HIP qualification failure."""
+    receipt = failure['predecessor']
+    if (failure['version'] != 'progressive-preparation-owner-proof/v1' or seal(failure) != failure
+            or receipt['recipient'] != ROUND021):
+        raise Blocked('original round021 CPU base-qualification failure proof required')
+    folder = confined(root, ROUND021)
+    owner = read(folder / 'preparation-owner.json')
+    if owner['receipt'] != receipt:
+        raise Blocked('round021 preparation owner differs')
+    previous = read(checked_file(root, owner['proof']))
+    limits = setup_limits(setup, previous)
+    attempts = (attempt for row in failure['journal']['steps'].values()
+                for attempt in [*row.get('history', []), row])
+    charged = sum(a.get('elapsed_seconds', 0) if a['status'] == 'BLOCKED'
+                  else a['elapsed_seconds'] for a in attempts)
+    limits['prepare'] -= math.ceil(charged)
+    if limits['prepare'] <= 120:
+        raise Blocked('round021 spent the remaining preparation allowance')
+    return limits

@@ -30,6 +30,11 @@ def prepare(workflow,data,design,materials):
         if successor is not None:
             setup = successor.setup_limits(setup, owner_proof)
             storage_preflight = lambda: round019.check_storage(root, base)
+        elif (owner_proof['version'] == 'progressive-preparation-owner-proof/v1'
+              and owner_proof['predecessor']['recipient'] == round020.ROUND021):
+            setup = round020.replacement_limits(root, setup, owner_proof)
+            retry_acceptance = True
+            storage_preflight = lambda: round019.check_storage(root, base)
     from .progressive_research_qualification import qualify
     qualify(w,data,design,setup=setup)
     qroot=base/'qualification';timing=base/'evaluation-timing'

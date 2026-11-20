@@ -177,3 +177,24 @@ def test_storage_block_never_opens_acceptance(tmp_path):
     assert run(w, 7800) is None
     assert s.journal['steps']['prepare-research/acceptance']['status'] == 'BLOCKED'
     assert not (w.base / 'acceptance-allowance.json').exists()
+
+
+def test_cpu_replacement_keeps_freeze_ceiling_and_debits_both_rounds(tmp_path):
+    folder = tmp_path / successor.ROUND021
+    receipt = seal(dict(recipient=successor.ROUND021))
+    prior = tmp_path / 'history' / 'proof.json'
+    write(prior, seal(dict(version=successor.VERSION, reviewed_evidence=successor.REVIEWED,
+                           charged_seconds=145394.647)))
+    write(folder / 'preparation-owner.json', seal(dict(receipt=receipt, proof=reference(tmp_path, prior))))
+    steps = {'prepare-research/base-qualification': dict(status='FAILED', elapsed_seconds=2400.1),
+             'prepare-research/freeze': dict(status='BLOCKED', history=[dict(status='BLOCKED')])}
+    failure = seal(dict(version='progressive-preparation-owner-proof/v1', predecessor=receipt,
+                        journal=dict(steps=steps)))
+    original = dict(prepare=261000, freeze=7200, acceptance=7800)
+    limits = successor.replacement_limits(tmp_path, original, failure)
+    assert limits == dict(prepare=30164, freeze=86400, acceptance=7800)
+    with pytest.raises(Blocked):
+        successor.replacement_limits(tmp_path, dict(original, prepare=230000), failure)
+    write(prior, seal(dict(version=successor.VERSION, reviewed_evidence=successor.REVIEWED, charged_seconds=0)))
+    with pytest.raises(ValueError):
+        successor.replacement_limits(tmp_path, original, failure)
