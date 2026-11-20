@@ -80,6 +80,7 @@ CPU_TESTS = (
     "tests/unit/test_progressive_freeze_recovery.py",
     "tests/unit/test_progressive_freeze_progress.py",
     "tests/unit/test_round019_successor.py",
+    "tests/unit/test_round020_successor.py",
     "tests/unit/test_progressive_metrics.py",
     "tests/unit/test_progressive_targets.py",
     "tests/unit/test_progressive_scaling.py",

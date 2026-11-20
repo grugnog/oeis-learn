@@ -407,7 +407,10 @@ class Workflow:
             operation='assess' if self.args.phase=='assess' else 'resume' if executions else 'run'
             args=dict(output=str(output.relative_to(self.root)))
             if operation=='resume': args['run']=str(executions[0].relative_to(self.root))
-            else: args.update(campaign=str(c.relative_to(self.root)),acceptance=str((prepared/'acceptance').relative_to(self.root)))
+            else:
+                from .progressive_acceptance_retry import accepted_folder
+                accepted = accepted_folder(self.root, prepared, self.s.journal)
+                args.update(campaign=str(c.relative_to(self.root)), acceptance=str(accepted.relative_to(self.root)))
             if operation=='assess': args['selection']=self.args.selection
             cap=load(c,maximum=CAMPAIGN_DOCUMENT_BYTES)['payload']['caps']['elapsed_us']/1000000
             from .supervision import launch

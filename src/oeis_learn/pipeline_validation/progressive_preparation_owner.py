@@ -24,6 +24,9 @@ def failure_proof(root, receipt):
     from . import progressive_round019_successor as round019
     if receipt['recipient'] == round019.SESSION:
         return round019.proof(root, receipt, session, journal)
+    from . import progressive_round020_successor as round020
+    if receipt['recipient'] == round020.SESSION:
+        return round020.proof(root, receipt, session, journal)
     steps = journal['steps']
     if steps.get('prepare-research/freeze', {}).get('status') == 'FAILED' and steps.get('prepare-research/prepare', {}).get('status') == 'COMPLETE':
         from .progressive_freeze_recovery import proof

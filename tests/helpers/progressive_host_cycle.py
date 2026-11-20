@@ -21,10 +21,6 @@ def freeze_inputs(root, monkeypatch, *, source=False, low=False, build=None):
     test_complete_diagnostic_freeze_binds_original_producer_and_task_roster(root, monkeypatch)
     b = load(root / "test-blueprint.json")
     prepared = load(root / "test-prepared.json")
-    atomic_write(root / "authority-base-recipe.json", load(root / "recipe.json"))
-    for ref in prepared["payload"]["references"]:
-        if ref["kind"] == "recipe":
-            ref["artifact"] = reference(root, "authority-base-recipe.json")
     if build:
         c = build(root)
     elif source:
@@ -46,6 +42,10 @@ def freeze_inputs(root, monkeypatch, *, source=False, low=False, build=None):
         cycle = load(root / ("short-plan.json" if source else "cycle-plan.json"))
         channel = load(root / cycle["training"][0]["channel"])
     package = load(root / channel["data"]["artifact"]["path"])
+    atomic_write(root / "authority-base-recipe.json", package["profile"]["base_recipe"])
+    for ref in prepared["payload"]["references"]:
+        if ref["kind"] == "recipe":
+            ref["artifact"] = reference(root, "authority-base-recipe.json")
     # Freeze measures real weights for this selected model, rather than the
     # tiny unrelated placeholder from the authority-only unit fixture.
     import torch
@@ -101,7 +101,11 @@ def freeze_inputs(root, monkeypatch, *, source=False, low=False, build=None):
         prefix.append(p)
     plans = prefix + c["payload"]["tasks"]
     caps = dict(c["payload"]["caps"])
-    caps["disk_bytes"] += 64 << 20
+    # The cycle adds its serialized weights and a projected checkpoint to the
+    # original graph. The measured diagnostic bound scales with the selected model.
+    limits = load(root / "base/acceptance-limits.json")
+    caps["disk_bytes"] += (prepared["payload"]["checkpoint"]["bytes"]
+                           + limits["checkpoint_bytes"] + (64 << 20))
     caps["elapsed_us"] += 100000000
     prepared["payload"].update(
         runtime=reference(root, "runtime.json"),

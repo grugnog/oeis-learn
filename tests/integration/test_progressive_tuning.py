@@ -178,11 +178,14 @@ def test_selected_trial_scope_updates_restores_and_continues_installed(tmp_path)
     from oeis_learn.pipeline_validation.progressive_acceptance import fixture, invoke_cpu
     from oeis_learn.pipeline_validation.progressive_learner import compatibility
     from oeis_learn.generalization.progressive.trial_scopes import resolve, materialize
-    from oeis_learn.generalization.progressive.tuning import BASELINE
+    from oeis_learn.generalization.progressive.tuning import BASELINE, SPACE
     from oeis_learn.generalization.progressive.contracts import load, seal, digest, record
     c, _, channel, _ = fixture(tmp_path, interrupt=True)
     package=load(tmp_path/'training-input.json')
-    params=dict(BASELINE,shape=package['profile']['shape'],dropout=package['profile']['model']['dropout'])
+    profile = package['profile']
+    # Profiles store FP32 dropout as a float. Tasks use the registered JSON choice.
+    dropout = next(value for value in SPACE['dropout'] if value == profile['model']['dropout'])
+    params = dict(BASELINE, shape=profile['shape'], dropout=dropout)
     for plan in c['payload']['tasks']:
         plan['trial']=dict(study=digest('selected-device-choice'),ordinal=0,phase='training',coordinate=0)
         plan['trial_choices']=[dict(parameters=params,compatibility=compatibility(package),policy=plan['policy'])]

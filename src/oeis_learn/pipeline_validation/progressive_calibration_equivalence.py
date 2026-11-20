@@ -56,6 +56,8 @@ HOST_ONLY = {
     'pipeline_validation/progressive_preparation_reuse.py',
     'pipeline_validation/progressive_freeze_recovery.py',
     'pipeline_validation/progressive_round019_successor.py',
+    'pipeline_validation/progressive_round020_successor.py',
+    'pipeline_validation/progressive_acceptance_retry.py',
     'pipeline_validation/progressive_research_launch.py',
     'pipeline_validation/progressive_research_workstation.py',
     'pipeline_validation/progressive_workstation.py',

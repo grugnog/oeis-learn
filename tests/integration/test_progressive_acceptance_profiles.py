@@ -72,3 +72,25 @@ def test_oeis_child_tasks_reserve_selected_profile_and_simultaneous_stores(
         for t in campaign["payload"]["tasks"]
     )
     assert campaign["payload"]["caps"]["disk_bytes"] >= storage["required_bytes"]
+
+
+def test_cycle_freezes_with_selected_base_recipe_and_projected_weights(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.generalization.progressive.models import resolve_profile
+    from oeis_learn.pipeline_validation import progressive_device_acceptance as device
+    from oeis_learn.pipeline_validation.progressive_commands import main
+    from tests.helpers.progressive_host_cycle import freeze_inputs
+
+    recipe = resolve({'version': 'bigint-bootstrap/v1'}, seed=42)
+    monkeypatch.setattr(device, 'selected_profile', lambda p: resolve_profile(
+        recipe, shape='reference', seed=p['model']['seed'], dropout=p['model']['dropout']))
+    freeze_inputs(tmp_path, monkeypatch)
+    assert load(tmp_path / 'authority-base-recipe.json') == recipe
+    args = dict(blueprint='cycle-blueprint.json', qualification='qualification')
+    assert main(SimpleNamespace(operation='prepare', output='prepared-cycle', **args), tmp_path, None) == 0
+    assert main(SimpleNamespace(operation='freeze', prepared='prepared-cycle', output='frozen-cycle', **args),
+                tmp_path, None) == 0
+    campaign = load(tmp_path / 'frozen-cycle/campaign.json')['payload']
+    assert campaign['caps']['disk_bytes'] >= campaign['storage']['required_bytes']

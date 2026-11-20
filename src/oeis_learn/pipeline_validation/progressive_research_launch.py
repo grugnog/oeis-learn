@@ -15,6 +15,7 @@ def prepare(workflow,data,design,materials):
     w=workflow;s=w.s;root=w.root;base=w.base
     setup=design['operational_reservation']['setup_seconds']
     storage_preflight = None
+    retry_acceptance = False
     if getattr(getattr(w,'args',None),'reuse_calibration_session',None):
         from .progressive_preparation_preflight import prepare as preflight
         checked=s.step('execution-preflight',lambda:preflight(w),
@@ -22,9 +23,12 @@ def prepare(workflow,data,design,materials):
         if checked is None:return
         setup=checked['setup_seconds']
         from . import progressive_round019_successor as round019
+        from . import progressive_round020_successor as round020
         owner_proof = read(s.folder / 'preparation-owner-proof.json')
-        if owner_proof['version'] == round019.VERSION:
-            setup = round019.setup_limits(setup, owner_proof)
+        successor = {round019.VERSION: round019, round020.VERSION: round020}.get(owner_proof['version'])
+        retry_acceptance = successor is round020
+        if successor is not None:
+            setup = successor.setup_limits(setup, owner_proof)
             storage_preflight = lambda: round019.check_storage(root, base)
     from .progressive_research_qualification import qualify
     qualify(w,data,design,setup=setup)
@@ -119,8 +123,12 @@ def prepare(workflow,data,design,materials):
     w.run_command('freeze','freeze',blueprint=blueprint,qualification=q,
         prepared=str((base/'prepared').relative_to(root)),output=str((base/'frozen').relative_to(root)),
         seconds=setup['freeze'],preflight=storage_preflight,dependencies=('prepare-research/prepare',))
-    w.run_command('acceptance','acceptance',campaign=str((base/'frozen/campaign.json').relative_to(root)),
-        output=str((base/'acceptance').relative_to(root)),seconds=setup['acceptance'],dependencies=('prepare-research/freeze',))
+    if retry_acceptance:
+        from .progressive_acceptance_retry import run
+        run(w, setup['acceptance'])
+    else:
+        w.run_command('acceptance','acceptance',campaign=str((base/'frozen/campaign.json').relative_to(root)),
+            output=str((base/'acceptance').relative_to(root)),seconds=setup['acceptance'],dependencies=('prepare-research/freeze',))
 
 
 def readiness(workflow,data,census,sensitivity,materials):
@@ -135,12 +143,14 @@ def readiness(workflow,data,census,sensitivity,materials):
         from .progressive_device_acceptance import consume_receipt
         campaign=validate_campaign(load(base/'frozen/campaign.json',maximum=CAMPAIGN_DOCUMENT_BYTES))
         if campaign['purpose']!='research':raise ValueError('research-purpose campaign required')
-        accepted=load(base/'acceptance/acceptance.json')
-        consume_receipt(base/'acceptance',accepted)
+        from .progressive_acceptance_retry import accepted_folder
+        acceptance = accepted_folder(w.root, base, s.journal)
+        accepted=load(acceptance/'acceptance.json')
+        consume_receipt(acceptance,accepted)
         if accepted['campaign']!=campaign['identity']:raise ValueError('original acceptance campaign differs')
         refs={name:reference(w.root,path) for name,path in [
             ('qualification',base/'qualification/qualification.json'),('campaign',base/'frozen/campaign.json'),
-            ('acceptance',base/'acceptance/acceptance.json'),('resources',base/'prepared/resource-estimate.json'),
+            ('acceptance',acceptance/'acceptance.json'),('resources',base/'prepared/resource-estimate.json'),
             ('evaluation',base/'evaluation-timing/evaluation-feasibility.json')]}
         value=seal(dict(value,status='READY',research_ready=True,deficits=[],authorities=refs,
             stage_dispositions=dict(value['stage_dispositions'],capability='READY',diversity='READY',tuning='READY'),
