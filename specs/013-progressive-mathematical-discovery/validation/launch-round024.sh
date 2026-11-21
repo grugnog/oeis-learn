@@ -3,6 +3,7 @@
 set -euo pipefail
 old=f44099d50b4076d520616431ee8485b27c808c15
 new=$(git rev-parse --verify "${1:?Pass the published recovery commit}^{commit}")
+previous=609dc06f138c4df3cfb4627e03d9a8a832639254
 here=$(git rev-parse HEAD)
 git diff --quiet
 git diff --cached --quiet
@@ -20,12 +21,17 @@ if [[ "$here" == "$old" ]]; then
         mv "$tmp" "$helper"
     fi
     python3 -S "$helper"
+elif [[ "$here" == "$previous" && "$here" != "$new" ]]; then
+    if [[ -e run-state/discovery/013-research-round-024/session.json ]]; then
+        echo "Existing round024 has a source binding. Preserve that session for review." >&2
+        exit 1
+    fi
 elif [[ "$here" != "$new" ]]; then
     echo "Expected the qualified round023 checkout or the pinned round024 revision." >&2
     exit 1
 fi
 test -s "$tools/round023-generator-rehearsal/result.json"
-if [[ "$here" == "$old" ]]; then
+if [[ "$here" != "$new" ]]; then
     for pair in \
         '73fd6d9b23574d1beacb8183c0601c94a98508d045309c5bef4097747c36adae qualification' \
         '2da2c7286dd64a5f6a9b760752fb8ae95729991cb6e5f12dace72ae67a4fbe30 gpu'; do
@@ -47,6 +53,8 @@ root=Path.cwd()
 old=root/recovery.SESSION
 approval=recovery.proof(root, read(old/'preparation-owner.json')['receipt'],
                         read(old/'session.json'), read(old/'journal.json'))
+for name, size in approval['comparison_projection']['estimates'].items():
+    print(f'{name}: {size/2**20:.1f} MiB estimated, 512 MiB reader limit', flush=True)
 # Estimate capacity before assigning the new owner or rebuilding images.
 original=read(root/recovery.BASE/'storage-preflight.json')
 estimate=original['required_bytes']+sum(recovery.additions(root,approval).values())

@@ -66,9 +66,6 @@ def rehearsal(root):
         'scope': 'DIAGNOSTIC_ONLY',
         'version': 'round023-generator-rehearsal/v1'
     }
-    if receipt['projected_input_cap_flags']:
-        raise Blocked('rehearsal predicts a projection above the 512 MiB aggregate reader cap: ' +
-                      ', '.join(receipt['projected_input_cap_flags']))
     if any(receipt.get(k) != v for k, v in expected.items()):
         raise Blocked('completed training-only full-size rehearsal required')
     for field, path in [('result', worker / 'role/result.json'),
@@ -126,6 +123,94 @@ def rehearsal(root):
     return receipt
 
 
+def comparison_estimates(root, receipt, audit):
+    """Replay the flagged comparisons against their frozen method and original HIP samples."""
+    from .progressive_outputs import COMPARISON_TASKS
+
+    plans = {row['task']: row for row in audit['tasks']}
+    dynamic = receipt['estimated_dynamic_envelope_bytes']
+    if set(dynamic) != set(plans):
+        raise Blocked('incomplete rehearsal projection inventory')
+    flags = {k for k, row in plans.items() if row['envelopes_bytes'] + dynamic[k] > 512 * MIB}
+    if flags != set(receipt['projected_input_cap_flags']) or flags - COMPARISON_TASKS:
+        raise Blocked('unresolved rehearsal projection outside the reviewed comparison readers')
+    if not flags:
+        return dict(estimates={}, sample_maxima={})
+    timing = root / BASE / 'evaluation-timing'
+    index = read(timing / 'evaluation-cases.json')
+    request = read(timing / 'request.json')
+    if (index['identity'] != 'sha256:2ea7f16e5e7931cfe4cbf8adab27f02bb500e68521b7a707d16329220685eb7f'
+            or index['request'] != request['identity']):
+        raise Blocked('reviewed round023 HIP timing inventory required')
+    samples = []
+    for item in index['cases']:
+        case = request['cases'][item['index']]
+        if case['methods'] != ['correct']:
+            continue
+        sample = read(checked_file(timing, item['producer']))
+        if (sample['case'] != case['identity'] or sample['request'] != request['identity']
+                or sample['samples'] != 2 or sample['status'] != 'PASS' or sample['device'] != 'actual_HIP'):
+            raise Blocked('complete original two-member primary HIP timing sample required')
+        samples.append(sample)
+    if len(samples) != 12:
+        raise Blocked('all 12 primary timing cases required')
+    maxima = {key: max(r[field]['bytes'] for r in samples)
+              for key, field in [('evaluation', 'producer'), ('scores', 'scoring')]}
+    campaign = _json(root / BASE / 'frozen/campaign.json')
+    if campaign['identity'] != 'sha256:' + CAMPAIGN or seal(campaign) != campaign:
+        raise Blocked('original round023 frozen campaign required')
+    estimates = primary_comparison_sizes(root, campaign['payload'], plans, flags, maxima)
+    return dict(estimates=estimates, sample_maxima=maxima)
+
+
+def primary_comparison_sizes(root, payload, plans, flags, maxima):
+    by_id = {t['id']: t for t in payload['tasks']}
+    artifacts = {r['artifact']['path']: r['artifact'] for r in payload['references']}
+    policies = {r['artifact']['sha256']: r['artifact'] for r in payload['references'] if r['kind'] == 'policy'}
+    primary, = [r['artifact'] for r in payload['references'] if r['name'] == 'private/channels/primary-portfolio']
+    channel = read(checked_file(root, primary))
+    if (channel['kind'] != 'oeis_generation' or channel['role'] != 'generator'
+            or channel['data'] != dict(methods=['correct'], forced=None)):
+        raise Blocked('original primary-only generation policy required')
+
+    def request(name, op):
+        plan = by_id[name]
+        if any(choice['policy'] != plan['policy'] for choice in plan.get('trial_choices', [])):
+            raise Blocked('comparison trial choices have different request policies')
+        value = _json(checked_file(root, policies[plan['policy']]))
+        if value['operation'] != op:
+            raise Blocked('comparison producer operation differs')
+        return value['artifacts']
+
+    estimates = {}
+    for name in sorted(flags):
+        slots = request(name, 'publish')['public']
+        sources = [(v['task'], v['output']) for v in slots if isinstance(v, dict)]
+        row = plans[name]
+        if (row['operation'] != 'publish' or sources != [tuple(v) for v in row['dynamic_sources']]
+                or len(sources) != 8 or len(set(sources)) != 8):
+            raise Blocked('four original paired comparison cells required')
+        total = sum(artifacts[v]['bytes'] for v in slots if isinstance(v, str))
+        for (gen, gen_output), (score, score_output) in zip(sources[::2], sources[1::2], strict=True):
+            g, s = request(gen, 'generate'), request(score, 'score')
+            count = len(g['visible'])
+            if (gen_output != 'evaluation' or score_output != 'scores' or primary['path'] not in g['model']
+                    or s['candidates'] != [dict(task=gen, operation='generate', output='candidates', kind='candidate')]
+                    or count != len(s['score_truth']) or count != plans[gen]['members']
+                    or count != plans[score]['members'] or count <= 0
+                    or by_id[gen]['caps']['attempts'] != count * 8):
+                raise Blocked('matching primary-only generation, scoring and member counts required')
+            for output in (gen_output, score_output):
+                # Multi-member outputs share one header. Repeating the entire two-member
+                # file overcounts it. Add 50% for sample variation and 8 KiB per compact
+                # ownership envelope (original path, task identity, hashes and metadata).
+                total += (maxima[output] * ((count + 1) // 2) * 3 + 1) // 2 + 8192
+        if total > 512 * MIB:
+            raise Blocked(f'{name} primary comparison estimate {total} exceeds the 512 MiB reader cap')
+        estimates[name] = total
+    return estimates
+
+
 def proof(root, receipt, session, journal):
     with (confined(root, CONTROL) / 'run.lock').open('rb') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -145,6 +230,7 @@ def _proof(root, receipt, session, journal):
     audit = _json(limit_report)
     if audit['negative_timing_slack'] or audit['original_debits']['campaign'] != 'sha256:' + CAMPAIGN:
         raise Blocked('original complete workflow limit audit required')
+    comparison = comparison_estimates(root, r, audit)
     spent = math.ceil(
         sum(
             v.get('elapsed_seconds', 0) for row in journal['steps'].values()
@@ -157,6 +243,7 @@ def _proof(root, receipt, session, journal):
              successor=SUCCESSOR,
              reviewed_evidence=REVIEWED,
              original_ledger=ledger,
+             comparison_projection=comparison,
              original_outputs=outputs,
              replacement_operation=debit['operation'],
              charged_generator=debit['cost'],
@@ -246,6 +333,13 @@ def check_inputs(root, plans, refs, proof):
 
     if science(plans) != science(original['tasks']) or proof['charged_generator']['attempts'] != 3072:
         raise Blocked('approved replacement must preserve all scientific work and time limits')
+
+    comparison = proof.get('comparison_projection', {})
+    if comparison.get('estimates'):
+        rows = _json(checked_file(root, proof['limit_report']))['tasks']
+        primary_comparison_sizes(root, dict(tasks=plans, references=refs),
+                                 {r['task']: r for r in rows}, comparison['estimates'],
+                                 comparison['sample_maxima'])
 
 
 def additions(root, proof):

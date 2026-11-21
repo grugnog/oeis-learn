@@ -243,7 +243,7 @@ def verify_refs(root, refs, *, max_bytes=512 << 20):
     return result
 
 
-def _atomic_write(path, value):
+def _atomic_write(path, raw):
     """Immutable, durable publication: never replace a prior valid object."""
     import os
     import uuid
@@ -255,9 +255,7 @@ def _atomic_write(path, value):
     temporary = path.with_name("." + path.name + "." + uuid.uuid4().hex)
     try:
         with temporary.open("xb") as stream:
-            stream.write(
-                (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
-            )
+            stream.write(raw)
             stream.flush()
             os.fsync(stream.fileno())
         os.link(temporary, path)
@@ -270,9 +268,10 @@ def _atomic_write(path, value):
         temporary.unlink(missing_ok=True)
 
 
-def atomic_write(path, value):
+def atomic_write(path, value, *, compact=False):
     from .storage import writing
 
-    raw = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
+    formatting = {"separators": (",", ":")} if compact else {"indent": 2}
+    raw = (json.dumps(value, sort_keys=True, allow_nan=False, **formatting) + "\n").encode()
     with writing(path, len(raw)):
-        return _atomic_write(path, value)
+        return _atomic_write(path, raw)

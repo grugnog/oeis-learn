@@ -69,6 +69,8 @@ HOST_ONLY = {
 # Runtime task validation and cycle dispatch changed; accept only the exact
 # reviewed bytes with the original round009 source and fresh device qualification.
 REVIEWED_FILES = {
+    'generalization/progressive/contracts.py': 'sha256:223436c6dad6c462e26feb2a3b766e0cb10aa26af825f4510ab354868344e1a9',
+    'pipeline_validation/progressive_outputs.py': 'sha256:835e5314aaaaa09af8935162fc902aef2495ddadac134d63b674d0eccff7f7ca',
     'pipeline_validation/progressive_roles.py': 'sha256:d5b8b34435f662b5587d423ffe6146ebbb3630850a0321044d550aeaf1d3e28e',
     'pipeline_validation/progressive_quarantine_control.py': 'sha256:237cf5d807fa24078043fb80cb392a66f7ba03e91f68db30c379f2b561b53573',
     'generalization/progressive/projections.py': 'sha256:f2bd084df568763f06d5d4e7b08876735f20e0c86f6e0f07978bd0e6d7f2c378',

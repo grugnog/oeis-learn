@@ -264,3 +264,121 @@ def test_research_grant_carries_both_completed_producers_once(tmp_path, monkeypa
     with pytest.raises(ValueError, match='original recovery publication differs'):
         with successor.research_scope(tmp_path, seal(dict(campaign, other=True)), frozen, store):
             pytest.fail('second campaign claimed replacement')
+
+
+def test_primary_comparison_forecast_uses_whole_two_member_files(tmp_path):
+    """Four 640-member cells fit with 50% sample headroom. Larger output still blocks."""
+    publish = 'diversity-comparison'
+    refs, tasks, rows, slots = [], [], {}, []
+
+    def put(name, value, kind='policy'):
+        path = tmp_path / (name + '.json')
+        atomic_write(path, value)
+        ref = reference(tmp_path, path)
+        refs.append(dict(name=name, kind=kind, artifact=ref))
+        return ref
+
+    primary = put('private/channels/primary-portfolio',
+                  seal(dict(kind='oeis_generation', role='generator', data=dict(methods=['correct'], forced=None))),
+                  'prepared')
+    template = put('template', dict(version='template'), 'prepared')
+    for i in range(4):
+        gen, score = f'generate-{i}', f'score-{i}'
+        for name, op, output in [(gen, 'generate', 'evaluation'), (score, 'score', 'scores')]:
+            inputs = dict(visible=['v'] * 640, model=[primary['path']]) if op == 'generate' else dict(
+                score_truth=['t'] * 640, candidates=[dict(task=gen, operation='generate', output='candidates', kind='candidate')])
+            policy = put(name, dict(operation=op, artifacts=inputs))['sha256']
+            tasks.append(dict(id=name, policy=policy, caps=dict(attempts=5120), trial_choices=[dict(policy=policy)]))
+            rows[name] = dict(members=640)
+            slots.append(dict(task=name, operation=op, output=output, kind='public_evidence'))
+    policy = put(publish, dict(operation='publish', artifacts=dict(public=[template['path'], *slots])))['sha256']
+    tasks.append(dict(id=publish, policy=policy))
+    rows[publish] = dict(operation='publish', dynamic_sources=[(v['task'], v['output']) for v in slots])
+    args = tmp_path, dict(tasks=tasks, references=refs), rows, [publish]
+    maxima = dict(evaluation=228968, scores=10563)
+    result = successor.primary_comparison_sizes(*args, maxima)
+    assert result[publish] == 459899520 + 8 * 8192 + template['bytes']
+    with pytest.raises(ValueError, match='exceeds the 512 MiB'):
+        successor.primary_comparison_sizes(*args, dict(maxima, evaluation=300000))
+    rows['score-0']['members'] -= 1
+    with pytest.raises(ValueError, match='member counts'):
+        successor.primary_comparison_sizes(*args, maxima)
+    rows['score-0']['members'] += 1
+    tasks[0]['trial_choices'][0]['policy'] = 'other'
+    with pytest.raises(ValueError, match='different request policies'):
+        successor.primary_comparison_sizes(*args, maxima)
+
+
+def test_unreviewed_flag_still_blocks(tmp_path):
+    audit = dict(tasks=[dict(task='capability-language', envelopes_bytes=1)])
+    receipt = dict(estimated_dynamic_envelope_bytes={'capability-language': 512 << 20},
+                   projected_input_cap_flags=['capability-language'])
+    with pytest.raises(ValueError, match='outside the reviewed'):
+        successor.comparison_estimates(tmp_path, receipt, audit)
+
+
+def test_compact_projection_keeps_exact_original_and_byte_accounting(tmp_path, monkeypatch):
+    import json
+    from contextlib import contextmanager
+    from oeis_learn.generalization.progressive import storage
+    from oeis_learn.generalization.progressive.contracts import load
+
+    charged = []
+    @contextmanager
+    def guard(path, size):
+        charged.append((path, size))
+        yield
+    monkeypatch.setattr(storage, 'writing', guard)
+    value = seal(dict(version='discovery-channel/v1', role='verifier', kind='public_evidence',
+                      data=seal(dict(record=seal(dict(records={'p': ['a', 'b']})), artifact={'sha256': 'original'}))))
+    plain, compact = (tmp_path / s for s in ('plain.json', 'compact.json'))
+    atomic_write(plain, value)
+    atomic_write(compact, value, compact=True)
+    assert plain.read_bytes() == (json.dumps(value, sort_keys=True, indent=2) + '\n').encode()
+    assert load(plain) == load(compact) == seal(value)
+    assert compact.stat().st_size < plain.stat().st_size
+    assert charged == [(p, p.stat().st_size) for p in (plain, compact)]
+    with pytest.raises(ValueError, match='fresh publication'):
+        atomic_write(compact, value, compact=True)
+
+
+def test_compact_comparison_round_trips_through_publication(tmp_path, monkeypatch):
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.pipeline_validation import progressive_outputs as outputs
+    from oeis_learn.pipeline_validation.progressive_publication import decision_from_outputs
+
+    names = ['gen', 'score', 'diversity-comparison']
+    plans = [dict(id=n, slot='stage', policy='frozen') for n in names]
+    campaign = dict(identity='campaign', created_at='fixed',
+                    payload=dict(tasks=plans, graph=dict(nodes=[dict(id='stage', dependencies=[])])))
+    task = dict(identity='consumer', purpose='research', track='synthetic_strict', payload=plans[-1])
+    store = SimpleNamespace(campaign=campaign, state=dict(outputs={}, tasks={}), resolved_plan=lambda p: p)
+    monkeypatch.setattr(outputs, 'record', lambda _, p, **kw: dict(identity=p['id']))
+    slots = []
+    generated = seal(dict(records={'p': dict(details=['full', 'candidate', 'trace'])}))
+    for name, op, key in [('gen', 'generate', 'evaluation'), ('score', 'score', 'scores')]:
+        value = (generated if name == 'gen' else seal(dict(candidates=gen_ref['sha256'], denominator=1,
+                     outcomes={'p': {'equal_budget': dict(success=True, complete=True)}})))
+        base = tmp_path / name
+        atomic_write(base / 'evidence.json', value)
+        ref = reference(base, 'evidence.json')
+        if name == 'gen':
+            gen_ref = ref
+        atomic_write(base / 'result.json', seal(dict(mechanical_status='COMPLETE', operation=op, metrics={key: ref})))
+        store.state['tasks'][name] = 'COMPLETE'
+        store.state['outputs'][name] = dict(task=name, operation=op, result=reference(tmp_path, base / 'result.json'))
+        slots.append(dict(task=name, operation=op, output=key, kind='public_evidence'))
+    template = dict(version='progressive-decision-template/v1', source_slot='s', target_slot='t',
+                    roster=[dict(task='p', group='g', stratum='s')], seeds=[1], design={}, policy={},
+                    remaining={}, kwargs={}, producers=[dict(arm='baseline', seed=1, generation_task='gen', scoring_task='score')])
+    atomic_write(tmp_path / 'template.json', seal(dict(version='discovery-channel/v1', role='verifier', kind='public_evidence', data=template)))
+    request = dict(operation='publish', artifacts=dict(public=['template.json', *slots]))
+    views, _ = outputs.resolve(tmp_path, store, task, request, tmp_path / 'derived-inputs')
+    mounted = projections.project(tmp_path, tmp_path / 'projection', 'publish', views, registry=REGISTRY,
+                                  authorized=[d.ref for d in views['public']])
+    values = [load(p) for p in mounted['public'].glob('*.json')]
+    evidence = next(v for v in values if v['data'].get('operation') == 'generate')
+    assert evidence['data']['record'] == generated
+    assert evidence['data']['artifact']['sha256'] == gen_ref['sha256']
+    assert all((tmp_path / d.ref['path']).read_bytes().count(b'\n') == 1 for d in views['public'][1:])
+    assert decision_from_outputs(values)[0]['data']['rows'][0]['outcome'] == 'success'

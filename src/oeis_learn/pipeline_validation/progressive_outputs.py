@@ -13,6 +13,9 @@ from oeis_learn.generalization.progressive.contracts import (
 from oeis_learn.pipeline_validation.identity import confined
 from .progressive_oeis import _Derived
 
+COMPARISON_TASKS = frozenset({'diversity-comparison', 'tuning-comparison-1',
+                              'tuning-comparison-2', 'tuning-comparison-3'})
+
 SLOTS = {
     ("generate", "candidates"): "candidate",
     ("extract-components", "library"): "library",
@@ -227,7 +230,11 @@ def resolve(root, store, task, request, output):
                 )
             )
             path = Path(output) / "derived" / channel / f"{i}.json"
-            atomic_write(path, wrapped)
+            # Preserve the full sealed original and its provenance. Insignificant
+            # JSON indentation needlessly multiplies the size of these eight inputs.
+            compact = (request['operation'] == 'publish' and kind == 'public_evidence'
+                       and task['payload']['id'] in COMPARISON_TASKS)
+            atomic_write(path, wrapped, compact=compact)
             descriptor = describe(root, reference(root, path)["path"])
             artifacts[channel].append(descriptor)
             derived.append(descriptor.ref)
