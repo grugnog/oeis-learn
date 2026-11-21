@@ -71,6 +71,13 @@ def finalize(root,payload,cases,producers, *, historical=False):
     old_slots={n['id']:sum(p['caps']['disk_bytes'] for p in plans if p['slot']==n['id']) for n in payload['graph']['nodes']}
     estimates=[];deficits=[]
     policies={r['artifact']['sha256']:r['artifact'] for r in payload['references'] if r['kind']=='policy'}
+    from . import progressive_round023_successor as round023
+    replacements=[r['artifact'] for r in payload['references'] if r['name']==round023.NAME]
+    extra={}
+    if replacements:
+        if len(replacements)!=1 or replacements[0]['path']!=round023.SUCCESSOR+'/preparation-owner-proof.json':
+            raise ValueError('original round024 storage authorization required')
+        extra=round023.additions(root,json.loads(verify_refs(root,replacements)[0]))
     for task in plans:
         if task['kind']=='training':
             bound=bounds.get(task['id'])
@@ -107,6 +114,7 @@ def finalize(root,payload,cases,producers, *, historical=False):
                         source=by_id[item['task']]
                         model_bytes+=max(by_scope[v['initializer']['compatibility']].get('weights_bytes',by_scope[v['initializer']['compatibility']]['checkpoint_bytes']) for v in variants(source))
             needed=(model_bytes if request.get('operation')=='generate' else 0)+(128<<20)
+        needed+=extra.get(task['id'],0)
         if needed>task['caps']['disk_bytes']:
             deficits.append('measured_task_storage:'+task['id'])
         else:

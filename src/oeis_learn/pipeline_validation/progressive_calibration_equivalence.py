@@ -58,6 +58,7 @@ HOST_ONLY = {
     'pipeline_validation/progressive_round019_successor.py',
     'pipeline_validation/progressive_round020_successor.py',
     'pipeline_validation/progressive_round022_successor.py',
+    'pipeline_validation/progressive_round023_successor.py',
     'pipeline_validation/progressive_acceptance_retry.py',
     'pipeline_validation/progressive_research_launch.py',
     'pipeline_validation/progressive_research_workstation.py',
@@ -68,12 +69,19 @@ HOST_ONLY = {
 # Runtime task validation and cycle dispatch changed; accept only the exact
 # reviewed bytes with the original round009 source and fresh device qualification.
 REVIEWED_FILES = {
-    'generalization/progressive/projections.py': 'sha256:b1c310f74aab5e02c9689d459a80b8b09e20cc0f2d876e34a59c0f8026742ac0',
+    'pipeline_validation/progressive_roles.py': 'sha256:d5b8b34435f662b5587d423ffe6146ebbb3630850a0321044d550aeaf1d3e28e',
+    'pipeline_validation/progressive_quarantine_control.py': 'sha256:237cf5d807fa24078043fb80cb392a66f7ba03e91f68db30c379f2b561b53573',
+    'generalization/progressive/projections.py': 'sha256:f2bd084df568763f06d5d4e7b08876735f20e0c86f6e0f07978bd0e6d7f2c378',
     'generalization/progressive/campaign.py': 'sha256:177707688b3e222d2c33c506daf736c363c44712de59e5d07ccc80056199668c',
     'pipeline_validation/progressive_oeis.py': 'sha256:9ae730e18c6ff3eb32fed6ebeb89a5096a26a870eac684086eead6ffe20c07be',
-    'pipeline_validation/progressive_commands.py': 'sha256:bb9406f67f2a44cb33435c422569a7c6fdf2307cb0a337f80ee1d9dc5f889e09',
+    'pipeline_validation/progressive_commands.py': 'sha256:88a66f8efe9ebbfd6b972fc1bbca89308ee73d6fca55749c74560e64b2542f06',
     'generalization/progressive/freeze_progress.py': 'sha256:d19809fdb5cabe978cc96c93431d91419f9247e370c405531cad05aa2cef7232',
     'pipeline_validation/qualification_retirement.py': 'sha256:d07bb9b6f11901825c96de6aa0ef3a9740264e2b33a8ed01f79b6670e3423b07',
+}
+# Historical proofs replay the exact source hashes that were reviewed for round023.
+PREVIOUS_REVIEWED = {
+    'generalization/progressive/projections.py': 'sha256:b1c310f74aab5e02c9689d459a80b8b09e20cc0f2d876e34a59c0f8026742ac0',
+    'pipeline_validation/progressive_commands.py': 'sha256:bb9406f67f2a44cb33435c422569a7c6fdf2307cb0a337f80ee1d9dc5f889e09',
 }
 PROTECTED = {
     'pipeline_validation/progressive_calibration.py': (('validate_prepared', 'verify_result', 'verify_case'), '9fa7b840a3c615c20be50e23c29763a208f72e6dafd1ab8125bf41a3be234d37'),
@@ -93,7 +101,8 @@ def validate(original, current, *, package_root=None):
             continue
         if name in HOST_SCRIPTS and name in current:
             continue
-        if name.startswith(PREFIX) and relative in REVIEWED_FILES and current.get(name) == REVIEWED_FILES[relative]:
+        if (name.startswith(PREFIX) and name in current and relative in REVIEWED_FILES
+                and current[name] in (REVIEWED_FILES[relative], PREVIOUS_REVIEWED.get(relative))):
             continue
         if not name.startswith(PREFIX) or relative not in HOST_ONLY | PROTECTED.keys():
             raise ValueError('calibrated execution source changed: '+name)

@@ -544,7 +544,13 @@ def main(root,argv=None):
             if args.phase=='register-inputs': w.register_research()
             elif args.phase=='rehearse': w.rehearse()
             elif args.phase=='prepare-research':
-                w.prepare_research()
+                from .progressive_round023_successor import SUCCESSOR, preparation_window
+                accepted = s.journal['steps'].get('prepare-research/acceptance', {})
+                already_prepared = (s.folder == root / SUCCESSOR and args.run_after_prepare
+                                    and accepted.get('status') == 'COMPLETE' and not s.code())
+                if not already_prepared:
+                    with preparation_window(root,s):
+                        w.prepare_research()
                 if args.run_after_prepare: w.run_after_prepare()
             elif args.phase=='measure-services':
                 from .progressive_service_workstation import measure

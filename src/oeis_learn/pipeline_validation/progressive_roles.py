@@ -393,6 +393,18 @@ def _invoke_reserved(
         )
         from oeis_learn.generalization.progressive.contracts import load
 
+        if not (role_output / "result.json").exists():
+            # The same exhausted worker guard can prevent publishing its failure.
+            # Export a fixed reason only. Raw stderr may contain private inputs.
+            stderr = target / "supervision/stderr.log"
+            if stderr.is_file():
+                with stderr.open("rb") as stream:
+                    stream.seek(max(0, stderr.stat().st_size - 8192))
+                    lines = stream.read(8192).splitlines()
+                for reason in ("owned storage byte/inode reservation exhausted",
+                               "free storage byte/inode reserve exhausted"):
+                    if ("TimeoutError: " + reason).encode() in lines:
+                        raise RuntimeError(f"{operation} could not publish its result: {reason}")
         result = load(role_output / "result.json")
         from oeis_learn.pipeline_validation.identity import seal
 

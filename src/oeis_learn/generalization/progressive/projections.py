@@ -55,6 +55,13 @@ class Artifact:
     identity: str
 
 
+def channel_value(root, descriptor):
+    # Generated candidate and public result envelopes embed the producer's full
+    # record. Match the installed reader; the aggregate projection limit still applies.
+    maximum = 512 << 20 if descriptor.kind in {'candidate', 'public_evidence'} else 1 << 20
+    return load(confined(root, descriptor.ref['path']), maximum=maximum)
+
+
 def describe(root, path):
     value = load(confined(root, path), maximum=512 << 20)
     if (
@@ -86,7 +93,7 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
     review_children = {}
     for descriptor in all_artifacts:
         if descriptor.kind == 'public_evidence':
-            data = load(confined(root, descriptor.ref['path']))['data']
+            data = channel_value(root, descriptor)['data']
             if isinstance(data, dict) and data.get('version') == 'progressive-bundle-input/v1':
                 if set(data) != {'version', 'artifact'}:
                     raise ValueError('closed public bundle request required')
@@ -184,7 +191,7 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
                 or descriptor.role not in {spec.role, "public"}
             ):
                 raise ValueError("wrong role/type/identity")
-            _validate_channel(descriptor.kind, load(source)["data"])
+            _validate_channel(descriptor.kind, channel_value(root, descriptor)["data"])
             if (
                 source == destination
                 or source in destination.parents

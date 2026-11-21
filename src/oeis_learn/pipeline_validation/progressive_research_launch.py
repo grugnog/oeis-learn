@@ -26,9 +26,14 @@ def prepare(workflow,data,design,materials):
         from . import progressive_round020_successor as round020
         owner_proof = read(s.folder / 'preparation-owner-proof.json')
         from . import progressive_round022_successor as round022
+        from . import progressive_round023_successor as round023
         successor = {round019.VERSION: round019, round020.VERSION: round020,
-                     round022.VERSION: round022}.get(owner_proof['version'])
-        retry_acceptance = successor in (round020, round022)
+                     round022.VERSION: round022, round023.VERSION: round023}.get(owner_proof['version'])
+        retry_acceptance = successor in (round020, round022, round023)
+        if successor is round023:
+            value=s.step('replacement-storage-estimate',lambda:round023.preflight(root,owner_proof),
+                         dependencies=('prepare-research/execution-preflight',))
+            if value is None:return
         if successor is not None:
             setup = successor.setup_limits(setup, owner_proof)
             storage_preflight = lambda: round019.check_storage(root, base)

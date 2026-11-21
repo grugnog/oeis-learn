@@ -9,6 +9,7 @@ from oeis_learn.generalization.progressive.contracts import (
     seal,
     verify_refs,
 )
+from oeis_learn.generalization.progressive.projections import channel_value
 from oeis_learn.generalization.progressive.quarantine import Journal
 from oeis_learn.pipeline_validation.identity import confined
 
@@ -16,7 +17,7 @@ from oeis_learn.pipeline_validation.identity import confined
 def require_clean_inputs(root, journal, artifacts):
     for group in artifacts.values():
         for descriptor in group:
-            value = load(confined(root, descriptor.ref["path"]))
+            value = channel_value(root, descriptor)
             require_clean_values(root, journal.root, [value])
 
 

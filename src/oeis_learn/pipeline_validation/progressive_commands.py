@@ -521,7 +521,8 @@ def lifecycle_command(args, root, host_factory):
     store = RunStore(control, campaign)
     journal = BudgetJournal(folder, campaign["identity"], campaign["payload"]["caps"], journal_bytes=campaign["payload"]["storage"].get("journal_bytes",64<<20))
     from .progressive_round022_successor import research_scope
-    with store.lease(), research_scope(root, campaign, campaign_path, store):
+    from .progressive_round023_successor import research_scope as generator_scope
+    with store.lease(), research_scope(root, campaign, campaign_path, store), generator_scope(root, campaign, campaign_path, store):
         store.append(
             {"tasks": store.state["tasks"], "status": "RUNNING", "invocation": _INVOCATION.get()}
         )
@@ -881,7 +882,7 @@ def assess_command(args, root, host_factory):
     from oeis_learn.generalization.progressive.assessment import validate_selection, expose
     from oeis_learn.generalization.progressive.contracts import verify_refs, reference
     from oeis_learn.generalization.progressive.budgets import BudgetJournal, role_work_requirements
-    from oeis_learn.generalization.progressive.projections import describe
+    from oeis_learn.generalization.progressive.projections import describe, channel_value
     from .progressive_roles import invoke, current_runtime
 
     campaign = load(confined(root, args.campaign),maximum=CAMPAIGN_DOCUMENT_BYTES)
@@ -928,7 +929,7 @@ def assess_command(args, root, host_factory):
         assessment_truth=[describe(root, r["path"]) for r in selection["panel"]],
         selection=[describe(root, reference(root, output / "selection-channel.json")["path"])],
     )
-    values = [load(confined(root, a.ref["path"])) for items in artifacts.values() for a in items]
+    values = [channel_value(root, a) for items in artifacts.values() for a in items]
     cost = role_work_requirements("assess", values)
     task = selection["task"]
     seconds = min(3600, task["payload"]["caps"]["elapsed_us"] / 1e6)
