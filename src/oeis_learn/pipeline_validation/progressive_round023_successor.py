@@ -264,17 +264,19 @@ def preparation_window(root, session):
     import signal
     from .preparation_recovery import Allowance
 
-    if session.folder != root / SUCCESSOR:
+    from . import progressive_round024_successor as random_control
+    predecessor = {root/SUCCESSOR: CAMPAIGN, root/random_control.SUCCESSOR: random_control.CAMPAIGN}.get(session.folder)
+    if predecessor is None:
         yield
         return
     allowance = Allowance(session.folder / 'replacement-preparation-allowance.json',
-                          dict(predecessor='sha256:' + CAMPAIGN, session=SUCCESSOR), 21600)
+                          dict(predecessor='sha256:' + predecessor, session=str(session.folder.relative_to(root))), 21600)
     with allowance.attempt() as (remaining, _):
         if remaining <= 120:
-            raise Blocked('round024 preparation allowance exhausted')
+            raise Blocked(f'{session.folder.name} preparation allowance exhausted')
 
         def expired(*_):
-            raise KeyboardInterrupt('round024 preparation deadline reached')
+            raise KeyboardInterrupt(f'{session.folder.name} preparation deadline reached')
 
         previous = signal.signal(signal.SIGALRM, expired)
         signal.setitimer(signal.ITIMER_REAL, remaining - 120)

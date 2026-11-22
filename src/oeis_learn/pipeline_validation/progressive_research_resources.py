@@ -78,6 +78,14 @@ def finalize(root,payload,cases,producers, *, historical=False):
         if len(replacements)!=1 or replacements[0]['path']!=round023.SUCCESSOR+'/preparation-owner-proof.json':
             raise ValueError('original round024 storage authorization required')
         extra=round023.additions(root,json.loads(verify_refs(root,replacements)[0]))
+    from . import progressive_round024_successor as round024
+    carry = [r['artifact'] for r in payload['references'] if r['name'] == round024.NAME]
+    if carry:
+        if replacements or len(carry) != 1 or carry[0]['path'] != round024.SUCCESSOR+'/preparation-owner-proof.json':
+            raise ValueError('original round025 storage authorization required')
+        evidence, = verify_refs(root, carry)
+        round024.setup_limits({}, json.loads(evidence))
+        extra = round024.additions(root)
     for task in plans:
         if task['kind']=='training':
             bound=bounds.get(task['id'])

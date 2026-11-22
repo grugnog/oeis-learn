@@ -59,6 +59,7 @@ HOST_ONLY = {
     'pipeline_validation/progressive_round020_successor.py',
     'pipeline_validation/progressive_round022_successor.py',
     'pipeline_validation/progressive_round023_successor.py',
+    'pipeline_validation/progressive_round024_successor.py',
     'pipeline_validation/progressive_acceptance_retry.py',
     'pipeline_validation/progressive_research_launch.py',
     'pipeline_validation/progressive_research_workstation.py',
@@ -97,8 +98,16 @@ def validate(original, current, *, package_root=None):
         raise ValueError('only the reviewed original round009 source is eligible')
     package_root = Path(package_root or Path(__file__).resolve().parents[1])
     changed = sorted(k for k in set(original) | set(current) if original.get(k) != current.get(k))
+    # The reviewed change only handles a late native call during generation.
+    # No learner timing, calibration or checkpoint algorithm changed.
+    round025 = {
+        'generalization/progressive/budgets.py': 'sha256:64819084108419e7ec6885199210cc06deb2252a95263f4421596c69363f7b0b',
+        'pipeline_validation/progressive_commands.py': 'sha256:9c10bd4d899ba6a32c336697067f61752d0e32a8f50493c99a4b68e7c978c987',
+    }
     for name in changed:
         relative = name.removeprefix(PREFIX)
+        if name.startswith(PREFIX) and relative in round025 and current.get(name) == round025[relative]:
+            continue
         if name.startswith('tests/'):
             continue
         if name in HOST_SCRIPTS and name in current:

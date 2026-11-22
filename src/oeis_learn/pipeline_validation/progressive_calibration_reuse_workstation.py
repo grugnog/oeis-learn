@@ -40,7 +40,7 @@ def fenced_original(w):
         # Only reviewed pre-science qualification, preparation or host-freeze
         # stops may sit between the complete calibration and this recipient.
         # Replay original termination evidence; scientific/unclean work blocks.
-        if (proof.get('version') not in {'progressive-preparation-owner-proof/v1','progressive-preparation-owner-proof/v6','progressive-preparation-owner-proof/v7','progressive-preparation-owner-proof/v8','progressive-preparation-owner-proof/v9','progressive-preparation-owner-proof/v10','progressive-preparation-owner-proof/v11','progressive-preparation-owner-proof/v12'}
+        if (proof.get('version') not in {'progressive-preparation-owner-proof/v1','progressive-preparation-owner-proof/v6','progressive-preparation-owner-proof/v7','progressive-preparation-owner-proof/v8','progressive-preparation-owner-proof/v9','progressive-preparation-owner-proof/v10','progressive-preparation-owner-proof/v11','progressive-preparation-owner-proof/v12','progressive-preparation-owner-proof/v13'}
                 or failure_proof(w.root, predecessor) != proof):
             raise Blocked('only reviewed pre-science pre-science stops may retain the calibration donor')
         node = previous
@@ -121,6 +121,14 @@ def prepare(w):
             round023.check_inputs(w.root, payload['task_plans'], payload['references'], proof)
             round023.expand(payload, round023.additions(w.root, proof))
             payload['references'].append(dict(name=round023.NAME, role='custodian', kind='policy',
+                                              artifact=reference(w.root, path)))
+        from . import progressive_round024_successor as round024
+        if str(w.s.folder.relative_to(w.root)) == round024.SUCCESSOR:
+            path = w.s.folder/'preparation-owner-proof.json'
+            proof = read(path)
+            round024.check_inputs(w.root, payload['task_plans'], payload['references'], proof)
+            round023.expand(payload, round024.additions(w.root))
+            payload['references'].append(dict(name=round024.NAME, role='custodian', kind='policy',
                                               artifact=reference(w.root, path)))
         for name, kind, path in [('research_resource_policy', 'policy', output/'resource-policy.json'),
                                   (NAME, 'policy', output/'calibration-reuse.json'),

@@ -33,8 +33,11 @@ def failure_proof(root, receipt):
     from . import progressive_round023_successor as round023
     if receipt['recipient'] == round023.SESSION:
         return round023.proof(root, receipt, session, journal)
-    if receipt['recipient'] == round023.SUCCESSOR:
-        raise Blocked('round024 generator replacement has no further successor')
+    from . import progressive_round024_successor as round024
+    if receipt['recipient'] == round024.SESSION:
+        return round024.proof(root, receipt, session, journal)
+    if receipt['recipient'] == round024.SUCCESSOR:
+        raise Blocked('round025 random-control replacement has no further successor')
     steps = journal['steps']
     if steps.get('prepare-research/freeze', {}).get('status') == 'FAILED' and steps.get('prepare-research/prepare', {}).get('status') == 'COMPLETE':
         from .progressive_freeze_recovery import proof
@@ -128,7 +131,8 @@ def _claim_owner(root, claim, receipt):
     from . import progressive_round022_successor as round022
     # Allow exactly one additional reviewed ownership link for this successor.
     from . import progressive_round023_successor as round023
-    history_limit = {round022.SUCCESSOR:17, round023.SUCCESSOR:18}.get(receipt['recipient'],16)
+    from . import progressive_round024_successor as round024
+    history_limit = {round022.SUCCESSOR:17, round023.SUCCESSOR:18, round024.SUCCESSOR:19}.get(receipt['recipient'],16)
     ancestors = []
     for _ in range(history_limit):
         previous = node['receipt'] if node.get('version') == VERSION else node
@@ -162,6 +166,8 @@ def _claim_owner(root, claim, receipt):
                 raise Blocked('round022 audit replacement belongs to round023')
             if proof['version'] == round023.VERSION and receipt['recipient'] != round023.SUCCESSOR:
                 raise Blocked('round023 generator replacement belongs to round024')
+            if proof['version'] == round024.VERSION and receipt['recipient'] != round024.SUCCESSOR:
+                raise Blocked('round024 random-control replacement belongs to round025')
             history = claim.parent/(claim.stem+'-history')
             prior_path = history/(current['identity'][7:]+'.json')
             proof_path = history/(proof['identity'][7:]+'.json')
