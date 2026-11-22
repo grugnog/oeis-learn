@@ -516,6 +516,7 @@ class RoleWorkBudget:
             or reservation["boot"] != Path("/proc/sys/kernel/random/boot_id").read_text().strip()
         ):
             raise ValueError("original pre-dispatch resource reservation required")
+        self.operation = operation
         self.caps = vector(reservation["cost"])
         need = role_work_requirements(operation, values)
         if any(self.caps[k] < need[k] or self.caps[k] > t["payload"]["caps"][k] for k in KEYS):
@@ -575,9 +576,19 @@ class RoleWorkBudget:
                 budget.consume(native_work=len(request["candidates"]))
                 deadline = min(deadline, budget.deadline)
                 result = worker.call(request, deadline=deadline)
-                if time.monotonic() >= deadline:
+                observed = time.monotonic()
+                if observed < deadline:
+                    return result
+                if observed >= budget.deadline or budget.operation != "generate":
                     raise TimeoutError("late native work remains charged and cannot be admitted")
-                return result
+                if result.get("outcome") == "verification_failure" or any(
+                    row.get("outcome") == "verification_failure" for row in result["results"]
+                ):
+                    raise RuntimeError("late native response reported a verification failure")
+                # The generator can record an incomplete local service call. Drop
+                # every late result before fitting, reference admission, or caching.
+                return dict(results=[], unstarted=result["unstarted"], complete=False,
+                            outcome="resource_exhausted", reason="native service deadline")
 
         client.worker = MeteredWorker()
         return client

@@ -276,3 +276,68 @@ def test_large_journal_allowance_is_frozen_and_legacy_default_stays_bounded(tmp_
     assert journal_limit(legacy.root)==64<<20
     BudgetJournal(legacy.root,'c',caps(),journal_bytes=128<<20)
     assert journal_limit(legacy.root)==128<<20
+
+
+@pytest.mark.parametrize("limit", ["fit", "execute", "role", "verification"])
+def test_generator_discards_late_native_output_and_keeps_its_charge(tmp_path, monkeypatch, limit):
+    import time
+    from types import SimpleNamespace
+
+    from oeis_learn.generalization.progressive.budgets import RoleWorkBudget
+    from oeis_learn.generalization.progressive.contracts import seal
+    from oeis_learn.synthesis.admission import VisiblePrompt
+    from oeis_learn.synthesis.client import SynthesisClient
+
+    values = [seal(dict(kind=kind, data={})) for kind in ("visible_prompt", "oeis_generation")]
+    authority, _, _ = role_authority(tmp_path, "generate", values, useful_us=15_000_000)
+    budget = RoleWorkBudget(authority, "generate", values, tmp_path / "out")
+    clock = [budget.deadline - 14]
+    monkeypatch.setattr(time, "monotonic", lambda: clock[0])
+    dispatches = []
+
+    def call(request, *, deadline):
+        dispatches.append(request["operation"])
+        if len(dispatches) == 1:
+            clock[0] = budget.deadline if limit == "role" else deadline
+        outcome = "verification_failure" if limit == "verification" else "unsupported"
+        return dict(complete=True, results=[dict(outcome=outcome)], unstarted=[])
+
+    worker = SimpleNamespace(generation=1, call=call, close=lambda: None)
+    with SynthesisClient("sha256:" + "1" * 64, worker=worker) as client:
+        budget.client(client)
+        client.runtime_identity = lambda profile: "test-runtime"
+        series = tuple(map(str, range(20)))
+        prompt = VisiblePrompt(series, series)
+        source = "(program (return $index))"
+        if limit == "role":
+            with pytest.raises(TimeoutError):
+                client.fit(source, prompt)
+        elif limit == "verification":
+            with pytest.raises(RuntimeError, match="verification"):
+                client.fit(source, prompt)
+        else:
+            if limit == "fit":
+                from oeis_learn.fresh.bigint_diagnostics import portfolio
+
+                events = []
+                batch = portfolio(
+                    None, None, dict(id="example", indices=series, values=series),
+                    dict(model=dict(seed=0), search=dict(beam=None), fitting=dict(disabled=False),
+                         pipeline=dict(version="test")),
+                    client, deadline=budget.deadline, template=True, mode="template",
+                    snapshot="test", attempt_count=2, evidence=lambda *args: events.append(args),
+                )
+                assert [e[3] for e in events] == [
+                    "STARTED", "GENERATED", "INCOMPLETE", "STARTED", "GENERATED", "COMMITTED"
+                ]
+                assert batch["equal_budget"] is None and not batch["complete"]
+                result = batch["details"][0]["fitting"]
+            else:
+                result = client.execute(source, prompt.indices, deadline=clock[0] + 1)
+                assert result["values"] == []
+            assert result["outcome"] == "resource_exhausted"
+            assert result["reason"] == "native service deadline"
+            if limit == "execute":
+                assert client.fit(source, prompt)["complete"]
+        assert budget.used["native_work"] == len(dispatches)
+        assert len(dispatches) == (2 if limit in {"fit", "execute"} else 1)
