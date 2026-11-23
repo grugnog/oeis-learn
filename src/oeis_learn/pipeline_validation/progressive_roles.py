@@ -90,6 +90,13 @@ def deadline_for(task, *, remaining_us, seconds, runtime=None, operation, expand
     return time.monotonic() + seconds
 
 
+def validate_learner_reservation(operation, reservation):
+    if operation == "train" and any(reservation[k] for k in reservation if k != "elapsed_us"):
+        raise ValueError(
+            "learner reserves updates separately; enclosing role may reserve elapsed only"
+        )
+
+
 def _invoke_reserved(
     host,
     image,
@@ -134,10 +141,7 @@ def _invoke_reserved(
         or journal.binding["caps"] != c["payload"]["caps"]
     ):
         raise ValueError("unrelated campaign journal")
-    if operation == "train" and any(reservation[k] for k in reservation if k != "elapsed_us"):
-        raise ValueError(
-            "learner reserves updates separately; enclosing role may reserve elapsed only"
-        )
+    validate_learner_reservation(operation, reservation)
     remaining = journal.task_remaining(t)
     vector(reservation)
     if reservation["elapsed_us"] != int(seconds * 1_000_000) or any(

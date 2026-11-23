@@ -183,7 +183,9 @@ class Compiler:
         caps.update(draws=attempts,rejections=attempts,attempts=attempts,
                     native_work=max(1000000,members*8*100*100000))
         reservation=dict.fromkeys(KEYS,0)
-        reservation.update(elapsed_us=elapsed,draws=attempts,rejections=attempts,attempts=attempts,native_work=caps['native_work'])
+        reservation['elapsed_us']=elapsed
+        if operation!='train':
+            reservation.update(draws=attempts,rejections=attempts,attempts=attempts,native_work=caps['native_work'])
         image=self.q['images'][1 if operation in {'train','generate'} else 0]
         request=dict(operation=operation,artifacts=channels,image=image,seconds=row['seconds'],reservation=reservation)
         policy=self.put('requests/'+row['id']+'.json',request,kind='policy')['sha256']

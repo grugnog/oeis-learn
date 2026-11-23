@@ -261,7 +261,7 @@ def validate_requests(root, plans, refs, graph, *, purpose="acceptance", track="
         request = json.loads(verify_refs(root, [ref])[0])
         if type(request) is not dict or "operation" not in request:
             continue
-        from .progressive_roles import REGISTRY
+        from .progressive_roles import REGISTRY, validate_learner_reservation
 
         if request.get('operation')=='source-cycle':
             from .progressive_source_cycle import validate_request
@@ -278,6 +278,7 @@ def validate_requests(root, plans, refs, graph, *, purpose="acceptance", track="
             or set(request["artifacts"]) != set(REGISTRY[request["operation"]].channels)
         ):
             raise ValueError("closed frozen installed request required")
+        validate_learner_reservation(request["operation"], request["reservation"])
         for channel, items in request["artifacts"].items():
             if not isinstance(items, list) or len(items) > 4096:
                 raise ValueError("bounded frozen channel slots required")

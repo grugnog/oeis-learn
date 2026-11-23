@@ -179,6 +179,9 @@ def test_full_registered_plan_has_real_closed_requests_and_exact_cases(compiled)
     requests=[load(root/r['artifact']['path']) for r in plan['references'] if r['kind']=='policy' and r['name'].startswith('requests/')]
     assert len(requests)==summary['tasks']
     from oeis_learn.generalization.progressive.budgets import role_work_requirements
+    for req in (r for r in requests if r['operation']=='train'):
+        assert req['reservation']['elapsed_us'] == req['seconds'] * 1000000
+        assert all(value == 0 for k, value in req['reservation'].items() if k != 'elapsed_us')
     audit=next(r for r in requests if r['operation']=='audit-language')
     need=role_work_requirements('audit-language',[load(root/p) for p in audit['artifacts']['sources']])
     assert all(audit['reservation'][k]>=v for k,v in need.items())
@@ -325,3 +328,15 @@ def test_finalist_lock_applies_identical_settings_to_both_confirmation_segments(
             for suffix in ('','-part1'):assert store.state['tasks'][f'confirmation-{position}-{seed}'+suffix]=='SKIPPED'
     original=dict(store.state['choices']);s.commit_selection(root,store,task,result)
     assert store.state['choices']==original
+
+
+def test_frozen_training_request_rejects_outer_native_work(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_outputs import validate_requests
+    from oeis_learn.pipeline_validation.progressive_roles import REGISTRY
+    request = dict(operation='train', image=digest('gpu'), seconds=60,
+                   artifacts={channel: [] for channel in REGISTRY['train'].channels},
+                   reservation=dict(elapsed_us=60000000, native_work=1000000))
+    atomic_write(tmp_path/'bad.json',request)
+    ref=reference(tmp_path,'bad.json')
+    with pytest.raises(ValueError,match='learner reserves updates separately'):
+        validate_requests(tmp_path,[dict(policy=ref['sha256'])],[dict(kind='policy',artifact=ref)],{})
