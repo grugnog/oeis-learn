@@ -265,7 +265,8 @@ def preparation_window(root, session):
     from .preparation_recovery import Allowance
 
     from . import progressive_round024_successor as random_control
-    predecessor = {root/SUCCESSOR: CAMPAIGN, root/random_control.SUCCESSOR: random_control.CAMPAIGN}.get(session.folder)
+    from . import progressive_round025_successor as learner
+    predecessor = {root/learner.SUCCESSOR: learner.CAMPAIGN, root/SUCCESSOR: CAMPAIGN, root/random_control.SUCCESSOR: random_control.CAMPAIGN}.get(session.folder)
     if predecessor is None:
         yield
         return

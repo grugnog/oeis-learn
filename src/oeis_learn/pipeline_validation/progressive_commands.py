@@ -523,8 +523,10 @@ def lifecycle_command(args, root, host_factory):
     from .progressive_round022_successor import research_scope
     from .progressive_round023_successor import research_scope as generator_scope
     from .progressive_round024_successor import research_scope as random_scope
+    from .progressive_round025_successor import research_scope as learner_scope
     with (store.lease(), research_scope(root, campaign, campaign_path, store),
-          generator_scope(root, campaign, campaign_path, store), random_scope(root, campaign, campaign_path, store, journal)):
+          generator_scope(root, campaign, campaign_path, store), random_scope(root, campaign, campaign_path, store, journal),
+          learner_scope(root, campaign, campaign_path, store, journal)):
         store.append(
             {"tasks": store.state["tasks"], "status": "RUNNING", "invocation": _INVOCATION.get()}
         )

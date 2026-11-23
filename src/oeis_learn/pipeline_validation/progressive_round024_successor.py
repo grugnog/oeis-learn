@@ -160,12 +160,12 @@ def additions(root):
     return previous.additions(root, read(root / SESSION / 'preparation-owner-proof.json'))
 
 
-def input_scopes(root, tasks, refs, verify):
+def input_scopes(root, tasks, refs, verify, *, names=(*CARRIED, TASK)):
     by_name = {r['name']: r['artifact'] for r in refs}
     by_path = {r['artifact']['path']: r['artifact'] for r in refs}
     by_id = {t['id']: t for t in tasks}
     scopes = {}
-    for name in (*CARRIED, TASK):
+    for name in names:
         plan = by_id[name]
         req = by_name['requests/' + name]
         require(req['sha256'] == plan['policy'], 'task request binding differs: ' + name)
@@ -222,11 +222,11 @@ def check_inputs(root, plans, refs, evidence):
                                        for row in rows}, comparison['estimates'], comparison['sample_maxima'])
 
 
-def carry(root, store, journal, evidence):
+def carry(root, store, journal, evidence, *, names=CARRIED, operation='carry-round024'):
     from .progressive_outputs import commit
     from oeis_learn.generalization.progressive.contracts import record
     plans = {p['id']: p for p in store.campaign['payload']['tasks']}
-    for name in CARRIED:
+    for name in names:
         cut = evidence['original_outputs'][name]
         task = record('task',
                       dict(plans[name], campaign=store.campaign['identity']),
@@ -239,7 +239,7 @@ def carry(root, store, journal, evidence):
             # completes the same reservation, without issuing another dispatch.
             journal.task_remaining(task)
             charge = journal.reserve(name,
-                                     'carry-round024',
+                                     operation,
                                      0,
                                      old['cost'],
                                      boot=old['boot'],

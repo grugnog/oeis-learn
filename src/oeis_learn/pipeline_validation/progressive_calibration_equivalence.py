@@ -60,6 +60,7 @@ HOST_ONLY = {
     'pipeline_validation/progressive_round022_successor.py',
     'pipeline_validation/progressive_round023_successor.py',
     'pipeline_validation/progressive_round024_successor.py',
+    'pipeline_validation/progressive_round025_successor.py',
     'pipeline_validation/progressive_acceptance_retry.py',
     'pipeline_validation/progressive_research_launch.py',
     'pipeline_validation/progressive_research_workstation.py',
@@ -104,8 +105,16 @@ def validate(original, current, *, package_root=None):
         'generalization/progressive/budgets.py': 'sha256:64819084108419e7ec6885199210cc06deb2252a95263f4421596c69363f7b0b',
         'pipeline_validation/progressive_commands.py': 'sha256:9c10bd4d899ba6a32c336697067f61752d0e32a8f50493c99a4b68e7c978c987',
     }
+    # Round026 changes only host dispatch accounting and frozen-request checks in these modules.
+    round026 = {
+        'pipeline_validation/progressive_roles.py': 'sha256:a502925e7d50ec40024da18384e5139e645556e65440d55afce2ab6401b6cb8b',
+        'pipeline_validation/progressive_commands.py': 'sha256:5b2613019c03f6491272f3aa1f8b666ef834fe1507229a4d5a70360aeecfc70e',
+        'pipeline_validation/progressive_outputs.py': 'sha256:973456d8afa3ee3dbeb081d97b299374d966e8924e8bc50ca7a7e257acb63c82',
+    }
     for name in changed:
         relative = name.removeprefix(PREFIX)
+        if name.startswith(PREFIX) and relative in round026 and current.get(name) == round026[relative]:
+            continue
         if name.startswith(PREFIX) and relative in round025 and current.get(name) == round025[relative]:
             continue
         if name.startswith('tests/'):

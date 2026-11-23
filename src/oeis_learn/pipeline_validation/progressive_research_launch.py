@@ -28,9 +28,10 @@ def prepare(workflow,data,design,materials):
         from . import progressive_round022_successor as round022
         from . import progressive_round023_successor as round023
         from . import progressive_round024_successor as round024
-        successor = {round019.VERSION: round019, round020.VERSION: round020,
+        from . import progressive_round025_successor as round025
+        successor = {round025.VERSION: round025, round019.VERSION: round019, round020.VERSION: round020,
                      round022.VERSION: round022, round023.VERSION: round023, round024.VERSION: round024}.get(owner_proof['version'])
-        retry_acceptance = successor in (round020, round022, round023, round024)
+        retry_acceptance = successor in (round020, round022, round023, round024, round025)
         if successor is round023:
             value=s.step('replacement-storage-estimate',lambda:round023.preflight(root,owner_proof),
                          dependencies=('prepare-research/execution-preflight',))
