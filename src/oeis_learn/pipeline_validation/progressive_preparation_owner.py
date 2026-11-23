@@ -40,7 +40,9 @@ def failure_proof(root, receipt):
     if receipt['recipient'] == round025.SESSION:
         return round025.proof(root, receipt, session, journal)
     if receipt['recipient'] == round025.SUCCESSOR:
-        raise Blocked('round026 learner replacement has no further successor')
+        return round025.retry_proof(root, receipt, session, journal)
+    if receipt['recipient'] == round025.RETRY:
+        raise Blocked('round027 learner replacement has no further successor')
     steps = journal['steps']
     if steps.get('prepare-research/freeze', {}).get('status') == 'FAILED' and steps.get('prepare-research/prepare', {}).get('status') == 'COMPLETE':
         from .progressive_freeze_recovery import proof
@@ -136,7 +138,7 @@ def _claim_owner(root, claim, receipt):
     from . import progressive_round023_successor as round023
     from . import progressive_round024_successor as round024
     from . import progressive_round025_successor as round025
-    history_limit = {round025.SUCCESSOR:20, round022.SUCCESSOR:17, round023.SUCCESSOR:18, round024.SUCCESSOR:19}.get(receipt['recipient'],16)
+    history_limit = {round025.RETRY:21, round025.SUCCESSOR:20, round022.SUCCESSOR:17, round023.SUCCESSOR:18, round024.SUCCESSOR:19}.get(receipt['recipient'],16)
     ancestors = []
     for _ in range(history_limit):
         previous = node['receipt'] if node.get('version') == VERSION else node
@@ -174,6 +176,8 @@ def _claim_owner(root, claim, receipt):
                 raise Blocked('round024 random-control replacement belongs to round025')
             if proof['version'] == round025.VERSION and receipt['recipient'] != round025.SUCCESSOR:
                 raise Blocked('round025 capability import belongs to round026')
+            if proof['version'] == round025.RETRY_VERSION and receipt['recipient'] != round025.RETRY:
+                raise Blocked('round026 qualification retry belongs to round027')
             history = claim.parent/(claim.stem+'-history')
             prior_path = history/(current['identity'][7:]+'.json')
             proof_path = history/(proof['identity'][7:]+'.json')

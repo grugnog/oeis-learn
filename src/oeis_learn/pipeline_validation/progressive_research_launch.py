@@ -29,7 +29,7 @@ def prepare(workflow,data,design,materials):
         from . import progressive_round023_successor as round023
         from . import progressive_round024_successor as round024
         from . import progressive_round025_successor as round025
-        successor = {round025.VERSION: round025, round019.VERSION: round019, round020.VERSION: round020,
+        successor = {round025.RETRY_VERSION: round025, round025.VERSION: round025, round019.VERSION: round019, round020.VERSION: round020,
                      round022.VERSION: round022, round023.VERSION: round023, round024.VERSION: round024}.get(owner_proof['version'])
         retry_acceptance = successor in (round020, round022, round023, round024, round025)
         if successor is round023:

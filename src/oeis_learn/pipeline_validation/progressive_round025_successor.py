@@ -16,6 +16,8 @@ from .progressive_round024_successor import require
 
 SESSION = previous.SUCCESSOR
 SUCCESSOR = 'run-state/discovery/013-research-round-026'
+RETRY = 'run-state/discovery/013-research-round-027'
+RETRY_VERSION = 'progressive-preparation-owner-proof/v15'
 BASE = SESSION + '/prepare-research'
 RUN = SESSION + '/run-research/execution-0000'
 CAMPAIGN = 'eaf72f0eb07d1459970c41c43f277d917c752948ef29b89c55099a5fb1bf0757'
@@ -95,7 +97,10 @@ def _proof(root, receipt, session, journal):
     # The new qualification still binds the complete source, including this file.
     snapshot.pop('src/oeis_learn/pipeline_validation/progressive_round025_successor.py')
     require(
-        digest(snapshot) == 'sha256:841b6b7d3111c1f1aee356240a19f420b9173d9d54bec9d702712099e1537365',
+        digest(snapshot) in {
+            'sha256:841b6b7d3111c1f1aee356240a19f420b9173d9d54bec9d702712099e1537365',
+            'sha256:aedb2608f1ceefd072e67b708f196620554881a60448b4f52c79d1772d5f3d1d',
+        },
         'reviewed round026 implementation required')
     old = confined(root, SESSION)
     require(
@@ -136,7 +141,66 @@ def proof(root, receipt, session, journal):
         return _proof(root, receipt, session, journal)
 
 
+def remaining_setup(root):
+    path = root / SUCCESSOR / 'replacement-preparation-allowance.json'
+    record = read(path)
+    require(record['version'] == 'progressive-operational-allowance/v1'
+            and record['binding'] == dict(predecessor='sha256:' + CAMPAIGN, session=SUCCESSOR)
+            and record['seconds'] == 21600 and record['active'] is None and record['attempts']
+            and 0 < record['spent_seconds'] <= 21600
+            and math.isclose(sum(a['charged_seconds'] for a in record['attempts']), record['spent_seconds']),
+            'settled original round026 preparation allowance required')
+    return 21600 - math.ceil(record['spent_seconds'])
+
+
+def registration_failure(root, receipt, session, journal, ancestor):
+    folder = root / SUCCESSOR
+    require(session == read(folder/'session.json') and session['identity'] ==
+            'sha256:f788f8ea98fab054dcb1ca64ceca94d0793f39f0aabf5edd1cc53ec1dcd0c589'
+            and journal == read(folder/'journal.json') and journal['identity'] ==
+            'sha256:b179ae3fae6e8c662e2be8c7ca985749434a223b1516166991e8b9d485cef5d6'
+            and receipt == read(folder/'preparation-owner.json')['receipt'] and receipt['identity'] ==
+            'sha256:6b4575b81579b52fb4356b6eb2b9cd97c37db3ccd96a29ffab9e364c114bf41a'
+            and ancestor == read(folder/'preparation-owner-proof.json') and ancestor['identity'] ==
+            'sha256:3480b895e3dea0fa9dedaf92863d66c24cd45f4cb30befc3613f849d581f1462',
+            'original round026 CPU qualification failure and capability proof required')
+    require(not any((folder/name).exists() for name in
+                    ('run-research','assess','prepare-research/frozen/campaign.json',
+                     'prepare-research/acceptance/attempts')), 'round026 advanced beyond qualification')
+    stage = folder/'prepare-research/base-qualification/pipeline/stages/cpu.semantic/bigint-cpu-regressions'
+    for name, size, sha in (
+            ('results.xml', 469256, '57c4f53a2b246fb35ed40588235530ca66ee5950cfcd944dd826134d39c6322c'),
+            ('process.json', 455, '75cbaf0feb2f71305f1870ceabcfe955ff6b5d06a3f091ce485f1a4f6b3052c7'),
+            ('cleanup.json', 130, '5bbc6f7e8e31e9ef90e5669ae9c59a450446afb8e8f227844b5c5ccea0b3deb2')):
+        checked_file(stage, dict(path=name, bytes=size, sha256='sha256:'+sha))
+    left = remaining_setup(root)
+    require(left > 120, 'round026 preparation allowance exhausted')
+    return seal(dict(ancestor, version=RETRY_VERSION, predecessor=receipt, successor=RETRY,
+                     original_proof=ancestor['identity'], round026_journal=journal['identity'],
+                     round026_allowance=reference(root,folder/'replacement-preparation-allowance.json'),
+                     charged_round026_seconds=21600-left, additional_prepare_seconds=left))
+
+
+def _retry_proof(root, receipt, session, journal):
+    old = root/SESSION
+    ancestor = _proof(root, read(old/'preparation-owner.json')['receipt'],
+                      read(old/'session.json'), read(old/'journal.json'))
+    return registration_failure(root, receipt, session, journal, ancestor)
+
+
+def retry_proof(root, receipt, session, journal):
+    with lease(root):
+        return _retry_proof(root, receipt, session, journal)
+
+
 def setup_limits(setup, evidence):
+    if evidence['version'] == RETRY_VERSION:
+        left = evidence['additional_prepare_seconds']
+        require(seal(evidence) == evidence and evidence['successor'] == RETRY
+                and evidence['reviewed_audit'] == AUDIT and 120 < left < 21600
+                and left + evidence['charged_round026_seconds'] == 21600,
+                'bounded round027 preparation allowance required')
+        return dict(setup, prepare=left, freeze=left)
     require(
         evidence['version'] == VERSION and evidence['reviewed_audit'] == AUDIT and seal(evidence) == evidence
         and evidence['additional_prepare_seconds'] == 21600, 'bounded round026 setup required')
@@ -183,7 +247,7 @@ def check_inputs(root, plans, refs, evidence):
             image=after['image'],
             artifacts={
                 'training':
-                [s.replace(SESSION + '/', SUCCESSOR + '/', 1) for s in before['artifacts']['training']]
+                [s.replace(SESSION + '/', evidence['successor'] + '/', 1) for s in before['artifacts']['training']]
             },
             reservation=dict(before['reservation'], native_work=0))
         require(
@@ -203,19 +267,22 @@ def check_inputs(root, plans, refs, evidence):
 @contextmanager
 def research_scope(root, campaign, path, store, journal):
     matches = [r['artifact'] for r in campaign['payload']['references'] if r['name'] == NAME]
-    expected = root / SUCCESSOR / 'prepare-research/frozen/campaign.json'
+    retry_path = root / RETRY / 'prepare-research/frozen/campaign.json'
+    recipient = RETRY if confined(root, path) == retry_path else SUCCESSOR
+    expected = root / recipient / 'prepare-research/frozen/campaign.json'
     if not matches and confined(root, path) != expected:
         yield
         return
-    proof_path = SUCCESSOR + '/preparation-owner-proof.json'
+    proof_path = recipient + '/preparation-owner-proof.json'
     require(
         confined(root, path) == expected and matches == [reference(root, proof_path)],
         'single round026 campaign required')
     with lease(root):
-        old = root / SESSION
+        predecessor, build = (SUCCESSOR, _retry_proof) if recipient == RETRY else (SESSION, _proof)
+        old = root / predecessor
         evidence = read(root / proof_path)
         require(
-            evidence == _proof(root,
+            evidence['successor'] == recipient and evidence == build(root,
                                read(old / 'preparation-owner.json')['receipt'], read(old / 'session.json'),
                                read(old / 'journal.json')), 'round025 evidence changed')
         check_inputs(root, campaign['payload']['tasks'], campaign['payload']['references'], evidence)

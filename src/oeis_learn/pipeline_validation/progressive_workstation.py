@@ -546,9 +546,9 @@ def main(root,argv=None):
             elif args.phase=='prepare-research':
                 from .progressive_round023_successor import SUCCESSOR, preparation_window
                 from .progressive_round024_successor import SUCCESSOR as RANDOM_SUCCESSOR
-                from .progressive_round025_successor import SUCCESSOR as LEARNER_SUCCESSOR
+                from .progressive_round025_successor import RETRY as LEARNER_RETRY, SUCCESSOR as LEARNER_SUCCESSOR
                 accepted = s.journal['steps'].get('prepare-research/acceptance', {})
-                already_prepared = (s.folder in (root / SUCCESSOR, root / RANDOM_SUCCESSOR, root / LEARNER_SUCCESSOR) and args.run_after_prepare
+                already_prepared = (s.folder in (root / SUCCESSOR, root / RANDOM_SUCCESSOR, root / LEARNER_SUCCESSOR, root / LEARNER_RETRY) and args.run_after_prepare
                                     and accepted.get('status') == 'COMPLETE' and not s.code())
                 if not already_prepared:
                     with preparation_window(root,s):

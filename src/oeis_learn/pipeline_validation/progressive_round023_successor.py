@@ -266,12 +266,13 @@ def preparation_window(root, session):
 
     from . import progressive_round024_successor as random_control
     from . import progressive_round025_successor as learner
-    predecessor = {root/learner.SUCCESSOR: learner.CAMPAIGN, root/SUCCESSOR: CAMPAIGN, root/random_control.SUCCESSOR: random_control.CAMPAIGN}.get(session.folder)
+    predecessor = {root/learner.RETRY: learner.CAMPAIGN, root/learner.SUCCESSOR: learner.CAMPAIGN, root/SUCCESSOR: CAMPAIGN, root/random_control.SUCCESSOR: random_control.CAMPAIGN}.get(session.folder)
     if predecessor is None:
         yield
         return
+    seconds = learner.remaining_setup(root) if session.folder == root/learner.RETRY else 21600
     allowance = Allowance(session.folder / 'replacement-preparation-allowance.json',
-                          dict(predecessor='sha256:' + predecessor, session=str(session.folder.relative_to(root))), 21600)
+                          dict(predecessor='sha256:' + predecessor, session=str(session.folder.relative_to(root))), seconds)
     with allowance.attempt() as (remaining, _):
         if remaining <= 120:
             raise Blocked(f'{session.folder.name} preparation allowance exhausted')

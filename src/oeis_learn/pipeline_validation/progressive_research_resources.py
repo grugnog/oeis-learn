@@ -84,10 +84,14 @@ def finalize(root,payload,cases,producers, *, historical=False):
     carry = [r for r in payload['references'] if r['name'] in modules]
     if carry:
         recovery = modules[carry[0]['name']]
-        if replacements or len(carry) != 1 or carry[0]['artifact']['path'] != recovery.SUCCESSOR+'/preparation-owner-proof.json':
+        if replacements or len(carry) != 1:
             raise ValueError('original round025 storage authorization required')
         evidence, = verify_refs(root, [carry[0]['artifact']])
-        recovery.setup_limits({}, json.loads(evidence))
+        proof = json.loads(evidence)
+        recipient = round025.RETRY if recovery is round025 and proof['version'] == round025.RETRY_VERSION else recovery.SUCCESSOR
+        if carry[0]['artifact']['path'] != recipient+'/preparation-owner-proof.json':
+            raise ValueError('storage authorization belongs to another recipient')
+        recovery.setup_limits({}, proof)
         extra = round024.additions(root)
     for task in plans:
         if task['kind']=='training':
