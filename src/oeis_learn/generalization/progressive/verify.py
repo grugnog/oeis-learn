@@ -33,6 +33,7 @@ def reduce_outcomes(rows, roster, seeds, design, *, costs=None):
     if len(members) != len(roster) or not members or not seeds:
         raise ValueError("unique nonempty frozen roster/seeds required")
     found = {}
+    finished = defaultdict(int)
     for row in rows:
         key = row["seed"], row["arm"], row["task"]
         if (
@@ -42,7 +43,14 @@ def reduce_outcomes(rows, roster, seeds, design, *, costs=None):
             or any(row[k] != members[row["task"]][k] for k in ("group", "stratum"))
         ):
             raise ValueError("outcome rectangle/membership differs")
-        found[key] = row["outcome"]
+        outcome = row["outcome"]
+        complete = row.get("complete", outcome != "unresolved")
+        if type(complete) is not bool or outcome not in {"success", "failure", "unresolved"} or (
+            outcome == "failure" and not complete or outcome == "unresolved" and complete
+        ):
+            raise ValueError("invalid scientific completion flag")
+        found[key] = outcome
+        finished[row["seed"], row["arm"], row["stratum"]] += int(complete)
     cells = defaultdict(list)
     for seed in sorted(seeds):
         for arm in ("baseline", "candidate"):
@@ -82,7 +90,7 @@ def reduce_outcomes(rows, roster, seeds, design, *, costs=None):
                     for v in vs
                 ]
                 completion.append(
-                    1 - F(all_values.count("unresolved"), len(all_values)) if all_values else 0
+                    F(finished[seed, arm, s], len(all_values)) if all_values else 0
                 )
         effects.append(sum(seed_cells) / len(primary) if len(seed_cells) == len(primary) else None)
         a, b = (
@@ -400,6 +408,21 @@ def verify(path, *, max_bytes=MAX_BYTES):
             else:
                 from .public_comparisons import measured_costs as comparison_costs
                 primary_costs=comparison_costs(selected[0],m['campaign_record'],tables['accounting'])
+                from .report import identity
+                original = {(identity(r["task"]), r["seed"], r["arm"]): r for r in selected[0]["rows"]}
+                if len(original) != len(tables["outcomes"]):
+                    raise ValueError("primary report differs from registered comparison")
+                for row in tables["outcomes"]:
+                    r = original.get((row["task"], row["seed"], row["arm"]))
+                    if r is None or (row["outcome"], row["stratum"], row["group"]) != (
+                        r["outcome"], r["stratum"], identity(r["group"])
+                    ):
+                        raise ValueError("primary outcome differs from registered comparison")
+                    complete = r.get("complete", r["outcome"] != "unresolved")
+                    if "complete" in row and row["complete"] != complete:
+                        raise ValueError("primary completion differs from registered comparison")
+                    row["complete"] = complete
+
         metrics, verdict = reduce_outcomes(
             tables["outcomes"],
             tables["roster"],

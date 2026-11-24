@@ -141,9 +141,10 @@ def verify_producers(root, evidence):
         raise ValueError("original research producer closure required")
     docs = {}
     for k, ref in refs.items():
-        blob = verify_refs(root, [ref], max_bytes=(64 << 30) if k == "checkpoint" else (32 << 20))[
-            0
-        ]
+        # Trial generation/scoring consumes the same evidence admitted by the role
+        # projection. Their originals can exceed the small qualification-receipt limit.
+        maximum = (64 << 30) if k == "checkpoint" else (32 << 20) if k == "qualification" else (512 << 20)
+        blob, = verify_refs(root, [ref], max_bytes=maximum)
         if k != "checkpoint":
             docs[k] = json.loads(blob)
             if seal(docs[k]) != docs[k]:

@@ -13,6 +13,14 @@ MAX_MANIFEST = CAMPAIGN_DOCUMENT_BYTES + MAX_PART
 MAX_ROWS = 262144
 
 
+def identity(label):
+    return (
+        label
+        if isinstance(label, str) and len(label) == 71 and label.startswith("sha256:")
+        else digest(label)
+    )
+
+
 def encoded(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
@@ -71,7 +79,8 @@ def validate_rows(kind, rows, *, assembled=False):
                 if not isinstance(row['data'],dict):raise ValueError('closed numeric observation required')
         return rows
     for r in rows:
-        if type(r) is not dict or set(r)-({'resources'} if kind=='accounting' else set()) != fields[kind]:
+        optional = {"accounting": {"resources"}, "outcomes": {"complete"}}.get(kind, set())
+        if type(r) is not dict or set(r) - optional != fields[kind]:
             raise ValueError("closed public table row required")
         for k in ("task", "group", "child", "parent", "identity", "source"):
             if k in r:
@@ -95,6 +104,8 @@ def validate_rows(kind, rows, *, assembled=False):
             "retention",
         }:
             raise ValueError("unknown stratum")
+        if kind == "outcomes" and "complete" in r and type(r["complete"]) is not bool:
+            raise ValueError("boolean outcome completion required")
         if kind == "outcomes" and (
             r["arm"] not in {"baseline", "candidate"}
             or r["outcome"] not in {"success", "failure", "unresolved"}
@@ -185,8 +196,9 @@ def build(root, destination, request, *, max_bytes=MAX_BYTES):
         raise ValueError("closed public report request required")
     if set(request["tables"]) - set(KINDS):
         raise ValueError("private/unknown report table")
-    if sum(r["bytes"] for refs in request["tables"].values() for r in refs) > max_bytes:
-        raise ValueError("REPORT_INCOMPLETE: input metadata byte budget")
+    input_bytes = sum(r["bytes"] for refs in request["tables"].values() for r in refs)
+    if input_bytes > max_bytes:
+        raise ValueError(f"REPORT_INCOMPLETE: input metadata needs {input_bytes} bytes, budget {max_bytes}")
     docs = {}
     if request["scope_record"] is not None:
         docs["authority/scope.json"] = verify_refs(
@@ -266,8 +278,9 @@ def build(root, destination, request, *, max_bytes=MAX_BYTES):
     docs["manifest.json"] = encoded(manifest)
     if len(docs["manifest.json"]) > MAX_MANIFEST:
         raise ValueError("REPORT_INCOMPLETE: manifest cannot fit")
-    if sum(map(len, docs.values())) > max_bytes:
-        raise ValueError("REPORT_INCOMPLETE: metadata byte budget")
+    package_bytes = sum(map(len, docs.values()))
+    if package_bytes > max_bytes:
+        raise ValueError(f"REPORT_INCOMPLETE: packaged metadata needs {package_bytes} bytes, budget {max_bytes}")
     destination = Path(destination)
     if destination.is_symlink():
         raise ValueError("symlink report output")

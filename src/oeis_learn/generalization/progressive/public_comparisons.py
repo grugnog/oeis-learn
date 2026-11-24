@@ -1,6 +1,7 @@
 """Public comparison provenance checks, separate from the scientific reducer."""
 import json
 from .contracts import digest, seal
+from .report_transport import read_original, original_bytes, export_chain, transitions
 
 
 def verify_authority(comparison, authorities, campaign):
@@ -42,14 +43,9 @@ def verify_authority(comparison, authorities, campaign):
     found, derived = set(), []
     if len(binding['producers']) != len(registration['producers']):
         return ['comparison_producers:' + comparison['id']]
-    state, tip = {}, campaign['identity']
-    chain = binding.get('chain', [])
-    if len(chain) > 4096:
-        raise ValueError('bounded comparison ownership chain required')
-    for transition in chain:
-        if seal(transition) != transition or transition['previous'] != tip:
-            raise ValueError('comparison ownership chain differs')
-        state, tip = transition['state'], transition['identity']
+    state = {}
+    for transition in transitions(binding.get('chain', []), campaign['identity']):
+        state = transition['state']
     for declared, producer in zip(registration['producers'], binding['producers']):
         registered = resolve_public_producer(declared, producer, campaign, state)
         cell = registered['arm'], registered['seed']
@@ -60,11 +56,7 @@ def verify_authority(comparison, authorities, campaign):
             raise ValueError('closed original public producers required')
         values = {}
         for kind in ('candidates','scores'):
-            raw = producer[kind].encode()
-            ref = registered[kind]
-            import hashlib
-            if len(raw) != ref['bytes'] or 'sha256:'+hashlib.sha256(raw).hexdigest() != ref['sha256']:
-                raise ValueError('comparison original producer bytes differ')
+            raw = original_bytes(producer[kind], registered[kind])
             from .verify import _json
             values[kind] = _json(raw)
         generated, scored = values['candidates'], values['scores']
@@ -84,8 +76,10 @@ def verify_authority(comparison, authorities, campaign):
             status = 'success' if primary['success'] else 'failure' if primary['complete'] else 'unresolved'
             if primary['outcome'] != status:
                 raise ValueError('comparison outcome/completion differs')
-            derived.append(dict(members[task], seed=cell[1], arm=cell[0], outcome=status))
+            derived.append(dict(members[task], seed=cell[1], arm=cell[0], outcome=status, complete=primary['complete']))
     supplied = [{k:r[k] for k in ('task','group','stratum','seed','arm','outcome')} for r in comparison['rows']]
+    for public, row in zip(supplied, comparison['rows']):
+        public['complete'] = row.get('complete', row['outcome'] != 'unresolved')
     if found != cells or canonical(derived) != canonical(supplied):
         raise ValueError('comparison rows differ from original producers')
     action = comparison['action']
@@ -165,9 +159,9 @@ def export_binding(root, campaign, registration, store):
             else:
                 resolved[kind] = original(root,store,task_id,slot['operation'],slot['output'])
             ownership[kind] = proof
-        producers.append(dict(candidates=read(resolved['candidates']),scores=read(resolved['scores']),
+        producers.append(dict(candidates=read_original(root, resolved['candidates']), scores=read_original(root, resolved['scores']),
                               resolved=resolved, ownership=ownership))
-    chain = [load(p) for p in sorted(store.root.glob('transition-*.json'))] if store else []
+    chain = export_chain(store.root) if store else []
     return dict(registration=registration['identity'],source_slot=registration['source_slot'],
                 target_slot=registration['target_slot'],producers=producers,chain=chain)
 
@@ -230,6 +224,9 @@ def verify_exploration(comparison, authorities, campaign, metrics):
         return []
     binding = comparison.get('binding') or {}
     audit, bundle = binding.get('authorization'), binding.get('bundle')
+    if isinstance(audit, dict) and set(audit) == {'original', 'contents'}:
+        from .verify import _json
+        audit = _json(original_bytes(audit['contents'], audit['original']))
     if not audit or not bundle:
         return ['comparison_exploratory_authority:'+comparison['id']]
     if (seal(audit)!=audit or seal(bundle)!=bundle or audit['bundle']!=bundle['identity']
@@ -244,7 +241,7 @@ def verify_exploration(comparison, authorities, campaign, metrics):
         or bundle['decision']['payload']['next_action']!=comparison['action']):
         raise ValueError('exploratory action arguments differ')
     previous=[];matched=False
-    for transition in binding.get('chain',[]):
+    for transition in transitions(binding.get('chain', []), campaign['identity']):
         decisions=list(transition['state'].get('decisions',{}).values())
         if any(d.get('bundle')==bundle['identity'] for d in decisions):
             if previous!=audit['prior_decisions']:
@@ -293,8 +290,8 @@ def verify_exploration(comparison, authorities, campaign, metrics):
     # observed elapsed time can be refunded by a matching completed reservation.
     from .budgets import vector, KEYS
     events=audit['budget_events']
-    if len(events)>65536:
-        raise ValueError('bounded exploratory budget prefix required')
+    if not isinstance(events, list):
+        raise ValueError('original exploratory budget event list required')
     tip=digest(dict(campaign=campaign['identity'],caps=campaign['payload']['caps']))
     reservations, finished, charges = {}, set(), {}
     for index,e in enumerate(events):
@@ -317,11 +314,16 @@ def verify_exploration(comparison, authorities, campaign, metrics):
                 raise ValueError('exploratory debit refund differs')
             charges[op]['elapsed_us']=e['cost']['elapsed_us'];finished.add(op)
         else:raise ValueError('invalid exploratory budget event')
-    spent={}
+    spent = {t['id']: dict.fromkeys(KEYS, 0) for t in campaign['payload']['tasks']}
+    for operation, charge in charges.items():
+        task_id = operation.rsplit('/', 2)[0]
+        if task_id not in spent:
+            raise ValueError('exploratory charge has no frozen task')
+        for key in KEYS:
+            spent[task_id][key] += charge[key]
     for task in campaign['payload']['tasks']:
-        used={k:sum(v[k] for op,v in charges.items() if op.startswith(task['id']+'/')) for k in KEYS}
+        used = spent[task['id']]
         if any(used[k]>task['caps'][k] for k in KEYS):raise ValueError('exploratory task allowance exceeded')
-        spent[task['id']]=used
     nodes={n['id']:n for n in campaign['payload']['graph']['nodes']}
     chosen=[t for t in campaign['payload']['tasks'] if t['slot'] in branch['task_slots']]
     for key,cap in branch['reservation'].items():
@@ -374,8 +376,9 @@ def verify_cycle(comparison, authorities, campaign):
         key=(stage,descriptor['seed'],kind)
         if key in seen:raise ValueError('duplicate cycle producer')
         seen.add(key)
-        generated=checked_json(producer['candidates'],descriptor['candidates'])
-        scored=checked_json(producer['scores'],descriptor['scores'])
+        from .verify import _json
+        generated = _json(original_bytes(producer['candidates'], descriptor['candidates']))
+        scored = _json(original_bytes(producer['scores'], descriptor['scores']))
         if stage=='starting':
             originals=descriptor.get('initial_checkpoint',[])
             if len(originals)!=1 or originals[0]['artifact'] not in [r['artifact'] for r in campaign['payload']['references']]:
@@ -430,9 +433,9 @@ def partition(comparisons, observations, *, maximum_bytes):
     result=[]
     for comparison in comparisons:
         raw=encoded(comparison).decode()
-        if len(raw.encode())<=MAX_PART:
+        if len(raw) + 2 <= MAX_PART:
             result.append(comparison);continue
-        if len(raw.encode())*2>maximum_bytes:
+        if len(raw)>maximum_bytes:
             result.append(dict(id=comparison['id'],omitted='original comparison exceeds frozen package reserve'))
             continue
         parts=[]

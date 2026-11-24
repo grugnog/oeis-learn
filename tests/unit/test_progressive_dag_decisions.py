@@ -302,6 +302,14 @@ def test_installed_publication_and_host_reconciliation_bind_producers(tmp_path, 
             reconcile_decision(tmp_path, output, result, store, journal, task)
         assert not store.state["decisions"]
     else:
+        from oeis_learn.generalization.progressive.contracts import reference, load
+        costs = dict.fromkeys(task["payload"]["caps"], 0)
+        costs["elapsed_us"] = 1
+        event = journal.reserve(task["payload"]["id"], "publish", 0, costs, boot="test", monotonic_us=0)
+        journal.commit(event["key"])
         cert = reconcile_decision(tmp_path, output, result, store, journal, task)
+        cut = load(output / "decision-audit.json")
+        assert cut["budget_prefix"] == reference(tmp_path, journal.path)
+        assert cut["event_count"] == 2 and cut["watermark"] == journal.snapshot()["watermark"]
         assert cert["action"] == "ADVANCE_REGISTERED"
         assert (output / "gain-cost.json").is_file()

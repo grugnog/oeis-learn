@@ -395,8 +395,8 @@ def test_comparison_efficiency_requires_original_task_costs():
         measured_costs(comparison,campaign,accounting)
 
 
-@pytest.mark.parametrize('claim',['capability','efficiency'])
-def test_original_static_comparison_producers_roundtrip_and_reject_tampering(tmp_path,claim):
+@pytest.mark.parametrize("claim,large", [("capability", False), ("efficiency", False), ("capability", True)])
+def test_original_static_comparison_producers_roundtrip_and_reject_tampering(tmp_path,claim,large):
     from tests.unit.test_progressive_decisions import fixture as panel
     from tests.unit.test_progressive_cohorts import fixture as cohort_fixture
     request = fixture(tmp_path)
@@ -411,17 +411,27 @@ def test_original_static_comparison_producers_roundtrip_and_reject_tampering(tmp
     atomic_write(tmp_path/'comparison-panel.json',cohort)
     atomic_write(tmp_path/'comparison-design.json',design)
     registered, originals = [], []
+    if large:
+        for row in rows:
+            if row['outcome'] == 'success':
+                row['complete'] = False
     for seed in (1,2):
         for arm in ('baseline','candidate'):
             prefix = arm+str(seed)
             generated = seal(dict(version='discovery-candidates/v1',checkpoint=digest(prefix),model=digest('model'),records={r['task']:{} for r in roster}))
             atomic_write(tmp_path/(prefix+'-candidates.json'),generated)
+            if large:
+                # Four originals on the earlier reader's wrong side of the 4 MiB boundary.
+                path = tmp_path/(prefix+'-candidates.json')
+                with path.open('ab') as stream:
+                    stream.write(b' ' * ((5 << 20) - path.stat().st_size))
             candidate_ref = reference(tmp_path,prefix+'-candidates.json')
-            outcomes={r['task']:dict(equal_budget=dict(success=r['outcome']=='success',complete=True,outcome=r['outcome'])) for r in rows if r['seed']==seed and r['arm']==arm}
+            outcomes={r['task']:dict(equal_budget=dict(success=r['outcome']=='success',complete=r.get("complete", True),outcome=r['outcome'])) for r in rows if r['seed']==seed and r['arm']==arm}
             scored = seal(dict(version='discovery-scoring/v1',candidates=candidate_ref['sha256'],denominator=len(roster),outcomes=outcomes))
             atomic_write(tmp_path/(prefix+'-scores.json'),scored)
             registered.append(dict(arm=arm,seed=seed,checkpoint=dict(path=prefix+'.pt',bytes=1,sha256=digest(prefix)),model=digest('model'),candidates=candidate_ref,scores=reference(tmp_path,prefix+'-scores.json')))
-            originals.append(dict(candidates=(tmp_path/(prefix+'-candidates.json')).read_text(),scores=(tmp_path/(prefix+'-scores.json')).read_text()))
+            if not large:
+                originals.append(dict(candidates=(tmp_path/(prefix+'-candidates.json')).read_text(),scores=(tmp_path/(prefix+'-scores.json')).read_text()))
     registration = seal(dict(version='progressive-gate-registration/v1',source_slot='diversity',target_slot='capability',panels=[cohort['identity']],seeds=[1,2],design=digest(design),producers=registered))
     atomic_write(tmp_path/'registration.json',registration)
     authorities=[];campaign=request['campaign_record']
@@ -452,6 +462,10 @@ def test_original_static_comparison_producers_roundtrip_and_reject_tampering(tmp
     if claim=='efficiency':
         from oeis_learn.generalization.progressive.public_comparisons import cost_tasks
         comparison['costs']=cost_tasks(campaign,'diversity',[1,2])
+    if large:
+        from oeis_learn.generalization.progressive.public_comparisons import export_binding
+        comparison['binding'] = export_binding(tmp_path, campaign, registration, None)
+        comparison['verdict'] = 'INCOMPLETE'
     atomic_write(tmp_path/'original-comparison.json',[comparison]);atomic_write(tmp_path/'authorities.json',authorities)
     request=seal(dict(request,campaign=campaign['identity'],campaign_record=campaign,tables=dict(request['tables'],comparisons=[reference(tmp_path,'original-comparison.json')],authorities=[reference(tmp_path,'authorities.json')])))
     build(tmp_path,tmp_path/'original.zip',request)
@@ -526,3 +540,45 @@ def test_large_finite_campaign_manifest_roundtrips_without_relaxing_table_limits
         assert MAX_PART<archive.getinfo('manifest.json').file_size<MAX_MANIFEST
         assert all(i.file_size<=MAX_PART for i in archive.infolist() if i.filename.startswith('tables/'))
     assert verify(tmp_path/'large.zip')['status']=='VERIFIED'
+
+
+def test_report_chain_changes_reconstitute_original_transitions(tmp_path):
+    import copy
+    from oeis_learn.generalization.progressive.report_transport import export_chain, transitions
+
+    campaign = digest("campaign")
+    tip, originals = campaign, []
+    for n, state in enumerate((
+        dict(tasks={"a":"RUNNING"}, outputs={}, choices={}, status="RUNNING"),
+        dict(tasks={"a":"COMPLETE"}, outputs={"a":{"result":"saved"}}, choices={}, status="COMPLETE"),
+        dict(tasks={}, outputs={"a":{"result":"saved"}}, status="PAUSED"),
+    )):
+        original = seal(dict(previous=tip, state=state))
+        originals.append(original)
+        atomic_write(tmp_path / f"transition-{n:04d}.json", original)
+        tip = original["identity"]
+    packed = export_chain(tmp_path)
+    assert list(transitions(packed, campaign)) == list(transitions(originals, campaign)) == originals
+    forged = copy.deepcopy(packed)
+    forged[1]["updates"]["tasks"]["a"] = "FAILED"
+    with pytest.raises(ValueError, match="chain differs"):
+        list(transitions(forged, campaign))
+
+
+def test_large_original_checks_declared_size_digest_and_stream_end(tmp_path):
+    import base64
+    import zlib
+    from oeis_learn.generalization.progressive.report_transport import original_bytes, read_original
+
+    raw = b" " * ((4 << 20) + 1)
+    (tmp_path/"producer.json").write_bytes(raw)
+    ref = reference(tmp_path, "producer.json")
+    packed = read_original(tmp_path, ref)
+    assert original_bytes(packed, ref) == raw
+    with pytest.raises(ValueError):
+        original_bytes(packed, dict(ref, bytes=1024))
+    with pytest.raises(ValueError):
+        original_bytes(packed, dict(ref, sha256=digest("other")))
+    for blob in (zlib.compress(raw)[:-1], zlib.compress(raw) + zlib.compress(b"extra")):
+        with pytest.raises(ValueError):
+            original_bytes({"zlib_base64": base64.b64encode(blob).decode()}, ref)

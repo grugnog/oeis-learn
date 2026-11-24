@@ -341,14 +341,9 @@ class BudgetJournal:
 
     def plan_remaining(self,plan):
         """Read-only frozen-plan remainder; does not bind an unselected trial variant."""
-        with self.lock():events=self._read()[0]
-        totals=dict.fromkeys(KEYS,0)
-        reservations={e['operation']:e for e in events if e['event']=='RESERVE'}
-        for event in events:
-            if not event['operation'].startswith(plan['id']+'/'):continue
-            if event['event']=='RESERVE':
-                for k,n in event['cost'].items():totals[k]+=n
-            else:totals['elapsed_us']-=reservations[event['operation']]['cost']['elapsed_us']-event['cost']['elapsed_us']
+        with self.lock():
+            self._read()
+            totals = self._task_totals.get(plan["id"], dict.fromkeys(KEYS, 0)).copy()
         if any(totals[k]>plan['caps'][k] for k in KEYS):raise ValueError('task allowance exceeded')
         return {k:plan['caps'][k]-totals[k] for k in KEYS}
 

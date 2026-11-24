@@ -14,20 +14,14 @@ from oeis_learn.generalization.progressive.contracts import (
     verify_refs,
 )
 from oeis_learn.generalization.progressive.report import (
+    identity,
     KINDS,
     MAX_BYTES,
     terminal_request,
     validate_rows,
 )
+from oeis_learn.generalization.progressive.report_transport import read_original
 from oeis_learn.pipeline_validation.identity import confined
-
-
-def identity(label):
-    return (
-        label
-        if isinstance(label, str) and len(label) == 71 and label.startswith("sha256:")
-        else digest(label)
-    )
 
 
 def collect(root, folder, output):
@@ -340,7 +334,7 @@ def collect(root, folder, output):
                 tables["observations"].append({"producer": result["identity"], "data": timing})
             if "scores" in result.get("metrics", {}):
                 scores = json.loads(
-                    verify_refs(base, [result["metrics"]["scores"]], max_bytes=32 << 20)[0]
+                    verify_refs(base, [result["metrics"]["scores"]], max_bytes=MAX_BYTES)[0]
                 )
                 for raw_id, value in scores["outcomes"].items():
                     member = identity(raw_id)
@@ -364,6 +358,7 @@ def collect(root, folder, output):
                             seed=plan["seed"],
                             arm=arm,
                             outcome=value["equal_budget"]["outcome"],
+                            **({"complete": value["equal_budget"]["complete"]} if "complete" in value["equal_budget"] else {}),
                         )
                     )
             if "decision_bundle" in result.get("metrics", {}):
@@ -382,8 +377,15 @@ def collect(root, folder, output):
                     from oeis_learn.generalization.progressive.public_comparisons import export_binding
                     binding = export_binding(root, campaign, registration, store)
                     binding['bundle'] = bundle
-                    if (base/'decision-audit.json').exists():
-                        binding['authorization'] = load(base/'decision-audit.json')
+                    audit = base / 'decision-audit.json'
+                    if audit.is_file():
+                        audit_ref = reference(root, audit)
+                        if audit_ref['bytes'] <= 4 << 20:
+                            binding['authorization'] = load(audit, maximum=4 << 20)
+                        elif bundle['decision']['payload']['next_action'] == 'EXPLORE_RESERVED':
+                            binding['authorization'] = dict(original=audit_ref, contents=read_original(root, audit_ref))
+                        else:
+                            binding['authorization'] = dict(original=audit_ref)
                 tables["comparisons"].append(
                     {
                         'binding': binding,
@@ -517,7 +519,7 @@ def collect(root, folder, output):
                                     producers=[]
                                     for descriptor in original['evaluation_producers']:
                                         if descriptor['stage'] not in {baseline,'replay'}:continue
-                                        producers.append(dict(descriptor=descriptor, **{k:verify_refs(root,[descriptor[k]],max_bytes=4<<20)[0].decode() for k in ('candidates','scores')}))
+                                        producers.append(dict(descriptor=descriptor, **{k:read_original(root, descriptor[k]) for k in ('candidates','scores')}))
                                     tables['comparisons'].append(dict(id=digest([original['identity'],baseline]),rows=comparison['rows'],roster=comparison['roster'],seeds=comparison['seeds'],design=comparison['design'],verdict=comparison['verdict'],action='RETAIN_BASELINE',binding=dict(cycle=original['plan'],baseline=baseline,registration=digest([original['plan'],baseline]),producers=producers)))
                     if (
                         value.get("mechanical_status") == "COMPLETE"
@@ -528,7 +530,7 @@ def collect(root, folder, output):
                         if plan is None:
                             raise ValueError("owned score task is outside frozen campaign")
                         scores = json.loads(
-                            verify_refs(path.parent, [metrics["scores"]], max_bytes=32 << 20)[0]
+                            verify_refs(path.parent, [metrics["scores"]], max_bytes=MAX_BYTES)[0]
                         )
                         arm = arm_map.get(plan["arm"], "candidate")
                         for raw_id, outcome in scores.get("outcomes", {}).items():
@@ -546,6 +548,7 @@ def collect(root, folder, output):
                                     seed=plan["seed"],
                                     arm=arm,
                                     outcome=outcome["equal_budget"]["outcome"],
+                                    **({"complete": outcome["equal_budget"]["complete"]} if "complete" in outcome["equal_budget"] else {}),
                                 )
                             )
                 if value.get("producer_error"):
@@ -584,7 +587,7 @@ def collect(root, folder, output):
                 matches.append(comparison)
         if len(matches)==1:
             chosen=matches[0]
-            tables['outcomes']=[{k:(identity(v) if k in {'task','group'} else v) for k,v in row.items() if k in {'task','group','stratum','seed','arm','outcome'}} for row in chosen['rows']]
+            tables['outcomes']=[{k:(identity(v) if k in {'task','group'} else v) for k,v in row.items() if k in {'task','group','stratum','seed','arm','outcome','complete'}} for row in chosen['rows']]
             decisions=[dict(verdict=chosen['verdict'],action=chosen['action'])]
             errors=[e for e in errors if e['producer']!='outcomes']
         elif len(matches)>1:
@@ -609,7 +612,7 @@ def collect(root, folder, output):
         for kind, rows in tables.items():
             validate_rows(kind, rows)
             path = output / (kind + ".json")
-            atomic_write(path, rows)
+            atomic_write(path, rows, compact=True)
             refs[kind] = [reference(root, path)]
         value = public_report_input(
             output,

@@ -297,7 +297,7 @@ def _main(args, root, host_factory, stack):
             from oeis_learn.generalization.progressive.report import build
 
             folder = confined(root, args.run)
-            if (folder/'public-report.json').is_file():request=load(folder/'public-report.json',maximum=32<<20)
+            if (folder/'public-report.json').is_file():request=load(folder/'public-report.json',maximum=CAMPAIGN_DOCUMENT_BYTES)
             else:
                 from .progressive_report_collect import collect
                 request=collect(root,folder,confined(root,args.output+'.metadata',exists=False))

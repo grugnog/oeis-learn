@@ -70,10 +70,19 @@ def reconcile_decision(root, role_output, result, store, journal, task):
         raise ValueError("producer cannot authorize another source slot")
     policy, panels, designs = frozen_evidence(root, store.campaign)
     from oeis_learn.generalization.progressive.contracts import seal
+    from oeis_learn.generalization.progressive.contracts import reference
     with journal.lock():
-        budget_events = journal._read()[0]
-    audit = seal(dict(bundle=bundle['identity'], kwargs=bundle['kwargs'],
-                      budget_events=budget_events, prior_decisions=list(store.state.get('decisions',{}).values())))
+        events, _, _, _, tip = journal._read()
+        if bundle['decision']['payload']['next_action'] == 'EXPLORE_RESERVED':
+            budget_cut = dict(budget_events=list(events))
+        else:
+            # No new branch spending. The immutable prefix can be rehashed by
+            # length even after another task appends to this same ledger.
+            budget_cut = dict(version='progressive-budget-prefix-audit/v1',
+                              budget_prefix=reference(root, journal.path), watermark=tip,
+                              event_count=len(events)) if events else dict(budget_events=[])
+    audit = seal(dict(bundle=bundle['identity'], kwargs=bundle['kwargs'], **budget_cut,
+                      prior_decisions=list(store.state.get('decisions',{}).values())))
     audit_path = Path(role_output)/'decision-audit.json'
     certificate = store.authorize(
         bundle,
@@ -85,9 +94,10 @@ def reconcile_decision(root, role_output, result, store, journal, task):
     )
     if audit_path.exists():
         from oeis_learn.generalization.progressive.contracts import load
-        if load(audit_path) != audit:
-            # Resuming a committed decision preserves its original reservation cut.
-            audit = load(audit_path)
+        # A resume must preserve the budget cut at the original authorization.
+        saved = load(audit_path, maximum=task["payload"]["caps"]["disk_bytes"])
+        if saved.get("bundle") != bundle["identity"] or seal(saved) != saved:
+            raise ValueError("original decision audit differs")
     else:
         from oeis_learn.generalization.progressive.storage import register_invocation, owned_guard
         parent=Path(role_output).parent if Path(role_output).name=='role' else Path(role_output)
