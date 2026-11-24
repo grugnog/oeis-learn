@@ -62,16 +62,19 @@ def decision_from_outputs(values):
             raise ValueError("bound original decision roster/checkpoint differs")
         for task, r in roster.items():
             value = s["outcomes"].get(task, {}).get("equal_budget", {})
-            success = value.get("success") is True
-            complete = value.get("complete") is True
-            if success and not complete:
-                raise ValueError("contradictory original scored outcome")
+            # A candidate can be independently verified even if its search stopped early.
+            if value and any(type(value.get(k)) is not bool for k in ("success", "complete")):
+                raise ValueError("boolean original score flags required")
+            complete = value.get("complete", False)
+            outcome = "success" if value.get("success") else "failure" if complete else "unresolved"
+            if "outcome" in value and value["outcome"] != outcome:
+                raise ValueError("original scorer outcome label disagrees with flags")
             rows.append(
                 dict(
                     r,
                     arm=cell[0],
                     seed=cell[1],
-                    outcome="success" if success else "failure" if complete else "unresolved",
+                    outcome=outcome,
                     complete=complete,
                 )
             )

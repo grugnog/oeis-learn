@@ -342,7 +342,11 @@ def test_compact_projection_keeps_exact_original_and_byte_accounting(tmp_path, m
         atomic_write(compact, value, compact=True)
 
 
-def test_compact_comparison_round_trips_through_publication(tmp_path, monkeypatch):
+@pytest.mark.parametrize("success,complete,outcome", [
+    (True, True, "success"), (True, False, "success"),
+    (False, True, "failure"), (False, False, "unresolved"),
+])
+def test_compact_comparison_round_trips_through_publication(tmp_path, monkeypatch, success, complete, outcome):
     from oeis_learn.generalization.progressive.contracts import load
     from oeis_learn.pipeline_validation import progressive_outputs as outputs
     from oeis_learn.pipeline_validation.progressive_publication import decision_from_outputs
@@ -358,7 +362,7 @@ def test_compact_comparison_round_trips_through_publication(tmp_path, monkeypatc
     generated = seal(dict(records={'p': dict(details=['full', 'candidate', 'trace'])}))
     for name, op, key in [('gen', 'generate', 'evaluation'), ('score', 'score', 'scores')]:
         value = (generated if name == 'gen' else seal(dict(candidates=gen_ref['sha256'], denominator=1,
-                     outcomes={'p': {'equal_budget': dict(success=True, complete=True)}})))
+                     outcomes={'p': {'equal_budget': dict(success=success, complete=complete, outcome=outcome)}})))
         base = tmp_path / name
         atomic_write(base / 'evidence.json', value)
         ref = reference(base, 'evidence.json')
@@ -381,4 +385,5 @@ def test_compact_comparison_round_trips_through_publication(tmp_path, monkeypatc
     assert evidence['data']['record'] == generated
     assert evidence['data']['artifact']['sha256'] == gen_ref['sha256']
     assert all((tmp_path / d.ref['path']).read_bytes().count(b'\n') == 1 for d in views['public'][1:])
-    assert decision_from_outputs(values)[0]['data']['rows'][0]['outcome'] == 'success'
+    row = decision_from_outputs(values)[0]['data']['rows'][0]
+    assert (row['outcome'], row['complete']) == (outcome, complete)
