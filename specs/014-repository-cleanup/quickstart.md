@@ -282,7 +282,7 @@ git rev-parse --verify '77667e67^{commit}'
 
 The screening fixture runs ordinal zero through the pinned sampler, resolves its frozen choice, and executes two small CPU parent updates with the screening schedule and hourly checkpoint policy. It checks the live restored weights, optimizer, RNG and data position against that parent, then independently pauses the installed child before an update. An alternative proposal fails the binding check. The fixture writes `screening-restore-observation.json` in its pytest directory. [Screening fixture](validation/test_screening_restore.py)
 
-Set `sealed_root` to a snapshot containing the original workstation `run-state/`. The checker authenticates the frozen campaign, study proposal, task plans, learner result and training data. Give `review_tmp` space outside that snapshot for the controller, accounting and parent and child checkpoints. Restoring saved HIP RNG requires the matching device.
+Set `sealed_root` to a snapshot containing the original workstation `run-state/`. The checker authenticates the frozen campaign, study proposal, task plans, learner result and training data. Preserve the completed parent role’s original `accounting-final.json` alongside its `result.json`. The checker validates its seal, task and checkpoint identity, remaining resources, and cumulative token and elapsed charges against the journal. Its journal marker must follow or equal the checkpoint marker, with every parent reservation settled by that cut. Later work by other tasks can advance the campaign watermark. Give `review_tmp` space outside that snapshot for the controller, accounting and parent and child checkpoints. Restoring saved HIP RNG requires the matching device.
 
 ```bash
 (

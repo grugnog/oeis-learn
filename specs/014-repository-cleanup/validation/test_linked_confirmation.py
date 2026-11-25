@@ -193,7 +193,12 @@ def exercise_pair(tmp_path, campaign, charge, *, proposal=None, channel="trainin
     assert completed["mechanical_status"] == "COMPLETE", completed
     assert completed["metrics"]["device"] == "cpu"
     if proposal is not None:
+        from oeis_learn.pipeline_validation.progressive_evidence import finalize_learning
         from oeis_learn.pipeline_validation.progressive_outputs import commit
+
+        role = tmp_path / "first-segment/role"
+        state_root = tmp_path / "run-state/discovery-learning" / cid / first["identity"][7:]
+        final_receipt = finalize_learning(journal, first, state_root, role)
 
         with store.lease():
             commit(tmp_path, store, first, tmp_path / "first-segment/role", "train")
@@ -213,7 +218,10 @@ def exercise_pair(tmp_path, campaign, charge, *, proposal=None, channel="trainin
         atomic_write(tmp_path / "screening-restore-observation.json", observation)
         assert (observation["tokens"], observation["updates"]) == (2 * charge, 2)
         assert (observation["child_tokens"], observation["child_updates"]) == (0, 0)
-        assert observation["prior_elapsed_us"] > 0 and observation["device"] == "cpu"
+        assert observation["final_accounting"] == final_receipt["identity"]
+        assert observation["final_accounting_journal"] == final_receipt["journal"]
+        assert observation["prior_elapsed_us"] == final_receipt["milestone"]["total_cost_us"] > 0
+        assert observation["device"] == "cpu"
 
     before = saved(first)
     remaining = journal.task_remaining(first)

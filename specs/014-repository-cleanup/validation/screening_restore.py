@@ -10,8 +10,10 @@ from pathlib import Path
 from oeis_learn.generalization.progressive.budgets import BudgetJournal
 from oeis_learn.generalization.progressive.contracts import load, record, seal, verify_refs
 from oeis_learn.generalization.progressive.lifecycle import RunStore
+from oeis_learn.generalization.progressive.milestones import milestone
 from oeis_learn.generalization.progressive.recovery import Recovery
 from oeis_learn.generalization.progressive.trial_scopes import materialize
+from oeis_learn.pipeline_validation.identity import confined
 from oeis_learn.pipeline_validation.progressive_learner import compatibility
 from oeis_learn.pipeline_validation.progressive_study import original
 from oeis_learn.pipeline_validation.progressive_training import RecoverableUpdate
@@ -74,6 +76,52 @@ def training_package(root, campaign, child):
     return materialize(base, child)
 
 
+def verify_parent_accounting(journal, task, state, base, receipt):
+    """Bind the completed producer's separate supervisor receipt to its settled journal cut."""
+    checkpoint = state["checkpoint"]
+    require(
+        receipt.get("version") == "progressive-final-accounting/v1"
+        and seal(receipt) == receipt
+        and receipt["task"] == task["identity"]
+        and receipt["checkpoint"] == checkpoint["identity"]
+        and receipt["useful_tokens"] == state["useful_tokens"]
+        and state["pending"] is None,
+        "final accounting differs from the completed parent checkpoint",
+    )
+    plan = task["payload"]
+    prefix = plan["id"] + "/"
+    checkpoint_marker = checkpoint["payload"]["cuts"]["cost_journal"]
+    with journal.lock():
+        events, pending, _, _, _ = journal._read()
+        require(
+            not any(k.startswith(prefix) for k in pending)
+            and not any(k.startswith(prefix) for k in receipt["pending"]),
+            "unsettled parent charge in journal or final accounting",
+        )
+        checkpoint_seen = receipt_seen = False
+        for event in events:
+            if receipt_seen and event["operation"].startswith(prefix):
+                raise ValueError("parent operation after final accounting")
+            if event["identity"] == checkpoint_marker:
+                checkpoint_seen = True
+            if event["identity"] == receipt["journal"]:
+                require(checkpoint_seen, "final accounting predates the parent checkpoint")
+                receipt_seen = True
+        require(receipt_seen, "final accounting journal marker is absent")
+    remaining = journal.task_remaining(task)
+    expected = milestone(
+        base["tokens"] + plan["caps"]["tokens"] - remaining["tokens"],
+        ancestor_tokens=base["tokens"],
+        ancestor_cost_us=base["ancestor_cost_us"],
+        new_cost_us=plan["caps"]["elapsed_us"] - remaining["elapsed_us"],
+    )
+    require(
+        receipt["remaining"] == remaining and receipt["milestone"] == expected,
+        "parent journal charges differ from final accounting",
+    )
+    return receipt["milestone"]
+
+
 def inspect_copy(root, work, campaign, proposal, *, targets):
     """Read inputs from root. All leases, bindings and child state live in work."""
     cid = campaign["identity"][7:]
@@ -126,6 +174,8 @@ def inspect_copy(root, work, campaign, proposal, *, targets):
     ]
     checkpoint_ref = original(root, store, names[0], "train", "checkpoint_record")
     checkpoint = load(root / checkpoint_ref["path"])
+    role = confined(root, store.state["outputs"][names[0]]["result"]["path"]).parent
+    receipt = load(confined(role, "accounting-final.json"))
     package = training_package(root, campaign, child)
     accounting = original_state / "discovery-accounting" / cid
     learning = original_state / "discovery-learning" / cid / tasks[0]["identity"][7:]
@@ -149,22 +199,15 @@ def inspect_copy(root, work, campaign, proposal, *, targets):
             first.state["status"] == "COMPLETE" and first.state["checkpoint"] == checkpoint,
             "learner cut differs from the original completed producer",
         )
+        costs = verify_parent_accounting(journal, tasks[0], first.state, first.base, receipt)
         before = first.restore()
         spent = before["ledger"].consumed
         updates = before["ledger"].updates
-        require(spent >= targets[0] and updates > 0, "parent missed the first screening look")
-        with journal.path.open("rb") as events:
-            require(
-                any(
-                    json.loads(event)["identity"] == before["cuts"]["cost_journal"]
-                    for event in events
-                ),
-                "parent checkpoint cost cut is absent from the original journal",
-            )
-        remaining = journal.task_remaining(tasks[0])
-        prior_us = (
-            first.base["ancestor_cost_us"] + parent["caps"]["elapsed_us"] - remaining["elapsed_us"]
+        require(
+            spent == costs["tokens"] and spent >= targets[0] and updates > 0,
+            "parent exposure differs from the settled screening look",
         )
+        prior_us = costs["total_cost_us"]
         with Recovery(journal, tasks[1], scope, state_root=work / "child") as second:
             second.initialize_from(first, campaign=campaign)
             after = second.restore()
@@ -197,7 +240,8 @@ def inspect_copy(root, work, campaign, proposal, *, targets):
             )
             compare_state(states, worker.capture(worker.context))
         require(
-            journal.task_remaining(tasks[0]) == remaining and ledger_hash(journal.path) == prefix,
+            journal.task_remaining(tasks[0]) == receipt["remaining"]
+            and ledger_hash(journal.path) == prefix,
             "restore changed prior accounting",
         )
     return {
@@ -208,6 +252,8 @@ def inspect_copy(root, work, campaign, proposal, *, targets):
         "tokens": spent,
         "updates": updates,
         "prior_elapsed_us": prior_us,
+        "final_accounting": receipt["identity"],
+        "final_accounting_journal": receipt["journal"],
         "ledger_sha256": prefix,
         "cursor": states["scheduler"]["controller"]["cursor"],
         "parent_target": parent["token_target"],
