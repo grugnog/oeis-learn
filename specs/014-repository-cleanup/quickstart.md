@@ -4,7 +4,7 @@ Run from a full clone. The portable probes need Git and Python 3.11+. Use the re
 
 ## 1. Establish the two revisions
 
-For the first comparison, use the audited PR #72 baseline below. For an individual cleanup group, set `before` to that group’s parent and `after` to its commit. Put observations and fixture writes outside the two source trees.
+Use the audited PR #72 revision below to reproduce planning. The implementation baseline `a3f9808e` includes the screening audit from `5489aed2`. Run section 2 there for T003 and on the combined tip for T034. [Implementation inventory](implementation.md) For an individual cleanup group, set `before` to that group’s parent and `after` to its commit. Put observations and fixture writes outside the two source trees.
 
 ```bash
 repo=$(git rev-parse --show-toplevel)
@@ -268,6 +268,19 @@ for filename in sys.argv[1:]:
     pstats.Stats(filename).strip_dirs().print_callers('collect$|plan_remaining$|finish$|boundary$|verify$')
 PY
 ```
+
+### Check trial 00 before further training
+
+T037 covers the screening link from `trial-00-1000000-train` to `trial-00-2000000-train`. T024 covers the later 12.5M→25M confirmation. Keep the original six 1M checkpoints, frozen campaign, study and controller transitions, their ledger, and generation/scoring receipts and producer files for the development and both retention panels. Compare the screening audit and its test with their original blobs and run their bounded cases from each checkout.
+
+```bash
+validation=specs/013-progressive-mathematical-discovery/validation
+git diff --exit-code 5489aed2 HEAD -- "$validation/audit-round027-screening.py" "$validation/test_round027_screening_audit.py"
+python -m pytest -q "$validation/test_round027_screening_audit.py"
+git rev-parse --verify '77667e67^{commit}'
+```
+
+For the original check, copy the selected campaign, study, accounting, controller records and learning state with their referenced files to an isolated workspace. Authenticate the ordinal-zero proposal and selected finite parameter choice. Bind both frozen task IDs and the parent’s committed checkpoint to that choice, seed and compatibility. Verify every checkpoint file against its manifest and retain the original ledger prefix, token and update counts, spent charges and data position. On the copy, stop the child immediately after full-state restore and before its first update. Compare weights, optimizer buffers and step, scheduler, RNG streams, sampler/controller position and budget cuts with the saved parent. Check the ledger prefix and zero new training tokens. Record any maintenance-only accounting separately. Keep the live ledger, study decisions and qualified checkout intact. A bounded CPU result and a private original restore receive separate entries in the review record. The screening audit’s exploratory recoding grants no authority to advance the frozen trial.
 
 ## 5. Close the affected evidence gaps
 
