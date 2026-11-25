@@ -25,7 +25,7 @@ A maintainer can remove an old experiment and its exclusive files, explain the d
 **Acceptance Scenarios**
 
 1. **Given** a retired workflow whose remaining references are confined to its own instructions, tests and outputs, **when** a maintainer establishes that the group has no current or specifically required future use, **then** the group can be removed together, surviving instructions resolve, and the affected neighboring workflows pass their baseline checks.
-2. **Given** an apparently unused helper, **when** a saved run, installed command, CI job or documented operator action selects it, **then** the review identifies that consumer and preserves the operation. If obsolete behavior shares code with that operation and extraction would risk a regression, a discoverable deprecation note identifies the boundary and why the code stays.
+2. **Given** an apparently unused helper, **when** a saved run, installed command, CI job or documented operator action selects it, **then** the review identifies that consumer and preserves the operation. For entangled obsolete behavior, the surviving operator guide or repository index names the boundary and explains why the code stays.
 3. **Given** two guides for the same operator command, **when** one contains only superseded instructions and the other covers all supported use, **then** the maintainer can delete the stale guide, update incoming links and follow the surviving instructions successfully.
 
 ### User Story 2 - Start a fresh campaign (Priority: P1)
@@ -34,7 +34,7 @@ An operator can prepare the pinned inputs in a clean workspace, qualify the envi
 
 **Why this priority** A resumed workspace can mask missing packaged files, build inputs and setup commands.
 
-**Independent test** Exercise the documented workstation and installed foundation paths using a clean workspace and bounded inputs. Observe the preparation gates and the first permitted dispatch.
+**Independent test** In a clean workspace, freeze a bounded fixture and exercise the workstation handoff and foundation dispatcher. Observe exactly one `capability-census` worker receiving its frozen cohort and exposure inputs. Exercise installed entry points and actual-device qualification separately when affected.
 
 **Acceptance Scenarios**
 
@@ -47,13 +47,13 @@ An operator can recover an interrupted, accepted campaign using its original evi
 
 **Why this priority** Losing a checkpoint or charging a finished task twice can change which trials the campaign can afford and invalidate its comparison.
 
-**Independent test** Use a copy of the round027 recovery evidence, or a representative saved-state fixture with the same decisions and counts. Authenticate all 47 outputs and four checkpoints, commit the comparison on the copy and observe the next eligible task. Intercept the research handoff before dispatch on both the first and repeated attempts. Exercise one dispatch on a separate bounded fixture.
+**Independent test** Use the original round027 evidence on a disposable copy or a representative saved-state fixture with the same decisions and counts. Authenticate 47 outputs and four checkpoints. Commit the comparison once, observe the next eligible task and intercept the handoff before dispatch on both attempts. Exercise proposal dispatch, linked confirmation and final assessment on separate bounded inputs. Record separately whether the private run’s genuine terminal publisher receipts were replayed.
 
 **Acceptance Scenarios**
 
 1. **Given** the stopped diversity comparison, 47 completed task outputs and four full-state checkpoints, **when** the approved continuation verifies the producers and records the comparison, **then** its disposition is `INCOMPLETE / RETAIN_BASELINE`, prior work and charges are preserved, and `trial-00-propose` is the next eligible task. Repeating the request cannot duplicate publication, charging or dispatch.
 2. **Given** a mismatched producer, checkpoint, owner or source identity, **when** continuity is checked, **then** the operator sees the failed prerequisite before further work can run against that evidence.
-3. **Given** saved outcomes for screening, pruning and finalist selection, **when** each eligible path advances, **then** the original decision rules select the next trial or confirmation segment and final assessment uses the locked selection. A fixture can exercise these outcomes independently of the live run.
+3. **Given** saved outcomes for screening, pruning and finalist selection, **when** each eligible path advances, **then** the original rules select the next trial or confirmation segment. The second same-seed segment restores the first segment’s complete learner state and existing charge before advancing. Final assessment uses the locked selection.
 
 ### User Story 4 - Monitor a campaign without taking it over (Priority: P1)
 
@@ -74,7 +74,7 @@ A reviewer can use the published bundle to check the scientific result independe
 
 **Why this priority** A verified candidate, a completed search and a completed scientific comparison support different claims.
 
-**Independent test** Verify an immutable ZIP published by an earlier revision using only the archive and the candidate verifier. Separately publish and verify a representative full-sized terminal bundle with the candidate. Repeat the current-publication test with an incomplete comparison and a required producer removed or altered.
+**Independent test** Verify an immutable earlier ZIP with only the candidate reader. Separately collect, publish and verify a current full-sized terminal fixture. At the same scale repeat the current check on independent copies with an incomplete comparison, an omitted required producer and a substituted producer. Record each result.
 
 **Acceptance Scenarios**
 
@@ -85,7 +85,7 @@ A reviewer can use the published bundle to check the scientific result independe
 ### Edge Cases
 
 - A reference from a superseded runbook may disappear with its workflow. A filename in a CI partition, an operator command or a saved preparation proof is an active dependency even when a text or coverage search finds no conventional caller.
-- A later round can authenticate an earlier helper by its exact bytes. Editing its docstring to mark it deprecated could invalidate recovery. Place the note outside the authenticated file in that case.
+- A later round can authenticate a helper by its exact bytes. Put the deprecation note or a direct pointer to it in a surviving tracked guide or index outside that file, where maintainers can find it by the command, path or symbol.
 - A source change can leave calculations identical while invalidating a qualification binding. The accepted run uses its pinned source. A fresh run on changed source follows the documented qualification transition.
 - A test may be the only independent check on rejection of invalid evidence. Keep that check for as long as the behavior is supported. A test exclusive to a retired workflow can be reviewed with it.
 
@@ -95,7 +95,7 @@ A reviewer can use the published bundle to check the scientific result independe
 
 - **FR-001** Review tracked code at file and symbol level, scripts, configuration, docs, tests and fixtures, CI/build/packaging assets and checked-in outputs. For each proposed deletion or related group, record the paths or symbols, former purpose, evidence checked for current and required future use, disposition and affected workflow check. Check direct callers and indirect use through installed interfaces, CI, build or package manifests, configuration, saved state, operator instructions and provenance records. Related files may share one rationale. An unresolved consumer keeps the affected candidate open for investigation.
 - **FR-002** Remove an item when the evidence establishes it serves no supported workflow or concrete future requirement. For duplicate material, identify the surviving source and confirm it covers every still-needed instruction or use. Leave superseded material to Git history. Base the size of the cleanup on demonstrated safe removals.
-- **FR-003** Retain demonstrably used behavior. Mark an obsolete but entangled portion deprecated when its safe removal would require refactoring a live path. State what is deprecated, the live dependency at risk, any supported replacement and the condition under which removal can be reconsidered. The marker must preserve existing invocation, output and authenticated bytes.
+- **FR-003** Retain demonstrably used behavior. Mark an obsolete but entangled portion deprecated when its safe removal would require refactoring a live path. State what is deprecated, the live dependency at risk, any supported replacement and the condition under which removal can be reconsidered. Provide a discoverable pointer in a surviving tracked guide or index and preserve the existing invocation, output and authenticated bytes.
 - **FR-004** Group deletions so a reviewer can validate and revert each group independently. Include directly affected references and exclusive tests. For supported workflows across specs, compare the affected entry points, CI checks, installed resources and operator instructions before and after. Withhold a group if its safety check fails or the evidence is unavailable. Independent groups can proceed.
 - **FR-005** Preserve the four campaign operations and their negative cases in Stories 2–5. Both the installed `oeis-learn` interface and the separate workstation/foundation commands are consumers. Preserve Docker and Podman operation, the qualification and GPU build targets, installed assets and the test paths the existing qualification partitions invoke.
 - **FR-006** Preserve the frozen research design and the operations chosen by saved state or configuration. The streamlined roster has 352 pre-assessment tasks, including capability and diversity baselines, four model-sizing trials, 12 learning-setting trials, pruning, selection and linked confirmation. Older frozen rosters retain their own design. Final assessment is a separate operation requiring a locked selection. In the streamlined design, sizing evaluates only at 4M tokens, learning settings retain intermediate evaluations, and the second 12.5M-token confirmation segment continues the first from full state. Preserve role-specific input access, selected-device execution and exact numerical semantics throughout.
@@ -128,9 +128,9 @@ These examples identify specific dependencies on the stack base. Review neighbor
 
 - **SC-001** The working tree contains fewer obsolete files or symbols than the baseline. Every removal maps to a reviewed disposition and an affected-workflow check. Reviewers can identify the net reduction, follow all surviving references touched by each group and reverse that group independently. Every deprecation identifies a specific dependency and a reconsideration condition.
 - **SC-002** Four independently repeatable demonstrations pass for fresh start, accepted-run resume, monitoring and independent report verification. Fresh start reaches the first permitted task on valid inputs. A missing prerequisite allows zero research dispatches.
-- **SC-003** Recovery accounts for 47 of 47 saved outputs and four of four full-state checkpoints in the round027 case. Previously completed tasks are rerun zero times and their original charges counted once. The next screening proposal, linked confirmation and final assessment each have a reachable, evidence-backed case.
+- **SC-003** The software demonstration passes when an original or representative case authenticates 47/47 outputs and 4/4 full-state checkpoints, preserves prior charges once with zero reruns, and meets the comparison, retry and handoff checks in Story 3. Bounded fixtures must also demonstrate the next proposal, full-state linked confirmation and locked assessment. Record the private receipt-backed replay as a separate result. A group affecting that historical path needs the genuine replay before it can ship.
 - **SC-004** Both monitoring modes report the state recorded in their inputs. Starting either monitor changes zero task transitions, reservations or charges. The terminal watcher can wait while research is idle and collect after a terminal invocation.
-- **SC-005** At the recorded campaign sizes, publication and independent verification agree with baseline claim scope and accounting. A candidate verifier reading an immutable earlier ZIP matches the earlier integrity/status, verdict, complete missing-evidence list and accounting. An incomplete comparison stays incomplete. Altering a required producer fails verification, and losing it leaves the dependent claim unverified.
+- **SC-005** At the recorded campaign sizes, publication and independent verification agree with baseline claim scope and accounting. At that scale an incomplete comparison stays incomplete, an omitted required producer leaves its dependent claim unverified, and substituted producer bytes fail integrity verification. A candidate verifier reading an immutable earlier ZIP matches the earlier integrity/status, verdict, complete missing-evidence list and accounting.
 - **SC-006** Each delivered cleanup group introduces zero new failures in the affected baseline checks and zero broken supported command, package-resource or documentation references. Readers can distinguish fixture, CPU/native and actual HIP evidence and identify any outstanding qualification.
 
 ## Assumptions

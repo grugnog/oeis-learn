@@ -227,6 +227,34 @@ review_tests tests/contract/test_progressive_bundle.py tests/integration/test_pr
 review_tests tests/unit/test_progressive_trials.py
 ```
 
+### Exercise the first dispatch and linked confirmation
+
+Use the same two review fixtures in both checkouts. The source, tests and worker subprocess must come from the revision under review. From section 1, keep the absolute `repo` and `review_tmp` paths and the candidate revision in `after`. Run in the project test environment with its CPU Torch dependencies. For the first review of this change, use its PR tip for the fixture files. For later deletion groups, use the version of the fixtures under review.
+
+```bash
+(
+  set -eu
+  probes=$(mktemp -d "$review_tmp/cleanup-probes.XXXXXX")
+  for name in test_fresh_dispatch.py test_linked_confirmation.py; do
+    git -C "$repo" show "$after:specs/014-repository-cleanup/validation/$name" > "$probes/$name"
+  done
+  for tree in before after; do
+    (
+      cd "$review_tmp/$tree"
+      git rev-parse HEAD
+      PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD/src:$PWD" OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+        python -m pytest -q -p no:cacheprovider --rootdir="$PWD" --basetemp="$probes/$tree-state" \
+        "$probes/test_fresh_dispatch.py" "$probes/test_linked_confirmation.py"
+    )
+  done
+  echo "Review evidence in $probes"
+)
+```
+
+**Fresh start.** Six cases create their own synthetic qualification and acceptance inputs. The fixture uses the real freeze, workstation acceptance gate, foundation command parser, scheduler, projection and CPU census worker. It supplies fixture hardware facts and substitutes a local process for the container transport. The frozen roster has one task. Each case writes `dispatch-observation.json` beneath the corresponding pytest state directory. The accepted case records the frozen and projected input hashes and the path and digest of the worker’s `OUTCOME_BLIND_CENSUS` receipt. Missing or changed acceptance and a mismatched source, image or device must each produce zero dispatches. The small cohort can legitimately report a scientific deficit.
+
+**Linked confirmation.** The fixture compiles the two same-seed research rows with targets of 12.5M and 25M cumulative tokens. Its CPU learner runs two updates per segment. An owned pause exposes the child’s inherited state before its first update. Require exact weights, AdamW state, RNG and scheduler/data state, the same prior tokens and update count, and the child’s full new token allowance. Reopen the child, advance two more updates and verify the parent’s remaining allowance and the child’s new charges. A weights-only initializer with a parent link must be rejected. The existing roster checks still cover the full targets and earlier designs. [First dispatch](validation/test_fresh_dispatch.py) · [Linked confirmation](validation/test_linked_confirmation.py)
+
 To observe function execution on real fixture paths, profile the reporting parametrizations and the interrupted-publication fixture separately. These profiles repeat cases counted above.
 
 ```bash
@@ -243,9 +271,13 @@ PY
 
 ## 5. Close the affected evidence gaps
 
-- **Fresh and installed.** Use the [foundation CI partitions](../../.github/workflows/foundation.yml) on the pinned qualification image. Its runner names 132 test paths/nodes in four partitions (32, 34, 34, 32). Its merge checks their complete inventory. Exercise the directly built and sdist-rebuilt wheels outside the source tree, the public `oeis-learn` console and `pipeline --workspace`, the Docker/Podman host commands and relevant native crates. The Torch model-construction and continuation tests, actual first worker dispatch and physical HIP qualification require the corresponding environment. Use the [existing operator quickstart](../013-progressive-mathematical-discovery/quickstart.md).
+- **Fresh and installed.** Use the [foundation CI partitions](../../.github/workflows/foundation.yml) on the pinned qualification image. Its runner names 132 test paths/nodes in four partitions (32, 34, 34, 32). Its merge checks their complete inventory. Exercise the directly built and sdist-rebuilt wheels outside the source tree, the public `oeis-learn` console and `pipeline --workspace`, Docker/Podman host commands and relevant native crates. The first-dispatch and linked-confirmation fixtures above provide CPU software evidence. A change affecting actual-device qualification needs the corresponding pinned workstation evidence. [Operator quickstart](../013-progressive-mathematical-discovery/quickstart.md)
 
 ### Stop the accepted-run rehearsal at the handoff
+
+Record two results. SC-003 software accepts either an original copy or a representative saved state. On the same case, authenticate 47 distinct completed outputs and all files in four full-state checkpoints against their sealed references. Preserve the ledger prefix, commit the expected comparison once, observe `trial-00-propose` next and repeat on that copy with the engine blocked and the handoff intercepted both times. Require zero reruns, new research invocations, trial reservations, worker calls or GPU calls, and count the original charges once. Record the case identity, counts, charge key and before/after observations. T024–T025 must also pass for SC-003 software to close.
+
+The **private round027 replay** additionally requires the original pinned helper, qualified checkout and genuine terminal publisher receipts. Steps 1–3 exercise that path. A representative pass can close the software observations while the private result stays open. A group that affects recovery of those originals needs the private pass before integration.
 
 1. Create a disposable worktree at `77667e67` under `"$review_tmp/accepted-copy"`. Restore the sealed replay, session, producers, checkpoints, control and original ledger there using independent writable files. Keep the live workspace and its engine socket and GPU devices outside the rehearsal. Record the ledger prefix and original charges, task ownership, and hashes for all 47 saved outputs and all files in the four full-state checkpoints. Check these against the pinned replay on the copy. Save observations outside it.
 2. For the helper path, start with the stopped comparison and a snapshot that has the genuine terminal publisher receipts and matching reservation, before the comparison output and transition were committed. Load the helper extracted in section 3 into the guarded process below. Its real `recover` and `finish` validate the evidence, reconcile the elapsed-only `diversity-comparison/publish/97` charge, record `INCOMPLETE / RETAIN_BASELINE` and check `RunStore.next_task()`. The helper then calls the workstation with `run-research`. Intercept that exact call before it can dispatch. A missing journal tail takes an earlier branch that constructs a host and can probe the GPU even for publication. Install all guards before entering the helper.
@@ -301,7 +333,7 @@ PY
 ```
 
 3. Reopen the copied store and assert `trial-00-propose` is next. Repeat the guarded invocation on the same copy. Require one comparison output and boundary across both attempts, one settled publication charge, the original ledger prefix intact, and the same 47 outputs and four checkpoints. Require zero new research invocations (`execution-0001` and its session journal step), trial reservations or screening dispatches. Confirm the live inputs still match their original hashes.
-4. If the operator has only the stopped **pre-publication** state, authenticate its 47 outputs and four checkpoints there. On a separate diagnostic copy, re-create the verified comparison table, check its sealed bundle with `check_table`, exercise in-process CPU publication and use `finish` to commit and assert the next task. Follow the fixture in `test_interrupted_formal_publication`. Mark the receipt-backed rehearsal outstanding and keep synthetic receipts out of the accepted state.
+4. With only the stopped pre-publication state, authenticate its 47 outputs and four checkpoints. On a separate diagnostic copy, reconstruct the verified comparison table, call `check_table`, exercise CPU publication and use `finish` to commit and check the next task. A representative case can supply SC-003 software evidence once it also satisfies both guarded attempts and every observation above. A smaller interruption fixture or a count-only check supplies partial evidence. Record the private replay as open and keep synthetic receipts outside the accepted state.
 5. Exercise dispatch on a tiny independent fixture. Project one ordinal-zero search request into the `search` channel, invoke the CPU `propose-trial` worker once and require a durable proposal in its fresh fixture journal. Stop there. Check screening, linked confirmation and separate final assessment with the fixtures in section 4. [Pinned helper](../013-progressive-mathematical-discovery/validation/continue-round027-publication.py) · [CPU commit fixture](../013-progressive-mathematical-discovery/validation/test_round027_publication_recovery.py) · [Proposal role](../../src/oeis_learn/pipeline_validation/progressive_role.py)
 
 ### Read a previously published ZIP with the candidate verifier
@@ -361,7 +393,16 @@ PY
 
 The original generators spanned approximately **45.5–52.2 MB each**, before scores. For full-size publication, use a copied terminal invocation or a generated fixture with representative payloads and compressibility. Check original files against all eight receipt identities when using original evidence. For a generated fixture, use the receipt lengths as targets and record the generated bytes and their own digests.
 
-Include roughly 49 MB of calibration and roughly 290,000 journal events in the same fixture. Record actual calibration bytes, journal bytes and event count. Collect and publish with the round027 reporter’s frozen cap, `min(MAX_BYTES, campaign["payload"]["storage"]["package_bytes"])`, or pass that cap explicitly to `build(..., max_bytes=cap)` after collection. In a clean verifier workspace, verify the resulting ZIP. Compare producer identities, claim scope, missing evidence and accounting with the baseline. Repeat the altered, incomplete and private-marker controls. [Reporter cap](../013-progressive-mathematical-discovery/validation/report-round027.py) · [Producer bindings](../../src/oeis_learn/generalization/progressive/public_comparisons.py)
+Include roughly 49 MB of calibration and roughly 290,000 journal events in the same fixture. Record actual calibration bytes, journal bytes and event count. Collect and publish with the round027 reporter’s frozen cap, `min(MAX_BYTES, campaign["payload"]["storage"]["package_bytes"])`, or pass that cap explicitly to `build(..., max_bytes=cap)` after collection. Keep the starting fixture read-only. Use a fresh output and an archive-only verifier for each row on both revisions.
+
+| Full-scale case | Change on the disposable copy | Required result |
+| --- | --- | --- |
+| Intact baseline | Retain the complete registered generator/score pairs and selected comparison. | Publication and independent verification reproduce the baseline claim scope, accounting and complete missing-evidence list. Start with a comparison whose producer binding is exercised by the verifier. |
+| Incomplete comparison | Retain the original bindings and supply the terminal state with an incomplete comparison at the same scale. | Record matching baseline integrity/status, scientific verdict and missing list. The comparison stays incomplete and its costs still reconcile. |
+| Missing required producer | Omit a named generator or score using the reporting path for unavailable evidence. Keep its identity, arm, seed and affected comparison in the review record. | The independently verified report identifies the omission or missing comparison. Its dependent claim stays unverified. Check the surviving accounting against the parent. |
+| Altered required producer | In the bound public comparison payload, replace one byte with an equal-length, valid change to the generator or score. Preserve the frozen original digest. Encode the changed payload through the writer so the outer ZIP is readable. | Require the offline verifier to reject the mismatched original producer bytes. Record the rejected binding and error. The valid baseline for the same producer must pass its integrity check. |
+
+Retain the calibration, journal and unaffected pairs across all four cases. Record the single intended change, original and surviving byte counts, encoded-entry sum, final ZIP size, and the receipt or rejection for each. Inspect expanded public exports for the private marker. T033 closes when the full-size baseline and all three negative cases match their expected results. [Reporter cap](../013-progressive-mathematical-discovery/validation/report-round027.py) · [Producer bindings](../../src/oeis_learn/generalization/progressive/public_comparisons.py) · [Altered-binding example](../../tests/contract/test_progressive_bundle.py)
 
 | Measurement | How to collect and use it |
 | --- | --- |
