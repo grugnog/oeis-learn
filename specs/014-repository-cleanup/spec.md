@@ -47,7 +47,7 @@ An operator can recover an interrupted, accepted campaign using its original evi
 
 **Why this priority** Losing a checkpoint or charging a finished task twice can change which trials the campaign can afford and invalidate its comparison.
 
-**Independent test** Use a copy of the round027 recovery evidence, or a representative saved-state fixture with the same decisions and counts. Compare task identities, checkpoints and charges before and after recovery, including a second continuation attempt.
+**Independent test** Use a copy of the round027 recovery evidence, or a representative saved-state fixture with the same decisions and counts. Authenticate all 47 outputs and four checkpoints, commit the comparison on the copy and observe the next eligible task. Intercept the research handoff before dispatch on both the first and repeated attempts. Exercise one dispatch on a separate bounded fixture.
 
 **Acceptance Scenarios**
 
@@ -74,12 +74,13 @@ A reviewer can use the published bundle to check the scientific result independe
 
 **Why this priority** A verified candidate, a completed search and a completed scientific comparison support different claims.
 
-**Independent test** Publish and verify a representative full-sized terminal bundle. Repeat with an incomplete comparison and with a required producer removed or altered. Compare the evidence, accounting and verdict with the baseline.
+**Independent test** Verify an immutable ZIP published by an earlier revision using only the archive and the candidate verifier. Separately publish and verify a representative full-sized terminal bundle with the candidate. Repeat the current-publication test with an incomplete comparison and a required producer removed or altered.
 
 **Acceptance Scenarios**
 
 1. **Given** a terminal invocation and its original producers, **when** the operator collects the report and a reviewer independently verifies the bundle, **then** both can trace the claims and costs to those producers, and the verdict preserves the distinction between candidate verification, search completion and comparison completion.
 2. **Given** incomplete or altered evidence, **when** the reviewer verifies the bundle, **then** a missing required producer is identified and claims that depend on it remain unverified. Substituting a producer with different bytes fails the integrity check. Private scoring inputs stay outside the public report.
+3. **Given** the already-published incomplete round027 ZIP and its earlier verification record, **when** the candidate verifier reads the original archive in isolation, **then** its integrity/status, scientific verdict, complete missing-evidence list (including `primary_comparison`), per-task accounting and totals match the earlier record. The archive retains its recorded digest.
 
 ### Edge Cases
 
@@ -100,7 +101,7 @@ A reviewer can use the published bundle to check the scientific result independe
 - **FR-006** Preserve the frozen research design and the operations chosen by saved state or configuration. The streamlined roster has 352 pre-assessment tasks, including capability and diversity baselines, four model-sizing trials, 12 learning-setting trials, pruning, selection and linked confirmation. Older frozen rosters retain their own design. Final assessment is a separate operation requiring a locked selection. In the streamlined design, sizing evaluates only at 4M tokens, learning settings retain intermediate evaluations, and the second 12.5M-token confirmation segment continues the first from full state. Preserve role-specific input access, selected-device execution and exact numerical semantics throughout.
 - **FR-007** Preserve recovery from accepted state, including source and image bindings, preparation proofs, task ownership and leases, full checkpoint state, reservations and committed charges, and disk byte and inode accounting. Preserve gated reuse of the original calibration, repaired panels and previously completed work. A new source identity requires its own applicable qualification. Historical receipts keep their original scope and status.
 - **FR-008** Preserve the existing progress record formats, root and round selection, snapshot and interval monitoring, and independent terminal watcher. The resume helper acts only on an explicitly approved continuation. Monitoring and collection can operate separately from the qualified training checkout.
-- **FR-009** Preserve independent publication and verification of historical and current report records at campaign scale. Exercise a roughly 49 MB calibration input, four large comparison projections and a journal of roughly 290,000 budget events through publication **and** verification. For any affected limit, record the resource it protects, observed full-sized demand and the outcome at the boundary. Preserve provenance, private input boundaries and the original interpretation of incomplete evidence.
+- **FR-009** Preserve publication and independent verification of historical and current report records at campaign scale, including isolated verification of immutable ZIPs published by earlier revisions. Exercise roughly 49 MB of calibration, four generator outputs spanning the observed 45.5–52.2 MB each plus their matching scores, and roughly 290,000 journal events together. Record original bytes per producer, the encoded-entry byte total before ZIP compression and final ZIP bytes separately. Demonstrate the existing limit at its actual boundary. These measurements describe acceptance data. Preserve frozen limits, provenance, private input boundaries and the original interpretation of incomplete evidence.
 
 ### Baseline dependencies to check during review
 
@@ -129,7 +130,7 @@ These examples identify specific dependencies on the stack base. Review neighbor
 - **SC-002** Four independently repeatable demonstrations pass for fresh start, accepted-run resume, monitoring and independent report verification. Fresh start reaches the first permitted task on valid inputs. A missing prerequisite allows zero research dispatches.
 - **SC-003** Recovery accounts for 47 of 47 saved outputs and four of four full-state checkpoints in the round027 case. Previously completed tasks are rerun zero times and their original charges counted once. The next screening proposal, linked confirmation and final assessment each have a reachable, evidence-backed case.
 - **SC-004** Both monitoring modes report the state recorded in their inputs. Starting either monitor changes zero task transitions, reservations or charges. The terminal watcher can wait while research is idle and collect after a terminal invocation.
-- **SC-005** At the recorded campaign sizes, publication and independent verification agree with baseline claim scope and accounting. An incomplete comparison stays incomplete. Altering a required producer fails verification, and losing it leaves the dependent claim unverified.
+- **SC-005** At the recorded campaign sizes, publication and independent verification agree with baseline claim scope and accounting. A candidate verifier reading an immutable earlier ZIP matches the earlier integrity/status, verdict, complete missing-evidence list and accounting. An incomplete comparison stays incomplete. Altering a required producer fails verification, and losing it leaves the dependent claim unverified.
 - **SC-006** Each delivered cleanup group introduces zero new failures in the affected baseline checks and zero broken supported command, package-resource or documentation references. Readers can distinguish fixture, CPU/native and actual HIP evidence and identify any outstanding qualification.
 
 ## Assumptions

@@ -88,7 +88,66 @@ The baseline map has 1,332 entries. The HPO launcher is a key. The internal publ
 
 To reproduce the wheel finding, export `a2618bbd` to a new directory with `git archive`. Build an sdist and direct wheel there with `python setup.py sdist bdist_wheel` in an isolated builder. Extract the sdist to a second directory and build a wheel there with `python setup.py bdist_wheel`. Compare `oeis_learn/experiments/qualification-sources.json` from the two ZIPs, by both key and value. The local baseline had a 1,332/1,331 split for the spec 005 contract and identical values for every shared key. Repeat with the repository’s actual release build for a packaging-sensitive group. [Release wheel comparison](../../scripts/foundation/test_wheel.sh)
 
-For a donor-sensitive change, export revisions `7332f0be1f76c5bd735b682765f3b531a1f3ed59` (round009) and `77667e67176ae32fa16457d52565bae1dbe41afc` (qualified round027) separately. From the original round009 tree serialize its own `collect_snapshot('.')` to a file outside either tree. From each proposed tree call `progressive_calibration_equivalence.validate(original_map, collect_snapshot('.'))` with its own package on `PYTHONPATH`. The positive qualified control accepts 89 changes. Removing only the HPO launcher key from a copy of the qualified map triggers a rejection naming the launcher. Compare the unmodified reporter tree separately. [Donor evidence](research.md)
+### Test each source-changing group on the passing qualified control
+
+Use the exact parent and tip of **one** group for `before` and `after`. The validator checks changed paths in sorted order and raises on the first rejection. The reporter already rejects `budgets.py`, so an identical error there cannot clear another source change. The following runs the original donor collector and the qualified validator on disposable trees. Use Python 3.12 for the historical AST pins. Each run keeps its patch, digest and results under a fresh directory.
+
+```bash
+(
+  set -e -o pipefail
+  gate=$(mktemp -d "$review_tmp/donor-gate.XXXXXX")
+  donor=7332f0be1f76c5bd735b682765f3b531a1f3ed59
+  qualified=77667e67176ae32fa16457d52565bae1dbe41afc
+  mkdir "$gate/donor" "$gate/control" "$gate/group"
+  git -C "$repo" archive "$donor" | tar -x -C "$gate/donor"
+  git -C "$repo" archive "$qualified" | tar -x -C "$gate/control"
+  git -C "$repo" archive "$qualified" | tar -x -C "$gate/group"
+  git -C "$repo" diff --binary --no-ext-diff "$before" "$after" > "$gate/group.patch"
+  {
+    git -C "$repo" rev-parse "$before" "$after"
+    git -C "$repo" diff --name-status "$before" "$after"
+    sha256sum "$gate/group.patch"
+  } | tee "$gate/change.log"
+  PYTHONPATH="$gate/donor/src" python3 -BS - "$gate/donor" > "$gate/original.json" <<'PY'
+import json
+import sys
+from oeis_learn.experiments.source_snapshot import collect_snapshot
+
+print(json.dumps(collect_snapshot(sys.argv[1])))
+PY
+
+  donor_check() {
+    PYTHONPATH="$gate/control/src" python3 -BS - "$gate" "$1" <<'PY'
+import json
+import sys
+from pathlib import Path
+from oeis_learn.experiments.source_snapshot import collect_snapshot
+from oeis_learn.pipeline_validation.identity import digest
+from oeis_learn.pipeline_validation.progressive_calibration_equivalence import validate
+
+gate, label = Path(sys.argv[1]), sys.argv[2]
+root = gate / label
+control = collect_snapshot(gate / 'control')
+candidate = collect_snapshot(root)
+for path in sorted(control.keys() | candidate.keys()):
+    if control.get(path) != candidate.get(path):
+        print(path, control.get(path), candidate.get(path))
+print(label, digest(candidate))
+original = json.loads((gate / 'original.json').read_bytes())
+try:
+    accepted = validate(original, candidate, package_root=root / 'src/oeis_learn')
+except ValueError as error:
+    sys.exit(f'REJECT {error}')
+print('PASS', len(accepted))
+PY
+  }
+  donor_check control 2>&1 | tee "$gate/control.log"
+  (cd "$gate/group" && git apply --check "$gate/group.patch" && git apply "$gate/group.patch")
+  donor_check group 2>&1 | tee "$gate/group.log"
+)
+```
+
+Require the clean control to pass with 89 accepted changes. Record the group revisions, patch digest, changed keys and hashes, and its own pass or exact rejected path. Run the parent/candidate comparison on the reporter branch as well. If the group changes the collector or validator, run its version separately and compare it with the frozen check above. Hold a rejection, a patch that cannot be applied faithfully, or an inconclusive result. Never combine other cleanup changes or broaden the qualification rules to obtain a pass. Removing only the retired-teacher method rejected `src/oeis_learn/rl/elite_buffer.py` on this control. [Four-way donor result](research.md#source-identity-and-packaging-controls)
 
 ## 4. Run bounded operator and regression checks
 
@@ -160,6 +219,84 @@ PY
 ## 5. Close the affected evidence gaps
 
 - **Fresh and installed.** Use the [foundation CI partitions](../../.github/workflows/foundation.yml) on the pinned qualification image. Its runner names 132 test paths/nodes in four partitions (32, 34, 34, 32). Its merge checks their complete inventory. Exercise the directly built and sdist-rebuilt wheels outside the source tree, the public `oeis-learn` console and `pipeline --workspace`, the Docker/Podman host commands and relevant native crates. The Torch model-construction and continuation tests, actual first worker dispatch and physical HIP qualification require the corresponding environment. Use the [existing operator quickstart](../013-progressive-mathematical-discovery/quickstart.md).
-- **Accepted-run rehearsal.** Use a disposable copy with the required 47 outputs, four checkpoints, original producers, full journal and pinned source. Record input hashes, task ownership and original charges. Exercise replay, the approved continuation and a repeated attempt on isolated state. Compare with the recovery contract, including the separately selected assessment case. The small interruption fixture above verifies the commit boundary and next task. The original-data checks remain outstanding.
-- **Full-size publication.** Supply the combined 49 MB calibration input, four large projections and roughly 290,000 budget events on a disposable fixture or a copy of a terminal invocation. Use `discovery report --run <run> --output <fresh-output>` and then `discovery verify-bundle --archive <report.zip> --output <fresh-verification>` through the portable foundation runner in a separate workspace. Paths are workspace-relative and the bundle is the verifier’s input. Compare totals, scope, original byte identities, private-data exclusion and refusal of altered evidence. The measured four-by-5 MiB projection round trip and separate 49 MiB policy lookup cover only part of this test. [Acceptance contract](contracts/cleanup-acceptance.md)
-- **Disposition.** Compare each affected result on the group’s parent and candidate. Record any outstanding physical/private check or pre-existing failure under that group. Revert a failing trial in its disposable checkout or withhold its commit. Track the actual files, bytes and symbols removed by accepted groups. [Record format](data-model.md)
+
+### Stop the accepted-run rehearsal at the handoff
+
+1. Create a disposable worktree at `77667e67` under `"$review_tmp/accepted-copy"`. Restore the sealed replay, session, producers, checkpoints, control and original ledger there using independent writable files. Keep the live workspace and its engine socket and GPU devices outside the rehearsal. Record the ledger prefix and original charges, task ownership, and hashes for all 47 saved outputs and all files in the four full-state checkpoints. Check these against the pinned replay on the copy. Save observations outside it.
+2. For the helper path, start with the stopped comparison and a snapshot that has the genuine terminal publisher receipts and matching reservation, before the comparison output and transition were committed. Load the helper extracted in section 3 into the guarded process below. Its real `recover` and `finish` validate the evidence, reconcile the elapsed-only `diversity-comparison/publish/97` charge, record `INCOMPLETE / RETAIN_BASELINE` and check `RunStore.next_task()`. The helper then calls the workstation with `run-research`. Intercept that exact call before it can dispatch. A missing journal tail takes an earlier branch that constructs a host and can probe the GPU even for publication. Install all guards before entering the helper.
+
+```bash
+(
+  set -e
+  cd "$review_tmp/accepted-copy"
+  python3 -IBS - "$review_tmp/resume.py" <<'PY'
+import hashlib
+import json
+import runpy
+import sys
+from pathlib import Path
+from unittest.mock import patch
+
+root, helper = Path.cwd(), Path(sys.argv[1])
+assert hashlib.sha256(helper.read_bytes()).hexdigest() == 'ca54fae0a5812f93d99b8704a47c8482c8938eec6761538541ba72d7a38548ba'
+sys.path[:0] = [str(root / 'src'), str(root / 'scripts')]
+import foundation_local
+from oeis_learn.pipeline_validation import progressive_roles, progressive_workstation
+
+class HandoffReached(Exception):
+    pass
+
+def stop_handoff(request_root, args):
+    assert request_root == root and args[-1] == 'run-research'
+    session_path = 'run-state/discovery/013-research-round-027'
+    assert args[args.index('--session') + 1] == session_path
+    session = root / session_path
+    assert not (session / 'run-research/execution-0001').exists()
+    steps = json.loads((session / 'journal.json').read_bytes())['steps']
+    assert not any(key.startswith('run-research/invocation-0001') for key in steps)
+    raise HandoffReached
+
+with (
+    patch.object(progressive_workstation, 'main', side_effect=stop_handoff) as handoff,
+    patch.object(foundation_local, 'Host', side_effect=AssertionError('engine access')) as host,
+    patch.object(progressive_roles, 'invoke', side_effect=AssertionError('worker dispatch')) as worker,
+):
+    sys.argv = [str(helper), '--continue']
+    try:
+        runpy.run_path(str(helper), run_name='__main__')
+    except HandoffReached:
+        pass
+    else:
+        raise AssertionError('approved recovery did not reach the handoff')
+    handoff.assert_called_once()
+    host.assert_not_called()
+    worker.assert_not_called()
+PY
+)
+```
+
+3. Reopen the copied store and assert `trial-00-propose` is next. Repeat the guarded invocation on the same copy. Require one comparison output and boundary across both attempts, one settled publication charge, the original ledger prefix intact, and the same 47 outputs and four checkpoints. Require zero new research invocations (`execution-0001` and its session journal step), trial reservations or screening dispatches. Confirm the live inputs still match their original hashes.
+4. If the operator has only the stopped **pre-publication** state, authenticate its 47 outputs and four checkpoints there. On a separate diagnostic copy, re-create the verified comparison table, check its sealed bundle with `check_table`, exercise in-process CPU publication and use `finish` to commit and assert the next task. Follow the fixture in `test_interrupted_formal_publication`. Mark the receipt-backed rehearsal outstanding and keep synthetic receipts out of the accepted state.
+5. Exercise dispatch on a tiny independent fixture. Project one ordinal-zero search request into the `search` channel, invoke the CPU `propose-trial` worker once and require a durable proposal in its fresh fixture journal. Stop there. Check screening, linked confirmation and separate final assessment with the fixtures in section 4. [Pinned helper](../013-progressive-mathematical-discovery/validation/continue-round027-publication.py) · [CPU commit fixture](../013-progressive-mathematical-discovery/validation/test_round027_publication_recovery.py) · [Proposal role](../../src/oeis_learn/pipeline_validation/progressive_role.py)
+
+### Read a previously published ZIP with the candidate verifier
+
+Use the original incomplete round027 report when available. Record its producing revision, immutable ZIP SHA-256, report identity and the earlier verifier’s sealed receipt outside the reader workspace. From that baseline retain the full missing-evidence list and canonical per-task/per-arm accounting rows and totals. Include resource caps and spend, elapsed time, and useful/discarded tokens. Round027 is known to lack `primary_comparison`. Compare the **entire** list, including any other entries in that receipt.
+
+In a fresh workspace expose only a read-only copy of that ZIP and the installed candidate verifier. Keep the campaign, producers, writer checkout and expected results inaccessible. Confirm the ZIP hash, run `oeis_learn.generalization.progressive.verify.verify` on it and capture the receipt outside the workspace. The CLI equivalent is `discovery verify-bundle --archive <report.zip> --output <fresh-verification>`. An incomplete report can yield exit 2 and a valid diagnostic receipt. Compare the returned report identity, integrity/status, scientific decision and missing list exactly. After verification, decode the authenticated `tables/accounting-*.json` parts and compare every row and total against the independent baseline. Recheck the input ZIP hash. Do this without invoking a writer. Record an unavailable archive as an outstanding historical check. [Verifier](../../src/oeis_learn/generalization/progressive/verify.py) · [Historical fixture result](research.md#publication-review-probes)
+
+### Publish and verify at the observed round027 scale
+
+Exercise the candidate **writer and reader together** in a separate case. Use a copied terminal invocation or a generated fixture with representative payloads and compressibility. Resolve the two frozen seeds on both arms (static/baseline and refreshed/candidate) through the gate registration and the committed producer results. For **each of the four producers**, record the arm, seed, original generator byte length and SHA-256, and the corresponding score byte length and SHA-256. The observed generators ranged from approximately **45.5 to 52.2 MB each**, before their matching score files. For original evidence, read all eight lengths and hashes from the files and verify them against their resolved references. For generated data, span the reported range and record the actual generated sizes separately. The implementation notes give a range, without a size for each seed/arm or its score.
+
+Include roughly 49 MB of calibration and roughly 290,000 journal events in the same fixture. Record actual calibration bytes, journal bytes and event count. Collect and publish with the round027 reporter’s frozen cap, `min(MAX_BYTES, campaign["payload"]["storage"]["package_bytes"])`, or pass that cap explicitly to `build(..., max_bytes=cap)` after collection. In a clean verifier workspace, verify the resulting ZIP. Compare producer identities, claim scope, missing evidence and accounting with the baseline. Repeat the altered, incomplete and private-marker controls. [Reporter cap](../013-progressive-mathematical-discovery/validation/report-round027.py) · [Producer bindings](../../src/oeis_learn/generalization/progressive/public_comparisons.py)
+
+| Measurement | How to collect and use it |
+| --- | --- |
+| Original producer bytes | Record each of the eight file lengths before the inner transport encoding. Keep generator and score totals separate. |
+| Encoded package bytes | Sum `ZipInfo.file_size` over **all** entries, including `manifest.json`. This reproduces the writer’s sum of encoded entries before ZIP compression and the verifier’s inventory-size check. Record the earlier input-table reference byte sum as a separate precheck. |
+| Final ZIP bytes | Record the closed file’s `stat().st_size` and SHA-256. This measures storage and transport. The writer compares its package budget against the encoded-entry sum above. |
+
+Exercise the package boundary on a disposable fixture with encoded-entry sum `N` greater than the input-table sum and within the absolute limit. With identical inputs, build and verify at `max_bytes=N`. At `N-1`, require the writer’s **packaged metadata** rejection before a ZIP is published and independently verify that the reader rejects the saved archive at that cap. Record all three measurements. Use a fixture that compresses to fewer than `N-1` bytes to expose a mistaken on-disk comparison. The four-by-5 MiB, space-padded projection test and separate 49 MiB policy test remain small regression controls. The observed sizes set acceptance-fixture targets only. [Writer](../../src/oeis_learn/generalization/progressive/report.py) · [Bundle tests](../../tests/contract/test_progressive_bundle.py)
+
+**Disposition.** Compare each affected result on the group’s parent and candidate. Record any outstanding physical/private check or pre-existing failure under that group. Withhold a failing group and track actual files, bytes and symbols removed by accepted groups. [Record format](data-model.md)
