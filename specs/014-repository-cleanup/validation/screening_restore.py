@@ -2,8 +2,11 @@
 
 import hashlib
 import json
+import os
+import re
 import runpy
 import shutil
+import stat
 import tempfile
 from pathlib import Path
 
@@ -12,6 +15,7 @@ from oeis_learn.generalization.progressive.contracts import load, record, seal, 
 from oeis_learn.generalization.progressive.lifecycle import RunStore
 from oeis_learn.generalization.progressive.milestones import milestone
 from oeis_learn.generalization.progressive.recovery import Recovery
+from oeis_learn.generalization.progressive.storage_plan import checkpoint_bound
 from oeis_learn.generalization.progressive.trial_scopes import materialize
 from oeis_learn.pipeline_validation.identity import confined
 from oeis_learn.pipeline_validation.progressive_learner import compatibility
@@ -48,6 +52,71 @@ def compare_state(expected, actual):
 def ledger_hash(path):
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def copy_restore_inputs(work, sources, child_bound):
+    """Preflight all inputs and one new generation, then recreate links only inside scratch."""
+    require(
+        all(not work.resolve().is_relative_to(source.resolve()) for source in sources.values()),
+        "scratch must be outside the original inputs",
+    )
+    work.mkdir(parents=True, exist_ok=True)
+    require(not any(work.iterdir()), "empty restore directory required")
+    fs = os.statvfs(work)
+    block = fs.f_frsize
+    directories, links = [], []
+    copies = {}
+    allocated_bytes = {}
+    copy_bytes = 0
+    for name, source in sources.items():
+        physical = {}
+        pending = [(source, work / name)]
+        while pending:
+            path, dest = pending.pop()
+            info = path.lstat()
+            inode = (info.st_dev, info.st_ino)
+            physical[inode] = info.st_blocks * 512
+            if stat.S_ISDIR(info.st_mode):
+                directories.append(dest)
+                pending.extend((entry, dest / entry.name) for entry in path.iterdir())
+            elif stat.S_ISREG(info.st_mode):
+                if inode in copies:
+                    links.append((copies[inode][1], dest))
+                    continue
+                copies[inode] = (path, dest)
+            else:
+                raise ValueError(f"restore requires regular files and directories: {path}")
+            # An ordinary copy can expand a sparse file. Count each inode once at destination.
+            logical = max(info.st_size, block if stat.S_ISDIR(info.st_mode) else 0)
+            copy_bytes += max(physical[inode], (logical + block - 1) // block * block)
+        allocated_bytes[name] = sum(physical.values())
+
+    child_bytes, child_inodes = child_bound["checkpoint_bytes"], child_bound["checkpoint_inodes"]
+    # Allow one filesystem block per child inode for allocation rounding and metadata.
+    required_bytes = copy_bytes + child_bytes + child_inodes * block
+    required_inodes = len(directories) + len(copies) + child_inodes
+    free_bytes = fs.f_bavail * block
+    require(
+        required_bytes <= free_bytes and required_inodes <= fs.f_favail,
+        f"restore needs {required_bytes} bytes and {required_inodes} inodes including the child; "
+        f"scratch has {free_bytes} bytes and {fs.f_favail} inodes",
+    )
+    for directory in directories:
+        directory.mkdir()
+    for source, dest in copies.values():
+        shutil.copy2(source, dest)
+    for first_copy, dest in links:
+        os.link(first_copy, dest)
+    return {
+        "source_allocated_bytes": allocated_bytes,
+        "copy_bytes": copy_bytes,
+        "child_checkpoint_bytes": child_bytes,
+        "child_checkpoint_inodes": child_inodes,
+        "required_bytes": required_bytes,
+        "required_inodes": required_inodes,
+        "available_bytes_before": free_bytes,
+        "available_inodes_before": fs.f_favail,
+    }
 
 
 def training_package(root, campaign, child):
@@ -126,16 +195,38 @@ def inspect_copy(root, work, campaign, proposal, *, targets):
     """Read inputs from root. All leases, bindings and child state live in work."""
     cid = campaign["identity"][7:]
     original_state = root / "run-state"
-    control = original_state / "discovery-control" / cid
-    require((control / "campaign.json").is_file(), "original controller binding required")
-    shutil.copytree(control, work / "control")
-    store = RunStore(work / "control", campaign)
+    require(
+        not work.resolve().is_relative_to(original_state.resolve()),
+        "scratch must be outside run-state",
+    )
+    control = confined(original_state, f"discovery-control/{cid}")
+    accounting = confined(original_state, f"discovery-accounting/{cid}")
     names = ("trial-00-1000000-train", "trial-00-2000000-train")
     frozen = {p["id"]: p for p in campaign["payload"]["tasks"]}
-    plans = [store.resolved_plan(frozen[name]) for name in names]
     require(
         seal(proposal) == proposal and proposal["ordinal"] == 0, "sealed trial 00 proposal required"
     )
+    # Locate only the selected learner for preflight. The copied RunStore checks the full
+    # transition chain, and original() below authenticates this task and its producer result.
+    tip = max(control.glob("transition-*.json"), default=None)
+    require(tip is not None, "completed trial 00 controller transition required")
+    transition = load(tip)
+    require(seal(transition) == transition, "invalid controller transition")
+    task_id = transition["state"]["outputs"][names[0]]["task"]
+    require(re.fullmatch(r"sha256:[0-9a-f]{64}", task_id), "invalid parent task identity")
+    learning = confined(original_state, f"discovery-learning/{cid}/{task_id[7:]}")
+    require(
+        (control / "campaign.json").is_file()
+        and (accounting / "budget-binding.json").is_file()
+        and (learning / "binding.json").is_file(),
+        "original controller, accounting and learner bindings required",
+    )
+    child_bound = checkpoint_bound(campaign["payload"]["storage"], frozen[names[1]])
+    space = copy_restore_inputs(
+        work, {"control": control, "accounting": accounting, "parent": learning}, child_bound
+    )
+    store = RunStore(work / "control", campaign)
+    plans = [store.resolved_plan(frozen[name]) for name in names]
     require(all(plans), "missing saved screening choice")
     parent, child = plans
     require(
@@ -173,18 +264,11 @@ def inspect_copy(root, work, campaign, proposal, *, targets):
         for p in plans
     ]
     checkpoint_ref = original(root, store, names[0], "train", "checkpoint_record")
+    require(tasks[0]["identity"] == task_id, "parent task changed during the copy")
     checkpoint = load(root / checkpoint_ref["path"])
     role = confined(root, store.state["outputs"][names[0]]["result"]["path"]).parent
     receipt = load(confined(role, "accounting-final.json"))
     package = training_package(root, campaign, child)
-    accounting = original_state / "discovery-accounting" / cid
-    learning = original_state / "discovery-learning" / cid / tasks[0]["identity"][7:]
-    require(
-        (accounting / "budget-binding.json").is_file() and (learning / "binding.json").is_file(),
-        "original accounting and learner bindings required",
-    )
-    shutil.copytree(accounting, work / "accounting")
-    shutil.copytree(learning, work / "parent")
     journal = BudgetJournal(
         work / "accounting",
         campaign["identity"],
@@ -208,7 +292,13 @@ def inspect_copy(root, work, campaign, proposal, *, targets):
             "parent exposure differs from the settled screening look",
         )
         prior_us = costs["total_cost_us"]
-        with Recovery(journal, tasks[1], scope, state_root=work / "child") as second:
+        with Recovery(
+            journal,
+            tasks[1],
+            scope,
+            state_root=work / "child",
+            checkpoint_bytes=child_bound["checkpoint_bytes"],
+        ) as second:
             second.initialize_from(first, campaign=campaign)
             after = second.restore()
             require(
@@ -254,6 +344,7 @@ def inspect_copy(root, work, campaign, proposal, *, targets):
         "prior_elapsed_us": prior_us,
         "final_accounting": receipt["identity"],
         "final_accounting_journal": receipt["journal"],
+        "scratch_space": space,
         "ledger_sha256": prefix,
         "cursor": states["scheduler"]["controller"]["cursor"],
         "parent_target": parent["token_target"],

@@ -1,9 +1,11 @@
 """Check the selected trial 00 screening cut before its first child update."""
 
+import os
 import shutil
+from types import SimpleNamespace
 
 import pytest
-from screening_restore import verify_parent_accounting
+from screening_restore import copy_restore_inputs, verify_parent_accounting
 from test_linked_confirmation import compile_pair, exercise_pair, research_rows
 
 from oeis_learn.generalization.progressive.contracts import (
@@ -23,6 +25,70 @@ from oeis_learn.pipeline_validation.progressive_acceptance_limits import measure
 from oeis_learn.pipeline_validation.progressive_learner import compatibility
 from oeis_learn.pipeline_validation.progressive_roles import ROLE_POLICY
 from oeis_learn.pipeline_validation.progressive_training import resolve_update_policy
+
+
+def test_restore_copy_preserves_only_private_hard_links(tmp_path):
+    parent = tmp_path / "original"
+    first, second = (parent / name for name in ("generation-1", "generation-2"))
+    first.mkdir(parents=True)
+    second.mkdir()
+    weights = first / "weights.pt"
+    weights.write_bytes(b"settled weights" * 8192)
+    weights_copy = second / "weights.pt"
+    os.link(weights, weights_copy)
+    outside = tmp_path / "retained-weights.pt"
+    os.link(weights, outside)
+    independent = second / "optimizer.pt"
+    independent.write_bytes(weights.read_bytes())
+
+    work = tmp_path / "scratch"
+    measured = copy_restore_inputs(
+        work, {"parent": parent}, {"checkpoint_bytes": 1 << 20, "checkpoint_inodes": 64}
+    )
+    cloned = work / "parent/generation-1/weights.pt"
+    alias = work / "parent/generation-2/weights.pt"
+    assert cloned.samefile(alias) and cloned.stat().st_nlink == 2
+    assert not cloned.samefile(weights)
+    assert not cloned.samefile(work / "parent/generation-2/optimizer.pt")
+    assert measured["source_allocated_bytes"]["parent"] == sum(
+        path.stat().st_blocks * 512 for path in (parent, first, second, weights, independent)
+    )
+    cloned.write_bytes(b"changed on scratch")
+    assert alias.read_bytes() == b"changed on scratch"
+    assert weights.stat().st_nlink == 3
+    assert (
+        weights.read_bytes()
+        == weights_copy.read_bytes()
+        == outside.read_bytes()
+        == independent.read_bytes()
+    )
+
+
+@pytest.mark.parametrize("short", ["bytes", "inodes"])
+def test_restore_refuses_short_scratch_before_copy(tmp_path, monkeypatch, short):
+    parent = tmp_path / "original"
+    parent.mkdir()
+    # Sparse input may expand on a filesystem that allocates every copied block.
+    with (parent / "weights.pt").open("wb") as stream:
+        stream.seek((256 << 10) - 1)
+        stream.write(b"x")
+    os.link(parent / "weights.pt", parent / "same-weights.pt")
+    bound = {"checkpoint_bytes": 1 << 20, "checkpoint_inodes": 64}
+    space = copy_restore_inputs(tmp_path / "measured", {"parent": parent}, bound)
+    block = os.statvfs(tmp_path).f_frsize
+    assert space["copy_bytes"] >= 256 << 10
+    assert space["required_inodes"] == 2 + bound["checkpoint_inodes"]
+    blocks = (space["required_bytes"] + block - 1) // block
+    available = SimpleNamespace(
+        f_frsize=block,
+        f_bavail=blocks - (short == "bytes"),
+        f_favail=space["required_inodes"] - (short == "inodes"),
+    )
+    monkeypatch.setattr(os, "statvfs", lambda _: available)
+    work = tmp_path / "too-small"
+    with pytest.raises(ValueError, match="including the child"):
+        copy_restore_inputs(work, {"parent": parent}, bound)
+    assert list(work.iterdir()) == []
 
 
 def test_trial_00_screening_restores_before_first_update(tmp_path, monkeypatch):
