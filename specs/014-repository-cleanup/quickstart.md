@@ -363,6 +363,15 @@ PY
 4. With only the stopped pre-publication state, authenticate its 47 outputs and four checkpoints. On a separate diagnostic copy, reconstruct the verified comparison table, call `check_table`, exercise CPU publication and use `finish` to commit and check the next task. A representative case can supply SC-003 software evidence once it also satisfies both guarded attempts and every observation above. A smaller interruption fixture or a count-only check supplies partial evidence. Record the private replay as open and keep synthetic receipts outside the accepted state.
 5. Exercise dispatch on a tiny independent fixture. Project one ordinal-zero search request into the `search` channel, invoke the CPU `propose-trial` worker once and require a durable proposal in its fresh fixture journal. Stop there. Check screening, linked confirmation and separate final assessment with the fixtures in section 4. [Pinned helper](../013-progressive-mathematical-discovery/validation/continue-round027-publication.py) · [CPU commit fixture](../013-progressive-mathematical-discovery/validation/test_round027_publication_recovery.py) · [Proposal role](../../src/oeis_learn/pipeline_validation/progressive_role.py)
 
+The representative CPU fixture can run without workstation inputs. Run it from each checkout with the test dependencies.
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD/src:$PWD" python -m pytest -q -p no:cacheprovider \
+  specs/014-repository-cleanup/validation/test_recovery.py
+```
+
+It binds four tiny AdamW checkpoints to their matching generation and score receipts, includes 35 upstream receipts, and uses the historical replay audit to authenticate all 47 outputs and the four full checkpoint closures. The fixture supplies its own publication envelope and exercises the helper’s original-state, supervised-completion, charge and commit functions. It reopens the store twice and intercepts the workstation handoff. Active ownership, altered producer bytes, an altered optimizer sidecar and a pending publication missing its cleanup receipt each stop before handoff. A separate CPU process exercises the next proposal on a fresh Optuna journal. The original approved helper and its campaign-specific device, request and replay bindings are exercised by the private procedure above. [Representative fixture](validation/test_recovery.py)
+
 ### Read a previously published ZIP with the candidate verifier
 
 Use the already-published incomplete round027 ZIP from the diagnostics. In the independent review of `83684256`, the reviewed verifier reproduced the **entire saved receipt**. The ZIP’s SHA-256 before and after verification was `d24c9ad72551e927cb63b2b77b18f31ea585733b767990d14c4eddf764626c9e`. Both `status` and scientific `decision` were `INCOMPLETE`, the complete missing list was `["primary_comparison"]`, and the archive contained 352 accounting rows. Record the producing revision, report identity and saved receipt outside the reader workspace. For the accounting comparison, retain the original per-task/per-arm rows and totals, including caps and spend, elapsed time, and useful/discarded tokens.
