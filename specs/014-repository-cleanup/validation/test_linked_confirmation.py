@@ -3,8 +3,8 @@
 import json
 from types import SimpleNamespace
 
-import numpy as np
 import pytest
+from screening_restore import compare_state, inspect_copy
 
 from oeis_learn.generalization.progressive.budgets import BudgetJournal
 from oeis_learn.generalization.progressive.campaign import validate_campaign
@@ -20,7 +20,7 @@ from tests.helpers.progressive_engine import LocalProcessEngine
 from tests.unit.test_progressive_research_roster import fixture as roster_inputs
 
 
-def confirmation_pair(root, seed, compatibility):
+def research_rows(seed):
     _, panels, screening = roster_inputs()
     data = seal(
         {"version": "progressive-registered-data/v1", "design": seal({"seeds": [seed, 19]})}
@@ -28,11 +28,19 @@ def confirmation_pair(root, seed, compatibility):
     rows = construct(scientific_round(data, expanded=True, streamlined=True), panels, screening)[
         "tasks"
     ]
-    by_id = {row["id"]: row for row in rows}
-    second = by_id[f"confirmation-0-{seed}"]
-    first = by_id[second["parent"]]
-    assert (first["seed"], second["seed"]) == (seed, seed)
-    assert (first["token_target"], second["token_target"]) == (12_500_000, 25_000_000)
+    return {row["id"]: row for row in rows}
+
+
+def compile_pair(
+    root,
+    rows,
+    seed,
+    compatibility,
+    study,
+    parameters=(),
+    scopes=None,
+    channel="training-channel.json",
+):
     atomic_write(root / "compiler/qualification.json", {"images": [digest("cpu"), digest("gpu")]})
     compiler = Compiler(
         root,
@@ -42,15 +50,15 @@ def confirmation_pair(root, seed, compatibility):
         checkpoint=None,
         created_at="2026-11-08T00:00:00Z",
     )
-    for row in (first, second):
+    for row in rows:
         compiler.task(
             row,
-            {"training": ["training-channel.json"]},
-            seed=row["seed"],
+            {"training": [channel]},
+            seed=seed,
             compatibility=compatibility,
-            study={"identity": digest("fixture")},
-            parameters=[],
-            scopes={},
+            study={"identity": study},
+            parameters=parameters,
+            scopes=scopes,
             maximum_update=1,
             checkpoint_bytes=1,
         )
@@ -58,14 +66,18 @@ def confirmation_pair(root, seed, compatibility):
 
 
 def test_second_confirmation_restores_first(tmp_path, monkeypatch):
-    import torch
-
     monkeypatch.setenv("OEIS_PROGRESSIVE_ACCEPTANCE_DEVICE", "cpu")
     campaign, _, _, charge = fixture(tmp_path, interrupt=False)
     plans = campaign["payload"]["tasks"]
     parent, child = plans
     compatibility = parent["initializer"]["compatibility"]
-    compiled = confirmation_pair(tmp_path, parent["seed"], compatibility)
+    seed = parent["seed"]
+    rows = research_rows(seed)
+    second = rows[f"confirmation-0-{seed}"]
+    first = rows[second["parent"]]
+    assert (first["seed"], second["seed"]) == (seed, seed)
+    assert (first["token_target"], second["token_target"]) == (12_500_000, 25_000_000)
+    compiled = compile_pair(tmp_path, (first, second), seed, compatibility, digest("fixture"))
     # Keep the research parent identity and initializer while charging two small updates per half.
     for i, (plan, original) in enumerate(zip(plans, compiled, strict=True), 1):
         plan.update(
@@ -81,7 +93,31 @@ def test_second_confirmation_restores_first(tmp_path, monkeypatch):
         validate_campaign(
             seal(dict(campaign, payload=dict(campaign["payload"], tasks=[parent, bad_child])))
         )
+    exercise_pair(tmp_path, campaign, charge)
+
+
+def exercise_pair(tmp_path, campaign, charge, *, proposal=None, channel="training-channel.json"):
+    from oeis_learn.generalization.progressive.lifecycle import RunStore
+    from oeis_learn.pipeline_validation.progressive_study import project_variant
+
     campaign = validate_campaign(seal(campaign))
+    cid = campaign["identity"].split(":")[1]
+    store = RunStore(tmp_path / "run-state/discovery-control" / cid, campaign)
+    plans = campaign["payload"]["tasks"]
+    if proposal is not None:
+        with store.lease():
+            store.choose_trial(proposal)
+        store.read()
+        plans = [store.resolved_plan(p) for p in plans]
+        for plan in plans:
+            assert plan["trial_choice"] == 1
+            assert plan["trial_choices"][1]["parameters"] == proposal["parameters"]
+            assert (
+                load(tmp_path / plan["trial_runtime"]["path"])["identity"]
+                == campaign["payload"]["runtime"]
+            )
+    parent, child = plans
+    compatibility = parent["initializer"]["compatibility"]
     tasks = [
         record(
             "task",
@@ -92,7 +128,6 @@ def test_second_confirmation_restores_first(tmp_path, monkeypatch):
         )
         for plan in plans
     ]
-    cid = campaign["identity"].split(":")[1]
     journal = BudgetJournal(
         tmp_path / "run-state/discovery-accounting" / cid,
         campaign["identity"],
@@ -116,6 +151,15 @@ def test_second_confirmation_restores_first(tmp_path, monkeypatch):
         seconds = min(60, journal.task_remaining(task)["elapsed_us"] // 1_000_000)
         reservation = dict.fromkeys(task["payload"]["caps"], 0)
         reservation["elapsed_us"] = seconds * 1_000_000
+        artifacts, derived = project_variant(
+            tmp_path,
+            store,
+            task,
+            "train",
+            {"training": [describe(tmp_path, channel)]},
+            None,
+            tmp_path / (name + "-projection"),
+        )
         token = progressive_commands._INVOCATION.set(name)
         try:
             return progressive_roles.invoke(
@@ -123,7 +167,8 @@ def test_second_confirmation_restores_first(tmp_path, monkeypatch):
                 image,
                 tmp_path,
                 "train",
-                {"training": [describe(tmp_path, "training-channel.json")]},
+                artifacts,
+                derived=derived,
                 output=name,
                 campaign=campaign,
                 task=task,
@@ -147,6 +192,29 @@ def test_second_confirmation_restores_first(tmp_path, monkeypatch):
     completed = train(first, 0, "first-segment")
     assert completed["mechanical_status"] == "COMPLETE", completed
     assert completed["metrics"]["device"] == "cpu"
+    if proposal is not None:
+        from oeis_learn.pipeline_validation.progressive_outputs import commit
+
+        with store.lease():
+            commit(tmp_path, store, first, tmp_path / "first-segment/role", "train")
+            store.boundary(first, "COMPLETE", "first-segment")
+        targets = (parent["token_target"], child["token_target"])
+        with pytest.raises(ValueError, match="parameters or seed"):
+            inspect_copy(
+                tmp_path,
+                tmp_path / "wrong-choice",
+                campaign,
+                seal(dict(proposal, seed=proposal["seed"] + 1)),
+                targets=targets,
+            )
+        observation = inspect_copy(
+            tmp_path, tmp_path / "offline-copy", campaign, proposal, targets=targets
+        )
+        atomic_write(tmp_path / "screening-restore-observation.json", observation)
+        assert (observation["tokens"], observation["updates"]) == (2 * charge, 2)
+        assert (observation["child_tokens"], observation["child_updates"]) == (0, 0)
+        assert observation["prior_elapsed_us"] > 0 and observation["device"] == "cpu"
+
     before = saved(first)
     remaining = journal.task_remaining(first)
     parent_prefix = journal.path.read_bytes()
@@ -166,23 +234,7 @@ def test_second_confirmation_restores_first(tmp_path, monkeypatch):
     assert before["ledger"].updates == inherited["ledger"].updates == 2
     assert journal.task_remaining(second)["tokens"] == child["caps"]["tokens"]
 
-    def assert_same_state(expected, actual):
-        assert type(actual) is type(expected)
-        if isinstance(expected, dict):
-            assert actual.keys() == expected.keys()
-            for key in expected:
-                assert_same_state(expected[key], actual[key])
-        elif isinstance(expected, (tuple, list)):
-            for left, right in zip(expected, actual, strict=True):
-                assert_same_state(left, right)
-        elif isinstance(expected, torch.Tensor):
-            torch.testing.assert_close(expected, actual, rtol=0, atol=0)
-        elif isinstance(expected, np.ndarray):
-            np.testing.assert_array_equal(expected, actual, strict=True)
-        else:
-            assert actual == expected
-
-    assert_same_state(before["states"], inherited["states"])
+    compare_state(before["states"], inherited["states"])
     # Pausing the child legitimately appends an elapsed-time reservation to the same ledger.
     budget = journal.path.read_bytes()
     assert budget.startswith(parent_prefix)
@@ -191,6 +243,10 @@ def test_second_confirmation_restores_first(tmp_path, monkeypatch):
     ]
     assert inherited["cuts"]["cost_journal"] in new_events
     assert inherited["cuts"] == dict(before["cuts"], cost_journal=inherited["cuts"]["cost_journal"])
+    if proposal is not None:
+        assert journal.task_remaining(first) == remaining
+        return
+
     resumed = train(second, 1, "finish-second")
     assert resumed["mechanical_status"] == "COMPLETE", resumed
     assert resumed["metrics"]["device"] == "cpu"

@@ -229,13 +229,13 @@ review_tests tests/unit/test_progressive_trials.py
 
 ### Exercise the first dispatch and linked confirmation
 
-Use the same two review fixtures in both checkouts. The source, tests and worker subprocess must come from the revision under review. From section 1, keep the absolute `repo` and `review_tmp` paths and the candidate revision in `after`. Run in the project test environment with its CPU Torch dependencies. For the first review of this change, use its PR tip for the fixture files. For later deletion groups, use the version of the fixtures under review.
+Use the same three review fixtures in both checkouts. The source, tests and worker subprocess must come from the revision under review. From section 1, keep the absolute `repo` and `review_tmp` paths and the candidate revision in `after`. Run in the project test environment with its CPU Torch dependencies. For the first review of this change, use its PR tip for the fixture files. For later deletion groups, use the version of the fixtures under review.
 
 ```bash
 (
   set -eu
   probes=$(mktemp -d "$review_tmp/cleanup-probes.XXXXXX")
-  for name in test_fresh_dispatch.py test_linked_confirmation.py; do
+  for name in test_fresh_dispatch.py test_linked_confirmation.py test_screening_restore.py screening_restore.py; do
     git -C "$repo" show "$after:specs/014-repository-cleanup/validation/$name" > "$probes/$name"
   done
   for tree in before after; do
@@ -244,7 +244,7 @@ Use the same two review fixtures in both checkouts. The source, tests and worker
       git rev-parse HEAD
       PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD/src:$PWD" OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
         python -m pytest -q -p no:cacheprovider --rootdir="$PWD" --basetemp="$probes/$tree-state" \
-        "$probes/test_fresh_dispatch.py" "$probes/test_linked_confirmation.py"
+        "$probes/test_fresh_dispatch.py" "$probes/test_linked_confirmation.py" "$probes/test_screening_restore.py"
     )
   done
   echo "Review evidence in $probes"
@@ -271,7 +271,7 @@ PY
 
 ### Check trial 00 before further training
 
-T037 covers the screening link from `trial-00-1000000-train` to `trial-00-2000000-train`. T024 covers the later 12.5M→25M confirmation. Keep the original six 1M checkpoints, frozen campaign, study and controller transitions, their ledger, and generation/scoring receipts and producer files for the development and both retention panels. Compare the screening audit and its test with their original blobs and run their bounded cases from each checkout.
+T037 checks `trial-00-1000000-train` → `trial-00-2000000-train`. Preserve all six screening checkpoints and the development and retention producers listed in the [original inventory](implementation.md#original-evidence-and-trial-00). For T003 and T034, check both audit files in each worktree.
 
 ```bash
 validation=specs/013-progressive-mathematical-discovery/validation
@@ -280,7 +280,21 @@ python -m pytest -q "$validation/test_round027_screening_audit.py"
 git rev-parse --verify '77667e67^{commit}'
 ```
 
-For the original check, copy the selected campaign, study, accounting, controller records and learning state with their referenced files to an isolated workspace. Authenticate the ordinal-zero proposal and selected finite parameter choice. Bind both frozen task IDs and the parent’s committed checkpoint to that choice, seed and compatibility. Verify every checkpoint file against its manifest and retain the original ledger prefix, token and update counts, spent charges and data position. On the copy, stop the child immediately after full-state restore and before its first update. Compare weights, optimizer buffers and step, scheduler, RNG streams, sampler/controller position and budget cuts with the saved parent. Check the ledger prefix and zero new training tokens. Record any maintenance-only accounting separately. Keep the live ledger, study decisions and qualified checkout intact. A bounded CPU result and a private original restore receive separate entries in the review record. The screening audit’s exploratory recoding grants no authority to advance the frozen trial.
+The screening fixture runs ordinal zero through the pinned sampler, resolves its frozen choice, and executes two small CPU parent updates with the screening schedule and hourly checkpoint policy. It checks the live restored weights, optimizer, RNG and data position against that parent, then independently pauses the installed child before an update. An alternative proposal fails the binding check. The fixture writes `screening-restore-observation.json` in its pytest directory. [Screening fixture](validation/test_screening_restore.py)
+
+Set `sealed_root` to a snapshot containing the original workstation `run-state/`. The checker authenticates the frozen campaign, study proposal, task plans, learner result and training data. Give `review_tmp` space outside that snapshot for the controller, accounting and parent and child checkpoints. Restoring saved HIP RNG requires the matching device.
+
+```bash
+(
+  set -eu
+  cd "$repo"
+  PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD/src:$PWD" \
+    python specs/014-repository-cleanup/validation/screening_restore.py \
+      "$sealed_root" --scratch "$review_tmp" > "$review_tmp/original-screening-restore.json"
+)
+```
+
+The offline child must recover the weights, AdamW, RNG, scheduler, data cursor and prior charges before an optimizer step. Expect zero new updates or tokens and a byte-identical cost journal. Only the checkpoint’s cost watermark advances to the journal’s existing tip. Record this receipt separately from the CPU fixture. The frozen scientific decision still governs dispatch. [Original restore checker](validation/screening_restore.py)
 
 ## 5. Close the affected evidence gaps
 
