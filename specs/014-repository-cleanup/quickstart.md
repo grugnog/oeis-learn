@@ -52,17 +52,18 @@ PY
 "$review_tmp/tools/bin/python" -m vulture src/oeis_learn scripts --min-confidence 100 --sort-by-size
 ```
 
-On the baseline, expect 1,175 parsed files, 558 package modules, 3,291 edges and an empty worker-importer set. Vulture exits with findings. Inspect its reported names and read their callers/decorators. These Git queries expose three different consumers that the import graph misses.
+On the baseline, expect 1,175 parsed files, 558 package modules, 3,291 edges and an empty worker-importer set. Vulture exits with findings. Inspect its reported names and read their callers/decorators. Run the following queries from the root of each clean worktree. Record its HEAD alongside the hits so a reference introduced by the candidate is visible.
 
 ```bash
+git rev-parse HEAD
 git grep -nF 'runpy.run_module' -- src/oeis_learn/pipeline_validation/progressive_roles.py
 git grep -nE 'qualify_bigint_phase[25]|qualify_progressive_foundation' -- .github/workflows/foundation.yml src/oeis_learn/pipeline_validation/progressive_handoff.py
-git grep -nE 'run_hpo_sweep\.py|hpo_search_space\.yaml|hpo_sweep_results|real_data_e2e_report\.md' "$before" -- .
-git grep -nw _populate_canonical_defaults "$before" -- .
+git grep -nE 'run_hpo_sweep\.py|hpo_search_space\.yaml|hpo_sweep_results|real_data_e2e_report\.md' -- .
+git grep -nw _populate_canonical_defaults -- .
 python3 -BS scripts/inventory_synthesis_retirement.py --check
 ```
 
-For an individual file, search its basename, relative pathname, SHA-256, directory readers and package patterns. Inspect the hits. For the HPO reports, the hits in the old script are output destinations. For the launcher itself there are historical hash bindings. [Candidate interpretations](research.md)
+For an individual file, search its basename, relative pathname, SHA-256, directory readers and package patterns. Record a `git grep` exit of 1 as zero matches for that checkout. Inspect the hits. For the HPO reports, the hits in the old script are output destinations. For the launcher itself there are historical hash bindings. [Candidate interpretations](research.md)
 
 ## 3. Compare identities and historical retrieval
 
@@ -98,10 +99,14 @@ Use the exact parent and tip of **one** group for `before` and `after`. The vali
   gate=$(mktemp -d "$review_tmp/donor-gate.XXXXXX")
   donor=7332f0be1f76c5bd735b682765f3b531a1f3ed59
   qualified=77667e67176ae32fa16457d52565bae1dbe41afc
-  mkdir "$gate/donor" "$gate/control" "$gate/group"
+  mkdir "$gate/donor" "$gate/control" "$gate/group" "$gate/parent" "$gate/tip"
   git -C "$repo" archive "$donor" | tar -x -C "$gate/donor"
   git -C "$repo" archive "$qualified" | tar -x -C "$gate/control"
   git -C "$repo" archive "$qualified" | tar -x -C "$gate/group"
+  git -C "$repo" archive "$before" | tar -x -C "$gate/parent"
+  git -C "$repo" archive "$after" | tar -x -C "$gate/tip"
+  git -C "$gate/group" init --quiet
+  test "$(git -C "$gate/group" rev-parse --show-toplevel)" = "$(cd "$gate/group" && pwd -P)"
   git -C "$repo" diff --binary --no-ext-diff "$before" "$after" > "$gate/group.patch"
   {
     git -C "$repo" rev-parse "$before" "$after"
@@ -129,9 +134,28 @@ gate, label = Path(sys.argv[1]), sys.argv[2]
 root = gate / label
 control = collect_snapshot(gate / 'control')
 candidate = collect_snapshot(root)
-for path in sorted(control.keys() | candidate.keys()):
-    if control.get(path) != candidate.get(path):
-        print(path, control.get(path), candidate.get(path))
+
+def changes(before, after):
+    return {path: (before.get(path), after.get(path))
+            for path in sorted(before.keys() | after.keys())
+            if before.get(path) != after.get(path)}
+
+if label == 'group':
+    expected = changes(collect_snapshot(gate / 'parent'), collect_snapshot(gate / 'tip'))
+    actual = changes(control, candidate)
+    if not expected:
+        sys.exit('No qualification-source change in the proposed group. Review its other consumers.')
+    missing = sorted(expected.keys() - actual.keys())
+    extra = sorted(actual.keys() - expected.keys())
+    if missing or extra:
+        sys.exit(f'Source-map delta mismatch: missing={missing}, unexpected={extra}')
+    for path, (old, new) in expected.items():
+        observed_old, observed_new = actual[path]
+        print(path, 'parent/tip', old, new, 'qualified/patched', observed_old, observed_new)
+        if (old is None, new is None) != (observed_old is None, observed_new is None):
+            sys.exit(f'Addition, deletion or modification differs for {path}')
+        if old == observed_old and new != observed_new:
+            sys.exit(f'Patched bytes differ from the group tip for {path}')
 print(label, digest(candidate))
 original = json.loads((gate / 'original.json').read_bytes())
 try:
@@ -142,12 +166,13 @@ print('PASS', len(accepted))
 PY
   }
   donor_check control 2>&1 | tee "$gate/control.log"
-  (cd "$gate/group" && git apply --check "$gate/group.patch" && git apply "$gate/group.patch")
+  git -C "$gate/group" apply --check "$gate/group.patch"
+  git -C "$gate/group" apply "$gate/group.patch"
   donor_check group 2>&1 | tee "$gate/group.log"
 )
 ```
 
-Require the clean control to pass with 89 accepted changes. Record the group revisions, patch digest, changed keys and hashes, and its own pass or exact rejected path. Run the parent/candidate comparison on the reporter branch as well. If the group changes the collector or validator, run its version separately and compare it with the frozen check above. Hold a rejection, a patch that cannot be applied faithfully, or an inconclusive result. Never combine other cleanup changes or broaden the qualification rules to obtain a pass. Removing only the retired-teacher method rejected `src/oeis_learn/rl/elite_buffer.py` on this control. [Four-way donor result](research.md#source-identity-and-packaging-controls)
+Require the clean control to pass with 89 accepted changes. A nested temporary directory can otherwise make Git skip a patch with exit 0. The group has its own Git root. The frozen collector derives the expected keys independently from the group’s parent and tip, including installed-resource aliases. The gate requires the qualified copy to show exactly those changes before invoking the validator. It also compares the resulting file hash wherever the starting hashes match. A report-only group outside the map follows its consumer and provenance checks. Record the group revisions, patch digest, changed keys and hashes, and its own pass or exact rejected path. Compare the reporter parent and candidate separately, exercising their own collector or validator if the group affects either. Hold a rejection or untestable transition. Removing only the retired-teacher method rejected `src/oeis_learn/rl/elite_buffer.py` on the qualified control. [Four-way donor result](research.md#source-identity-and-packaging-controls)
 
 ## 4. Run bounded operator and regression checks
 
@@ -166,7 +191,7 @@ find "$monitor_root" -type f
 
 Expect the 12 discovery commands, a corpus `--config` option, a dry-run description with launches disabled, and pending freeze/acceptance with no files created in the empty round. For interval mode on a rich copy, record the initial paths and hashes, run `--interval 0.1` through several displays, stop it, and compare the paths, hashes and journal counts. Include a waiting and an interrupted case, an active learner heartbeat and a recoverable checkpoint. Keep the log outside the monitor root.
 
-The following four independently runnable selections passed on the planning baseline, **107 distinct cases** in total. Use the test interpreter from the existing project environment, with the following shell function defined in the checkout under test. The explicit spec 013 recovery file is outside default test discovery.
+The following four independently runnable selections passed in the planning environment with Optuna 4.5.0, **107 distinct cases** in total. An independent review of `83684256` passed 104 cases. Its environment lacked Optuna, so the three sampler cases could not be collected there. Use the test interpreter from the existing project environment, with the following shell function defined in the checkout under test. The explicit spec 013 recovery file is outside default test discovery.
 
 ```bash
 review_tests() {
@@ -281,13 +306,51 @@ PY
 
 ### Read a previously published ZIP with the candidate verifier
 
-Use the original incomplete round027 report when available. Record its producing revision, immutable ZIP SHA-256, report identity and the earlier verifier’s sealed receipt outside the reader workspace. From that baseline retain the full missing-evidence list and canonical per-task/per-arm accounting rows and totals. Include resource caps and spend, elapsed time, and useful/discarded tokens. Round027 is known to lack `primary_comparison`. Compare the **entire** list, including any other entries in that receipt.
+Use the already-published incomplete round027 ZIP from the diagnostics. In the independent review of `83684256`, the reviewed verifier reproduced the **entire saved receipt**. The ZIP’s SHA-256 before and after verification was `d24c9ad72551e927cb63b2b77b18f31ea585733b767990d14c4eddf764626c9e`. Both `status` and scientific `decision` were `INCOMPLETE`, the complete missing list was `["primary_comparison"]`, and the archive contained 352 accounting rows. Record the producing revision, report identity and saved receipt outside the reader workspace. For the accounting comparison, retain the original per-task/per-arm rows and totals, including caps and spend, elapsed time, and useful/discarded tokens.
 
-In a fresh workspace expose only a read-only copy of that ZIP and the installed candidate verifier. Keep the campaign, producers, writer checkout and expected results inaccessible. Confirm the ZIP hash, run `oeis_learn.generalization.progressive.verify.verify` on it and capture the receipt outside the workspace. The CLI equivalent is `discovery verify-bundle --archive <report.zip> --output <fresh-verification>`. An incomplete report can yield exit 2 and a valid diagnostic receipt. Compare the returned report identity, integrity/status, scientific decision and missing list exactly. After verification, decode the authenticated `tables/accounting-*.json` parts and compare every row and total against the independent baseline. Recheck the input ZIP hash. Do this without invoking a writer. Record an unavailable archive as an outstanding historical check. [Verifier](../../src/oeis_learn/generalization/progressive/verify.py) · [Historical fixture result](research.md#publication-review-probes)
+In a fresh workspace expose only a read-only copy of that ZIP and the installed candidate verifier. Keep the campaign, producers, writer checkout and expected results inaccessible. Confirm the ZIP hash, run `oeis_learn.generalization.progressive.verify.verify` on it and capture the receipt outside the workspace. The CLI equivalent is `discovery verify-bundle --archive <report.zip> --output <fresh-verification>`. An incomplete report can yield exit 2 and a valid diagnostic receipt. Compare the full returned receipt with the saved one. After verification, decode the authenticated `tables/accounting-*.json` parts and compare every row and total against the independent baseline. Recheck the ZIP hash. Repeat this archive-only check for any candidate that changes verification or accounting. [Verifier](../../src/oeis_learn/generalization/progressive/verify.py) · [Original and fixture results](research.md#publication-review-probes)
 
 ### Publish and verify at the observed round027 scale
 
-Exercise the candidate **writer and reader together** in a separate case. Use a copied terminal invocation or a generated fixture with representative payloads and compressibility. Resolve the two frozen seeds on both arms (static/baseline and refreshed/candidate) through the gate registration and the committed producer results. For **each of the four producers**, record the arm, seed, original generator byte length and SHA-256, and the corresponding score byte length and SHA-256. The observed generators ranged from approximately **45.5 to 52.2 MB each**, before their matching score files. For original evidence, read all eight lengths and hashes from the files and verify them against their resolved references. For generated data, span the reported range and record the actual generated sizes separately. The implementation notes give a range, without a size for each seed/arm or its score.
+Exercise the candidate **writer and reader together** in a separate case. The independent review located exact byte counts and SHA-256s for all four generator/score pairs in the saved producer receipts. These provide fixture targets offline. For each frozen seed (`20261016`, `20261017`) and arm (static/baseline, refreshed/candidate), follow the registration to its two committed role results. The original task IDs take the form `diversity-{arm}-{seed}-primary-generate` and `diversity-{arm}-{seed}-primary-score` using `static` or `refreshed`. Check each result against its reference in the sealed replay, then record `metrics.candidates.bytes` and `metrics.candidates.sha256` from the generator and `metrics.scores.bytes` and `metrics.scores.sha256` from the matching scorer. The resulting four rows give all eight original lengths and digests. [Frozen roster](../../src/oeis_learn/generalization/progressive/research_roster.py) · [Producer receipt checks](../../src/oeis_learn/pipeline_validation/progressive_study.py)
+
+To print the four rows, set `receipt_root` to the extracted diagnostics root containing the original role-result paths and `replay_json` to the saved `replay.json` from the round027 comparison replay. This reads only the sealed replay and the eight small result receipts. Keep the resulting table with the full-size fixture.
+
+```bash
+PYTHONPATH="$repo/src" python3 -BS - "$receipt_root" "$replay_json" <<'PY'
+import csv
+import json
+import sys
+from pathlib import Path
+from oeis_learn.generalization.progressive.contracts import seal, verify_refs
+
+root = Path(sys.argv[1])
+replay = json.loads(Path(sys.argv[2]).read_bytes())
+if seal(replay) != replay or replay['identity'] != 'sha256:4d67a539c4f58ba4ec6b9d4002d15b1ba85575b9eee8bd5d0496d211916f20d9':
+    sys.exit('Expected the authenticated round027 replay')
+
+def measure(task, operation, metric):
+    cut = replay['outputs'][task]
+    receipt = json.loads(verify_refs(root, [cut['result']])[0])
+    if seal(receipt) != receipt or cut['operation'] != operation or receipt['operation'] != operation:
+        sys.exit(f'Producer receipt differs for {task}')
+    ref = receipt['metrics'][metric]
+    return ref['bytes'], ref['sha256']
+
+rows = []
+for seed in (20261016, 20261017):
+    for arm in ('static', 'refreshed'):
+        task = f'diversity-{arm}-{seed}-primary'
+        generator = measure(task + '-generate', 'generate', 'candidates')
+        score = measure(task + '-score', 'score', 'scores')
+        rows.append((arm, seed, *generator, *score))
+writer = csv.writer(sys.stdout, delimiter='\t')
+writer.writerow(('arm', 'seed', 'generator_bytes', 'generator_sha256', 'score_bytes', 'score_sha256'))
+writer.writerows(rows)
+PY
+```
+
+The original generators spanned approximately **45.5–52.2 MB each**, before scores. For full-size publication, use a copied terminal invocation or a generated fixture with representative payloads and compressibility. Check original files against all eight receipt identities when using original evidence. For a generated fixture, use the receipt lengths as targets and record the generated bytes and their own digests.
 
 Include roughly 49 MB of calibration and roughly 290,000 journal events in the same fixture. Record actual calibration bytes, journal bytes and event count. Collect and publish with the round027 reporter’s frozen cap, `min(MAX_BYTES, campaign["payload"]["storage"]["package_bytes"])`, or pass that cap explicitly to `build(..., max_bytes=cap)` after collection. In a clean verifier workspace, verify the resulting ZIP. Compare producer identities, claim scope, missing evidence and accounting with the baseline. Repeat the altered, incomplete and private-marker controls. [Reporter cap](../013-progressive-mathematical-discovery/validation/report-round027.py) · [Producer bindings](../../src/oeis_learn/generalization/progressive/public_comparisons.py)
 
