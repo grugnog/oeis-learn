@@ -314,7 +314,16 @@ In a fresh workspace expose only a read-only copy of that ZIP and the installed 
 
 Exercise the candidate **writer and reader together** in a separate case. The independent review located exact byte counts and SHA-256s for all four generator/score pairs in the saved producer receipts. These provide fixture targets offline. For each frozen seed (`20261016`, `20261017`) and arm (static/baseline, refreshed/candidate), follow the registration to its two committed role results. The original task IDs take the form `diversity-{arm}-{seed}-primary-generate` and `diversity-{arm}-{seed}-primary-score` using `static` or `refreshed`. Check each result against its reference in the sealed replay, then record `metrics.candidates.bytes` and `metrics.candidates.sha256` from the generator and `metrics.scores.bytes` and `metrics.scores.sha256` from the matching scorer. The resulting four rows give all eight original lengths and digests. [Frozen roster](../../src/oeis_learn/generalization/progressive/research_roster.py) · [Producer receipt checks](../../src/oeis_learn/pipeline_validation/progressive_study.py)
 
-To print the four rows, set `receipt_root` to the extracted diagnostics root containing the original role-result paths and `replay_json` to the saved `replay.json` from the round027 comparison replay. This reads only the sealed replay and the eight small result receipts. Keep the resulting table with the full-size fixture.
+Set `bundle` to the round027 diagnostics ZIP and `replay_json` to the saved `replay.json` from the comparison replay. The ZIP entries start at `run-research/`. Extract the result receipts beneath the session directory so the paths in the sealed replay resolve from `receipt_root`.
+
+```bash
+receipt_root=$(mktemp -d)
+session_dir="$receipt_root/run-state/discovery/013-research-round-027"
+mkdir -p "$session_dir"
+unzip -q "$bundle" 'run-research/execution-0000/task-*/role/result.json' -d "$session_dir"
+```
+
+In the same shell, run the following command to authenticate the eight result receipts and print the four arm/seed rows. Keep the resulting table with the full-size fixture.
 
 ```bash
 PYTHONPATH="$repo/src" python3 -BS - "$receipt_root" "$replay_json" <<'PY'
