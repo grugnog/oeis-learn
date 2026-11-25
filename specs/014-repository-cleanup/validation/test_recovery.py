@@ -5,6 +5,7 @@ import itertools
 import json
 import shutil
 import subprocess
+import sys
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 from unittest.mock import Mock
@@ -248,6 +249,8 @@ def test_guarded_representative_recovery(tmp_path, monkeypatch):
     from oeis_learn.pipeline_validation import progressive_workstation
     from oeis_learn.pipeline_validation.progressive_research_inputs import checked_file
 
+    # The pinned host scripts prepend their checkout paths during import.
+    monkeypatch.setattr(sys, "path", list(sys.path))
     audit = adapter("replay-round027-comparison")
     helper = adapter("continue-round027-publication")
     import foundation_local
@@ -475,3 +478,91 @@ def test_next_proposal_on_separate_cpu_ledger(tmp_path):
     journal = TrialJournal(output / "journal", study=request["study"])
     assert journal.trials["0"]["proposal"] == saved
     assert journal.trials["0"]["status"] == "PROPOSED" and journal.trials["0"]["result"] is None
+
+
+def test_locked_assessment_cli(tmp_path, monkeypatch, capsys):
+    from oeis_learn.pipeline_validation import progressive_cli
+    from scripts.foundation_local import parser
+    from tests.contract.test_progressive_assessment import fixture as locked_selection
+
+    campaign, selection, truth = locked_selection(tmp_path)
+    atomic_write(tmp_path / "campaign.json", campaign)
+    atomic_write(tmp_path / "locked.json", selection)
+    atomic_write(tmp_path / "qual/producer.json", seal({"version": "diagnostic"}))
+    atomic_write(
+        tmp_path / "runtime.json",
+        {
+            "payload": {
+                "qualification": [reference(tmp_path, "qual/producer.json")],
+                "scope": {"images": ["fixture"]},
+            }
+        },
+    )
+    receipt = {
+        "version": "discovery-acceptance/v1",
+        "scope": "progressive-lifecycle",
+        "campaign": campaign["identity"],
+        "runtime": campaign["payload"]["runtime"],
+        "qualified": True,
+        "status": "COMPLETE",
+    }
+    atomic_write(tmp_path / "accepted/acceptance.json", seal(receipt))
+    atomic_write(
+        tmp_path / "foreign/acceptance.json", seal(dict(receipt, campaign=digest("other")))
+    )
+    changed = dict(selection["checkpoint"], sha256=digest("substitution"))
+    atomic_write(tmp_path / "changed.json", seal(dict(selection, checkpoint=changed)))
+    control = tmp_path / "run-state/discovery-control" / campaign["identity"][7:]
+    exposure = control / "assessment-exposure.json"
+
+    def native_boundary(host, image, root, operation, channels, **kwargs):
+        assert operation == "assess"
+        assert set(channels) == {"candidates", "selection", "assessment_truth"}
+        assert channels["candidates"][0].ref == selection["candidates"]
+        assert channels["assessment_truth"][0].ref == truth.ref
+        assert load(root / channels["selection"][0].ref["path"])["data"] == selection
+        project(root, "native-inputs", operation, channels, registry=progressive_roles.REGISTRY)
+        assert exposure.is_file()
+        return seal(
+            {"mechanical_status": "PARTIAL", "reason": "fixture stopped before native scoring"}
+        )
+
+    native = Mock(side_effect=native_boundary)
+    monkeypatch.setattr(progressive_roles, "invoke", native)
+    monkeypatch.setattr(progressive_roles, "current_runtime", lambda *args, **kwargs: object())
+
+    def run(output, *, selected="locked.json", accepted="accepted"):
+        args = parser().parse_args(
+            [
+                "discovery",
+                "assess",
+                "--campaign",
+                "campaign.json",
+                "--selection",
+                selected,
+                "--acceptance",
+                accepted,
+                "--output",
+                output,
+            ]
+        )
+        code = progressive_cli.main(args, tmp_path, lambda args: object())
+        return code, json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+
+    for options, message in (
+        ({"accepted": "foreign"}, "compatible final assessment acceptance"),
+        ({"selected": "changed.json"}, "artifact hash/size mismatch"),
+    ):
+        code, result = run("rejected", **options)
+        assert code != 0 and message in result["producer_error"]["message"]
+        assert not exposure.exists()
+        native.assert_not_called()
+    code, result = run("assessment")
+    assert code == 2 and result["mechanical_status"] == "PARTIAL"
+    original = exposure.read_bytes()
+    code, result = run("again")
+    assert code != 0 and "already exposed" in result["producer_error"]["message"]
+    native.assert_called_once()
+    assert exposure.read_bytes() == original
+    with pytest.raises(ValueError, match="assessment exposed"):
+        RunStore(control, campaign).next_task()
