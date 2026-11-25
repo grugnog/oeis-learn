@@ -31,6 +31,17 @@ The qualification map has 1,332 entries and digest `sha256:e1c6bfb7838cc0999d247
 
 Searches covered each basename, relative path, SHA-256, Git blob, report directory readers and globs, CI, packaging and guide links. The cleanup documents inventory these files. The legacy run archiver reads three named long-run reports. The receipt validator reads named, hash-bound producers. Neither opens these candidates. Reversal restores the exact parent blobs with `git revert <group-commit>`; rerun the affected writer and tests in a fresh temporary directory. [HPO writer](../../scripts/run_hpo_sweep.py) · [Real-data writer](../../tests/integration/test_real_data_e2e.py) · [Proof checks](../../tests/unit/test_foundation_symbolic.py)
 
+### Accepted removals
+
+| Group | Immediate parent | Removal commit | Restored Git blobs (mode `100755`) | Tracked bytes removed |
+|---|---|---|---|---:|
+| T007 · HPO JSON and Markdown | `dbd565ed` | [`4fbb124d`](https://github.com/grugnog/oeis-learn/commit/4fbb124d9f2069cf01ccba12bfc16de4772b7c02) | `d1afaad7050560995ce789964ca6a050a62bf40d` (26,647), `7cdbcbae7f26f30f24a5a005877a11bffdd2c660` (3,570) | 30,217 |
+| T008 · Real-data Markdown | `4fbb124d` | [`b3dfb484`](https://github.com/grugnog/oeis-learn/commit/b3dfb484c097749c095529ebe957a39c580bffa5) | `968e466ecadd5e30f10285c14c30c6644f8807d2` | 1,005 |
+
+Each deletion-only commit was trialled against its immediate parent. Reverting it on a detached checkout restored the entire parent tree. Two more checkouts each reverted one group from the combined tip. Each restored exactly its own files. The HPO exporter and all three real-data/scoped-proof cases also passed with only the other group removed. Full qualification source maps compared byte-for-byte across all of these trees.
+
+The exporter produced identical JSON and Markdown after normalizing its two UTC timestamps. The sorted JSON SHA-256 was `0f49ab6847fa99b2a135667b0bd4e7de55da144a0b567892193f476fb0b34bb9` and the Markdown SHA-256 was `f0fed384d32d761002f48d525821c960834c277147f66a3de6e8dd6db1d2d329`. The complete real-data output also matched after normalizing only its certificate’s `verified_at`; SHA-256 `7e975f375c3f3acbbd6ae1f5ede10849f63f5378060dca334a99ca33bdf943f3`. Its checked certificate, external assumption and both verdicts matched. The combined tip retained both screening-audit blobs from `5489aed2` and passed its two tests and seven subtests.
+
 ## Workstation originals
 
 | Acceptance case | Originals to preserve |
