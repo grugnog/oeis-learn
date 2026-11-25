@@ -96,6 +96,65 @@ def full_checkpoint(root, output, campaign, task, state, expected_weights):
     return {"checkpoint_record": reference(output, "checkpoint.json"), "useful_tokens": 8}
 
 
+def publication_request(root, campaign, gate, template):
+    """Freeze the eight typed producer slots and the comparison template in the CPU campaign."""
+    producers = []
+    public = ["comparison-template.json"]
+    for p in gate["producers"]:
+        name = f"{p['arm']}-{p['seed']}"
+        producers.append(
+            {
+                "arm": p["arm"],
+                "seed": p["seed"],
+                "generation_task": name + "-generate",
+                "scoring_task": name + "-score",
+            }
+        )
+        for op, output in (("generate", "evaluation"), ("score", "scores")):
+            public.append(
+                {
+                    "task": name + "-" + op,
+                    "operation": op,
+                    "output": output,
+                    "kind": "public_evidence",
+                }
+            )
+    channel = artifact(
+        root,
+        public[0],
+        "public_evidence",
+        "verifier",
+        dict(template, version="progressive-decision-template/v1", producers=producers),
+    )
+    atomic_write(
+        root / "publish-request.json",
+        {
+            "operation": "publish",
+            "reservation": dict.fromkeys(KEYS, 0) | {"native_work": 1_000_000},
+            "artifacts": {"public": public},
+            "seconds": 240,
+        },
+    )
+    policy = reference(root, "publish-request.json")
+    campaign["payload"]["references"].extend(
+        [
+            {
+                "name": "comparison-template",
+                "role": "verifier",
+                "kind": "policy",
+                "artifact": channel.ref,
+            },
+            {
+                "name": "requests/diversity-comparison",
+                "role": "custodian",
+                "kind": "policy",
+                "artifact": policy,
+            },
+        ]
+    )
+    return policy["sha256"]
+
+
 def comparison(root):
     original, data, policy, remaining = configured(root)
     campaign = original.campaign
@@ -148,17 +207,56 @@ def comparison(root):
     )
     campaign["payload"]["tasks"] = previous + [compare, dict(plans[-1], id="trial-00-propose")]
     graph = campaign["payload"]["graph"]
-    graph["nodes"][0]["caps"] = {
-        k: len(previous + [compare]) * v for k, v in compare["caps"].items()
-    }
     graph["edges"][0]["condition"] = "COMPLETE"
-    campaign = seal(campaign)
     fields = {
         k: data[k] for k in ("source_slot", "target_slot", "rows", "roster", "seeds", "design")
     }
     kwargs = {"target_id": "gain", "action": "RETAIN_BASELINE"}
+    template = {k: v for k, v in fields.items() if k != "rows"}
+    compare["policy"] = publication_request(
+        root, campaign, gate, dict(template, policy=policy, kwargs=kwargs, remaining=remaining)
+    )
+    # Fit the actual historical reservation and supervisor overhead within this fixture's partitions.
+    compare["caps"] = dict(compare["caps"], elapsed_us=300_000_000, native_work=1_000_000)
+    graph["nodes"][0]["caps"] = {k: sum(p["caps"][k] for p in [*previous, compare]) for k in KEYS}
+    campaign["payload"]["caps"]["native_work"] = sum(
+        n["caps"]["native_work"] for n in graph["nodes"]
+    )
+    plans = campaign["payload"]["tasks"]
+    storage = campaign["payload"]["storage"]
+    storage.update(
+        task_store_bytes=sum(p["caps"]["disk_bytes"] for p in plans),
+        projection_bytes=1 << 20,
+        journal_bytes=128 << 20,
+        checkpoint_inodes=64,
+        available_inodes=65536,
+    )
+    storage["required_inodes"] = 16384 + len(plans) * (
+        256 + storage["checkpoint_inodes"] * (2 + storage["milestone_pins"])
+    )
+    storage["required_bytes"] = sum(
+        storage[k]
+        for k in (
+            "task_store_bytes",
+            "projection_bytes",
+            "journal_bytes",
+            "shard_bytes",
+            "package_bytes",
+        )
+    )
+    storage["available_bytes"] = storage["required_bytes"]
+    campaign = seal(campaign)
+    indexed = {(r["arm"], r["seed"], r["task"]): r for r in data["rows"]}
+    ordered = [
+        indexed[p["arm"], p["seed"], member["task"]]
+        for p in gate["producers"]
+        for member in fields["roster"]
+    ]
+    fields["rows"] = [
+        dict(r, complete=r.get("complete", r["outcome"] != "unresolved")) for r in ordered
+    ]
     decision = publish(
-        data["rows"],
+        fields["rows"],
         data["roster"],
         data["seeds"],
         data["design"],
@@ -226,8 +324,9 @@ def completed_outputs(root, session, campaign, kinds, gate, models):
             else:
                 ref = p["candidates" if op == "generate" else "scores"]
                 atomic_write(output / "evidence.json", load(root / ref["path"]))
-                metrics = {"evidence": reference(output, "evidence.json")}
-                assert metrics["evidence"]["sha256"] == ref["sha256"]
+                key = "evaluation" if op == "generate" else "scores"
+                metrics = {key: reference(output, "evidence.json")}
+                assert metrics[key]["sha256"] == ref["sha256"]
         progressive_evidence.publish(
             output,
             operation=op,
@@ -247,7 +346,6 @@ def completed_outputs(root, session, campaign, kinds, gate, models):
 def test_guarded_representative_recovery(tmp_path, monkeypatch):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from oeis_learn.pipeline_validation import progressive_workstation
-    from oeis_learn.pipeline_validation.progressive_research_inputs import checked_file
 
     # The pinned host scripts prepend their checkout paths during import.
     monkeypatch.setattr(sys, "path", list(sys.path))
@@ -261,12 +359,18 @@ def test_guarded_representative_recovery(tmp_path, monkeypatch):
     control = tmp_path / "run-state/discovery-control" / cid[7:]
     account = tmp_path / "run-state/discovery-accounting" / cid[7:]
     store = RunStore(control, campaign)
-    journal = BudgetJournal(account, cid, campaign["payload"]["caps"])
+    journal = BudgetJournal(
+        account,
+        cid,
+        campaign["payload"]["caps"],
+        journal_bytes=campaign["payload"]["storage"]["journal_bytes"],
+    )
     atomic_write(session / "prepare-research/frozen/campaign.json", campaign)
     cuts = completed_outputs(tmp_path, session, campaign, kinds, gate, models)
     tasks = dict.fromkeys(cuts, "COMPLETE")
     tasks[helper.NAME] = "FAILED"
-    store.append(dict(store.state, outputs=cuts, tasks=tasks, status="FAILED"))
+    with store.lease():
+        store.append(dict(store.state, outputs=cuts, tasks=tasks, status="FAILED"))
     failure = seal({"metrics": {"tasks": tasks}})
     atomic_write(session / "run-research/execution-0000/result.json", failure)
     zero = dict.fromkeys(KEYS, 0)
@@ -278,7 +382,7 @@ def test_guarded_representative_recovery(tmp_path, monkeypatch):
         helper.NAME,
         "publish",
         95,
-        dict(zero, elapsed_us=5, native_work=1),
+        dict(zero, elapsed_us=5, native_work=1_000_000),
         boot="fixture",
         monotonic_us=0,
     )
@@ -301,6 +405,38 @@ def test_guarded_representative_recovery(tmp_path, monkeypatch):
     with ZipFile(tools_dir / "round027-comparison-fixture.zip", "w") as archive:
         archive.writestr("replay.json", json.dumps(sealed))
     helper.ROOT, helper.CAMPAIGN, helper.REPLAY = tmp_path, cid, sealed["identity"]
+    helper.POLICY = task["payload"]["policy"]
+    accepted = session / "prepare-research/acceptance"
+    receipt = seal(
+        {
+            "version": "discovery-acceptance/v1",
+            "campaign": cid,
+            "runtime": campaign["payload"]["runtime"],
+            "status": "COMPLETE",
+            "qualified": True,
+            "scope": "progressive-lifecycle",
+            "fixture": "CPU review",
+        }
+    )
+    atomic_write(accepted / "acceptance.json", receipt)
+    atomic_write(
+        session / "run-research/execution-0000/run.json",
+        seal(
+            {
+                "campaign": cid,
+                "campaign_path": str(
+                    (session / "prepare-research/frozen/campaign.json").relative_to(tmp_path)
+                ),
+                "acceptance_path": str(accepted.relative_to(tmp_path)),
+            }
+        ),
+    )
+
+    # Only the private hardware qualification envelope is replaced by the fixed CPU fixture.
+    def accept_fixture(path, value):
+        assert path == accepted and value == receipt
+
+    monkeypatch.setattr(helper, "consume_receipt", accept_fixture)
     checkout = Path(progressive_role.__file__).resolve().parents[3]
     files = collect_snapshot(checkout)
     tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=checkout).decode().split("\0")
@@ -311,6 +447,11 @@ def test_guarded_representative_recovery(tmp_path, monkeypatch):
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(checkout / name, dest)
     assert collect_snapshot(tmp_path) == files
+    # corrected_table reads the reviewed adapter with git show from the disposable root.
+    git_dir = subprocess.check_output(
+        ["git", "rev-parse", "--absolute-git-dir"], cwd=checkout, text=True
+    ).strip()
+    monkeypatch.setenv("GIT_DIR", git_dir)
     atomic_write(
         session / "session.json",
         seal(
@@ -344,34 +485,10 @@ def test_guarded_representative_recovery(tmp_path, monkeypatch):
     progressive_role.execute("publish", inputs=target / "inputs", output=target / "role")
     atomic_write(target / "supervision/process.json", {"returncode": 0, "cleanup_failure": None})
     atomic_write(target / "supervision/cleanup.json", {"acknowledged": True, "within_bound": True})
-    atomic_write(
-        target.parent / "authorization.json", seal({"test": "representative CPU publication"})
-    )
     _, amendment = helper.charge_state(journal, sealed)
     journal.reserve(
         helper.NAME, "publish", helper.ORDINAL, amendment, boot="fixture", monotonic_us=0
     )
-
-    # The historical envelope binds the private campaign and device. This fixture uses its
-    # own envelope and the same authenticated cut, terminal, charge and transition operations.
-    def reconcile(root, binding, folder, replay):
-        assert (root, folder, replay) == (tmp_path, session, sealed)
-        with store.lease():
-            old = helper.original_state(root, store, replay)
-            for cut in replay["outputs"].values():
-                result = checked_file(root, cut["result"])
-                for ref in load(result)["metrics"].values():
-                    if isinstance(ref, dict):
-                        checked_file(result.parent, ref)
-            for cp in replay["training_checkpoints"].values():
-                for ref in cp["files"]:
-                    checked_file(root, ref)
-            tail, _ = helper.charge_state(journal, replay)
-            helper.terminal(target, bundle)
-            if len(tail) == 1:
-                journal.commit(helper.KEY, boot="fixture", monotonic_us=3, termination_proven=True)
-            assert len(helper.charge_state(journal, replay)[0]) == 2
-            helper.finish(root, store, task, journal, target, bundle, replay, old)
 
     class HandoffReached(Exception):
         pass
@@ -384,7 +501,6 @@ def test_guarded_representative_recovery(tmp_path, monkeypatch):
     handoff = Mock(side_effect=stop)
     worker = Mock(side_effect=AssertionError("unexpected worker"))
     host = Mock(side_effect=AssertionError("unexpected engine"))
-    monkeypatch.setattr(helper, "recover", reconcile)
     monkeypatch.setattr(progressive_workstation, "main", handoff)
     monkeypatch.setattr(progressive_roles, "invoke", worker)
     monkeypatch.setattr(foundation_local, "Host", host)
@@ -395,17 +511,17 @@ def test_guarded_representative_recovery(tmp_path, monkeypatch):
         helper.continue_session(session)
     producer = tmp_path / next(iter(cuts.values()))["result"]["path"]
     sidecar = next(ref for ref in checkpoints[0]["files"] if "optimizer" in ref["path"])
-    for path in (
-        producer.parent / "evidence.json",
-        tmp_path / sidecar["path"],
-        target / "supervision/cleanup.json",
+    for path, reason in (
+        (producer.parent / "evidence.json", "original artifact identity changed"),
+        (tmp_path / sidecar["path"], "original artifact identity changed"),
+        (target / "supervision/cleanup.json", "reserved but has no complete receipts"),
     ):
         data = path.read_bytes()
         if path.name == "cleanup.json":
             path.unlink()  # Reservation survived without its supervised completion.
         else:
             path.write_bytes(bytes([data[0] ^ 1]) + data[1:])
-        with pytest.raises((FileNotFoundError, ValueError)):
+        with pytest.raises(ValueError, match=reason):
             helper.continue_session(session)
         path.write_bytes(data)
         assert (RunStore(control, campaign).tip, journal.path.read_bytes()) == initial
@@ -435,8 +551,17 @@ def test_guarded_representative_recovery(tmp_path, monkeypatch):
     assert not (session / "run-research/execution-0001").exists()
     assert set(load(session / "journal.json")["steps"]) == {"prepare-research/acceptance"}
     tail, _ = helper.charge_state(journal, sealed)
-    assert [e["operation"] for e in tail] == [helper.KEY, helper.KEY]
-    assert tail[1]["cost"] == dict(zero, elapsed_us=3)
+    assert [(e["event"], e["operation"]) for e in tail] == [
+        ("RESERVE", helper.KEY),
+        ("COMMIT", helper.KEY),
+    ]
+    elapsed_only = dict(zero, elapsed_us=240_000_000)
+    assert tail[0]["cost"] == tail[1]["cost"] == elapsed_only
+    assert tail[1]["end_us"] is None
+    assert journal.snapshot()["consumed"] == {
+        k: v + elapsed_only[k] for k, v in sealed["budget"]["consumed"].items()
+    }
+    assert load(target / "role/gain-cost.json")["costs"][helper.NAME] == 240_000_005
     worker.assert_not_called()
     host.assert_not_called()
 
