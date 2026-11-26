@@ -25,6 +25,8 @@ CPU_TESTS = (
     "tests/integration/test_round028_panels.py",
     "tests/integration/test_round028_timing.py",
     "tests/integration/test_round028_terminal.py",
+    "tests/integration/test_round028_pilot.py",
+    "tests/integration/test_round028_pilot_resume.py",
     "tests/unit/test_round028_training.py",
     "tests/unit/test_environment_preflight.py",
     "tests/unit/test_oeis_corpus.py",

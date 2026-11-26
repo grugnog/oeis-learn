@@ -106,6 +106,7 @@ class NativeRoles:
     producer_version = "round028-panel-output/v1"
     fixed_attempt = False
     repeatable_preparation = frozenset()
+    machine_bound_attempts = False
 
     def __init__(self, args, source, root, revision, area, registration, host_factory):
         self.args, self.source, self.root, self.revision = args, source, root, revision
@@ -162,7 +163,15 @@ class NativeRoles:
                 saved = load(confined(self.area, claim))
                 require(seal(saved) == saved, "original timing assignment differs")
                 old = confined(self.area, "roles/" + saved["request"][7:], exists=False)
-                if (old / "boundary.json").is_file() or any(old.glob("attempt-*/end.json")):
+                # A pilot's original inputs can already have been committed before its first
+                # dispatch. An unstarted request can run on the separately bound machine.
+                staged = (
+                    self.machine_bound_attempts
+                    and (self.area / ("physical-" + self.phase + ".json")).is_file()
+                    and (old / "request.json").is_file()
+                    and not any(old.glob("attempt-*"))
+                )
+                if staged or (old / "boundary.json").is_file() or any(old.glob("attempt-*/end.json")):
                     original = load(confined(old, "request.json"))
                     require(
                         original == seal(dict(req, physical=original["physical"]))
@@ -211,7 +220,8 @@ class NativeRoles:
             began = time.monotonic_ns()
             retain(
                 attempt / "start.json",
-                seal({"request": req["identity"], "seconds": seconds, "wall_ns": time.time_ns()}),
+                seal({"request": req["identity"], "seconds": seconds, "wall_ns": time.time_ns(),
+                      **({"dispatch_scope": physical} if self.machine_bound_attempts else {})}),
             )
             success = False
             try:

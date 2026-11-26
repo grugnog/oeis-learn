@@ -75,9 +75,13 @@ def physical_scope(host, phase, *, machine=False):
         for key in ("unique_id", "vendor", "device", "revision"):
             path = card / key
             device[key] = path.read_text().strip() if path.is_file() else None
-    if machine:
-        return digest([Path("/etc/machine-id").read_text().strip(), host.policy["runtime"], device])
-    return digest([boot, host.policy["runtime"], device])
+    runtime = host.policy["runtime"]
+    if phase == "cpu" and "render_node" in runtime:
+        # Host.select_gpu resolves this shared field lazily. Preserve the CPU's original
+        # configured runtime, including its pre-discovery representation in older receipts.
+        runtime = dict(runtime, render_node=host.args.render_node)
+    epoch = Path("/etc/machine-id").read_text().strip() if machine else boot
+    return digest([epoch, runtime, device])
 
 
 def failure_locations(source, area, *, role_folder="stages"):

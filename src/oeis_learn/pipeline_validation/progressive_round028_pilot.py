@@ -61,12 +61,17 @@ class PilotRole(NativeRoles):
     request_version = "round028-pilot-role/v1"
     producer_version = "round028-pilot-output/v1"
     fixed_attempt = True
+    machine_bound_attempts = True
     repeatable_preparation = frozenset({"prepare", "gradient", "storage", "recovery"})
 
     def bind_physical(self, physical):
         from .progressive_round028_rehearsal import physical_scope
 
-        super().bind_physical(physical_scope(self.host, self.phase, machine=True))
+        machine = physical_scope(self.host, self.phase, machine=True)
+        path = confined(self.area, "physical-" + self.phase + ".json", exists=False)
+        if path.exists() and load(path) != seal({"scope": machine}):
+            raise PilotDeficit(f"PILOT_{self.phase.upper()}_MACHINE_CHANGED")
+        super().bind_physical(machine)
 
     def stage_options(self, role):
         return {"tmp_bytes": 16 << 20} if role == "storage" else {}
@@ -368,7 +373,7 @@ def hardware_qualification(args, root, source, folder, store, revision, host_fac
     return result["qualification_receipts"]
 
 
-def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, weights):
+def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, weights, progress):
     from .pilot_clocks import CORRECT_FULL
     from .progressive_round028 import reopen
     from .progressive_round028_timing import original_channels, timing_cases
@@ -387,10 +392,13 @@ def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, w
             ),
         )
     )
+    progress("accept_frozen_pilot", role="gradient")
     cpu("gradient", data, seconds=900)
     checks["training_signal"] = cpu.last_producer["identity"]
+    progress("accept_frozen_pilot", role="storage")
     cpu("storage", seal({"block": "qualify-disposable-storage"}), seconds=120)
     checks["storage"] = cpu.last_producer["identity"]
+    progress("accept_frozen_pilot", role="recovery")
     cpu("recovery", seal({"block": "qualify-recovery-fixtures"}), seconds=3600)
     checks["recovery"] = cpu.last_producer["identity"]
     historical = reopen(root, folder, store.campaign, store.state["audit"], recheck_inputs=False)
@@ -407,11 +415,13 @@ def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, w
             seconds=180,
         )
     )
+    progress("accept_frozen_pilot", role="search")
     output = gpu("search", data, seconds=300, inputs=[(weights, "/work/inputs/weights.pt")])
     candidate = output["candidates"]
     generated = read_bound_record(gpu.last_output, candidate, version="discovery-candidates/v1")
     checks["search"] = gpu.last_producer["identity"]
     ref = dict(candidate, path="inputs/candidates.json")
+    progress("accept_frozen_pilot", role="score")
     out = cpu(
         "score",
         seal(dict(block="qualify-resident-search", rows=truth, candidates=ref, seconds=180)),
@@ -559,8 +569,42 @@ def published_pilot(receipt):
     ), 0
 
 
-def run_pilot(args, source, root, folder, revision, store, host_factory):
+def registered_pilot_source(root, controller_source, controller_revision, area, parent):
+    """Reopen the registered worker tree before deriving any seeds, images or requests."""
+    import re
+    import runpy
+
     from oeis_learn.experiments.source_snapshot import collect_snapshot
+    from .progressive_round028 import git
+
+    path = confined(area, "registration.json", exists=False)
+    revision = controller_revision
+    source = controller_source
+    if path.is_file():
+        saved = load(path)
+        require(
+            saved == seal(saved)
+            and isinstance(saved.get("candidate"), str)
+            and re.fullmatch("[0-9a-f]{40}", saved["candidate"]),
+            "invalid saved pilot registration",
+        )
+        revision = saved["candidate"]
+        if revision != controller_revision:
+            require(
+                git(root, "merge-base", "--is-ancestor", revision, controller_revision) == "",
+                "the controller must descend from the registered pilot source",
+            )
+            helper = (
+                controller_source
+                / "specs/015-learned-program-search/validation/candidate_source.py"
+            )
+            source = runpy.run_path(str(helper))["materialize"](root, revision)
+    registration = pilot_registration(parent, revision, digest(collect_snapshot(source)))
+    retain(path, registration)
+    return source, registration
+
+
+def run_pilot(args, source, root, folder, revision, store, host_factory):
     from oeis_learn.generalization.progressive.contracts import _atomic_write
     from .progressive_study import generator_observation
     from .progressive_round028_rehearsal import candidate_image, physical_scope
@@ -568,13 +612,34 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
     area = confined(folder, AREA, exists=False)
     area.mkdir(mode=0o700, parents=True, exist_ok=True)
     parent_raw, parent = parent_evidence(folder, store)
-    registration = pilot_registration(parent, revision, digest(collect_snapshot(source)))
-    retain(area / "registration.json", registration)
+    controller = revision
+    source, registration = registered_pilot_source(root, source, controller, area, parent)
+    revision = registration["candidate"]
+    if controller != revision:
+        retain(
+            area / "controllers" / (controller + ".json"),
+            seal(
+                dict(
+                    version="round028-pilot-controller/v1",
+                    controller=controller,
+                    candidate=revision,
+                    registration=registration["identity"],
+                )
+            ),
+        )
 
     def progress(phase, **info):
         revise(
             area / "progress.json",
-            seal(dict(phase=phase, registration=registration["identity"], **info)),
+            seal(
+                dict(
+                    phase=phase,
+                    registration=registration["identity"],
+                    controller=controller,
+                    candidate=revision,
+                    **info,
+                )
+            ),
         )
 
     archive = confined(folder, SHARE, exists=False)
@@ -665,7 +730,9 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
     )
     retain(area / "freeze.json", freeze)
     progress("accept_frozen_pilot")
-    checks = accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, d_recipe, d_weights)
+    checks = accept_pilot(
+        root, folder, store, area, cpu, gpu, package, freeze, d_recipe, d_weights, progress
+    )
     # A reboot remeasures the candidate on the same machine. It cannot rewrite the original acceptance.
     current = seal(
         dict(
