@@ -31,8 +31,19 @@ The physical collection held the GPU lease for 1,301.93 s across five roles. Tel
 | Returned timing ZIP (SHA-256) | `9e1b326b61aebf331833badb0f6ff745b7a53ba4875bc86a5238b88cc3baccae` |
 | Timing registration | `sha256:76b37c68936e85d5f692c7c572b1a65f7b02afb746e716a762f8a71f27578042` |
 | Timing report | `sha256:ec4f586852826843a3315f2355426acc057e539aee0baafbf7e2eedcb48c7ce1` |
+| Terminal implementation | `f0b44acaf7d27591304456f99c4f2e19151a81ba` |
+| Final public ZIP (SHA-256, 42,882 bytes) | `af2ec6fcff0fdd32886162a6cf272249fb0adc9e0168e41659c77099000982fe` |
+| Final public report | `sha256:dd4faada77e3168e3496ab885b3dbc0e86a2f140f3c098eaa38adcc9a16bbb97` |
 
 The nested evidence preserves the original 128-case audit, its 64-case spending decision, both checkpoint restores and all 576 fresh reservations. The historical route found 51 witnessed proposal failures and zero proved selection opportunities. The timing result closes the selected generator branch under this registration.
+
+## What has been verified
+
+An independent Python process with only the final ZIP and the pinned reader reproduced the historical routing bounds, the timing forecast, the `INCOMPLETE` evidence verdict and the `RETAIN_BASELINE` action. The final ZIP contains the decision and the four public JSON reports from which it was derived. Rebuilding it from the original timing ZIP produced identical bytes. The fresh-panel gain and retention fields are null.
+
+The workstation action reopens the saved visible/scoring channels, both full-state checkpoints, D's original evaluation weights, 40 portfolios, all ten search/scoring roles and their original budget debits. The collector includes a separate receipt identifying the committed private replay and checks the copied result independently. An interrupted publication and repeated invocation were exercised with fixtures. Installation and replay on the original workstation await its receipt. [Workstation command](../quickstart.md#record-the-stop-decision-on-the-workstation)
+
+The clean implementation checkout passed 262 local regression tests. Four tests require the native qualification image and skipped locally. Coverage included sdist and installed-wheel packaging, 013 Optuna feedback, original archive readers, the matched generator, existing same-list selector controls, training recovery, freeze recovery and the new workstation receipt. On a detached donor checkout without the private campaign, the pinned launcher returned metadata-only preflight and status and twice produced the expected zero-GPU diagnostic. A separate checkout fetched by the public verification command reproduced `VERIFIED INCOMPLETE RETAIN_BASELINE` from the real final ZIP.
 
 | Checklist | Total | Checked | Unchecked | Status |
 | --- | ---: | ---: | ---: | --- |

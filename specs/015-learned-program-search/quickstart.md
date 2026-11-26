@@ -1,16 +1,54 @@
 # Round028 workstation commands
 
+## Record the stop decision on the workstation
+
+**Retain D.** The 4M pilot is projected to take 10 h 21 min 37 s against the eight-hour shift. The estimate for candidate evaluation alone is 8 h 32 min 14 s. The public report records the funding shortfall, the unmeasured comparison and zero further GPU work. [Measured costs and decision](validation/round028-timing-results.md)
+
+Run this block on the original round027 workstation. It checks the recorded choices, scorer results, costs and both checkpoint closures, saves the final report to the session, and returns one ZIP with a receipt for the private checks. It uses CPU only. An interrupted invocation can be repeated.
+
+```bash
+(
+  set -euo pipefail
+  cd "$HOME/workspace/oies-learn"
+  rev=f0b44acaf7d27591304456f99c4f2e19151a81ba
+  git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
+  git merge-base --is-ancestor "$rev" FETCH_HEAD
+  git show "${rev}:specs/015-learned-program-search/validation/launch-round028.sh" |
+    bash -s -- "$rev" collect-final
+)
+```
+
+Return the one ZIP at the path printed by the command. On success, `round028-final-workstation.zip` contains the verified `round028.zip` and `workstation.json`. The receipt binds the private replay to the committed journal boundary. If verification stops early, `round028-final-diagnostics.zip` contains the recorded reason. The canonical session report is `run-state/discovery/015-research-round-028/share/round028.zip`. The original audit is preserved byte-for-byte beside it as `round028-audit.zip`.
+
+### Verify the final public report on any computer
+
+Start beside the downloaded `round028.zip`. This block obtains the pinned reader and writes its independent calculation to `round028-verification.json`. To check the workstation receipt as well, set `report` to the returned `round028-final-workstation.zip`.
+
+```bash
+(
+  set -euo pipefail
+  rev=f0b44acaf7d27591304456f99c4f2e19151a81ba
+  report="$(pwd -P)/round028.zip"
+  reader=$(mktemp -d "$(pwd -P)/round028-reader.XXXXXXXX")
+  trap 'rm -rf -- "$reader"' EXIT
+  git init --quiet "$reader"
+  git -C "$reader" fetch --quiet --depth=1 https://github.com/grugnog/oeis-learn.git "$rev"
+  git -C "$reader" checkout --quiet --detach "$rev"
+  python3 -S -B "$reader/scripts/foundation_run.py" --engine podman discovery round028 \
+    --action verify --archive "$report" > round028-verification.json
+  python3 -c 'import json; r=json.load(open("round028-verification.json")); print(r["status"], r["evidence_verdict"], r["next_action"])'
+)
+```
+
+## Earlier evidence
+
 [The verified historical audit](validation/round028-audit.md) selected the matched generator. All 128 cases were accounted for. On the 64 routing cases, 51 had a witnessed proposal failure, seven had a selected solve, and six remained unresolved.
 
 ## Verified training rehearsal
 
 The [returned and verified training rehearsal](validation/round028-generator-rehearsal.md) projects 1 h 44 min for both 4M arms. Both original checkpoints passed full-state recovery.
 
-The [returned CPU collection](validation/round028-panel-results.md) reserved all 576 cases. Historical costs project 6 h 26 min for a pilot and an earned repeat, leaving 1 h 34 min for differences in candidate costs and operating overhead.
-
-## Workstation decision
-
-The [verified candidate timings](validation/round028-timing-results.md) put the 4M pilot 2 h 21 min 37 s over its eight-hour shift. The registered comparison stops here. Its evidence verdict is incomplete and D is retained.
+The [returned CPU collection](validation/round028-panel-results.md) reserved all 576 cases. The early estimate based on historical costs was 6 h 26 min for a pilot and an earned repeat. The measured costs above supersede it.
 
 ## Original candidate timing collection
 
@@ -99,9 +137,9 @@ The collector writes detailed output for each action to its own local directory 
 | What could justify spending | `projection` contains the feasible-set histogram for the 64 primary cases. `decision` gives the lower and upper bounds on proposal minus selection opportunities. `coverage` gives bank gaps, exact witnesses and measured training support. A potentially decisive CPU replay with unmeasured funding has a null action, a blocker, a case count and an original service-time estimate. |
 | Independent checks | `verify-private` reopens the bound inputs and recomputes the audit. `verify-copied` recomputes the decision from the aggregate alone. The owner keeps private records under `run-state/discovery/015-research-round-028/`. |
 
-A successful historical audit can identify an experiment or settle a retain decision. The audit command publishes that decision. The selected generator rehearsal uses its own receipts. Prospective panel freeze, evaluation timing and campaign acceptance remain open in [tasks.md](tasks.md). A blocked or invalid audit supplies a diagnostic and authorizes zero GPU work. The original Optuna decisions, donor images and charges belong to round027.
+A successful historical audit can identify an experiment or settle a retain decision. The audit command publishes that decision. The selected generator rehearsal and evaluation timing have their own receipts. The funding decision and remaining acceptance coverage are recorded in [tasks.md](tasks.md). A blocked or invalid audit supplies a diagnostic and authorizes zero GPU work. The original Optuna decisions, donor images and charges belong to round027.
 
-## Verify the returned ZIP on a different computer
+## Verify the original historical audit ZIP on a different computer
 
 Start in the directory containing the returned `round028-workstation.zip`. This command extracts its verified report when present, fetches the exact implementation into a temporary directory, and runs the standalone verifier. It needs Git, Bash, tar, Python and access to the public repository.
 
