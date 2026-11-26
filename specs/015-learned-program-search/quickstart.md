@@ -8,7 +8,11 @@ The [returned and verified training rehearsal](validation/round028-generator-reh
 
 The [returned CPU collection](validation/round028-panel-results.md) reserved all 576 cases. Historical costs project 6 h 26 min for a pilot and an earned repeat, leaving 1 h 34 min for differences in candidate costs and operating overhead.
 
-## Measure candidate evaluation time
+## Workstation decision
+
+The [verified candidate timings](validation/round028-timing-results.md) put the 4M pilot 2 h 21 min 37 s over its eight-hour shift. The registered comparison stops here. Its evidence verdict is incomplete and D is retained.
+
+## Original candidate timing collection
 
 Use implementation `bf9d223501fa3bd6281b6c767c3d963c7587afab` on the original workstation. This collection measures how quickly both restored learners and the incumbent can search and check programs on the same eight previously exposed cases. It publishes the revised time budget and preserves the fresh panels for the scientific comparison. [Measurement and spending rules](validation/round028-candidate-timing.md)
 
