@@ -1,5 +1,6 @@
 """Independent census/reuse boundaries; reference doubles never qualify native/HIP."""
 import json
+from collections import Counter
 from types import SimpleNamespace
 import zipfile
 
@@ -352,3 +353,118 @@ def test_unknown_census_interval_is_charged_without_more_native_work(tmp_path):
     with pytest.raises(ValueError,match='exhausted'):
         census.run(tmp_path,output,req,client=ReferenceDouble())
     assert not (output/'private/census.sqlite').exists()
+
+
+def test_round028_family_supply_closes_transitive_history_and_all_shifted_windows():
+    from oeis_learn.generalization.progressive.program_search_panels import fresh_groups
+
+    def row(name, start, **attributes):
+        return dict(id=name, indices=[str(i) for i in range(100)],
+                    values=[str(start+i*i) for i in range(100)], stratum="oeis", **attributes)
+    original = row("old", 10000, family="historical-family")
+    bridge = row("bridge", 20000, group="historical-family")
+    shifted = row("shifted", 30000)
+    shifted["values"][79:99] = bridge["values"][54:74]
+    free = row("free", 40000)
+    groups, counts = fresh_groups([shifted, free, bridge], [original], indexes=())
+    assert [[r["id"] for r in rows] for rows in groups.values()] == [["free"]]
+    assert counts["excluded"] == 2 and counts["eligible"] == 1
+    assert fresh_groups([bridge, shifted, free], [original], indexes=())[0] == groups
+
+
+def test_round028_calibration_is_disjoint_and_missing_descriptors_stay_unknown():
+    from oeis_learn.generalization.progressive.program_search_panels import calibrate_bands, difficulty_band
+    from oeis_learn.generalization.progressive.complexity import measure
+    from oeis_learn.generalization.progressive.contracts import digest
+    records = []
+    for i in range(6):
+        descriptor = dict(language="bigint-body/v1", operations=["add"], nodes=2**(i+1), depth=2, work=100+i)
+        records.append(dict(family=digest(i), descriptor=descriptor, measured=3, exact=3-i//2,
+                            denominator=3))
+    bands = calibrate_bands(records)
+    assert [difficulty_band(r["descriptor"], bands) for r in records] == ["easy","easy","middle","middle","hard","hard"]
+    assert difficulty_band(None, bands) == "unknown"
+    assert difficulty_band(dict(records[0]["descriptor"], work=None), bands) == "unknown"
+    with pytest.raises(ValueError):
+        calibrate_bands([records[0], records[0]])
+    assert measure(None)["work"] is None
+
+
+def test_round028_allocates_balanced_families_once_and_reports_shortages():
+    from oeis_learn.generalization.progressive.program_search_panels import allocate_roles, RESERVATIONS
+    from oeis_learn.generalization.progressive.contracts import digest
+    groups = {}
+    # One family per band per role and stratum at the small fixture scale.
+    for stratum in ("parameter", "composition", "unseen_structure", "oeis"):
+        for i in range(27):
+            f = digest([stratum, i])
+            groups[f] = [dict(id=f"{stratum}-{i}-{j}", stratum=stratum, band=("easy","middle","hard")[i%3])
+                         for j in range(2)]
+    selection = allocate_roles(groups, seed=17, per_stratum=6)
+    assert not selection["deficits"] and set(selection["panels"]) == set(RESERVATIONS)
+    ownership = {}
+    for panel, rows in selection["panels"].items():
+        for member in rows:
+            assert ownership.setdefault(member["group"], panel) == panel
+        primary = [r for r in rows if r["stratum"] == "composition"]
+        if primary:
+            assert Counter(r["band"] for r in primary) == {"easy":2, "middle":2, "hard":2}
+    assert allocation_ids(selection) == allocation_ids(allocate_roles(dict(reversed(list(groups.items()))),
+                                                                       seed=17, per_stratum=6))
+    thin = allocate_roles({k:v for k,v in groups.items() if v[0]["stratum"] != "oeis"}, seed=17, per_stratum=6)
+    assert thin["deficits"]["development/oeis"]["missing_cases"] == 6
+    assert thin["deficits"]["replication/oeis"]["missing_cases"] == 6
+
+
+def allocation_ids(selection):
+    return {p:[r["id"] for r in rows] for p,rows in selection["panels"].items()}
+
+
+def test_round028_preserves_only_declared_parameter_transfer_across_all_old_roles(tmp_path):
+    from oeis_learn.generalization.progressive.generator import structure_id
+    from oeis_learn.generalization.progressive.program_search_panels import fresh_groups
+    def variant(k,stratum,flipped=False):
+        source = f"(program (return (sub {'(int '+str(k)+') $index' if flipped else '$index (int '+str(k)+')'})))"
+        return dict(id=str(k), source=source, structure=structure_id(source), stratum=stratum,
+                    indices=list(map(str,range(100))), values=[str(k+i*i) for i in range(100)])
+    old = variant(1,"parameter")
+    permitted = variant(1000,"parameter")
+    exact = dict(old,id="same-old-source",stratum="parameter")
+    unrelated = dict(variant(9000,"parameter"),family="held-family")
+    with ExposureIndex(tmp_path/"history.sqlite") as index:
+        index.add(old,origin="old training",role="training")
+    with ExposureIndex(tmp_path/"history.sqlite",readonly=True) as index:
+        groups,counts = fresh_groups([permitted,exact,unrelated],[dict(old,declared_groups=["held-family"])],indexes=[index])
+        assert [r["id"] for rs in groups.values() for r in rs] == [permitted["id"]]
+        assert counts["excluded"] == 2
+    # Different AST structures share the normalized operator/proper-subtree inventory.
+    old_protected = variant(40000,"unseen_structure",flipped=True)
+    assert old_protected["structure"] != permitted["structure"]
+    for role in ("development","replication","confirmation","assessment","retention","calibration"):
+        assert not fresh_groups([permitted],[dict(old_protected,role=role)],indexes=[])[0]
+
+
+def test_round028_calibration_is_held_from_each_role_and_replication_is_common_to_both_seeds():
+    from oeis_learn.generalization.progressive.graph import generator_look
+    from oeis_learn.generalization.progressive.program_search_panels import calibration_families, descriptor, freeze_panels
+    groups = {}
+    for stratum in ("parameter","composition","unseen_structure","oeis"):
+        for i in range(104):
+            f = digest([stratum,i])
+            groups[f] = [dict(id=f"{stratum}-{i}-{n}",stratum=stratum,operations=["add"],native_verified=True,
+                difficulty=dict(depth=2,nodes=4,work=100*(1+i%4))) for n in range(2)]
+    samples = calibration_families(groups,17,count=16)
+    assert len(samples) == 16
+    observed = [dict(family=f,descriptor=descriptor(r),exact=0,measured=2,denominator=3) for f,r in samples.items()]
+    reserved = freeze_panels(groups,samples,observed,seed=17)
+    assert not reserved["deficits"]
+    assert all(r["component"] not in samples for rs in reserved["panels"].values() for r in rs)
+    assert {r["band"] for rs in reserved["panels"].values() for r in rs if r["stratum"] == "oeis"} == {"unknown"}
+    panels = {p:[dict(task=r["id"],stratum=r["stratum"],group=r["group"]) for r in rs]
+              for p,rs in reserved["panels"].items() if p not in {"confirmation","assessment"}}
+    replay = [generator_look(panels,registration=digest("prospective"),pair=i,arm="ordinary",target=4_000_000,
+                             split="replication") for i in range(2)]
+    assert replay[0]["members"] == replay[1]["members"] and replay[0]["seed"] != replay[1]["seed"]
+    assert len(replay[0]["members"]) == 160
+    with pytest.raises(ValueError,match="calibration"):
+        freeze_panels(groups,samples,observed[:-1],seed=17)
