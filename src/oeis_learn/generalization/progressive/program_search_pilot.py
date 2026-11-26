@@ -8,7 +8,7 @@ from collections import Counter, defaultdict
 from fractions import Fraction
 
 from .contracts import seal
-from .program_search_outcome import archive_bytes, verify_workstation
+from .program_search_outcome import archive_bytes, read_canonical, verify_workstation
 from .program_search_rehearsal_report import encode
 from .training_rows import pair_seeds
 
@@ -62,6 +62,7 @@ def pilot_registration(parent, candidate, source):
             reference="retained_D",
             looks=list(LOOKS),
             pilot_pair=0,
+            training_supply="original_native_draw_count_then_same_counter_stream_if_signal_missing",
             multiplicity=3,
             attempts=[1, 1, 8],
             portfolio_seconds=60,
@@ -180,16 +181,16 @@ def spending(cells, paired, comparable):
 def verify_pilot(path):
     from .trials import paired_generator_exposure
 
-    with zipfile.ZipFile(path) as z:
-        if (
-            z.namelist() != PILOT_MEMBERS
-            or z.comment
-            or any(i.file_size > 2 << 20 or i.extra or i.comment for i in z.infolist())
-        ):
-            raise ValueError("invalid pilot archive")
-        raw = z.read("pilot.json")
-        doc = json.loads(raw)
-        parent = verify_workstation(io.BytesIO(z.read("round028-parent.zip")))
+    records = read_canonical(path, tuple(PILOT_MEMBERS))
+    raw = records["pilot.json"]
+    doc = json.loads(raw)
+    original = records["round028-parent.zip"]
+    parent = verify_workstation(io.BytesIO(original))
+    with (
+        zipfile.ZipFile(io.BytesIO(original)) as wrapper,
+        zipfile.ZipFile(io.BytesIO(wrapper.read("round028.zip"))) as evidence,
+    ):
+        panel = json.loads(evidence.read("panels.json"))
     fields = {
         "version",
         "identity",
@@ -199,6 +200,8 @@ def verify_pilot(path):
         "looks",
         "action",
         "research_gpu_us",
+        "research_role_us",
+        "costs",
         "verification",
     }
     if (
@@ -217,12 +220,65 @@ def verify_pilot(path):
         or [r["target"] for r in doc["looks"]] != list(LOOKS)
     ):
         raise ValueError("invalid pilot registration or endpoint")
+    known = set()
+    total = 0
+    for item in doc["costs"]:
+        if (
+            set(item)
+            != {
+                "identity",
+                "block",
+                "role",
+                "lease_us",
+                "wall_us",
+                "charged_us",
+                "covered_us",
+                "busy_us",
+            }
+            or item != seal(item)
+            or not re.fullmatch(
+                r"(ordinary|first_divergence|incumbent)-(0|1000000|4000000)(-resume-[1-9][0-9]*)?",
+                item["block"],
+            )
+            or item["role"] not in ("train", "search", "score")
+            or (item["block"], item["role"]) in known
+            or type(item["lease_us"]) is not int
+            or item["lease_us"] < 0
+            or item["role"] == "score"
+            and item["lease_us"] != 0
+            or type(item["charged_us"]) is not int
+            or item["charged_us"] < item["lease_us"]
+            or item["wall_us"] is not None
+            and (type(item["wall_us"]) is not int or item["wall_us"] != item["charged_us"])
+            or type(item["covered_us"]) is not int
+            or not 0 <= item["covered_us"] <= item["charged_us"]
+            or item["busy_us"] is not None
+            and (type(item["busy_us"]) is not int or not 0 <= item["busy_us"] <= item["covered_us"])
+        ):
+            raise ValueError("invalid reported research cost")
+        known.add((item["block"], item["role"]))
+        total += item["lease_us"]
+    role_us = sum(item["charged_us"] for item in doc["costs"])
+    if (
+        not doc["costs"]
+        or total != doc["research_gpu_us"]
+        or role_us != doc["research_role_us"]
+        or not 0 <= total <= role_us <= SHIFT_US
+    ):
+        raise ValueError("pilot lease total differs from its registered spending")
+    required_costs, permitted_costs = set(), set()
     for look in doc["looks"]:
         target = look["target"]
         count = 3 if target == LOOKS[-1] else 2
-        if set(look) != {"target", "cuts", "counts", "contrasts", "comparable", "action"} or set(
-            look["cuts"]
-        ) != set(ARMS):
+        if set(look) != {
+            "target",
+            "cuts",
+            "counts",
+            "contrasts",
+            "comparable",
+            "zero_reused",
+            "action",
+        } or set(look["cuts"]) != set(ARMS):
             raise ValueError("invalid pilot look")
         if type(look["comparable"]) is not bool:
             raise ValueError("invalid comparison flag")
@@ -239,6 +295,28 @@ def verify_pilot(path):
         paired = paired_generator_exposure(*(cuts[k] for k in ARMS)) == "MATCHED"
         counts = look["counts"]
         contrasted = summary(counts, count)
+        shared = look["zero_reused"]
+        if (
+            type(shared) is not bool
+            or shared
+            and (
+                target != 0
+                or not paired
+                or any(code[0] != code[1] for cell in counts for code in cell["counts"])
+            )
+        ):
+            raise ValueError("invalid shared zero observation")
+        for i, arm in enumerate((*ARMS, "incumbent") if count == 3 else ARMS):
+            block = f"{arm}-{target}"
+            if arm in ARMS:
+                required_costs.add((block, "train"))
+                permitted_costs.add((block, "train"))
+            if shared and arm == ARMS[1]:
+                continue
+            required_costs.add((block, "search"))
+            permitted_costs.update(((block, "search"), (block, "score")))
+            if any(code[i] != "U" for cell in counts for code in cell["counts"]):
+                required_costs.add((block, "score"))
         strata = contrasted["first_divergence_minus_ordinary"]["strata"]
         expected = set(STRATA if count == 3 else STRATA[:-1])
         if set(strata) != expected or any(
@@ -248,6 +326,12 @@ def verify_pilot(path):
             for s, v in strata.items()
         ):
             raise ValueError("registered measurement denominator differs")
+        for stratum in expected:
+            split = "development_retention" if stratum == "retention" else "development"
+            original_cell = panel["summary"]["panels"][split][stratum]
+            expected_cases = original_cell["cases"] if count == 3 else original_cell["families"]
+            if strata[stratum]["cases"] != expected_cases:
+                raise ValueError("pilot denominator differs from the authenticated reservation")
         action = (
             spending(counts, paired, look["comparable"])
             if count == 3
@@ -257,6 +341,9 @@ def verify_pilot(path):
         )
         if contrasted != look["contrasts"] or action != look["action"]:
             raise ValueError("reported pilot evidence differs from family counts")
+    recorded = {(block.split("-resume-")[0], role) for block, role in known}
+    if not required_costs <= recorded <= permitted_costs:
+        raise ValueError("research cost coverage differs from the observed arms and roles")
     if doc["action"] != doc["looks"][-1]["action"]:
         raise ValueError("unverified pilot spending action")
     return dict(
@@ -264,8 +351,9 @@ def verify_pilot(path):
         scope="archive_only_pilot",
         report=doc["identity"],
         next_action=doc["action"],
-        registered_gpu_us=SHIFT_US,
+        registered_role_us=SHIFT_US,
         research_gpu_us=doc["research_gpu_us"],
+        research_role_us=doc["research_role_us"],
         endpoint=doc["looks"][-1]["contrasts"],
         assessment="SEALED",
         repeat_funded=False,

@@ -126,7 +126,11 @@ def train(work, data, *, device="cuda"):
         require(
             saved["selection"] == selection
             and saved["data"]["cursor"] == ledger.updates
-            and saved["history"]["look"] == LOOKS[LOOKS.index(target) - 1],
+            and (
+                saved["history"]["look"] == LOOKS[LOOKS.index(target) - 1]
+                or data.get("resume_charge") is not None
+                and saved["history"]["look"] == target
+            ),
             "full predecessor checkpoint required",
         )
         worker.encoder.load_state_dict(saved["weights"]["encoder"])
@@ -138,6 +142,43 @@ def train(work, data, *, device="cuda"):
     elif target != 0:
         raise ValueError("missing predecessor at a positive-token look")
     output = work / "output"
+    resume_charge = data.get("resume_charge")
+    if resume_charge is not None:
+        require(
+            type(resume_charge) is int and ledger.consumed <= resume_charge <= cap,
+            "lost or excessive irreversible training charge",
+        )
+        ledger = Ledger(cap, consumed=resume_charge, updates=ledger.updates)
+    atomic_write(
+        output / "training-origin.json",
+        seal(
+            dict(
+                registration=data["registration"],
+                package=package["identity"],
+                arm=arm,
+                target=target,
+                contract=contract,
+                cap=cap,
+                starting_charge=ledger.consumed,
+            )
+        ),
+    )
+    from .generalization_persistence import snapshot_due
+
+    store = GeneralizationCheckpointStore(output / "checkpoint", contract, cap)
+    last_full = time.monotonic()
+
+    def save_cut():
+        context = dict(
+            selection=selection,
+            scheduler={"controller": {"cursor": 32 * ledger.updates}},
+            data={"cursor": ledger.updates, "pending_batch": None},
+            replay={},
+            pins={},
+            history={"look": target, "order": consumed, "predecessor": previous},
+        )
+        return store.save(RecoverableUpdate.capture_runner(worker, context), ledger)
+
     debits = BudgetJournal(
         output / "accounting", contract, dict(dict.fromkeys(KEYS, 0), tokens=cap)
     )
@@ -165,6 +206,9 @@ def train(work, data, *, device="cuda"):
         )
         debits.commit(debit["key"])
         consumed = digest([consumed, keys])
+        if ledger.consumed < target and snapshot_due("hourly/v1", last_full, time.monotonic()):
+            save_cut()
+            last_full = time.monotonic()
         if ledger.updates % 32 == 0:
             revise(
                 output / "progress.json",
@@ -174,28 +218,22 @@ def train(work, data, *, device="cuda"):
         torch.cuda.synchronize()
     expected = exposure_at(stream, rows, ledger.updates)
     require(
-        expected["order_digest"] == consumed and expected["useful_tokens"] == ledger.consumed,
+        expected["order_digest"] == consumed and expected["useful_tokens"] <= ledger.consumed,
         "unequal ordered training exposure",
     )
     # Both the existing full-state store and the matched milestone independently reopen this cut.
-    context = {
-        "selection": selection,
-        "scheduler": {"controller": {"cursor": 32 * ledger.updates}},
-        "data": {"cursor": ledger.updates, "pending_batch": None},
-        "replay": {},
-        "pins": {},
-        "history": {"look": target, "order": consumed, "predecessor": previous},
-    }
-    store = GeneralizationCheckpointStore(output / "checkpoint", contract, cap)
-    ref = store.save(RecoverableUpdate.capture_runner(worker, context), ledger)
+    ref = save_cut()
     full = store.load(ref)
-    full.update(cuts={"selection": digest(selection), "consumed": consumed}, discarded_tokens=0)
+    full.update(
+        cuts={"selection": digest(selection), "consumed": consumed},
+        discarded_tokens=ledger.consumed - expected["useful_tokens"],
+    )
     cut = matched_milestone(
         dict(matched_generator=stream, profile=package["profile"], update_policy=policy),
         rows,
         {"identity": ref["sha256"]},
         full,
-        ledger.consumed,
+        expected["useful_tokens"],
         target,
     )
     manifest = load(output / "checkpoint" / ref["path"])
@@ -338,7 +376,15 @@ def main():
         "storage": set(),
         "recovery": set(),
         "prepare": {"seed", "start", "count"},
-        "train": {"arm", "target", "previous", "training", "package", "registration"},
+        "train": {
+            "arm",
+            "target",
+            "previous",
+            "training",
+            "package",
+            "registration",
+            "resume_charge",
+        },
         "search": {"arm", "target", "rows", "recipe", "weights", "seconds"},
         "score": {"rows", "candidates", "seconds"},
     }

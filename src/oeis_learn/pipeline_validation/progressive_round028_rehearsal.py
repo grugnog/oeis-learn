@@ -276,6 +276,7 @@ def rehearse(args, root, source, folder, store, revision, audit_result, *, host_
     src = digest(collect_snapshot(source))
     active_path = area / "progress.json"
     parent = None
+    qualified = {}
     for phase in ("cpu", "hip"):
         output["phase"] = phase
         revise(active_path, seal(output))
@@ -301,6 +302,10 @@ def rehearse(args, root, source, folder, store, revision, audit_result, *, host_
                                 physical=physical))
             producer, cost = measure_stage(host, source, area, base_path, phase, image, request, invoke=invoke)
             parent = producer["identity"]
+            if output_area is not None:
+                boundary = load(confined(area, "stages/" + request["identity"][7:] + "/receipt.json"))
+                qualified[phase] = dict(image=image, request=request["identity"],
+                                        producer=producer["identity"], boundary=boundary["identity"])
             output[phase] = stage_measurements(phase, producer, cost, image=image, build_us=build_us,
                                                image_reused=build_reused)
             if phase == "hip":
@@ -320,5 +325,7 @@ def rehearse(args, root, source, folder, store, revision, audit_result, *, host_
     result = dict(output, mechanical_status="COMPLETE", phase="complete", reason="MATCHED_REHEARSAL_MEASURED",
                   next_action="REVIEW_TRAINING_FORECAST" if output["forecast"]["projected_training_excess_us"]
                   else "FREEZE_FRESH_PANELS_AND_MEASURE_EVALUATION")
+    if output_area is not None:
+        result["qualification_receipts"] = qualified
     revise(active_path, seal(result))
     return result, 0

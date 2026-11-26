@@ -99,7 +99,10 @@ def test_cpu_training_boundary_reopens_all_state_for_the_same_registered_stream(
         base["base_recipe"], shape=base["shape"], seed=stream["seeds"]["initialization"], dropout=0
     )
     package = seal(dict(rows=rows, stream=stream, profile=model, microbatch=4))
+    from shutil import copyfile
+
     outputs = {}
+    resumed = {}
     for arm in ("ordinary", "first_divergence"):
         work = tmp_path / arm
         (work / "output").mkdir(parents=True)
@@ -117,7 +120,27 @@ def test_cpu_training_boundary_reopens_all_state_for_the_same_registered_stream(
         mounts, weight = checkpoint_inputs(work / "output", result)
         assert len(mounts) > 8 and weight.is_file()
         outputs[arm] = result["milestone"]
+        # Simulate work charged after the last persisted model, then run one real 32-row update.
+        next_work = tmp_path / (arm + "-recovered")
+        (next_work / "output").mkdir(parents=True)
+        for original, mount in [(path, "/work/inputs/training.json"), *mounts]:
+            destination = next_work / mount.removeprefix("/work/")
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            copyfile(original, destination)
+        updated = train(
+            next_work,
+            dict(data, target=1_000_000, previous=result["checkpoint"], resume_charge=999_999),
+            device="cpu",
+        )
+        checkpoint_inputs(next_work / "output", updated)
+        assert updated["updates"] == 1
+        assert updated["milestone"]["discarded"] == 999_999
+        assert updated["milestone"]["charged"] == 999_999 + updated["milestone"]["useful_tokens"]
+        resumed[arm] = updated
     assert paired_generator_exposure(*outputs.values()) == "MATCHED"
+    assert (
+        resumed["ordinary"]["weights"]["sha256"] != resumed["first_divergence"]["weights"]["sha256"]
+    )
 
 
 def test_pilot_projection_and_independent_spending_match_established_reducer():
@@ -246,7 +269,7 @@ def test_archive_recomputes_all_three_looks_and_catches_changed_counts(collectio
     reg = pilot_registration(
         dict(receipt, workstation=workstation), "1" * 40, digest("child source")
     )
-    looks = []
+    looks, costs = [], []
     for target in LOOKS:
         panels, _, cuts = generator_design_and_cuts(target)
         cuts = {
@@ -265,6 +288,21 @@ def test_archive_recomputes_all_three_looks_and_catches_changed_counts(collectio
         outcomes = {
             a: {r["task"]: {"outcome": "failure", "complete": True} for r in roster} for a in arms
         }
+        for arm in arms:
+            for role in ("search", "score") if arm == "incumbent" else ("train", "search", "score"):
+                costs.append(
+                    seal(
+                        dict(
+                            block=f"{arm}-{target}",
+                            role=role,
+                            lease_us=13 if role != "score" else 0,
+                            wall_us=23,
+                            charged_us=23,
+                            covered_us=0,
+                            busy_us=None,
+                        )
+                    )
+                )
         stats = family_counts(roster, outcomes, arms)
         looks.append(
             dict(
@@ -272,6 +310,7 @@ def test_archive_recomputes_all_three_looks_and_catches_changed_counts(collectio
                 cuts=cuts,
                 counts=stats,
                 comparable=True,
+                zero_reused=False,
                 contrasts=summary(stats, len(arms)),
                 action=spending(stats, True, True)
                 if target == LOOKS[-1]
@@ -286,7 +325,9 @@ def test_archive_recomputes_all_three_looks_and_catches_changed_counts(collectio
             acceptance=digest("hardware"),
             looks=looks,
             action=looks[-1]["action"],
-            research_gpu_us=13,
+            research_gpu_us=sum(c["lease_us"] for c in costs),
+            research_role_us=sum(c["charged_us"] for c in costs),
+            costs=costs,
             verification="private_choices_and_checkpoints",
         )
     )
@@ -295,7 +336,206 @@ def test_archive_recomputes_all_three_looks_and_catches_changed_counts(collectio
     path.write_bytes(packed)
     assert verify_transport(path) == verify_pilot(io.BytesIO(packed))
     assert verify_pilot(path)["next_action"] == "RETAIN_REFERENCE"
+    with pytest.raises(ValueError):
+        verify_pilot(io.BytesIO(packed + b"additional payload"))
+    forged = json.loads(encode(public))
+    forged["costs"][0] = seal(dict(forged["costs"][0], charged_us=17))
+    with pytest.raises(ValueError, match="cost"):
+        verify_pilot(io.BytesIO(pilot_archive(seal(forged), prev)))
     changed = json.loads(encode(public))
     changed["looks"][-1]["counts"][0]["counts"] = {"SSS": 1}
     with pytest.raises(ValueError):
         verify_pilot(io.BytesIO(pilot_archive(seal(changed), prev)))
+
+
+def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchanged(
+    collection, tmp_path, monkeypatch
+):
+    import io
+    from pathlib import Path
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive.program_search_outcome import (
+        build_outcome,
+        verify_outcome,
+        workstation_receipt,
+        archive_bytes,
+        verify_workstation,
+    )
+    from oeis_learn.generalization.progressive.program_search_rehearsal_report import encode
+    from oeis_learn.generalization.progressive.program_search_pilot import LOOKS, ARMS, verify_pilot
+    from oeis_learn.generalization.progressive.training_rows import pair_seeds
+    from oeis_learn.generalization.progressive.contracts import reference, atomic_write
+    from oeis_learn.pipeline_validation import (
+        progressive_round028_pilot as pilot,
+        progressive_round028_rehearsal as probe,
+    )
+    from oeis_learn.pipeline_validation.pilot_clocks import clock_record, CORRECT_FULL, DESCRIPTIVE
+    from tests.integration.test_progressive_lifecycle import generator_design_and_cuts
+
+    original, builder = collection
+    old = build_outcome(builder("repriced", cold_overhead_us=4_300_000_000))
+    older = verify_outcome(io.BytesIO(old))
+    prev = archive_bytes(
+        {
+            "workstation.json": encode(
+                workstation_receipt(older, digest("replay"), digest("boundary"))
+            ),
+            "round028.zip": old,
+        }
+    )
+    parent = verify_workstation(io.BytesIO(prev))
+    monkeypatch.setattr(pilot, "parent_evidence", lambda *a: (prev, parent))
+    panels = generator_design_and_cuts(0)[0]
+    donors = {
+        p: [dict(id=r["task"], group=r["group"], stratum=r["stratum"]) for r in members]
+        for p, members in panels.items()
+    }
+    witnesses = {
+        r["id"]: dict(id=r["id"], indices=list(map(str, range(100))), values=["0"] * 100)
+        for values in donors.values()
+        for r in values
+    }
+    private = seal(dict(allocations=dict(panels=donors), witnesses=witnesses))
+    panel_area = tmp_path / "panel"
+    atomic_write(panel_area / "supply.json", private)
+    weights = tmp_path / "weights.pt"
+    weights.write_bytes(b"identified weights")
+    monkeypatch.setattr(
+        pilot, "original_inputs", lambda *a: (private, {}, {"recipe": "D"}, weights, panel_area)
+    )
+    monkeypatch.setattr(
+        pilot,
+        "hardware_qualification",
+        lambda *a: {p: {"image": digest(p)} for p in ("cpu", "hip")},
+    )
+    monkeypatch.setattr(
+        pilot, "accept_pilot", lambda *a: {"installed": digest("on exposed fixtures")}
+    )
+    monkeypatch.setattr(probe, "candidate_image", lambda *a: (digest(a[-1]), 0, True))
+    monkeypatch.setattr(probe, "physical_scope", lambda h, p: digest(p))
+    monkeypatch.setattr(pilot, "checkpoint_inputs", lambda *a: ([], weights))
+
+    def training(root, area, reg, *unused):
+        from oeis_learn.pipeline_validation.preparation_recovery import retain
+
+        pkg = seal(dict(profile={"recipe": "candidate"}, stream=seal({"seed": 1})))
+        retain(area / "training.json", pkg)
+        return pkg
+
+    monkeypatch.setattr(pilot, "prepare_training", training)
+    calls = []
+
+    class Role:
+        phase = "cpu"
+
+        def __init__(self, args, source, root, revision, area, registration, factory):
+            self.area, self.registration = area, registration
+
+        def __call__(self, role, data, *, seconds, inputs):
+            from oeis_learn.pipeline_validation.preparation_recovery import retain
+
+            out = self.area / "test-output" / (data["block"] + "-" + role)
+            if not out.is_dir():
+                calls.append((data["block"], role))
+            out.mkdir(parents=True, exist_ok=True)
+            self.last_wall_us = 2000
+            self.last_output, self.last_lease_us = out, 1000 if self.phase == "hip" else 0
+            if role == "train":
+                arm, target = data["arm"], data["target"]
+                c = generator_design_and_cuts(target)[2][arm]
+                cut = seal(
+                    dict(
+                        c,
+                        registration=self.registration["identity"],
+                        seeds=pair_seeds(self.registration["identity"], 0),
+                    )
+                )
+                return dict(
+                    milestone=cut,
+                    checkpoint={"id": digest([arm, target])},
+                    weights=reference(tmp_path, weights),
+                )
+            if role == "search":
+                full = data["target"] == LOOKS[-1]
+                policy = CORRECT_FULL if full else DESCRIPTIVE
+                ordered = sorted(data["rows"], key=lambda r: r["id"])
+                clocks = [
+                    clock_record(
+                        prompt=r["id"],
+                        mode="correct",
+                        snapshot=digest("model"),
+                        start=1.0,
+                        scope_deadline=400.0,
+                        finish=3.0,
+                        expected=8 if full else 1,
+                        started=8 if full else 1,
+                        terminal=8 if full else 1,
+                        policy=policy,
+                    )
+                    for r in ordered
+                ]
+                output = seal(
+                    dict(
+                        version="discovery-candidates/v1",
+                        checkpoint=data["weights"]["sha256"],
+                        recipe=digest(data["recipe"]),
+                        prompts=digest(ordered),
+                        model=digest("model"),
+                        records={r["id"]: {} for r in ordered},
+                        clock=seal(
+                            dict(
+                                policy=policy,
+                                work=digest("model"),
+                                clocks=clocks,
+                                cost_complete=True,
+                            )
+                        ),
+                    )
+                )
+                retain(out / "candidates.json", output)
+                return {"candidates": reference(out, out / "candidates.json")}
+            output = seal(
+                dict(
+                    version="discovery-scoring/v1",
+                    denominator=len(data["rows"]),
+                    candidates=data["candidates"]["sha256"],
+                    outcomes={
+                        r["id"]: {
+                            "equal_budget": {
+                                "success": False,
+                                "complete": True,
+                                "scoring": {"complete": True},
+                            }
+                        }
+                        for r in data["rows"]
+                    },
+                )
+            )
+            retain(out / "scores.json", output)
+            return {"scores": reference(out, out / "scores.json")}
+
+    monkeypatch.setattr(pilot, "PilotRole", Role)
+    args = (
+        None,
+        Path(__file__).resolve().parents[2],
+        original.workspace,
+        original.folder,
+        "a" * 40,
+        original.store,
+        lambda *a, **kw: SimpleNamespace(policy={"free_disk_floor_bytes": 0}),
+    )
+    initial = original.store.tip
+    result, code = pilot.run_pilot(*args)
+    assert code == 0 and result["receipt"]["next_action"] == "RETAIN_REFERENCE"
+    assert len(calls) == 6 + 6 + 6 and len([v for v in calls if v[0].startswith("incumbent")]) == 2
+    assert verify_pilot(original.folder / pilot.SHARE) == result["receipt"]
+
+    def unexpected_host(*unused, **options):
+        raise AssertionError("a completed pilot must re-export without acquiring the workstation")
+
+    assert pilot.run_pilot(*args[:-1], unexpected_host) == (result, 0)
+    assert len(calls) == 18 and original.store.tip == initial
+    cost = next((original.folder / pilot.AREA / "costs").glob("*.json"))
+    cost.write_text("{}")
+    with pytest.raises(ValueError, match="publication boundary"):
+        pilot.run_pilot(*args[:-1], unexpected_host)

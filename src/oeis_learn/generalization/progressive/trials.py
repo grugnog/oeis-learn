@@ -72,6 +72,29 @@ class TrialJournal:
                 atomic_write(p, self.binding)
             self.read()
 
+    def observe_pilot(self, observation):
+        """Persist an exploratory look without giving the 013 optimizer terminal feedback."""
+        targets = (0, 1_000_000, 4_000_000)
+        target = observation["target"]
+        if (observation.get("version") != "round028-pilot-observation/v1" or seal(observation) != observation
+                or observation["registration"] != self.binding["study"] or observation["pair"] != 0 or target not in targets):
+            raise ValueError("registered pilot observation required")
+        with self.lock():
+            previous = self.binding["identity"]
+            for look in targets[:targets.index(target)]:
+                record = load(self.root / f"pilot-{look}.json")
+                if record != seal(record) or record["previous"] != previous or record["observation"]["target"] != look:
+                    raise ValueError("pilot observation chain differs")
+                previous = record["identity"]
+            result = seal(dict(previous=previous, observation=observation))
+            path = self.root / f"pilot-{target}.json"
+            if path.exists():
+                if load(path) != result:
+                    raise ValueError("conflicting pilot observation")
+            else:
+                atomic_write(path, result)
+            return result["identity"]
+
     @contextmanager
     def lock(self):
         import fcntl

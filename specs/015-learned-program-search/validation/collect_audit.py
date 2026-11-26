@@ -170,7 +170,7 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
         else:
             code = code or 2
             result = folder / "round028-pilot-diagnostics.zip"
-            capture = {k:raw[k] for k in ("reason", "progress", "failure_locations", "error_type", "missing") if k in raw}
+            capture = {k:raw[k] for k in ("reason", "progress", "failure_locations", "error_type", "missing", "deficit") if k in raw}
             with zipfile.ZipFile(result, "w") as bundle:
                 bundle.writestr("summary.json", json.dumps(dict(summary=summary, pilot=capture), sort_keys=True))
         print(f"Pilot exit {code}. Return this file:\n{result}", flush=True)

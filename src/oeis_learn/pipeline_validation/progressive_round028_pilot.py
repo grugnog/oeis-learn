@@ -47,6 +47,15 @@ SHARE = "share/generator-pilot-11h/round028-pilot.zip"
 PARENT_WORKSTATION = "sha256:1901e97e71d146db415743f380715f4ad9e96da07f16424bd628663379a80ce9"
 
 
+class PilotDeficit(ValueError):
+    def __init__(self, code, **counts):
+        super().__init__(code)
+        self.code = code
+        if not all(type(n) is int and n >= 0 for n in counts.values()):
+            raise ValueError("diagnostic counts must be nonnegative integers")
+        self.counts = counts
+
+
 class PilotRole(NativeRoles):
     worker = "oeis_learn.pipeline_validation.progressive_pilot_worker"
     request_version = "round028-pilot-role/v1"
@@ -60,6 +69,10 @@ class PilotRole(NativeRoles):
         # Pin each phase's measured native identity independently of which cached stages ran.
         self.native = None
         value = super().__call__(role, data, seconds=seconds, inputs=inputs)
+        bound = load(self.last_boundary)
+        timing = read_bound_record(self.last_boundary.parent, bound["timing"])
+        if timing.get("supervisor_wall_unknown"):
+            self.last_wall_us = None
         retain(self.area / ("native-" + self.phase + ".json"), seal({"native": self.native}))
         return value
 
@@ -202,7 +215,9 @@ def prepare_training(root, area, registration, cpu, refs, supply, panel_area):
     law = default_policy(seed=seed)
     rows = []
     # Same native mechanical source as the historical strict training reservoir, with a new seed.
-    for start in range(0, 8192, 512):
+    stream = None
+    initial_draws = inputs["counts"]["native_training"]
+    for start in range(0, law["max_draws"], 512):
         result = cpu(
             "prepare",
             seal(dict(block=f"training-input-{start}", seed=seed, start=start, count=512)),
@@ -233,19 +248,41 @@ def prepare_training(root, area, registration, cpu, refs, supply, panel_area):
                 & deny
             ):
                 rows.append(row)
-    require(
-        len({r["draw_identity"] for r in rows}) == len(rows) and len(rows) >= 32,
-        "insufficient disjoint training rows",
-    )
-    probes = {}
-    for row in rows:
-        kind = "frontier" if {"loop", "select"} & set(row["operations"]) else "familiar"
-        probes.setdefault(kind, dict(id=row["draw_identity"], role="training"))
-    require(len(probes) == 2, "both strict training probe bins required")
-    stream = matched_stream([rows], {"probes": probes}, registration["identity"], 0, law=law)
-    require(
-        stream["eligible_rows"] > 0, "no disjoint independently verified first-divergence labels"
-    )
+        revise(
+            area / "progress.json",
+            seal(
+                dict(
+                    phase="prepare_strict_training",
+                    registration=registration["identity"],
+                    native_draws=start + 512,
+                    disjoint_rows=len(rows),
+                )
+            ),
+        )
+        # Extend the same prespecified counter stream on a supply gap, before opening any pilot scores.
+        if start + 512 < initial_draws or (
+            start + 512 < law["max_draws"] and (start + 512) % initial_draws != 0
+        ):
+            continue
+        require(len({r["draw_identity"] for r in rows}) == len(rows), "duplicate strict draw")
+        probes = {}
+        for row in rows:
+            kind = "frontier" if {"loop", "select"} & set(row["operations"]) else "familiar"
+            probes.setdefault(kind, dict(id=row["draw_identity"], role="training"))
+        if len(rows) >= 32 and len(probes) == 2:
+            stream = matched_stream(
+                [rows], {"probes": probes}, registration["identity"], 0, law=law
+            )
+            if stream["eligible_rows"]:
+                break
+    if not stream or not stream["eligible_rows"]:
+        raise PilotDeficit(
+            "STRICT_TRAINING_SIGNAL_DEFICIT",
+            native_draws=start + 512,
+            disjoint_rows=len(rows),
+            eligible_rows=0,
+            training_bins=len(probes),
+        )
     folder = confined(root, SESSION)
     base = training_package(Donor(root, folder, load(confined(folder, "campaign.json"))), refs)
     profile = resolve_profile(
@@ -261,7 +298,16 @@ def prepare_training(root, area, registration, cpu, refs, supply, panel_area):
             rows=rows,
             profile=profile,
             microbatch=base["update_policy"]["microbatch_size"],
-            exposure_cut=digest(sorted(deny)),
+            exposure_cut=digest(
+                [
+                    inputs["census"],
+                    inputs["data"]["identity"],
+                    supply["identity"],
+                    reference(panel_area, panel_area / "calibration-reservation.json"),
+                ]
+            ),
+            native_draws=start + 512,
+            excluded_keys=len(deny),
         )
     )
     retain(target, package)
@@ -304,18 +350,12 @@ def hardware_qualification(args, root, source, folder, store, revision, host_fac
         host_factory=host_factory,
         output_area=area / "qualification",
     )
-    require(
-        not code and result["mechanical_status"] == "COMPLETE",
-        "candidate CPU/native or HIP qualification failed",
-    )
-    records = {}
-    for path in sorted((area / "qualification/stages").glob("*/receipt.json")):
-        request = load(confined(area, path.with_name("request.json")))
-        boundary = load(confined(area, path))
-        if request["image"] == result[request["stage"]]["image"]:
-            records[request["stage"]] = boundary["identity"]
-    require(set(records) == {"cpu", "hip"}, "missing original candidate qualification receipts")
-    return records
+    if code or result["mechanical_status"] != "COMPLETE":
+        counts = {k: result[k] for k in ("required_bytes", "deficit_bytes") if k in result}
+        if "free_bytes" in result.get("filesystem", {}):
+            counts["free_bytes"] = result["filesystem"]["free_bytes"]
+        raise PilotDeficit(result["reason"], **counts)
+    return result["qualification_receipts"]
 
 
 def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, weights):
@@ -385,9 +425,14 @@ def check_space(area, host, checkpoint_bytes):
     )
     inodes = 7 * 13 + 2 * 160 * 8 * 4 + 352
     if measured["free_bytes"] < needed or measured["free_inodes"] < inodes:
-        raise ValueError(
-            f"pilot storage deficit: {max(0, needed - measured['free_bytes'])} bytes, "
-            f"{max(0, inodes - measured['free_inodes'])} inodes"
+        raise PilotDeficit(
+            "PILOT_STORAGE_DEFICIT",
+            required_bytes=needed,
+            free_bytes=measured["free_bytes"],
+            deficit_bytes=max(0, needed - measured["free_bytes"]),
+            required_inodes=inodes,
+            free_inodes=measured["free_inodes"],
+            deficit_inodes=max(0, inodes - measured["free_inodes"]),
         )
     return dict(**measured, required_bytes=needed, required_inodes=inodes)
 
@@ -430,6 +475,29 @@ def score_projection(generated, scored, candidates_sha, prompts, weights, recipe
     return results, clock["cost_complete"]
 
 
+def publication_inputs(area):
+    paths = [
+        "registration.json",
+        "freeze.json",
+        "acceptance.json",
+        "accounting/budget-binding.json",
+        "accounting/budget.jsonl",
+        *(f"trials/pilot-{target}.json" for target in LOOKS),
+    ]
+    for pattern in ("costs/*.json", "roles/*/boundary.json", "qualification/stages/*/receipt.json"):
+        paths.extend(str(p.relative_to(area)) for p in sorted(area.glob(pattern)))
+    return [reference(area, confined(area, name)) for name in paths]
+
+
+def published_pilot(receipt):
+    return dict(
+        mechanical_status="COMPLETE",
+        scientific_status="PILOT_MEASURED",
+        archive=SHARE,
+        receipt=receipt,
+    ), 0
+
+
 def run_pilot(args, source, root, folder, revision, store, host_factory):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from oeis_learn.generalization.progressive.contracts import _atomic_write
@@ -449,6 +517,21 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
         )
 
     archive = confined(folder, SHARE, exists=False)
+    publication = confined(area, "publication.json", exists=False)
+    if publication.is_file():
+        boundary = load(publication)
+        require(
+            boundary == seal(boundary)
+            and boundary["registration"] == registration["identity"]
+            and boundary["original_receipt"] == parent["workstation"]["identity"]
+            and boundary["evidence"] == publication_inputs(area)
+            and boundary["archive"] == reference(folder, archive),
+            "changed pilot publication boundary",
+        )
+        receipt = verify_pilot(archive)
+        require(receipt["report"] == boundary["report"], "published pilot receipt differs")
+        progress("complete", report=receipt["report"], action=receipt["next_action"])
+        return published_pilot(receipt)
     progress("check_original_inputs")
     supply, refs, d_recipe, d_weights, panel_area = original_inputs(root, folder, store)
     panels = research_rosters(supply["allocations"]["panels"])
@@ -485,7 +568,11 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
     for runner in (cpu, gpu):
         runner.host = host
         runner.image, runner.build_us, _ = candidate_image(
-            host, source, area, revision, runner.phase
+            host, source, area / "qualification", revision, runner.phase
+        )
+        require(
+            runner.image == qualified[runner.phase]["image"],
+            "research image differs from qualified image",
         )
     progress("prepare_strict_training")
     package = prepare_training(root, area, registration, cpu, refs, supply, panel_area)
@@ -525,12 +612,35 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
         dict(dict.fromkeys(KEYS, 0), elapsed_us=SHIFT_US),
     )
 
-    def settle(block, role, elapsed):
+    def settle(block, role, elapsed, wall_us=None, telemetry=None):
         key = block + "/" + role + "/0"
         saved = load(confined(area, "reservations/" + block + "-" + role + ".json"))
+        charged = wall_us if wall_us is not None else saved["us"]
         require(
-            saved == seal(saved) and saved["key"] == key and 0 <= elapsed <= saved["us"],
+            saved == seal(saved) and saved["key"] == key and 0 <= elapsed <= charged,
             "original pilot lease differs",
+        )
+        if charged > saved["us"]:
+            raise PilotDeficit(
+                "PILOT_ROLE_TIME_DEFICIT",
+                required_us=charged,
+                remaining_us=saved["us"],
+                deficit_us=charged - saved["us"],
+            )
+        telemetry = telemetry or {}
+        retain(
+            area / "costs" / (block + "-" + role + ".json"),
+            seal(
+                dict(
+                    block=block,
+                    role=role,
+                    lease_us=elapsed,
+                    wall_us=wall_us,
+                    charged_us=charged,
+                    covered_us=telemetry.get("covered_us", 0),
+                    busy_us=telemetry.get("busy_us"),
+                )
+            ),
         )
         original = budgets.reserve(
             block,
@@ -545,7 +655,7 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             budgets.commit(
                 key,
                 boot=start["boot"],
-                monotonic_us=start["start_us"] + elapsed,
+                monotonic_us=start["start_us"] + charged,
                 termination_proven=True,
             )
 
@@ -557,37 +667,45 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
         if saved.exists():
             limit = load(confined(area, saved))["us"]
         else:
-            limit = SHIFT_US - budgets.snapshot()["consumed"]["elapsed_us"] if runner is gpu else 0
-            require(runner is cpu or limit > 0, "eleven-hour allocation spent")
+            limit = SHIFT_US - budgets.snapshot()["consumed"]["elapsed_us"]
+            if limit <= 0:
+                raise PilotDeficit("PILOT_TIME_SPENT", registered_us=SHIFT_US, remaining_us=0)
             retain(saved, seal(dict(key=key, us=limit)))
-        now = time.monotonic_ns() // 1000
-        boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
-        reservation = budgets.reserve(
+        # Each original supervisor interval has its own elapsed-time origin. Retain device occupancy separately.
+        budgets.reserve(
             data["block"],
             role,
             0,
             dict(dict.fromkeys(KEYS, 0), elapsed_us=limit),
-            boot=boot,
-            monotonic_us=now,
+            boot="round028-supervised-role-duration/v1",
+            monotonic_us=0,
         )
         stage_seconds = (
-            max(1, limit // 1_000_000) if runner is gpu else data.get("seconds", 3600) + 120
+            max(1, limit // 1_000_000)
+            if runner is gpu
+            else max(1, min(limit // 1_000_000, data.get("seconds", 3600) + 120))
         )
         result = runner(role, seal(data), seconds=stage_seconds, inputs=mounts)
-        if not reservation["committed"]:
-            original = reservation["reserved"]
-            elapsed = runner.last_lease_us if runner is gpu else 0
-            require(elapsed <= limit, "measured GPU lease exceeded remaining allocation")
-            budgets.commit(
-                key,
-                boot=original["boot"],
-                monotonic_us=original["start_us"] + elapsed,
-                termination_proven=True,
-            )
+        settle(
+            data["block"],
+            role,
+            runner.last_lease_us if runner is gpu else 0,
+            runner.last_wall_us,
+            result.get("telemetry"),
+        )
         return result
 
+    from oeis_learn.generalization.progressive.trials import TrialJournal
+
+    trials = TrialJournal(
+        area / "trials",
+        study=registration["identity"],
+        token_cap=LOOKS[-1],
+        elapsed_cap_us=SHIFT_US,
+    )
     previous = {}
     published = []
+    zero_executions = {}
     for target in LOOKS:
         looks = graph[str(target)]
         cuts, outcomes = {}, {}
@@ -596,20 +714,18 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             block = f"{arm}-{target}"
             progress("pilot", arm=arm, target=target, role="train" if arm in ARMS else "search")
             if arm in ARMS:
-                prior, prior_mounts = previous.get(arm, (None, []))
-                trained = run(
+                from .progressive_pilot_recovery import measured_training
+
+                trained = measured_training(
+                    run,
+                    settle,
                     gpu,
-                    "train",
-                    dict(
-                        block=block,
-                        arm=arm,
-                        target=target,
-                        previous=prior,
-                        registration=registration["identity"],
-                        training=dict(training, path="inputs/training.json"),
-                        package=package["identity"],
-                    ),
-                    [(area / "training.json", "/work/inputs/training.json"), *prior_mounts],
+                    arm,
+                    target,
+                    previous.get(arm, (None, [])),
+                    training,
+                    package["identity"],
+                    registration["identity"],
                 )
                 cuts[arm] = trained["milestone"]
                 mounts, weights = checkpoint_inputs(gpu.last_output, trained)
@@ -620,6 +736,31 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
                 recipe, weights = d_recipe, d_weights
                 weight = dict(freeze["reference"], path="inputs/weights.pt")
             prompts, truth = outcome_channels(look, supply["witnesses"])
+            if target == 0:
+                from oeis_learn.generalization.progressive.trials import reusable_zero_look
+
+                cut = cuts[arm]
+                zero_executions[arm] = dict(
+                    weights=cut["initial"],
+                    ordered_prompts=digest(prompts),
+                    codec=cut["codec"],
+                    inference_seed=look["seed"],
+                    runtime=digest([freeze["images"], acceptance["physical"]]),
+                    source=registration["source"],
+                    profile=digest(recipe),
+                    fit_and_choice=digest([weight["sha256"], look["profile"]]),
+                    budgets=digest(
+                        [look["attempts"], look["portfolio_us"], look["fit_us"], look["max_tokens"]]
+                    ),
+                    support=freeze["stream"],
+                    comparator=digest("strict-random"),
+                    role=digest("visible-only"),
+                )
+                if arm == ARMS[1] and reusable_zero_look(
+                    cuts[ARMS[0]], cut, looks, zero_executions
+                ):
+                    outcomes[arm] = {}
+                    continue
             from .progressive_pilot_recovery import measured_search
 
             outcomes[arm], closed = measured_search(
@@ -635,8 +776,11 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             target=target,
             funded=target != LOOKS[-1],
             comparable_cost=comparable,
+            zero_executions=zero_executions if target == 0 else None,
         )
-        retain(area / f"observation-{target}.json", retained)
+        trials.observe_pilot(retained)
+        if retained["zero_reused"]:
+            outcomes[ARMS[1]] = outcomes[ARMS[0]]
         counts = family_counts(looks[ARMS[0]]["members"], outcomes, list(looks))
         published.append(
             dict(
@@ -645,6 +789,7 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
                 counts=counts,
                 contrasts=summary(counts, len(looks)),
                 comparable=comparable,
+                zero_reused=bool(retained["zero_reused"]),
                 action=retained["action"],
             )
         )
@@ -652,6 +797,7 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             target == LOOKS[-1] or retained["action"] == "CONTINUE_TO_RESERVED_ENDPOINT",
             "intermediate training exposures diverged",
         )
+    costs = [load(confined(area, path)) for path in sorted((area / "costs").glob("*.json"))]
     report = seal(
         dict(
             version="round028-generator-pilot/v1",
@@ -660,7 +806,9 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             acceptance=acceptance["identity"],
             looks=published,
             action=published[-1]["action"],
-            research_gpu_us=budgets.snapshot()["consumed"]["elapsed_us"],
+            research_gpu_us=sum(c["lease_us"] for c in costs),
+            research_role_us=budgets.snapshot()["consumed"]["elapsed_us"],
+            costs=costs,
             verification="private_choices_and_checkpoints",
         )
     )
@@ -671,10 +819,18 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
     else:
         archive.parent.mkdir(parents=True, exist_ok=True)
         _atomic_write(archive, content)
+    retain(
+        publication,
+        seal(
+            dict(
+                version="round028-pilot-publication/v1",
+                registration=registration["identity"],
+                original_receipt=parent["workstation"]["identity"],
+                evidence=publication_inputs(area),
+                archive=reference(folder, archive),
+                report=receipt["report"],
+            )
+        ),
+    )
     progress("complete", report=receipt["report"], action=receipt["next_action"])
-    return dict(
-        mechanical_status="COMPLETE",
-        scientific_status="PILOT_MEASURED",
-        archive=SHARE,
-        receipt=receipt,
-    ), 0
+    return published_pilot(receipt)

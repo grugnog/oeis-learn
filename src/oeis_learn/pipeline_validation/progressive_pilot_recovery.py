@@ -73,10 +73,19 @@ def interrupted(runner, role, data, mounts):
     if state["ExitCode"] == 0 and (output / "producer.json").is_file() and not end_path.exists():
         # Host interruption after engine inspection/cleanup but before recording its notification.
         retain(
-            end_path, seal(dict(request=req["identity"], elapsed_us=max(1, elapsed), success=True))
+            end_path,
+            seal(
+                dict(
+                    request=req["identity"],
+                    elapsed_us=elapsed,
+                    supervisor_wall_unknown=True,
+                    success=True,
+                )
+            ),
         )
         return None
-    return output, elapsed
+    wall = ended["elapsed_us"] if end_path.is_file() else None
+    return output, elapsed, wall
 
 
 def recover_choices(area, output, block, prompts, weight, recipe, arm, target):
@@ -148,6 +157,76 @@ def recover_choices(area, output, block, prompts, weight, recipe, arm, target):
     return (reference(area, path), path, candidate, ordered), unopened, unresolved
 
 
+def measured_training(
+    run, settle, gpu, arm, target, original_previous, training, package, registration
+):
+    """Resume only full-state generations; every attempted update remains charged across boots."""
+    from oeis_learn.generalization.contracts import artifact_refs
+    from oeis_learn.generalization.progressive.budgets import KEYS, BudgetJournal
+    from oeis_learn.generalization.state import restore
+    from .progressive_research_inputs import checked_file
+
+    previous, mounts = original_previous
+    attempt = 0
+    charged = None
+    while True:
+        base = f"{arm}-{target}"
+        block = base if not attempt else base + "-resume-" + str(attempt)
+        data = dict(
+            block=block,
+            arm=arm,
+            target=target,
+            registration=registration,
+            previous=previous,
+            resume_charge=charged,
+            training=dict(training, path="inputs/training.json"),
+            package=package,
+        )
+        inputs = [(gpu.area / "training.json", "/work/inputs/training.json"), *mounts]
+        failure = interrupted(gpu, "train", data, inputs)
+        if failure is None:
+            return run(gpu, "train", data, inputs)
+        output, lease, wall = failure
+        settle(block, "train", lease, wall)
+        origin_path = output / "training-origin.json"
+        if origin_path.exists():
+            origin = load(confined(output, origin_path))
+            require(
+                origin == seal(origin)
+                and (origin["registration"], origin["package"], origin["arm"], origin["target"])
+                == (registration, package, arm, target),
+                "interrupted training belongs to another request",
+            )
+            accrued = 0
+            if (output / "accounting/budget-binding.json").exists():
+                journal = BudgetJournal(
+                    confined(output, "accounting"),
+                    origin["contract"],
+                    dict(dict.fromkeys(KEYS, 0), tokens=origin["cap"]),
+                )
+                accrued = journal.snapshot()["consumed"]["tokens"]
+            charged = origin["starting_charge"] + accrued
+            pointer = output / "checkpoint/generalization-latest.json"
+            if pointer.exists():
+                checkpoint = confined(output, "checkpoint")
+                previous = load(confined(output, pointer))
+                manifest = read_bound_record(checkpoint, previous)
+                state = restore(
+                    manifest, contract=origin["contract"], cap=origin["cap"], root=checkpoint
+                )
+                require(
+                    state["ledger"].consumed <= charged,
+                    "restored model outruns its irreversible charges",
+                )
+                mounts = [
+                    (checked_file(checkpoint, r), "/work/inputs/previous/" + r["path"])
+                    for r in [previous, *artifact_refs(manifest["states"])]
+                ]
+        else:
+            require(not (output / "accounting").exists(), "lost pre-update training authority")
+        attempt += 1
+
+
 def measured_search(run, settle, progress, cpu, gpu, look, recipe, weight, weights, prompts, truth):
     from .progressive_round028_pilot import score_projection
 
@@ -180,8 +259,8 @@ def measured_search(run, settle, progress, cpu, gpu, look, recipe, weight, weigh
             part = (ref, confined(gpu.last_output, ref["path"]), value, pending)
             pending = []
         else:
-            output, lease = previous
-            settle(block, "search", lease)
+            output, lease, wall = previous
+            settle(block, "search", lease, wall)
             part, pending, unknown = recover_choices(
                 gpu.area, output, block, data["rows"], weight, recipe, arm, target
             )
