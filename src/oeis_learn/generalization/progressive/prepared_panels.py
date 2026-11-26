@@ -17,11 +17,11 @@ LIMITS = [
 ]
 
 
-def composition(row):
+def composition(row, *, allow_parameters=False):
     if row['stratum']=='oeis':
         return digest(['unavailable-source-composition',row['id']])
     from oeis_learn.pipeline_validation.progressive_research_census import features
-    f=features(row['source'])
+    f=features(row['source'], allow_parameters=allow_parameters)
     return digest([sorted(f['proper']),sorted(f['operators'])])
 
 

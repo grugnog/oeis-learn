@@ -378,7 +378,7 @@ def test_round028_calibration_is_disjoint_and_missing_descriptors_stay_unknown()
     from oeis_learn.generalization.progressive.contracts import digest
     records = []
     for i in range(6):
-        descriptor = dict(language="bigint-body/v1", operations=["add"], nodes=2**(i+1), depth=2, work=100+i)
+        descriptor = dict(language="bigint-body/v1", shape=["return:add"], operations=["add"], nodes=2**(i+1), depth=2, work=100+i)
         records.append(dict(family=digest(i), descriptor=descriptor, measured=3, exact=3-i//2,
                             denominator=3))
     bands = calibrate_bands(records)
@@ -452,6 +452,7 @@ def test_round028_calibration_is_held_from_each_role_and_replication_is_common_t
         for i in range(104):
             f = digest([stratum,i])
             groups[f] = [dict(id=f"{stratum}-{i}-{n}",stratum=stratum,operations=["add"],native_verified=True,
+                source="(program (return (add $index (int 1))))",
                 difficulty=dict(depth=2,nodes=4,work=100*(1+i%4))) for n in range(2)]
     samples = calibration_families(groups,17,count=16)
     assert len(samples) == 16

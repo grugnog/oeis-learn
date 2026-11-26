@@ -97,7 +97,7 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
     destination = confined(workspace, "run-state/discovery-tools")
     rehearsal = action == "collect-rehearsal"
     prefix = {"collect-audit":"round028-cpu-", "collect-rehearsal":"round028-rehearsal-",
-              "collect-receipts":"round028-receipts-"}[action]
+              "collect-panels":"round028-panels-", "collect-receipts":"round028-receipts-"}[action]
     folder = Path(tempfile.mkdtemp(prefix=prefix, dir=destination))
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONNOUSERSITE="1")
     for key in ("PYTHONPATH", "PYTHONHOME"):
@@ -132,6 +132,8 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
         if name == "status" and "rehearsal" in raw:
             step["rehearsal"] = {k: raw["rehearsal"][k] for k in ("candidate", "phase", "reason", "next_action")
                                  if k in raw["rehearsal"]}
+        if name == "supply":
+            step.update({k:raw[k] for k in ("error_type","failure_locations") if k in raw})
         if name == "recover":
             step.update({k:raw[k] for k in ("stage_requests", "published_stages", "matched_boundaries",
                                              "failure_locations", "cpu") if k in raw})
@@ -146,6 +148,42 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
         return process.returncode, raw
 
     root = ["--workspace", str(workspace)]
+    if action == "collect-panels":
+        code, raw = run("supply", "panels", *root)
+        if not code:
+            try:
+                expected = Path("share/panel-supply") / candidate / "round028-panels.zip"
+                if raw.get("archive") != str(expected):
+                    raise ValueError("missing completed panel supply publication")
+                copied = folder / "round028-panels.zip"
+                shutil.copyfile(confined(workspace,Path(SESSION)/expected),copied)
+                code, standalone = run("verify-copied","verify","--archive",str(copied))
+                if not code and standalone == raw["receipt"]:
+                    print(f"Verified panel supply and historical costing. Return this file:\n{copied}",flush=True)
+                    return 0
+                code = code or 2
+            except (KeyError,TypeError,ValueError,OSError,zipfile.BadZipFile) as exc:
+                summary["steps"]["publication"] = dict(error_type=type(exc).__name__,exit=2)
+                code = 2
+        summary.update(exit=code, gpu_dispatches=0)
+        from oeis_learn.generalization.progressive.contracts import load, seal
+        area = workspace / SESSION / "private/panel-supply" / candidate
+        try:
+            progress = load(confined(workspace,area/"progress.json"))
+            phases = {"authenticated_historical_clocks","connecting_historical_families","retained_supply",
+                      "native_supply","conventional_calibration","complete"}
+            allowed = {"timed","candidates","historical_rows","eligible","components","deficient_cells",
+                       "calibration_families","accepted","attempted"}
+            if seal(progress) == progress and progress["phase"] in phases:
+                summary["progress"] = dict(phase=progress["phase"], **{k:v for k,v in progress.items()
+                    if k in allowed and type(v) is int and v >= 0})
+        except (KeyError,OSError,ValueError):
+            pass
+        diagnostics = folder / "round028-panel-diagnostics.zip"
+        with zipfile.ZipFile(diagnostics,"x",zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("summary.json",json.dumps(summary,sort_keys=True,indent=2,allow_nan=False))
+        print(f"Panel collection exit {code}. Return this file:\n{diagnostics}",flush=True)
+        return code
     if action == "collect-receipts":
         from oeis_learn.generalization.progressive.program_search_rehearsal_report import publish
         code, raw = run("recover", "recover-rehearsal", *root, "--producer-revision", producer_revision)

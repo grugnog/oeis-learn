@@ -48,24 +48,28 @@ def image_acquisition(area, revision, stage, image):
     return matches[0]
 
 
-def inspection(root, boundary, request, area):
+def verify_role_mounts(item, image, expected):
     from oeis_learn.container_runtime import normalized_image
-    item = load(confined(root, boundary["inspection"]["path"]), maximum=CAMPAIGN_DOCUMENT_BYTES)
     if not isinstance(item, list) or len(item) != 1:
         raise ReceiptGap("CONTAINER_INSPECTION_INCOMPLETE")
-    item = item[0]
-    policy = item["HostConfig"]
-    binds = [m for m in item["Mounts"] if m["Type"] == "bind"]
-    mounted = {m["Destination"]: m for m in binds}
-    output = confined(root, Path(boundary["producer"]["path"]).parent)
-    expected = {"/work/inputs/training.json": (area / "training.json", False),
-                "/work/inputs/request.json": (root / "request.json", False), "/work/output": (output, True)}
-    if (normalized_image(item["Image"]) != request["image"] or policy["NetworkMode"] != "none"
+    record = item[0]
+    policy = record["HostConfig"]
+    binds = [m for m in record["Mounts"] if m["Type"] == "bind"]
+    mounted = {m["Destination"]:m for m in binds}
+    if (normalized_image(record["Image"]) != image or policy["NetworkMode"] != "none"
             or policy["ReadonlyRootfs"] is not True or policy["Privileged"] or len(binds) != len(expected)
             or set(mounted) != set(expected)
             or any((mounted[k]["Source"], mounted[k]["RW"]) != (str(path), writable)
                    for k,(path,writable) in expected.items())):
         raise ReceiptGap("ORIGINAL_IMAGE_OR_ROLE_MOUNTS_DIFFER")
+
+
+def inspection(root, boundary, request, area):
+    item = load(confined(root, boundary["inspection"]["path"]), maximum=CAMPAIGN_DOCUMENT_BYTES)
+    output = confined(root, Path(boundary["producer"]["path"]).parent)
+    expected = {"/work/inputs/training.json": (area / "training.json", False),
+                "/work/inputs/request.json": (root / "request.json", False), "/work/output": (output, True)}
+    verify_role_mounts(item,request["image"],expected)
     return output
 
 

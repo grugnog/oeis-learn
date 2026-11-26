@@ -75,6 +75,12 @@ def status(folder):
         if seal(progress) != progress:
             raise ValueError("generator rehearsal progress changed")
         extra["rehearsal"] = {k: progress[k] for k in ("candidate", "phase", "reason", "next_action") if k in progress}
+    for panel_path in sorted(folder.glob("private/panel-supply/*/progress.json"),
+                             key=lambda p:p.stat().st_mtime_ns, reverse=True)[:1]:
+        panel_progress = load(confined(folder,panel_path.relative_to(folder)))
+        if seal(panel_progress) != panel_progress:
+            raise ValueError("panel supply progress changed")
+        extra["panel_supply"] = dict(candidate=panel_path.parent.name,phase=panel_progress["phase"])
     return dict(**extra, mechanical_status=store.state["status"], scientific_status=scientific,
                 owner_active=busy, boundary=store.tip, decision=store.state.get("route"), active=store.state.get("active"))
 
@@ -275,6 +281,27 @@ def execute(args, source, *, host_factory=None):
                 if receipt["report"] != store.state["publication"] or rebuilt["identity"] != receipt["report"]:
                     raise ValueError("private/public audit mismatch")
                 return dict(private_replay="VERIFIED", public_recomputation=receipt), 0
+            from .progressive_round028_panels import PRODUCER, panels_command
+            prior_training = folder / "private/generator-rehearsal" / PRODUCER / "progress.json"
+            if args.action == "panels" or (args.action == "run" and prior_training.is_file()
+                                          and store.state.get("route") == "MATCHED_GENERATOR"):
+                if not store.state.get("publication") or store.state.get("route") != "MATCHED_GENERATOR":
+                    return dict(mechanical_status="BLOCKED", reason="MATCHED_GENERATOR_AUDIT_REQUIRED",
+                                gpu_dispatches=0), 2
+                try:
+                    observed, code = panels_command(args, source, root, folder, revision, store, host_factory)
+                except (ValueError, OSError, KeyError, TypeError, RuntimeError, subprocess.SubprocessError) as exc:
+                    import traceback
+                    from .progressive_round028_rehearsal import failure_locations
+                    area = confined(folder,"private/panel-supply/"+revision,exists=False)
+                    area.mkdir(parents=True,mode=0o700,exist_ok=True)
+                    (area/"exception.txt").write_text(traceback.format_exc())
+                    return dict(mechanical_status="BLOCKED", scientific_status="PILOT_UNMEASURED",
+                                reason="PANEL_SUPPLY_COLLECTION_FAILED", error_type=type(exc).__name__,
+                                failure_locations=failure_locations(source,area,role_folder="roles"), gpu_dispatches=0), 2
+                if args.action == "run":
+                    return dict(observed,mechanical_status="BLOCKED",next_action=observed["reason"]), 2
+                return observed, code
             result = audit_command(root, folder, store, registration)
             if result["decision"].get("blocker"):
                 return result, 2

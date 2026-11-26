@@ -110,6 +110,9 @@ def audit_context(path):
 
 def verify_transport(path):
     with zipfile.ZipFile(path) as archive:
+        if archive.namelist() == ["panels.json", "round028-rehearsal.zip"]:
+            from .program_search_panel_report import verify_panels
+            return verify_panels(path)
         if archive.namelist() == ["audit.json"]:
             return verify_audit(path)
         if archive.namelist() != ["rehearsal.json", "round028.zip"]:

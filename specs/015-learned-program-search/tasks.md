@@ -91,6 +91,8 @@ The generator request and reducer checks above cover acceptance fixtures. Each s
 
 ## Phase 7 — Combined validation and conditional workstation execution
 
+The [CPU panel and historical costing collection](validation/round028-panel-supply.md) implements the T017 supply and calibration procedure. Its physical counts and candidate-specific evaluation timing remain pending.
+
 The [verified workstation rehearsal](validation/round028-generator-rehearsal.md) measured a nonzero training-only gradient and paired HIP updates with both full checkpoints restored. The 4M training forecast fits the planned training allocation. T046 still needs fresh-family supply, representative portfolio/scoring timings and production-scale operational measurements.
 
 - [ ] T044 Run the combined source/installed regressions anchored by `tests/contract/test_progressive_packaging.py`, `tests/unit/test_progressive_trial_eligibility.py` and `tests/integration/test_progressive_reporting.py`. Exercise both branch implementations on acceptance fixtures, existing 013 CLI/Optuna feedback, old archive verification and the new `discovery round028 --action verify --archive PATH` entry point without the donor mounted. Record any missing runtime or device evidence separately.

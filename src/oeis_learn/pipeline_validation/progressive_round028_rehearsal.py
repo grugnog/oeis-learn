@@ -78,12 +78,12 @@ def physical_scope(host, phase):
     return digest([boot, host.policy["runtime"], device])
 
 
-def failure_locations(source, area):
+def failure_locations(source, area, *, role_folder="stages"):
     """Release candidate code coordinates only, including the isolated worker traceback."""
     import re
     import traceback
     parts = [traceback.format_exc()]
-    for path in sorted(area.glob("stages/*/attempt-*/output/stderr.log"),
+    for path in sorted(area.glob(role_folder+"/*/attempt-*/output/stderr.log"),
                        key=lambda p: p.stat().st_mtime_ns, reverse=True)[:1]:
         with confined(area, path.relative_to(area)).open("rb") as stream:
             stream.seek(max(0, path.stat().st_size - 32768))
