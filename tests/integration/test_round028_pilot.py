@@ -639,6 +639,14 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
         archive = original.folder / pilot.SHARE
         anchored = verify_pilot(archive, qualification=copied)
         assert anchored["prescore"] == measured["prescore"]["identity"]
+        from argparse import ArgumentParser
+        from oeis_learn.pipeline_validation import progressive_cli, progressive_round028
+        parser = ArgumentParser()
+        progressive_cli.register(parser.add_subparsers())
+        public_copy = next(exports.glob("*/round028-pilot.zip"))
+        command = parser.parse_args(["discovery", "round028", "--action", "verify", "--archive", str(public_copy),
+                                     "--qualification-archive", str(copied)])
+        assert progressive_round028.execute(command, source) == (anchored, 0)
         members = read_canonical(archive, ("pilot.json", "round028-parent.zip"))
         good = json.loads(members["pilot.json"])
         for field in ("initial", "stream", "families"):

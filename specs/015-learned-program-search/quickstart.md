@@ -2,7 +2,7 @@
 
 ## Run the eleven-hour generator pilot
 
-**Workstation qualification is pending.** The CPU audit selected a one-seed comparison of ordinary and first-divergence training. Controller `1aaea5b90c187d35f33552bcec783cb45fb9c425` passed the focused CPU regressions for case clocks, independent scoring and recovery. Physical qualification needs the original detached round027 checkout, its private receipts and its Podman/HIP workstation.
+**Workstation qualification is pending.** The CPU audit selected a one-seed comparison of ordinary and first-divergence training. Controller `81ed15740934e982877d6d340e4b3af23443281d` passed CPU regressions for case clocks, independent scoring, reboot recovery and pre-score evidence. Physical qualification needs the original detached round027 checkout, its private receipts and its Podman/HIP workstation.
 
 ### Collect qualification only
 
@@ -12,7 +12,7 @@ Run this block to measure the candidate on 160 slots drawn from eight exposed pr
 (
   set -euo pipefail
   cd "$HOME/workspace/oies-learn"
-  rev=1aaea5b90c187d35f33552bcec783cb45fb9c425
+  rev=81ed15740934e982877d6d340e4b3af23443281d
   git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
   git merge-base --is-ancestor "$rev" FETCH_HEAD
   git show "${rev}:specs/015-learned-program-search/validation/launch-round028.sh" |
@@ -20,7 +20,7 @@ Run this block to measure the candidate on 160 slots drawn from eight exposed pr
 )
 ```
 
-Return the printed `round028-pilot-qualification.zip` or `round028-pilot-qualification-diagnostics.zip`. The successful collector independently verifies a copy and prints both the controller SHA and the installed worker SHA selected by the saved registration. The receipt gives the shortest case allowance, the slowest case, cold load and publication times, independent scoring coverage, free bytes and inodes at collection, and the research forecast for this registration. [Verify a copied qualification](validation/pilot-resume.md#verify-a-copied-qualification)
+Return the printed `round028-pilot-qualification.zip` or `round028-pilot-qualification-diagnostics.zip`. The successful collector independently verifies a copy and prints both the controller SHA and the installed worker SHA selected by the saved registration. Keep the first verified qualification ZIP reporting `PILOT_UNMEASURED` so the pilot report can be checked against its original family allocation and training stream. The receipt gives the shortest case allowance, the slowest case, cold load and publication times, independent scoring coverage, free bytes and inodes at collection, and the research forecast for this registration. [Verify a copied qualification](validation/pilot-resume.md#verify-a-copied-qualification)
 
 ### Start or resume after qualification
 
@@ -30,7 +30,7 @@ Use this block when you intend to spend the eleven-hour allocation. The first ac
 (
   set -euo pipefail
   cd "$HOME/workspace/oies-learn"
-  rev=1aaea5b90c187d35f33552bcec783cb45fb9c425
+  rev=81ed15740934e982877d6d340e4b3af23443281d
   git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
   git merge-base --is-ancestor "$rev" FETCH_HEAD
   launcher=specs/015-learned-program-search/validation/launch-round028.sh
