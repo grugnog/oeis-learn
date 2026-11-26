@@ -55,7 +55,7 @@ def first_divergence(positive, negative, positives):
     return None
 
 
-def verified_training_pairs(shards):
+def verified_training_pairs(shards, *, excluded=()):
     """Mine only the registered strict training stream for same-index, prefix-matching alternatives."""
     from collections import defaultdict
     import re
@@ -93,9 +93,11 @@ def verified_training_pairs(shards):
                 raise ValueError("independent training continuation differs")
             verified.append(row)
         for pos in verified:
+            if pos["draw_identity"] in excluded:
+                continue
             same = [r["tokens"] for r in group if r["values"] == pos["values"]]
             for neg in verified:
-                if neg["values"] == pos["values"]:
+                if neg["draw_identity"] in excluded or neg["values"] == pos["values"]:
                     continue
                 label = first_divergence(pos["tokens"], neg["tokens"], same)
                 if label is not None:
@@ -104,3 +106,41 @@ def verified_training_pairs(shards):
                     break
     return dict(eligible_rows=len(pairs), eligible_families=len({p["family"] for p in pairs}),
                 positions=len({p["label"]["position"] for p in pairs}), pairs=pairs)
+
+def pair_seeds(registration, ordinal):
+    from .contracts import digest
+    import re
+    if (not isinstance(registration, str) or not re.fullmatch("sha256:[0-9a-f]{64}", registration)
+            or type(ordinal) is not int or ordinal not in (0, 1)):
+        raise ValueError("registered generator pair and parent required")
+    return {name: int(digest([registration, name, ordinal])[7:15], 16)
+            for name in ("initialization", "training_families")}
+
+
+def matched_stream(shards, layout, registration, ordinal):
+    """Commit one outcome-independent cyclic order and its actual verified labels."""
+    from .contracts import digest
+    from .shared_support import validated_rows
+
+    seeds = pair_seeds(registration, ordinal)
+    rows = validated_rows(shards, native_verified=True)
+    excluded = {probe["id"] for probe in layout["probes"].values()}
+    if not excluded <= rows.keys():
+        raise ValueError("missing held-out training probe")
+    order = sorted(rows.keys() - excluded, key=lambda key: (digest([seeds["training_families"], key]), key))
+    if not order:
+        raise ValueError("empty matched training stream")
+    support = verified_training_pairs(shards, excluded=excluded)
+    return seal(dict(version="round028-matched-stream/v1", registration=registration,
+                     pair=ordinal, seeds=seeds,
+                     sources=sorted({r["source_policy"] for r in rows.values()}),
+                     row_identities=digest([rows[key]["identity"] for key in order]),
+                     order=order, **support))
+
+
+def matched_batch(stream, cursor, count):
+    """Address a full update by its committed example cursor on either arm."""
+    if type(cursor) is not int or cursor < 0 or type(count) is not int or count < 1:
+        raise ValueError("complete matched batch coordinates required")
+    order = stream["order"]
+    return [order[(cursor + offset) % len(order)] for offset in range(count)]

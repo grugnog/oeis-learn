@@ -256,3 +256,58 @@ def test_restore_rejects_changed_optimizer_semantics_and_schedule():
         b = training.PolicyUpdate(p, cfg, device="cpu")
         with pytest.raises(ValueError):
             b.load_state_dict(bad)
+
+
+def test_first_divergence_gradient_has_one_position_and_every_row_in_denominator():
+    from oeis_learn.rl.sft_trainer import first_divergence_loss
+    logits = torch.zeros((3, 4, 8), dtype=torch.float64, requires_grad=True)
+    targets = torch.tensor([[2, 3, 4, 0], [4, 5, 6, 7], [1, 2, 0, 0]])
+    labels = [dict(position=1, positive=3, negative=7), None, None]
+    loss = first_divergence_loss(logits, targets, labels, pad_id=0)
+    assert loss.item() == pytest.approx(np.log(2) / 3)
+    loss.backward()
+    expected = torch.zeros_like(logits)
+    expected[0, 1, 3], expected[0, 1, 7] = -1 / 6, 1 / 6
+    torch.testing.assert_close(logits.grad, expected)
+    assert first_divergence_loss(logits, targets, [None] * 3, pad_id=0).item() == 0
+    for label in [dict(position=1, positive=2, negative=7), dict(position=0, positive=2, negative=2),
+                  dict(position=3, positive=0, negative=1), dict(position=-1, positive=2, negative=7)]:
+        with pytest.raises(ValueError):
+            first_divergence_loss(logits, targets, [label, None, None], pad_id=0)
+
+
+def test_matched_objective_shares_forward_count_tokens_and_microbatch_normalization():
+    import math
+    from oeis_learn.rl.sft_trainer import logical_update
+    class Encoder(torch.nn.Module):
+        def forward_from_sequences(self, sequences, device):
+            return torch.tensor(sequences, dtype=torch.float32, device=device)
+    class Decoder(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.weight = torch.nn.Parameter(torch.zeros(8))
+            self.calls = 0
+        def forward(self, inp, memory, **kwargs):
+            self.calls += 1
+            return self.weight.expand(len(inp), inp.shape[1], -1)
+    xs = [[3.], [4.], [8.]]
+    tokens = torch.tensor([[1, 2, 3, 0], [1, 4, 5, 6], [1, 7, 0, 0]])
+    labels = [dict(position=0, positive=2, negative=4), None, None]
+    def run(size, preferences):
+        model = Decoder()
+        step = torch.optim.SGD(model.parameters(), lr=0.02)
+        metrics = logical_update(Encoder(), model, step, xs, tokens, device="cpu", pad_id=0,
+                                 microbatch_size=size, observe=False, preference_labels=preferences)
+        assert model.calls == math.ceil(len(xs) / size)
+        return model.weight.detach(), metrics
+    ordinary, old = run(3, None)
+    empty, zero = run(3, [None] * 3)
+    assert torch.equal(ordinary, empty) and zero["loss"] == old["loss"]
+    whole, first = run(3, labels)
+    partial, second = run(2, labels)
+    torch.testing.assert_close(whole, partial)
+    assert first["loss"] == pytest.approx(second["loss"])
+    assert first["loss"] - old["loss"] == pytest.approx(math.log(2) / 3)
+    assert first["preference_rows"] == second["preference_rows"] == 1
+    assert first["preference_loss"] == pytest.approx(math.log(2) / 3)
+    assert whole[2] > ordinary[2] and whole[4] < ordinary[4]

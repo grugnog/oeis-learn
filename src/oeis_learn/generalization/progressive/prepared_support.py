@@ -239,3 +239,18 @@ def recadence(support, report, *, target_tokens, first_look_tokens=None):
                             first_look_tokens=first_look_tokens),
         cadence_revision='prospective shorter-horizon schedule over unchanged original rows; no outcome use'))
     return data,revised
+
+
+def matched_package(shards, layout, profile, stream, arm, *, microbatch_size=16):
+    """Compile an installed learner input from an already selected strict training stream."""
+    from .models import resolve_profile
+    from .shared_support import seal_package
+    from oeis_learn.pipeline_validation.progressive_training import resolve_update_policy
+
+    model = resolve_profile(profile["base_recipe"], shape=profile["shape"],
+                            seed=stream["seeds"]["initialization"], dropout=0)
+    update = resolve_update_policy(model, objective=arm, schedule_horizon_tokens=4_000_000,
+                                   effective_batch=32, microbatch_size=microbatch_size, weight_decay=0)
+    return seal_package(dict(version="progressive-training-input/v1", profile=model, update_policy=update,
+                             scope="NATIVE_VERIFIED", layout=layout, shards=shards, refresh_updates=1,
+                             matched_generator=stream, diagnostic_fault=None))

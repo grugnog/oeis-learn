@@ -9,7 +9,7 @@ def test_first_divergence_must_share_real_context_and_exclude_other_positives():
     assert first_divergence(good, good, [good]) is None
 
 
-def test_only_independently_grounded_training_pairs_supply_a_label():
+def training_rows():
     from types import SimpleNamespace
     from oeis_learn.generalization.progressive.contracts import digest
     # Independent native fixture supplies values by index, separate from Python program evaluation.
@@ -24,6 +24,44 @@ def test_only_independently_grounded_training_pairs_supply_a_label():
         row, reason = verify_draw(value, client=client)
         assert reason is None
         rows.append(row)
+    return rows
+
+
+def test_only_independently_grounded_training_pairs_supply_a_label():
+    rows = training_rows()
     result = verified_training_pairs([rows])
     assert (result["eligible_rows"], result["eligible_families"]) == (2, 2)
     assert verified_training_pairs([[rows[0]]])["eligible_rows"] == 0
+
+def test_frozen_generator_pairs_exclude_probes_and_bind_every_target_and_seed():
+    import pytest
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.training_rows import matched_batch, matched_stream, pair_seeds
+    from oeis_learn.generalization.progressive.prepared_support import matched_package
+    from oeis_learn.pipeline_validation.progressive_learner import validate_input, compatibility
+    from tests.helpers.progressive_fixture import task
+    from tests.unit.test_progressive_training_policy import profile
+
+    rows = training_rows()
+    probes = [seal(dict(r, draw_identity=digest(["probe", i]))) for i, r in enumerate(rows)]
+    shards = [rows + probes]
+    layout = {"bins": ["familiar", "frontier"], "probes": {
+        b: {"role": "training", "id": r["draw_identity"]} for b, r in zip(("familiar", "frontier"), probes)}}
+    reg = digest("acceptance")
+    stream = matched_stream(shards, layout, reg, 0)
+    assert stream == matched_stream([list(reversed(shards[0]))], layout, reg, 0)
+    assert stream["eligible_rows"] == 2 and set(stream["order"]) == {r["draw_identity"] for r in rows}
+    assert all(p["negative_row"] in stream["order"] for p in stream["pairs"])
+    assert matched_batch(stream, 1, 32) == (stream["order"] * 17)[1:33]
+    assert pair_seeds(reg, 1)["training_families"] != stream["seeds"]["training_families"]
+    for arm in ("ordinary", "first_divergence"):
+        pkg = matched_package(shards, layout, profile(), stream, arm)
+        t = task(arm=arm, seed=stream["seeds"]["initialization"], token_target=4_000_000,
+                 initializer=dict(mode="random", artifact=None, compatibility=compatibility(pkg)))
+        assert validate_input(pkg, t) == pkg
+        with pytest.raises(ValueError, match="independently generated"):
+            validate_input(pkg, dict(t, purpose="research"))
+        bad = seal(dict(pkg, matched_generator=seal(dict(stream, order=stream["order"][::-1]))))
+        changed = dict(t, payload=dict(t["payload"], initializer=dict(t["payload"]["initializer"], compatibility=compatibility(bad))))
+        with pytest.raises(ValueError, match="training rows, order"):
+            validate_input(bad, changed)

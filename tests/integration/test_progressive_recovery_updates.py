@@ -178,3 +178,45 @@ def test_optimizer_growth_rejected_before_new_generation_preserves_old_cut(tmp_p
         } == files
         recovery.restore()
         assert recovery.state["checkpoint"] == original
+
+
+def test_matched_generator_updates_restore_the_same_rows_clocks_and_initial_weights(tmp_path):
+    from oeis_learn.fresh.bigint_diagnostics import model_snapshot
+    from oeis_learn.pipeline_validation.progressive_training import resolve_update_policy
+
+    p = profile()
+    x, tokens, pad = batch(32)
+    pos = tokens[0, 1].item()
+    labels = [dict(position=0, positive=pos, negative=tokens[0, 2].item())] + [None] * 31
+    count = int(tokens[:, 1:].ne(pad).sum())
+    summaries = {}
+    for arm in ("ordinary", "first_divergence"):
+        cfg = resolve_update_policy(p, objective=arm, schedule_horizon_tokens=4_000_000,
+                                    effective_batch=32, microbatch_size=7, weight_decay=0)
+        t = task(arm=arm, caps=caps(tokens=10000))
+        j = BudgetJournal(tmp_path / arm, t["payload"]["campaign"], caps(tokens=10000))
+        context = {k: {} for k in ("scheduler", "data", "replay", "history", "pins", "selection")}
+        context["data"] = {"cursor": 0, "pending_batch": None}
+        cuts = {k: digest(k) for k in ("stream", "allocation", "archive", "library", "cost_journal",
+                                       "selection", "milestones", "consumed")}
+        args = dict(entries=["same-row"] * 32, update=1, context=context, cuts=cuts,
+                    boot="test", monotonic_us=1, preference_labels=labels if arm == "first_divergence" else None)
+        with Recovery(j, t, digest([p, cfg])) as r:
+            worker = RecoverableUpdate(r, p, cfg, device="cpu")
+            initial = model_snapshot(worker.runner.encoder, worker.runner.decoder)
+            worker.initialize(context, cuts)
+            r.begin(boot="test", monotonic_us=0)
+            metrics, _ = worker.step(x, tokens, **args)
+            last = model_snapshot(worker.runner.encoder, worker.runner.decoder)
+        with Recovery(j, t, digest([p, cfg])) as r:
+            worker = RecoverableUpdate(r, p, cfg, device="cpu")
+            assert model_snapshot(worker.runner.encoder, worker.runner.decoder) == last
+            assert worker.step(x, tokens, **args)[0] == metrics
+            if arm == "first_divergence":
+                with pytest.raises(ValueError, match="conflicting"):
+                    worker.step(x, tokens, **dict(args, preference_labels=[None] * 32))
+            restored = r.restore()
+            summaries[arm] = (initial, last, restored["ledger"].consumed, restored["ledger"].updates)
+    ordinary, treatment = summaries.values()
+    assert ordinary[0] == treatment[0] and ordinary[1] != treatment[1]
+    assert ordinary[2:] == treatment[2:] == (count, 1)
