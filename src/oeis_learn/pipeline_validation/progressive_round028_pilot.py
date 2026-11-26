@@ -469,11 +469,11 @@ def retain_training_lineage(area, freeze, milestone):
     retain(area / "qualified-lineage.json", {k: milestone[k] for k in LINEAGE_FIELDS})
 
 
-def check_space(area, host, checkpoint_bytes, *, scale, share, cached=False, outstanding=None, verified=None):
+def check_space(area, host, checkpoint_bytes, *, scale, share, cached=False, outstanding=None, verified=None, rosters=None):
     from .progressive_pilot_capacity import capacity
 
     records = capacity(area, host, checkpoint_bytes, scale=scale, share=share, cached=cached, measure=space,
-                       outstanding=outstanding, verified=verified)
+                       outstanding=outstanding, verified=verified, rosters=rosters)
     for record in records:
         if record["deficit_bytes"] or record["deficit_inodes"]:
             raise PilotDeficit("PILOT_STORAGE_DEFICIT", **record)
@@ -596,7 +596,7 @@ def publication_inputs(area, root=None):
     for pattern in ("training*.json", "predecessor.json", "reservations/*.json",
                     "qualification-costs/*.json", "qualification-scale.json", "resident-measurements.json",
                     "resident-clock-margins.json", "resident-score-control.json", "exposed-scorer-control/candidates.json",
-                    "recovered/**/*", "assignment-recovery/*.json", "roles/*/request.json",
+                    "recovered/**/*", "completed/*.json", "shared-zero.json", "assignment-recovery/*.json", "roles/*/request.json",
                     "roles/*/data.json", "roles/*/attempt-*/start.json", "roles/*/attempt-*/end.json",
                     "roles/*/attempt-*/output/producer.json", "roles/*/attempt-*/output/case-boundaries/**/*",
                     "roles/*/attempt-*/output/accounting/**/*", "roles/*/attempt-*/output/checkpoint/**/*",
@@ -657,17 +657,26 @@ def accepted_scale(area, registration, acceptance):
     return scale
 
 
-def qualification_result(area, registration, acceptance, projected, controller, workstation, scientific_status):
+def qualification_result(area, registration, acceptance, prices, controller, workstation, scientific_status=None, *, terminal=None):
+    from oeis_learn.generalization.progressive.program_search_timing import projected_funding
+    from .progressive_pilot_funding import funding_state
+
+    last = terminal["looks"][-1]["target"] if terminal else None
+    balance = funding_state(area, registration["identity"], prices, SHIFT_US, stopped_after=last)
+    projected = projected_funding(prices, balance, registration["identity"])
+    if scientific_status is None:
+        scientific_status = "PILOT_INCOMPLETE" if balance["charges"] or balance["opened"] else "PILOT_UNMEASURED"
     scale = accepted_scale(area, registration, acceptance)
     require_resident_measurements(scale, registration)
-    if scientific_status == "PILOT_UNMEASURED" and projected > SHIFT_US:
+    if projected > SHIFT_US:
         raise PilotDeficit("PILOT_ROLE_TIME_DEFICIT", required_us=projected, registered_us=SHIFT_US,
                            deficit_us=projected - SHIFT_US)
     return dict(mechanical_status="QUALIFIED", scientific_status=scientific_status,
                 controller=controller, workstation=workstation,
                 registration=registration["identity"], worker=registration["candidate"], acceptance=acceptance["identity"],
                 **({"prescore": load(confined(area, "prescore.json"))} if (area / "prescore.json").is_file() else {}),
-                scale=scale, workspace_space=space(area), projected_us=projected, registered_us=SHIFT_US), 0
+                **({"terminal": terminal} if terminal else {}),
+                balance=balance, scale=scale, workspace_space=space(area), projected_us=projected, registered_us=SHIFT_US), 0
 
 
 def require_resident_measurements(scale, registration):
@@ -775,8 +784,11 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
         if getattr(args, "action", None) == "qualify-pilot":
             freeze = load(confined(area, "freeze.json"))
             acceptance = load(confined(area, "acceptance.json"))
-            return qualification_result(area, registration, acceptance, sum(r[2] for r in freeze["forecast"]),
-                                        controller, parent["workstation"], published_pilot(receipt)[0]["scientific_status"])
+            prices = {(block, role): price for block, role, price in freeze["forecast"]}
+            with zipfile.ZipFile(archive) as z:
+                terminal = json.loads(z.read("pilot.json"))
+            return qualification_result(area, registration, acceptance, prices, controller, parent["workstation"],
+                                        published_pilot(receipt)[0]["scientific_status"], terminal=terminal)
         return published_pilot(receipt)
     progress("check_original_inputs")
     supply, refs, d_recipe, d_weights, panel_area = original_inputs(root, folder, store)
@@ -818,10 +830,22 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
     from oeis_learn.generalization.progressive.program_search_timing import pilot_prices, remaining_price
 
     prices = pilot_prices(graph, strata, timing, rehearsal, plan)
-    completed = set()
+    from .progressive_pilot_funding import funding_state
+    from oeis_learn.generalization.progressive.program_search_timing import projected_funding
+
+    carried = funding_state(area, registration["identity"], prices, SHIFT_US)
+    projected_funding(prices, carried, registration["identity"])
+    completed = set(map(tuple, carried["completed"]))
+    if carried["shared_zero"]:
+        completed.update((ARMS[1] + "-0", role) for role in ("search", "score"))
     largest = max(v["checkpoint_bytes"] for v in old_arms.values())
-    space_args = dict(scale=rehearsal["original_scale"], share=archive.parent, verified={})
-    check_space(area, host, largest, outstanding=set(prices), **space_args)
+    rosters = {f"{arm}-{target}": {r["task"] for r in look["members"]}
+               for target, looks in graph.items() for arm, look in looks.items()}
+    scale = dict(rehearsal["original_scale"])
+    if (area / "acceptance.json").is_file():
+        scale["resident"] = accepted_scale(area, registration, load(confined(area, "acceptance.json")))
+    space_args = dict(scale=scale, share=archive.parent, verified={}, rosters=rosters)
+    check_space(area, host, largest, outstanding=set(prices) - completed, **space_args)
     progress("qualify_candidate")
     qualified = hardware_qualification(
         args, root, source, folder, store, revision, host_factory, area
@@ -860,11 +884,12 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
     design = frozen_family_sizes(graph, registration["identity"], freeze["identity"], prices)
     retain(area / "public-freeze.json", design)
     progress("accept_frozen_pilot")
-    check_space(area, host, largest, outstanding=set(prices), **space_args)
+    check_space(area, host, largest, outstanding=set(prices) - completed, **space_args)
     checks = accept_pilot(
         root, folder, store, area, cpu, gpu, package, freeze, d_recipe, d_weights, progress
     )
-    require_resident_measurements(accepted_scale(area, registration, {"checks": checks}), registration)
+    scale["resident"] = accepted_scale(area, registration, {"checks": checks})
+    require_resident_measurements(scale["resident"], registration)
     # A reboot remeasures the candidate on the same machine. It cannot rewrite the original acceptance.
     current = seal(
         dict(
@@ -914,11 +939,10 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
                              acceptance=acceptance["identity"], design=design["identity"],
                              lineage=load(confined(area, "qualified-lineage.json"))))
         retain(prescore_path, prescore)
+    check_space(area, host, largest, outstanding=set(prices) - completed, **space_args)
     if getattr(args, "action", None) == "qualify-pilot":
         progress("qualified", acceptance=acceptance["identity"])
-        started = any((area / key).exists() for key in ("reservations", "trials", "accounting"))
-        return qualification_result(area, registration, acceptance, sum(prices.values()), controller,
-                                    parent["workstation"], "PILOT_INCOMPLETE" if started else "PILOT_UNMEASURED")
+        return qualification_result(area, registration, acceptance, prices, controller, parent["workstation"])
     budgets = BudgetJournal(
         area / "accounting",
         registration["identity"],
@@ -979,7 +1003,7 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
         if saved.exists():
             limit = load(confined(area, saved))["us"]
         else:
-            limit = SHIFT_US - budgets.snapshot()["consumed"]["elapsed_us"]
+            limit = SHIFT_US - max(budgets.snapshot()["consumed"]["elapsed_us"], cost_status(area)["settled_role_us"])
             estimate = estimate_role(role, data, strata, timing, rehearsal, plan)
             base = "-".join(data["block"].split("-")[:2])
             needed = remaining_price(prices, completed, (base, role), estimate)
@@ -1026,6 +1050,8 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
         token_cap=LOOKS[-1],
         elapsed_cap_us=SHIFT_US,
     )
+    from .progressive_pilot_funding import finish_role, sharing_receipt
+
     previous = {}
     published = []
     zero_executions = {}
@@ -1052,6 +1078,7 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
                 completed.add((f"{arm}-{target}", "train"))
                 cuts[arm] = trained["milestone"]
                 mounts, weights = checkpoint_inputs(gpu.last_output, trained)
+                finish_role(area, registration["identity"], f"{arm}-{target}", "train")
                 previous[arm] = (trained["checkpoint"], mounts)
                 recipe = package["profile"]
                 weight = dict(trained["weights"], path="inputs/weights.pt")
@@ -1082,6 +1109,7 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
                 if arm == ARMS[1] and reusable_zero_look(
                     cuts[ARMS[0]], cut, looks, zero_executions
                 ):
+                    retain(area / "shared-zero.json", sharing_receipt(cuts, looks, zero_executions))
                     outcomes[arm] = {}
                     completed.update((f"{arm}-{target}", role) for role in ("search", "score"))
                     continue
@@ -1091,6 +1119,11 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
                 run, settle, progress, cpu, gpu, look, recipe, weight, weights, prompts, truth
             )
             completed.update((f"{arm}-{target}", role) for role in ("search", "score"))
+            for role in ("search", "score"):
+                if (area / "costs" / f"{arm}-{target}-{role}.json").is_file() or any(
+                    (area / "costs").glob(f"{arm}-{target}-*-{role}.json")
+                ):
+                    finish_role(area, registration["identity"], f"{arm}-{target}", role)
             comparable &= closed
         retained = generator_observation(
             panels,

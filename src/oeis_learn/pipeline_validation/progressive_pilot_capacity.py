@@ -9,7 +9,7 @@ from oeis_learn.generalization.progressive.contracts import load, read_bound_rec
 from .identity import confined
 
 
-def paid_allocations(area, verified):
+def paid_allocations(area, verified, rosters=None):
     """Credit verified bytes once per inode and backing filesystem."""
     allocations = defaultdict(lambda: [0, 0])
     from .progressive_research_inputs import checked_file
@@ -44,7 +44,10 @@ def paid_allocations(area, verified):
             raise ValueError("storage credit belongs to another request")
         output = confined(role, boundary["producer"]["path"]).parent
         result = producer["result"]
-        if request["role"] == "train" or data["block"] == match[1]:
+        key = (match[1], request["role"])
+        expected = (rosters or {}).get(match[1])
+        whole_roster = expected is None or {r["id"] for r in data.get("rows", [])} == expected
+        if "checkpoint" in result or data["block"] == match[1] and whole_roster:
             finished.add((match[1], request["role"]))
         entries = []
         if "checkpoint" in result:
@@ -55,9 +58,9 @@ def paid_allocations(area, verified):
                 ("checkpoint", checkpoint, item)
                 for item in [ref, *artifact_refs(manifest["states"])]
             )
-        for key in ("candidates", "scores", "rows"):
-            if key in result:
-                entries.append(("producer", output, result[key]))
+        for field in ("candidates", "scores", "rows"):
+            if field in result:
+                entries.append(("producer", output, result[field]))
         for kind, parent, ref in entries:
             file = confined(parent, ref["path"])
             stat = file.stat()
@@ -70,13 +73,13 @@ def paid_allocations(area, verified):
                 verified[inode] = signature
             if inode not in seen:
                 seen.add(inode)
-                value = allocations[(stat.st_dev, kind)]
+                value = allocations[(key, stat.st_dev, kind)]
                 value[0] += min(stat.st_size, stat.st_blocks * 512)
                 value[1] += 1
     return allocations, finished
 
 
-def capacity(area, host, checkpoint_bytes, *, scale, share, cached, measure, outstanding=None, verified=None):
+def capacity(area, host, checkpoint_bytes, *, scale, share, cached, measure, outstanding=None, verified=None, rosters=None):
     """Report each backing filesystem once, including independent image and report stores."""
     required = {}
     floor = host.policy["free_disk_floor_bytes"]
@@ -92,30 +95,53 @@ def capacity(area, host, checkpoint_bytes, *, scale, share, cached, measure, out
             )
         required[device]["required_bytes"] += bytes_needed
         required[device]["required_inodes"] += nodes_needed
+        return device
 
     if cached:
         return []
-    paid, finished = paid_allocations(area, {} if verified is None else verified)
-    pending = None if outstanding is None else set(outstanding) - finished
-    dev = area.stat().st_dev
-    checkpoints, cp_nodes = paid[(dev, "checkpoint")]
-    producers, producer_nodes = paid[(dev, "producer")]
-    producer_peak = scale["candidate_score_bytes"] + scale["campaign_bytes"]
-    # One simultaneous replacement checkpoint and one producer staging area remain available.
-    ntrain = 6 if pending is None else sum(role == "train" for _, role in pending)
-    have_producers = pending is None or any(role in ("search", "score") for _, role in pending)
-    cp_bytes = (
-        (
-            checkpoint_bytes
-            + min(ntrain * checkpoint_bytes, max(0, 6 * checkpoint_bytes - checkpoints))
-        )
-        if ntrain
-        else 0
-    )
-    cp_inodes = (13 + min(ntrain * 13, max(0, 6 * 13 - cp_nodes))) if ntrain else 0
-    shard_bytes = producer_peak + max(0, producer_peak - producers) if have_producers else 0
-    shard_inodes = 160 * 8 * 4 + max(0, 160 * 8 * 4 - producer_nodes) if have_producers else 0
-    reserve(area, cp_bytes + shard_bytes, cp_inodes + shard_inodes)
+    from .progressive_pilot_recovery import assigned_request
+    from oeis_learn.generalization.progressive.program_search_pilot import ARMS, LOOKS
+
+    paid, finished = paid_allocations(area, {} if verified is None else verified, rosters)
+    if outstanding is None:
+        outstanding = {(f"{arm}-{target}", role) for arm in ARMS for target in LOOKS
+                       for role in ("train", "search", "score")}
+        outstanding.update((f"incumbent-{LOOKS[-1]}", role) for role in ("search", "score"))
+    pending = set(outstanding) - finished
+    resident = scale.get("resident")
+    staging = {}
+    reserve(area, 0, 0)
+    for block, role in sorted(pending):
+        slots = len(rosters[block]) if rosters and block in rosters else 160
+        path = area / "roles"
+        claim = area / "assignments" / f"{block}-{role}.json"
+        if claim.is_file():
+            folder = path / assigned_request(area, claim)[7:]
+            attempt = max(folder.glob("attempt-*"), default=folder / "attempt-0000")
+            path = attempt / "output" / {"train": "checkpoint", "search": "generation", "score": "scored"}[role]
+        device = reserve(path, 0, 0)
+        if role == "train":
+            size, nodes, kind = checkpoint_bytes, 13, "checkpoint"
+        else:
+            if resident:
+                field = "candidates_bytes" if role == "search" else "scored_bytes"
+                size = (resident[field] * slots + resident["cases"] - 1) // resident["cases"]
+            else:
+                # Before cold qualification the donor's full producer envelope bounds one role.
+                size = scale["candidate_score_bytes"] + scale["campaign_bytes"]
+            attempts = 8 if block.endswith("-4000000") else 1
+            # Search retains case boundaries alongside the assembled candidate file.
+            size *= 2 if role == "search" else 1
+            nodes = 12 + (slots * (2 + attempts) if role == "search" else 2)
+            kind = "producer"
+        occupied, inodes = paid[((block, role), device, kind)]
+        reserve(path, max(0, size - occupied), max(0, nodes - inodes))
+        # Roles run sequentially. Only one atomic replacement is staged on each device.
+        prior_bytes, prior_nodes = staging.get(device, (0, 0))
+        staging[device] = max(prior_bytes, size), max(prior_nodes, nodes)
+    for device, (size, nodes) in staging.items():
+        required[device]["required_bytes"] += size
+        required[device]["required_inodes"] += nodes
     reserve(share, scale["campaign_bytes"], 352)
     engine = getattr(host, "engine", None)
     from oeis_learn.container_runtime import Engine

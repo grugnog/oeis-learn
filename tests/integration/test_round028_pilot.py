@@ -574,6 +574,8 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
         qualified, code = pilot.run_pilot(SimpleNamespace(action="qualify-pilot"), *args[1:])
         assert code == 0 and qualified["mechanical_status"] == "QUALIFIED"
         assert qualified["worker"] == args[4] and qualified["scale"]["cases"] == 160
+        assert qualified["scientific_status"] == "PILOT_UNMEASURED"
+        (original.folder / pilot.AREA / "reservations").mkdir(exist_ok=True)
         assert not (original.folder / pilot.AREA / "accounting").exists() and not calls
     with monkeypatch.context() as limited:
         limited.setattr(pilot, "AREA", pilot.AREA+"-time-deficit")
@@ -621,6 +623,7 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
         with pytest.raises(ValueError, match="filesystem"):
             verify_changed(dict(valid, workspace_space={"free_bytes": True, "free_inodes": 100}))
         legacy = dict(valid, version="round028-resident-qualification/v1")
+        del legacy["balance"]
         del legacy["prescore"]
         del legacy["workspace_space"]
         legacy["scale"] = seal({k: v for k, v in valid["scale"].items() if k not in
@@ -655,6 +658,10 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
         initial_calls = list(calls)
         assert collect("collect-pilot") == 0 and calls == initial_calls
         assert collect("collect-pilot-qualification") == 0 and calls == initial_calls
+        paid = verify_qualification(sorted(exports.glob("*/round028-pilot-qualification.zip"),
+                                           key=lambda p: p.stat().st_mtime_ns)[-1])
+        assert paid["projected_us"] == sum(row["charged_us"] for row in good["costs"])
+        assert paid["balance"]["shared_zero"] is not None
     result, code = pilot.run_pilot(*args)
     expected_action = "ENDPOINT_NOT_ADMITTED" if lost_update else "RETAIN_REFERENCE"
     assert code == 0 and result["receipt"]["next_action"] == expected_action

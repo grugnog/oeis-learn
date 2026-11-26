@@ -45,6 +45,38 @@ def test_remaining_endpoint_price_accounts_for_new_and_cached_roles():
     assert 19 <= 50 < 99
 
 
+def test_resumed_qualification_reconciles_the_last_microsecond(tmp_path, monkeypatch):
+    from oeis_learn.pipeline_validation.progressive_pilot_funding import finish_role
+
+    monkeypatch.setattr(pilot, "SHIFT_US", 100)
+    monkeypatch.setattr(pilot, "accepted_scale", lambda *args: {})
+    monkeypatch.setattr(pilot, "require_resident_measurements", lambda *args: None)
+    registration, acceptance = seal({"candidate": "a"*40}), seal({"checks": "fixture"})
+    prices = {("ordinary-0", "train"): 90, ("ordinary-0", "score"): 20}
+    def qualify(area):
+        return pilot.qualification_result(area, registration, acceptance, prices, "a"*40, {})[0]
+    empty = tmp_path / "empty"
+    (empty / "reservations").mkdir(parents=True)
+    with pytest.raises(pilot.PilotDeficit) as exc:
+        qualify(empty)
+    assert exc.value.counts["deficit_us"] == 10
+    for spent in (79, 81):
+        area = tmp_path / str(spent)
+        atomic_write(area / "reservations/ordinary-0-train.json", seal(dict(key="ordinary-0/train/0", us=100, estimate_us=90)))
+        atomic_write(area / "costs/ordinary-0-train.json", seal(dict(block="ordinary-0", role="train",
+                     charged_us=spent, wall_us=spent, lease_us=0)))
+        finish_role(area, registration["identity"], "ordinary-0", "train")
+        atomic_write(area / "reservations/ordinary-0-score.json", seal(dict(key="ordinary-0/score/0", us=100-spent, estimate_us=20)))
+        if spent == 79:
+            result = qualify(area)
+            assert result["projected_us"] == 99 and result["scientific_status"] == "PILOT_INCOMPLETE"
+            assert result["balance"]["opened"] == [["ordinary-0", "score", "unstarted", 20]]
+        else:
+            with pytest.raises(pilot.PilotDeficit) as exc:
+                qualify(area)
+            assert exc.value.counts["deficit_us"] == 1
+
+
 def test_paid_producer_space_and_cached_role(tmp_path):
     from oeis_learn.pipeline_validation.progressive_pilot_capacity import capacity
 
@@ -74,7 +106,19 @@ def test_paid_producer_space_and_cached_role(tmp_path):
 
     arg = dict(scale=scale, share=tmp_path, cached=False, measure=measure, verified={})
     (row,) = capacity(area, host, 100, **arg)
-    assert row["required_bytes"] == measure(area)["free_bytes"] and row["deficit_bytes"] == 0
+    assert row["required_bytes"] > measure(area)["free_bytes"]
+    one = {("ordinary-0", "score")}
+    many = one | {(arm + "-" + str(target), "score") for arm in ("ordinary", "first_divergence")
+                  for target in (0, 1_000_000, 4_000_000)} | {("incumbent-4000000", "score")}
+    measured = dict(scale, resident={"cases": 160, "candidates_bytes": 65536, "scored_bytes": 8192})
+    simple = dict(arg, scale=measured, outstanding=one)
+    limited = capacity(area, host, 100, **simple)[0]
+    available = lambda p: dict(free_bytes=limited["required_bytes"], free_inodes=limited["required_inodes"])
+    assert capacity(area, host, 100, **dict(simple, measure=available))[0]["deficit_bytes"] == 0
+    deficit = capacity(area, host, 100, **dict(simple, measure=available, outstanding=many))[0]
+    assert deficit["deficit_bytes"] == 6 * 8192 and deficit["deficit_inodes"] > 0
+    cached_search = capacity(area, host, 100, **dict(simple, outstanding=one | {("ordinary-0", "search")}))[0]
+    assert cached_search == limited
     assert not capacity(area, host, 100, **dict(arg, cached=True))
     (row,) = capacity(
         area, host, 100, **dict(arg, measure=lambda p: dict(free_bytes=0, free_inodes=0))
@@ -83,6 +127,34 @@ def test_paid_producer_space_and_cached_role(tmp_path):
     file.write_bytes(b"x" * 4096)
     with pytest.raises(ValueError, match="identity changed"):
         capacity(area, host, 100, **arg)
+
+
+def test_storage_charges_the_roles_and_share_filesystems_separately(tmp_path, monkeypatch):
+    import os
+    from pathlib import Path
+    from oeis_learn.pipeline_validation.progressive_pilot_capacity import capacity
+
+    area, share = tmp_path / "private", tmp_path / "share"
+    roles = area / "roles"
+    roles.mkdir(parents=True)
+    share.mkdir()
+    original_stat = Path.stat
+    def stat(path, *args, **kwargs):
+        original = original_stat(path, *args, **kwargs)
+        if path in (roles, share):
+            fields = list(original)
+            fields[2] = 123456 if path == roles else 123457
+            return os.stat_result(fields)
+        return original
+    monkeypatch.setattr(Path, "stat", stat)
+    records = capacity(area, SimpleNamespace(policy={"free_disk_floor_bytes": 10}), 100,
+                       scale={"candidate_score_bytes": 90, "campaign_bytes": 40}, share=share,
+                       cached=False, measure=lambda p: {"free_bytes": 100, "free_inodes": 1000},
+                       outstanding={("ordinary-0", "train")})
+    by_device = {row["device"]: row for row in records}
+    assert by_device[123456]["required_bytes"] == 210
+    assert by_device[123456]["deficit_bytes"] == 110
+    assert by_device[123457]["required_bytes"] == 50
 
 
 def test_nested_choice_and_missing_checkpoint_break_private_reexport(tmp_path):

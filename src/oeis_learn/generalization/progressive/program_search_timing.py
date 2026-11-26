@@ -125,6 +125,52 @@ def public_pilot_prices(panels, rehearsal, timing):
     return pilot_prices(graph, strata, timing, rehearsal, plan)
 
 
+def projected_funding(prices, balance, registration, *, current=None, estimate=0):
+    from .program_search_pilot import ARMS, LOOKS
+    from .trials import reusable_zero_look
+
+    def check(ok):
+        if not ok:
+            raise ValueError("invalid pilot funding balance")
+
+    check(set(balance) == {"identity", "registration", "charges", "opened", "completed", "shared_zero", "stopped_after"}
+          and balance == seal(balance) and balance["registration"] == registration)
+    covered = {tuple(k) for k in balance["completed"]}
+    check(len(covered) == len(balance["completed"]) and covered <= prices.keys())
+    booked = set()
+    settled = held = 0
+    paid_roles = set()
+    for block, role, cost in balance["charges"]:
+        base = ("-".join(block.split("-")[:2]), role)
+        check(base in prices and (block, role) not in booked and type(cost) is int and cost >= 0)
+        booked.add((block, role))
+        paid_roles.add(base)
+        settled += cost
+    for block, role, state, amount in balance["opened"]:
+        key = ("-".join(block.split("-")[:2]), role)
+        check(key in prices and (block, role) not in booked and type(amount) is int and amount >= 0
+              and state in {"unstarted", "open", "ended"})
+        booked.add((block, role))
+        held += amount
+        if state == "ended":
+            paid_roles.add(key)
+        else:
+            covered.add(key)
+    check(set(map(tuple, balance["completed"])) <= paid_roles)
+    shared = balance["shared_zero"]
+    if shared is not None:
+        check(shared == seal(shared) and set(shared) == {"identity", "cuts", "requests", "executions"}
+              and set(shared["cuts"]) == set(ARMS)
+              and all(c["registration"] == registration for c in shared["cuts"].values())
+              and reusable_zero_look(*(shared["cuts"][a] for a in ARMS), shared["requests"], shared["executions"]))
+        covered.update((ARMS[1] + "-0", r) for r in ("search", "score"))
+    stop = balance["stopped_after"]
+    if stop is not None:
+        check(stop in LOOKS)
+        covered.update(key for key in prices if int(key[0].split("-")[1]) > stop)
+    return settled + held + remaining_price(prices, covered, current, estimate)
+
+
 def remaining_price(prices, completed, current, estimate):
     return estimate + sum(price for key, price in prices.items() if key != current and key not in completed)
 

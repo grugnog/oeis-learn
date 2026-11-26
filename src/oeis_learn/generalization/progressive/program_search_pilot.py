@@ -519,8 +519,29 @@ def verify_qualification(path):
             )
         )
     reg = doc["registration"]
-    anchored = doc["version"] == "round028-resident-qualification/v3"
-    current = anchored or doc["version"] == "round028-resident-qualification/v2"
+    reconciled = doc["version"] == "round028-resident-qualification/v4"
+    anchored = doc["version"] == "round028-resident-qualification/v3" or reconciled and "prescore" in doc
+    current = reconciled or anchored or doc["version"] == "round028-resident-qualification/v2"
+    if reconciled:
+        from .program_search_timing import projected_funding
+        expected_price = projected_funding(prices, doc["balance"], reg["identity"])
+        if expected_price > SHIFT_US:
+            raise ValueError("pilot funding deficit")
+        stop = doc["balance"]["stopped_after"]
+        if stop is not None:
+            terminal = doc["terminal"]
+            verified = verify_pilot(io.BytesIO(pilot_archive(terminal, parent_bytes)))
+            if (terminal["registration"] != reg or terminal["acceptance"] != doc["acceptance"]
+                    or terminal["looks"][-1]["target"] != stop or verified["report"] != terminal["identity"]
+                    or sorted(doc["balance"]["charges"]) != sorted([c["block"], c["role"], c["charged_us"]] for c in terminal["costs"])):
+                raise ValueError("qualification differs from terminal pilot")
+            expected_status = "PILOT_MEASURED" if stop == LOOKS[-1] else "PILOT_INCOMPLETE"
+        else:
+            expected_status = "PILOT_INCOMPLETE" if doc["balance"]["charges"] or doc["balance"]["opened"] else "PILOT_UNMEASURED"
+        if doc["scientific_status"] != expected_status:
+            raise ValueError("scientific status differs from pilot funding evidence")
+    else:
+        expected_price = sum(prices.values())
     if anchored:
         verify_prescore(doc["prescore"], reg["identity"], doc["acceptance"])
     if (
@@ -537,15 +558,17 @@ def verify_qualification(path):
             "scientific_status",
             *({"workspace_space"} if current else ()),
             *({"prescore"} if anchored else ()),
+            *({"balance"} if reconciled else ()),
+            *({"terminal"} if reconciled and stop is not None else ()),
         }
-        or doc["version"] not in ("round028-resident-qualification/v1", "round028-resident-qualification/v2", "round028-resident-qualification/v3")
+        or doc["version"] not in ("round028-resident-qualification/v1", "round028-resident-qualification/v2", "round028-resident-qualification/v3", "round028-resident-qualification/v4")
         or doc != seal(doc)
         or raw != encode(doc)
         or not re.fullmatch("[0-9a-f]{40}", doc["controller"])
         or reg != pilot_registration(parent, reg["candidate"], reg["source"])
         or not re.fullmatch("sha256:[0-9a-f]{64}", doc["acceptance"])
         or doc["registered_us"] != SHIFT_US
-        or doc["projected_us"] != sum(prices.values())
+        or doc["projected_us"] != expected_price
         or doc["scientific_status"]
         not in {"PILOT_UNMEASURED", "PILOT_INCOMPLETE", "PILOT_MEASURED"}
     ):
@@ -664,6 +687,7 @@ def verify_qualification(path):
         scientific_status=doc["scientific_status"],
         scale=scale,
         **({"workspace_space": space} if current else {}),
+        **({"balance": doc["balance"]} if reconciled else {}),
         projected_us=doc["projected_us"],
         registered_us=SHIFT_US,
         research_headroom_us=SHIFT_US - doc["projected_us"],
