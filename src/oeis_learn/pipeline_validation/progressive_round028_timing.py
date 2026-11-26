@@ -170,17 +170,17 @@ def timed_role(runner, journal, name, role, data, mounts):
     return result
 
 
-def run_blocks(area, roles, journal, profiles, weights, rows, prompts, truths):
-    blocks, refs = {}, []
+def measured_blocks(area, roles, profiles, weights, rows, prompts, truths, dispatch):
+    """Reduce original generator/scorer artifacts identically for a live run and private replay."""
     gpu, cpu = roles
     members = {r["task"]: r["stratum"] for r in rows}
     for name in BLOCKS:
+        refs = []
         arm, look = name.split("-")
         weight_path, original = weights[arm]
         weight = dict(original, path="inputs/weights.pt")
-        generated = timed_role(
+        generated = dispatch(
             gpu,
-            journal,
             name,
             "search",
             {"block": name, "rows": prompts, "recipe": profiles[arm], "weights": weight},
@@ -200,9 +200,8 @@ def run_blocks(area, roles, journal, profiles, weights, rows, prompts, truths):
             == ("retained_D" if arm == "incumbent" else "earlier_checkpoint"),
             "generated candidate differs from frozen weight, recipe or prompt roster",
         )
-        scored = timed_role(
+        scored = dispatch(
             cpu,
-            journal,
             name,
             "score",
             {
@@ -223,7 +222,7 @@ def run_blocks(area, roles, journal, profiles, weights, rows, prompts, truths):
             gen_ref["sha256"],
             DESCRIPTIVE if look == "one" else CORRECT_FULL,
         )
-        blocks[name] = {
+        block = {
             "cells": cells,
             "gpu_wall_us": gpu.last_wall_us,
             "cpu_wall_us": cpu.last_wall_us,
@@ -251,6 +250,20 @@ def run_blocks(area, roles, journal, profiles, weights, rows, prompts, truths):
                 for out, ref in ((gpu.last_output, gen_ref), (cpu.last_output, score_ref))
             ]
         )
+        yield name, block, refs
+
+
+def run_blocks(area, roles, journal, profiles, weights, rows, prompts, truths):
+    blocks, refs = {}, []
+
+    def dispatch(runner, name, role, data, inputs):
+        return timed_role(runner, journal, name, role, data, inputs)
+
+    for name, block, files in measured_blocks(
+        area, roles, profiles, weights, rows, prompts, truths, dispatch
+    ):
+        blocks[name] = block
+        refs.extend(files)
         revise(
             area / "progress.json",
             seal({"completed_blocks": len(blocks), "portfolios": 8 * len(blocks)}),
@@ -452,3 +465,132 @@ def diagnostic_roles(area):
         except (KeyError, ValueError, TypeError, OSError):
             continue
     return result
+
+
+class SavedTimingRole(TimingRole):
+    """A reader of the original assignments with no host, engine or scheduling capability."""
+
+    def __init__(self, area, registration, phase):
+        self.area = area
+        self.registration = registration
+        self.phase = phase
+        self.charges = []
+        self.native = self.image = self.build_us = None
+
+    def read(self, name, role, data, inputs):
+        from .progressive_round028_receipts import image_acquisition, sealed
+
+        claim = sealed(confined(self.area, "assignments/" + name + "-" + role + ".json"))
+        folder = confined(self.area, "roles/" + claim["request"][7:])
+        request_path, data_path = confined(folder, "request.json"), confined(folder, "data.json")
+        req = sealed(request_path)
+        saved = sealed(data_path, maximum=CAMPAIGN_DOCUMENT_BYTES)
+        if self.image is None:
+            self.image = req["image"]
+            self.build_us = image_acquisition(
+                self.area, self.registration["candidate"], self.phase, self.image
+            )
+        scope = sealed(confined(self.area, "physical-" + self.phase + ".json"))
+        require(
+            req["identity"] == claim["request"]
+            and req["version"] == self.request_version
+            and req["image"] == self.image
+            and req["source"] == self.registration["source"]
+            and req["engine"] == "podman"
+            and req["registration"] == self.registration["identity"]
+            and req["role"] == role
+            and req["physical"] == scope["scope"]
+            and req["candidate_native"] == self.native
+            and saved == seal(data)
+            and req["data"] == saved["identity"],
+            "saved role differs from the registered model inputs or original device",
+        )
+        return self.read_committed(
+            folder,
+            req,
+            [
+                (request_path, "/work/inputs/request.json"),
+                (data_path, "/work/inputs/data.json"),
+                *inputs,
+            ],
+        )
+
+
+def replay_spending_inputs(root, folder, source, store, receipt):
+    """Reprice all 40 clocks from the original choices, scorer receipts and closed full states."""
+    from .progressive_round028 import reopen
+    from .progressive_round028_receipts import sealed
+
+    area = confined(folder, AREA)
+    cut = sealed(confined(area, "boundary.json"))
+    reg = read_bound_record(area, cut["registration"], identity=receipt["registration"])
+    report = read_bound_record(area, cut["public"], identity=receipt["evidence"])
+    historical = reopen(root, folder, store.campaign, store.state["audit"], recheck_inputs=False)
+    rows = timing_cases(historical)
+    roster = [{k: r[k] for k in ("task", "stratum", "group")} for r in rows]
+    require(
+        reg["roster"] == roster
+        and reg["blocks"] == list(BLOCKS)
+        and reg["panel"] == PANEL
+        and reg["audit"] == store.state["publication"]
+        and reg["rehearsal"] == PARENT
+        and reg["attempts"] == {"one": 1, "full": 8}
+        and reg["role_seconds"] == ROLE_SECONDS,
+        "private timing registration differs from its original roster or allowance",
+    )
+    prompts, truths = original_channels(root, rows)
+    profiles, weights = original_weights(root, source, folder, store)
+    roles = tuple(SavedTimingRole(area, reg, phase) for phase in ("hip", "cpu"))
+    files = []
+    for name, block, refs in measured_blocks(
+        area, roles, profiles, weights, rows, prompts, truths, SavedTimingRole.read
+    ):
+        require(
+            block == report["blocks"][name],
+            "private case and scorer clocks differ from the released totals",
+        )
+        files.extend(refs)
+    required = (
+        "accounting/budget.jsonl",
+        "accounting/budget-binding.json",
+        "start-space.json",
+        "end-space.json",
+    )
+    files.extend(reference(area, confined(area, path)) for path in required)
+    require(
+        files == cut["files"]
+        and all(len(role.charges) == len(BLOCKS) and None not in role.charges for role in roles),
+        "private timing or work accounting closure differs",
+    )
+    require(
+        report["image_build_us"] == {role.phase: role.build_us for role in roles}
+        and all(
+            report["space_" + when] == sealed(confined(area, name))["space"]
+            for when, name in (("before", "start-space.json"), ("after", "end-space.json"))
+        ),
+        "original acquisition or filesystem evidence differs",
+    )
+    caps = {
+        k: sum(cost(name, role)[k] for name in BLOCKS for role in ("search", "score")) for k in KEYS
+    }
+    accounting = BudgetJournal(area / "accounting", reg["identity"], caps).snapshot()
+    require(
+        len(accounting["committed"]) == 10
+        and not accounting["pending"]
+        and accounting["consumed"] == caps,
+        "original timing budget settlement differs",
+    )
+    return seal(
+        {
+            "version": "round028-private-spending-replay/v1",
+            "audit": reg["audit"],
+            "timing": receipt["evidence"],
+            "registration": reg["identity"],
+            "private_cut": historical["identity"],
+            "timing_boundary": cut["identity"],
+            "budget": accounting["watermark"],
+            "scope": "original_weights_choices_and_scorer_clocks",
+            "portfolios": 40,
+            "checkpoint_closures": list(LEARNERS),
+        }
+    )

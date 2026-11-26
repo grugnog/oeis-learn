@@ -92,12 +92,12 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
     source = Path(__file__).resolve().parents[3]
     sys.path.insert(0, str(source / "src"))
     from oeis_learn.pipeline_validation.identity import confined
-    from oeis_learn.pipeline_validation.progressive_round028 import ARCHIVE, SESSION
+    from oeis_learn.pipeline_validation.progressive_round028 import ARCHIVE, SAVED_AUDIT, SESSION, audit_archive
 
     destination = confined(workspace, "run-state/discovery-tools")
     rehearsal = action == "collect-rehearsal"
     prefix = {"collect-audit":"round028-cpu-", "collect-rehearsal":"round028-rehearsal-",
-              "collect-panels":"round028-panels-", "collect-timing":"round028-timing-", "collect-receipts":"round028-receipts-"}[action]
+              "collect-panels":"round028-panels-", "collect-timing":"round028-timing-", "collect-final":"round028-final-", "collect-receipts":"round028-receipts-"}[action]
     folder = Path(tempfile.mkdtemp(prefix=prefix, dir=destination))
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONNOUSERSITE="1")
     for key in ("PYTHONPATH", "PYTHONHOME"):
@@ -132,8 +132,10 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
         if name == "status" and "rehearsal" in raw:
             step["rehearsal"] = {k: raw["rehearsal"][k] for k in ("candidate", "phase", "reason", "next_action")
                                  if k in raw["rehearsal"]}
-        if name in ("supply","timing"):
+        if name in ("supply","timing","finalize"):
             step.update({k:raw[k] for k in ("error_type","failure_locations") if k in raw})
+        if name == "finalize":
+            step.update({k: raw[k] for k in ("spending_reason", "evidence_verdict", "next_action", "private_scope") if k in raw})
         if name == "recover":
             step.update({k:raw[k] for k in ("stage_requests", "published_stages", "matched_boundaries",
                                              "failure_locations", "cpu") if k in raw})
@@ -148,6 +150,36 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
         return process.returncode, raw
 
     root = ["--workspace", str(workspace)]
+    if action == "collect-final":
+        from oeis_learn.generalization.progressive.program_search_outcome import archive_bytes
+        from oeis_learn.generalization.progressive.program_search_rehearsal_report import encode
+        code, raw = run("finalize", "finalize", *root)
+        if not code:
+            try:
+                if raw["archive"] != ARCHIVE or raw["private_replay"] != "VERIFIED":
+                    raise ValueError("private terminal verification required")
+                copied = folder / "round028-final-workstation.zip"
+                installed = confined(workspace, Path(SESSION) / ARCHIVE)
+                copied.write_bytes(archive_bytes({
+                    "workstation.json": encode(raw["workstation"]),
+                    "round028.zip": installed.read_bytes(),
+                }))
+                code, standalone = run("verify-copied", "verify", "--archive", str(copied))
+                expected = dict(raw["receipt"], scope="archive_only_with_workstation_receipt",
+                                workstation=raw["workstation"])
+                if not code and standalone == expected:
+                    print(f"Verified final report and workstation receipt. Return this file:\n{copied}", flush=True)
+                    return 0
+                code = code or 2
+            except (KeyError,TypeError,ValueError,OSError,zipfile.BadZipFile) as exc:
+                summary["steps"]["publication"] = dict(error_type=type(exc).__name__,exit=2)
+                code = 2
+        summary.update(exit=code,gpu_dispatches=0)
+        diagnostics = folder/"round028-final-diagnostics.zip"
+        with zipfile.ZipFile(diagnostics,"x",zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("summary.json",json.dumps(summary,sort_keys=True,indent=2,allow_nan=False))
+        print(f"Final verification exit {code}. Return this file:\n{diagnostics}",flush=True)
+        return code
     if action in ("collect-panels","collect-timing"):
         timing = action == "collect-timing"
         stage_name, command = ("timing","timing") if timing else ("supply","panels")
@@ -206,7 +238,7 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
                 archive = folder / "round028-rehearsal.zip"
                 if raw.get("reason") != "SAVED_REHEARSAL_VERIFIED":
                     raise ValueError("missing original physical rehearsal")
-                receipt = publish(archive, raw["evidence"], confined(workspace, Path(SESSION) / ARCHIVE))
+                receipt = publish(archive, raw["evidence"], audit_archive(confined(workspace,SESSION)))
                 code, standalone = run("verify-copied", "verify", "--archive", str(archive))
                 if not code and standalone == receipt:
                     print(f"Verified saved rehearsal. Return this file:\n{archive}", flush=True)
@@ -227,12 +259,12 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
     audit, value = run("rehearsal" if rehearsal else "audit", stage, *root) if preflight == 0 else (preflight, {})
     code = audit
     include_archive = False
-    if value.get("archive") == ARCHIVE or (rehearsal and (workspace / SESSION / ARCHIVE).is_file()):
+    if value.get("archive") in (ARCHIVE,SAVED_AUDIT) or (rehearsal and (workspace / SESSION / ARCHIVE).is_file()):
         private = 0
         if not rehearsal:
             private, _ = run("verify-private", "verify", *root)
         copied = folder / "round028.zip"
-        shutil.copyfile(confined(workspace, Path(SESSION) / ARCHIVE), copied)
+        shutil.copyfile(audit_archive(confined(workspace,SESSION)), copied)
         public, _ = run("verify-copied", "verify", "--archive", str(copied))
         include_archive = public == 0
         code = private or public or audit

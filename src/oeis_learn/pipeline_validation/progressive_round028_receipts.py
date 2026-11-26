@@ -194,9 +194,9 @@ def verify_sample_origin(base, training, registration):
 
 def recover(root, folder, prior_source, revision, store, *, weight_slices=None):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
-    from .progressive_round028 import ARCHIVE, reopen
+    from .progressive_round028 import audit_archive, reopen
 
-    historical = verify_archive(confined(folder, ARCHIVE))
+    historical = verify_archive(audit_archive(folder))
     if historical["report"] != store.state["publication"] or historical["decision"]["action"] != "MATCHED_GENERATOR":
         raise ReceiptGap("SAVED_AUDIT_DOES_NOT_SELECT_GENERATOR")
     # Reopen the four committed batches and their support metadata, without an audit or new donor execution.
@@ -235,10 +235,10 @@ def recover(root, folder, prior_source, revision, store, *, weight_slices=None):
 
 
 def recover_command(root, folder, source, revision):
-    from .progressive_round028 import ARCHIVE, audit_store
+    from .progressive_round028 import audit_archive, audit_store
     if not isinstance(revision, str) or not re.fullmatch("[0-9a-f]{40}", revision):
         raise ValueError("original full rehearsal implementation SHA required")
-    if any(not (folder / name).is_file() for name in (ARCHIVE, "run.lock", "campaign.json")):
+    if not audit_archive(folder).is_file() or any(not (folder / name).is_file() for name in ("run.lock", "campaign.json")):
         return dict(mechanical_status="BLOCKED", reason="ORIGINAL_AUDIT_UNAVAILABLE", gpu_dispatches=0), 2
     with confined(folder, "run.lock").open("rb") as lock:
         try:

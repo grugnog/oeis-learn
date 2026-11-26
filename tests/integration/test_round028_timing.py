@@ -403,19 +403,52 @@ def exercise_collection(o, parent, panel, weights, monkeypatch):
             lambda *a: ({n: {"model": n} for n in all_weights}, all_weights),
         )
 
+        from oeis_learn.pipeline_validation.progressive_round028_panels import NativeRoles
+        from oeis_learn.pipeline_validation.preparation_recovery import retain
+
         class Roles:
             phase = "cpu"
             build_us = 2
 
             def __init__(self, args, source, root, revision, area, registration, host_factory):
-                self.area = area
+                self.area, self.registration = area, registration
+                self.native = None
 
             def __call__(self, role, data, *, seconds, inputs):
                 block = data["block"]
                 calls.append((role, block))
-                folder = self.area / "roles" / (block + "-" + role)
+                physical = digest(["workstation", self.phase])
+                image_id = digest(["candidate", self.phase])
+                opts = {
+                    "revision": self.registration["candidate"],
+                    "phase": self.phase,
+                    "engine": "podman",
+                }
+                retain(
+                    self.area / ("image-" + digest(opts)[7:] + ".json"),
+                    seal({"options": opts, "image": image_id, "elapsed_us": 2}),
+                )
+                retain(self.area / ("physical-" + self.phase + ".json"), seal({"scope": physical}))
+                req = seal(
+                    {
+                        "version": "round028-timing-role/v1",
+                        "image": image_id,
+                        "engine": "podman",
+                        "registration": self.registration["identity"],
+                        "source": self.registration["source"],
+                        "role": role,
+                        "data": data["identity"],
+                        "physical": physical,
+                        "candidate_native": self.native,
+                    }
+                )
+                retain(
+                    self.area / "assignments" / (block + "-" + role + ".json"),
+                    seal({"request": req["identity"]}),
+                )
+                folder = self.area / "roles" / req["identity"][7:]
                 folder.mkdir(parents=True)
-                out = folder / "output"
+                out = folder / "attempt-0000/output"
                 model = digest(block.split("-")[0])
                 keys = [r["id"] for r in data["rows"]]
                 if role == "search":
@@ -438,7 +471,7 @@ def exercise_collection(o, parent, panel, weights, monkeypatch):
                             snapshot=model,
                             start=0,
                             scope_deadline=90,
-                            finish=0.00004,
+                            finish=40.0,
                             expected=count,
                             started=count,
                             terminal=count,
@@ -481,7 +514,7 @@ def exercise_collection(o, parent, panel, weights, monkeypatch):
                     atomic_write(out / "generation/candidates.json", gen)
                     result = {
                         "candidates": reference(out, "generation/candidates.json"),
-                        "case_us": dict.fromkeys(keys, 50),
+                        "case_us": dict.fromkeys(keys, 40_000_001),
                         "peak_device_bytes": 32,
                         "telemetry": {
                             "samples": 0,
@@ -516,22 +549,60 @@ def exercise_collection(o, parent, panel, weights, monkeypatch):
                     )
                     atomic_write(out / "scored/scores.json", scores)
                     result = {"scores": reference(out, "scored/scores.json")}
-                self.last_output, self.last_wall_us, self.last_lease_us = (
-                    out,
-                    2000,
-                    1700 if role == "search" else 0,
+                self.last_output = out
+                self.last_wall_us = 340_000_000 if role == "search" else 2000
+                self.last_lease_us = 330_000_000 if role == "search" else 0
+                self.native = digest(["native", self.phase])
+                self.last_producer = seal(
+                    {
+                        "version": "round028-timing-output/v1",
+                        "request": req["identity"],
+                        "native": self.native,
+                        "result": result,
+                        "elapsed_us": 325_000_000 if role == "search" else 1400,
+                    }
                 )
-                self.last_producer = {"elapsed_us": 1400}
-                for file, value in (
-                    ("request.json", {}),
-                    ("data.json", data),
-                    ("producer.json", self.last_producer),
-                ):
-                    atomic_write(folder / file, seal(value))
-                self.last_boundary = folder / "boundary.json"
+                atomic_write(out / "producer.json", self.last_producer)
+                atomic_write(folder / "request.json", req)
+                atomic_write(folder / "data.json", data)
+                atomic_write(out.parent / "start.json", seal({"request": req["identity"]}))
                 atomic_write(
-                    self.last_boundary, seal({"producer": reference(folder, "producer.json")})
+                    out.parent / "end.json",
+                    seal(
+                        {
+                            "request": req["identity"],
+                            "success": True,
+                            "elapsed_us": self.last_wall_us,
+                        }
+                    ),
                 )
+                if self.phase == "hip":
+                    atomic_write(out / "gpu-lease.json", {"elapsed_us": self.last_lease_us})
+                mounts = [
+                    (folder / "request.json", "/work/inputs/request.json", False),
+                    (folder / "data.json", "/work/inputs/data.json", False),
+                    (out, "/work/output", True),
+                    *((p, d, False) for p, d in inputs),
+                ]
+                atomic_write(
+                    out / "container-inspect.json",
+                    [
+                        {
+                            "Image": image_id,
+                            "HostConfig": {
+                                "NetworkMode": "none",
+                                "ReadonlyRootfs": True,
+                                "Privileged": False,
+                            },
+                            "Mounts": [
+                                {"Type": "bind", "Source": str(path), "Destination": dest, "RW": rw}
+                                for path, dest, rw in mounts
+                            ],
+                        }
+                    ],
+                )
+                self.last_boundary = folder / "boundary.json"
+                NativeRoles.bind(self, folder, out.parent, req)
                 return result
 
         patch.setattr(host, "TimingRole", Roles)
@@ -546,11 +617,46 @@ def exercise_collection(o, parent, panel, weights, monkeypatch):
         publication = o.folder / raw["archive"]
         publication.unlink()
         assert collect("2" * 40) == (raw, code) and publication.is_file() and len(calls) == 10
-        first = next((o.folder / host.AREA).glob("roles/*/output/generation/candidates.json"))
+        from types import SimpleNamespace
+        from oeis_learn.pipeline_validation import progressive_round028 as commands
+        from oeis_learn.pipeline_validation.progressive_round028_audit import ORIGINAL
+
+        patch.setattr(
+            commands,
+            "metadata",
+            lambda *a: {
+                "qualified_checkout": True,
+                "files": {ORIGINAL + "/prepare-research/frozen/campaign.json": True},
+            },
+        )
+        patch.setattr(commands, "candidate_revision", lambda *a: "3" * 40)
+
+        def action(name):
+            return commands.execute(
+                SimpleNamespace(action=name, archive=None, workspace=str(o.workspace)),
+                SOURCE,
+                host_factory=lambda *a, **k: pytest.fail("terminal replay opened a device"),
+            )
+
+        terminal, exit_code = action("run")
+        assert (
+            exit_code == 0
+            and terminal["next_action"] == "RETAIN_BASELINE"
+            and terminal["gpu_dispatches"] == 0
+        )
+        assert action("verify") == action("finalize") == action("run") == (terminal, 0)
+        assert action("status")[0]["deficit_us"] == action("preflight")[0]["deficit_us"] > 0
+        assert action("rehearse")[0]["mechanical_status"] == "SKIPPED"
+        assert len(calls) == 10
+        first = next(
+            (o.folder / host.AREA).glob("roles/*/attempt-*/output/generation/candidates.json")
+        )
         with first.open("ab") as stream:
             stream.write(b" ")
         with pytest.raises(ValueError):
             collect("2" * 40)
+        failed, code = action("verify")
+        assert code == 2 and failed["reason"] == "TERMINAL_VERIFICATION_FAILED"
         assert len(calls) == 10
 
 

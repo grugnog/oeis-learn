@@ -6,6 +6,7 @@ import re
 import runpy
 import subprocess
 import time
+import zipfile
 
 from oeis_learn.generalization.progressive.budgets import BudgetJournal, KEYS
 from oeis_learn.generalization.progressive.campaign import diagnostic_registration, learned_search_policy
@@ -20,6 +21,13 @@ from .progressive_round028_audit import Donor, FOLLOWUP, ORIGINAL, SESSION, audi
 from .progressive_research_inputs import checked_file
 
 ARCHIVE = "share/round028.zip"
+SAVED_AUDIT = "share/round028-audit.zip"
+
+
+def audit_archive(folder):
+    historical = confined(folder,SAVED_AUDIT,exists=False)
+    return historical if historical.exists() else confined(folder,ARCHIVE,exists=False)
+
 
 
 def git(root, *args):
@@ -89,6 +97,11 @@ def status(folder):
                 or measured["portfolios"] != 8 * measured["completed_blocks"]):
             raise ValueError("candidate timing progress differs")
         extra["evaluation_timing"] = {k:measured[k] for k in ("completed_blocks","portfolios")}
+    if store.state.get("terminal"):
+        terminal = store.state["terminal"]
+        scientific = "PILOT_UNMEASURED"
+        extra.update({k: terminal[k] for k in ("evidence_verdict","reason","next_action","remaining_authorized_gpu_us","pilot_us","shift_us","deficit_us")})
+        extra["archive"] = ARCHIVE
     return dict(**extra, mechanical_status=store.state["status"], scientific_status=scientific,
                 owner_active=busy, boundary=store.tip, decision=store.state.get("route"), active=store.state.get("active"))
 
@@ -189,14 +202,15 @@ def audit_command(root, folder, store, registration):
     data = reopen(root, folder, registration, cut, recheck_inputs=reused)
     public = public_audit(registration, data, elapsed_us=journal.snapshot()["consumed"]["elapsed_us"],
                           private_identity=data["identity"])
-    receipt = publish_archive(confined(folder, ARCHIVE, exists=False), public)
+    publication = audit_archive(folder)
+    receipt = publish_archive(publication, public)
     if not store.state.get("publication"):
         store.append(dict(store.state, status="AUDIT_PUBLISHED", publication=receipt["report"],
                           route=data["decision"]["action"], pending=data["decision"].get("blocker")))
     if receipt["report"] != store.state["publication"]:
         raise ValueError("published report differs from committed audit")
     return dict(mechanical_status="BLOCKED" if data["decision"].get("blocker") else "COMPLETE",
-                scientific_status="HISTORICAL_AUDIT", archive=ARCHIVE,
+                scientific_status="HISTORICAL_AUDIT", archive=str(publication.relative_to(folder)),
                 decision=data["decision"], methods=data["methods"], pairs=data["pairs"]["trial-05-1M vs retained_D"],
                 checkpoints=[c["disposition"] for c in data["checkpoints"]],
                 missing_inputs=data["missing_inputs"], denominators=dict(historical=128, routing=64),
@@ -228,10 +242,25 @@ def audit_store(folder, revision):
     if registered["candidate"] != revision:
         if store.state.get("active") or not store.state.get("audit") or not store.state.get("publication"):
             raise ValueError("resume the unfinished audit with its registered implementation")
-        published = verify_archive(confined(folder, ARCHIVE))
+        published = verify_archive(audit_archive(folder))
         if published["report"] != store.state["publication"]:
             raise ValueError("published diagnostic parent differs from its registered boundary")
     return store
+
+
+def terminal_failure(source, folder, exc, *, spending_reason=None, record=True):
+    import traceback
+    from .progressive_round028_rehearsal import failure_locations
+    area = confined(folder,"private/terminal",exists=False)
+    if record:
+        area.mkdir(parents=True,mode=0o700,exist_ok=True)
+        (area/"exception.txt").write_text(traceback.format_exc())
+    failed = dict(mechanical_status="BLOCKED", scientific_status="PILOT_UNMEASURED",
+                  reason="TERMINAL_VERIFICATION_FAILED", error_type=type(exc).__name__,
+                  failure_locations=failure_locations(source, area), gpu_dispatches=0)
+    if spending_reason == "REPORT_PILOT_COST_DEFICIT":
+        failed["spending_reason"] = spending_reason
+    return failed, 2
 
 
 def execute(args, source, *, host_factory=None):
@@ -258,6 +287,14 @@ def execute(args, source, *, host_factory=None):
         candidate_revision(source, root)
         return recover_command(root, folder, source, producer_revision)
     if args.action == "preflight":
+        latest = None
+        if (folder/"private/terminal/closure.json").is_file():
+            binding = load(confined(folder,"campaign.json"))
+            latest = RunStore(folder,binding,diagnostic=True).state.get("terminal")
+        if latest:
+            return dict(info,mechanical_status="INSPECTED",scope="terminal_resource_decision",
+                        gpu_demand="CLOSED",admission=latest["reason"],next_action=latest["next_action"],
+                        pilot_us=latest["pilot_us"],shift_us=latest["shift_us"],deficit_us=latest["deficit_us"]), 0
         return dict(info, mechanical_status="INSPECTED", scope="historical_audit",
                     admission="AVAILABLE" if info["qualified_checkout"] and all(info["files"].values()) else "BLOCKED"), 0
     if not info["qualified_checkout"] or not info["files"][ORIGINAL + "/prepare-research/frozen/campaign.json"]:
@@ -272,6 +309,31 @@ def execute(args, source, *, host_factory=None):
         with RunStore.owner(folder):
             store = audit_store(folder, revision)
             registration = store.campaign
+            from .progressive_round028_timing import AREA, PANEL_ARCHIVE, SHARE, timing_command
+            from .progressive_round028_terminal import close_timing
+            terminal = store.state.get("terminal")
+            if terminal and args.action == "rehearse":
+                return dict(mechanical_status="SKIPPED",scientific_status="PILOT_UNMEASURED",
+                            reason=terminal["reason"],next_action=terminal["next_action"],gpu_dispatches=0), 0
+            if args.action == "verify" and not terminal and (folder/"private/terminal/closure.json").is_file():
+                return dict(mechanical_status="BLOCKED",reason="TERMINAL_PUBLICATION_PENDING",gpu_dispatches=0), 2
+            check_terminal = args.action == "verify" and terminal is not None
+            if args.action == "finalize" or check_terminal or (terminal and args.action in {"run","timing"}):
+                if not (folder/AREA/"boundary.json").is_file() or (
+                        check_terminal and not (folder/SHARE/"round028-timing.zip").is_file()):
+                    return dict(mechanical_status="BLOCKED",scientific_status="PILOT_UNMEASURED",
+                                reason="SAVED_TIMING_BOUNDARY_REQUIRED",gpu_dispatches=0), 2
+                spending_reason = terminal["reason"] if terminal else None
+                try:
+                    # A completed private boundary takes the read/recover path and never opens an engine.
+                    observed, code = timing_command(args,source,root,folder,revision,store,None)
+                    if code or args.action=="timing":
+                        return observed,code
+                    spending_reason = observed["reason"]
+                    return close_timing(root,folder,source,store,observed,verify_only=check_terminal)
+                except (OSError,KeyError,TypeError,ValueError,RuntimeError,subprocess.SubprocessError,zipfile.BadZipFile) as exc:
+                    return terminal_failure(source, folder, exc, spending_reason=spending_reason,
+                                            record=not check_terminal)
             if args.action == "verify":
                 if not store.state.get("publication"):
                     raise ValueError("uncommitted public audit")
@@ -281,7 +343,7 @@ def execute(args, source, *, host_factory=None):
                 if (original != {r["task"]: r for r in repeated["cases"]}
                         or any(private[k] != v for k, v in repeated.items() if k != "cases")):
                     raise ValueError("private donor replay differs")
-                receipt = verify_archive(confined(folder, ARCHIVE))
+                receipt = verify_archive(audit_archive(folder))
                 journal = BudgetJournal(folder / "accounting", registration["identity"],
                                         dict(dict.fromkeys(KEYS, 0), elapsed_us=2**63 - 1))
                 rebuilt = public_audit(registration, repeated, elapsed_us=journal.snapshot()["consumed"]["elapsed_us"],
@@ -290,7 +352,6 @@ def execute(args, source, *, host_factory=None):
                     raise ValueError("private/public audit mismatch")
                 return dict(private_replay="VERIFIED", public_recomputation=receipt), 0
             from .progressive_round028_panels import PRODUCER, panels_command
-            from .progressive_round028_timing import AREA, PANEL_ARCHIVE, timing_command
             if args.action == "timing" or (args.action == "run" and (folder / PANEL_ARCHIVE).is_file()):
                 try:
                     observed, code = timing_command(args,source,root,folder,revision,store,host_factory)
@@ -303,6 +364,11 @@ def execute(args, source, *, host_factory=None):
                     return dict(mechanical_status="BLOCKED", scientific_status="PILOT_UNMEASURED",
                                 reason="CANDIDATE_TIMING_COLLECTION_FAILED", error_type=type(exc).__name__,
                                 failure_locations=failure_locations(source,area,role_folder="roles")), 2
+                if args.action == "run" and not code and observed["reason"]=="REPORT_PILOT_COST_DEFICIT":
+                    try:
+                        return close_timing(root,folder,source,store,observed)
+                    except (OSError,KeyError,TypeError,ValueError,RuntimeError,subprocess.SubprocessError,zipfile.BadZipFile) as exc:
+                        return terminal_failure(source, folder, exc, spending_reason=observed["reason"])
                 if args.action == "run":
                     return dict(observed,mechanical_status="BLOCKED",next_action=observed["reason"]), 2
                 return observed,code

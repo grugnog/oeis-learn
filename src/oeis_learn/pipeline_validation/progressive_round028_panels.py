@@ -44,7 +44,7 @@ def prior_archive(root, source, folder, store, area):
         verify_transport,
     )
 
-    from .progressive_round028 import ARCHIVE
+    from .progressive_round028 import audit_archive
     from .progressive_round028_receipts import recover
 
     local = area / "original-rehearsal.zip"
@@ -71,7 +71,7 @@ def prior_archive(root, source, folder, store, area):
     )["materialize"](root, PRODUCER)
     evidence = recover(root, folder, prior, PRODUCER, store)
     require(evidence["identity"] == PARENT, "original training forecast parent changed")
-    return local, publish(local, evidence, confined(folder, ARCHIVE))
+    return local, publish(local, evidence, audit_archive(folder))
 
 
 def original_costs(root, cut):
@@ -234,6 +234,11 @@ class NativeRoles:
                     ),
                 )
             self.bind(folder, attempt, req)
+        return self.read_committed(folder, req, mounts)
+
+    def read_committed(self, folder, req, mounts):
+        """Reopen the installed producer, original role isolation and supervisor timing."""
+        receipt = folder / "boundary.json"
         boundary = load(confined(folder, receipt))
         require(
             seal(boundary) == boundary and boundary["request"] == req["identity"],
