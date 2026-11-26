@@ -428,7 +428,17 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
     )
     def accept_fixture(root, folder, store, area, *rest):
         from oeis_learn.pipeline_validation.preparation_recovery import retain
-        scale = seal({"cases":160, "candidates_bytes":100, "scored_bytes":50})
+        scale = seal(dict(cases=160, exposed_problems=8, candidates_bytes=100, scored_bytes=50,
+                          selected_choices=2, no_selection=158, cold_attempt=0,
+                          candidate=digest("candidates"), scores=digest("scores"),
+                          search_us=200, slowest_case_us=15, search_allowance_us=21_000_000_000,
+                          search_margin_us=21_000_000_000-200, search_worker_us=300,
+                          score_allowance_us=21_000_000_000, score_margin_us=21_000_000_000-100,
+                          score_worker_us=170, search_supervisor_us=400, score_supervisor_us=180,
+                          search_supervisor_allowance_us=21_120_000_000, score_supervisor_allowance_us=21_120_000_000,
+                          search_supervisor_margin_us=21_120_000_000-400, score_supervisor_margin_us=21_120_000_000-180,
+                          search_measurements={"load_and_identify_checkpoint_us":50,"publish_candidates_us":20},
+                          score_measurements={"score_choices_us":100,"publish_scores_us":50}))
         retain(area / "qualification-scale.json", scale)
         return {"installed": digest("on exposed fixtures"), "resident_scale":scale["identity"]}
     monkeypatch.setattr(pilot, "accept_pilot", accept_fixture)
@@ -450,6 +460,7 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
         phase = "cpu"
 
         def __init__(self, args, source, root, revision, area, registration, factory):
+            assert revision == worker and source == worker_source
             self.area, self.registration = area, registration
 
         def __call__(self, role, data, *, seconds, inputs):
@@ -512,8 +523,8 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
                                 policy=policy,
                                 work=digest("model"),
                                 clocks=clocks,
-                                inference_seed=data["inference_seed"],
-                                cost_complete=True,
+                                inference_seed=data["inference_seed"], source=digest(data["recipe"]),
+                                expected_portfolios=len(ordered), missing_portfolios=0, cost_complete=True,
                             )
                         ),
                     )
@@ -541,15 +552,15 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
             return {"scores": reference(out, out / "scores.json")}
 
     monkeypatch.setattr(pilot, "PilotRole", Role)
-    args = (
-        None,
-        Path(__file__).resolve().parents[2],
-        original.workspace,
-        original.folder,
-        "a" * 40,
-        original.store,
-        lambda *a, **kw: SimpleNamespace(policy={"free_disk_floor_bytes": 0}),
-    )
+    def host(*args, **kwargs):
+        return SimpleNamespace(policy={"free_disk_floor_bytes": 0})
+
+    source, worker = Path(__file__).resolve().parents[2], "a" * 40
+    if not lost_update:
+        from tests.integration.test_round028_pilot_resume import collector_fixture
+        source, worker, controller, collect, exports = collector_fixture(original, old, monkeypatch, host)
+    worker_source = source
+    args = (None, source, original.workspace, original.folder, worker, original.store, host)
     initial = original.store.tip
     with pytest.raises(pilot.PilotDeficit) as blocked:
         pilot.run_pilot(SimpleNamespace(action="qualify-pilot"), *args[1:-1],
@@ -569,6 +580,29 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
         prices = unfunded.value.counts
         assert prices["deficit_us"] == 1 and prices["next_role_us"] < prices["remaining_us"]
         assert not calls
+    if not lost_update:
+        from oeis_learn.generalization.progressive.program_search_pilot import verify_qualification
+        from oeis_learn.generalization.progressive.program_search_outcome import read_canonical
+        import json
+        for _ in range(2):
+            assert collect("collect-pilot-qualification") == 0
+            assert not (original.folder / pilot.AREA / "accounting").exists() and not calls
+        copied = next(exports.glob("*/round028-pilot-qualification.zip"))
+        measured = verify_qualification(copied)
+        assert measured["worker"] == worker and measured["controller"] == controller
+        assert measured["registration"] == qualified["registration"]
+        assert measured["scale"] == qualified["scale"]
+        contents = read_canonical(copied, ("qualification.json", "round028-parent.zip"))
+        changed = json.loads(contents["qualification.json"])
+        changed["scale"] = seal(dict(changed["scale"], score_supervisor_margin_us=1))
+        contents["qualification.json"] = encode(seal(changed))
+        with pytest.raises(ValueError, match="measurements"):
+            verify_qualification(io.BytesIO(archive_bytes(contents)))
+        assert collect("collect-pilot") == 0
+        assert any(role == "score" for _, role in calls)
+        initial_calls = list(calls)
+        assert collect("collect-pilot") == 0 and calls == initial_calls
+        assert collect("collect-pilot-qualification") == 0 and calls == initial_calls
     result, code = pilot.run_pilot(*args)
     expected_action = "ENDPOINT_NOT_ADMITTED" if lost_update else "RETAIN_REFERENCE"
     assert code == 0 and result["receipt"]["next_action"] == expected_action

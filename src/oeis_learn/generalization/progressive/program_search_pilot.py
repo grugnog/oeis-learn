@@ -19,6 +19,16 @@ STRATA = ("composition", "unseen_structure", "parameter", "oeis", "retention")
 PILOT_MEMBERS = ["pilot.json", "round028-parent.zip"]
 
 
+# Operational envelopes are independent of the registered 60 seconds per case.
+RESIDENT_SUPERVISOR_GRACE_SECONDS = 120
+
+
+def resident_seconds(cases):
+    if type(cases) is not int or not 1 <= cases <= 160:
+        raise ValueError("resident pilot roster must contain 1 to 160 cases")
+    return 1800 + 120 * cases
+
+
 def allocation(parent):
     if (
         parent["status"] != "VERIFIED"
@@ -419,3 +429,152 @@ def verify_pilot(path):
 
 def pilot_archive(report, parent):
     return archive_bytes({"pilot.json": encode(report), "round028-parent.zip": parent})
+
+
+def verify_qualification(path):
+    """Recompute the release identity, forecast and timing margins from the copied receipt."""
+    from .program_search_timing import public_pilot_prices
+
+    files = read_canonical(path, ("qualification.json", "round028-parent.zip"))
+    raw = files["qualification.json"]
+    doc = json.loads(raw)
+    parent_bytes = files["round028-parent.zip"]
+    parent = verify_workstation(io.BytesIO(parent_bytes))
+    with (
+        zipfile.ZipFile(io.BytesIO(parent_bytes)) as outer,
+        zipfile.ZipFile(io.BytesIO(outer.read("round028.zip"))) as evidence,
+    ):
+        prices = public_pilot_prices(
+            *(
+                json.loads(evidence.read(name + ".json"))
+                for name in ("panels", "rehearsal", "timing")
+            )
+        )
+    reg = doc["registration"]
+    if (
+        set(doc)
+        != {
+            "version",
+            "identity",
+            "controller",
+            "registration",
+            "acceptance",
+            "scale",
+            "projected_us",
+            "registered_us",
+            "scientific_status",
+        }
+        or doc["version"] != "round028-resident-qualification/v1"
+        or doc != seal(doc)
+        or raw != encode(doc)
+        or not re.fullmatch("[0-9a-f]{40}", doc["controller"])
+        or reg != pilot_registration(parent, reg["candidate"], reg["source"])
+        or not re.fullmatch("sha256:[0-9a-f]{64}", doc["acceptance"])
+        or doc["registered_us"] != SHIFT_US
+        or doc["projected_us"] != sum(prices.values())
+        or doc["scientific_status"]
+        not in {"PILOT_UNMEASURED", "PILOT_INCOMPLETE", "PILOT_MEASURED"}
+    ):
+        raise ValueError("invalid pilot qualification release or forecast")
+    scale = doc["scale"]
+    keys = {
+        "identity",
+        "cases",
+        "exposed_problems",
+        "selected_choices",
+        "no_selection",
+        "cold_attempt",
+        "candidates_bytes",
+        "scored_bytes",
+        "candidate",
+        "scores",
+        "search_us",
+        "search_allowance_us",
+        "search_margin_us",
+        "score_allowance_us",
+        "score_margin_us",
+        "slowest_case_us",
+        "search_measurements",
+        "score_measurements",
+        *(
+            f"{phase}_{field}_us"
+            for phase in ("search", "score")
+            for field in ("worker", "supervisor", "supervisor_allowance", "supervisor_margin")
+        ),
+    }
+    if (
+        set(scale) != keys
+        or scale != seal(scale)
+        or scale["cases"] != 160
+        or scale["exposed_problems"] != 8
+        or not all(re.fullmatch("sha256:[0-9a-f]{64}", scale[k]) for k in ("candidate", "scores"))
+        or any(
+            type(scale[k]) is not int or scale[k] < 0
+            for k in (
+                "selected_choices",
+                "no_selection",
+                "cold_attempt",
+                "slowest_case_us",
+                "search_us",
+            )
+        )
+        or scale["selected_choices"] + scale["no_selection"] != scale["cases"]
+        or any(
+            type(scale[k]) is not int or scale[k] <= 0
+            for k in (
+                "candidates_bytes",
+                "scored_bytes",
+                "search_allowance_us",
+                "search_worker_us",
+                "score_worker_us",
+            )
+        )
+        or scale["search_allowance_us"] != resident_seconds(scale["cases"]) * 1_000_000
+        or scale["score_allowance_us"] != scale["search_allowance_us"]
+        or scale["search_us"] > scale["search_worker_us"]
+        or scale["search_margin_us"] != scale["search_allowance_us"] - scale["search_us"]
+    ):
+        raise ValueError("invalid resident roster or search measurements")
+    for phase, names in (
+        ("search", {"load_and_identify_checkpoint_us", "publish_candidates_us"}),
+        ("score", {"score_choices_us", "publish_scores_us"}),
+    ):
+        wall = scale[phase + "_supervisor_us"]
+        limit = scale[phase + "_supervisor_allowance_us"]
+        margin = scale[phase + "_supervisor_margin_us"]
+        parts = scale[phase + "_measurements"]
+        if (
+            type(limit) is not int
+            or limit != scale["search_allowance_us"] + RESIDENT_SUPERVISOR_GRACE_SECONDS * 1_000_000
+            or (wall is not None and (type(wall) is not int or wall < scale[phase + "_worker_us"]))
+            or margin != (None if wall is None else limit - wall)
+            or (
+                parts is not None
+                and (
+                    set(parts) != names
+                    or any(type(v) is not int or v < 0 for v in parts.values())
+                    or sum(parts.values()) > scale[phase + "_worker_us"]
+                )
+            )
+        ):
+            raise ValueError("inconsistent resident role measurements")
+    measured_score = scale["score_measurements"]
+    if scale["score_margin_us"] != (
+        None
+        if measured_score is None
+        else scale["score_allowance_us"] - measured_score["score_choices_us"]
+    ):
+        raise ValueError("inconsistent independent scoring margin")
+    return dict(
+        status="VERIFIED",
+        scope="archive_only_pilot_qualification",
+        controller=doc["controller"],
+        worker=reg["candidate"],
+        registration=reg["identity"],
+        acceptance=doc["acceptance"],
+        scientific_status=doc["scientific_status"],
+        scale=scale,
+        projected_us=doc["projected_us"],
+        registered_us=SHIFT_US,
+        research_headroom_us=SHIFT_US - doc["projected_us"],
+    )

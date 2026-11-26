@@ -46,6 +46,7 @@ def generate(
     case_elapsed_us=None,
     case_boundary_dir=None,
     inference_seed=None,
+    measurements=None,
 ):
     import torch
 
@@ -94,6 +95,8 @@ def generate(
     if output.exists():
         raise ValueError("fresh generation output required")
     output.mkdir(parents=True)
+    if measurements is not None:
+        load_started = time.monotonic_ns()
     encoder, decoder, counts = load_baseline(
         model_control,
         recipe,
@@ -104,6 +107,8 @@ def generate(
         device=device,
     )
     snapshot = model_snapshot(encoder, decoder)
+    if measurements is not None:
+        measurements["load_and_identify_checkpoint_us"] = (time.monotonic_ns() - load_started) // 1000
     runtime_recipe = recipe.get("base_recipe", recipe)
     if inference_seed is not None:
         if type(inference_seed) is not int or inference_seed < 0:
@@ -298,6 +303,8 @@ def generate(
         raise RuntimeError("generator mutated frozen weights")
     if draw_identity:
         evidence.clock_summary = seal(dict(evidence.clock_summary, **draw_identity))
+    if measurements is not None:
+        publish_started = time.monotonic_ns()
     result = seal(
         {
             "version": "discovery-candidates/v1",
@@ -314,10 +321,14 @@ def generate(
         }
     )
     atomic_write(output / "candidates.json", result)
-    return reference(output_root, output / "candidates.json")
+    ref = reference(output_root, output / "candidates.json")
+    if measurements is not None:
+        measurements["publish_candidates_us"] = (time.monotonic_ns() - publish_started) // 1000
+    return ref
 
 
-def score(root, candidates, truth, *, client, output, seconds=3600, budget=None, selected_only=False):
+def score(root, candidates, truth, *, client, output, seconds=3600, budget=None, selected_only=False,
+          measurements=None):
     from oeis_learn.fresh.bigint_diagnostics import score as canonical_score
     from oeis_learn.synthesis.contracts import canonical_integer
 
@@ -370,6 +381,8 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None,
     ]
     if digest(prompts) != value["prompts"]:
         raise ValueError("visible truth differs from generation")
+    if measurements is not None:
+        scoring_started = time.monotonic_ns()
     deadline = (
         min(time.monotonic() + seconds, budget.deadline) if budget else time.monotonic() + seconds
     )
@@ -405,6 +418,9 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None,
                 "success" if v["success"] else "failure" if v["complete"] else "unresolved"
             )
             outcomes[key][method] = v
+    if measurements is not None:
+        publish_started = time.monotonic_ns()
+        measurements["score_choices_us"] = (publish_started - scoring_started) // 1000
     result = seal(
         {
             "version": "discovery-scoring/v1",
@@ -417,6 +433,8 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None,
     )
     output = confined(root, output, exists=False)
     atomic_write(output / "scores.json", result)
+    if measurements is not None:
+        measurements["publish_scores_us"] = (time.monotonic_ns() - publish_started) // 1000
     return result
 
 

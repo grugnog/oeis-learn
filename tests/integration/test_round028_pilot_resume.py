@@ -192,3 +192,88 @@ def test_repaired_controller_authenticates_original_source_and_registration(tmp_
     (source / worker).write_text("changed in the cached worker tree")
     with pytest.raises(ValueError):
         pilot.registered_pilot_source(tmp_path, caller, controller, area, parent())
+
+
+def collector_fixture(original, terminal_archive, monkeypatch, host):
+    """Run the workstation collector and CLI with a registered worker and a descendant controller."""
+    import contextlib
+    import io
+    import runpy
+    import shutil
+
+    from oeis_learn.pipeline_validation import progressive_round028 as campaign
+
+    root = original.workspace
+
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+
+    git("init", "--quiet")
+    files = [
+        HELPER,
+        HELPER.with_name("collect_audit.py"),
+        Path("scripts/foundation_run.py"),
+        Path("src/oeis_learn/pipeline_validation/progressive_pilot_worker.py"),
+        Path(".specify/memory/constitution.md"),
+        Path("specs/007-experiment-foundation/tasks.md"),
+        Path("specs/007-experiment-foundation/validation/adoption.md"),
+        Path("specs/007-experiment-foundation/validation/review-inputs.json"),
+    ]
+    for name in files:
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(SOURCE / name, root / name)
+    git("add", *(str(f) for f in files))
+
+    def commit(message):
+        git(
+            "-c",
+            "user.name=fixture",
+            "-c",
+            "user.email=fixture@example.org",
+            "commit",
+            "-qm",
+            message,
+        )
+        return git("rev-parse", "HEAD")
+
+    worker = commit("Fixture worker")
+    (root / "operator.md").write_text("Fixture controller")
+    git("add", "operator.md")
+    controller = commit("Fixture controller")
+    git("checkout", "--quiet", "--detach", worker)
+    policy = campaign.learned_search_policy()
+    monkeypatch.setattr(
+        campaign, "learned_search_policy", lambda: dict(policy, donor_revision=worker)
+    )
+    original_input = root / campaign.ORIGINAL / "prepare-research/frozen/campaign.json"
+    original_input.parent.mkdir(parents=True, exist_ok=True)
+    original_input.write_text("{}")
+    shutil.copyfile(original.folder / campaign.ARCHIVE, original.folder / campaign.SAVED_AUDIT)
+    (original.folder / campaign.ARCHIVE).write_bytes(terminal_archive)
+    tree = runpy.run_path(str(root / HELPER))["materialize"]
+    worker_source, controller_source = (tree(root, r) for r in (worker, controller))
+    collector = runpy.run_path(str(controller_source / HELPER.with_name("collect_audit.py")))[
+        "collect"
+    ]
+    monkeypatch.setattr(foundation.local, "ROOT", controller_source)
+    monkeypatch.setattr(foundation.local, "Host", host)
+    run = subprocess.run
+
+    def invoke(cmd, *args, **kwargs):
+        if len(cmd) < 3 or cmd[2] != str(controller_source / "scripts/foundation_run.py"):
+            return run(cmd, *args, **kwargs)
+        # The subprocess boundary is replaced so the disposable test roles also reach the CLI.
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            code = foundation.local.main(cmd[3:])
+        kwargs["stdout"].write(output.getvalue().encode())
+        return subprocess.CompletedProcess(cmd, code)
+
+    monkeypatch.setattr(subprocess, "run", invoke)
+    return (
+        worker_source,
+        worker,
+        controller,
+        lambda action: collector(root, controller, action),
+        root / "run-state/discovery-tools",
+    )

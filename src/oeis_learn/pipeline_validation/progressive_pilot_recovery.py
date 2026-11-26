@@ -9,6 +9,7 @@ from oeis_learn.generalization.progressive.contracts import (
     reference,
     seal,
 )
+from oeis_learn.generalization.progressive.program_search_pilot import RESIDENT_SUPERVISOR_GRACE_SECONDS, resident_seconds
 from .identity import confined
 from .preparation_recovery import retain
 from .progressive_panel_sources import require
@@ -246,7 +247,7 @@ def qualification_role(runner, role, data, *, seconds, inputs):
         allowance = seconds
         if role == "search" and segments:
             request.update(rows=pending, seconds=resident_seconds(len(pending)))
-            allowance = request["seconds"] + 120
+            allowance = request["seconds"] + RESIDENT_SUPERVISOR_GRACE_SECONDS
         request = seal(request)
         previous = interrupted(runner, role, request, inputs)
         if previous is None:
@@ -312,15 +313,6 @@ def measured_score(run, settle, cpu, data, mounts):
         _, lease, wall = previous
         settle(name, "score", lease, wall)
         attempt += 1
-
-
-def resident_seconds(cases):
-    # A stalled resident still has an external containment deadline. Budget one
-    # additional portfolio per case for encoding, native drainage and persistence,
-    # plus the existing cold evaluation setup allowance. Each case owns its 60s.
-    if type(cases) is not int or not 1 <= cases <= 160:
-        raise ValueError("resident pilot roster must contain 1 to 160 cases")
-    return 1800 + 120 * cases
 
 
 def measured_search(run, settle, progress, cpu, gpu, look, recipe, weight, weights, prompts, truth):

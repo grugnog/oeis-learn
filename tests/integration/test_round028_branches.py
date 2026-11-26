@@ -72,7 +72,7 @@ def test_paid_producer_space_and_cached_role(tmp_path):
     def measure(p):
         return dict(free_bytes=7 * 100 + 2 * 10000 + 2000 + 1000 - 4096, free_inodes=10683)
 
-    arg = dict(scale=scale, share=tmp_path, cached=False, measure=measure)
+    arg = dict(scale=scale, share=tmp_path, cached=False, measure=measure, verified={})
     (row,) = capacity(area, host, 100, **arg)
     assert row["required_bytes"] == measure(area)["free_bytes"] and row["deficit_bytes"] == 0
     assert not capacity(area, host, 100, **dict(arg, cached=True))
@@ -80,6 +80,9 @@ def test_paid_producer_space_and_cached_role(tmp_path):
         area, host, 100, **dict(arg, measure=lambda p: dict(free_bytes=0, free_inodes=0))
     )
     assert row["deficit_bytes"] > 0 and row["deficit_inodes"] > 0
+    file.write_bytes(b"x" * 4096)
+    with pytest.raises(ValueError, match="identity changed"):
+        capacity(area, host, 100, **arg)
 
 
 def test_nested_choice_and_missing_checkpoint_break_private_reexport(tmp_path):

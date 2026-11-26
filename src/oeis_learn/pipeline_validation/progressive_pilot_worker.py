@@ -252,6 +252,8 @@ def evaluate_role(work, data, client, role):
     from .progressive_evaluation import generate, score
     from .progressive_qualification import require_hip
 
+    measurements = {} if data.get("block", "").startswith("qualify-") else None
+    timings = {"measurements": measurements} if measurements is not None else {}
     if role == "search":
         require_hip()
         policy = CORRECT_FULL if data["target"] == LOOKS[-1] else DESCRIPTIVE
@@ -272,8 +274,9 @@ def evaluate_role(work, data, client, role):
             inference_seed=data["inference_seed"],
             output_root=work / "output",
             case_boundary_dir=work / "output" / "case-boundaries",
+            **timings,
         )
-        return {"candidates": path}
+        return {"candidates": path, **timings}
     score(
         work,
         data["candidates"],
@@ -282,8 +285,9 @@ def evaluate_role(work, data, client, role):
         output="output/scored",
         seconds=data["seconds"],
         selected_only=True,
+        **timings,
     )
-    return {"scores": reference(work / "output", work / "output/scored/scores.json")}
+    return {"scores": reference(work / "output", work / "output/scored/scores.json"), **timings}
 
 
 def disposable_storage():

@@ -9,9 +9,10 @@ from oeis_learn.generalization.progressive.contracts import load, read_bound_rec
 from .identity import confined
 
 
-def paid_allocations(area):
-    """Use sealed manifests and current stat metadata. Actual reuse reopens content."""
+def paid_allocations(area, verified):
+    """Credit verified bytes once per inode and backing filesystem."""
     allocations = defaultdict(lambda: [0, 0])
+    from .progressive_research_inputs import checked_file
     seen = set()
     finished = set()
     for path in sorted(area.glob("roles/*/boundary.json")):
@@ -63,6 +64,10 @@ def paid_allocations(area):
             inode = (stat.st_dev, stat.st_ino)
             if not file.is_file() or stat.st_size != ref["bytes"]:
                 raise ValueError("retained allocation differs in size")
+            signature = (stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, ref["sha256"])
+            if verified.get(inode) != signature:
+                checked_file(parent, ref)
+                verified[inode] = signature
             if inode not in seen:
                 seen.add(inode)
                 value = allocations[(stat.st_dev, kind)]
@@ -71,7 +76,7 @@ def paid_allocations(area):
     return allocations, finished
 
 
-def capacity(area, host, checkpoint_bytes, *, scale, share, cached, measure, outstanding=None):
+def capacity(area, host, checkpoint_bytes, *, scale, share, cached, measure, outstanding=None, verified=None):
     """Report each backing filesystem once, including independent image and report stores."""
     required = {}
     floor = host.policy["free_disk_floor_bytes"]
@@ -90,7 +95,7 @@ def capacity(area, host, checkpoint_bytes, *, scale, share, cached, measure, out
 
     if cached:
         return []
-    paid, finished = paid_allocations(area)
+    paid, finished = paid_allocations(area, {} if verified is None else verified)
     pending = None if outstanding is None else set(outstanding) - finished
     dev = area.stat().st_dev
     checkpoints, cp_nodes = paid[(dev, "checkpoint")]

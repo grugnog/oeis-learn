@@ -67,7 +67,8 @@ def test_clock_summary_cannot_upgrade_partial_case():
         prompts=digest(prompts),
         model=model,
         records={"x": {}},
-        clock=seal(dict(policy=CORRECT_FULL, work=model, clocks=[clock], cost_complete=True)),
+        clock=seal(dict(policy=CORRECT_FULL, work=model, source=digest({}), expected_portfolios=1,
+                        missing_portfolios=0, clocks=[clock], cost_complete=True)),
     )
     score = dict(
         candidates=candidate,
@@ -166,9 +167,25 @@ def test_endpoint_resident_reads_real_checkpoint_and_closes_all_independent_cloc
         return generate(*args, **dict(kwargs, device="cpu"))
 
     monkeypatch.setattr(evaluation, "generate", cpu_generator)
+    # A deterministic monotonic clock can exercise a slow cold load and a final
+    # valid 59-second portfolio without making the installed recovery suite wait.
+    import time
+    wall_clock = time.monotonic
+    nanos = time.monotonic_ns
+    delay = [0]
+    monkeypatch.setattr(time, "monotonic", lambda: wall_clock() + delay[0])
+    monkeypatch.setattr(time, "monotonic_ns", lambda: nanos() + delay[0] * 1_000_000_000)
+    loader = evaluation.load_baseline
+    def cold_load(*args, **kwargs):
+        result = loader(*args, **kwargs)
+        delay[0] += 180
+        return result
+    monkeypatch.setattr(evaluation, "load_baseline", cold_load)
     draws = []
 
     def sample(decoder, requests):
+        if len(draws) == 159 * 8:
+            delay[0] += 59
         draws.extend((row.seed, row.temperature) for row in requests)
         return [
             dict(
@@ -200,6 +217,7 @@ def test_endpoint_resident_reads_real_checkpoint_and_closes_all_independent_cloc
     seconds = resident_seconds(len(prompts))
     weight = reference(tmp_path, weights)
     data = dict(
+        block="qualify-resident-endpoint",
         target=4_000_000,
         arm="ordinary",
         seconds=seconds,
@@ -208,15 +226,21 @@ def test_endpoint_resident_reads_real_checkpoint_and_closes_all_independent_cloc
         recipe=recipe,
         weights=weight,
     )
-    ref = worker.evaluate_role(tmp_path, data, None, "search")["candidates"]
+    found = worker.evaluate_role(tmp_path, data, None, "search")
+    assert set(found["measurements"]) == {"load_and_identify_checkpoint_us", "publish_candidates_us"}
+    assert found["measurements"]["load_and_identify_checkpoint_us"] >= 180_000_000
+    assert found["measurements"]["publish_candidates_us"] >= 0
+    ref = found["candidates"]
     output = tmp_path / "output"
     candidates = load(output / ref["path"], maximum=128 << 20)
     scored = worker.evaluate_role(
         tmp_path,
-        dict(rows=truth, seconds=seconds, candidates=reference(tmp_path, output / ref["path"])),
+        dict(block=data["block"], rows=truth, seconds=seconds, candidates=reference(tmp_path, output / ref["path"])),
         None,
         "score",
-    )["scores"]
+    )
+    assert set(scored["measurements"]) == {"score_choices_us", "publish_scores_us"}
+    scored = scored["scores"]
     result, closed = pilot.score_projection(
         candidates,
         load(output / scored["path"]),
@@ -228,6 +252,8 @@ def test_endpoint_resident_reads_real_checkpoint_and_closes_all_independent_cloc
         inference_seed=971,
     )
     assert closed and len(result) == 160 and len(draws) == 160 * 8
+    last = candidates["clock"]["clocks"][-1]
+    assert 59 <= last["finish"] - last["start"] < 60 and last["cost_complete"]
     assert len(list((output / "case-boundaries").glob("*/choice.json"))) == 160
     for idx, prompt in enumerate(prompts):
         seed = 971 + int(identity(prompt["id"])[7:14], 16)
@@ -275,3 +301,228 @@ def test_endpoint_resident_reads_real_checkpoint_and_closes_all_independent_cloc
         )
         assert load(tmp_path / "qualification-costs/exposed-search.json")["wall_us"] == 2
     assert calls[0] == calls[1]
+
+
+def test_qualification_retries_an_incomplete_score_without_repeating_search(tmp_path):
+    from oeis_learn.generalization.progressive.contracts import atomic_write, load
+    from oeis_learn.pipeline_validation.progressive_pilot_qualification import score_choices
+
+    choices = {
+        "records": {
+            "a": {
+                "selections": {"equal_budget": {"selected": {"source_sha256": digest("fixture")}}}
+            },
+            "b": {"selections": {"equal_budget": None}},
+        }
+    }
+    path = tmp_path / "choices.json"
+    atomic_write(path, seal(choices))
+    calls = []
+
+    class Scorer:
+        area = tmp_path
+        phase = "cpu"
+
+        def __call__(self, role, request, *, seconds, inputs):
+            assert role == "score" and inputs == [(path, "/work/inputs/candidates.json")]
+            ref = request["candidates"]
+            assert ref["sha256"] == reference(tmp_path, path)["sha256"]
+            calls.append(request["block"])
+            complete = request["block"] != "exposed"
+            checked = (
+                dict(
+                    complete=True,
+                    production={"outcome": "ok", "coverage": 100},
+                    reference={"outcome": "ok", "coverage": 100},
+                )
+                if complete
+                else {"complete": False, "outcome": "not_attempted", "reason": "deadline"}
+            )
+            result = seal(
+                dict(
+                    version="discovery-scoring/v1",
+                    candidates=ref["sha256"],
+                    denominator=2,
+                    outcomes={
+                        "a": {
+                            "equal_budget": {
+                                "scoring": checked,
+                                "candidate_sha256": digest("fixture"),
+                            }
+                        },
+                        "b": {
+                            "equal_budget": {
+                                "scoring": {"outcome": "no_selected_candidate"},
+                                "candidate_sha256": None,
+                            }
+                        },
+                    },
+                )
+            )
+            self.last_output = tmp_path / request["block"]
+            from oeis_learn.pipeline_validation.preparation_recovery import retain
+
+            retain(self.last_output / "scores.json", result)
+            self.last_wall_us = 320
+            self.last_producer = seal(dict(request=request["identity"], elapsed_us=300))
+            return {"scores": reference(self.last_output, self.last_output / "scores.json")}
+
+    scorer = Scorer()
+    args = (scorer, "exposed", [{"id": "a"}, {"id": "b"}], choices, path, 2040)
+    with pytest.raises(pilot.PilotDeficit) as failed:
+        score_choices(*args)
+    assert failed.value.code == "QUALIFICATION_SCORER_INCOMPLETE"
+    assert failed.value.counts["unscored_choices"] == 1
+    for _ in range(2):
+        scores, _, count = score_choices(*args)
+        assert count == 1 and scores["denominator"] == 2
+    assert calls == ["exposed", "exposed", "exposed-rescore-1", "exposed", "exposed-rescore-1"]
+    debit = load(tmp_path / "qualification-costs/exposed-incomplete-score.json")
+    assert debit["wall_us"] == 320 and debit["role"] == "score"
+
+
+def test_collector_keeps_the_reason_for_a_blocked_qualification(tmp_path, monkeypatch):
+    import json
+    import runpy
+    import subprocess
+    import zipfile
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    repo = Path(__file__).resolve().parents[2]
+    collect = runpy.run_path(
+        str(repo / "specs/015-learned-program-search/validation/collect_audit.py")
+    )["collect"]
+    folder = tmp_path / "run-state/discovery-tools"
+    folder.mkdir(parents=True)
+
+    def blocked(cmd, *, stdout, **options):
+        assert cmd[cmd.index("--action") + 1] == "qualify-pilot"
+        stdout.write(
+            b'{"mechanical_status":"BLOCKED","reason":"QUALIFICATION_SCORER_INCOMPLETE",'
+            b'"deficit":{"unscored_choices":1},"progress":{"phase":"accept_frozen_pilot",'
+            b'"role":"full_size_score","private":"hidden-case"}}\n'
+        )
+        return SimpleNamespace(returncode=2)
+
+    monkeypatch.setattr(subprocess, "run", blocked)
+    assert collect(tmp_path, "a" * 40, "collect-pilot-qualification") == 2
+    with zipfile.ZipFile(
+        next(folder.glob("*/round028-pilot-qualification-diagnostics.zip"))
+    ) as archive:
+        outcome = json.loads(archive.read("qualification.json"))
+        assert outcome["reason"] == "QUALIFICATION_SCORER_INCOMPLETE"
+        assert outcome["deficit"]["unscored_choices"] == 1
+        assert outcome["progress"] == {"phase": "accept_frozen_pilot", "role": "full_size_score"}
+        assert b"hidden-case" not in archive.read("qualification.json")
+
+
+def test_recovered_work_is_scored_before_measuring_a_single_cold_resident(tmp_path, monkeypatch):
+    from oeis_learn.generalization.progressive.contracts import atomic_write
+    from oeis_learn.pipeline_validation import progressive_pilot_qualification as qualification
+    from types import SimpleNamespace
+
+    cpu = SimpleNamespace(area=tmp_path)
+    gpu = SimpleNamespace(area=tmp_path)
+    sample = [
+        dict(id=str(i), values=[str(i)] * 20, indices=list(map(str, range(20)))) for i in range(8)
+    ]
+    truth = [dict(r, values=r["values"] * 5, indices=list(map(str, range(100)))) for r in sample]
+    model = digest("weights")
+    weight = {"sha256": model}
+    seen = []
+
+    def role(worker, operation, data, **kwargs):
+        rows = data["rows"]
+        ids = [r["id"] for r in rows]
+        assert len(set(ids)) == len(rows) == 160
+        assert all(len(r["values"]) == (20 if operation == "search" else 100) for r in rows)
+        seen.append((operation, data["block"], ids))
+        folder = tmp_path / (data["block"] + "-" + operation)
+        worker.last_output = folder
+        if operation == "search":
+            clocks = [
+                clock_record(
+                    prompt=k,
+                    mode="correct",
+                    snapshot=model,
+                    start=1.0,
+                    finish=60.0,
+                    scope_deadline=61.0,
+                    expected=8,
+                    started=8,
+                    terminal=8,
+                    policy=CORRECT_FULL,
+                )
+                for k in ids
+            ]
+            doc = seal(
+                dict(
+                    version="discovery-candidates/v1",
+                    checkpoint=model,
+                    model=model,
+                    recipe=digest({}),
+                    prompts=digest(rows),
+                    records={k: {"selections": {"equal_budget": None}} for k in ids},
+                    elapsed_us=10_000_000_000,
+                    clock=seal(
+                        dict(
+                            policy=CORRECT_FULL,
+                            work=model,
+                            inference_seed=71,
+                            source=digest({}),
+                            expected_portfolios=160,
+                            missing_portfolios=0,
+                            cost_complete=True,
+                            clocks=clocks,
+                        )
+                    ),
+                )
+            )
+            name = "candidates"
+            partial = len(seen) == 1
+            worker.last_producer = {
+                "elapsed_us": 10_100_000_000,
+                **({"recovered": "segments"} if partial else {}),
+            }
+            worker.last_wall_us = None if partial else 10_200_000_000
+        else:
+            doc = seal(
+                dict(
+                    version="discovery-scoring/v1",
+                    candidates=data["candidates"]["sha256"],
+                    denominator=160,
+                    outcomes={
+                        k: {
+                            "equal_budget": {
+                                "success": False,
+                                "complete": False,
+                                "candidate_sha256": None,
+                                "scoring": {"complete": False, "outcome": "no_selected_candidate"},
+                            }
+                        }
+                        for k in ids
+                    },
+                )
+            )
+            name = "scores"
+            worker.last_producer = {"elapsed_us": 50, "result": {}}
+            worker.last_wall_us = 80
+        path = folder / (name + ".json")
+        atomic_write(path, doc)
+        return {name: reference(folder, path)}
+
+    monkeypatch.setattr(qualification, "qualification_role", role)
+    scale = qualification.resident_scale(
+        cpu, gpu, sample, truth, {}, weight, tmp_path / "weights", 71, lambda *args, **kwargs: None
+    )
+    assert [(op, name) for op, name, _ in seen] == [
+        ("search", "qualify-resident-endpoint"),
+        ("score", "qualify-resident-endpoint"),
+        ("search", "qualify-resident-endpoint-cold-1"),
+        ("score", "qualify-resident-endpoint-cold-1"),
+    ]
+    assert not set(seen[0][2]) & set(seen[2][2])
+    assert scale["cold_attempt"] == 1 and scale["slowest_case_us"] == 59_000_000
+    assert scale["search_supervisor_margin_us"] == 21_120_000_000 - 10_200_000_000
+    assert scale["score_supervisor_margin_us"] == 21_120_000_000 - 80
