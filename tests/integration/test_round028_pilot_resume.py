@@ -32,12 +32,18 @@ def test_staged_scorer_resumes_after_gpu_discovery(workstation, tmp_path, monkey
     registry = seal({"source": digest("qualified source")})
     boot = tmp_path / "boot"
     boot.write_text("original-boot")
+    machine = tmp_path / "machine-id"
+    machine.write_text("fixture-workstation")
     drm = tmp_path / "drm"
     node = tmp_path / "renderD128"
     node.touch()
     (drm / node.name / "device").mkdir(parents=True)
     workstation.engine.render_node.return_value = str(node)
-    paths = {Path("/sys/class/drm"): drm, Path("/proc/sys/kernel/random/boot_id"): boot}
+    paths = {
+        Path("/sys/class/drm"): drm,
+        Path("/proc/sys/kernel/random/boot_id"): boot,
+        Path("/etc/machine-id"): machine,
+    }
     monkeypatch.setattr(probe, "Path", lambda p: paths.get(Path(p), Path(p)))
     calls = []
 

@@ -1,5 +1,6 @@
 """Reuse completed unscored native data, never historical execution authority."""
 from pathlib import Path
+from itertools import combinations
 import fcntl
 from .identity import confined,seal,digest
 from .progressive_research_inputs import checked_file,_json
@@ -53,8 +54,10 @@ def adopt(root,donor,recipient):
             'sha256:7b331fd4b9feb844456add718f8e7b1b7397e95e255b264e59b1315eb2093471')
         changed=[k for k in set(current)|set(previous) if (k in names or k.startswith(prefixes)) and current.get(k)!=previous.get(k) and not (reviewed and k==support)]
         from .progressive_freeze_recovery import PANEL_PRODUCER_REVISIONS, verify_panel_data_reuse
-        panel_changes={k for k in changed if k in PANEL_PRODUCER_REVISIONS
-                       and (previous.get(k),current.get(k))==PANEL_PRODUCER_REVISIONS[k]}
+        panel_changes = {
+            k for k in changed if k in PANEL_PRODUCER_REVISIONS
+            and (previous.get(k), current.get(k)) in combinations(PANEL_PRODUCER_REVISIONS[k], 2)
+        }
         unreviewed=set(changed)-panel_changes
         if unreviewed:raise ValueError('data producer changed; fresh review required: '+', '.join(sorted(unreviewed)))
         claim=root/'run-state/discovery-preparation-revisions'/('runtime-'+census['identity'][7:]+'.json')
