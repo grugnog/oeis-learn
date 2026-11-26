@@ -73,7 +73,7 @@ def replay_decision(votes, support, budget, run_case):
     requested = route(initial)
     affordable = dict(initial, replay_budget_us=budget)
     decision = route(affordable)
-    result = dict(original=requested, reservation_us=budget, elapsed_us=0, original_service_us=0)
+    result = dict(original=requested, reservation_us=budget, elapsed_us=0, original_service_us=0, observations=[])
     if decision["action"] != "REPLAY":
         result.update(
             projection=affordable,
@@ -93,6 +93,9 @@ def replay_decision(votes, support, budget, run_case):
             "unwarranted replay vote",
         )
         updates[row["task"]] = dict(row, **update, replay=None)
+        result["observations"].append(dict(before=row["feasible"], after=update["feasible"],
+                                           unfinished_fit=row["unfinished_fit"], fault=update.get("fault", False),
+                                           elapsed_us=elapsed))
         result["elapsed_us"] += elapsed
         result["original_service_us"] += row["replay"]["cost_us"]
     final = project(
@@ -121,11 +124,11 @@ def replayed_vote(row, portfolio, selected, fits, prompt, truth):
     return dict(feasible=mask, fault=row["fault"] or fault)
 
 
-def diagnostic_replay(args, source, root, folder, revision, store, host_factory, report):
+def diagnostic_replay(args, source, root, folder, revision, store, host_factory, report, *, verify_only=False):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from oeis_learn.generalization.selector_fit_replay import original_attempt
     from oeis_learn.synthesis.admission import VisiblePrompt
-    from .progressive_round028 import reopen
+    from .progressive_round028 import reopen, audit_archive
     from .progressive_round028_timing import original_channels
 
     area = confined(folder, "private/diagnostic-replay", exists=False)
@@ -145,7 +148,13 @@ def diagnostic_replay(args, source, root, folder, revision, store, host_factory,
             budget_us=budget,
         )
     )
-    retain(reservation, reg)
+    if saved is not None:
+        require(saved == seal(saved) and saved["audit"] == reg["audit"] and saved["budget_us"] == budget,
+                "original diagnostic reservation differs")
+    can_dispatch = not verify_only and (saved is None or reg == saved)
+    reg = saved or reg
+    if not verify_only:
+        retain(reservation, reg)
     cut = reopen(root, folder, store.campaign, store.state["audit"])
     votes = [
         dict(c["diagnosis"], task=c["task"], stratum=c["stratum"])
@@ -178,11 +187,25 @@ def diagnostic_replay(args, source, root, folder, revision, store, host_factory,
             )
             attempts.append(packet)
         block = digest([reg["identity"], row["task"]])[7:]
-        result = native(
-            "fit_replay",
-            seal(dict(block=block, prompt=prompts[0], attempts=attempts)),
-            seconds=120 + math.ceil(row["replay"]["cost_us"] / 1e6),
-        )
+        packet = seal(dict(block=block, prompt=prompts[0], attempts=attempts))
+        claim = area / "assignments" / (block + "-fit_replay.json")
+        if claim.is_file():
+            from .progressive_pilot_recovery import assigned_request
+            key = assigned_request(area, claim)
+            role_dir = confined(area, "roles/" + key[7:], exists=False)
+        else:
+            role_dir = None
+        if role_dir and (role_dir / "boundary.json").is_file():
+            req = load(confined(role_dir, "request.json"))
+            require(req == seal(req) and req["identity"] == key and req["role"] == "fit_replay"
+                    and req["registration"] == reg["identity"] and req["source"] == reg["source"]
+                    and req["data"] == packet["identity"] and load(confined(role_dir, "data.json")) == packet,
+                    "saved diagnostic replay inputs differ")
+            result = native.read_committed(role_dir, req, [(role_dir / name, "/work/inputs/" + name)
+                                                           for name in ("request.json", "data.json")])
+        else:
+            require(can_dispatch, "original diagnostic worker or completed replay required")
+            result = native("fit_replay", packet, seconds=120 + math.ceil(row["replay"]["cost_us"] / 1e6))
         fits = result["attempts"]
         require([v["position"] for v in fits] == row["replay"]["ordinals"], "replay order changed")
         observation = case["observations"]["trial-05-1M"]
@@ -193,7 +216,25 @@ def diagnostic_replay(args, source, root, folder, revision, store, host_factory,
 
     result = replay_decision(votes, cut["support"]["eligible_rows"] > 0, budget, run_case)
     receipt = seal(dict(registration=reg["identity"], **result))
-    retain(area / "receipt.json", receipt)
-    return dict(
-        report, decision=result["decision"], diagnostic_replay=receipt, mechanical_status="COMPLETE"
-    )
+    from io import BytesIO
+    from oeis_learn.generalization.progressive.contracts import _atomic_write
+    from oeis_learn.generalization.progressive.program_search_outcome import archive_bytes
+    from oeis_learn.generalization.progressive.program_search_rehearsal_report import encode
+    from oeis_learn.generalization.progressive.program_search_report import verify_replay
+
+    child = seal(dict(version="round028-replay-report/v1", registration=reg,
+                      **{k: result[k] for k in ("observations", "decision", "original_service_us", "elapsed_us", "deficit_us")}))
+    raw = archive_bytes({"replay.json": encode(child), "round028-audit.zip": audit_archive(folder).read_bytes()})
+    checked = verify_replay(BytesIO(raw))
+    public = confined(folder, "share/round028-diagnostic-replay.zip", exists=False)
+    private = area / "replay-publication.json"
+    if verify_only or public.exists():
+        require(public.read_bytes() == raw, "published replay differs from private recomputation")
+    else:
+        _atomic_write(public, raw)
+    if verify_only:
+        require(load(confined(area, private)) == receipt, "private replay receipt differs")
+    else:
+        retain(private, receipt)
+    return dict(report, decision=result["decision"], diagnostic_replay=receipt, receipt=checked,
+                archive=str(public.relative_to(folder)), mechanical_status="BLOCKED" if result["decision"].get("blocker") else "COMPLETE")

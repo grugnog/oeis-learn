@@ -110,6 +110,9 @@ def audit_context(path):
 
 def verify_transport(path):
     with zipfile.ZipFile(path) as archive:
+        if archive.namelist() == ["replay.json", "round028-audit.zip"]:
+            from .program_search_report import verify_replay
+            return verify_replay(path)
         if archive.namelist() == ["qualification.json", "round028-parent.zip"]:
             from .program_search_pilot import verify_qualification
             return verify_qualification(path)

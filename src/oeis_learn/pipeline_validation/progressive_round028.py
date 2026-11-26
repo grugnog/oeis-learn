@@ -398,6 +398,12 @@ def execute(args, source, *, host_factory=None):
                                        private_identity=private["identity"])
                 if receipt["report"] != store.state["publication"] or rebuilt["identity"] != receipt["report"]:
                     raise ValueError("private/public audit mismatch")
+                if ((folder / "private/diagnostic-replay/replay-publication.json").is_file()
+                        or (folder / "share/round028-diagnostic-replay.zip").is_file()):
+                    from .progressive_round028_replay import diagnostic_replay
+                    child = diagnostic_replay(args, source, root, folder, revision, store, None,
+                                              dict(receipt=receipt), verify_only=True)
+                    receipt = child["receipt"]
                 return dict(private_replay="VERIFIED", public_recomputation=receipt), 0
             from .progressive_round028_panels import PRODUCER, panels_command
             if args.action == "timing" or (args.action == "run" and (folder / PANEL_ARCHIVE).is_file()):

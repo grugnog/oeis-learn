@@ -314,15 +314,16 @@ def test_installed_audit_reserves_and_reopens_native_replay(tmp_path, monkeypatc
     folder.mkdir(parents=True)
     with RunStore.owner(folder):
         store = RunStore(folder, reg, diagnostic=True)
-        report = commands.audit_command(tmp_path, folder, store, reg)
-        cut = commands.reopen(tmp_path, folder, reg, store.state["audit"])
+        store.append(dict(store.state, registration=reg["identity"]))
+        cut = commands.audit(commands.Donor(tmp_path, folder, reg))
     primary = sorted(
         (r for r in cut["cases"] if r["stratum"] in ("composition", "unseen_structure")),
         key=lambda r: r["task"],
     )
     votes = sample(["P", "NSP"])
     for case, vote in zip(primary, votes, strict=True):
-        case["diagnosis"] = dict(vote, task=case["task"], stratum=case["stratum"])
+        case["diagnosis"] = dict(vote, task=case["task"], stratum=case["stratum"],
+                                 search_closed=vote["feasible"] == "P", exact_witness=vote["feasible"] == "P")
     case = primary[1]
     prompts, _ = original_channels(tmp_path, [case])
     prompt = VisiblePrompt(tuple(prompts[0]["indices"]), tuple(prompts[0]["values"]))
@@ -388,13 +389,15 @@ def test_installed_audit_reserves_and_reopens_native_replay(tmp_path, monkeypatc
         ),
     )
     cut["producers"]["trial-05-1M"]["generation"] = reference(tmp_path, path)
-    cut["support"]["eligible_rows"] = 1
+    cut["support"].update(eligible_rows=1, status="measured", eligibility="executable-training/v1")
     initial = route(
         project([r["diagnosis"] for r in primary], training_support=True, replay_budget_us=None)
     )
     assert initial["blocker"] == "REPLAY_RESERVATION_UNMEASURED"
-    monkeypatch.setattr(commands, "reopen", lambda *a, **kw: cut)
-    monkeypatch.setattr(commands, "audit_command", lambda *a: dict(report, decision=initial))
+    cut["projection"] = project([r["diagnosis"] for r in primary], training_support=True, replay_budget_us=None)
+    cut["decision"] = initial
+    cut["methods"], cut["pairs"] = commands.summarize(cut["cases"], list(cut["methods"]))
+    monkeypatch.setattr(commands, "audit", lambda *a, **kw: cut)
     monkeypatch.setattr(
         commands,
         "metadata",
@@ -462,6 +465,42 @@ def test_installed_audit_reserves_and_reopens_native_replay(tmp_path, monkeypatc
     args.replay_budget_seconds = None
     assert commands.execute(args, source, host_factory=lambda *a, **kw: host) == (first, 0)
     assert len(runs) == 1 and first["diagnostic_replay"]["original_service_us"] == 1_000_000
+    args.action = "verify"
+    private, code = commands.execute(args, source)
+    assert code == 0 and private["public_recomputation"] == first["receipt"]
+    copied = tmp_path / "copied.zip"
+    copied.write_bytes((folder / first["archive"]).read_bytes())
+    args.archive = str(copied)
+    assert commands.execute(args, source) == (first["receipt"], 0)
+    assert first["receipt"]["original_service_us"] == 1_000_000 and first["receipt"]["elapsed_us"] > 0
+    assert len(runs) == 1
+    import io
+    import json
+    from oeis_learn.generalization.progressive.program_search_outcome import archive_bytes, read_canonical
+    from oeis_learn.generalization.progressive.program_search_rehearsal_report import encode, verify_transport
+    contents = read_canonical(copied, ("replay.json", "round028-audit.zip"))
+    child = json.loads(contents["replay.json"])
+    child["observations"][0]["after"] = "S"
+    with pytest.raises(ValueError, match="replay"):
+        verify_transport(io.BytesIO(archive_bytes(dict(contents, **{"replay.json": encode(seal(child))}))))
+
+
+def test_historical_reference_weights_primary_strata_equally():
+    cases = []
+    for stratum in ("composition", "unseen_structure"):
+        for i in range(32):
+            group = i // 2 if stratum == "composition" else i
+            observations = {name: {"frozen": "failure"} for name in
+                            ("retained_D", *("retained_D/" + k for k in selector.CONVENTIONAL))}
+            if stratum == "composition":
+                observations["retained_D"]["frozen"] = "success"
+            elif i < 24:
+                observations["retained_D/template"]["frozen"] = "success"
+            cases.append(dict(stratum=stratum, group=group, observations=observations))
+    result = selector.historical_reference({"cases": cases}, trial_eligible=False)
+    assert result["method"] == "retained_D" and not result["ambiguous"]
+    assert result["bounds"]["retained_D"] == ["1/2", "1/2", 0]
+    assert result["bounds"]["template"] == ["3/8", "3/8", 0]
 
 
 def test_historical_reference_uses_family_macro_and_ambiguous_fallback():

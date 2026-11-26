@@ -151,6 +151,66 @@ def verify_archive(path):
                 denominator=value["denominator"], private_cut=value["private_cut"])
 
 
+def verify_replay(path):
+    """Recompute the child routing vote and both cost accounts from its public parent."""
+    import io
+    from .program_search_outcome import read_canonical
+    from .program_search_rehearsal_report import encode
+
+    def check(condition):
+        if not condition:
+            raise ValueError("inconsistent public diagnostic replay")
+
+    records = read_canonical(path, ("replay.json", "round028-audit.zip"))
+    parent_bytes = io.BytesIO(records["round028-audit.zip"])
+    parent = verify_archive(parent_bytes)
+    with zipfile.ZipFile(parent_bytes) as z:
+        original = json.loads(z.read("audit.json"))
+    child = json.loads(records["replay.json"])
+    check(set(child) == {"version", "identity", "registration", "observations", "decision", "elapsed_us",
+                         "original_service_us", "deficit_us"} and child == seal(child)
+          and encode(child) == records["replay.json"] and child["version"] == "round028-replay-report/v1")
+    reg = child["registration"]
+    check(set(reg) == {"identity", "audit", "candidate", "source", "budget_us"} and reg == seal(reg)
+          and reg["audit"] == parent["report"] and re.fullmatch("[0-9a-f]{40}", reg["candidate"])
+          and re.fullmatch("sha256:[0-9a-f]{64}", reg["source"])
+          and type(reg["budget_us"]) is int and reg["budget_us"] >= 0)
+    projection = dict(original["projection"], replay_budget_us=reg["budget_us"])
+    authorized = route(projection)
+    rows = child["observations"]
+    check(isinstance(rows, list) and len(rows) == authorized["replay_cases"])
+    hist, fits = Counter(projection["histogram"]), Counter(projection["unfinished_fit"])
+    elapsed = service = 0
+    for offer, row in zip(projection["replay_options"], rows):
+        check(set(row) == {"before", "after", "unfinished_fit", "fault", "elapsed_us"}
+              and row["before"] == offer["mask"] and row["after"] in {"N", "S", "P", "NS", "NP", "SP", "NSP"}
+              and set(row["after"]) <= set(offer["mask"])
+              and (len(row["after"]) > 1 or row["after"] in offer["resolves"])
+              and type(row["unfinished_fit"]) is bool and type(row["fault"]) is bool
+              and type(row["elapsed_us"]) is int and row["elapsed_us"] >= 0)
+        old, new = row["before"], row["after"]
+        check(hist[old] > 0 and (fits[old] if row["unfinished_fit"] else hist[old] - fits[old]) > 0)
+        hist[old] -= 1
+        hist[new] += 1
+        if row["unfinished_fit"]:
+            fits[old] -= 1
+            fits[new] += 1
+        projection["faults"] += row["fault"]
+        elapsed += row["elapsed_us"]
+        service += offer["cost_us"]
+    if rows:
+        projection.update(histogram=dict(+hist), unfinished_fit=dict(+fits),
+                          replay_options=projection["replay_options"][len(rows):], replay_used=True)
+    deficit = 0 if rows else max(0, original["decision"]["replay_cost_us"] - reg["budget_us"])
+    decision = route(projection)
+    check(child["decision"] == decision and child["deficit_us"] == deficit and
+          child["original_service_us"] == service and child["elapsed_us"] == elapsed)
+    return dict(status="VERIFIED", scope="archive_only_replay", report=child["identity"], parent=parent["report"],
+                decision=decision, denominator=parent["denominator"], original_audit_us=original["audit_elapsed_us"],
+                historical_1m_cost_us=original["historical_1m_cost_us"], followup_charge=original["followup_charge"],
+                reservation_us=reg["budget_us"], original_service_us=service, elapsed_us=elapsed, deficit_us=deficit)
+
+
 def publish_archive(path, public):
     path = Path(path)
     validate_public(public)

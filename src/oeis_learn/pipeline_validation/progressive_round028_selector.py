@@ -51,15 +51,22 @@ def historical_reference(cut, *, trial_eligible):
                 verdict = observation.get("frozen")
                 families[(case["stratum"], case["group"])][verdict] += 1
         require(families, "historical primary families required")
-        lower = upper = Fraction()
+        totals = defaultdict(lambda: [Fraction(), Fraction(), 0])
         unknown = 0
-        for counts in families.values():
+        for (stratum, _), counts in families.items():
             total = sum(counts.values())
             missing = total - counts["success"] - counts["failure"]
             unknown += missing
-            lower += Fraction(counts["success"], total)
-            upper += Fraction(counts["success"] + missing, total)
-        bounds[name] = (lower / len(families), upper / len(families), unknown)
+            totals[stratum][0] += Fraction(counts["success"], total)
+            totals[stratum][1] += Fraction(counts["success"] + missing, total)
+            totals[stratum][2] += 1
+        for stratum in {"composition", "unseen_structure"} - totals.keys():
+            # No observed family constrains this stratum of the registered 32-case roster.
+            totals[stratum] = [Fraction(0), Fraction(1), 1]
+            unknown += 32
+        lower = sum(low / n for low, _, n in totals.values()) / 2
+        upper = sum(high / n for _, high, n in totals.values()) / 2
+        bounds[name] = (lower, upper, unknown)
     best = min(names, key=lambda name: (-bounds[name][0], bounds[name][2], name))
     ambiguous = any(
         (-bounds[other][1], bounds[other][2], other) < (-bounds[best][0], bounds[best][2], best)
