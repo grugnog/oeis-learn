@@ -195,7 +195,8 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
                 )
                 report = seal(
                     dict(
-                        version="round028-resident-qualification/v2",
+                        version="round028-resident-qualification/v3" if "prescore" in raw else "round028-resident-qualification/v2",
+                        **({"prescore": load(confined(area, "prescore.json"))} if "prescore" in raw else {}),
                         registration=reg,
                         **{
                             k: raw[k]

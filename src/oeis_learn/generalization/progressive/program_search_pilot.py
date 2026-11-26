@@ -201,7 +201,21 @@ def spending(cells, paired, comparable):
     return "REPLICATION_UNFUNDED"
 
 
-def verify_pilot(path):
+LINEAGE_FIELDS = ("initial", "stream", "codec", "common_policy")
+
+
+def verify_prescore(receipt, registration, acceptance):
+    if (not isinstance(receipt, dict)
+            or set(receipt) != {"version", "identity", "registration", "acceptance", "design", "lineage"}
+            or receipt != seal(receipt) or receipt["version"] != "round028-pre-score/v1"
+            or receipt["registration"] != registration or receipt["acceptance"] != acceptance
+            or not isinstance(receipt["lineage"], dict) or set(receipt["lineage"]) != set(LINEAGE_FIELDS)
+            or not all(isinstance(v, str) and re.fullmatch("sha256:[0-9a-f]{64}", v)
+                       for v in [receipt["design"], *receipt["lineage"].values()])):
+        raise ValueError("invalid pre-score qualification commitment")
+
+
+def verify_pilot(path, *, qualification=None):
     from .trials import paired_generator_exposure
 
     records = read_canonical(path, tuple(PILOT_MEMBERS))
@@ -229,7 +243,18 @@ def verify_pilot(path):
         "costs",
         "verification",
     }
-    current = doc.get("version") == "round028-generator-pilot/v2"
+    anchored = doc.get("version") == "round028-generator-pilot/v3"
+    current = anchored or doc.get("version") == "round028-generator-pilot/v2"
+    if anchored:
+        fields.add("prescore")
+        committed = doc["prescore"]
+        verify_prescore(committed, doc["registration"]["identity"], doc["acceptance"])
+        if committed["design"] != doc["freeze"]:
+            raise ValueError("family allocation differs from pre-score qualification")
+    if qualification is not None:
+        independent = verify_qualification(qualification)
+        if not anchored or independent.get("prescore") != committed:
+            raise ValueError("pilot differs from independent pre-score qualification")
     if current:
         fields.add("design")
     targets = [row["target"] for row in doc["looks"]]
@@ -237,7 +262,7 @@ def verify_pilot(path):
         set(doc) != fields
         or seal(doc) != doc
         or raw != encode(doc)
-        or doc["version"] not in ("round028-generator-pilot/v1", "round028-generator-pilot/v2")
+        or doc["version"] not in ("round028-generator-pilot/v1", "round028-generator-pilot/v2", "round028-generator-pilot/v3")
         or doc["registration"]
         != pilot_registration(
             parent, doc["registration"]["candidate"], doc["registration"]["source"]
@@ -331,6 +356,8 @@ def verify_pilot(path):
             raise ValueError("invalid comparison flag")
         cuts = look["cuts"]
         for arm, cut in cuts.items():
+            if anchored and any(cut.get(k) != v for k, v in committed["lineage"].items()):
+                raise ValueError("checkpoint differs from pre-score training lineage")
             if (
                 cut["target"] != target
                 or cut["registration"] != doc["registration"]["identity"]
@@ -412,6 +439,7 @@ def verify_pilot(path):
     return dict(
         status="VERIFIED",
         scope="archive_only_pilot",
+        **({"prescore": committed["identity"]} if anchored else {}),
         report=doc["identity"],
         next_action=doc["action"],
         registered_role_us=SHIFT_US,
@@ -491,7 +519,10 @@ def verify_qualification(path):
             )
         )
     reg = doc["registration"]
-    current = doc["version"] == "round028-resident-qualification/v2"
+    anchored = doc["version"] == "round028-resident-qualification/v3"
+    current = anchored or doc["version"] == "round028-resident-qualification/v2"
+    if anchored:
+        verify_prescore(doc["prescore"], reg["identity"], doc["acceptance"])
     if (
         set(doc)
         != {
@@ -505,8 +536,9 @@ def verify_qualification(path):
             "registered_us",
             "scientific_status",
             *({"workspace_space"} if current else ()),
+            *({"prescore"} if anchored else ()),
         }
-        or doc["version"] not in ("round028-resident-qualification/v1", "round028-resident-qualification/v2")
+        or doc["version"] not in ("round028-resident-qualification/v1", "round028-resident-qualification/v2", "round028-resident-qualification/v3")
         or doc != seal(doc)
         or raw != encode(doc)
         or not re.fullmatch("[0-9a-f]{40}", doc["controller"])
@@ -624,6 +656,7 @@ def verify_qualification(path):
     return dict(
         status="VERIFIED",
         scope="archive_only_pilot_qualification",
+        **({"prescore": doc["prescore"]} if anchored else {}),
         controller=doc["controller"],
         worker=reg["candidate"],
         registration=reg["identity"],

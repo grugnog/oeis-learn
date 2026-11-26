@@ -18,15 +18,29 @@ from .pilot_clocks import CORRECT_FULL, DESCRIPTIVE, clock_record
 from oeis_learn.generalization.progressive.program_search_costing import CLOCK_FIELDS
 
 
+def assigned_request(area, claim):
+    saved = load(confined(area, claim))
+    require(saved == seal(saved), "invalid original pilot assignment")
+    key = saved["request"]
+    successor = area / "assignment-recovery" / claim.name
+    if successor.is_file():
+        entry = load(confined(area, successor))
+        old = confined(area, "roles/" + key[7:], exists=False)
+        require(entry == seal(entry) and entry["predecessor"] == key
+                and entry["request"] == seal(entry["request"])
+                and not (old.exists() and any(old.iterdir())), "original pilot assignment has work")
+        return entry["request"]["identity"]
+    return key
+
+
 def interrupted(runner, role, data, mounts):
     """Only a provably terminated original can release unused time to its successor."""
     area = runner.area
     assignment = area / "assignments" / (data["block"] + "-" + role + ".json")
     if not assignment.is_file():
         return None
-    saved = load(confined(area, assignment))
-    require(seal(saved) == saved, "invalid original pilot assignment")
-    old = confined(area, "roles/" + saved["request"][7:], exists=False)
+    key = assigned_request(area, assignment)
+    old = confined(area, "roles/" + key[7:], exists=False)
     if (old / "boundary.json").exists():
         return None
     attempts = list(old.glob("attempt-*"))
@@ -37,7 +51,7 @@ def interrupted(runner, role, data, mounts):
     req = load(confined(old, "request.json"))
     data_path = confined(old, "data.json")
     require(
-        saved["request"] == req["identity"]
+        key == req["identity"]
         and seal(req) == req
         and req["role"] == role
         and req["image"] == runner.image

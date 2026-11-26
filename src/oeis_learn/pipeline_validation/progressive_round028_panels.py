@@ -162,7 +162,26 @@ class NativeRoles:
             if claim.exists():
                 saved = load(confined(self.area, claim))
                 require(seal(saved) == saved, "original timing assignment differs")
-                old = confined(self.area, "roles/" + saved["request"][7:], exists=False)
+                key = saved["request"]
+                if self.machine_bound_attempts:
+                    from .progressive_pilot_recovery import assigned_request
+
+                    key = assigned_request(self.area, claim)
+                old = confined(self.area, "roles/" + key[7:], exists=False)
+                recovery = self.area / "assignment-recovery" / claim.name
+                if self.machine_bound_attempts and recovery.is_file():
+                    original = load(confined(self.area, recovery))["request"]
+                    require(original == seal(dict(req, physical=original["physical"])),
+                            "unstarted pilot inputs changed")
+                    req = original
+                elif self.machine_bound_attempts and key != req["identity"] and not (
+                    old.exists() and any(old.iterdir())
+                ):
+                    # The legacy claim contains only a boot-dependent digest. No worker
+                    # had inputs or an attempt. Bind the frozen request to this machine,
+                    # keeping both the unspent assignment and its single successor.
+                    self.bind_physical(physical)
+                    retain(recovery, seal(dict(predecessor=key, request=req)))
                 # A pilot's original inputs can already have been committed before its first
                 # dispatch. An unstarted request can run on the separately bound machine.
                 staged = (
@@ -175,16 +194,19 @@ class NativeRoles:
                     original = load(confined(old, "request.json"))
                     require(
                         original == seal(dict(req, physical=original["physical"]))
-                        and original["identity"] == saved["request"],
+                        and original["identity"] == key,
                         "timing input or candidate changed",
                     )
                     req = original
+                if self.machine_bound_attempts:
+                    key = assigned_request(self.area, claim)
+                require(key == req["identity"], "original timing assignment differs")
         folder = confined(self.area, "roles/" + req["identity"][7:], exists=False)
         folder.mkdir(parents=True, exist_ok=True)
         req_path, data_path = folder / "request.json", folder / "data.json"
         retain(req_path, req)
         retain(data_path, data)
-        if self.fixed_attempt:
+        if self.fixed_attempt and not claim.exists():
             retain(claim, seal({"request": req["identity"]}))
         mounts = [
             (req_path, "/work/inputs/request.json"),

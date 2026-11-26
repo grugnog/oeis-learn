@@ -158,6 +158,7 @@ def register(commands):
     authority = round028.add_mutually_exclusive_group(required=True)
     authority.add_argument("--workspace", help="absolute physical round027 donor workspace")
     authority.add_argument("--archive", help="copied round028 publication (verify only)")
+    round028.add_argument("--qualification-archive", help="independent pre-score receipt for a copied pilot")
     for name, arguments in COMMANDS.items():
         command = operations.add_parser(name)
         for argument in arguments:

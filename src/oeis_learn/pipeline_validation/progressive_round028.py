@@ -281,6 +281,12 @@ def execute(args, source, *, host_factory=None):
     producer_revision = getattr(args, "producer_revision", None)
     if producer_revision is not None and args.action != "recover-rehearsal":
         raise ValueError("producer revision is restricted to original rehearsal recovery")
+    qualification = getattr(args, "qualification_archive", None)
+    if qualification:
+        if args.action != "verify" or not args.archive:
+            raise ValueError("qualification comparison requires a copied pilot")
+        from oeis_learn.generalization.progressive.program_search_pilot import verify_pilot
+        return verify_pilot(Path(args.archive), qualification=Path(qualification)), 0
     if args.archive:
         if args.action != "verify":
             raise ValueError("archive authority is restricted to verification")

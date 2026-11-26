@@ -440,6 +440,8 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
                           search_supervisor_margin_us=21_120_000_000-400, score_supervisor_margin_us=21_120_000_000-180,
                           search_measurements={"load_and_identify_checkpoint_us":50,"publish_candidates_us":20},
                           score_measurements={"score_choices_us":100,"publish_scores_us":50}))
+        cut = generator_design_and_cuts(0)[2]["ordinary"]
+        pilot.retain_training_lineage(area, rest[3], dict(cut, stream=rest[3]["stream"]))
         retain(area / "qualification-scale.json", scale)
         return {"installed": digest("on exposed fixtures"), "resident_scale":scale["identity"]}
     monkeypatch.setattr(pilot, "accept_pilot", accept_fixture)
@@ -483,6 +485,7 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
                 cut = seal(
                     dict(
                         c,
+                        stream=seal({"seed": 1})["identity"],
                         registration=self.registration["identity"],
                         seeds=pair_seeds(self.registration["identity"], 0),
                     )
@@ -618,6 +621,7 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
         with pytest.raises(ValueError, match="filesystem"):
             verify_changed(dict(valid, workspace_space={"free_bytes": True, "free_inodes": 100}))
         legacy = dict(valid, version="round028-resident-qualification/v1")
+        del legacy["prescore"]
         del legacy["workspace_space"]
         legacy["scale"] = seal({k: v for k, v in valid["scale"].items() if k not in
                                 ("minimum_case_allowance_us", "slowest_case_margin_us")})
@@ -629,6 +633,25 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
             verify_qualification(io.BytesIO(archive_bytes(contents)))
         assert collect("collect-pilot") == 0
         assert any(role == "score" for _, role in calls)
+        archive = original.folder / pilot.SHARE
+        anchored = verify_pilot(archive, qualification=copied)
+        assert anchored["prescore"] == measured["prescore"]["identity"]
+        members = read_canonical(archive, ("pilot.json", "round028-parent.zip"))
+        good = json.loads(members["pilot.json"])
+        for field in ("initial", "stream", "families"):
+            changed = copy.deepcopy(good)
+            if field == "families":
+                sizes = changed["design"]["sizes"]["4000000"]
+                sizes[0]["size"], sizes[1]["size"] = sizes[0]["size"] + 1, sizes[1]["size"] - 1
+                changed["design"] = seal(changed["design"])
+                changed["freeze"] = changed["design"]["identity"]
+            else:
+                for look in changed["looks"]:
+                    look["cuts"] = {arm: seal(dict(c, **{field: digest("substitution")}))
+                                    for arm, c in look["cuts"].items()}
+            with pytest.raises(ValueError, match="pre-score"):
+                verify_pilot(io.BytesIO(archive_bytes(dict(members, **{"pilot.json": encode(seal(changed))}))),
+                             qualification=copied)
         initial_calls = list(calls)
         assert collect("collect-pilot") == 0 and calls == initial_calls
         assert collect("collect-pilot-qualification") == 0 and calls == initial_calls

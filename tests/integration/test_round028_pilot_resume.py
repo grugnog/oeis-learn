@@ -24,7 +24,8 @@ HELPER = Path("specs/015-learned-program-search/validation/candidate_source.py")
 
 
 @pytest.mark.parametrize("reboot", [False, True])
-def test_staged_scorer_resumes_after_gpu_discovery(workstation, tmp_path, monkeypatch, reboot):
+@pytest.mark.parametrize("assignment_only", [False, True])
+def test_staged_scorer_resumes_after_gpu_discovery(workstation, tmp_path, monkeypatch, reboot, assignment_only):
     from oeis_learn.pipeline_validation.preparation_recovery import retain
 
     area = tmp_path / "pilot"
@@ -124,15 +125,26 @@ def test_staged_scorer_resumes_after_gpu_discovery(workstation, tmp_path, monkey
     claim = area / "assignments/qualify-resident-search-score.json"
     original = area / "roles" / req["identity"][7:]
     retain(claim, seal({"request": req["identity"]}))
-    retain(original / "request.json", req)
-    retain(original / "data.json", data)
+    if not assignment_only:
+        retain(original / "request.json", req)
+        retain(original / "data.json", data)
     if reboot:
         boot.write_text("subsequent-boot")
     gpu("search", search, seconds=10)
     assert cpu("score", data, seconds=10, inputs=mounts) == {}
     assert cpu("score", data, seconds=10, inputs=mounts) == {}
     assert calls == ["gradient", "search", "score"]
-    assert machine_file.read_bytes() == initial_machine and load(original / "request.json") == req
+    assert machine_file.read_bytes() == initial_machine
+    if assignment_only:
+        from oeis_learn.pipeline_validation.progressive_pilot_recovery import assigned_request
+        actual = assigned_request(area, claim)
+        original = area / "roles" / actual[7:]
+        staged = load(original / "request.json")
+        assert staged == seal(dict(req, physical=staged["physical"]))
+    else:
+        assert load(original / "request.json") == req
+    assert load(original / "data.json") == data
+    assert len(list(original.glob("attempt-*/end.json"))) == 1
     assert load(claim)["request"] == req["identity"]
     assert list(original.glob("attempt-*")) == [original / "attempt-0000"]
     started = load(original / "attempt-0000/start.json")

@@ -450,6 +450,7 @@ def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, w
         package=package["identity"])), seconds=TRAINING_SECONDS,
         inputs=[(area / training["path"], "/work/inputs/training.json")])
     _, weights = checkpoint_inputs(gpu.last_output, trained)
+    retain_training_lineage(area, freeze, trained["milestone"])
     weight = dict(trained["weights"], path="inputs/weights.pt")
     scale = resident_scale(cpu, gpu, exposed, exposed_truth, package["profile"], weight, weights,
                            freeze["seeds"]["initialization"], progress)
@@ -458,6 +459,14 @@ def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, w
         scale = seal(dict(scale, score_control=exposed_scorer_control(root, historical, cpu, scale["cases"])))
     checks["resident_scale"] = retain_resident_scale(area, freeze["registration"], scale)
     return checks
+
+
+def retain_training_lineage(area, freeze, milestone):
+    from oeis_learn.generalization.progressive.program_search_pilot import LINEAGE_FIELDS
+
+    require(milestone["target"] == 0 and milestone["stream"] == freeze["stream"],
+            "qualification checkpoint differs from registered training")
+    retain(area / "qualified-lineage.json", {k: milestone[k] for k in LINEAGE_FIELDS})
 
 
 def check_space(area, host, checkpoint_bytes, *, scale, share, cached=False, outstanding=None, verified=None):
@@ -560,6 +569,7 @@ def publication_inputs(area, root=None):
         "admissions/*.json",
     ):
         paths.extend(str(p.relative_to(area)) for p in sorted(area.glob(pattern)))
+    paths.extend(n for n in ("qualified-lineage.json", "prescore.json") if (area / n).is_file())
     files = [reference(area, confined(area, name)) for name in paths]
     # A boundary authenticates its producer, which can itself refer to another
     # file. Hash these private leaves while streaming large tensors from disk.
@@ -586,7 +596,7 @@ def publication_inputs(area, root=None):
     for pattern in ("training*.json", "predecessor.json", "reservations/*.json",
                     "qualification-costs/*.json", "qualification-scale.json", "resident-measurements.json",
                     "resident-clock-margins.json", "resident-score-control.json", "exposed-scorer-control/candidates.json",
-                    "recovered/**/*", "roles/*/request.json",
+                    "recovered/**/*", "assignment-recovery/*.json", "roles/*/request.json",
                     "roles/*/data.json", "roles/*/attempt-*/start.json", "roles/*/attempt-*/end.json",
                     "roles/*/attempt-*/output/producer.json", "roles/*/attempt-*/output/case-boundaries/**/*",
                     "roles/*/attempt-*/output/accounting/**/*", "roles/*/attempt-*/output/checkpoint/**/*",
@@ -656,6 +666,7 @@ def qualification_result(area, registration, acceptance, projected, controller, 
     return dict(mechanical_status="QUALIFIED", scientific_status=scientific_status,
                 controller=controller, workstation=workstation,
                 registration=registration["identity"], worker=registration["candidate"], acceptance=acceptance["identity"],
+                **({"prescore": load(confined(area, "prescore.json"))} if (area / "prescore.json").is_file() else {}),
                 scale=scale, workspace_space=space(area), projected_us=projected, registered_us=SHIFT_US), 0
 
 
@@ -894,6 +905,15 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             )
         )
         retain(path, acceptance)
+    # A prior pilot with research work already recorded keeps its original evidence scope.
+    began_research = any(any((area / key).glob("*")) for key in ("reservations", "trials", "accounting"))
+    prescore_path = area / "prescore.json"
+    prescore = None
+    if prescore_path.exists() or not began_research:
+        prescore = seal(dict(version="round028-pre-score/v1", registration=registration["identity"],
+                             acceptance=acceptance["identity"], design=design["identity"],
+                             lineage=load(confined(area, "qualified-lineage.json"))))
+        retain(prescore_path, prescore)
     if getattr(args, "action", None) == "qualify-pilot":
         progress("qualified", acceptance=acceptance["identity"])
         started = any((area / key).exists() for key in ("reservations", "trials", "accounting"))
@@ -950,9 +970,9 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
         assignment = area / "assignments" / (data["block"] + "-" + role + ".json")
         cached = False
         if assignment.is_file():
-            claim = load(confined(area, assignment))
-            require(claim == seal(claim), "changed capacity assignment")
-            cached = (confined(area, "roles/" + claim["request"][7:], exists=False) / "boundary.json").is_file()
+            from .progressive_pilot_recovery import assigned_request
+            key = assigned_request(area, assignment)
+            cached = (confined(area, "roles/" + key[7:], exists=False) / "boundary.json").is_file()
         check_space(area, host, largest, cached=cached, outstanding=set(prices)-completed, **space_args)
         key = data["block"] + "/" + role + "/0"
         saved = area / "reservations" / (data["block"] + "-" + role + ".json")
@@ -1103,7 +1123,8 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
     costs = [load(confined(area, path)) for path in sorted((area / "costs").glob("*.json"))]
     report = seal(
         dict(
-            version="round028-generator-pilot/v2",
+            version="round028-generator-pilot/v3" if prescore else "round028-generator-pilot/v2",
+            **({"prescore": prescore} if prescore else {}),
             registration=registration,
             freeze=design["identity"],
             design=design,

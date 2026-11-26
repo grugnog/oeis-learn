@@ -433,7 +433,7 @@ def main():
             summary = result["telemetry"]
             summary.update(sample_interval_seconds=recorder.sample_interval,
                            uncovered_us=max(0, summary["role_wall_us"] - summary["covered_us"]),
-                           sample_limit_reached=recorder.samples >= recorder.MAX_SAMPLES)
+                           sample_limit_reached=recorder.records >= recorder.MAX_SAMPLES)
         elif role == "storage":
             result = disposable_storage()
         elif role == "recovery":

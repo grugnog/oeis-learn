@@ -165,6 +165,7 @@ class Recorder:
         self.depth = 0
         self.events = []
         self.samples = 0
+        self.records = 0
         self.missed = 0
         self.collector_cpu = 0.0
         self.started = time.monotonic()
@@ -253,27 +254,31 @@ class Recorder:
     def _collect(self):
         due = time.monotonic()
         with (self.output / "samples.jsonl").open("a") as handle:
-            while not self.stop.is_set() and self.samples < self.MAX_SAMPLES:
+            while not self.stop.is_set() and self.records < self.MAX_SAMPLES:
                 begin = time.thread_time()
                 try:
                     row = self.snapshot()
                     row["sample_lateness_seconds"] = max(0, time.monotonic() - due)
-                    payload=json.dumps(row, allow_nan=False)+"\n"
-                    if self.sample_bytes is not None and len(payload.encode())>self.sample_bytes:
-                        self.collector_error='telemetry sample exceeds prospective byte cap'
-                        self.ready.set()
-                        return
+                    payload = json.dumps(row, allow_nan=False) + "\n"
+                    measured = True
+                except (OSError, ValueError, IndexError) as exc:
+                    # Keep errors observable within the same record and byte budgets.
+                    payload = json.dumps({"time": time.monotonic(), "error": type(exc).__name__}) + "\n"
+                    measured = False
+                    self.missed += 1
+                if self.sample_bytes is not None and len(payload.encode()) > self.sample_bytes:
+                    self.collector_error = "telemetry sample exceeds prospective byte cap"
+                    self.ready.set()
+                    return
+                try:
                     handle.write(payload)
                     handle.flush()
-                    self.samples += 1
-                except (OSError, ValueError, IndexError) as exc:
-                    try:
-                        handle.write(json.dumps(dict(time=time.monotonic(), error=str(exc))) + "\n")
-                    except OSError:
-                        self.collector_error = f"{type(exc).__name__}: {exc}"
-                        self.ready.set()
-                        return
-                    self.missed += 1
+                except OSError as exc:
+                    self.collector_error = type(exc).__name__
+                    self.ready.set()
+                    return
+                self.records += 1
+                self.samples += int(measured)
                 self.ready.set()
                 self.collector_cpu += time.thread_time() - begin
                 due += self.sample_interval
@@ -302,6 +307,7 @@ class Recorder:
             json.dumps(
                 dict(
                     samples=self.samples,
+                    records=self.records,
                     missed=self.missed,
                     collector_cpu_seconds=self.collector_cpu,
                     collector_native_tid=None if self.thread is None else self.thread.native_id,

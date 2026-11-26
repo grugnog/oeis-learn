@@ -83,6 +83,33 @@ def test_recorder_retains_exception_and_stops_collector(tmp_path):
     assert json.loads((tmp_path / "telemetry.json").read_text())["samples"] >= 1
 
 
+@pytest.mark.parametrize("duration", [21_000, 36_000], ids=["search", "train"])
+def test_long_collector_bounds_errors_and_recovers(tmp_path, monkeypatch, duration):
+    import oeis_learn.tracking.pipeline_profile as profile
+    from oeis_learn.pipeline_validation.progressive_generator_probe import usage_summary
+
+    monkeypatch.setattr(Recorder, "MAX_SAMPLES", 5)
+    recorder = Recorder(tmp_path, instrumented=True, sample_bytes=160, planned_seconds=duration)
+    now = [0.0]
+    monkeypatch.setattr(profile.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(recorder.stop, "wait", lambda seconds: now.__setitem__(0, now[0] + seconds))
+    def snapshot():
+        if now[0] < 2 * recorder.sample_interval:
+            raise OSError("unavailable" * 100)
+        return {"time": now[0], "gpu": {"gpu_busy_percent": 50}}
+
+    monkeypatch.setattr(recorder, "snapshot", snapshot)
+    recorder._collect()
+    records = (tmp_path / "samples.jsonl").read_bytes().splitlines(keepends=True)
+    assert len(records) == recorder.records == 5
+    assert all(len(line) <= 160 for line in records)
+    assert recorder.missed == 2 and recorder.samples == 3
+    summary = usage_summary(tmp_path, duration * 1_000_000, interval=recorder.sample_interval)
+    assert summary["readable_samples"] == 3
+    assert summary["covered_us"] == duration * 500_000
+    assert not recorder.stop.is_set()
+
+
 def test_host_help_and_scope_rejection_without_site_packages():
     module = runner()
     p = subprocess.run([sys.executable, "-S", module.__file__, "--help"], capture_output=True)
