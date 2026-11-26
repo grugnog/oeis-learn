@@ -14,13 +14,14 @@ No workstation data collection is needed to review this design. To read the plan
 )
 ```
 
-In a development checkout of the feature branch, the repository can validate the planning artifact set now.
+In a fresh development checkout of the feature branch, validate the design and implementation checklist together.
 
 ```bash
-.specify/scripts/bash/check-prerequisites.sh --json --require-spec
+SPECIFY_FEATURE_DIRECTORY=specs/015-learned-program-search \
+  .specify/scripts/bash/check-prerequisites.sh --json --require-spec --require-tasks --include-tasks
 ```
 
-The result names this feature directory and lists research, data model, contracts and quickstart. Existing regression modules for the integration points are `tests/unit/test_selector_audit.py`, `test_progressive_metrics.py`, `test_progressive_decisions.py`, `test_progressive_budgets.py` and `test_progressive_freeze_progress.py` in the same directory. Run these with pytest in the project's qualified environment. Part of the freeze suite constructs a real PyTorch model. These tests cover inherited behavior.
+The result names this feature directory and lists research, data model, contracts, quickstart and [tasks.md](tasks.md). Existing regression modules for the integration points are `tests/unit/test_selector_audit.py`, `test_progressive_metrics.py`, `test_progressive_decisions.py`, `test_progressive_budgets.py` and `test_progressive_freeze_progress.py` in the same directory. Run these with pytest in the project's qualified environment. Part of the freeze suite constructs a real PyTorch model. These tests cover inherited behavior.
 
 ## After the implementation is published
 
