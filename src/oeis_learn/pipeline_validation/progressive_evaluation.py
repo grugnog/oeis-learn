@@ -5,6 +5,7 @@ be referenced and verified before the scorer can inspect continuation truth.
 """
 
 import time
+from pathlib import Path
 
 from oeis_learn.generalization.progressive.baselines import (
     Portfolio,
@@ -43,6 +44,7 @@ def generate(
     component_library=None,
     evaluation_policy=DRAIN,
     case_elapsed_us=None,
+    case_boundary_dir=None,
 ):
     import torch
 
@@ -122,6 +124,10 @@ def generate(
     try:
         for ordinal, p in enumerate(prompts):
             case_start = time.monotonic_ns() if case_elapsed_us is not None else None
+            if case_boundary_dir is not None:
+                boundary = Path(case_boundary_dir) / digest(p["id"])[7:]
+                boundary.mkdir(parents=True, exist_ok=False)
+                atomic_write(boundary / "start.json", seal(dict(prompt=digest(p), model=snapshot, policy=evaluation_policy)))
             memories = {}
             with torch.no_grad():
                 for mode, values in [
@@ -274,6 +280,9 @@ def generate(
                 }
                 record["costs"][method] = portfolio_budget.report()
             rows[p["id"]] = record
+            if case_boundary_dir is not None:
+                atomic_write(boundary / "choice.json", seal(dict(prompt=digest(p), model=snapshot, policy=evaluation_policy,
+                                                           clock=evidence.clocks[(p["id"], "correct")], record=record)))
             if case_elapsed_us is not None:
                 case_elapsed_us[p["id"]] = (time.monotonic_ns() - case_start + 999) // 1000
     finally:

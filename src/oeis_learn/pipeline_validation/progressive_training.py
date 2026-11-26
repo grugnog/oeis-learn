@@ -717,6 +717,10 @@ class RecoverableUpdate:
 
     @timed('checkpoint_capture')
     def capture(self, context):
+        return self.capture_runner(self.runner, context)
+
+    @staticmethod
+    def capture_runner(runner, context):
         import copy
 
         import numpy as np
@@ -727,15 +731,15 @@ class RecoverableUpdate:
         result = copy.deepcopy(context)
         result.update(
             weights={
-                "encoder": self.runner.encoder.state_dict(),
-                "decoder": self.runner.decoder.state_dict(),
+                "encoder": runner.encoder.state_dict(),
+                "decoder": runner.decoder.state_dict(),
             },
-            optimizer=self.runner.state_dict(),
+            optimizer=runner.state_dict(),
             rng={
                 "python": random.getstate(),
                 "numpy": np.random.get_state(),
                 "torch": torch.get_rng_state(),
-                "device": torch.cuda.get_rng_state_all() if self.runner.device == "cuda" else [],
+                "device": torch.cuda.get_rng_state_all() if runner.device == "cuda" else [],
             },
         )
         return result

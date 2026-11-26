@@ -110,6 +110,9 @@ def audit_context(path):
 
 def verify_transport(path):
     with zipfile.ZipFile(path) as archive:
+        if "pilot.json" in archive.namelist():
+            from .program_search_pilot import verify_pilot
+            return verify_pilot(path)
         if "workstation.json" in archive.namelist():
             from .program_search_outcome import verify_workstation
             return verify_workstation(path)

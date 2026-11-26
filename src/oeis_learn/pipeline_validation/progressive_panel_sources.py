@@ -153,7 +153,7 @@ def historical_row(row, support, role, *, legacy=False):
     return result
 
 
-def read_inputs(root, refs):
+def read_inputs(root, refs, *, include_protected=False):
     def authority(name, kind):
         ref = refs[name]
         require(
@@ -221,6 +221,7 @@ def read_inputs(root, refs):
     sources = _json(checked_file(root, data["candidates"]), maximum=128 << 20)
     candidates.extend(dict(r, stratum="oeis") for r in sources if source_eligibility(r) is None)
     historical = [historical_row(r, support, "reservation") for r in [*old, *corrected]]
+    protected = list(historical) if include_protected else []
     historical.extend(historical_row(r, support, "training") for r in training)
     manifest = validate_manifest(read_bound_record(root, data["manifest"]))
     old_data = manifest["prior_inputs"]
@@ -231,10 +232,11 @@ def read_inputs(root, refs):
         (manifest["fresh_002"]["targets"], "legacy"),
     ]
     for ref, role in sources:
-        historical.extend(
-            historical_row(r, support, "training" if role == "training" else "legacy", legacy=True)
-            for r in _json(checked_file(root, ref))
-        )
+        additions = [historical_row(r, support, "training" if role == "training" else "legacy", legacy=True)
+                     for r in _json(checked_file(root, ref))]
+        historical.extend(additions)
+        if include_protected and role != "training":
+            protected.extend(additions)
     indexes = [
         checked_file(root, data["exposure"]),
         checked_file(*files["training-exposure.sqlite"]),
@@ -246,6 +248,7 @@ def read_inputs(root, refs):
     return {
         "candidates": candidates,
         "historical": historical,
+        **({"protected": protected} if include_protected else {}),
         "indexes": indexes,
         "package": package,
         "support": support,

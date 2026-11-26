@@ -248,7 +248,7 @@ def candidate_image(host, source, area, revision, phase):
     return image, us, False
 
 
-def rehearse(args, root, source, folder, store, revision, audit_result, *, host_factory):
+def rehearse(args, root, source, folder, store, revision, audit_result, *, host_factory, output_area=None):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from .progressive_handoff import stage as invoke
     from .progressive_round028 import reopen
@@ -268,7 +268,7 @@ def rehearse(args, root, source, folder, store, revision, audit_result, *, host_
                   original_scale=original_scale(cut))
     if sample is None:
         return dict(output, reason="NO_TRAINING_SUPPORT_OUTSIDE_PROBES"), 2
-    area = confined(folder, "private/generator-rehearsal/" + revision, exists=False)
+    area = confined(folder, output_area or ("private/generator-rehearsal/" + revision), exists=False)
     area.mkdir(parents=True, exist_ok=True)
     base_path = confined(area, "training.json", exists=False)
     retain(base_path, sample)

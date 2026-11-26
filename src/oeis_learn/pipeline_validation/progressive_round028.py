@@ -290,6 +290,10 @@ def execute(args, source, *, host_factory=None):
     if not root.is_absolute() or root != root.resolve(strict=True):
         raise ValueError("absolute physical donor workspace required")
     folder = confined(root, SESSION, exists=False)
+    if args.action == "pilot-status":
+        from .progressive_round028_pilot import AREA
+        progress = confined(folder, AREA + "/progress.json", exists=False) if folder.exists() else None
+        return {"mechanical_status": "INSPECTED", "pilot": load(progress) if progress and progress.is_file() else None}, 0
     if args.action == "status":
         return status(folder), 0
     policy = learned_search_policy()
@@ -324,6 +328,19 @@ def execute(args, source, *, host_factory=None):
         with RunStore.owner(folder):
             store = audit_store(folder, revision)
             registration = store.campaign
+            if args.action == "pilot":
+                from .progressive_round028_pilot import AREA as PILOT_AREA, run_pilot
+                try:
+                    return run_pilot(args, source, root, folder, revision, store, host_factory)
+                except (ValueError, OSError, KeyError, TypeError, RuntimeError, TimeoutError, subprocess.SubprocessError, zipfile.BadZipFile) as exc:
+                    import traceback
+                    from .progressive_round028_rehearsal import failure_locations
+                    area = confined(folder, PILOT_AREA, exists=False)
+                    area.mkdir(parents=True, exist_ok=True, mode=0o700)
+                    (area / "exception.txt").write_text(traceback.format_exc())
+                    return dict(mechanical_status="BLOCKED", reason="PILOT_INTERRUPTED", error_type=type(exc).__name__,
+                                progress=load(area/"progress.json") if (area/"progress.json").is_file() else None,
+                                failure_locations=failure_locations(source,area,role_folder="roles")), 2
             from .progressive_round028_timing import AREA, PANEL_ARCHIVE, SHARE, timing_command
             from .progressive_round028_terminal import close_timing
             terminal = store.state.get("terminal")

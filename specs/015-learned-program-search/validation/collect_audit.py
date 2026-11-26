@@ -96,7 +96,7 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
 
     destination = confined(workspace, "run-state/discovery-tools")
     rehearsal = action == "collect-rehearsal"
-    prefix = {"collect-audit":"round028-cpu-", "collect-rehearsal":"round028-rehearsal-",
+    prefix = {"collect-pilot":"round028-pilot-", "collect-audit":"round028-cpu-", "collect-rehearsal":"round028-rehearsal-",
               "collect-panels":"round028-panels-", "collect-timing":"round028-timing-", "collect-final":"round028-final-", "collect-receipts":"round028-receipts-"}[action]
     folder = Path(tempfile.mkdtemp(prefix=prefix, dir=destination))
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONNOUSERSITE="1")
@@ -158,6 +158,23 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
         return process.returncode, raw
 
     root = ["--workspace", str(workspace)]
+    if action == "collect-pilot":
+        from oeis_learn.pipeline_validation.progressive_round028_pilot import SHARE
+        from oeis_learn.generalization.progressive.program_search_pilot import verify_pilot
+        code, raw = run("pilot", "pilot", *root)
+        if not code and raw.get("mechanical_status") == "COMPLETE" and raw.get("archive") == SHARE:
+            result = folder / "round028-pilot.zip"
+            shutil.copyfile(confined(workspace, SESSION + "/" + SHARE), result)
+            if verify_pilot(result) != raw["receipt"]:
+                raise ValueError("copied pilot result differs from the private replay")
+        else:
+            code = code or 2
+            result = folder / "round028-pilot-diagnostics.zip"
+            capture = {k:raw[k] for k in ("reason", "progress", "failure_locations", "error_type", "missing") if k in raw}
+            with zipfile.ZipFile(result, "w") as bundle:
+                bundle.writestr("summary.json", json.dumps(dict(summary=summary, pilot=capture), sort_keys=True))
+        print(f"Pilot exit {code}. Return this file:\n{result}", flush=True)
+        return code
     if action == "collect-final":
         from oeis_learn.generalization.progressive.program_search_outcome import archive_bytes
         from oeis_learn.generalization.progressive.program_search_rehearsal_report import encode
