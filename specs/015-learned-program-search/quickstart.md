@@ -1,10 +1,34 @@
 # Round028 workstation commands
 
-## Record the stop decision on the workstation
+## Completed workstation run
 
-**Retain D.** The 4M pilot is projected to take 10 h 21 min 37 s against the eight-hour shift. The estimate for candidate evaluation alone is 8 h 32 min 14 s. The public report records the funding shortfall, the unmeasured comparison and zero further GPU work. [Measured costs and decision](validation/round028-timing-results.md)
+**Retain D.** The projected 4M pilot exceeds the eight-hour shift by 2 h 21 min 37 s. The original workstation committed the decision and returned a verified receipt covering all 40 timed portfolios. The enclosed public report matches the earlier verified copy byte for byte. The scientific comparison is unmeasured. [Measured costs and receipt](validation/round028-timing-results.md)
 
-The first workstation close-out verified the private records and installed the report. Its last journal write counted the saved checkpoints against the journal's storage allowance. Run this block on the original round027 workstation to finish that write. It checks the staged report against the saved evidence, commits the decision once, and returns one ZIP with the receipt. It uses CPU only.
+### Verify the final public report on any computer
+
+Start beside the returned `round028-final-workstation.zip`. This block fetches the pinned reader, checks the workstation receipt, and recomputes the public decision. It saves the full result to `round028-verification.json`. The same reader accepts `round028.zip` on its own for a public-only check.
+
+```bash
+(
+  set -euo pipefail
+  rev=6d4c79adbff84a06bb3d2ddaa196837f4ea59f1b
+  report="$(pwd -P)/round028-final-workstation.zip"
+  reader=$(mktemp -d "$(pwd -P)/round028-reader.XXXXXXXX")
+  trap 'rm -rf -- "$reader"' EXIT
+  git init --quiet "$reader"
+  git -C "$reader" fetch --quiet --depth=1 https://github.com/grugnog/oeis-learn.git "$rev"
+  git -C "$reader" checkout --quiet --detach "$rev"
+  python3 -S -B "$reader/scripts/foundation_run.py" --engine podman discovery round028 \
+    --action verify --archive "$report" > round028-verification.json
+  python3 -c 'import json; r=json.load(open("round028-verification.json")); print(r["status"], r["evidence_verdict"], r["next_action"])'
+)
+```
+
+The verified return prints `VERIFIED INCOMPLETE RETAIN_BASELINE`. These fields give the verification status, scientific verdict and spending decision, respectively.
+
+### Record the stop decision on the workstation
+
+This is the CPU-only command that completed the run. It can re-export the receipt from the original round027 workstation by checking the saved evidence and reusing the committed journal entry.
 
 ```bash
 (
@@ -18,27 +42,7 @@ The first workstation close-out verified the private records and installed the r
 )
 ```
 
-Return the one ZIP at the path printed by the command. On success, `round028-final-workstation.zip` contains the verified `round028.zip` and `workstation.json`. The receipt binds the private replay to the committed journal boundary. If the journal write encounters a capacity limit, `round028-final-diagnostics.zip` records the required, available and missing bytes and inodes together with the original study decision. The canonical session report is `run-state/discovery/015-research-round-028/share/round028.zip`. The original audit is preserved byte-for-byte beside it as `round028-audit.zip`.
-
-### Verify the final public report on any computer
-
-Start beside the downloaded `round028.zip`. This block obtains the pinned reader and writes its independent calculation to `round028-verification.json`. To check the workstation receipt as well, set `report` to the returned `round028-final-workstation.zip`.
-
-```bash
-(
-  set -euo pipefail
-  rev=6d4c79adbff84a06bb3d2ddaa196837f4ea59f1b
-  report="$(pwd -P)/round028.zip"
-  reader=$(mktemp -d "$(pwd -P)/round028-reader.XXXXXXXX")
-  trap 'rm -rf -- "$reader"' EXIT
-  git init --quiet "$reader"
-  git -C "$reader" fetch --quiet --depth=1 https://github.com/grugnog/oeis-learn.git "$rev"
-  git -C "$reader" checkout --quiet --detach "$rev"
-  python3 -S -B "$reader/scripts/foundation_run.py" --engine podman discovery round028 \
-    --action verify --archive "$report" > round028-verification.json
-  python3 -c 'import json; r=json.load(open("round028-verification.json")); print(r["status"], r["evidence_verdict"], r["next_action"])'
-)
-```
+The returned ZIP contains `workstation.json` and `round028.zip`. The canonical session report is `run-state/discovery/015-research-round-028/share/round028.zip`. The original audit is preserved beside it as `round028-audit.zip`. A collection failure produces `round028-final-diagnostics.zip`.
 
 ## Earlier evidence
 

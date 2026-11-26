@@ -1,6 +1,6 @@
 # Round028 workstation timing and spending decision
 
-**Retain D and stop before the 4M pilot.** The standalone reader verified all 40 original case clocks and their independent scorer dispositions. Candidate-specific timings project 10 h 21 min 37 s for the registered matched pilot. Its eight-hour shift is short by 2 h 21 min 37 s. The scientific comparison is unmeasured. The verified result is a resource decision.
+**Round028 closed with D retained.** The workstation checked all 40 timed portfolios and their independent scoring records. Candidate-specific timings project 10 h 21 min 37 s for the registered matched pilot, exceeding the eight-hour shift by 2 h 21 min 37 s. The close-out dispatched zero new GPU jobs. The 4M comparison has zero training runs and zero fresh scored cases, so the effect on accuracy is unmeasured.
 
 | Forecast on the registered cases | One role per arm and look | Eight-case batches |
 | --- | ---: | ---: |
@@ -25,6 +25,8 @@ The two learned checkpoints were measured after one rehearsal update, on the sam
 
 The physical collection held the GPU lease for 1,301.93 s across five roles. Telemetry covered 1,244.00 s and observed 379.74 s of integrated GPU activity. The five CPU scoring roles took 58.29 s of host wall time in total. Image acquisition took 41.19 s for HIP and 22.90 s for CPU. These intervals and the per-case decoding and fitting clocks overlap. The registered 4M comparison, independent repeat and longer confirmation receive zero new GPU time. No assessment cases were opened.
 
+## Workstation receipt and public reports
+
 | Verified object | Identity |
 | --- | --- |
 | Timing producer | `bf9d223501fa3bd6281b6c767c3d963c7587afab` |
@@ -36,6 +38,10 @@ The physical collection held the GPU lease for 1,301.93 s across five roles. Tel
 | Journal recovery implementation | `6d4c79adbff84a06bb3d2ddaa196837f4ea59f1b` |
 | Final public ZIP (SHA-256, 42,882 bytes) | `af2ec6fcff0fdd32886162a6cf272249fb0adc9e0168e41659c77099000982fe` |
 | Final public report | `sha256:dd4faada77e3168e3496ab885b3dbc0e86a2f140f3c098eaa38adcc9a16bbb97` |
+| Returned workstation ZIP (SHA-256, 43,787 bytes) | `4b0541f95218c64234d7c44137530d839bd5ddfe1a0731baaa6ef64336c6ece3` |
+| Workstation receipt | `sha256:1901e97e71d146db415743f380715f4ad9e96da07f16424bd628663379a80ce9` |
+| Private replay of original weights, choices and scorer clocks | `sha256:955cdad79ada616ba7753fa13a9735a37501f44434a17d06b795d6a3895fe133` |
+| Committed workstation journal boundary | `sha256:11608719819a05902aa06bfd488726be3eeeef31a4f26947c86b9d05681cb6b3` |
 
 The nested evidence preserves the original 128-case audit, its 64-case spending decision, both checkpoint restores and all 576 fresh reservations. The historical route found 51 witnessed proposal failures and zero proved selection opportunities. The timing result closes the selected generator branch under this registration.
 
@@ -43,13 +49,13 @@ The nested evidence preserves the original 128-case audit, its 64-case spending 
 
 An independent Python process with only the final ZIP and the pinned reader reproduced the historical routing bounds, the timing forecast, the `INCOMPLETE` evidence verdict and the `RETAIN_BASELINE` action. The final ZIP contains the decision and the four public JSON reports from which it was derived. Rebuilding it from the original timing ZIP produced identical bytes. The fresh-panel gain and retention fields are null.
 
-The workstation diagnostic traces the failure to the final transition in `RunStore.append`. Reaching that call required checking the original visible/scoring channels, both full-state checkpoints, D's evaluation weights, all 40 portfolios, all ten search/scoring roles, their budget debits and the installed public ZIP. The workstation preserved the original audit and wrote the private replay closure. It reported zero GPU dispatches. The final journal entry and its exported receipt are outstanding. [Workstation recovery command](../quickstart.md#record-the-stop-decision-on-the-workstation)
+The returned `round028-final-workstation.zip` contains the workstation receipt and the canonical `round028.zip`. The receipt records the private replay of the original weights, choices and scorer clocks against the committed journal boundary. Independently, the pinned reader verified the returned package from the archive alone. Its enclosed report matched the previously verified public ZIP byte for byte. The reader reproduced the `INCOMPLETE` scientific verdict, the `RETAIN_BASELINE` decision and zero further authorized GPU time. The final assessment stayed sealed. [Archive verification](../quickstart.md#verify-the-final-public-report-on-any-computer)
 
 The first close-out implementation passed 262 local regression tests. Four tests require the native qualification image and skipped locally. Coverage included sdist and installed-wheel packaging, 013 Optuna feedback, original archive readers, the matched generator, existing same-list selector controls, training recovery, freeze recovery and the new workstation receipt.
 
 ### Journal accounting and recovery
 
-The old write guard measured the whole session against the journal's default limits of 64 MiB and 8,192 inodes. Each of the two retained checkpoint trees accounted for 1,257,820,683 logical bytes. The trace ended at the journal quota check, before the filesystem free-space check.
+The first workstation attempt checked the original visible/scoring channels, both full-state checkpoints, D's evaluation weights, all ten search/scoring roles and their budget debits. It installed and verified the final public ZIP. Its journal write then measured the whole session against limits of 64 MiB and 8,192 inodes. Each of the two retained checkpoint trees accounted for 1,257,820,683 logical bytes. The trace ended at the journal quota check, before the filesystem free-space check.
 
 The repaired diagnostic run journal counts the session root, journal records, temporary files and unrecognized entries. Its separately owned `private`, `share` and `accounting` directories have their own storage scopes. The write still checks the original journal limits and the filesystem's available space and inodes. If a publication is pending, the normal run and timing commands can reuse only a completed timing boundary.
 
