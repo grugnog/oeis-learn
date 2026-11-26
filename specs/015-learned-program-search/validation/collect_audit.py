@@ -136,6 +136,14 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
             step.update({k:raw[k] for k in ("error_type","failure_locations") if k in raw})
         if name == "finalize":
             step.update({k: raw[k] for k in ("spending_reason", "evidence_verdict", "next_action", "private_scope") if k in raw})
+            step.update({k: raw[k] for k in ("errno", "diagnostic_write_errno") if type(raw.get(k)) is int})
+            capacity = raw.get("journal_storage")
+            if isinstance(capacity, dict) and capacity.get("scope") in ("journal", "filesystem"):
+                numbers = ("required_bytes", "available_bytes", "deficit_bytes", "required_inodes",
+                           "available_inodes", "deficit_inodes", "journal_bytes", "journal_inodes",
+                           "write_bytes", "write_inodes")
+                if all(type(capacity.get(k)) is int and capacity[k] >= 0 for k in numbers):
+                    step["journal_storage"] = dict(scope=capacity["scope"], **{k: capacity[k] for k in numbers})
         if name == "recover":
             step.update({k:raw[k] for k in ("stage_requests", "published_stages", "matched_boundaries",
                                              "failure_locations", "cpu") if k in raw})

@@ -18,15 +18,19 @@ class RunStore:
             self.campaign = validate_diagnostic_registration(campaign)
         else:
             self.campaign = validate_campaign(campaign)
+        self._diagnostic = diagnostic
         binding = self.root / "campaign.json"
         if binding.exists():
             if load(binding,maximum=CAMPAIGN_DOCUMENT_BYTES) != self.campaign:
                 raise ValueError("run campaign changed")
         else:
-            from .storage import journal_write
-
-            journal_write(self.root, binding, self.campaign)
+            self._write(binding, self.campaign)
         self.read()
+
+    def _write(self, path, value):
+        from .storage import journal_write
+
+        journal_write(self.root, path, value, diagnostic_run=self._diagnostic)
 
     @contextmanager
     def lease(self):
@@ -70,10 +74,7 @@ class RunStore:
         if self.ordinal >= 4096:
             raise ValueError("transition allowance exhausted")
         state = dict(state, choices=state.get('choices',self.state.get('choices',{})), outputs=state.get("outputs",self.state.get("outputs",{})), decisions=state.get("decisions", self.state.get("decisions", {})))
-        from .storage import journal_write
-
-        journal_write(
-            self.root,
+        self._write(
             self.root / f"transition-{self.ordinal:04d}.json",
             seal({"previous": self.tip, "state": state}),
         )
@@ -374,10 +375,7 @@ class RunStore:
     def pause(self):
         self.read()
         if not (self.pause_path()).exists():
-            from .storage import journal_write
-
-            journal_write(
-                self.root,
+            self._write(
                 self.pause_path(),
                 seal({"campaign": self.campaign["identity"], "requested": True}),
             )

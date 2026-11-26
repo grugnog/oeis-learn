@@ -196,6 +196,7 @@ def test_collection_carries_one_bound_workstation_receipt_and_the_verified_copy(
 
 
 def test_publication_recovers_without_replacing_an_unrelated_archive(collection, monkeypatch):
+    from oeis_learn.generalization.progressive import storage
     from oeis_learn.generalization.progressive.contracts import seal
     from oeis_learn.generalization.progressive.program_search_report import verify_archive
     from oeis_learn.pipeline_validation.progressive_round028 import (
@@ -224,21 +225,37 @@ def test_publication_recovers_without_replacing_an_unrelated_archive(collection,
             "checkpoint_closures": list(timing.LEARNERS),
         }
     )
-    # The last durable transition can be interrupted after the official share has been installed.
-    old_append = o.store.append
-    monkeypatch.setattr(
-        o.store, "append", lambda *a: (_ for _ in ()).throw(OSError("interrupted commit"))
-    )
-    with pytest.raises(OSError, match="interrupted"):
-        publish_terminal(o.folder, o.store, price, receipt, replay)
+    # Match the two logical checkpoint sizes recorded in the physical rehearsal using sparse files.
+    for arm in timing.LEARNERS:
+        with (o.folder / "private" / (arm + ".checkpoint")).open("xb") as stream:
+            stream.truncate(1_257_820_683)
+    tip_before, ordinal = o.store.tip, o.store.ordinal
+    # The prior release passed the entire session to the ordinary journal guard.
+    journal_write = storage.journal_write
+    with monkeypatch.context() as previous:
+        previous.setattr(
+            storage,
+            "journal_write",
+            lambda root, path, value, **kw: journal_write(root, path, value),
+        )
+        with pytest.raises(TimeoutError, match="owned storage"):
+            publish_terminal(o.folder, o.store, price, receipt, replay)
+    assert o.store.tip == tip_before and not (o.folder / f"transition-{ordinal:04d}.json").exists()
     assert (
         audit_archive(o.folder).read_bytes() == original_zip
         and audit_archive(o.folder) != o.folder / ARCHIVE
     )
     assert verify_outcome(o.folder / ARCHIVE)["evidence_verdict"] == "INCOMPLETE"
-    monkeypatch.setattr(o.store, "append", old_append)
-    raw = publish_terminal(o.folder, o.store, price, receipt, replay)
+    closure = (o.folder / "private/terminal/closure.json").read_bytes()
+    installed = (o.folder / ARCHIVE).stat()
+    resumed = audit_store(o.folder, "e" * 40)
+    raw = publish_terminal(o.folder, resumed, price, receipt, replay)
+    o.store.read()
     tip = o.store.tip
+    assert o.store.ordinal == ordinal + 1
+    assert (o.folder / "private/terminal/closure.json").read_bytes() == closure
+    assert (o.folder / ARCHIVE).stat().st_ino == installed.st_ino
+    assert (o.folder / ARCHIVE).stat().st_mtime_ns == installed.st_mtime_ns
     assert raw["receipt"] == verify_transport(o.folder / ARCHIVE)
     assert raw["workstation"] == workstation_receipt(raw["receipt"], replay["identity"], tip)
     assert publish_terminal(o.folder, o.store, price, receipt, replay, verify_only=True) == raw
@@ -256,3 +273,119 @@ def test_publication_recovers_without_replacing_an_unrelated_archive(collection,
     with pytest.raises(ValueError):
         publish_terminal(o.folder, o.store, price, receipt, replay)
     assert (o.folder / ARCHIVE).read_bytes() == b"unrelated evidence"
+
+
+@pytest.mark.parametrize(
+    "shortage", ["journal-bytes", "journal-inodes", "disk-bytes", "disk-inodes"]
+)
+def test_final_journal_reports_real_capacity_limits(tmp_path, monkeypatch, shortage):
+    import os
+    import shutil
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive.campaign import diagnostic_registration
+    from oeis_learn.generalization.progressive.lifecycle import RunStore
+    from oeis_learn.pipeline_validation.progressive_round028 import terminal_failure
+
+    store = RunStore(tmp_path, diagnostic_registration("a" * 40), diagnostic=True)
+    for name in ("private", "share", "accounting"):
+        area = tmp_path / name
+        area.mkdir()
+        with (area / "retained.bin").open("xb") as stream:
+            stream.truncate(64 << 20)
+    # Confirm that only the separately owned trees are omitted from the journal quota.
+    if shortage == "journal-bytes":
+        unowned = tmp_path / "extra"
+        unowned.mkdir()
+        with (unowned / "data").open("xb") as stream:
+            stream.truncate(64 << 20)
+    elif shortage == "journal-inodes":
+        for number in range(8190):
+            (tmp_path / f".staged-{number}").touch()
+    elif shortage == "disk-bytes":
+        monkeypatch.setattr(shutil, "disk_usage", lambda root: SimpleNamespace(free=1))
+    else:
+        monkeypatch.setattr(shutil, "disk_usage", lambda root: SimpleNamespace(free=2**40))
+        monkeypatch.setattr(os, "statvfs", lambda root: SimpleNamespace(f_favail=0))
+    before = store.tip
+    try:
+        store.append(dict(store.state, status="COMPLETE"))
+    except TimeoutError as exc:
+        result, code = terminal_failure(
+            SOURCE, tmp_path, exc, spending_reason="REPORT_PILOT_COST_DEFICIT", record=False
+        )
+    else:
+        pytest.fail("real storage exhaustion was accepted")
+    assert code == 2 and result["reason"] == "TERMINAL_JOURNAL_STORAGE_DEFICIT"
+    assert (
+        result["spending_reason"] == "REPORT_PILOT_COST_DEFICIT" and result["gpu_dispatches"] == 0
+    )
+    detail = result["journal_storage"]
+    assert detail["scope"] == ("journal" if shortage.startswith("journal") else "filesystem")
+    assert (detail["deficit_bytes"] > 0) == shortage.endswith("bytes")
+    assert (detail["deficit_inodes"] > 0) == shortage.endswith("inodes")
+    store.read()
+    assert store.tip == before and not (tmp_path / "transition-0000.json").exists()
+
+
+@pytest.mark.parametrize("invalid", ["file", "symlink"])
+def test_diagnostic_journal_requires_real_evidence_directories(tmp_path, invalid):
+    from oeis_learn.generalization.progressive.campaign import diagnostic_registration
+    from oeis_learn.generalization.progressive.lifecycle import RunStore
+
+    root = tmp_path / "session"
+    store = RunStore(root, diagnostic_registration("a" * 40), diagnostic=True)
+    if invalid == "file":
+        (root / "private").write_bytes(b"not a directory")
+    else:
+        (root / "private").symlink_to(tmp_path)
+    with pytest.raises(ValueError):
+        store.append(dict(store.state, status="COMPLETE"))
+    assert store.ordinal == 0
+
+
+def test_collector_preserves_measured_journal_deficit_if_trace_write_fails(tmp_path, monkeypatch):
+    import errno
+    from oeis_learn.generalization.progressive.campaign import diagnostic_registration
+    from oeis_learn.generalization.progressive.lifecycle import RunStore
+    from oeis_learn.pipeline_validation.progressive_round028 import terminal_failure
+
+    root = tmp_path / "session"
+    store = RunStore(root, diagnostic_registration("a" * 40), diagnostic=True)
+    with (root / "staged").open("xb") as stream:
+        stream.truncate(64 << 20)
+    try:
+        store.append(dict(store.state, status="COMPLETE"))
+    except TimeoutError as exc:
+
+        def full(*args, **kwargs):
+            raise OSError(errno.ENOSPC, "fixture")
+
+        with monkeypatch.context() as failure:
+            failure.setattr(Path, "write_text", full)
+            result, code = terminal_failure(
+                SOURCE, root, exc, spending_reason="REPORT_PILOT_COST_DEFICIT"
+            )
+    else:
+        pytest.fail("over-budget journal unexpectedly committed")
+    storage = result["journal_storage"]
+    assert code == 2 and result["diagnostic_write_errno"] == errno.ENOSPC
+    # Only reviewed counters should cross the collector boundary.
+    result["journal_storage"] = dict(storage, private_path="private-marker")
+
+    def invoke(cmd, *, stdout, **kwargs):
+        assert cmd[cmd.index("--action") + 1] == "finalize"
+        stdout.write(encode(result) + b"\n")
+        return subprocess.CompletedProcess(cmd, code)
+
+    monkeypatch.setattr(subprocess, "run", invoke)
+    tools = tmp_path / "run-state/discovery-tools"
+    tools.mkdir(parents=True)
+    script = SOURCE / "specs/015-learned-program-search/validation/collect_audit.py"
+    assert runpy.run_path(str(script))["collect"](tmp_path, "a" * 40, "collect-final") == 2
+    with zipfile.ZipFile(next(tools.glob("round028-final-*/round028-final-diagnostics.zip"))) as z:
+        assert z.namelist() == ["summary.json"]
+        raw = z.read("summary.json")
+    summary = json.loads(raw)["steps"]["finalize"]
+    assert b"private-marker" not in raw and summary["journal_storage"] == storage
+    assert summary["spending_reason"] == "REPORT_PILOT_COST_DEFICIT"
+    assert summary["reason"] == "TERMINAL_JOURNAL_STORAGE_DEFICIT"

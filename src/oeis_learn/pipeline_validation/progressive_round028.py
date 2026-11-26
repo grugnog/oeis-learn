@@ -22,6 +22,7 @@ from .progressive_research_inputs import checked_file
 
 ARCHIVE = "share/round028.zip"
 SAVED_AUDIT = "share/round028-audit.zip"
+TERMINAL_CLOSURE = "private/terminal/closure.json"
 
 
 def audit_archive(folder):
@@ -97,12 +98,17 @@ def status(folder):
                 or measured["portfolios"] != 8 * measured["completed_blocks"]):
             raise ValueError("candidate timing progress differs")
         extra["evaluation_timing"] = {k:measured[k] for k in ("completed_blocks","portfolios")}
+    mechanical = store.state["status"]
     if store.state.get("terminal"):
         terminal = store.state["terminal"]
         scientific = "PILOT_UNMEASURED"
         extra.update({k: terminal[k] for k in ("evidence_verdict","reason","next_action","remaining_authorized_gpu_us","pilot_us","shift_us","deficit_us")})
         extra["archive"] = ARCHIVE
-    return dict(**extra, mechanical_status=store.state["status"], scientific_status=scientific,
+    elif (folder / TERMINAL_CLOSURE).is_file():
+        mechanical = "PUBLICATION_PENDING"
+        scientific = "PILOT_UNMEASURED"
+        extra.update(reason="TERMINAL_PUBLICATION_PENDING", next_action="FINALIZE", remaining_authorized_gpu_us=0)
+    return dict(**extra, mechanical_status=mechanical, scientific_status=scientific,
                 owner_active=busy, boundary=store.tip, decision=store.state.get("route"), active=store.state.get("active"))
 
 
@@ -250,16 +256,24 @@ def audit_store(folder, revision):
 
 def terminal_failure(source, folder, exc, *, spending_reason=None, record=True):
     import traceback
+    from oeis_learn.generalization.progressive.storage import JournalStorageDeficit
     from .progressive_round028_rehearsal import failure_locations
     area = confined(folder,"private/terminal",exists=False)
-    if record:
-        area.mkdir(parents=True,mode=0o700,exist_ok=True)
-        (area/"exception.txt").write_text(traceback.format_exc())
     failed = dict(mechanical_status="BLOCKED", scientific_status="PILOT_UNMEASURED",
                   reason="TERMINAL_VERIFICATION_FAILED", error_type=type(exc).__name__,
                   failure_locations=failure_locations(source, area), gpu_dispatches=0)
+    if isinstance(exc, JournalStorageDeficit):
+        failed.update(reason="TERMINAL_JOURNAL_STORAGE_DEFICIT", journal_storage=exc.details)
+    if isinstance(exc, OSError) and type(exc.errno) is int:
+        failed["errno"] = exc.errno
     if spending_reason == "REPORT_PILOT_COST_DEFICIT":
         failed["spending_reason"] = spending_reason
+    if record:
+        try:
+            area.mkdir(parents=True, mode=0o700, exist_ok=True)
+            (area / "exception.txt").write_text(traceback.format_exc())
+        except OSError as secondary:
+            failed["diagnostic_write_errno"] = secondary.errno
     return failed, 2
 
 
@@ -287,11 +301,12 @@ def execute(args, source, *, host_factory=None):
         candidate_revision(source, root)
         return recover_command(root, folder, source, producer_revision)
     if args.action == "preflight":
-        latest = None
-        if (folder/"private/terminal/closure.json").is_file():
+        if (folder / TERMINAL_CLOSURE).is_file():
             binding = load(confined(folder,"campaign.json"))
             latest = RunStore(folder,binding,diagnostic=True).state.get("terminal")
-        if latest:
+            if not latest:
+                return dict(info, mechanical_status="INSPECTED", scope="terminal_publication",
+                            gpu_demand="CLOSED", admission="TERMINAL_PUBLICATION_PENDING", next_action="FINALIZE"), 0
             return dict(info,mechanical_status="INSPECTED",scope="terminal_resource_decision",
                         gpu_demand="CLOSED",admission=latest["reason"],next_action=latest["next_action"],
                         pilot_us=latest["pilot_us"],shift_us=latest["shift_us"],deficit_us=latest["deficit_us"]), 0
@@ -312,13 +327,15 @@ def execute(args, source, *, host_factory=None):
             from .progressive_round028_timing import AREA, PANEL_ARCHIVE, SHARE, timing_command
             from .progressive_round028_terminal import close_timing
             terminal = store.state.get("terminal")
-            if terminal and args.action == "rehearse":
-                return dict(mechanical_status="SKIPPED",scientific_status="PILOT_UNMEASURED",
-                            reason=terminal["reason"],next_action=terminal["next_action"],gpu_dispatches=0), 0
-            if args.action == "verify" and not terminal and (folder/"private/terminal/closure.json").is_file():
+            pending = not terminal and (folder / TERMINAL_CLOSURE).is_file()
+            if (terminal or pending) and args.action == "rehearse":
+                return dict(mechanical_status="SKIPPED", scientific_status="PILOT_UNMEASURED",
+                            reason=terminal["reason"] if terminal else "TERMINAL_PUBLICATION_PENDING",
+                            next_action=terminal["next_action"] if terminal else "FINALIZE", gpu_dispatches=0), 0
+            if args.action == "verify" and pending:
                 return dict(mechanical_status="BLOCKED",reason="TERMINAL_PUBLICATION_PENDING",gpu_dispatches=0), 2
             check_terminal = args.action == "verify" and terminal is not None
-            if args.action == "finalize" or check_terminal or (terminal and args.action in {"run","timing"}):
+            if args.action == "finalize" or check_terminal or ((terminal or pending) and args.action in {"run","timing"}):
                 if not (folder/AREA/"boundary.json").is_file() or (
                         check_terminal and not (folder/SHARE/"round028-timing.zip").is_file()):
                     return dict(mechanical_status="BLOCKED",scientific_status="PILOT_UNMEASURED",

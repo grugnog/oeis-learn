@@ -638,6 +638,27 @@ def exercise_collection(o, parent, panel, weights, monkeypatch):
                 host_factory=lambda *a, **k: pytest.fail("terminal replay opened a device"),
             )
 
+        # Interrupt after private replay and publication, exactly where the old journal charged
+        # the saved checkpoints. A pending close-out must never fall back to fresh timing roles.
+        from oeis_learn.generalization.progressive import storage
+        with (o.folder / "private/retained-checkpoint").open("xb") as stream:
+            stream.truncate(1_257_820_683)
+        journal_write = storage.journal_write
+        with patch.context() as previous:
+            previous.setattr(storage, "journal_write", lambda root, path, value, **kw: journal_write(root, path, value))
+            stopped, code = action("run")
+        assert code == 2 and stopped["spending_reason"] == "REPORT_PILOT_COST_DEFICIT"
+        assert action("status")[0]["mechanical_status"] == "PUBLICATION_PENDING"
+        assert action("preflight")[0]["admission"] == "TERMINAL_PUBLICATION_PENDING"
+        assert action("verify")[0]["reason"] == "TERMINAL_PUBLICATION_PENDING"
+        assert action("rehearse")[0]["gpu_dispatches"] == 0
+        cut = o.folder / host.AREA / "boundary.json"
+        moved = cut.rename(cut.with_suffix(".saved"))
+        for name in ("finalize", "run", "timing"):
+            unavailable, code = action(name)
+            assert code == 2 and unavailable["reason"] == "SAVED_TIMING_BOUNDARY_REQUIRED"
+            assert unavailable["gpu_dispatches"] == 0
+        moved.rename(cut)
         terminal, exit_code = action("run")
         assert (
             exit_code == 0

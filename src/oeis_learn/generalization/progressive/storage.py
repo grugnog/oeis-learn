@@ -205,12 +205,63 @@ def journal_limit(root):
     return value['bytes']
 
 
-def journal_write(root, path, value):
+def _diagnostic_journal_usage(root, target):
+    """The run journal shares its directory with evidence, public reports and a separate budget ledger."""
+    if root.is_symlink() or Path(target).parent != root:
+        raise ValueError("diagnostic run journal requires its physical top-level destination")
+    entries = []
+    for entry in root.iterdir():
+        if entry.is_symlink():
+            raise ValueError("storage aliases are forbidden")
+        if entry.name in {"private", "share", "accounting"}:
+            if not entry.is_dir():
+                raise ValueError("separately owned diagnostic storage must be a directory")
+        else:
+            entries.append(entry)
+    used, inodes = usage(entries)
+    return used, inodes + 1  # The journal also owns the session directory inode.
+
+
+class JournalStorageDeficit(TimeoutError):
+    """A diagnostic transition could not fit its journal or its physical filesystem."""
+
+    def __init__(self, shortfall, used, inodes, size):
+        super().__init__("diagnostic run journal storage exhausted")
+        self.details = dict(
+            shortfall,
+            scope="journal" if shortfall["scope"] == "owned" else "filesystem",
+            journal_bytes=used, journal_inodes=inodes, write_bytes=size, write_inodes=2,
+        )
+
+
+def journal_write(root, path, value, *, diagnostic_run=False):
     from .contracts import atomic_write
 
+    root = Path(root)
     raw = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
-    StorageGuard([root], max_bytes=journal_limit(root), max_inodes=8192).check(len(raw), 2)
+    counts = _diagnostic_journal_usage(root, path) if diagnostic_run else None
+    guard = StorageGuard([root], max_bytes=journal_limit(root), max_inodes=8192)
+    if counts is None:
+        guard.check(len(raw), 2)
+    else:
+        shortfall = guard._shortfall(*counts, len(raw), 2)
+        if shortfall:
+            raise JournalStorageDeficit(shortfall, *counts, len(raw))
     return atomic_write(path, value)
+
+
+def _capacity_deficit(scope, required_bytes, available_bytes, required_inodes, available_inodes):
+    if required_bytes <= available_bytes and required_inodes <= available_inodes:
+        return None
+    return {
+        "scope": scope,
+        "required_bytes": required_bytes,
+        "available_bytes": available_bytes,
+        "deficit_bytes": max(0, required_bytes - available_bytes),
+        "required_inodes": required_inodes,
+        "available_inodes": available_inodes,
+        "deficit_inodes": max(0, required_inodes - available_inodes),
+    }
 
 
 class StorageGuard:
@@ -242,21 +293,29 @@ class StorageGuard:
         self._check(used, inodes, max(0, total_bytes-used), max(0, total_inodes-inodes))
 
     def _check(self, used, inodes, added_bytes, added_inodes):
-        if (
-            used + self.prior_bytes + added_bytes + self.reserve_bytes > self.max_bytes
-            or inodes + self.prior_inodes + added_inodes > self.max_inodes
-        ):
+        shortfall = self._shortfall(used, inodes, added_bytes, added_inodes)
+        if not shortfall:
+            return
+        if shortfall["scope"] == "owned":
             raise TimeoutError("owned storage byte/inode reservation exhausted")
+        raise TimeoutError("free storage byte/inode reserve exhausted")
+
+    def _shortfall(self, used, inodes, added_bytes, added_inodes):
+        shortfall = _capacity_deficit(
+            "owned", used + self.prior_bytes + added_bytes + self.reserve_bytes, self.max_bytes,
+            inodes + self.prior_inodes + added_inodes, self.max_inodes,
+        )
+        if shortfall:
+            return shortfall
         existing = next((r for r in self.roots if r.exists()), None)
         if existing is None:
             existing = self.roots[0].parent
             while not existing.exists():
                 existing = existing.parent
-        if (
-            added_bytes + self.reserve_bytes + self.free_reserve_bytes > shutil.disk_usage(existing).free
-            or added_inodes > os.statvfs(existing).f_favail
-        ):
-            raise TimeoutError("free storage byte/inode reserve exhausted")
+        return _capacity_deficit(
+            "filesystem", added_bytes + self.reserve_bytes + self.free_reserve_bytes,
+            shutil.disk_usage(existing).free, added_inodes, os.statvfs(existing).f_favail,
+        )
 
     @contextmanager
     def activate(self):
