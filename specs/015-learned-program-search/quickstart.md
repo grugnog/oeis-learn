@@ -2,7 +2,11 @@
 
 [The verified historical audit](validation/round028-audit.md) selected the matched generator. All 128 cases were accounted for. On the 64 routing cases, 51 had a witnessed proposal failure, seven had a selected solve, and six remained unresolved.
 
-## Recover the original workstation rehearsal
+## Verified training rehearsal
+
+The [returned and verified training rehearsal](validation/round028-generator-rehearsal.md) projects 1 h 44 min for both 4M arms. Both original checkpoints passed full-state recovery.
+
+## Original receipt recovery procedure
 
 The [returned collection](validation/round028-rehearsal-collection.md) contains the verified historical audit and exit status zero. The first collector could silently discard the final rehearsal JSON. A build-progress line before the result reproduces the loss. Run this block once in Bash on the original workstation to recover the recorded CPU and HIP results. It reads the original producer's receipts and dispatches zero GPU jobs.
 
