@@ -6,9 +6,27 @@
 
 The [returned and verified training rehearsal](validation/round028-generator-rehearsal.md) projects 1 h 44 min for both 4M arms. Both original checkpoints passed full-state recovery.
 
+## Collect fresh supply and evaluation costs
+
+Use implementation `8954cbd0644273bed4a8cf413df7573519c86d10` on the original workstation. The collector reuses the verified training rehearsal, prices the historical 128-case search and scorer work, and checks the fresh-family supply for both seeds. It can extend the original source order and run isolated native CPU preparation in the same invocation.
+
+```bash
+(
+  set -euo pipefail
+  cd "$HOME/workspace/oies-learn"
+  rev=8954cbd0644273bed4a8cf413df7573519c86d10
+  git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
+  git merge-base --is-ancestor "$rev" FETCH_HEAD
+  git show "${rev}:specs/015-learned-program-search/validation/launch-round028.sh" |
+    bash -s -- "$rev" collect-panels
+)
+```
+
+Return the ZIP at the printed path. A verified result is named `round028-panels.zip`, including when one or more rosters are short. An operation that cannot reach verification produces `round028-panel-diagnostics.zip`. The status and costs in either file cover CPU preparation. The scientific pilot awaits its prospective data and device admission. [Supply and costing details](validation/round028-panel-supply.md)
+
 ## Original receipt recovery procedure
 
-The [returned collection](validation/round028-rehearsal-collection.md) contains the verified historical audit and exit status zero. The first collector could silently discard the final rehearsal JSON. A build-progress line before the result reproduces the loss. Run this block once in Bash on the original workstation to recover the recorded CPU and HIP results. It reads the original producer's receipts and dispatches zero GPU jobs.
+The [returned collection](validation/round028-rehearsal-collection.md) contains the verified historical audit and exit status zero. The first collector could silently discard the final rehearsal JSON. A build-progress line before the result reproduces the loss. The following block recovered the recorded CPU and HIP results from the original producer. Its verified return is recorded above.
 
 ```bash
 (
