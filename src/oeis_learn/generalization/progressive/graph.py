@@ -118,12 +118,11 @@ def generator_look(panels, *, registration, pair, arm, target, split):
     """Compile the single registered search request from an already frozen panel roster."""
     from .contracts import digest, seal
     from .cohorts import STRATA
-    from .training_rows import pair_seeds
-    from .program_search_pilot import LOOKS
+    from .training_rows import GENERATOR_LOOKS, pair_seeds
     seeds = pair_seeds(registration, pair)
     if (arm not in {"ordinary", "first_divergence", "incumbent"} or type(target) is not int
-            or target not in LOOKS or split not in {"development", "replication"}
-            or ((arm == "incumbent" or split == "replication") and target != LOOKS[-1])):
+            or target not in GENERATOR_LOOKS or split not in {"development", "replication"}
+            or ((arm == "incumbent" or split == "replication") and target != GENERATOR_LOOKS[-1])):
         raise ValueError("unregistered generator arm, split or look")
     names = {"development", "development_retention", "replication", "replication_retention"}
     if set(panels) != names:
@@ -149,7 +148,7 @@ def generator_look(panels, *, registration, pair, arm, target, split):
         if len(keys) != len(members) or owners & keys:
             raise ValueError("case reused across frozen panel roles")
         owners.update(keys)
-    full = target == LOOKS[-1]
+    full = target == GENERATOR_LOOKS[-1]
     if full:
         members = [*panels[split], *panels[split + "_retention"]]
     else:

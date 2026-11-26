@@ -22,6 +22,7 @@ from .progressive_research_inputs import checked_file
 
 ARCHIVE = "share/round028.zip"
 SAVED_AUDIT = "share/round028-audit.zip"
+REPLAY_ARCHIVE = "share/round028-diagnostic-replay.zip"
 TERMINAL_CLOSURE = "private/terminal/closure.json"
 
 
@@ -399,7 +400,7 @@ def execute(args, source, *, host_factory=None):
                 if receipt["report"] != store.state["publication"] or rebuilt["identity"] != receipt["report"]:
                     raise ValueError("private/public audit mismatch")
                 if ((folder / "private/diagnostic-replay/replay-publication.json").is_file()
-                        or (folder / "share/round028-diagnostic-replay.zip").is_file()):
+                        or (folder / REPLAY_ARCHIVE).is_file()):
                     from .progressive_round028_replay import diagnostic_replay
                     child = diagnostic_replay(args, source, root, folder, revision, store, None,
                                               dict(receipt=receipt), verify_only=True)

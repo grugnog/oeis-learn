@@ -10,10 +10,9 @@ from fractions import Fraction
 from .contracts import seal
 from .program_search_outcome import archive_bytes, read_canonical, verify_workstation
 from .program_search_rehearsal_report import encode
-from .training_rows import pair_seeds
+from .training_rows import GENERATOR_LOOKS as LOOKS, pair_seeds
 
 ARMS = ("ordinary", "first_divergence")
-LOOKS = (0, 1_000_000, 4_000_000)
 SHIFT_US = 11 * 3600 * 1_000_000
 STRATA = ("composition", "unseen_structure", "parameter", "oeis", "retention")
 PILOT_MEMBERS = ["pilot.json", "round028-parent.zip"]
@@ -253,7 +252,8 @@ def verify_pilot(path, *, qualification=None):
             raise ValueError("family allocation differs from pre-score qualification")
     if qualification is not None:
         independent = verify_qualification(qualification)
-        if not anchored or independent.get("prescore") != committed:
+        if (not anchored or independent.get("prescore") != committed
+                or independent["scientific_status"] != "PILOT_UNMEASURED"):
             raise ValueError("pilot differs from independent pre-score qualification")
     if current:
         fields.add("design")

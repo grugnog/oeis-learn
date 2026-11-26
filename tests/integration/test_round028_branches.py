@@ -117,6 +117,9 @@ def test_paid_producer_space_and_cached_role(tmp_path):
     assert capacity(area, host, 100, **dict(simple, measure=available))[0]["deficit_bytes"] == 0
     deficit = capacity(area, host, 100, **dict(simple, measure=available, outstanding=many))[0]
     assert deficit["deficit_bytes"] == 6 * 8192 and deficit["deficit_inodes"] > 0
+    control = dict(measured, resident=dict(measured["resident"], score_control={"scored_bytes": 9000}))
+    priced = capacity(area, host, 100, **dict(simple, scale=control))[0]
+    assert priced["required_bytes"] - limited["required_bytes"] == 2 * (9000 - 8192)
     cached_search = capacity(area, host, 100, **dict(simple, outstanding=one | {("ordinary-0", "search")}))[0]
     assert cached_search == limited
     assert not capacity(area, host, 100, **dict(arg, cached=True))
@@ -544,6 +547,8 @@ def test_installed_audit_reserves_and_reopens_native_replay(tmp_path, monkeypatc
     copied.write_bytes((folder / first["archive"]).read_bytes())
     args.archive = str(copied)
     assert commands.execute(args, source) == (first["receipt"], 0)
+    from oeis_learn.generalization.progressive.program_search_rehearsal_report import audit_context
+    assert audit_context(copied)[0] == first["receipt"]
     assert first["receipt"]["original_service_us"] == 1_000_000 and first["receipt"]["elapsed_us"] > 0
     assert len(runs) == 1
     import io

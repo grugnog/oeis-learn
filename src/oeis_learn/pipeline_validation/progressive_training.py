@@ -385,10 +385,10 @@ def resolve_update_policy(
         or (schedule == "warmup_cosine" and not 0 < warmup_tokens < schedule_horizon_tokens)
     ):
         raise ValueError("explicit compatible schedule horizon/warmup required")
-    from oeis_learn.generalization.progressive.program_search_pilot import LOOKS
+    from oeis_learn.generalization.progressive.training_rows import GENERATOR_LOOKS
     if objective is not None and (
         objective not in ("ordinary", "first_divergence") or schedule != "constant"
-        or schedule_horizon_tokens != LOOKS[-1] or effective_batch != 32
+        or schedule_horizon_tokens != GENERATOR_LOOKS[-1] or effective_batch != 32
         or weight_decay != 0 or lr_multiplier != 1 or p["model"]["dropout"] != 0
     ):
         raise ValueError("matched generator requires the registered trial 05 policy")

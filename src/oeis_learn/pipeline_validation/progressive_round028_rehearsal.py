@@ -269,7 +269,9 @@ def rehearse(args, root, source, folder, store, revision, audit_result, *, host_
     package = training_package(donor, refs)
     sample = sample_stream(package, store.campaign["identity"], cut["support"]["input"])
     output = dict(mechanical_status="BLOCKED", scientific_status="PILOT_UNMEASURED", candidate=revision,
-                  audit=store.state["publication"], decision=audit_result["decision"],
+                  audit=audit_result.get("receipt", {}).get("report", store.state["publication"]),
+                  decision=audit_result["decision"],
+                  **({"archive": audit_result["archive"]} if "diagnostic_replay" in audit_result else {}),
                   gpu_dispatches=0, scope="training_only_rehearsal", filesystem=space(folder),
                   original_scale=original_scale(cut))
     if sample is None:

@@ -128,7 +128,7 @@ def diagnostic_replay(args, source, root, folder, revision, store, host_factory,
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from oeis_learn.generalization.selector_fit_replay import original_attempt
     from oeis_learn.synthesis.admission import VisiblePrompt
-    from .progressive_round028 import reopen, audit_archive
+    from .progressive_round028 import REPLAY_ARCHIVE, reopen, audit_archive
     from .progressive_round028_timing import original_channels
 
     area = confined(folder, "private/diagnostic-replay", exists=False)
@@ -226,7 +226,7 @@ def diagnostic_replay(args, source, root, folder, revision, store, host_factory,
                       **{k: result[k] for k in ("observations", "decision", "original_service_us", "elapsed_us", "deficit_us")}))
     raw = archive_bytes({"replay.json": encode(child), "round028-audit.zip": audit_archive(folder).read_bytes()})
     checked = verify_replay(BytesIO(raw))
-    public = confined(folder, "share/round028-diagnostic-replay.zip", exists=False)
+    public = confined(folder, REPLAY_ARCHIVE, exists=False)
     private = area / "replay-publication.json"
     if verify_only or public.exists():
         require(public.read_bytes() == raw, "published replay differs from private recomputation")

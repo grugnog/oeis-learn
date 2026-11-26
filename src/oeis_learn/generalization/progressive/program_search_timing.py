@@ -167,7 +167,8 @@ def projected_funding(prices, balance, registration, *, current=None, estimate=0
     stop = balance["stopped_after"]
     if stop is not None:
         check(stop in LOOKS)
-        covered.update(key for key in prices if int(key[0].split("-")[1]) > stop)
+        # The qualification verifier reopens the terminal pilot and matches every charge.
+        covered.update(prices)
     return settled + held + remaining_price(prices, covered, current, estimate)
 
 

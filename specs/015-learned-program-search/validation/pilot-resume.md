@@ -48,3 +48,13 @@ PY
 ```
 
 T056 and T060 require the physical return. T046 and T047 track broader workstation acceptance. T048 tracks the subsequent scientific result.
+
+## Compare a copied pilot with its pre-score qualification
+
+Keep the qualification ZIP collected while the scientific status was `PILOT_UNMEASURED`. From the checkout of the controller that produced the Phase 9 qualification, run the public verifier on both copies. It matches the frozen family allocation and the initialization, ordered training stream, codec and learning policy for every reported checkpoint.
+
+```bash
+python3 -S -B scripts/foundation_run.py --engine podman discovery round028 \
+  --action verify --archive /path/to/round028-pilot.zip \
+  --qualification-archive /path/to/pre-score/round028-pilot-qualification.zip
+```

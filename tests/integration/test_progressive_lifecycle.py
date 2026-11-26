@@ -642,7 +642,7 @@ def test_generator_both_independent_pairs_use_same_replication_and_separate_form
 def test_replication_scores_four_restored_learners_on_one_reserved_panel(tmp_path, monkeypatch):
     import torch
     from oeis_learn.decoder.bigint_codec import PAD_ID, encode_body
-    from oeis_learn.generalization.progressive import program_search_pilot
+    from oeis_learn.generalization.progressive import training_rows
     from oeis_learn.generalization.progressive.contracts import digest, seal
     from oeis_learn.generalization.progressive.trials import paired_generator_exposure
     from oeis_learn.pipeline_validation.progressive_generator_probe import batch
@@ -654,7 +654,7 @@ def test_replication_scores_four_restored_learners_on_one_reserved_panel(tmp_pat
     # Exercise the same registered gates on a small CPU clock. Every charged token is trained.
     looks = (0, 1, 1024)
     panels, registration, _ = generator_design_and_cuts(4_000_000)
-    monkeypatch.setattr(program_search_pilot, "LOOKS", looks)
+    monkeypatch.setattr(training_rows, "GENERATOR_LOOKS", looks)
     roster = panels["replication"] + panels["replication_retention"]
     frozen_panel = digest(roster)
     # This finite grammar produces two prefix-compatible choices per family.

@@ -312,8 +312,7 @@ def historical_trials(root, folder, study):
 
 def paired_generator_exposure(ordinary, treatment):
     """A descriptive or funded comparison uses equal useful and charged trajectories."""
-    from .training_rows import pair_seeds
-    from .program_search_pilot import LOOKS
+    from .training_rows import GENERATOR_LOOKS, pair_seeds
     from .contracts import seal
     import re
     both = ordinary, treatment
@@ -323,7 +322,7 @@ def paired_generator_exposure(ordinary, treatment):
     for arm, cut in zip(("ordinary", "first_divergence"), both):
         if (set(cut) != fields or cut["version"] != "round028-generator-milestone/v1" or seal(cut) != cut
                 or cut["arm"] != arm or cut["seeds"] != pair_seeds(cut["registration"], cut["pair"])
-                or type(cut["target"]) is not int or cut["target"] not in LOOKS):
+                or type(cut["target"]) is not int or cut["target"] not in GENERATOR_LOOKS):
             raise ValueError("registered arm and original matched milestone required")
         if any(not isinstance(cut[k], str) or not re.fullmatch("sha256:[0-9a-f]{64}", cut[k])
                for k in ("parent", "stream", "initial", "codec", "common_policy", "order_digest")):

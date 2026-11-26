@@ -655,6 +655,15 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
             with pytest.raises(ValueError, match="pre-score"):
                 verify_pilot(io.BytesIO(archive_bytes(dict(members, **{"pilot.json": encode(seal(changed))}))),
                              qualification=copied)
+        changed = copy.deepcopy(good)
+        for look in changed["looks"]:
+            look["cuts"] = {arm: seal(dict(c, stream=digest("consistent substitution")))
+                            for arm, c in look["cuts"].items()}
+        switched = dict(changed["prescore"]["lineage"], stream=digest("consistent substitution"))
+        changed["prescore"] = seal(dict(changed["prescore"], lineage=switched))
+        with pytest.raises(ValueError, match="independent pre-score"):
+            verify_pilot(io.BytesIO(archive_bytes(dict(members, **{"pilot.json": encode(seal(changed))}))),
+                         qualification=copied)
         initial_calls = list(calls)
         assert collect("collect-pilot") == 0 and calls == initial_calls
         assert collect("collect-pilot-qualification") == 0 and calls == initial_calls
@@ -662,6 +671,9 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
                                            key=lambda p: p.stat().st_mtime_ns)[-1])
         assert paid["projected_us"] == sum(row["charged_us"] for row in good["costs"])
         assert paid["balance"]["shared_zero"] is not None
+        with pytest.raises(ValueError, match="independent pre-score"):
+            verify_pilot(archive, qualification=sorted(exports.glob("*/round028-pilot-qualification.zip"),
+                                                        key=lambda p: p.stat().st_mtime_ns)[-1])
     result, code = pilot.run_pilot(*args)
     expected_action = "ENDPOINT_NOT_ADMITTED" if lost_update else "RETAIN_REFERENCE"
     assert code == 0 and result["receipt"]["next_action"] == expected_action

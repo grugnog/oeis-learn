@@ -102,6 +102,11 @@ def encode(value):
 
 
 def audit_context(path):
+    with zipfile.ZipFile(path) as archive:
+        if archive.namelist() == ["replay.json", "round028-audit.zip"]:
+            from .program_search_report import verify_replay
+            receipt = verify_replay(path)
+            return receipt, receipt["historical_1m_cost_us"].get("trial-05-1M")
     receipt = verify_audit(path)
     with zipfile.ZipFile(path) as archive:
         audited = json.loads(archive.read("audit.json"))

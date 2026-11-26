@@ -12,7 +12,8 @@ from oeis_learn.generalization.progressive.contracts import (
     reference,
     seal,
 )
-from oeis_learn.generalization.progressive.program_search_pilot import ARMS, LOOKS
+from oeis_learn.generalization.progressive import training_rows
+from oeis_learn.generalization.progressive.program_search_pilot import ARMS
 from .progressive_panel_sources import require
 
 REQUEST = "round028-pilot-role/v1"
@@ -65,7 +66,6 @@ def restore_inputs(root, checkpoint, contract, cap):
 
 def train(work, data, *, device="cuda", pair=0):
     import torch
-    from oeis_learn.generalization.progressive.program_search_pilot import LOOKS
     from oeis_learn.fresh.bigint_diagnostics import model_snapshot
     from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
     from oeis_learn.generalization.budgets import Ledger
@@ -94,7 +94,7 @@ def train(work, data, *, device="cuda", pair=0):
         and stream["registration"] == data["registration"]
         and pair in (0, 1) and stream["pair"] == pair
         and arm in ARMS
-        and target in LOOKS
+        and target in training_rows.GENERATOR_LOOKS
         and package["profile"]["model"]["seed"] == stream["seeds"]["initialization"],
         "registered matched stream required",
     )
@@ -110,10 +110,10 @@ def train(work, data, *, device="cuda", pair=0):
         effective_batch=32,
         microbatch_size=package["microbatch"],
         weight_decay=0,
-        schedule_horizon_tokens=LOOKS[-1],
+        schedule_horizon_tokens=training_rows.GENERATOR_LOOKS[-1],
     )
     contract = digest([package["identity"], arm, policy["identity"]])
-    cap = LOOKS[-1] + 32 * max(len(v["tokens"]) for v in rows.values())
+    cap = training_rows.GENERATOR_LOOKS[-1] + 32 * max(len(v["tokens"]) for v in rows.values())
     worker = PolicyUpdate(package["profile"], policy, device=device)
     initial = model_snapshot(worker.encoder, worker.decoder)
     selection = {"initial_weights": initial, "matched_stream": stream["identity"]}
@@ -128,7 +128,7 @@ def train(work, data, *, device="cuda", pair=0):
             saved["selection"] == selection
             and saved["data"]["cursor"] == ledger.updates
             and (
-                saved["history"]["look"] == LOOKS[LOOKS.index(target) - 1]
+                saved["history"]["look"] == training_rows.GENERATOR_LOOKS[training_rows.GENERATOR_LOOKS.index(target) - 1]
                 or data.get("resume_charge") is not None
                 and saved["history"]["look"] == target
             ),
@@ -257,7 +257,7 @@ def evaluate_role(work, data, client, role):
     timings = {"measurements": measurements} if measurements is not None else {}
     if role == "search":
         require_hip()
-        policy = CORRECT_FULL if data["target"] == LOOKS[-1] else DESCRIPTIVE
+        policy = CORRECT_FULL if data["target"] == training_rows.GENERATOR_LOOKS[-1] else DESCRIPTIVE
         checkpoint = data["weights"]
         path = generate(
             work,

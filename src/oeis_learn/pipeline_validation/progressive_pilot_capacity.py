@@ -125,7 +125,10 @@ def capacity(area, host, checkpoint_bytes, *, scale, share, cached, measure, out
         else:
             if resident:
                 field = "candidates_bytes" if role == "search" else "scored_bytes"
-                size = (resident[field] * slots + resident["cases"] - 1) // resident["cases"]
+                observed_bytes = resident[field]
+                if role == "score" and resident.get("score_control"):
+                    observed_bytes = max(observed_bytes, resident["score_control"]["scored_bytes"])
+                size = (observed_bytes * slots + resident["cases"] - 1) // resident["cases"]
             else:
                 # Before cold qualification the donor's full producer envelope bounds one role.
                 size = scale["candidate_score_bytes"] + scale["campaign_bytes"]

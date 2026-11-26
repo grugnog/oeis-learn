@@ -145,11 +145,24 @@ def test_staged_scorer_resumes_after_gpu_discovery(workstation, tmp_path, monkey
         assert load(original / "request.json") == req
     assert load(original / "data.json") == data
     assert len(list(original.glob("attempt-*/end.json"))) == 1
+    with pytest.raises(ValueError):
+        cpu("score", seal(dict(data, candidates={"other": "input"})), seconds=10, inputs=mounts)
+    assert calls == ["gradient", "search", "score"]
     assert load(claim)["request"] == req["identity"]
     assert list(original.glob("attempt-*")) == [original / "attempt-0000"]
     started = load(original / "attempt-0000/start.json")
     assert started["dispatch_scope"] == probe.physical_scope(workstation, "cpu")
     assert (started["dispatch_scope"] == original_boot) is not reboot
+
+    # A supervisor can exit after recording the end but before publishing the boundary.
+    from oeis_learn.pipeline_validation.progressive_pilot_recovery import interrupted
+    boundary = original / "boundary.json"
+    boundary.rename(original / "saved-boundary.json")
+    assert interrupted(cpu, "score", data, mounts) is None
+    with pytest.raises(ValueError, match="parents changed"):
+        interrupted(cpu, "score", seal(dict(data, candidates={"other": "input"})), mounts)
+    (original / "saved-boundary.json").rename(boundary)
+    assert calls == ["gradient", "search", "score"]
 
     # A real CPU resource change still prevents a new dispatch.
     workstation.policy["runtime"]["cpus"] += 1

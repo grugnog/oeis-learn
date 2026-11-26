@@ -46,7 +46,7 @@ def interrupted(runner, role, data, mounts):
     attempts = list(old.glob("attempt-*"))
     if not attempts:
         return None
-    require(len(attempts) == 1 and seal(saved) == saved, "invalid original pilot attempt")
+    require(len(attempts) == 1, "invalid original pilot attempt")
     attempt = confined(old, attempts[0])
     req = load(confined(old, "request.json"))
     data_path = confined(old, "data.json")

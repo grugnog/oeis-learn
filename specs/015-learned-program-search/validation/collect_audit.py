@@ -99,7 +99,7 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
     source = Path(__file__).resolve().parents[3]
     sys.path.insert(0, str(source / "src"))
     from oeis_learn.pipeline_validation.identity import confined
-    from oeis_learn.pipeline_validation.progressive_round028 import ARCHIVE, SAVED_AUDIT, SESSION, audit_archive
+    from oeis_learn.pipeline_validation.progressive_round028 import ARCHIVE, REPLAY_ARCHIVE, SAVED_AUDIT, SESSION, audit_archive
 
     destination = confined(workspace, "run-state/discovery-tools")
     rehearsal = action == "collect-rehearsal"
@@ -426,12 +426,14 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
     audit, value = run("rehearsal" if rehearsal else "audit", stage, *root) if preflight == 0 else (preflight, {})
     code = audit
     include_archive = False
-    if value.get("archive") in (ARCHIVE,SAVED_AUDIT) or (rehearsal and (workspace / SESSION / ARCHIVE).is_file()):
+    if value.get("archive") in (ARCHIVE, SAVED_AUDIT, REPLAY_ARCHIVE) or (rehearsal and (workspace / SESSION / ARCHIVE).is_file()):
         private = 0
         if not rehearsal:
             private, _ = run("verify-private", "verify", *root)
         copied = folder / "round028.zip"
-        shutil.copyfile(audit_archive(confined(workspace,SESSION)), copied)
+        owner = confined(workspace, SESSION)
+        published = confined(owner, REPLAY_ARCHIVE) if value.get("archive") == REPLAY_ARCHIVE else audit_archive(owner)
+        shutil.copyfile(published, copied)
         public, _ = run("verify-copied", "verify", "--archive", str(copied))
         include_archive = public == 0
         code = private or public or audit
