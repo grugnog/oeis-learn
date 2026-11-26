@@ -27,6 +27,7 @@ from oeis_learn.generalization.progressive.program_search_pilot import (
     LOOKS,
     SHIFT_US,
     family_counts,
+    frozen_family_sizes,
     pilot_archive,
     pilot_registration,
     summary,
@@ -42,8 +43,9 @@ from .progressive_research_inputs import checked_file
 from .progressive_round028_panels import NativeRoles, bind_private
 from .progressive_round028_rehearsal import space
 
-AREA = "private/generator-pilot-11h"
-SHARE = "share/generator-pilot-11h/round028-pilot.zip"
+LEGACY_AREA = "private/generator-pilot-11h"
+AREA = "private/generator-pilot-11h-v2"
+SHARE = "share/generator-pilot-11h-v2/round028-pilot.zip"
 PARENT_WORKSTATION = "sha256:1901e97e71d146db415743f380715f4ad9e96da07f16424bd628663379a80ce9"
 
 
@@ -408,6 +410,7 @@ def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, w
         dict(
             block="qualify-resident-search",
             arm="incumbent",
+            inference_seed=freeze["seeds"]["initialization"],
             target=LOOKS[-1],
             rows=prompts,
             recipe=recipe,
@@ -416,21 +419,24 @@ def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, w
         )
     )
     progress("accept_frozen_pilot", role="search")
-    output = gpu("search", data, seconds=300, inputs=[(weights, "/work/inputs/weights.pt")])
+    from .progressive_pilot_recovery import qualification_role
+
+    output = qualification_role(gpu, "search", data, seconds=300, inputs=[(weights, "/work/inputs/weights.pt")])
     candidate = output["candidates"]
     generated = read_bound_record(gpu.last_output, candidate, version="discovery-candidates/v1")
     checks["search"] = gpu.last_producer["identity"]
     ref = dict(candidate, path="inputs/candidates.json")
     progress("accept_frozen_pilot", role="score")
-    out = cpu(
-        "score",
+    out = qualification_role(
+        cpu, "score",
         seal(dict(block="qualify-resident-search", rows=truth, candidates=ref, seconds=180)),
         seconds=300,
         inputs=[(checked_file(gpu.last_output, candidate), "/work/inputs/candidates.json")],
     )
     scored = read_bound_record(cpu.last_output, out["scores"], version="discovery-scoring/v1")
     _, closed = score_projection(
-        generated, scored, candidate["sha256"], prompts, weight, recipe, CORRECT_FULL
+        generated, scored, candidate["sha256"], prompts, weight, recipe, CORRECT_FULL,
+        inference_seed=data["inference_seed"],
     )
     require(closed, "candidate-bound exposed qualification portfolio did not close")
     checks["score"] = cpu.last_producer["identity"]
@@ -457,7 +463,7 @@ def check_space(area, host, checkpoint_bytes):
     return dict(**measured, required_bytes=needed, required_inodes=inodes)
 
 
-def score_projection(generated, scored, candidates_sha, prompts, weights, recipe, policy):
+def score_projection(generated, scored, candidates_sha, prompts, weights, recipe, policy, *, inference_seed=None):
     from .pilot_clocks import clock_record
     from oeis_learn.generalization.progressive.program_search_costing import CLOCK_FIELDS
 
@@ -475,10 +481,14 @@ def score_projection(generated, scored, candidates_sha, prompts, weights, recipe
         seal(clock) == clock
         and clock["policy"] == policy
         and clock["work"] == generated["model"]
+        and clock.get("inference_seed") == inference_seed
+        and type(clock["cost_complete"]) is bool
+        and clock["cost_complete"] == all(r["cost_complete"] for r in clock["clocks"])
         and len(clock["clocks"]) == len(prompts)
         and {r["prompt"] for r in clock["clocks"]} == set(scored["outcomes"])
         and all(
             r == clock_record(**{k: r[k] for k in CLOCK_FIELDS}) and r["policy"] == policy
+            and r["mode"] == "correct" and r["snapshot"] == generated["model"]
             for r in clock["clocks"]
         ),
         "original registered case clocks required",
@@ -495,35 +505,8 @@ def score_projection(generated, scored, candidates_sha, prompts, weights, recipe
     return results, clock["cost_complete"]
 
 
-def estimate_role(role, data, strata, timing, rehearsal, plan):
-    """Price the next batch from the original role overhead and the slower observed case."""
-    from fractions import Fraction
-    from math import ceil
-
-    arm, target, *_ = data["block"].split("-")
-    target = int(target)
-    if role == "train":
-        a = rehearsal["hip"]["arms"][arm]
-        earlier = LOOKS[max(0, LOOKS.index(target) - 1)]
-        tokens = max(0, target - max(earlier, data.get("resume_charge") or 0))
-        rate = max(Fraction(t, n) for t, n in zip(a["update_us"], a["charged_tokens"], strict=True))
-        return (
-            ceil(tokens * rate) + a["save_us"] + a["restore_us"] + plan["training_role_overhead_us"]
-        )
-    block = timing["blocks"][arm + ("-full" if target == LOOKS[-1] else "-one")]
-    phase = "search" if role == "search" else "score"
-    device = "gpu" if role == "search" else "cpu"
-    cells = block["cells"]
-    overhead = max(0, block[device + "_wall_us"] - sum(c[phase + "_us"] for c in cells.values()))
-    floors = plan["score_floor_us"]["incumbent" if arm == "incumbent" else "learner"]
-    rates = {
-        s: max(c["max_" + phase + "_us"], floors[s] if phase == "score" else 0)
-        for s, c in cells.items()
-    }
-    return overhead + sum(
-        rates["parameter" if strata[r["id"]] == "retention" else strata[r["id"]]]
-        for r in data["rows"]
-    )
+# Kept public for callers that price a single role from original measurements.
+from oeis_learn.generalization.progressive.program_search_timing import estimate_role
 
 
 def cost_status(area):
@@ -548,7 +531,8 @@ def publication_inputs(area):
         "acceptance.json",
         "accounting/budget-binding.json",
         "accounting/budget.jsonl",
-        *(f"trials/pilot-{target}.json" for target in LOOKS),
+        "public-freeze.json",
+        *(f"trials/pilot-{target}.json" for target in LOOKS if (area / f"trials/pilot-{target}.json").exists()),
     ]
     for pattern in (
         "costs/*.json",
@@ -557,13 +541,39 @@ def publication_inputs(area):
         "admissions/*.json",
     ):
         paths.extend(str(p.relative_to(area)) for p in sorted(area.glob(pattern)))
-    return [reference(area, confined(area, name)) for name in paths]
+    files = [reference(area, confined(area, name)) for name in paths]
+    # A boundary authenticates its producer, which can itself refer to another
+    # file. Hash these private leaves while streaming large tensors from disk.
+    for entry in sorted(area.glob("roles/*/boundary.json")):
+        role = confined(area, entry).parent
+        bound = load(entry)
+        require(bound == seal(bound), "private role boundary differs")
+        result = read_bound_record(role, bound["producer"])
+        output = checked_file(role, bound["producer"]).parent
+        for field in ("inspection", "lease", "timing"):
+            if field in bound:
+                checked_file(role, bound[field])
+        for field in ("rows", "scores", "candidates"):
+            if field in result.get("result", {}):
+                read_bound_record(output, result["result"][field])
+        if "checkpoint" in result.get("result", {}):
+            checkpoint_inputs(output, result["result"])
+    leaves = []
+    for pattern in ("training*.json", "predecessor.json", "reservations/*.json",
+                    "qualification-costs/*.json", "recovered/**/*", "roles/*/request.json",
+                    "roles/*/data.json", "roles/*/attempt-*/start.json", "roles/*/attempt-*/end.json",
+                    "roles/*/attempt-*/output/producer.json", "roles/*/attempt-*/output/case-boundaries/**/*",
+                    "roles/*/attempt-*/output/accounting/**/*", "roles/*/attempt-*/output/checkpoint/**/*",
+                    "roles/*/attempt-*/output/training-origin.json", "roles/*/attempt-*/output/scored/scores.json",
+                    "roles/*/attempt-*/output/generation/candidates.json"):
+        leaves.extend(reference(area, file) for file in sorted(area.glob(pattern)) if file.is_file())
+    return dict(boundaries=files, private_files=len(leaves), private_digest=digest(leaves))
 
 
 def published_pilot(receipt):
     return dict(
         mechanical_status="COMPLETE",
-        scientific_status="PILOT_MEASURED",
+        scientific_status="PILOT_INCOMPLETE" if receipt.get("unmeasured_looks") else "PILOT_MEASURED",
         archive=SHARE,
         receipt=receipt,
     ), 0
@@ -612,6 +622,14 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
     area = confined(folder, AREA, exists=False)
     area.mkdir(mode=0o700, parents=True, exist_ok=True)
     parent_raw, parent = parent_evidence(folder, store)
+    old = confined(folder, LEGACY_AREA, exists=False)
+    if (old / "registration.json").is_file():
+        # A scientific worker change needs a separate freeze. Never grant a second research budget.
+        _, predecessor = registered_pilot_source(root, source, revision, old, parent)
+        if any((old / key).exists() for key in ("accounting", "reservations", "trials", "publication.json")):
+            raise PilotDeficit("PREDECESSOR_RESEARCH_ALREADY_OPENED")
+        retain(area / "predecessor.json", seal(dict(registration=predecessor["identity"],
+                                                    original_parent=parent["report"])))
     controller = revision
     source, registration = registered_pilot_source(root, source, controller, area, parent)
     revision = registration["candidate"]
@@ -695,6 +713,10 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
         for name in ("development", "development_retention")
         for r in panels[name]
     }
+    from oeis_learn.generalization.progressive.program_search_timing import pilot_prices, remaining_price
+
+    prices = pilot_prices(graph, strata, timing, rehearsal, plan)
+    completed = set()
     largest = max(v["checkpoint_bytes"] for v in old_arms.values())
     check_space(area, host, largest)
     progress("qualify_candidate")
@@ -721,6 +743,7 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             panels=digest(panels),
             roster=reference(panel_area, panel_area / "supply.json"),
             graph=graph,
+            forecast=sorted([block, role, price] for (block, role), price in prices.items()),
             stream=package["stream"]["identity"],
             seeds=pair_seeds(registration["identity"], 0),
             images={"cpu": cpu.image, "hip": gpu.image},
@@ -729,6 +752,8 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
         )
     )
     retain(area / "freeze.json", freeze)
+    design = frozen_family_sizes(graph, registration["identity"], freeze["identity"])
+    retain(area / "public-freeze.json", design)
     progress("accept_frozen_pilot")
     checks = accept_pilot(
         root, folder, store, area, cpu, gpu, package, freeze, d_recipe, d_weights, progress
@@ -829,13 +854,16 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
         else:
             limit = SHIFT_US - budgets.snapshot()["consumed"]["elapsed_us"]
             estimate = estimate_role(role, data, strata, timing, rehearsal, plan)
-            if estimate > limit or limit <= 0:
+            base = "-".join(data["block"].split("-")[:2])
+            needed = remaining_price(prices, completed, (base, role), estimate)
+            if needed > limit or limit <= 0:
                 raise PilotDeficit(
                     "PILOT_ROLE_TIME_DEFICIT",
                     registered_us=SHIFT_US,
-                    required_us=estimate,
+                    required_us=needed,
+                    next_role_us=estimate,
                     remaining_us=max(0, limit),
-                    deficit_us=max(0, estimate - limit),
+                    deficit_us=max(0, needed - limit),
                 )
             retain(saved, seal(dict(key=key, us=limit, estimate_us=estimate)))
         # Each original supervisor interval has its own elapsed-time origin. Retain device occupancy separately.
@@ -852,6 +880,8 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
 
         stage_seconds = TRAINING_SECONDS if role == "train" else data["seconds"] + 120
         result = runner(role, seal(data), seconds=stage_seconds, inputs=mounts)
+        if role == "search":
+            completed.add(("-".join(data["block"].split("-")[:2]), role))
         settle(
             data["block"],
             role,
@@ -892,6 +922,7 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
                     package["identity"],
                     registration["identity"],
                 )
+                completed.add((f"{arm}-{target}", "train"))
                 cuts[arm] = trained["milestone"]
                 mounts, weights = checkpoint_inputs(gpu.last_output, trained)
                 previous[arm] = (trained["checkpoint"], mounts)
@@ -925,12 +956,14 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
                     cuts[ARMS[0]], cut, looks, zero_executions
                 ):
                     outcomes[arm] = {}
+                    completed.update((f"{arm}-{target}", role) for role in ("search", "score"))
                     continue
             from .progressive_pilot_recovery import measured_search
 
             outcomes[arm], closed = measured_search(
                 run, settle, progress, cpu, gpu, look, recipe, weight, weights, prompts, truth
             )
+            completed.update((f"{arm}-{target}", role) for role in ("search", "score"))
             comparable &= closed
         retained = generator_observation(
             panels,
@@ -958,16 +991,15 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
                 action=retained["action"],
             )
         )
-        require(
-            target == LOOKS[-1] or retained["action"] == "CONTINUE_TO_RESERVED_ENDPOINT",
-            "intermediate training exposures diverged",
-        )
+        if retained["action"] == "ENDPOINT_NOT_ADMITTED":
+            break
     costs = [load(confined(area, path)) for path in sorted((area / "costs").glob("*.json"))]
     report = seal(
         dict(
-            version="round028-generator-pilot/v1",
+            version="round028-generator-pilot/v2",
             registration=registration,
-            freeze=freeze["identity"],
+            freeze=design["identity"],
+            design=design,
             acceptance=acceptance["identity"],
             looks=published,
             action=published[-1]["action"],

@@ -336,6 +336,23 @@ def test_archive_recomputes_all_three_looks_and_catches_changed_counts(collectio
     path.write_bytes(packed)
     assert verify_transport(path) == verify_pilot(io.BytesIO(packed))
     assert verify_pilot(path)["next_action"] == "RETAIN_REFERENCE"
+    for change in ("lineage", "stop", "family"):
+        bad = copy.deepcopy(public)
+        endpoint = bad["looks"][-1]
+        if change == "lineage":
+            endpoint["cuts"] = {a: seal(dict(c, stream=digest("another stream")))
+                                for a, c in endpoint["cuts"].items()}
+        elif change == "stop":
+            bad["looks"][0].update(comparable=False, action="ENDPOINT_NOT_ADMITTED")
+        else:
+            cells = endpoint["counts"]
+            first, second = cells[:2]
+            for code, count in second["counts"].items():
+                first["counts"][code] = first["counts"].get(code, 0) + count
+            cells.remove(second)
+            endpoint["contrasts"] = summary(cells, 3)
+        with pytest.raises(ValueError):
+            verify_pilot(io.BytesIO(pilot_archive(seal(bad), prev)))
     with pytest.raises(ValueError):
         verify_pilot(io.BytesIO(packed + b"additional payload"))
     forged = json.loads(encode(public))
@@ -348,8 +365,9 @@ def test_archive_recomputes_all_three_looks_and_catches_changed_counts(collectio
         verify_pilot(io.BytesIO(pilot_archive(seal(changed), prev)))
 
 
+@pytest.mark.parametrize("lost_update", [False, True])
 def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchanged(
-    collection, tmp_path, monkeypatch
+    collection, tmp_path, monkeypatch, lost_update
 ):
     import io
     from pathlib import Path
@@ -443,6 +461,10 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
             if role == "train":
                 arm, target = data["arm"], data["target"]
                 c = generator_design_and_cuts(target)[2][arm]
+                if lost_update and target == 1_000_000 and arm == "first_divergence":
+                    c = dict(c, discarded=512, useful_tokens=c["useful_tokens"] - 512,
+                             updates=c["updates"] - 1, cursor=c["cursor"] - 32,
+                             order_digest=digest("lost last update"))
                 cut = seal(
                     dict(
                         c,
@@ -487,6 +509,7 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
                                 policy=policy,
                                 work=digest("model"),
                                 clocks=clocks,
+                                inference_seed=data["inference_seed"],
                                 cost_complete=True,
                             )
                         ),
@@ -526,15 +549,18 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
     )
     initial = original.store.tip
     result, code = pilot.run_pilot(*args)
-    assert code == 0 and result["receipt"]["next_action"] == "RETAIN_REFERENCE"
-    assert len(calls) == 6 + 6 + 6 and len([v for v in calls if v[0].startswith("incumbent")]) == 2
+    expected_action = "ENDPOINT_NOT_ADMITTED" if lost_update else "RETAIN_REFERENCE"
+    assert code == 0 and result["receipt"]["next_action"] == expected_action
+    assert result["receipt"]["unmeasured_looks"] == ([4_000_000] if lost_update else [])
+    num_calls = len(calls)
+    assert num_calls == (10 if lost_update else 18)
     assert verify_pilot(original.folder / pilot.SHARE) == result["receipt"]
 
     def unexpected_host(*unused, **options):
         raise AssertionError("a completed pilot must re-export without acquiring the workstation")
 
     assert pilot.run_pilot(*args[:-1], unexpected_host) == (result, 0)
-    assert len(calls) == 18 and original.store.tip == initial
+    assert len(calls) == num_calls and original.store.tip == initial
     cost = next((original.folder / pilot.AREA / "costs").glob("*.json"))
     cost.write_text("{}")
     with pytest.raises(ValueError, match="publication boundary"):

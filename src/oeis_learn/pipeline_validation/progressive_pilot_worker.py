@@ -269,6 +269,7 @@ def evaluate_role(work, data, client, role):
             methods=("correct",),
             evaluation_policy=policy,
             seconds=data["seconds"],
+            inference_seed=data["inference_seed"],
             output_root=work / "output",
             case_boundary_dir=work / "output" / "case-boundaries",
         )
@@ -385,7 +386,7 @@ def main():
             "registration",
             "resume_charge",
         },
-        "search": {"arm", "target", "rows", "recipe", "weights", "seconds"},
+        "search": {"arm", "target", "rows", "recipe", "weights", "seconds", "inference_seed"},
         "score": {"rows", "candidates", "seconds"},
     }
     role = req["role"]
@@ -409,6 +410,7 @@ def main():
                     instrumented=True,
                     render_node=nodes[0] if len(nodes) == 1 else None,
                     host_counters=False,
+                    planned_seconds=data.get("seconds", 24 * 3600) + 120,
                 ) as recorder,
                 recorder.phase(role),
             ):
@@ -418,8 +420,12 @@ def main():
                     else evaluate_role(work, data, client, role)
                 )
             result["telemetry"] = usage_summary(
-                output / "telemetry", (time.monotonic_ns() - start) // 1000
+                output / "telemetry", (time.monotonic_ns() - start) // 1000, interval=recorder.sample_interval
             )
+            summary = result["telemetry"]
+            summary.update(sample_interval_seconds=recorder.sample_interval,
+                           uncovered_us=max(0, summary["role_wall_us"] - summary["covered_us"]),
+                           sample_limit_reached=recorder.samples >= recorder.MAX_SAMPLES)
         elif role == "storage":
             result = disposable_storage()
         elif role == "recovery":

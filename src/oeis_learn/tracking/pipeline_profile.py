@@ -150,7 +150,10 @@ class Recorder:
     MAX_EVENTS = 20000
     MAX_SAMPLES = 5402
 
-    def __init__(self, output, *, instrumented, render_node=None, host_counters=True, sample_bytes=None):
+    def __init__(self, output, *, instrumented, render_node=None, host_counters=True, sample_bytes=None,
+                 planned_seconds=None):
+        import math
+        self.sample_interval = max(1, math.ceil((planned_seconds or 0) / (self.MAX_SAMPLES - 1)))
         self.output = Path(output)
         self.output.mkdir(parents=True, exist_ok=True)
         self.instrumented = instrumented
@@ -196,6 +199,7 @@ class Recorder:
             ancestor_quota_reason="container-visible limits only; host ancestor restrictions may be hidden",
             host_counters=self.host_counters,
             sample_bytes=self.sample_bytes,
+            sample_interval_seconds=self.sample_interval,
         )
 
     def snapshot(self):
@@ -272,12 +276,12 @@ class Recorder:
                     self.missed += 1
                 self.ready.set()
                 self.collector_cpu += time.thread_time() - begin
-                due += 1
+                due += self.sample_interval
                 now = time.monotonic()
                 if now > due:
-                    skipped = int(now - due) + 1
+                    skipped = int((now - due) / self.sample_interval) + 1
                     self.missed += skipped
-                    due += skipped
+                    due += skipped * self.sample_interval
                 self.stop.wait(max(0, due - time.monotonic()))
 
     def __enter__(self):

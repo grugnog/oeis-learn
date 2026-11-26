@@ -179,12 +179,13 @@ class NativeRoles:
                         "timing input or candidate changed",
                     )
                     req = original
-            retain(claim, seal({"request": req["identity"]}))
         folder = confined(self.area, "roles/" + req["identity"][7:], exists=False)
         folder.mkdir(parents=True, exist_ok=True)
         req_path, data_path = folder / "request.json", folder / "data.json"
         retain(req_path, req)
         retain(data_path, data)
+        if self.fixed_attempt:
+            retain(claim, seal({"request": req["identity"]}))
         mounts = [
             (req_path, "/work/inputs/request.json"),
             (data_path, "/work/inputs/data.json"),

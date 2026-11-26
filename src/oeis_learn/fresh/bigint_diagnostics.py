@@ -179,6 +179,7 @@ def _portfolio(
     evaluation_policy=None,
     retain_selector_candidates=False,
     component_proposals=None,
+    independent_case_clock=False,
 ):
     if component_proposals is not None and (attempt_count != 8 or portfolio_seconds != 60 or template or mode != "correct"):
         raise ValueError("component search requires the matched eight-attempt/60s portfolio")
@@ -195,8 +196,8 @@ def _portfolio(
         seed=recipe["model"]["seed"] + int(identity(row["id"])[7:14], 16),
         beam=recipe["search"]["beam"],seconds=portfolio_seconds,
     )
-    scope_deadline = deadline
-    deadline = min(deadline, policy.deadline)
+    scope_deadline = policy.deadline if independent_case_clock else deadline
+    deadline = min(scope_deadline, policy.deadline)
     pipeline = recipe.get('pipeline')
     selection = 'visible-only/v2' if pipeline else 'visible-only/v1'
     if pipeline and snapshot is None:

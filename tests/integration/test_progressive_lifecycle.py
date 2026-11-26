@@ -551,7 +551,7 @@ def generator_design_and_cuts(target, pair=0):
     for panel in ("development", "replication"):
         panels[panel] = [dict(task=f"{panel}-{s}-{i}", stratum=s, group=f"{panel}-{s}-{i//2}")
                          for s in STRATA for i in range(32)]
-        panels[panel+"_retention"] = [dict(task=f"{panel}-ret-{i}", stratum="retention", group=f"ret-{panel}-{i}")
+        panels[panel+"_retention"] = [dict(task=f"{panel}-ret-{i}", stratum="retention", group=f"ret-{panel}-{i//2}")
                                        for i in range(32)]
     registration = digest("registration")
     actual = target+int(target>0)*21

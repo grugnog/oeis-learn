@@ -143,7 +143,7 @@ def measured_updates(profile, batches, arm, output, *, device, microbatch):
                 checkpoint_bytes=sum(p.stat().st_size for p in files), checkpoint_files=len(files))
 
 
-def usage_summary(directory, total_us):
+def usage_summary(directory, total_us, *, interval=1):
     import json
     # Integrate only adjacent valid one-second samples. Missing counters and long
     # gaps reduce observed coverage and never contribute artificial idle time.
@@ -169,7 +169,7 @@ def usage_summary(directory, total_us):
             now = row["time"]
             if previous:
                 dt = now - previous[0]
-                if 0 < dt <= 2:
+                if 0 < dt <= 2 * interval:
                     covered += dt
                     busy += dt * (previous[1] + value) / 200
             previous = now, value

@@ -24,7 +24,8 @@ def interrupted(runner, role, data, mounts):
     if not assignment.is_file():
         return None
     saved = load(confined(area, assignment))
-    old = confined(area, "roles/" + saved["request"][7:])
+    require(seal(saved) == saved, "invalid original pilot assignment")
+    old = confined(area, "roles/" + saved["request"][7:], exists=False)
     if (old / "boundary.json").exists():
         return None
     attempts = list(old.glob("attempt-*"))
@@ -67,7 +68,10 @@ def interrupted(runner, role, data, mounts):
         },
     )
     state = inspected[0]["State"]
-    require(state["Running"] is False, "original pilot worker still owns its attempt")
+    if state["Running"] is not False:
+        cleanup = load(confined(output, "cleanup.json"))
+        require(cleanup["acknowledged"] is True and cleanup["failure"] is None,
+                "original pilot worker still owns its attempt")
     elapsed = load(confined(output, "gpu-lease.json"))["elapsed_us"] if runner.phase == "hip" else 0
     require(type(elapsed) is int and elapsed >= 0, "unproved original lease")
     if state["ExitCode"] == 0 and (output / "producer.json").is_file() and not end_path.exists():
@@ -88,7 +92,7 @@ def interrupted(runner, role, data, mounts):
     return output, elapsed, wall
 
 
-def recover_choices(area, output, block, prompts, weight, recipe, arm, target):
+def recover_choices(area, output, block, prompts, weight, recipe, arm, target, inference_seed=None):
     """A partial case stays unresolved. Each never-opened prompt retains its original full budget."""
     policy = CORRECT_FULL if target == 4_000_000 else DESCRIPTIVE
     records, clocks, unopened, unresolved = {}, {}, [], []
@@ -111,6 +115,7 @@ def recover_choices(area, output, block, prompts, weight, recipe, arm, target):
             and value == seal(value)
             and start["prompt"] == value["prompt"] == digest(p)
             and start["model"] == value["model"] == c["snapshot"]
+            and start.get("inference_seed") == value.get("inference_seed") == inference_seed
             and start["policy"] == value["policy"] == c["policy"] == policy
             and c["prompt"] == p["id"]
             and c == clock_record(**{k: c[k] for k in CLOCK_FIELDS}),
@@ -126,6 +131,7 @@ def recover_choices(area, output, block, prompts, weight, recipe, arm, target):
     clock = seal(
         dict(
             version="pipeline-portfolio-clocks/v1",
+            **({"inference_seed": inference_seed} if inference_seed is not None else {}),
             policy=policy,
             source=digest(recipe),
             work=model,
@@ -227,6 +233,33 @@ def measured_training(
         attempt += 1
 
 
+def qualification_role(runner, role, data, *, seconds, inputs):
+    """Retry only exposed qualification work after proving termination of the original."""
+    block = data["block"]
+    ordinal = 0
+    while True:
+        name = block if ordinal == 0 else f"{block}-retry-{ordinal}"
+        request = seal(dict(data, block=name))
+        previous = interrupted(runner, role, request, inputs)
+        if previous is None:
+            return runner(role, request, seconds=seconds, inputs=inputs)
+        output, lease, wall = previous
+        failures = runner.area / "qualification-costs"
+        debit = seal(dict(request=request["identity"], role=role, lease_us=lease, wall_us=wall))
+        retain(failures / f"{name}-{role}.json", debit)
+        if role == "search":
+            part, unopened, unresolved = recover_choices(
+                runner.area, output, name, request["rows"], request["weights"],
+                request["recipe"], request["arm"], request["target"], request["inference_seed"]
+            )
+            if part and not unopened and not unresolved:
+                ref, path, value, _ = part
+                runner.last_output = path.parent
+                runner.last_producer = seal(dict(debit=debit["identity"], recovered=value["identity"]))
+                return {"candidates": dict(ref, path=path.name)}
+        ordinal += 1
+
+
 def measured_score(run, settle, cpu, data, mounts):
     # The CPU scorer can replay an already sealed choice. Its predecessor's time stays charged.
     block = data["block"]
@@ -242,6 +275,15 @@ def measured_score(run, settle, cpu, data, mounts):
         attempt += 1
 
 
+def resident_seconds(cases):
+    # A stalled resident still has an external containment deadline. Budget one
+    # additional portfolio per case for encoding, native drainage and persistence,
+    # plus the existing cold evaluation setup allowance. Each case owns its 60s.
+    if type(cases) is not int or not 1 <= cases <= 160:
+        raise ValueError("resident pilot roster must contain 1 to 160 cases")
+    return 1800 + 120 * cases
+
+
 def measured_search(run, settle, progress, cpu, gpu, look, recipe, weight, weights, prompts, truth):
     from .progressive_round028_pilot import score_projection
 
@@ -254,13 +296,14 @@ def measured_search(run, settle, progress, cpu, gpu, look, recipe, weight, weigh
     segment = 0
     while pending:
         block = base if not segment else base + "-resume-" + str(segment)
-        seconds = 60 * len(pending) + 120
+        seconds = resident_seconds(len(pending))
         data = dict(
             block=block,
             arm=arm,
             target=target,
             rows=pending,
             recipe=recipe,
+            inference_seed=look["seed"],
             weights=weight,
             seconds=seconds,
         )
@@ -277,8 +320,9 @@ def measured_search(run, settle, progress, cpu, gpu, look, recipe, weight, weigh
             output, lease, wall = previous
             settle(block, "search", lease, wall)
             part, pending, unknown = recover_choices(
-                gpu.area, output, block, data["rows"], weight, recipe, arm, target
+                gpu.area, output, block, data["rows"], weight, recipe, arm, target, look["seed"]
             )
+            comparable &= not unknown
             for key in unknown:
                 results[key] = {"outcome": "unresolved", "complete": False}
             # A partial portfolio kept its original allowance; uncertainty is propagated by the reducer.
@@ -294,7 +338,7 @@ def measured_search(run, settle, progress, cpu, gpu, look, recipe, weight, weigh
                     block=block,
                     rows=rows,
                     candidates=dict(ref, path="inputs/candidates.json"),
-                    seconds=60 * len(rows) + 120,
+                    seconds=resident_seconds(len(rows)),
                 ),
                 [(path, "/work/inputs/candidates.json")],
             )
@@ -309,6 +353,7 @@ def measured_search(run, settle, progress, cpu, gpu, look, recipe, weight, weigh
                 weight,
                 recipe,
                 CORRECT_FULL if target == 4_000_000 else DESCRIPTIVE,
+                inference_seed=look["seed"],
             )
             require(not results.keys() & batch.keys(), "duplicate pilot case credit")
             results.update(batch)

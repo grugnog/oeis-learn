@@ -45,6 +45,7 @@ def generate(
     evaluation_policy=DRAIN,
     case_elapsed_us=None,
     case_boundary_dir=None,
+    inference_seed=None,
 ):
     import torch
 
@@ -104,6 +105,11 @@ def generate(
     )
     snapshot = model_snapshot(encoder, decoder)
     runtime_recipe = recipe.get("base_recipe", recipe)
+    if inference_seed is not None:
+        if type(inference_seed) is not int or inference_seed < 0:
+            raise ValueError("invalid registered inference seed")
+        runtime_recipe = dict(runtime_recipe, model=dict(runtime_recipe["model"], seed=inference_seed))
+    draw_identity = {} if inference_seed is None else {"inference_seed": inference_seed}
     if forced is not None and (
         set(forced) != {p["id"] for p in prompts}
         or any(
@@ -127,7 +133,7 @@ def generate(
             if case_boundary_dir is not None:
                 boundary = Path(case_boundary_dir) / digest(p["id"])[7:]
                 boundary.mkdir(parents=True, exist_ok=False)
-                atomic_write(boundary / "start.json", seal(dict(prompt=digest(p), model=snapshot, policy=evaluation_policy)))
+                atomic_write(boundary / "start.json", seal(dict(prompt=digest(p), model=snapshot, policy=evaluation_policy, **draw_identity)))
             memories = {}
             with torch.no_grad():
                 for mode, values in [
@@ -220,6 +226,7 @@ def generate(
                     evidence=evidence,
                     evaluation_policy=evaluation_policy,
                     component_proposals=proposals,
+                    **({"independent_case_clock": True} if inference_seed is not None else {}),
                 )
                 for name in ("raw", "rescue", "equal_budget") if mode == "correct" else (mode,):
                     key = name if mode == "correct" else "equal_budget"
@@ -282,13 +289,15 @@ def generate(
             rows[p["id"]] = record
             if case_boundary_dir is not None:
                 atomic_write(boundary / "choice.json", seal(dict(prompt=digest(p), model=snapshot, policy=evaluation_policy,
-                                                           clock=evidence.clocks[(p["id"], "correct")], record=record)))
+                                                           clock=evidence.clocks[(p["id"], "correct")], record=record, **draw_identity)))
             if case_elapsed_us is not None:
                 case_elapsed_us[p["id"]] = (time.monotonic_ns() - case_start + 999) // 1000
     finally:
         evidence.finish()
     if model_snapshot(encoder, decoder) != snapshot:
         raise RuntimeError("generator mutated frozen weights")
+    if draw_identity:
+        evidence.clock_summary = seal(dict(evidence.clock_summary, **draw_identity))
     result = seal(
         {
             "version": "discovery-candidates/v1",

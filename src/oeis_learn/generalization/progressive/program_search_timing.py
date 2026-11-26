@@ -60,6 +60,55 @@ def parent_plan(panel, rehearsal):
     }
 
 
+def estimate_role(role, data, strata, timing, rehearsal, plan):
+    """Price the next batch from the original role overhead and the slower observed case."""
+    from .program_search_pilot import LOOKS
+    from fractions import Fraction
+    from math import ceil
+
+    arm, target, *_ = data["block"].split("-")
+    target = int(target)
+    if role == "train":
+        a = rehearsal["hip"]["arms"][arm]
+        earlier = LOOKS[max(0, LOOKS.index(target) - 1)]
+        tokens = max(0, target - max(earlier, data.get("resume_charge") or 0))
+        rate = max(Fraction(t, n) for t, n in zip(a["update_us"], a["charged_tokens"], strict=True))
+        return (
+            ceil(tokens * rate) + a["save_us"] + a["restore_us"] + plan["training_role_overhead_us"]
+        )
+    block = timing["blocks"][arm + ("-full" if target == LOOKS[-1] else "-one")]
+    phase = "search" if role == "search" else "score"
+    device = "gpu" if role == "search" else "cpu"
+    cells = block["cells"]
+    overhead = max(0, block[device + "_wall_us"] - sum(c[phase + "_us"] for c in cells.values()))
+    floors = plan["score_floor_us"]["incumbent" if arm == "incumbent" else "learner"]
+    rates = {
+        s: max(c["max_" + phase + "_us"], floors[s] if phase == "score" else 0)
+        for s, c in cells.items()
+    }
+    return overhead + sum(
+        rates["parameter" if strata[r["id"]] == "retention" else strata[r["id"]]]
+        for r in data["rows"]
+    )
+
+
+def pilot_prices(graph, strata, timing, rehearsal, plan):
+    """One physical role per arm and look, including both zero-token checkpoints."""
+    prices = {}
+    for target, looks in graph.items():
+        for arm, look in looks.items():
+            block = f"{arm}-{target}"
+            rows = [{"id": r["task"]} for r in look["members"]]
+            for role in (("search", "score") if arm == "incumbent" else ("train", "search", "score")):
+                prices[(block, role)] = estimate_role(role, dict(block=block, rows=rows),
+                                                      strata, timing, rehearsal, plan)
+    return prices
+
+
+def remaining_price(prices, completed, current, estimate):
+    return estimate + sum(price for key, price in prices.items() if key != current and key not in completed)
+
+
 def prices(block, *, full, score_floors):
     fields(
         block,

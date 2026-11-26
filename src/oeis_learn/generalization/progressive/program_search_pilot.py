@@ -94,6 +94,18 @@ def family_counts(roster, outcomes, arms):
     ]
 
 
+def frozen_family_sizes(graph, registration, private_freeze):
+    """Project only archive-local group numbers and sizes before opening scores."""
+    sizes = {}
+    for target, looks in graph.items():
+        rows = looks[ARMS[0]]["members"]
+        numbers = {key: i for i, key in enumerate(sorted({r["group"] for r in rows}))}
+        counts = Counter((r["stratum"], numbers[r["group"]]) for r in rows)
+        sizes[target] = [dict(stratum=s, group=g, size=n) for (s, g), n in sorted(counts.items())]
+    return seal(dict(version="round028-pilot-family-freeze/v1", registration=registration,
+                     private_freeze=private_freeze, sizes=sizes))
+
+
 def summary(cells, number):
     """Compute exact equal-family contrasts with both completions of every unresolved case."""
     by_stratum = defaultdict(list)
@@ -204,11 +216,15 @@ def verify_pilot(path):
         "costs",
         "verification",
     }
+    current = doc.get("version") == "round028-generator-pilot/v2"
+    if current:
+        fields.add("design")
+    targets = [row["target"] for row in doc["looks"]]
     if (
         set(doc) != fields
         or seal(doc) != doc
         or raw != encode(doc)
-        or doc["version"] != "round028-generator-pilot/v1"
+        or doc["version"] not in ("round028-generator-pilot/v1", "round028-generator-pilot/v2")
         or doc["registration"]
         != pilot_registration(
             parent, doc["registration"]["candidate"], doc["registration"]["source"]
@@ -217,9 +233,19 @@ def verify_pilot(path):
         or any(not re.fullmatch("sha256:[0-9a-f]{64}", doc[k]) for k in ("freeze", "acceptance"))
         or type(doc["research_gpu_us"]) is not int
         or doc["research_gpu_us"] < 0
-        or [r["target"] for r in doc["looks"]] != list(LOOKS)
+        or not targets or targets != list(LOOKS[:len(targets)])
+        or not current and len(targets) != len(LOOKS)
     ):
         raise ValueError("invalid pilot registration or endpoint")
+    if current:
+        design = doc["design"]
+        if (set(design) != {"version", "registration", "identity", "private_freeze", "sizes"}
+                or design != seal(design) or design["identity"] != doc["freeze"]
+                or design["version"] != "round028-pilot-family-freeze/v1"
+                or design["registration"] != doc["registration"]["identity"]
+                or not re.fullmatch("sha256:[0-9a-f]{64}", design["private_freeze"])
+                or set(design["sizes"]) != set(map(str, LOOKS))):
+            raise ValueError("invalid prospectively frozen pilot families")
     known = set()
     total = 0
     for item in doc["costs"]:
@@ -269,7 +295,10 @@ def verify_pilot(path):
     ):
         raise ValueError("pilot lease total differs from its registered spending")
     required_costs, permitted_costs = set(), set()
+    previous = None
     for look in doc["looks"]:
+        if previous and previous["action"] != "CONTINUE_TO_RESERVED_ENDPOINT":
+            raise ValueError("observations after a terminal pilot decision")
         target = look["target"]
         count = 3 if target == LOOKS[-1] else 2
         if set(look) != {
@@ -294,9 +323,19 @@ def verify_pilot(path):
                 or cut["arm"] != arm
             ):
                 raise ValueError("foreign matched training cut")
+            if previous:
+                prior = previous["cuts"][arm]
+                if any(cut[k] != prior[k] for k in ("initial", "stream", "codec", "common_policy")) or any(
+                    cut[k] < prior[k] for k in ("updates", "cursor", "charged", "useful_tokens", "discarded")
+                ):
+                    raise ValueError("pilot training lineage changed between looks")
         paired = paired_generator_exposure(*(cuts[k] for k in ARMS)) == "MATCHED"
         counts = look["counts"]
         contrasted = summary(counts, count)
+        if current:
+            observed = [dict(stratum=c["stratum"], group=c["group"], size=sum(c["counts"].values())) for c in counts]
+            if observed != design["sizes"][str(target)]:
+                raise ValueError("observed family sizes differ from pilot freeze")
         shared = look["zero_reused"]
         if (
             type(shared) is not bool
@@ -332,7 +371,8 @@ def verify_pilot(path):
             split = "development_retention" if stratum == "retention" else "development"
             original_cell = panel["summary"]["panels"][split][stratum]
             expected_cases = original_cell["cases"] if count == 3 else original_cell["families"]
-            if strata[stratum]["cases"] != expected_cases:
+            if (strata[stratum]["cases"] != expected_cases
+                    or strata[stratum]["families"] != original_cell["families"]):
                 raise ValueError("pilot denominator differs from the authenticated reservation")
         action = (
             spending(counts, paired, look["comparable"])
@@ -343,6 +383,9 @@ def verify_pilot(path):
         )
         if contrasted != look["contrasts"] or action != look["action"]:
             raise ValueError("reported pilot evidence differs from family counts")
+        previous = look
+    if targets[-1] != LOOKS[-1] and previous["action"] != "ENDPOINT_NOT_ADMITTED":
+        raise ValueError("unfinished pilot lacks terminal decision")
     recorded = {(re.split("-(?:resume|scoreretry)-", block)[0], role) for block, role in known}
     if not required_costs <= recorded <= permitted_costs:
         raise ValueError("research cost coverage differs from the observed arms and roles")
@@ -357,7 +400,8 @@ def verify_pilot(path):
         overrun_us=max(0, role_us - SHIFT_US),
         research_gpu_us=doc["research_gpu_us"],
         research_role_us=doc["research_role_us"],
-        endpoint=doc["looks"][-1]["contrasts"],
+        endpoint=doc["looks"][-1]["contrasts"] if targets[-1] == LOOKS[-1] else None,
+        **({"unmeasured_looks": list(LOOKS[len(targets):])} if current else {}),
         assessment="SEALED",
         repeat_funded=False,
     )
