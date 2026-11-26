@@ -10,7 +10,7 @@ from oeis_learn.generalization.progressive.cohorts import STRATA, validate_promp
 from oeis_learn.generalization.progressive.contracts import (
     CAMPAIGN_DOCUMENT_BYTES, digest, load, read_bound_record, reference, seal,
 )
-from oeis_learn.generalization.progressive.program_search_bank import inspect_bank, selected_source
+from oeis_learn.generalization.progressive.program_search_bank import inspect_bank, replay_source, selected_source
 from oeis_learn.generalization.progressive.program_search_routing import project, route
 from .identity import confined
 from .pilot_clocks import DRAIN, clock_record
@@ -69,8 +69,8 @@ def control_rows(outcomes, members, method):
         outcome = score["outcome"]
         need(outcome == ("success" if score["success"] else "failure" if score["complete"] else "unresolved"),
              "control selection disagrees with verification")
-        rows[key] = dict(frozen=outcome, companion=None, search_complete=score.get("upstream", {}).get("complete",
-                                                                                                         score["complete"]))
+        rows[key] = dict(frozen=outcome, companion=None,
+                         search_complete=score.get("upstream", {}).get("complete", score["complete"]))
     return rows
 
 
@@ -233,6 +233,11 @@ def import_controls(donor, members, case_rows, inputs):
                         else:
                             chosen = selected_source(gen["records"][key]["selections"][method], score, inputs[key]["visible"])
                             row["selected"] = chosen and chosen["source_sha256"]
+                            local = inputs[key]
+                            if chosen and score["success"] and local["truth"] is not None and not local.get("control_witness"):
+                                if replay_source(chosen["source"], local["visible"], local["truth"]) == "solve":
+                                    local["control_witness"] = dict(task=key, source=chosen["source"],
+                                        indices=local["truth"]["indices"], values=local["truth"]["values"], origin=label)
                     row.update(producer=prefix, candidate=score["candidate_sha256"])
                     case_rows[key]["observations"][label] = row
     return producers
@@ -319,8 +324,13 @@ def import_looks(donor, members, case_rows, inputs):
             selected_source(rec["selections"]["equal_budget"], score, prompt)
             if trial == donor.policy["diagnosis"]["trial"] and producer_closure:
                 local = inputs[key]
+                witness = local["witness"]
+                if (witness is None or witness["source"] is None) and local.get("control_witness"):
+                    witness = local["control_witness"]
                 diagnosis = inspect_bank(rec, score, old["companion"], clocks[key], prompt, local["truth"],
-                                         local["witness"] if local["truth"] is not None else None)
+                                         witness if local["truth"] is not None else None)
+                if diagnosis["exact_witness"]:
+                    diagnosis["witness_origin"] = witness.get("origin", "custodian")
                 case_rows[key]["diagnosis"] = diagnosis
     return producers, final["training"]
 

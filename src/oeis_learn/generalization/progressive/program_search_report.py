@@ -116,7 +116,12 @@ def verify_archive(path):
         member = archive.getinfo("audit.json")
         if member.file_size > MAX_BYTES:
             raise ValueError("public audit exceeds discovery report allowance")
-        value = validate_public(json.loads(archive.read(member)))
+        if archive.comment or member.comment or member.extra:
+            raise ValueError("unexpected public archive metadata")
+        raw = archive.read(member)
+        value = validate_public(json.loads(raw))
+        if raw != json.dumps(value, sort_keys=True, allow_nan=False).encode():
+            raise ValueError("public payload differs from its canonical projection")
     return dict(status="VERIFIED", scope="archive_only", report=value["identity"], decision=value["decision"],
                 denominator=value["denominator"], private_cut=value["private_cut"])
 

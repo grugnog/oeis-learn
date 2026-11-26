@@ -49,7 +49,7 @@ def materialize(root, revision):
     if root != root.resolve(strict=True) or cache.resolve() != cache:
         raise ValueError("physical workspace and source cache required")
     cache.mkdir(parents=True, exist_ok=True)
-    with (cache / "source.lock").open("a", opener=lambda p, f: os.open(p, f | os.O_NOFOLLOW, 0o600)) as lock:
+    with open(cache / "source.lock", "a", opener=lambda p, f: os.open(p, f | os.O_NOFOLLOW, 0o600)) as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         candidate = cache / revision
         if candidate.is_symlink():

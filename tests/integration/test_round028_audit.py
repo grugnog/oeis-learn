@@ -248,3 +248,68 @@ def test_verified_full_states_on_protected_panels_have_no_development_vote():
     rows = checkpoint_inventory(plans, index, checked.append)
     assert set(checked) == set(index["training_checkpoints"])
     assert all(row["disposition"] == "incompatible" and row["reason"] == "protected_panels_only" for row in rows)
+
+
+def test_pinned_source_cache_rejects_tampering_extra_imports_and_directory_aliases(tmp_path):
+    import runpy
+    import subprocess
+    helper = Path(__file__).resolve().parents[2] / "specs/015-learned-program-search/validation/candidate_source.py"
+    materialize = runpy.run_path(str(helper))["materialize"]
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    (tmp_path / "worker.py").write_text("qualified = True\n")
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(tmp_path), *args], text=True).strip()
+    git("add", "worker.py")
+    git("-c", "user.name=fixture", "-c", "user.email=fixture@example.org", "commit", "-qm", "source")
+    pin = git("rev-parse", "HEAD")
+    source = materialize(tmp_path, pin)
+    assert source == materialize(tmp_path, pin)
+    (source / "extra.py").write_text("pass")
+    with pytest.raises(ValueError, match="unexpected candidate"):
+        materialize(tmp_path, pin)
+    (source / "extra.py").unlink()
+    (source / "worker.py").write_text("changed")
+    with pytest.raises(ValueError, match="cached candidate differs"):
+        materialize(tmp_path, pin)
+    (source / "worker.py").unlink()
+    (source / "worker.py").symlink_to(tmp_path / "worker.py")
+    with pytest.raises(ValueError, match="alias"):
+        materialize(tmp_path, pin)
+
+
+def test_copied_public_share_recomputes_route_without_workspace(tmp_path):
+    import copy
+    import subprocess
+    import sys
+    import zipfile
+    from oeis_learn.generalization.progressive.program_search_report import public_audit, publish_archive, verify_archive
+    from oeis_learn.generalization.progressive.program_search_routing import project, route
+    from oeis_learn.pipeline_validation.progressive_round028_audit import summarize, look_name, METHODS
+    reg = diagnostic_registration("a" * 40)
+    cases = [dict(r, observations={}, diagnosis=dict(feasible="NSP", fault=False, unfinished_fit=False, band_witness=False, replay=None))
+             for r in roster()]
+    methods = [look_name(*look) for look in reg["policy"]["historical_looks"]] + [
+        k for m in ("retained_D", "random") for k in (m, *(m + "/" + method for method in METHODS))]
+    counts, pairs = summarize(cases, methods)
+    votes = [dict(r["diagnosis"], task=r["task"], stratum=r["stratum"]) for r in cases if r["stratum"] in ("composition", "unseen_structure")]
+    p = project(votes, training_support=False)
+    checkpoints = [dict(arm=a, seed=i, target=25000000, disposition="unavailable", reason="missing_checkpoint_index")
+                   for a in ("refreshed", "static") for i in (1, 2)]
+    public = public_audit(reg, dict(methods=counts, pairs=pairs, checkpoints=checkpoints, original_trials={}, followup_training={},
+                          projection=p, decision=route(p), cases=cases), elapsed_us=14, private_identity=digest("private"))
+    archive = tmp_path / "round028.zip"
+    publish_archive(archive, public)
+    cli = Path(__file__).resolve().parents[2] / "scripts/foundation_run.py"
+    out = subprocess.check_output([sys.executable, str(cli), "--engine", "podman", "discovery", "round028",
+                                   "--action", "verify", "--archive", str(archive)], cwd=tmp_path, text=True)
+    assert json.loads(out)["scope"] == "archive_only" and not (tmp_path / "run-state").exists()
+    changed = copy.deepcopy(public)
+    changed["pairs"]["trial-05-1M vs retained_D"]["composition"]["frozen"]["both"] = 1
+    with zipfile.ZipFile(tmp_path / "edited.zip", "w") as z:
+        z.writestr("audit.json", json.dumps(seal(changed), sort_keys=True))
+    with pytest.raises(ValueError):
+        verify_archive(tmp_path / "edited.zip")
+    with zipfile.ZipFile(tmp_path / "embed.zip", "w") as z:
+        z.writestr("audit.json", json.dumps(public, sort_keys=True).replace('{"', '{"scope":"private encoded trace","', 1))
+    with pytest.raises(ValueError, match="canonical"):
+        verify_archive(tmp_path / "embed.zip")

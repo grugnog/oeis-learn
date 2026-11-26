@@ -84,7 +84,7 @@ def inspect_bank(rec, score, companion, clock, prompt, truth, witness):
         gap = "missing_archive"
     else:
         try:
-            candidates = candidate_pool(portfolio)
+            candidates = candidate_pool(portfolio, reconstruct=True)
             admissions = {r["source_sha256"] for d in details for r in d["fitting"].get("admission", [])
                           if r["outcome"] == "verified_solution"}
             if admissions != {c["source_sha256"] for c in candidates}:
@@ -105,11 +105,12 @@ def inspect_bank(rec, score, companion, clock, prompt, truth, witness):
         else:
             retained = portfolio["archive"]["retained"]
             costs = {r["id"]: r["cost"] for r in retained}
-            if set(costs) != {c["source_sha256"] for c in candidates}:
+            min_bytes = min(len(c["source"].encode()) for c in candidates)
+            ties = [c for c in candidates if len(c["source"].encode()) == min_bytes]
+            if len(ties) > 1 and any(c["source_sha256"] not in costs for c in ties):
                 gap = "missing_original_tie_cost"
             else:
-                expected = min(candidates, key=lambda c: (len(c["source"].encode()),
-                               costs[c["source_sha256"]], c["source_sha256"]))
+                expected = min(ties, key=lambda c: (costs.get(c["source_sha256"], 0), c["source_sha256"]))
                 if expected["source_sha256"] != selected_id:
                     raise ValueError("original cost/length selection not reproduced")
         for candidate in candidates:

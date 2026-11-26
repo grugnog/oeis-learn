@@ -18,7 +18,7 @@ from oeis_learn.generalization.progressive.program_search_report import public_a
 from .identity import confined
 from .preparation_recovery import retain
 from .progressive_outputs import round028_batch
-from .progressive_round028_audit import Donor, FOLLOWUP, ORIGINAL, SESSION, audit
+from .progressive_round028_audit import Donor, FOLLOWUP, ORIGINAL, SESSION, audit, summarize
 from .progressive_research_inputs import checked_file
 
 ARCHIVE = "share/round028.zip"
@@ -89,7 +89,7 @@ def seal_audit(folder, registration, data, ordinal):
     return reference(folder, path)
 
 
-def reopen(root, folder, registration, cut):
+def reopen(root, folder, registration, cut, *, recheck_inputs=True):
     value = read_bound_record(folder, cut, version="round028-private-audit/v1")
     if value["registration"] != registration["identity"] or len(value["batches"]) != 4:
         raise ValueError("private audit registration or batch roster differs")
@@ -101,8 +101,17 @@ def reopen(root, folder, registration, cut):
         cases.extend(rows)
     if len({r["task"] for r in cases}) != 128:
         raise ValueError("duplicate historical case in committed matrix")
-    for ref in value["inputs"]:
-        checked_file(root, ref)
+    from oeis_learn.generalization.progressive.program_search_routing import project, route
+    methods, pairs = summarize(cases, list(value["methods"]))
+    votes = [dict(r["diagnosis"], task=r["task"], stratum=r["stratum"]) for r in cases
+             if r["stratum"] in registration["policy"]["roster"]["primary"]]
+    projected = project(votes, training_support=value["support"]["eligible_rows"] > 0)
+    if (methods != value["methods"] or pairs != value["pairs"] or projected != value["projection"]
+            or route(projected) != value["decision"]):
+        raise ValueError("private case reduction differs from the sealed report")
+    if recheck_inputs:
+        for ref in value["inputs"]:
+            checked_file(root, ref)
     return dict(value, cases=cases)
 
 
@@ -143,6 +152,7 @@ def audit_command(root, folder, store, registration):
         settle(store, journal, root, folder, registration, active, finish)
 
     cut = store.state.get("audit")
+    reused = cut is not None
     if cut is None:
         ordinal = store.state.get("attempts", 0)
         active = dict(ordinal=ordinal, start=elapsed_clock(), boot=boot)
@@ -156,7 +166,7 @@ def audit_command(root, folder, store, registration):
                                      basis="observed_elapsed")))
             settle(store, journal, root, folder, registration, active, finish)
         cut = store.state["audit"]
-    data = reopen(root, folder, registration, cut)
+    data = reopen(root, folder, registration, cut, recheck_inputs=reused)
     public = public_audit(registration, data, elapsed_us=journal.snapshot()["consumed"]["elapsed_us"],
                           private_identity=data["identity"])
     receipt = publish_archive(confined(folder, ARCHIVE, exists=False), public)
@@ -184,7 +194,7 @@ def settle(store, journal, root, folder, registration, active, finish):
     cut = None
     if path.exists():
         cut = reference(folder, path)
-        reopen(root, folder, registration, cut)
+        reopen(root, folder, registration, cut, recheck_inputs=False)
     store.append(dict(store.state, active=None, audit=cut, status="AUDITED" if cut else "INTERRUPTED",
                       last_timing=reference(folder, finish)))
 
