@@ -1,6 +1,24 @@
 # Round028 workstation commands
 
-## Completed workstation run
+## Run the eleven-hour generator pilot
+
+The CPU audit selected a matched generator experiment. This command fetches the pinned implementation, reuses the original workstation receipts and reserved cases, qualifies the current images and starts or resumes one pilot seed. Run it from the account that owns the detached round027 checkout. The research forecast is **10 h 21 min 37 s after qualification**, leaving **38 min 23 s** in the eleven-hour allocation. First-time image builds, native data preparation and qualification take additional time.
+
+```bash
+(
+  set -euo pipefail
+  cd "$HOME/workspace/oies-learn"
+  rev=cafceae40f385aa0137355a79f339f3b62e2069d
+  git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
+  git merge-base --is-ancestor "$rev" FETCH_HEAD
+  git show "${rev}:specs/015-learned-program-search/validation/launch-round028.sh" |
+    bash -s -- "$rev" collect-pilot
+)
+```
+
+Return the single ZIP at the printed path. A completed run produces `round028-pilot.zip`. A blocked run produces `round028-pilot-diagnostics.zip` with its last recorded phase and available costs or shortage. Running the same command again recovers saved work. After completion it verifies and copies the committed report without acquiring the GPU. [Pilot design, verification command and acceptance evidence](validation/round028-pilot.md)
+
+## Original eight-hour workstation run
 
 **Retain D.** The projected 4M pilot exceeds the eight-hour shift by 2 h 21 min 37 s. The original workstation committed the decision and returned a verified receipt covering all 40 timed portfolios. The enclosed public report matches the earlier verified copy byte for byte. The scientific comparison is unmeasured. [Measured costs and receipt](validation/round028-timing-results.md)
 
