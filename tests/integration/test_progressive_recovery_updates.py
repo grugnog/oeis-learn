@@ -14,11 +14,19 @@ from tests.unit.test_progressive_training_policy import batch, policy, profile
 
 
 @pytest.mark.parametrize(
-    "point", ["reserved", "microbatch", "optimizer", "checkpoint", "committed"]
+    "point", ["reserved", "microbatch", "optimizer", "checkpoint", "committed", "matched_microbatch"]
 )
 def test_exact_model_retry_and_irreversible_charge(tmp_path, monkeypatch, point):
-    p = profile(0.2)
-    cfg = policy(p, microbatch_size=7)
+    treatment = point == "matched_microbatch"
+    if treatment:
+        point = "microbatch"
+        from oeis_learn.pipeline_validation.progressive_training import resolve_update_policy
+        p = profile()
+        cfg = resolve_update_policy(p, objective="first_divergence", effective_batch=32, microbatch_size=7,
+                                    weight_decay=0, schedule_horizon_tokens=4_000_000)
+    else:
+        p = profile(0.2)
+        cfg = policy(p, microbatch_size=7)
     t = task(caps=caps(tokens=10000, elapsed_us=60000000))
     j = BudgetJournal(tmp_path, t["payload"]["campaign"], caps(tokens=10000, elapsed_us=60000000))
     context = {k: {} for k in ("scheduler", "data", "replay", "history", "pins", "selection")}
@@ -37,12 +45,15 @@ def test_exact_model_retry_and_irreversible_charge(tmp_path, monkeypatch, point)
             "consumed",
         )
     }
-    x, tokens, pad = batch()
+    x, tokens, pad = batch(cfg["effective_batch"])
+    preferences = {"preference_labels":[dict(position=0, positive=tokens[0,1].item(), negative=tokens[0,2].item())]
+                   + [None]*(len(x)-1)} if treatment else {}
     charge = int(tokens[:, 1:].ne(pad).sum())
     after = copy.deepcopy(context)
-    after["scheduler"]["stream"]["cursor"] = 16
+    after["scheduler"]["stream"]["cursor"] = len(x)
     kwargs = {
-        "entries": ["source"] * 16,
+        **preferences,
+        "entries": ["source"] * len(x),
         "update": 1,
         "context": after,
         "cuts": cuts,
@@ -63,7 +74,7 @@ def test_exact_model_retry_and_irreversible_charge(tmp_path, monkeypatch, point)
         gold.decoder.load_state_dict(initial["weights"]["decoder"])
         gold.load_state_dict(initial["optimizer"])
         RecoverableUpdate._rng_restore(initial["rng"])
-        gold.update(x, tokens, ledger=Ledger(10000).reserve("gold", charge))
+        gold.update(x, tokens, ledger=Ledger(10000).reserve("gold", charge), **preferences)
         expected = [
             v.detach().clone() for v in [*gold.encoder.parameters(), *gold.decoder.parameters()]
         ]
@@ -125,7 +136,7 @@ def test_exact_model_retry_and_irreversible_charge(tmp_path, monkeypatch, point)
         assert replay == record and j.snapshot()["consumed"] == before
         with pytest.raises(ValueError, match="conflicting"):
             restored.step(
-                x, tokens, **dict(kwargs, entries=["other"], boot="new-boot", monotonic_us=1003)
+                x, tokens, **dict(kwargs, entries=["other"] * len(x), boot="new-boot", monotonic_us=1003)
             )
         r.close(boot="new-boot", monotonic_us=1100)
 
@@ -245,3 +256,32 @@ def test_rehearsal_measures_native_pair_signal_and_reloads_next_matched_update(t
     assert a["charged_tokens"] == b["charged_tokens"] and a["row_schedule"] == b["row_schedule"]
     assert a["initial"] == b["initial"] and a["final"] != b["final"] and b["preference_rows"] == 32
     assert all(v["full_restore"] and v["checkpoint_bytes"] > 0 and v["restore_us"] > 0 for v in (a, b))
+
+
+def test_matched_checkpoint_replays_positive_token_exposure_and_rejects_changed_cut():
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive.training_rows import matched_batch, matched_milestone, exposure_at
+    from oeis_learn.generalization.progressive.contracts import seal
+    from tests.integration.test_progressive_lifecycle import generator_design_and_cuts
+    _, _, cuts = generator_design_and_cuts(1_000_000)
+    cut = cuts["ordinary"]
+    stream = seal(dict(order=["a", "b", "c"], registration=cut["registration"], seeds=cut["seeds"], pair=0))
+    rows = {k:{"tokens":list(range(n))} for k,n in zip(stream["order"], (8,12,21))}
+    planned = exposure_at(stream, rows, 3)
+    direct = [matched_batch(stream, 32*i, 32) for i in range(3)]
+    replay = digest(None)
+    for selected in direct:
+        replay = digest([replay, selected])
+    assert planned["order_digest"] == replay and planned["useful_tokens"] == sum(len(rows[k]["tokens"]) for b in direct for k in b)
+    pkg = {"matched_generator":stream, "profile":{"codec":cut["codec"], "model":{"seed":1}, "inputs":{}},
+           "update_policy":{"objective":"ordinary", "identity":digest("policy")}}
+    selection = {"matched_stream":stream["identity"], "initial_weights":cut["initial"]}
+    state = {"selection":selection, "data":{"cursor":3}, "scheduler":{"controller":{"cursor":96}},
+             "optimizer":{"policy":pkg["update_policy"]["identity"]}}
+    restored = dict(states=state, ledger=SimpleNamespace(updates=3,consumed=planned["useful_tokens"]+100),
+                    cuts={"selection":digest(selection), "consumed":replay}, discarded_tokens=100)
+    record = matched_milestone(pkg, rows, {"identity":cut["parent"]}, restored, planned["useful_tokens"], 1_000_000)
+    assert record["charged"]-record["useful_tokens"] == 100
+    with pytest.raises(ValueError, match="independent matched exposure"):
+        matched_milestone(pkg, rows, {"identity":cut["parent"]},
+                          dict(restored, cuts=dict(restored["cuts"], consumed=digest("wrong"))), planned["useful_tokens"], 1_000_000)

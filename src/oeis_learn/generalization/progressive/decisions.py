@@ -471,3 +471,35 @@ def verify_gate_producers(root, campaign, bundle,*,store=None):
     if normalize(supplied) != normalize(original):
         raise ValueError("outcome table differs from original scorer producers")
     return registration["identity"]
+
+
+def generator_pilot_spending(contrasts, *, seed, exposure, comparable_cost, repeat_funded):
+    """Use the treatment/ordinary endpoint and retain both direct incumbent comparisons."""
+    from fractions import Fraction
+    from .contracts import seal
+    if set(contrasts) != {"first_divergence_minus_ordinary", "ordinary_minus_incumbent",
+                         "first_divergence_minus_incumbent"} or type(comparable_cost) is not bool or type(repeat_funded) is not bool:
+        raise ValueError("all three frozen generator comparisons and measured cost disposition required")
+    matched = contrasts["first_divergence_minus_ordinary"]
+    lo, hi = matched["gain_bounds"]
+    baseline, candidate = (matched["cells"][k][seed].get("retention") for k in ("baseline", "candidate"))
+    retention = None
+    if baseline and candidate:
+        n = baseline["tasks"]
+        if n != candidate["tasks"] or n < 1:
+            raise ValueError("common frozen retention denominator required")
+        delta = baseline["successes"] - candidate["successes"]
+        best = Fraction(delta - candidate["unresolved"], n)
+        worst = Fraction(delta + baseline["unresolved"], n)
+        retention = [float(best), float(worst)]
+    if exposure != "MATCHED" or not comparable_cost:
+        action = "INCOMPARABLE"
+    elif hi <= 0 or (retention and best > Fraction(2, 100)):
+        action = "RETAIN_REFERENCE"
+    elif lo <= 0 or retention is None or worst > Fraction(2, 100):
+        action = "UNRESOLVED_SPENDING_CONTRAST"
+    else:
+        action = "RUN_RESERVED_REPLICATION" if repeat_funded else "REPLICATION_UNFUNDED"
+    return seal(dict(version="round028-generator-spending/v1", contrast="first_divergence_minus_ordinary",
+                     gain_range=[lo, hi], retention_loss_range=retention, exposure=exposure,
+                     comparable_cost=comparable_cost, repeat_funded=repeat_funded, action=action))

@@ -253,4 +253,4 @@ def matched_package(shards, layout, profile, stream, arm, *, microbatch_size=16)
                                    effective_batch=32, microbatch_size=microbatch_size, weight_decay=0)
     return seal_package(dict(version="progressive-training-input/v1", profile=model, update_policy=update,
                              scope="NATIVE_VERIFIED", layout=layout, shards=shards, refresh_updates=1,
-                             matched_generator=stream, diagnostic_fault=None))
+                             matched_generator=stream, diagnostic_fault=None, checkpoint_policy="hourly/v1"))

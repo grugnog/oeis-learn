@@ -936,3 +936,133 @@ def confirmation_chains(plans, policy):
                     or any(not confirmation_initialization(p,plans,policy) for p in pair)
                     or any(p['caps']['elapsed_us']!=21*3600*1000000 for p in pair)):
                 raise ValueError('original paired full-state confirmation continuation required')
+
+
+def _generator_rows(roster, entries, seed):
+    members = {r["task"]: r for r in roster}
+    if set(entries) - set(members):
+        raise ValueError("foreign case in generator look")
+    rows = []
+    for key, row in members.items():
+        value = entries.get(key, {"outcome":"unresolved", "complete":False})
+        if (set(value) != {"outcome", "complete"} or value["outcome"] not in {"success","failure","unresolved"}
+                or type(value["complete"]) is not bool or value["outcome"] == "failure" and not value["complete"]
+                or value["outcome"] == "unresolved" and value["complete"]):
+            raise ValueError("closed original case disposition required")
+        rows.append(dict(row, seed=seed, **value))
+    return rows
+
+
+def generator_observation(panels, outcomes, cuts, *, registration, pair, target, funded, comparable_cost,
+                          links=(), zero_executions=None):
+    """Reduce one predeclared pilot look without telling an old screening trial."""
+    from oeis_learn.generalization.progressive.decisions import generator_pilot_spending
+    from oeis_learn.generalization.progressive.graph import generator_look
+    from oeis_learn.generalization.progressive.metrics import compare
+    from oeis_learn.generalization.progressive.trials import paired_generator_exposure
+    if type(funded) is not bool or type(comparable_cost) is not bool:
+        raise ValueError("explicit cost and reservation disposition required")
+    full = target == 4_000_000
+    names = ("ordinary", "first_divergence", "incumbent") if full else ("ordinary", "first_divergence")
+    looks = {arm: generator_look(panels, registration=registration, pair=pair, arm=arm,
+                                 target=target, split="development") for arm in names}
+    ordinary = looks["ordinary"]
+    seed, roster = ordinary["seed"], ordinary["members"]
+    if set(cuts) != {"ordinary", "first_divergence"} or any(
+            (cut["registration"], cut["pair"], cut["target"]) != (registration, pair, target) for cut in cuts.values()):
+        raise ValueError("original paired checkpoints for this look required")
+    exposure = paired_generator_exposure(cuts["ordinary"], cuts["first_divergence"])
+    if set(outcomes) != set(names):
+        raise ValueError("all registered outcome channels required, including empty channels")
+    shared_zero = False
+    if zero_executions is not None:
+        from oeis_learn.generalization.progressive.trials import reusable_zero_look
+        shared_zero = (target == 0 and outcomes["ordinary"] and not outcomes["first_divergence"]
+                       and reusable_zero_look(cuts["ordinary"], cuts["first_divergence"], looks, zero_executions))
+        if shared_zero:
+            outcomes = dict(outcomes, first_divergence=outcomes["ordinary"])
+    projected = {}
+    coverage = {}
+    for arm, entries in outcomes.items():
+        rows = _generator_rows(roster, entries, seed)
+        projected[arm] = rows
+        cells = {}
+        for stratum in sorted({r["stratum"] for r in rows}):
+            cell = [r for r in rows if r["stratum"] == stratum]
+            cells[stratum] = dict(cases=len(cell), complete=sum(r["complete"] for r in cell),
+                                 missing=sum(r["task"] not in entries for r in cell))
+        coverage[arm] = dict(cases=len(roster), complete=sum(r["complete"] for r in rows),
+                             missing=len(roster)-len(entries), by_stratum=cells)
+    contrasts = {}
+    if full:
+        for baseline, candidate in (("ordinary","first_divergence"), ("incumbent","ordinary"),
+                                    ("incumbent","first_divergence")):
+            rows = [dict(r, arm=a) for source, a in ((baseline,"baseline"),(candidate,"candidate"))
+                    for r in projected[source]]
+            contrast = compare(rows, seed=int(digest([registration, "family_resampling", pair])[7:15], 16),
+                               roster=roster, seeds=[seed], comparisons=3, links=links)
+            contrasts[candidate+"_minus_"+baseline] = contrast
+        spending = generator_pilot_spending(contrasts, seed=seed, exposure=exposure,
+                                           comparable_cost=comparable_cost, repeat_funded=funded)
+        action = spending["action"]
+    else:
+        spending = None
+        action = ("CONTINUE_TO_RESERVED_ENDPOINT" if funded and comparable_cost and exposure == "MATCHED"
+                  else "ENDPOINT_NOT_ADMITTED")
+    return seal(dict(version="round028-pilot-observation/v1", registration=registration, pair=pair, target=target,
+                     requests={k:v["identity"] for k,v in looks.items()}, exposure=exposure, coverage=coverage,
+                     contrasts=contrasts, zero_reused=bool(shared_zero), spending=spending, action=action))
+
+def generator_replication(panels, results, *, registration, links=()):
+    """Apply the established family-aware formal gate to both pairs on the common reserved panel."""
+    from oeis_learn.generalization.progressive.decisions import recompute
+    from oeis_learn.generalization.progressive.graph import generator_look
+    from oeis_learn.generalization.progressive.trials import paired_generator_exposure
+    if set(results) != {0, 1}:
+        raise ValueError("both independent pairs required")
+    seeds = []
+    starts, streams, policies = set(), set(), set()
+    projected = {arm: [] for arm in ("ordinary", "first_divergence", "incumbent")}
+    for pair, evidence in sorted(results.items()):
+        request = generator_look(panels, registration=registration, pair=pair, target=4_000_000,
+                                 arm="ordinary", split="replication")
+        roster = request["members"]
+        if (set(evidence) != {"cuts", "panel", "outcomes", "comparable_cost"}
+                or evidence["panel"] != digest(roster) or evidence["comparable_cost"] is not True
+                or set(evidence["outcomes"]) != set(projected)
+                or set(evidence["cuts"]) != {"ordinary", "first_divergence"}):
+            raise ValueError("both pairs require the same reserved replication cases and comparable search budgets")
+        cut = evidence["cuts"]["ordinary"]
+        if (paired_generator_exposure(cut, evidence["cuts"]["first_divergence"]) != "MATCHED"
+                or cut["registration"] != registration or cut["target"] != 4_000_000 or cut["pair"] != pair
+                or cut["initial"] in starts or cut["stream"] in streams):
+            raise ValueError("independent initialization, strict stream and equal exposure required")
+        policies.add(cut["common_policy"])
+        if len(policies) != 1:
+            raise ValueError("replication must use the same registered architecture and learning policy")
+        starts.add(cut["initial"])
+        streams.add(cut["stream"])
+        seeds.append(request["seed"])
+        for arm, entries in evidence["outcomes"].items():
+            projected[arm].extend(_generator_rows(roster, entries, request["seed"]))
+    comparisons = {}
+    for baseline, candidate in (("ordinary","first_divergence"), ("incumbent","ordinary"),
+                                ("incumbent","first_divergence")):
+        rows = [dict(r, arm=name) for arm, name in ((baseline,"baseline"),(candidate,"candidate"))
+                for r in projected[arm]]
+        metrics, verdict = recompute(rows, roster, seeds, dict(claim="capability", costs=None, comparisons=3,
+                bootstrap_seed=int(digest([registration, "family_resampling", 1])[7:15], 16), links=list(links)))
+        comparisons[candidate+"_minus_"+baseline] = dict(metrics=metrics, verdict=verdict)
+    from oeis_learn.generalization.progressive.metrics import compare
+    seed_ranges = {}
+    for seed in seeds:
+        rows = [dict(r, arm=name) for arm, name in (("ordinary","baseline"),("first_divergence","candidate"))
+                for r in projected[arm] if r["seed"] == seed]
+        m = compare(rows, roster=roster, seeds=[seed], seed=seed, comparisons=3, links=links)
+        seed_ranges[seed] = m["gain_bounds"]
+    matched = comparisons["first_divergence_minus_ordinary"]["metrics"]
+    recommend = all(seed_ranges[s][0] > 0 and matched["retention_losses"][s] <= 0.02 for s in seeds)
+    return seal(dict(version="round028-replication-observation/v1", registration=registration, seeds=seeds,
+                     panel=digest(roster), contrasts=comparisons, seed_gain_ranges=seed_ranges,
+                     next_action="RECOMMEND_SEPARATELY_BUDGETED_CONFIRMATION" if recommend
+                     else "RETAIN_REFERENCE"))

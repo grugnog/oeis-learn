@@ -117,12 +117,16 @@ def pair_seeds(registration, ordinal):
             for name in ("initialization", "training_families")}
 
 
-def matched_stream(shards, layout, registration, ordinal):
+def matched_stream(shards, layout, registration, ordinal, *, law=None):
     """Commit one outcome-independent cyclic order and its actual verified labels."""
     from .contracts import digest
     from .shared_support import validated_rows
 
     seeds = pair_seeds(registration, ordinal)
+    if law is not None:
+        from .generator import validate_policy
+        if validate_policy(law)["seed"] != seeds["training_families"]:
+            raise ValueError("mechanical draw law belongs to another paired seed")
     rows = validated_rows(shards, native_verified=True)
     excluded = {probe["id"] for probe in layout["probes"].values()}
     if not excluded <= rows.keys():
@@ -132,7 +136,7 @@ def matched_stream(shards, layout, registration, ordinal):
         raise ValueError("empty matched training stream")
     support = verified_training_pairs(shards, excluded=excluded)
     return seal(dict(version="round028-matched-stream/v1", registration=registration,
-                     pair=ordinal, seeds=seeds,
+                     pair=ordinal, seeds=seeds, **({"law":law} if law is not None else {}),
                      sources=sorted({r["source_policy"] for r in rows.values()}),
                      row_identities=digest([rows[key]["identity"] for key in order]),
                      order=order, **support))
@@ -144,3 +148,51 @@ def matched_batch(stream, cursor, count):
         raise ValueError("complete matched batch coordinates required")
     order = stream["order"]
     return [order[(cursor + offset) % len(order)] for offset in range(count)]
+
+
+def exposure_at(stream, rows, updates, size=32):
+    """Independently replay committed positive IDs and token counts without running a model."""
+    from .contracts import digest
+    if type(updates) is not int or updates < 0 or type(size) is not int or size != 32:
+        raise ValueError("complete matched updates of 32 required")
+    consumed, tokens, final = digest(None), 0, 0
+    for update in range(updates):
+        batch = matched_batch(stream, size * update, size)
+        final = sum(len(rows[key]["tokens"]) for key in batch)
+        if not final:
+            raise ValueError("empty registered decoder target")
+        tokens += final
+        consumed = digest([consumed, batch])
+    return dict(order_digest=consumed, useful_tokens=tokens, last_update_tokens=final,
+                updates=updates, cursor=updates * size)
+
+
+def matched_milestone(package, rows, checkpoint, restored, useful, target):
+    """Bind a spending observation to the complete private recovery cut."""
+    from .contracts import digest
+    stream = package["matched_generator"]
+    state = restored["states"]
+    selection = state["selection"]
+    ledger = restored["ledger"]
+    if type(target) is not int or target not in (0, 1_000_000, 4_000_000):
+        raise ValueError("registered generator token look required")
+    expected = exposure_at(stream, rows, ledger.updates)
+    if (selection["matched_stream"] != stream["identity"] or digest(selection) != restored["cuts"]["selection"]
+            or expected["order_digest"] != restored["cuts"]["consumed"]
+            or expected["useful_tokens"] != useful or state["data"]["cursor"] != ledger.updates
+            or state["scheduler"]["controller"]["cursor"] != expected["cursor"]
+            or useful + restored["discarded_tokens"] != ledger.consumed
+            or state["optimizer"]["policy"] != package["update_policy"]["identity"]):
+        raise ValueError("checkpoint disagrees with the independent matched exposure replay")
+    return seal(dict(version="round028-generator-milestone/v1", parent=checkpoint["identity"],
+                     registration=stream["registration"], pair=stream["pair"], seeds=stream["seeds"],
+                     arm=package["update_policy"]["objective"], stream=stream["identity"],
+                     initial=selection["initial_weights"], codec=package["profile"]["codec"],
+                     common_policy=digest({
+                         "update":{k:v for k,v in package["update_policy"].items()
+                                   if k not in {"objective", "identity", "model_profile"}},
+                         "model":{k:v for k,v in package["profile"]["model"].items() if k != "seed"},
+                         "inputs":package["profile"]["inputs"],
+                     }), target=target,
+                     charged=ledger.consumed, discarded=restored["discarded_tokens"],
+                     overshoot=max(0, ledger.consumed-target), **expected))

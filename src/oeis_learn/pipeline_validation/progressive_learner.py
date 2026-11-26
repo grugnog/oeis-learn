@@ -228,13 +228,14 @@ def validate_input(package, task, *, allow_pending=False):
         requested = package.get("matched_generator")
         if not isinstance(requested, dict):
             raise ValueError("registered matched stream required")
-        stream = matched_stream(package["shards"], package["layout"], requested.get("registration"), requested.get("pair"))
+        stream = matched_stream(package["shards"], package["layout"], requested.get("registration"),
+                                requested.get("pair"), law=requested.get("law"))
         if stream["seeds"]["initialization"] != task["payload"]["seed"]:
             raise ValueError("generator pair initialization differs")
         if task["purpose"] == "research":
             from oeis_learn.generalization.progressive.generator import default_policy, draw
             # Order alone cannot make an independent stream. Check provenance of every mechanical draw.
-            law = default_policy(seed=stream["seeds"]["training_families"])
+            law = stream.get("law") or default_policy(seed=stream["seeds"]["training_families"])
             for row in seen.values():
                 generated = draw(law, row["ordinal"])
                 if any(row[k] != generated[k] for k in ("draw_identity", "source_policy", "source", "structure")):
@@ -600,7 +601,7 @@ def _run(
                         cursor=controller.cursor + len(rows),
                         rejection_watermark=max(
                             controller.rejection_watermark,
-                            max(r["ordinal"] for r in package["shards"][index]) + 1,
+                            max(r["ordinal"] for r in (rows if matched else package["shards"][index])) + 1,
                         ),
                     )
                     next_context["scheduler"]["controller"] = controller_cut.snapshot()
@@ -731,6 +732,15 @@ def _run(
         atomic_write(output/'diversity.json',seal(dict(version='progressive-consumed-diversity/v1',task=t['identity'],checkpoint=recovery.state['checkpoint']['identity'],counts=diversity,excluded_nonmechanical_entries=sum(v for k,v in consumed_all.items() if k not in lookup))))
         atomic_write(output / "checkpoint.json", recovery.state["checkpoint"])
         atomic_write(output / "milestone.json", m)
+        matched_metrics = {}
+        if matched:
+            from oeis_learn.generalization.progressive.training_rows import matched_milestone
+            from oeis_learn.generalization.progressive.contracts import reference
+            observation = matched_milestone(package, lookup, recovery.state["checkpoint"], current,
+                                            recovery.state["useful_tokens"], t["payload"]["token_target"])
+            path = output / "matched-milestone.json"
+            atomic_write(path, observation)
+            matched_metrics["matched_milestone"] = reference(output, path)
         return publish(
             output,
             operation="train",
@@ -745,6 +755,7 @@ def _run(
             task=t["identity"],
             stage=t["payload"]["stage"],
             metrics={
+                **matched_metrics,
                 "task_status": status,
                 "checkpoint": recovery.state["checkpoint"]["identity"],
                 "checkpoint_record":__import__("oeis_learn.generalization.progressive.contracts",fromlist=["reference"]).reference(output,output/"checkpoint.json"),

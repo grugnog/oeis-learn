@@ -541,3 +541,112 @@ def test_canonical_run_resume_after_real_owned_process_kill(tmp_path,monkeypatch
     final=load(next((tmp_path/'resumed').glob('task-*/role/accounting-final.json')))
     assert final['milestone']['tokens']>=3*charge
     if point=='pending':assert final['milestone']['tokens']>final['useful_tokens']
+
+
+def generator_design_and_cuts(target, pair=0):
+    from oeis_learn.generalization.progressive.cohorts import STRATA
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.training_rows import pair_seeds
+    panels = {}
+    for panel in ("development", "replication"):
+        panels[panel] = [dict(task=f"{panel}-{s}-{i}", stratum=s, group=f"{panel}-{s}-{i//2}")
+                         for s in STRATA for i in range(32)]
+        panels[panel+"_retention"] = [dict(task=f"{panel}-ret-{i}", stratum="retention", group=f"ret-{panel}-{i}")
+                                       for i in range(32)]
+    registration = digest("registration")
+    actual = target+int(target>0)*21
+    cuts = {arm: seal(dict(version="round028-generator-milestone/v1", arm=arm, target=target,
+            parent=digest([arm,pair,target]), registration=registration, pair=pair, seeds=pair_seeds(registration,pair),
+            stream=digest(["stream",pair]), initial=digest(["random",pair]), codec=digest("codec"), common_policy=digest("settings"),
+            charged=actual, useful_tokens=actual, discarded=0, overshoot=actual-target, order_digest=digest(["order",target]),
+            last_update_tokens=512 if target else 0, updates=actual//512+int(actual>0),
+            cursor=32*(actual//512+int(actual>0)))) for arm in ("ordinary","first_divergence")}
+    return panels, registration, cuts
+
+
+def test_generator_intermediate_missing_cases_and_exact_zero_credit():
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.graph import generator_look
+    from oeis_learn.pipeline_validation.progressive_study import generator_observation
+    for target in (0, 1_000_000):
+        panels, reg, cuts = generator_design_and_cuts(target)
+        args = dict(registration=reg, pair=0, target=target, funded=True, comparable_cost=True)
+        look = generator_look(panels, registration=reg, pair=0, arm="ordinary", target=target, split="development")
+        assert look["attempts"] == 1 and len(look["members"]) == 64
+        entries = {r["task"]:dict(outcome="failure",complete=True) for r in look["members"][:60]}
+        outcomes = {"ordinary":entries, "first_divergence":{}}
+        result = generator_observation(panels, outcomes, cuts, **args)
+        assert result["action"] == "CONTINUE_TO_RESERVED_ENDPOINT" and result["coverage"]["ordinary"]["missing"] == 4
+        assert result["coverage"]["first_divergence"]["complete"] == 0
+        cut = cuts["first_divergence"]
+        if target:
+            unequal = dict(cuts, first_divergence=seal(dict(cut, charged=cut["charged"]+1, discarded=1,
+                                                             overshoot=cut["overshoot"]+1)))
+            assert generator_observation(panels, outcomes, unequal, **args)["exposure"] == "UNEQUAL_EXPOSURE"
+        else:
+            scope = {k:digest(k) for k in ("ordered_prompts","runtime","source","profile","fit_and_choice","budgets",
+                                          "support","comparator","role")}
+            scope.update(weights=cut["initial"], codec=cut["codec"], inference_seed=2)
+            both = {"ordinary":scope, "first_divergence":scope}
+            credited = generator_observation(panels, outcomes, cuts, **args, zero_executions=both)
+            assert credited["zero_reused"] and credited["coverage"]["first_divergence"] == credited["coverage"]["ordinary"]
+            changed = dict(both, first_divergence=dict(scope, inference_seed=3))
+            assert not generator_observation(panels, outcomes, cuts, **args, zero_executions=changed)["zero_reused"]
+
+
+def test_generator_pilot_uses_matched_gain_and_conservative_retention():
+    from oeis_learn.pipeline_validation.progressive_study import generator_observation
+    panels, reg, cuts = generator_design_and_cuts(4_000_000)
+    def outcomes(success):
+        return {r["task"]: dict(outcome="success" if success(r) else "failure", complete=True)
+                for r in panels["development"]+panels["development_retention"]}
+    ordinary = outcomes(lambda r:r["stratum"]=="retention")
+    treatment = outcomes(lambda r:r["stratum"]=="retention" or r["task"].endswith("-0"))
+    data = dict(ordinary=ordinary, first_divergence=treatment, incumbent=outcomes(lambda r:True))
+    def run(data):
+        return generator_observation(panels, data, cuts, registration=reg, pair=0, target=4_000_000, funded=True,
+                                     comparable_cost=True)
+    assert run(data)["action"] == "RUN_RESERVED_REPLICATION"
+    assert run(data)["contrasts"]["first_divergence_minus_incumbent"]["mean_gain"] < 0
+    assert run(dict(data, ordinary=treatment, first_divergence=ordinary))["action"] == "RETAIN_REFERENCE"
+    broken = dict(treatment)
+    del broken[panels["development_retention"][0]["task"]]
+    missing_control = dict(ordinary)
+    del missing_control[panels["development_retention"][0]["task"]]
+    assert run(dict(data, first_divergence=broken, ordinary=missing_control))["action"] == "UNRESOLVED_SPENDING_CONTRAST"
+    broken[panels["development_retention"][0]["task"]] = dict(outcome="failure", complete=True)
+    assert run(dict(data, first_divergence=broken))["action"] == "RETAIN_REFERENCE"
+
+
+def test_generator_both_independent_pairs_use_same_replication_and_separate_formal_gain():
+    from oeis_learn.generalization.progressive.contracts import digest
+    from oeis_learn.pipeline_validation.progressive_study import generator_replication
+    panels, reg, _ = generator_design_and_cuts(4_000_000)
+    roster = panels["replication"] + panels["replication_retention"]
+    ordinary = {r["task"]:dict(outcome="failure", complete=True) for r in roster}
+    treatment = dict(ordinary)
+    # One primary solve: concordant means <2pp can recommend a separate study.
+    treatment[next(r["task"] for r in roster if r["stratum"]=="composition")] = dict(outcome="success",complete=True)
+    results = {p:dict(cuts=generator_design_and_cuts(4_000_000, p)[2], panel=digest(roster), comparable_cost=True,
+                      outcomes=dict(ordinary=ordinary, first_divergence=treatment, incumbent=ordinary)) for p in (0,1)}
+    result = generator_replication(panels, results, registration=reg)
+    assert result["next_action"] == "RECOMMEND_SEPARATELY_BUDGETED_CONFIRMATION"
+    assert result["contrasts"]["first_divergence_minus_ordinary"]["verdict"] != "CONFIRMED_GAIN"
+    result = generator_replication(panels, results | {1:dict(results[1],
+              outcomes=dict(ordinary=treatment, first_divergence=ordinary, incumbent=ordinary))}, registration=reg)
+    assert result["next_action"] == "RETAIN_REFERENCE"
+    with pytest.raises(ValueError, match="same reserved"):
+        generator_replication(panels, results | {1:dict(results[1], panel=digest(panels["development"]))}, registration=reg)
+
+
+def test_30_of_32_in_a_descriptive_cell_can_continue_to_the_reserved_endpoint():
+    from oeis_learn.pipeline_validation.progressive_study import generator_observation
+    panels, reg, cuts = generator_design_and_cuts(1_000_000)
+    selected = [r for r in panels["development"] if r["stratum"] == "composition"]
+    for row in selected:
+        row["group"] = row["task"]
+    entries = {r["task"]:dict(complete=True, outcome="failure") for r in selected[:30]}
+    result = generator_observation(panels, dict(ordinary=entries, first_divergence=entries), cuts,
+                                    registration=reg, pair=0, target=1_000_000, funded=True, comparable_cost=True)
+    assert result["coverage"]["ordinary"]["by_stratum"]["composition"] == dict(cases=32, complete=30, missing=2)
+    assert result["action"] == "CONTINUE_TO_RESERVED_ENDPOINT" and result["spending"] is None

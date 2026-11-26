@@ -59,6 +59,10 @@ def test_frozen_generator_pairs_exclude_probes_and_bind_every_target_and_seed():
         t = task(arm=arm, seed=stream["seeds"]["initialization"], token_target=4_000_000,
                  initializer=dict(mode="random", artifact=None, compatibility=compatibility(pkg)))
         assert validate_input(pkg, t) == pkg
+        imported = dict(t, payload=dict(t["payload"], initializer=dict(t["payload"]["initializer"],
+                              mode="weights_only", artifact=None)))
+        with pytest.raises(ValueError, match="strict matched generator"):
+            validate_input(pkg, imported)
         with pytest.raises(ValueError, match="independently generated"):
             validate_input(pkg, dict(t, purpose="research"))
         bad = seal(dict(pkg, matched_generator=seal(dict(stream, order=stream["order"][::-1]))))

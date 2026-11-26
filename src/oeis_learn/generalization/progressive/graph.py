@@ -112,3 +112,54 @@ def validate_graph(graph, *, caps):
     if len(scaling) > 8 or sum(n["caps"]["elapsed_us"] for n in scaling) > 168 * 3600 * 1_000_000:
         raise ValueError("routine scaling reserve")
     return graph
+
+
+def generator_look(panels, *, registration, pair, arm, target, split):
+    """Compile the single registered search request from an already frozen panel roster."""
+    from .contracts import digest, seal
+    from .cohorts import STRATA
+    from .training_rows import pair_seeds
+    seeds = pair_seeds(registration, pair)
+    if (arm not in {"ordinary", "first_divergence", "incumbent"} or type(target) is not int
+            or target not in (0, 1_000_000, 4_000_000) or split not in {"development", "replication"}
+            or ((arm == "incumbent" or split == "replication") and target != 4_000_000)):
+        raise ValueError("unregistered generator arm, split or look")
+    names = {"development", "development_retention", "replication", "replication_retention"}
+    if set(panels) != names:
+        raise ValueError("development and common replication reservations with separate retention required")
+    owners = set()
+    group_owners = {}
+    for name, members in panels.items():
+        strata = {"retention"} if name.endswith("_retention") else set(STRATA)
+        if (not isinstance(members, list) or {r["stratum"] for r in members} != strata
+                or any(set(r) != {"task", "stratum", "group"} or not all(isinstance(v, str) and v for v in r.values())
+                       for r in members)):
+            raise ValueError("complete and outcome-blind reserved panel membership required")
+        if not name.endswith("_retention"):
+            for stratum in strata:
+                selected = [r for r in members if r["stratum"] == stratum]
+                if len(selected) != 32:
+                    raise ValueError("target panel requires 32 registered cases in every development/replication stratum")
+                if stratum in ("composition", "unseen_structure") and len({r["group"] for r in selected}) < 16:
+                    raise ValueError("primary family supply deficit")
+                if stratum != "parameter" and any(group_owners.setdefault(r["group"], name) != name for r in selected):
+                    raise ValueError("linked evaluation family crosses panel roles")
+        keys = {r["task"] for r in members}
+        if len(keys) != len(members) or owners & keys:
+            raise ValueError("case reused across frozen panel roles")
+        owners.update(keys)
+    full = target == 4_000_000
+    if full:
+        members = [*panels[split], *panels[split + "_retention"]]
+    else:
+        members = []
+        families = set()
+        for row in panels[split]:
+            key = row["stratum"], row["group"]
+            if key not in families:
+                members.append(row)
+                families.add(key)
+    return seal(dict(version="round028-generator-look/v1", registration=registration, pair=pair,
+                     seed=seeds["initialization"], arm=arm, target=target, split=split, panels=digest(panels),
+                     members=members, attempts=8 if full else 1, portfolio_us=60_000_000, fit_us=4_000_000,
+                     max_tokens=1024, profile="bigint-20-100/v1", spending=full))
