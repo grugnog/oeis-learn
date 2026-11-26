@@ -13,3 +13,29 @@ Both readings require at least 95% completion in each of the two 32-case primary
 The qualified checkout is `77667e67176ae32fa16457d52565bae1dbe41afc`. The shell entrypoint extracts the registered host files from Git. Raw producer evidence and resumable checkpoints stay private. The reports in `run-state/discovery/013-round027-trial00-followup/share/` contain aggregate results and evidence identifiers. Rerunning with `--run` checks saved boundaries and continues eligible work. Use `--verify` to reconstruct published results from their producer files.
 
 The original round027 study keeps its six terminal screening decisions. This follow-up authorizes neither a new screening trial nor an evaluation on the locked assessment set.
+
+## Workstation checks after the 2M report
+
+From the root of the qualified checkout, fetch the host tools and run them directly from Git. These commands use Bash.
+
+```bash
+set -o pipefail
+git fetch origin 013-progressive-mathematical-discovery &&
+rev=$(git rev-parse FETCH_HEAD) &&
+validation=specs/013-progressive-mathematical-discovery/validation &&
+git show "$rev:$validation/report-round027.py" | python3 -BS - --panel
+```
+
+The panel report uses the two saved capability controls and seven checkpoint measurements on identical development cases. It prints aggregate counts. To see allocated space, a conservative estimate for disposable round026 test scratch, and the largest retained files, run the launcher in storage mode.
+
+```bash
+git show "$rev:$validation/launch-round027.sh" | bash -s -- --round026-space
+```
+
+To remove the eligible scratch, add the explicit apply flag.
+
+```bash
+git show "$rev:$validation/launch-round027.sh" | bash -s -- --round026-space --apply
+```
+
+Cleanup holds the round026 session lock and checks its original handoff against round027 before and after removal. Only worker directories recorded as qualification test scratch are eligible. Preparation products, failure receipts and training inputs keep their original paths.
