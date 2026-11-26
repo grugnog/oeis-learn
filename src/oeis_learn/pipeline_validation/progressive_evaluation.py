@@ -134,6 +134,8 @@ def generate(
     )
     try:
         for ordinal, p in enumerate(prompts):
+            if inference_seed is not None and time.monotonic() >= deadline:
+                raise TimeoutError("resident search stopped before opening the next portfolio")
             case_start = time.monotonic_ns() if case_elapsed_us is not None else None
             if case_boundary_dir is not None:
                 boundary = Path(case_boundary_dir) / digest(p["id"])[7:]
@@ -231,7 +233,7 @@ def generate(
                     evidence=evidence,
                     evaluation_policy=evaluation_policy,
                     component_proposals=proposals,
-                    **({"independent_case_clock": True} if inference_seed is not None else {}),
+                    **({"independent_case_clock": True} if inference_seed is not None and budget is None else {}),
                 )
                 for name in ("raw", "rescue", "equal_budget") if mode == "correct" else (mode,):
                     key = name if mode == "correct" else "equal_budget"
@@ -328,7 +330,7 @@ def generate(
 
 
 def score(root, candidates, truth, *, client, output, seconds=3600, budget=None, selected_only=False,
-          measurements=None):
+          measurements=None, independent_case_clock=False):
     from oeis_learn.fresh.bigint_diagnostics import score as canonical_score
     from oeis_learn.synthesis.contracts import canonical_integer
 
@@ -356,6 +358,8 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None,
         raise ValueError("sealed generator candidate artifact required")
     if type(seconds) not in (int, float) or not 0 < seconds <= _maximum_seconds(budget):
         raise ValueError("bounded scorer required")
+    if independent_case_clock and (budget is not None or not selected_only):
+        raise ValueError("independent scoring clocks require a supervised single-choice roster")
     truth = list(truth)
     by_id = {}
     for row in truth:
@@ -409,7 +413,8 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None,
             }
             for k, v in value["records"].items()
         }
-        scored = canonical_score(projected, by_id, client, deadline=deadline)
+        scored = canonical_score(projected, by_id, client, deadline=deadline,
+                                 independent_case_clock=independent_case_clock)
         for key, row in scored["outcomes"].items():
             v = row["equal_budget"]
             upstream = value["records"][key]["arm_evidence"][method]

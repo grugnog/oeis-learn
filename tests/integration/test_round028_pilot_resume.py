@@ -204,8 +204,11 @@ def collector_fixture(original, terminal_archive, monkeypatch, host):
     """Run the workstation collector and CLI with a registered worker and a descendant controller."""
     import contextlib
     import io
+    import json
+    import os
     import runpy
     import shutil
+    import sys
 
     from oeis_learn.pipeline_validation import progressive_round028 as campaign
 
@@ -243,11 +246,13 @@ def collector_fixture(original, terminal_archive, monkeypatch, host):
         return git("rev-parse", "HEAD")
 
     worker = commit("Fixture worker")
-    (root / "operator.md").write_text("Fixture controller")
-    git("add", "operator.md")
+    launcher = HELPER.with_name("launch-round028.sh")
+    # Bind the real launcher to the disposable donor in this offline Git fixture.
+    policy = campaign.learned_search_policy()
+    (root / launcher).write_text((SOURCE / launcher).read_text().replace(policy["donor_revision"], worker))
+    git("add", str(launcher))
     controller = commit("Fixture controller")
     git("checkout", "--quiet", "--detach", worker)
-    policy = campaign.learned_search_policy()
     monkeypatch.setattr(
         campaign, "learned_search_policy", lambda: dict(policy, donor_revision=worker)
     )
@@ -258,9 +263,6 @@ def collector_fixture(original, terminal_archive, monkeypatch, host):
     (original.folder / campaign.ARCHIVE).write_bytes(terminal_archive)
     tree = runpy.run_path(str(root / HELPER))["materialize"]
     worker_source, controller_source = (tree(root, r) for r in (worker, controller))
-    collector = runpy.run_path(str(controller_source / HELPER.with_name("collect_audit.py")))[
-        "collect"
-    ]
     monkeypatch.setattr(foundation.local, "ROOT", controller_source)
     monkeypatch.setattr(foundation.local, "Host", host)
     run = subprocess.run
@@ -276,10 +278,35 @@ def collector_fixture(original, terminal_archive, monkeypatch, host):
         return subprocess.CompletedProcess(cmd, code)
 
     monkeypatch.setattr(subprocess, "run", invoke)
+    # Hand off the shell's actual exec arguments to the collector in this process,
+    # where the disposable role implementations and simulated interruptions live.
+    bin_dir = root.parent / "launcher-bin"
+    bin_dir.mkdir()
+    python = bin_dir / "python3"
+    python.write_text(
+        f"#!{sys.executable}\n"
+        "import json, os, sys\n"
+        "if sys.argv[1:3] == ['-I', '-B']:\n"
+        "    print(json.dumps(sys.argv[3:]))\n"
+        "else:\n"
+        "    os.execv(sys.executable, [sys.executable, *sys.argv[1:]])\n"
+    )
+    python.chmod(0o755)
+
+    def launch(action):
+        script = git("show", f"{controller}:{launcher}")
+        process = run(["bash", "-s", "--", controller, action], cwd=root, input=script,
+                      env=dict(os.environ, PATH=str(bin_dir) + os.pathsep + os.environ["PATH"]),
+                      text=True, capture_output=True, check=True)
+        entry, workspace, revision, dispatched = json.loads(process.stdout)
+        assert Path(entry) == controller_source / HELPER.with_name("collect_audit.py")
+        assert (Path(workspace), revision, dispatched) == (root, controller, action)
+        return runpy.run_path(entry)["collect"](Path(workspace), revision, dispatched)
+
     return (
         worker_source,
         worker,
         controller,
-        lambda action: collector(root, controller, action),
+        launch,
         root / "run-state/discovery-tools",
     )

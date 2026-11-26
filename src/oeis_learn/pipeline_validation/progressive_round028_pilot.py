@@ -31,6 +31,7 @@ from oeis_learn.generalization.progressive.program_search_pilot import (
     frozen_family_sizes,
     pilot_archive,
     pilot_registration,
+    resident_measurement_gaps,
     summary,
     verify_pilot,
 )
@@ -452,18 +453,7 @@ def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, w
     weight = dict(trained["weights"], path="inputs/weights.pt")
     scale = resident_scale(cpu, gpu, exposed, exposed_truth, package["profile"], weight, weights,
                            freeze["seeds"]["initialization"], progress)
-    original = area / "qualification-scale.json"
-    if original.is_file() and "cold_attempt" not in load(original):
-        # Keep an existing admission immutable. Bind the single-process measurement
-        # to that registration and its original scale record before resuming it.
-        prior = load(confined(area, original))
-        require(prior == seal(prior) and prior["cases"] == 160, "invalid original qualification scale")
-        retain(area / "resident-measurements.json", seal(dict(registration=freeze["registration"],
-               original=prior["identity"], scale=scale)))
-        checks["resident_scale"] = prior["identity"]
-    else:
-        retain(original, scale)
-        checks["resident_scale"] = scale["identity"]
+    checks["resident_scale"] = retain_resident_scale(area, freeze["registration"], scale)
     return checks
 
 
@@ -520,7 +510,10 @@ def score_projection(generated, scored, candidates_sha, prompts, weights, recipe
             "outcome": "success" if solved else "failure" if complete else "unresolved",
             "complete": complete,
         }
-    return results, clock["cost_complete"]
+    full_allowance = inference_seed is None or all(
+        c["effective_deadline"] == c["original_deadline"] for c in clock["clocks"]
+    )
+    return results, clock["cost_complete"] and full_allowance
 
 
 # Kept public for callers that price a single role from original measurements.
@@ -588,7 +581,8 @@ def publication_inputs(area, root=None):
         checked_file(area, frozen["training"])
     leaves = []
     for pattern in ("training*.json", "predecessor.json", "reservations/*.json",
-                    "qualification-costs/*.json", "qualification-scale.json", "resident-measurements.json", "recovered/**/*", "roles/*/request.json",
+                    "qualification-costs/*.json", "qualification-scale.json", "resident-measurements.json",
+                    "resident-clock-margins.json", "recovered/**/*", "roles/*/request.json",
                     "roles/*/data.json", "roles/*/attempt-*/start.json", "roles/*/attempt-*/end.json",
                     "roles/*/attempt-*/output/producer.json", "roles/*/attempt-*/output/case-boundaries/**/*",
                     "roles/*/attempt-*/output/accounting/**/*", "roles/*/attempt-*/output/checkpoint/**/*",
@@ -607,26 +601,62 @@ def published_pilot(receipt):
     ), 0
 
 
+def retain_resident_scale(area, registration, scale):
+    path = confined(area, "qualification-scale.json", exists=False)
+    if not path.is_file():
+        retain(path, scale)
+        return scale["identity"]
+    original = load(path)
+    expected = original["identity"]
+    previous = accepted_scale(area, {"identity": registration}, {"checks": {"resident_scale": expected}})
+    if previous != scale:
+        # Only the first segmented measurement can be replaced by a new cold attempt.
+        # Later controllers can add measurements derived from those same retained clocks.
+        if "cold_attempt" in previous:
+            require(all(scale.get(k) == v for k, v in previous.items() if k != "identity"),
+                    "original cold measurement changed")
+        retain(area / "resident-clock-margins.json",
+               seal(dict(registration=registration, original=expected, scale=scale)))
+    return expected
+
+
 def accepted_scale(area, registration, acceptance):
     original = load(confined(area, "qualification-scale.json"))
     require(original == seal(original) and original["identity"] == acceptance["checks"]["resident_scale"]
             and original["cases"] == 160, "qualification scale or acceptance differs")
-    extra = confined(area, "resident-measurements.json", exists=False)
-    if extra.is_file():
+    scale = original
+    for name in ("resident-measurements.json", "resident-clock-margins.json"):
+        extra = confined(area, name, exists=False)
+        if not extra.is_file():
+            continue
         measured = load(extra)
         require(measured == seal(measured) and measured["registration"] == registration["identity"]
                 and measured["original"] == original["identity"]
                 and measured["scale"] == seal(measured["scale"]), "supplemental resident measurement differs")
-        return measured["scale"]
-    return original
+        supplemental = measured["scale"]
+        if "cold_attempt" in scale:
+            require(all(supplemental.get(k) == v for k, v in scale.items() if k != "identity"),
+                    "supplement differs from the retained cold measurement")
+        scale = supplemental
+    return scale
 
 
 def qualification_result(area, registration, acceptance, projected, controller, workstation, scientific_status):
     scale = accepted_scale(area, registration, acceptance)
+    require_resident_measurements(scale, registration)
+    if scientific_status == "PILOT_UNMEASURED" and projected > SHIFT_US:
+        raise PilotDeficit("PILOT_ROLE_TIME_DEFICIT", required_us=projected, registered_us=SHIFT_US,
+                           deficit_us=projected - SHIFT_US)
     return dict(mechanical_status="QUALIFIED", scientific_status=scientific_status,
                 controller=controller, workstation=workstation,
                 registration=registration["identity"], worker=registration["candidate"], acceptance=acceptance["identity"],
-                scale=scale, projected_us=projected, registered_us=SHIFT_US), 0
+                scale=scale, workspace_space=space(area), projected_us=projected, registered_us=SHIFT_US), 0
+
+
+def require_resident_measurements(scale, registration):
+    gaps = resident_measurement_gaps(scale, registration["portfolio_seconds"])
+    if gaps:
+        raise PilotDeficit("QUALIFICATION_MEASUREMENTS_INCOMPLETE", **gaps)
 
 
 def registered_pilot_source(root, controller_source, controller_revision, area, parent):
@@ -817,6 +847,7 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
     checks = accept_pilot(
         root, folder, store, area, cpu, gpu, package, freeze, d_recipe, d_weights, progress
     )
+    require_resident_measurements(accepted_scale(area, registration, {"checks": checks}), registration)
     # A reboot remeasures the candidate on the same machine. It cannot rewrite the original acceptance.
     current = seal(
         dict(

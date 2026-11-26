@@ -285,6 +285,7 @@ def evaluate_role(work, data, client, role):
         output="output/scored",
         seconds=data["seconds"],
         selected_only=True,
+        independent_case_clock=True,
         **timings,
     )
     return {"scores": reference(work / "output", work / "output/scored/scores.json"), **timings}

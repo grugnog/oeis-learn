@@ -85,6 +85,86 @@ def test_clock_summary_cannot_upgrade_partial_case():
     )
     with pytest.raises(ValueError, match="clock"):
         pilot.score_projection(gen, score, candidate, prompts, {"sha256": model}, {}, CORRECT_FULL)
+    # All eight draws can finish early even when the parent has clipped the last second.
+    short = clock_record(prompt="x", mode="correct", snapshot=model, start=0, scope_deadline=59,
+                         finish=20, expected=8, started=8, terminal=8, policy=CORRECT_FULL)
+    assert short["cost_complete"]
+    gen["clock"] = seal(dict(gen["clock"], clocks=[short], inference_seed=71))
+    _, comparable = pilot.score_projection(
+        gen, score, candidate, prompts, {"sha256": model}, {}, CORRECT_FULL, inference_seed=71
+    )
+    assert not comparable
+
+
+def test_resident_scorer_finishes_an_admitted_choice_with_both_engine_allowances(tmp_path, monkeypatch):
+    from oeis_learn.fresh import bigint_diagnostics
+    from oeis_learn.pipeline_validation import progressive_pilot_worker as worker
+    from oeis_learn.generalization.progressive.contracts import atomic_write, load
+    from tests.unit.test_bigint_diagnostic_evidence import Client, selection
+    import time
+
+    # The second choice starts just before the batch envelope closes. Each engine
+    # needs 29 of its 30 seconds to check the 100 terms of that already sealed choice.
+    now = [100.0]
+    monkeypatch.setattr(time, "monotonic", lambda: now[0])
+    durations = []
+    reference_evaluate = bigint_diagnostics.reference_evaluate
+
+    class SlowClient(Client):
+        def execute(self, source, indices, *, deadline):
+            durations.append(deadline - now[0])
+            now[0] += 29
+            return super().execute(source, indices)
+
+    def independent(source, indices, limits, *, deadline):
+        durations.append(deadline - now[0])
+        now[0] += 29
+        return reference_evaluate(source, indices, limits, deadline=deadline)
+
+    monkeypatch.setattr(bigint_diagnostics, "reference_evaluate", independent)
+    exact = list(map(str, range(100)))
+    truth = [dict(id=key, values=exact, indices=exact) for key in ("first", "last")]
+    prompts = [dict(id=r["id"], indices=exact[:20], values=exact[:20]) for r in truth]
+    sealed = selection()
+    records = {r["id"]: {"selections": {"equal_budget": sealed},
+                         "arm_evidence": {"equal_budget": {"complete": True}}} for r in truth}
+    path = tmp_path / "inputs/candidates.json"
+    atomic_write(path, seal(dict(version="discovery-candidates/v1", checkpoint=digest("weights"),
+        model=digest("model"), model_control="earlier_checkpoint", recipe=digest("recipe"),
+        methods=["correct"], prompts=digest(prompts), records=records, clock={}, counts={}, elapsed_us=1)))
+    data = dict(block="qualify-resident-endpoint", candidates=reference(tmp_path, path), rows=truth, seconds=59)
+    scored = worker.evaluate_role(tmp_path, data, SlowClient(), "score")
+    outcomes = load(tmp_path / "output" / scored["scores"]["path"])["outcomes"]
+    assert durations == [30] * 4
+    assert all(v["equal_budget"]["success"] for v in outcomes.values())
+    now[0] = 100
+    durations.clear()
+    with pytest.raises(TimeoutError, match="before opening"):
+        worker.evaluate_role(tmp_path, dict(data, seconds=58), SlowClient(), "score")
+    assert durations == [30, 30]
+
+
+@pytest.mark.parametrize("segmented", [False, True])
+def test_added_clock_margins_preserve_the_original_resident_acceptance(tmp_path, segmented):
+    from oeis_learn.pipeline_validation.preparation_recovery import retain
+
+    reg = {"identity": digest("registered worker")}
+    cold = seal(dict(cases=160, cold_attempt=1, candidate=digest("cold choices")))
+    old = seal(dict(cases=160, candidate=digest("segmented choices"))) if segmented else cold
+    path = tmp_path / "qualification-scale.json"
+    retain(path, old)
+    acceptance = {"checks": {"resident_scale": old["identity"]}}
+    if segmented:
+        retain(tmp_path / "resident-measurements.json", seal(dict(
+            registration=reg["identity"], original=old["identity"], scale=cold)))
+    before = {p: p.read_bytes() for p in tmp_path.glob("*.json")}
+    extended = seal(dict(cold, minimum_case_allowance_us=60_000_000, slowest_case_margin_us=1_000_000))
+    for _ in range(2):
+        assert pilot.retain_resident_scale(tmp_path, reg["identity"], extended) == old["identity"]
+        assert pilot.accepted_scale(tmp_path, reg, acceptance) == extended
+    assert all(p.read_bytes() == raw for p, raw in before.items())
+    with pytest.raises(ValueError, match="changed"):
+        pilot.retain_resident_scale(tmp_path, reg["identity"], seal(dict(extended, candidate=digest("different"))))
 
 
 def test_qualification_retry_keeps_failed_cost_and_original_inputs(tmp_path, monkeypatch):
@@ -401,7 +481,8 @@ def test_collector_keeps_the_reason_for_a_blocked_qualification(tmp_path, monkey
         stdout.write(
             b'{"mechanical_status":"BLOCKED","reason":"QUALIFICATION_SCORER_INCOMPLETE",'
             b'"deficit":{"unscored_choices":1},"progress":{"phase":"accept_frozen_pilot",'
-            b'"role":"full_size_score","private":"hidden-case"}}\n'
+            b'"controller":"' + b'a' * 40 + b'","candidate":"' + b'b' * 40 +
+            b'","role":"full_size_score","private":"hidden-case"}}\n'
         )
         return SimpleNamespace(returncode=2)
 
@@ -413,6 +494,7 @@ def test_collector_keeps_the_reason_for_a_blocked_qualification(tmp_path, monkey
         outcome = json.loads(archive.read("qualification.json"))
         assert outcome["reason"] == "QUALIFICATION_SCORER_INCOMPLETE"
         assert outcome["deficit"]["unscored_choices"] == 1
+        assert outcome["controller"] == "a" * 40 and outcome["worker"] == "b" * 40
         assert outcome["progress"] == {"phase": "accept_frozen_pilot", "role": "full_size_score"}
         assert b"hidden-case" not in archive.read("qualification.json")
 
@@ -524,5 +606,7 @@ def test_recovered_work_is_scored_before_measuring_a_single_cold_resident(tmp_pa
     ]
     assert not set(seen[0][2]) & set(seen[2][2])
     assert scale["cold_attempt"] == 1 and scale["slowest_case_us"] == 59_000_000
+    assert scale["minimum_case_allowance_us"] == 60_000_000
+    assert scale["slowest_case_margin_us"] == 1_000_000
     assert scale["search_supervisor_margin_us"] == 21_120_000_000 - 10_200_000_000
     assert scale["score_supervisor_margin_us"] == 21_120_000_000 - 80

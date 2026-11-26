@@ -3,6 +3,7 @@
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -194,7 +195,7 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
                 )
                 report = seal(
                     dict(
-                        version="round028-resident-qualification/v1",
+                        version="round028-resident-qualification/v2",
                         registration=reg,
                         **{
                             k: raw[k]
@@ -202,6 +203,7 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
                                 "controller",
                                 "acceptance",
                                 "scale",
+                                "workspace_space",
                                 "projected_us",
                                 "registered_us",
                                 "scientific_status",
@@ -222,6 +224,8 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
                     if code or copied != receipt:
                         raise ValueError("copied qualification verification differs")
                     copy.rename(result)
+                print(f"Verified controller {receipt['controller']} and registered worker {receipt['worker']}.",
+                      file=sys.stderr, flush=True)
                 print(f"Verified qualification. Return this file:\n{result}", flush=True)
                 return 0
             except (KeyError, TypeError, ValueError, OSError, zipfile.BadZipFile) as exc:
@@ -259,6 +263,11 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
                 for k in ("phase", "role", "cold_attempt")
                 if k in raw["progress"]
             }
+            progress = raw["progress"]
+            worker = progress.get("candidate")
+            if (progress.get("controller") == candidate and isinstance(worker, str)
+                    and re.fullmatch("[0-9a-f]{40}", worker)):
+                public.update(controller=candidate, worker=worker)
         with zipfile.ZipFile(result, "x", zipfile.ZIP_DEFLATED) as bundle:
             bundle.writestr("qualification.json", json.dumps(public, sort_keys=True))
             bundle.writestr("summary.json", json.dumps(summary, sort_keys=True))

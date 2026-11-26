@@ -160,6 +160,8 @@ def resident_scale(cpu, gpu, prompts, truth, recipe, weight, weights, seed, prog
         ordinal += 1
 
     clocks = generated["clock"]["clocks"]
+    slowest = max(round((c["finish"] - c["start"]) * 1e6) for c in clocks)
+    allowance_us = min(round((c["effective_deadline"] - c["start"]) * 1e6) for c in clocks)
     # Host cleanup can be proven after a reboot while its elapsed wall time remains unknown.
     search_wall, score_wall = gpu.last_wall_us, cpu.last_wall_us
     score_measurements = cpu.last_producer["result"].get("measurements")
@@ -177,7 +179,9 @@ def resident_scale(cpu, gpu, prompts, truth, recipe, weight, weights, seed, prog
             search_us=generated["elapsed_us"],
             search_allowance_us=allowance,
             search_margin_us=allowance - generated["elapsed_us"],
-            slowest_case_us=max(round((c["finish"] - c["start"]) * 1e6) for c in clocks),
+            slowest_case_us=slowest,
+            minimum_case_allowance_us=allowance_us,
+            slowest_case_margin_us=allowance_us - slowest,
             search_worker_us=search["elapsed_us"],
             search_supervisor_us=search_wall,
             search_supervisor_allowance_us=supervisor,

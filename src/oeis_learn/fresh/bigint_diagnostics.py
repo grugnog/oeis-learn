@@ -668,7 +668,7 @@ def generate(
     )
 
 
-def score(selections, truth, client, *, deadline):
+def score(selections, truth, client, *, deadline, independent_case_clock=False):
     # Each arm carries precisely one previously sealed visible-only selection.
     counts = defaultdict(lambda: Counter(denominator=len(truth), complete=0, success=0))
     outcomes = {}
@@ -684,6 +684,9 @@ def score(selections, truth, client, *, deadline):
             scoring = _status(False, "not_attempted")
             reason = "selection_record_missing" if record is None else "legacy_arm_evidence_missing"
             if chosen is not None and time.monotonic() < deadline:
+                # A resident scorer may drain both bounded executions for an admitted
+                # choice. Its host supervisor also bounds cleanup and publication.
+                case_deadline = scoring_start + 60 if independent_case_clock else deadline
                 from .synthesis_policy import validate_selection_envelope
                 validate_selection_envelope(chosen)
                 expected_prompt = identity(
@@ -697,13 +700,13 @@ def score(selections, truth, client, *, deadline):
                 source = chosen["selected"]["source"]
                 source_hash = source_identity(source)
                 production = client.execute(
-                    source, target["indices"], deadline=min(deadline, time.monotonic() + 30)
+                    source, target["indices"], deadline=min(case_deadline, time.monotonic() + 30)
                 )
                 reference = reference_evaluate(
                     source,
                     target["indices"],
                     client.limits,
-                    deadline=min(deadline, time.monotonic() + 30),
+                    deadline=min(case_deadline, time.monotonic() + 30),
                 )
                 p = dict(
                     source_sha256=source_hash,
@@ -747,6 +750,8 @@ def score(selections, truth, client, *, deadline):
                     ),
                 )
             elif chosen is not None:
+                if independent_case_clock:
+                    raise TimeoutError("resident scorer stopped before opening the next choice")
                 reason = "scoring_deadline"
                 scoring = _status(False, "not_attempted", "deadline")
             elif evidence is not None:

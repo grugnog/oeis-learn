@@ -431,6 +431,18 @@ def pilot_archive(report, parent):
     return archive_bytes({"pilot.json": encode(report), "round028-parent.zip": parent})
 
 
+def resident_measurement_gaps(scale, portfolio_seconds):
+    """Count missing physical evidence before opening a fresh pilot look."""
+    minimum = scale.get("minimum_case_allowance_us")
+    gaps = {
+        "missing_full_case_allowance": int(type(minimum) is not int or minimum != portfolio_seconds * 1_000_000),
+        "missing_selected_program": int(not scale.get("selected_choices")),
+        "missing_phase_timings": sum(scale.get(k + "_measurements") is None for k in ("search", "score")),
+        "missing_supervisor_timings": sum(scale.get(k + "_supervisor_us") is None for k in ("search", "score")),
+    }
+    return {key: count for key, count in gaps.items() if count}
+
+
 def verify_qualification(path):
     """Recompute the release identity, forecast and timing margins from the copied receipt."""
     from .program_search_timing import public_pilot_prices
@@ -451,6 +463,7 @@ def verify_qualification(path):
             )
         )
     reg = doc["registration"]
+    current = doc["version"] == "round028-resident-qualification/v2"
     if (
         set(doc)
         != {
@@ -463,8 +476,9 @@ def verify_qualification(path):
             "projected_us",
             "registered_us",
             "scientific_status",
+            *({"workspace_space"} if current else ()),
         }
-        or doc["version"] != "round028-resident-qualification/v1"
+        or doc["version"] not in ("round028-resident-qualification/v1", "round028-resident-qualification/v2")
         or doc != seal(doc)
         or raw != encode(doc)
         or not re.fullmatch("[0-9a-f]{40}", doc["controller"])
@@ -494,6 +508,7 @@ def verify_qualification(path):
         "score_allowance_us",
         "score_margin_us",
         "slowest_case_us",
+        *({"minimum_case_allowance_us", "slowest_case_margin_us"} if current else ()),
         "search_measurements",
         "score_measurements",
         *(
@@ -565,6 +580,17 @@ def verify_qualification(path):
         else scale["score_allowance_us"] - measured_score["score_choices_us"]
     ):
         raise ValueError("inconsistent independent scoring margin")
+    if current:
+        space = doc["workspace_space"]
+        if (
+            resident_measurement_gaps(scale, reg["portfolio_seconds"])
+            or type(scale["slowest_case_margin_us"]) is not int
+            or scale["slowest_case_margin_us"] != scale["minimum_case_allowance_us"] - scale["slowest_case_us"]
+            or not isinstance(space, dict)
+            or set(space) != {"free_bytes", "free_inodes"}
+            or any(type(v) is not int or v < 0 for v in space.values())
+        ):
+            raise ValueError("incomplete resident case, scorer or filesystem measurements")
     return dict(
         status="VERIFIED",
         scope="archive_only_pilot_qualification",
@@ -574,6 +600,7 @@ def verify_qualification(path):
         acceptance=doc["acceptance"],
         scientific_status=doc["scientific_status"],
         scale=scale,
+        **({"workspace_space": space} if current else {}),
         projected_us=doc["projected_us"],
         registered_us=SHIFT_US,
         research_headroom_us=SHIFT_US - doc["projected_us"],

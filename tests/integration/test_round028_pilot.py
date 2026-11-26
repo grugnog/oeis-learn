@@ -432,6 +432,7 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
                           selected_choices=2, no_selection=158, cold_attempt=0,
                           candidate=digest("candidates"), scores=digest("scores"),
                           search_us=200, slowest_case_us=15, search_allowance_us=21_000_000_000,
+                          minimum_case_allowance_us=60_000_000, slowest_case_margin_us=60_000_000-15,
                           search_margin_us=21_000_000_000-200, search_worker_us=300,
                           score_allowance_us=21_000_000_000, score_margin_us=21_000_000_000-100,
                           score_worker_us=170, search_supervisor_us=400, score_supervisor_us=180,
@@ -592,8 +593,27 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
         assert measured["worker"] == worker and measured["controller"] == controller
         assert measured["registration"] == qualified["registration"]
         assert measured["scale"] == qualified["scale"]
+        assert set(measured["workspace_space"]) == {"free_bytes", "free_inodes"}
+        assert min(measured["workspace_space"].values()) > 0
         contents = read_canonical(copied, ("qualification.json", "round028-parent.zip"))
-        changed = json.loads(contents["qualification.json"])
+        valid = json.loads(contents["qualification.json"])
+
+        def verify_changed(doc):
+            members = {**contents, "qualification.json": encode(seal(doc))}
+            return verify_qualification(io.BytesIO(archive_bytes(members)))
+
+        for edits in (dict(minimum_case_allowance_us=59_000_000), dict(slowest_case_margin_us=15),
+                      dict(selected_choices=0, no_selection=160), dict(search_measurements=None)):
+            with pytest.raises(ValueError, match="measurements"):
+                verify_changed(dict(valid, scale=seal(dict(valid["scale"], **edits))))
+        with pytest.raises(ValueError, match="filesystem"):
+            verify_changed(dict(valid, workspace_space={"free_bytes": True, "free_inodes": 100}))
+        legacy = dict(valid, version="round028-resident-qualification/v1")
+        del legacy["workspace_space"]
+        legacy["scale"] = seal({k: v for k, v in valid["scale"].items() if k not in
+                                ("minimum_case_allowance_us", "slowest_case_margin_us")})
+        assert verify_changed(legacy)["worker"] == worker
+        changed = dict(valid)
         changed["scale"] = seal(dict(changed["scale"], score_supervisor_margin_us=1))
         contents["qualification.json"] = encode(seal(changed))
         with pytest.raises(ValueError, match="measurements"):
