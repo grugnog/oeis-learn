@@ -63,8 +63,9 @@ def restore_inputs(root, checkpoint, contract, cap):
     return previous.load(checkpoint)
 
 
-def train(work, data, *, device="cuda"):
+def train(work, data, *, device="cuda", pair=0):
     import torch
+    from oeis_learn.generalization.progressive.program_search_pilot import LOOKS
     from oeis_learn.fresh.bigint_diagnostics import model_snapshot
     from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
     from oeis_learn.generalization.budgets import Ledger
@@ -91,7 +92,7 @@ def train(work, data, *, device="cuda"):
         and package["identity"] == data["package"]
         and seal(stream) == stream
         and stream["registration"] == data["registration"]
-        and stream["pair"] == 0
+        and pair in (0, 1) and stream["pair"] == pair
         and arm in ARMS
         and target in LOOKS
         and package["profile"]["model"]["seed"] == stream["seeds"]["initialization"],

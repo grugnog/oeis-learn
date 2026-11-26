@@ -119,10 +119,11 @@ def generator_look(panels, *, registration, pair, arm, target, split):
     from .contracts import digest, seal
     from .cohorts import STRATA
     from .training_rows import pair_seeds
+    from .program_search_pilot import LOOKS
     seeds = pair_seeds(registration, pair)
     if (arm not in {"ordinary", "first_divergence", "incumbent"} or type(target) is not int
-            or target not in (0, 1_000_000, 4_000_000) or split not in {"development", "replication"}
-            or ((arm == "incumbent" or split == "replication") and target != 4_000_000)):
+            or target not in LOOKS or split not in {"development", "replication"}
+            or ((arm == "incumbent" or split == "replication") and target != LOOKS[-1])):
         raise ValueError("unregistered generator arm, split or look")
     names = {"development", "development_retention", "replication", "replication_retention"}
     if set(panels) != names:
@@ -148,7 +149,7 @@ def generator_look(panels, *, registration, pair, arm, target, split):
         if len(keys) != len(members) or owners & keys:
             raise ValueError("case reused across frozen panel roles")
         owners.update(keys)
-    full = target == 4_000_000
+    full = target == LOOKS[-1]
     if full:
         members = [*panels[split], *panels[split + "_retention"]]
     else:

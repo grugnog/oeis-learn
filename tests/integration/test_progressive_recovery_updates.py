@@ -233,6 +233,76 @@ def test_matched_generator_updates_restore_the_same_rows_clocks_and_initial_weig
     assert ordinary[2:] == treatment[2:] == (count, 1)
 
 
+def train_replication_fixture(root, registration, pair, looks):
+    """Train matched arms on a seed-specific mechanical stream and cold-restore both endpoints."""
+    from random import Random
+    from shutil import copyfile
+    from types import SimpleNamespace
+    from oeis_learn.fresh.bigint_diagnostics import model_snapshot
+    from oeis_learn.generalization.progressive.contracts import atomic_write, reference, seal
+    from oeis_learn.generalization.progressive.models import construct, resolve_profile
+    from oeis_learn.generalization.progressive.training_rows import matched_stream, pair_seeds
+    from oeis_learn.pipeline_validation.progressive_pilot_worker import restore_inputs, train
+    from oeis_learn.pipeline_validation.progressive_preparation import verify_draw
+    from oeis_learn.pipeline_validation.progressive_round028_pilot import checkpoint_inputs
+
+    seeds = pair_seeds(registration, pair)
+    rng = Random(seeds["training_families"])
+    rows = []
+    for _ in range(2):
+        prefix, suffix = rng.sample(range(2, 64), 2)
+        for conditional in (False, True):
+            body = f"(int {prefix})"
+            if conditional:
+                body = f"(select (lt $index (int 20)) {body} (int {suffix}))"
+            source = f"(program (return {body}))"
+            draw = dict(source=source, ordinal=len(rows), draw_identity=digest([seeds, len(rows), source]),
+                        source_policy=digest(["fixture", seeds["training_families"]]), structure=digest(body),
+                        detector_limit="fixture")
+            def execute(program, indices, **kwargs):
+                assert program == source
+                return dict(outcome="ok", values=[str(suffix if conditional and int(i) >= 20 else prefix)
+                                                  for i in indices])
+            row, reason = verify_draw(draw, client=SimpleNamespace(execute=execute))
+            assert reason is None
+            rows.append(row)
+    stream = matched_stream([rows], {"probes": {}}, registration, pair)
+    assert stream["eligible_rows"] > 0
+    base = profile()
+    model = resolve_profile(base["base_recipe"], shape=base["shape"], seed=seeds["initialization"], dropout=0)
+    package = seal(dict(profile=model, stream=stream, rows=rows, microbatch=8))
+    package_path = root / "inputs/training.json"
+    atomic_write(package_path, package)
+    cuts, restored_models = {}, {}
+    for arm in ("ordinary", "first_divergence"):
+        previous, mounts = None, []
+        for target in looks:
+            work = root / arm / str(target)
+            (work / "output").mkdir(parents=True)
+            for source, destination in [(package_path, "/work/inputs/training.json"), *mounts]:
+                dest = work / destination.removeprefix("/work/")
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                copyfile(source, dest)
+            request = dict(arm=arm, target=target, previous=previous, registration=registration,
+                           training=reference(work, work / "inputs/training.json"), package=package["identity"])
+            result = train(work, request, device="cpu", pair=pair)
+            mounts, _ = checkpoint_inputs(work / "output", result)
+            previous = result["checkpoint"]
+        state = restore_inputs(work / "output/checkpoint", previous, result["contract"], result["cap"])
+        cut = result["milestone"]
+        assert cut["updates"] == state["ledger"].updates > 0
+        assert cut["charged"] == cut["useful_tokens"] == state["ledger"].consumed
+        assert cut["discarded"] == 0 and cut["parent"] == previous["sha256"]
+        enc, dec, _ = construct(model, device="cpu")
+        assert model_snapshot(enc, dec) == cut["initial"]
+        enc.load_state_dict(state["states"]["weights"]["encoder"])
+        dec.load_state_dict(state["states"]["weights"]["decoder"])
+        assert model_snapshot(enc, dec) != cut["initial"]
+        cuts[arm], restored_models[arm] = cut, (enc.eval(), dec.eval())
+    assert model_snapshot(*restored_models["ordinary"]) != model_snapshot(*restored_models["first_divergence"])
+    return cuts, restored_models, set(stream["order"])
+
+
 def test_rehearsal_measures_native_pair_signal_and_reloads_next_matched_update(tmp_path):
     from oeis_learn.generalization.progressive.training_rows import verified_training_pairs
     from oeis_learn.pipeline_validation.progressive_generator_probe import gradient, measured_updates, verify_sample

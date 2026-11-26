@@ -174,11 +174,12 @@ def exposure_at(stream, rows, updates, size=32):
 def matched_milestone(package, rows, checkpoint, restored, useful, target):
     """Bind a spending observation to the complete private recovery cut."""
     from .contracts import digest
+    from .program_search_pilot import LOOKS
     stream = package["matched_generator"]
     state = restored["states"]
     selection = state["selection"]
     ledger = restored["ledger"]
-    if type(target) is not int or target not in (0, 1_000_000, 4_000_000):
+    if type(target) is not int or target not in LOOKS:
         raise ValueError("registered generator token look required")
     expected = exposure_at(stream, rows, ledger.updates)
     if (selection["matched_stream"] != stream["identity"] or digest(selection) != restored["cuts"]["selection"]

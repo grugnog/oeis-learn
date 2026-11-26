@@ -639,6 +639,77 @@ def test_generator_both_independent_pairs_use_same_replication_and_separate_form
         generator_replication(panels, results | {1:dict(results[1], panel=digest(panels["development"]))}, registration=reg)
 
 
+def test_replication_scores_four_restored_learners_on_one_reserved_panel(tmp_path, monkeypatch):
+    import torch
+    from oeis_learn.decoder.bigint_codec import PAD_ID, encode_body
+    from oeis_learn.generalization.progressive import program_search_pilot
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.trials import paired_generator_exposure
+    from oeis_learn.pipeline_validation.progressive_generator_probe import batch
+    from oeis_learn.pipeline_validation.progressive_study import generator_replication
+    from oeis_learn.rl.sft_trainer import teacher_forced_logits
+    from oeis_learn.synthesis.reference import evaluate
+    from tests.integration.test_progressive_recovery_updates import train_replication_fixture
+
+    # Exercise the same registered gates on a small CPU clock. Every charged token is trained.
+    looks = (0, 1, 1024)
+    panels, registration, _ = generator_design_and_cuts(4_000_000)
+    monkeypatch.setattr(program_search_pilot, "LOOKS", looks)
+    roster = panels["replication"] + panels["replication_retention"]
+    frozen_panel = digest(roster)
+    # This finite grammar produces two prefix-compatible choices per family.
+    # Inputs and indices are frozen before training. Only scoring reads the held-out suffix.
+    visible = {}
+    for index, row in enumerate(roster):
+        offset = 100 + index
+        value = 1000 + index
+        indices = list(range(offset, offset + 100))
+        bodies = [f"(program (return (select (lt $index (int {offset+20})) (int {value}) (int {v}))))"
+                  for v in (value - 1, value + 1)]
+        visible[row["task"]] = ([value] * 20, indices, bodies)
+    results, streams = {}, []
+    for pair in (0, 1):
+        cuts, models, order = train_replication_fixture(tmp_path / str(pair), registration, pair, looks)
+        streams.append(order)
+        assert paired_generator_exposure(*cuts.values()) == "MATCHED"
+        choices = {arm: {} for arm in (*models, "incumbent")}
+        for arm, (encoder, decoder) in models.items():
+            # Score both permitted continuations with the restored decoder on the same visible input.
+            keys = list(visible)
+            for start in range(0, len(keys), 16):
+                group = keys[start:start + 16]
+                candidates = [dict(tokens=encode_body(body), values=visible[key][0])
+                              for key in group for body in visible[key][2]]
+                x, tokens = batch(candidates, "cpu")
+                with torch.inference_mode():
+                    logits = teacher_forced_logits(encoder, decoder, x, tokens, device="cpu", pad_id=PAD_ID)
+                    target = tokens[:, 1:]
+                    logp = logits.log_softmax(-1).gather(2, target.unsqueeze(-1)).squeeze(-1)
+                    scores = logp.masked_fill(target == PAD_ID, 0).sum(1).reshape(-1, 2)
+                for key, winner in zip(group, scores.argmax(1).tolist(), strict=True):
+                    choices[arm][key] = visible[key][2][winner]
+        choices["incumbent"] = {key: v[2][0] for key, v in visible.items()}
+        committed = seal(dict(choices=choices, panel=frozen_panel, pair=pair))
+        outcomes = {}
+        for arm, assigned in committed["choices"].items():
+            outcomes[arm] = {}
+            for key, body in assigned.items():
+                prefix, indices, _ = visible[key]
+                truth = prefix + [prefix[0] + (1 if indices[0] % 2 else -1)] * 80
+                executed = evaluate(body, list(map(str, indices)))
+                assert executed.outcome == "ok" and list(map(int, executed.values[:20])) == prefix
+                solved = list(map(int, executed.values)) == truth
+                outcomes[arm][key] = dict(complete=True, outcome="success" if solved else "failure")
+        results[pair] = dict(cuts=cuts, comparable_cost=True, panel=frozen_panel, outcomes=outcomes)
+
+    assert streams[0].isdisjoint(streams[1])
+    assert results[0]["cuts"]["ordinary"]["initial"] != results[1]["cuts"]["ordinary"]["initial"]
+    reduced = generator_replication(panels, results, registration=registration)
+    assert reduced["panel"] == frozen_panel and len(reduced["seed_gain_ranges"]) == 2
+    assert set(reduced["contrasts"]) == {"first_divergence_minus_ordinary", "first_divergence_minus_incumbent",
+                                         "ordinary_minus_incumbent"}
+
+
 def test_30_of_32_in_a_descriptive_cell_can_continue_to_the_reserved_endpoint():
     from oeis_learn.pipeline_validation.progressive_study import generator_observation
     panels, reg, cuts = generator_design_and_cuts(1_000_000)

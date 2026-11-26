@@ -1017,6 +1017,7 @@ def generator_replication(panels, results, *, registration, links=()):
     """Apply the established family-aware formal gate to both pairs on the common reserved panel."""
     from oeis_learn.generalization.progressive.decisions import recompute
     from oeis_learn.generalization.progressive.graph import generator_look
+    from oeis_learn.generalization.progressive.program_search_pilot import LOOKS
     from oeis_learn.generalization.progressive.trials import paired_generator_exposure
     if set(results) != {0, 1}:
         raise ValueError("both independent pairs required")
@@ -1024,7 +1025,7 @@ def generator_replication(panels, results, *, registration, links=()):
     starts, streams, policies = set(), set(), set()
     projected = {arm: [] for arm in ("ordinary", "first_divergence", "incumbent")}
     for pair, evidence in sorted(results.items()):
-        request = generator_look(panels, registration=registration, pair=pair, target=4_000_000,
+        request = generator_look(panels, registration=registration, pair=pair, target=LOOKS[-1],
                                  arm="ordinary", split="replication")
         roster = request["members"]
         if (set(evidence) != {"cuts", "panel", "outcomes", "comparable_cost"}
@@ -1034,7 +1035,7 @@ def generator_replication(panels, results, *, registration, links=()):
             raise ValueError("both pairs require the same reserved replication cases and comparable search budgets")
         cut = evidence["cuts"]["ordinary"]
         if (paired_generator_exposure(cut, evidence["cuts"]["first_divergence"]) != "MATCHED"
-                or cut["registration"] != registration or cut["target"] != 4_000_000 or cut["pair"] != pair
+                or cut["registration"] != registration or cut["target"] != LOOKS[-1] or cut["pair"] != pair
                 or cut["initial"] in starts or cut["stream"] in streams):
             raise ValueError("independent initialization, strict stream and equal exposure required")
         policies.add(cut["common_policy"])
