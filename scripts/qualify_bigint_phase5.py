@@ -207,7 +207,7 @@ def measured_lease(host, output):
             write(output / "gpu-lease.json", {"elapsed_us": (time.monotonic_ns() - began) // 1000})
 
 
-def container_stage(host, image, output, argv, *, gpu=False, seconds=3600, readonly_inputs=(), record_lease=False):
+def container_stage(host, image, output, argv, *, gpu=False, seconds=3600, readonly_inputs=(), record_lease=False, tmp_bytes=2 << 30):
     from oeis_learn.container_runtime import private_runtime_environment
 
     output = Path(output)
@@ -242,7 +242,7 @@ def container_stage(host, image, output, argv, *, gpu=False, seconds=3600, reado
         render_node=host.policy.get("render_node") if gpu else None,
         memory_bytes=host.policy["memory_bytes"],
         cpus=host.policy["cpus"],
-        tmp_bytes=2 << 30,
+        tmp_bytes=tmp_bytes,
         workdir="/opt/oeis-build",
         auto_remove=False,
         environment={

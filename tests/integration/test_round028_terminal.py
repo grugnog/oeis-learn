@@ -49,12 +49,12 @@ def collection(original, tmp_path, monkeypatch):
     panels.publish(parent, panel, rehearsal)
     monkeypatch.setattr(timing, "PANEL", panel["identity"])
 
-    def build(name, *, expensive=True, incomplete=False):
+    def build(name, *, expensive=True, incomplete=False, cold_overhead_us=5_000_000_000):
         blocks = measured()
         for block in blocks.values():
             if expensive:
                 # Permanent case clocks still close. Expensive cold roles exhaust the registered shift.
-                block["gpu_wall_us"] += 5_000_000_000
+                block["gpu_wall_us"] += cold_overhead_us
             if incomplete:
                 block["cells"]["oeis"]["closed"] = 1
         value = seal(

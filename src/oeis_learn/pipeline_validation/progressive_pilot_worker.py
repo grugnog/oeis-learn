@@ -247,6 +247,83 @@ def evaluate_role(work, data, client, role):
     return {"scores": reference(work / "output", work / "output/scored/scores.json")}
 
 
+def disposable_storage():
+    import errno
+    import tempfile
+
+    # Only exhaust the small, mounted, container-private scratch allocation.
+    scratch = Path("/tmp")
+    before = os.statvfs(scratch)
+    require(
+        any(
+            line.split()[4] == "/tmp" and " - tmpfs " in line
+            for line in Path("/proc/self/mountinfo").read_text().splitlines()
+        )
+        and 0 < before.f_blocks * before.f_frsize <= 16 << 20,
+        "disposable 16 MiB tmpfs required",
+    )
+    with tempfile.TemporaryFile(dir=scratch) as f:
+        free = os.fstatvfs(f.fileno()).f_bavail * before.f_frsize
+        require(free >= before.f_frsize, "empty scratch allocation required")
+        os.posix_fallocate(f.fileno(), 0, free)
+        try:
+            os.posix_fallocate(f.fileno(), free, before.f_frsize)
+        except OSError as e:
+            if e.errno != errno.ENOSPC:
+                raise
+        else:
+            raise ValueError("controlled filesystem did not report ENOSPC")
+    after = os.statvfs(scratch)
+    require(after.f_bavail >= before.f_bavail, "disposable scratch did not recover")
+    return dict(errno=errno.ENOSPC, bytes_exercised=free, restored=True)
+
+
+def recovery_suite(output):
+    import subprocess
+    import sys
+    import xml.etree.ElementTree as xml
+
+    cases = [
+        "tests/unit/test_progressive_freeze_progress.py",
+        "tests/unit/test_progressive_recovery_transactions.py",
+        "tests/unit/test_foundation_local.py::test_two_candidate_sources_contend_for_donor_gpu_lease",
+        "tests/integration/test_progressive_recovery_updates.py::test_matched_generator_updates_restore_the_same_rows_clocks_and_initial_weights",
+        "tests/integration/test_round028_timing.py::test_timing_role_boundaries_and_original_budget_survive_interruption",
+        "tests/integration/test_round028_pilot.py",
+    ]
+    report = output / "tests.xml"
+    with (output / "tests.log").open("wb") as log:
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "-p",
+                "no:cacheprovider",
+                "--basetemp",
+                str(output / "test-tmp"),
+                "--junitxml",
+                str(report),
+                *cases,
+            ],
+            cwd="/opt/oeis-build",
+            check=True,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+        )
+    results = xml.parse(report).findall(".//testcase")
+    require(
+        results
+        and all(
+            r.find("failure") is None and r.find("error") is None and r.find("skipped") is None
+            for r in results
+        ),
+        "installed recovery acceptance incomplete",
+    )
+    return dict(tests=len(results), report=reference(output, report))
+
+
 def main():
     from oeis_learn.experiments.source_snapshot import source_snapshot
     from oeis_learn.synthesis.client import SynthesisClient
@@ -257,6 +334,9 @@ def main():
     req = load(work / "inputs/request.json")
     data = load(work / "inputs/data.json", maximum=CAMPAIGN_DOCUMENT_BYTES)
     allowed = {
+        "gradient": {"profile", "sample"},
+        "storage": set(),
+        "recovery": set(),
         "prepare": {"seed", "start", "count"},
         "train": {"arm", "target", "previous", "training", "package", "registration"},
         "search": {"arm", "target", "rows", "recipe", "weights", "seconds"},
@@ -294,6 +374,14 @@ def main():
             result["telemetry"] = usage_summary(
                 output / "telemetry", (time.monotonic_ns() - start) // 1000
             )
+        elif role == "storage":
+            result = disposable_storage()
+        elif role == "recovery":
+            result = recovery_suite(output)
+        elif role == "gradient":
+            from .progressive_generator_probe import gradient
+
+            result = gradient(data["profile"], [data["sample"]], client=client)
         elif role == "prepare":
             result = prepare_rows(data, client, output)
         else:

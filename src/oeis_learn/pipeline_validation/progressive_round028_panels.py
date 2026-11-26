@@ -113,6 +113,9 @@ class NativeRoles:
         self.build_us = 0
         self.charges = []
 
+    def stage_options(self, role):
+        return {}
+
     def __call__(self, role, data, *, seconds, inputs=()):
         from .progressive_handoff import stage
 
@@ -219,6 +222,7 @@ class NativeRoles:
                     gpu=self.phase == "hip",
                     seconds=seconds,
                     readonly_inputs=mounts,
+                    **self.stage_options(role),
                     **({"record_lease": True} if self.phase == "hip" else {}),
                 )
                 success = True
