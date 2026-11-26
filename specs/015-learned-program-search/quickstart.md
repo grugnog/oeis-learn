@@ -6,7 +6,9 @@
 
 The [returned and verified training rehearsal](validation/round028-generator-rehearsal.md) projects 1 h 44 min for both 4M arms. Both original checkpoints passed full-state recovery.
 
-## Collect fresh supply and evaluation costs
+The [returned CPU collection](validation/round028-panel-results.md) reserved all 576 cases. Historical costs project 6 h 26 min for a pilot and an earned repeat, leaving 1 h 34 min for differences in candidate costs and operating overhead.
+
+## Original CPU supply and historical costing procedure
 
 Use implementation `8954cbd0644273bed4a8cf413df7573519c86d10` on the original workstation. The collector reuses the verified training rehearsal, prices the historical 128-case search and scorer work, and checks the fresh-family supply for both seeds. It can extend the original source order and run isolated native CPU preparation in the same invocation.
 
