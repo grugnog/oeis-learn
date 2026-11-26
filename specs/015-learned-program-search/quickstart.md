@@ -1,87 +1,66 @@
-# Round028 validation and workstation use
+# Round028 CPU audit on the round027 workstation
 
-## Available at the planning revision
+The audit is the first decision in round028. The implementation pin is `f864f238c8a741924ef29707fecc0dcd0688fffc` on `015-learned-program-search`. The workstation's physical checkout must be detached at `77667e67176ae32fa16457d52565bae1dbe41afc` with its original `run-state` tree. The launcher verifies the pin, extracts the candidate alongside that state, and checks the cached Git files on reuse.
 
-No workstation data collection is needed to review this design. To read the plan on Owen's workstation while keeping the qualified donor checked out, run the following from Bash.
+## Run or resume the audit
 
-```bash
-(
-  set -euo pipefail
-  cd ~/workspace/oies-learn
-  git fetch origin refs/heads/015-learned-program-search:refs/remotes/origin/015-learned-program-search
-  rev=$(git rev-parse --verify 'refs/remotes/origin/015-learned-program-search^{commit}')
-  git show "${rev}:specs/015-learned-program-search/plan.md"
-)
-```
-
-In a fresh development checkout of the feature branch, validate the design and implementation checklist together.
-
-```bash
-SPECIFY_FEATURE_DIRECTORY=specs/015-learned-program-search \
-  .specify/scripts/bash/check-prerequisites.sh --json --require-spec --require-tasks --include-tasks
-```
-
-The result names this feature directory and lists research, data model, contracts, quickstart and [tasks.md](tasks.md). Existing regression modules for the integration points are `tests/unit/test_selector_audit.py`, `test_progressive_metrics.py`, `test_progressive_decisions.py`, `test_progressive_budgets.py` and `test_progressive_freeze_progress.py` in the same directory. Run these with pytest in the project's qualified environment. Part of the freeze suite constructs a real PyTorch model. These tests cover inherited behavior.
-
-## After the implementation is published
-
-The following is the acceptance target for the future launcher. The planning revision contains documentation only. The presence check below stops before creating a local revision pin when the reviewed launcher is absent. Use the published implementation commit identified in its release instructions. The first block captures the fetched branch tip after checking it matches that reviewed commit.
+Paste this whole block into Bash on Owen's NixOS workstation. It fetches the feature, runs metadata preflight and the CPU audit, verifies a publication against the private originals, verifies a copy through the archive-only CLI, and records final status. The command prints the absolute path of one ZIP to return, including when required original evidence is missing. A concurrent owner returns promptly. Repeating this block reuses the committed audit and its charges.
 
 ```bash
 (
   set -euo pipefail
-  cd ~/workspace/oies-learn
-  test "$(git rev-parse HEAD)" = 77667e67176ae32fa16457d52565bae1dbe41afc
-  git fetch origin refs/heads/015-learned-program-search:refs/remotes/origin/015-learned-program-search
-  pin=refs/round028/implementation
-  launcher=specs/015-learned-program-search/validation/launch-round028.sh
-  if ! git show-ref --verify --quiet "$pin"; then
-    candidate=$(git rev-parse --verify 'refs/remotes/origin/015-learned-program-search^{commit}')
-    git cat-file -e "${candidate}:${launcher}"
-    test "$candidate" = "${ROUND028_IMPLEMENTATION_COMMIT:?set this to the published full implementation commit}"
-    git update-ref "$pin" "$candidate" ''
-  fi
-  rev=$(git rev-parse --verify "${pin}^{commit}")
-  git cat-file -e "${rev}:${launcher}"
-  git show "${rev}:${launcher}" | bash -s -- "$rev" preflight
+  cd "$HOME/workspace/oies-learn"
+  rev=f864f238c8a741924ef29707fecc0dcd0688fffc
+  git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
+  git merge-base --is-ancestor "$rev" FETCH_HEAD
+  git show "${rev}:specs/015-learned-program-search/validation/launch-round028.sh" |
+    bash -s -- "$rev" collect-audit
 )
 ```
 
-Expected preflight output includes the two source identities, immutable image IDs, actual free and required bytes/inodes, any deficit, the usable donor closure and the first affected stage. Preflight can produce a metadata receipt without running a model or exposing case outcomes. A blocked resource has a numerical explanation and the reservation it prevents.
+The collector writes detailed output for each action to its own local directory under `run-state/discovery-tools/round028-cpu-*/`. Return **`round028-workstation.zip`** from the path printed at the end. It includes `summary.json` with exit codes, prerequisite availability and diagnostic code locations. When the copied audit verifies successfully, the ZIP also contains `round028.zip`. Private case rows, program bytes, raw command output and error messages stay on the workstation.
 
-Once admitted, the following is the single start **and resume** command. It can be repeated after an interruption. The recorded Git ref keeps subsequent branch updates from changing an active study.
+## Read the result
 
-```bash
-(
-  set -euo pipefail
-  cd ~/workspace/oies-learn
-  rev=$(git rev-parse --verify 'refs/round028/implementation^{commit}')
-  launcher=specs/015-learned-program-search/validation/launch-round028.sh
-  git show "${rev}:${launcher}" | bash -s -- "$rev" run
-)
-```
-
-For a status check, use the following while the run is active. Replace the final `status` with `audit`, `rehearse` or `verify` to request just that operation. The same `run` action consumes its verified receipts.
-
-```bash
-(
-  set -euo pipefail
-  cd ~/workspace/oies-learn
-  rev=$(git rev-parse --verify 'refs/round028/implementation^{commit}')
-  launcher=specs/015-learned-program-search/validation/launch-round028.sh
-  git show "${rev}:${launcher}" | bash -s -- "$rev" status
-)
-```
-
-## Evidence to check on the first implementation
-
-| Exercise | Expected result |
+| Evidence | Where to look |
 | --- | --- |
-| Audit the original 128 | Seven measurements and all four 25M dispositions are accounted for. The paired D/trial 05 rows, six unfinished composition fits, original versus companion verdicts and missing prerequisites are traceable locally. CPU replay occurs only when registered. |
-| Compare choices on a known bank | Ordinary, learned and shuffled arms receive identical sources and true-prefix admission. Permuting candidate order or replacing a member is detected. The independent scorer reproduces the one sealed selection. A correct unselected alternative contributes only to headroom. |
-| Exercise each spending branch with controlled evidence | Produce fit fault, selection, proposal, ambiguous and no-opportunity cases. Each maps to the registered action. Where missing cases could change the sign, only the authorized replay or inconclusive branch runs. Show that 30/32 measured at an intermediate look may reach its exploratory endpoint. |
-| Rehearse on the production workstation | Run the actual CPU/native and HIP checks, a full-state update/restore, a valid slow portfolio, production-sized collection through archive verification, genuine disposable shortage and two competing launchers. Check measured headroom, receipt reuse, charge reconciliation and diagnostic usefulness. |
-| Restart after a lost worker or a partial publication | Repeat the same start command. The next stage identifies reused evidence, original costs, remaining legal opportunity and the next incomplete unit. A changed producer is rejected before its dependents run. |
-| Copy the published share and verify it with the donor unmounted | The independent archive reader reproduces counts, routing, paired effects, uncertainty, verdict and spending action. Private sequences, programs and per-case traces remain local. Compare the scope of this receipt with the workstation's exact-program replay. |
+| Workstation could open the historical study | `summary.json` gives the donor revision, prerequisite files and audit exit status. A missing frozen campaign gives 0/128 authenticated cases. |
+| Historical outcomes and coverage | Inside `round028.zip`, `audit.json` contains the frozen and companion counts for six 1M measurements and trial 00 at 2M, the D/trial-05 paired counts by stratum, unfinished fits, and the four 25M checkpoint dispositions. Each historical stratum retains its original denominator of 32. |
+| What could justify spending | `projection` contains the feasible-set histogram for the 64 primary cases. `decision` gives the lower and upper bounds on proposal minus selection opportunities. `coverage` gives bank gaps, exact witnesses and measured training support. A potentially decisive CPU replay with unmeasured funding has a null action, a blocker, a case count and an original service-time estimate. |
+| Independent checks | `verify-private` reopens the bound inputs and recomputes the audit. `verify-copied` recomputes the decision from the aggregate alone. The owner keeps private records under `run-state/discovery/015-research-round-028/`. |
 
-Session evidence is under `run-state/discovery/015-research-round-028`. The final public artifact is `share/round028.zip`. The normal entry point stops after a verified terminal report. A recommendation for 25M confirmation requires a separate prospective budget.
+A successful historical audit can identify an experiment or settle a retain decision. This release stops at that decision. Native replay dispatch, the prospective pilot executors, and physical qualification remain open in [tasks.md](tasks.md). A blocked or invalid audit supplies a diagnostic and authorizes zero GPU work. The original Optuna decisions, donor images and charges belong to round027.
+
+## Verify the returned ZIP on a different computer
+
+Start in the directory containing the returned `round028-workstation.zip`. This command extracts its verified report when present, fetches the exact implementation into a temporary directory, and runs the standalone verifier. It needs Git, Bash, tar, Python and access to the public repository.
+
+```bash
+(
+  set -euo pipefail
+  rev=f864f238c8a741924ef29707fecc0dcd0688fffc
+  result=$(pwd -P)/round028-workstation.zip
+  temp=$(mktemp -d "$(pwd -P)/round028-verify.XXXXXXXX")
+  trap 'rm -rf -- "$temp"' EXIT
+  python3 - "$result" "$temp/round028.zip" <<'PY'
+import json
+from pathlib import Path
+import sys
+import zipfile
+
+with zipfile.ZipFile(sys.argv[1]) as bundle:
+    summary = json.loads(bundle.read("summary.json"))
+    if not summary["includes_verified_audit"]:
+        raise SystemExit("Workstation diagnostic only. See summary.json inside the returned ZIP.")
+    Path(sys.argv[2]).write_bytes(bundle.read("round028.zip"))
+PY
+  git init --quiet "$temp/repo"
+  git -C "$temp/repo" fetch --quiet --depth=1 https://github.com/grugnog/oeis-learn.git "$rev"
+  mkdir "$temp/source"
+  git -C "$temp/repo" archive "$rev" | tar -xf - -C "$temp/source"
+  python3 -B "$temp/source/scripts/foundation_run.py" --engine podman discovery round028 \
+    --action verify --archive "$temp/round028.zip"
+)
+```
+
+The specification, research handoff, evidence index and outstanding acceptance criteria are in [research.md](research.md), [contracts/experiment.md](contracts/experiment.md), [contracts/operations.md](contracts/operations.md) and [tasks.md](tasks.md).
