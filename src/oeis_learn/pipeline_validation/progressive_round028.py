@@ -291,9 +291,10 @@ def execute(args, source, *, host_factory=None):
         raise ValueError("absolute physical donor workspace required")
     folder = confined(root, SESSION, exists=False)
     if args.action == "pilot-status":
-        from .progressive_round028_pilot import AREA
+        from .progressive_round028_pilot import AREA, cost_status
         progress = confined(folder, AREA + "/progress.json", exists=False) if folder.exists() else None
-        return {"mechanical_status": "INSPECTED", "pilot": load(progress) if progress and progress.is_file() else None}, 0
+        return {"mechanical_status": "INSPECTED", "pilot": load(progress) if progress and progress.is_file() else None,
+                "costs": cost_status(progress.parent) if progress and progress.is_file() else None}, 0
     if args.action == "status":
         return status(folder), 0
     policy = learned_search_policy()
@@ -329,7 +330,7 @@ def execute(args, source, *, host_factory=None):
             store = audit_store(folder, revision)
             registration = store.campaign
             if args.action == "pilot":
-                from .progressive_round028_pilot import AREA as PILOT_AREA, PilotDeficit, run_pilot
+                from .progressive_round028_pilot import AREA as PILOT_AREA, PilotDeficit, cost_status, run_pilot
                 try:
                     return run_pilot(args, source, root, folder, revision, store, host_factory)
                 except (ValueError, OSError, KeyError, TypeError, RuntimeError, TimeoutError, subprocess.SubprocessError, zipfile.BadZipFile) as exc:
@@ -338,7 +339,11 @@ def execute(args, source, *, host_factory=None):
                     area = confined(folder, PILOT_AREA, exists=False)
                     area.mkdir(parents=True, exist_ok=True, mode=0o700)
                     (area / "exception.txt").write_text(traceback.format_exc())
-                    return dict(mechanical_status="BLOCKED", reason=exc.code if isinstance(exc,PilotDeficit) else "PILOT_INTERRUPTED",
+                    try:
+                        costs = cost_status(area)
+                    except (OSError, ValueError, KeyError, TypeError):
+                        costs = None
+                    return dict(mechanical_status="BLOCKED", costs=costs, reason=exc.code if isinstance(exc,PilotDeficit) else "PILOT_INTERRUPTED",
                                 deficit=exc.counts if isinstance(exc,PilotDeficit) else None, error_type=type(exc).__name__,
                                 progress=load(area/"progress.json") if (area/"progress.json").is_file() else None,
                                 failure_locations=failure_locations(source,area,role_folder="roles")), 2

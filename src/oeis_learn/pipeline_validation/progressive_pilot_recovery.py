@@ -227,6 +227,21 @@ def measured_training(
         attempt += 1
 
 
+def measured_score(run, settle, cpu, data, mounts):
+    # The CPU scorer can replay an already sealed choice. Its predecessor's time stays charged.
+    block = data["block"]
+    attempt = 0
+    while True:
+        name = block if not attempt else f"{block}-scoreretry-{attempt}"
+        request = dict(data, block=name)
+        previous = interrupted(cpu, "score", request, mounts)
+        if previous is None:
+            return run(cpu, "score", request, mounts)
+        _, lease, wall = previous
+        settle(name, "score", lease, wall)
+        attempt += 1
+
+
 def measured_search(run, settle, progress, cpu, gpu, look, recipe, weight, weights, prompts, truth):
     from .progressive_round028_pilot import score_projection
 
@@ -271,9 +286,10 @@ def measured_search(run, settle, progress, cpu, gpu, look, recipe, weight, weigh
             ref, path, value, finished = part
             rows = [original[p["id"]] for p in finished]
             progress("pilot", arm=arm, target=target, role="score", cases=len(rows))
-            scored = run(
+            scored = measured_score(
+                run,
+                settle,
                 cpu,
-                "score",
                 dict(
                     block=block,
                     rows=rows,

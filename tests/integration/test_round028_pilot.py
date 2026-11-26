@@ -123,10 +123,10 @@ def test_cpu_training_boundary_reopens_all_state_for_the_same_registered_stream(
         # Simulate work charged after the last persisted model, then run one real 32-row update.
         next_work = tmp_path / (arm + "-recovered")
         (next_work / "output").mkdir(parents=True)
-        for original, mount in [(path, "/work/inputs/training.json"), *mounts]:
+        for source_file, mount in [(path, "/work/inputs/training.json"), *mounts]:
             destination = next_work / mount.removeprefix("/work/")
             destination.parent.mkdir(parents=True, exist_ok=True)
-            copyfile(original, destination)
+            copyfile(source_file, destination)
         updated = train(
             next_work,
             dict(data, target=1_000_000, previous=result["checkpoint"], resume_charge=999_999),
@@ -362,7 +362,7 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
         verify_workstation,
     )
     from oeis_learn.generalization.progressive.program_search_rehearsal_report import encode
-    from oeis_learn.generalization.progressive.program_search_pilot import LOOKS, ARMS, verify_pilot
+    from oeis_learn.generalization.progressive.program_search_pilot import LOOKS, verify_pilot
     from oeis_learn.generalization.progressive.training_rows import pair_seeds
     from oeis_learn.generalization.progressive.contracts import reference, atomic_write
     from oeis_learn.pipeline_validation import (
@@ -412,7 +412,7 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
         pilot, "accept_pilot", lambda *a: {"installed": digest("on exposed fixtures")}
     )
     monkeypatch.setattr(probe, "candidate_image", lambda *a: (digest(a[-1]), 0, True))
-    monkeypatch.setattr(probe, "physical_scope", lambda h, p: digest(p))
+    monkeypatch.setattr(probe, "physical_scope", lambda h, p, **scope: digest(p))
     monkeypatch.setattr(pilot, "checkpoint_inputs", lambda *a: ([], weights))
 
     def training(root, area, reg, *unused):
@@ -539,3 +539,28 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
     cost.write_text("{}")
     with pytest.raises(ValueError, match="publication boundary"):
         pilot.run_pilot(*args[:-1], unexpected_host)
+
+
+def test_scorer_recovery_debits_original_time_and_reopens_the_same_sealed_choices(monkeypatch):
+    from oeis_learn.pipeline_validation import progressive_pilot_recovery as recovery
+
+    data = dict(
+        block="ordinary-4000000-resume-1", candidates=digest("sealed choices"), rows=["case"]
+    )
+    mounts = [("original", "same")]
+    runs, settled = [], []
+
+    def prior(cpu, role, request, inputs):
+        assert role == "score" and request["candidates"] == data["candidates"] and inputs == mounts
+        return (None, 0, 17) if request["block"] == data["block"] else None
+
+    def score(cpu, role, request, inputs):
+        runs.append(request)
+        return {"checked": True}
+
+    monkeypatch.setattr(recovery, "interrupted", prior)
+    assert recovery.measured_score(
+        score, lambda *args: settled.append(args), object(), data, mounts
+    ) == {"checked": True}
+    assert settled == [(data["block"], "score", 0, 17)]
+    assert runs == [dict(data, block=data["block"] + "-scoreretry-1")]

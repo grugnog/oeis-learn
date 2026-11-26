@@ -105,6 +105,7 @@ class NativeRoles:
     request_version = "round028-panel-role/v1"
     producer_version = "round028-panel-output/v1"
     fixed_attempt = False
+    repeatable_preparation = frozenset()
 
     def __init__(self, args, source, root, revision, area, registration, host_factory):
         self.args, self.source, self.root, self.revision = args, source, root, revision
@@ -115,6 +116,9 @@ class NativeRoles:
 
     def stage_options(self, role):
         return {}
+
+    def bind_physical(self, physical):
+        retain(self.area / ("physical-" + self.phase + ".json"), seal({"scope": physical}))
 
     def __call__(self, role, data, *, seconds, inputs=()):
         from .progressive_handoff import stage
@@ -192,10 +196,13 @@ class NativeRoles:
                         self.bind(folder, attempt, req)
                         break
         if not receipt.exists():
-            if self.fixed_attempt and any(folder.glob("attempt-*")):
-                raise ValueError("original timing attempt lacks a completed inspected receipt")
+            past = list(folder.glob("attempt-*"))
+            if self.fixed_attempt and past:
+                # Only deterministic, pre-research CPU fixtures may reuse a closed failed attempt's inputs.
+                if role not in self.repeatable_preparation or any(not (p / "end.json").is_file() for p in past):
+                    raise ValueError("original timing attempt lacks a completed inspected receipt")
             if self.fixed_attempt:
-                retain(self.area / ("physical-" + self.phase + ".json"), seal({"scope": physical}))
+                self.bind_physical(physical)
             require(self.host.engine.image(self.image) == self.image, "candidate image changed")
             ordinal = len(list(folder.glob("attempt-*")))
             attempt = confined(folder, f"attempt-{ordinal:04d}", exists=False)

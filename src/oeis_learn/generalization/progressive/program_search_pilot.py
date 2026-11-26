@@ -237,10 +237,12 @@ def verify_pilot(path):
             }
             or item != seal(item)
             or not re.fullmatch(
-                r"(ordinary|first_divergence|incumbent)-(0|1000000|4000000)(-resume-[1-9][0-9]*)?",
+                r"(ordinary|first_divergence|incumbent)-(0|1000000|4000000)(-resume-[1-9][0-9]*)?(-scoreretry-[1-9][0-9]*)?",
                 item["block"],
             )
             or item["role"] not in ("train", "search", "score")
+            or "-scoreretry-" in item["block"]
+            and item["role"] != "score"
             or (item["block"], item["role"]) in known
             or type(item["lease_us"]) is not int
             or item["lease_us"] < 0
@@ -263,7 +265,7 @@ def verify_pilot(path):
         not doc["costs"]
         or total != doc["research_gpu_us"]
         or role_us != doc["research_role_us"]
-        or not 0 <= total <= role_us <= SHIFT_US
+        or not 0 <= total <= role_us
     ):
         raise ValueError("pilot lease total differs from its registered spending")
     required_costs, permitted_costs = set(), set()
@@ -341,7 +343,7 @@ def verify_pilot(path):
         )
         if contrasted != look["contrasts"] or action != look["action"]:
             raise ValueError("reported pilot evidence differs from family counts")
-    recorded = {(block.split("-resume-")[0], role) for block, role in known}
+    recorded = {(re.split("-(?:resume|scoreretry)-", block)[0], role) for block, role in known}
     if not required_costs <= recorded <= permitted_costs:
         raise ValueError("research cost coverage differs from the observed arms and roles")
     if doc["action"] != doc["looks"][-1]["action"]:
@@ -352,6 +354,7 @@ def verify_pilot(path):
         report=doc["identity"],
         next_action=doc["action"],
         registered_role_us=SHIFT_US,
+        overrun_us=max(0, role_us - SHIFT_US),
         research_gpu_us=doc["research_gpu_us"],
         research_role_us=doc["research_role_us"],
         endpoint=doc["looks"][-1]["contrasts"],

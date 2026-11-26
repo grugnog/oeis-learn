@@ -62,7 +62,7 @@ def original_scale(cut):
     return dimensions
 
 
-def physical_scope(host, phase):
+def physical_scope(host, phase, *, machine=False):
     # A boot, driver, card, or engine change measures a new physical scope.
     boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
     device = {}
@@ -75,6 +75,8 @@ def physical_scope(host, phase):
         for key in ("unique_id", "vendor", "device", "revision"):
             path = card / key
             device[key] = path.read_text().strip() if path.is_file() else None
+    if machine:
+        return digest([Path("/etc/machine-id").read_text().strip(), host.policy["runtime"], device])
     return digest([boot, host.policy["runtime"], device])
 
 

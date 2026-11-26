@@ -61,6 +61,12 @@ class PilotRole(NativeRoles):
     request_version = "round028-pilot-role/v1"
     producer_version = "round028-pilot-output/v1"
     fixed_attempt = True
+    repeatable_preparation = frozenset({"prepare", "gradient", "storage", "recovery"})
+
+    def bind_physical(self, physical):
+        from .progressive_round028_rehearsal import physical_scope
+
+        super().bind_physical(physical_scope(self.host, self.phase, machine=True))
 
     def stage_options(self, role):
         return {"tmp_bytes": 16 << 20} if role == "storage" else {}
@@ -216,7 +222,7 @@ def prepare_training(root, area, registration, cpu, refs, supply, panel_area):
     rows = []
     # Same native mechanical source as the historical strict training reservoir, with a new seed.
     stream = None
-    initial_draws = inputs["counts"]["native_training"]
+    initial_draws = max(512, (inputs["counts"]["native_training"] + 511) // 512 * 512)
     for start in range(0, law["max_draws"], 512):
         result = cpu(
             "prepare",
@@ -271,7 +277,11 @@ def prepare_training(root, area, registration, cpu, refs, supply, panel_area):
             probes.setdefault(kind, dict(id=row["draw_identity"], role="training"))
         if len(rows) >= 32 and len(probes) == 2:
             stream = matched_stream(
-                [rows], {"probes": probes}, registration["identity"], 0, law=law
+                [rows[i : i + law["shard_rows"]] for i in range(0, len(rows), law["shard_rows"])],
+                {"probes": probes},
+                registration["identity"],
+                0,
+                law=law,
             )
             if stream["eligible_rows"]:
                 break
@@ -475,6 +485,52 @@ def score_projection(generated, scored, candidates_sha, prompts, weights, recipe
     return results, clock["cost_complete"]
 
 
+def estimate_role(role, data, strata, timing, rehearsal, plan):
+    """Price the next batch from the original role overhead and the slower observed case."""
+    from fractions import Fraction
+    from math import ceil
+
+    arm, target, *_ = data["block"].split("-")
+    target = int(target)
+    if role == "train":
+        a = rehearsal["hip"]["arms"][arm]
+        earlier = LOOKS[max(0, LOOKS.index(target) - 1)]
+        tokens = max(0, target - max(earlier, data.get("resume_charge") or 0))
+        rate = max(Fraction(t, n) for t, n in zip(a["update_us"], a["charged_tokens"], strict=True))
+        return (
+            ceil(tokens * rate) + a["save_us"] + a["restore_us"] + plan["training_role_overhead_us"]
+        )
+    block = timing["blocks"][arm + ("-full" if target == LOOKS[-1] else "-one")]
+    phase = "search" if role == "search" else "score"
+    device = "gpu" if role == "search" else "cpu"
+    cells = block["cells"]
+    overhead = max(0, block[device + "_wall_us"] - sum(c[phase + "_us"] for c in cells.values()))
+    floors = plan["score_floor_us"]["incumbent" if arm == "incumbent" else "learner"]
+    rates = {
+        s: max(c["max_" + phase + "_us"], floors[s] if phase == "score" else 0)
+        for s, c in cells.items()
+    }
+    return overhead + sum(
+        rates["parameter" if strata[r["id"]] == "retention" else strata[r["id"]]]
+        for r in data["rows"]
+    )
+
+
+def cost_status(area):
+    costs = [load(confined(area, p)) for p in sorted((area / "costs").glob("*.json"))]
+    require(all(c == seal(c) for c in costs), "changed pilot cost")
+    spent = sum(c["charged_us"] for c in costs)
+    return dict(
+        registered_us=SHIFT_US,
+        settled_role_us=spent,
+        gpu_lease_us=sum(c["lease_us"] for c in costs),
+        remaining_before_open_roles_us=max(0, SHIFT_US - spent),
+        overrun_us=max(0, spent - SHIFT_US),
+        settled_roles=len(costs),
+        outstanding_roles=len(list((area / "reservations").glob("*.json"))) - len(costs),
+    )
+
+
 def publication_inputs(area):
     paths = [
         "registration.json",
@@ -484,7 +540,12 @@ def publication_inputs(area):
         "accounting/budget.jsonl",
         *(f"trials/pilot-{target}.json" for target in LOOKS),
     ]
-    for pattern in ("costs/*.json", "roles/*/boundary.json", "qualification/stages/*/receipt.json"):
+    for pattern in (
+        "costs/*.json",
+        "roles/*/boundary.json",
+        "qualification/stages/*/receipt.json",
+        "admissions/*.json",
+    ):
         paths.extend(str(p.relative_to(area)) for p in sorted(area.glob(pattern)))
     return [reference(area, confined(area, name)) for name in paths]
 
@@ -558,7 +619,17 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
         zipfile.ZipFile(io.BytesIO(parent_raw)) as outer,
         zipfile.ZipFile(io.BytesIO(outer.read("round028.zip"))) as inner,
     ):
-        old_arms = json.loads(inner.read("rehearsal.json"))["hip"]["arms"]
+        rehearsal = json.loads(inner.read("rehearsal.json"))
+        timing = json.loads(inner.read("timing.json"))
+        from oeis_learn.generalization.progressive.program_search_timing import parent_plan
+
+        plan = parent_plan(json.loads(inner.read("panels.json")), rehearsal)
+    old_arms = rehearsal["hip"]["arms"]
+    strata = {
+        r["task"]: r["stratum"]
+        for name in ("development", "development_retention")
+        for r in panels[name]
+    }
     largest = max(v["checkpoint_bytes"] for v in old_arms.values())
     check_space(area, host, largest)
     progress("qualify_candidate")
@@ -595,17 +666,46 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
     retain(area / "freeze.json", freeze)
     progress("accept_frozen_pilot")
     checks = accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, d_recipe, d_weights)
-    acceptance = seal(
+    # A reboot remeasures the candidate on the same machine. It cannot rewrite the original acceptance.
+    current = seal(
         dict(
-            version="round028-pilot-acceptance/v1",
+            version="round028-pilot-qualification/v1",
             freeze=freeze["identity"],
-            qualification=digest(qualified),
+            qualification=qualified,
             checks=checks,
             images=freeze["images"],
             physical={r.phase: physical_scope(host, r.phase) for r in (cpu, gpu)},
         )
     )
-    retain(area / "acceptance.json", acceptance)
+    retain(area / "admissions" / (current["identity"][7:] + ".json"), current)
+    facts = dict(
+        version="round028-pilot-acceptance/v1",
+        freeze=freeze["identity"],
+        checks=checks,
+        images=freeze["images"],
+        physical={r.phase: physical_scope(host, r.phase, machine=True) for r in (cpu, gpu)},
+    )
+    path = area / "acceptance.json"
+    if path.exists():
+        acceptance = load(confined(area, path))
+        accepted = read_bound_record(
+            area, acceptance["qualification"], version="round028-pilot-qualification/v1"
+        )
+        require(
+            acceptance == seal(dict(facts, qualification=acceptance["qualification"]))
+            and all(accepted[k] == facts[k] for k in ("freeze", "checks", "images")),
+            "accepted pilot scope differs",
+        )
+    else:
+        acceptance = seal(
+            dict(
+                facts,
+                qualification=reference(
+                    area, area / "admissions" / (current["identity"][7:] + ".json")
+                ),
+            )
+        )
+        retain(path, acceptance)
     budgets = BudgetJournal(
         area / "accounting",
         registration["identity"],
@@ -620,13 +720,6 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             saved == seal(saved) and saved["key"] == key and 0 <= elapsed <= charged,
             "original pilot lease differs",
         )
-        if charged > saved["us"]:
-            raise PilotDeficit(
-                "PILOT_ROLE_TIME_DEFICIT",
-                required_us=charged,
-                remaining_us=saved["us"],
-                deficit_us=charged - saved["us"],
-            )
         telemetry = telemetry or {}
         retain(
             area / "costs" / (block + "-" + role + ".json"),
@@ -655,7 +748,7 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             budgets.commit(
                 key,
                 boot=start["boot"],
-                monotonic_us=start["start_us"] + charged,
+                monotonic_us=start["start_us"] + min(charged, saved["us"]),
                 termination_proven=True,
             )
 
@@ -668,9 +761,16 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             limit = load(confined(area, saved))["us"]
         else:
             limit = SHIFT_US - budgets.snapshot()["consumed"]["elapsed_us"]
-            if limit <= 0:
-                raise PilotDeficit("PILOT_TIME_SPENT", registered_us=SHIFT_US, remaining_us=0)
-            retain(saved, seal(dict(key=key, us=limit)))
+            estimate = estimate_role(role, data, strata, timing, rehearsal, plan)
+            if estimate > limit or limit <= 0:
+                raise PilotDeficit(
+                    "PILOT_ROLE_TIME_DEFICIT",
+                    registered_us=SHIFT_US,
+                    required_us=estimate,
+                    remaining_us=max(0, limit),
+                    deficit_us=max(0, estimate - limit),
+                )
+            retain(saved, seal(dict(key=key, us=limit, estimate_us=estimate)))
         # Each original supervisor interval has its own elapsed-time origin. Retain device occupancy separately.
         budgets.reserve(
             data["block"],
@@ -680,11 +780,10 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             boot="round028-supervised-role-duration/v1",
             monotonic_us=0,
         )
-        stage_seconds = (
-            max(1, limit // 1_000_000)
-            if runner is gpu
-            else max(1, min(limit // 1_000_000, data.get("seconds", 3600) + 120))
-        )
+        # The shift admits new work. An admitted case or update keeps its own service clock.
+        from oeis_learn.generalization.progressive.runtime_reservation import TRAINING_SECONDS
+
+        stage_seconds = TRAINING_SECONDS if role == "train" else data["seconds"] + 120
         result = runner(role, seal(data), seconds=stage_seconds, inputs=mounts)
         settle(
             data["block"],
@@ -711,7 +810,6 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
         cuts, outcomes = {}, {}
         comparable = True
         for arm, look in looks.items():
-            block = f"{arm}-{target}"
             progress("pilot", arm=arm, target=target, role="train" if arm in ARMS else "search")
             if arm in ARMS:
                 from .progressive_pilot_recovery import measured_training
@@ -807,7 +905,7 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             looks=published,
             action=published[-1]["action"],
             research_gpu_us=sum(c["lease_us"] for c in costs),
-            research_role_us=budgets.snapshot()["consumed"]["elapsed_us"],
+            research_role_us=sum(c["charged_us"] for c in costs),
             costs=costs,
             verification="private_choices_and_checkpoints",
         )

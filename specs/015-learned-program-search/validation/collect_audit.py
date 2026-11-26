@@ -162,17 +162,23 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
         from oeis_learn.pipeline_validation.progressive_round028_pilot import SHARE
         from oeis_learn.generalization.progressive.program_search_pilot import verify_pilot
         code, raw = run("pilot", "pilot", *root)
-        if not code and raw.get("mechanical_status") == "COMPLETE" and raw.get("archive") == SHARE:
-            result = folder / "round028-pilot.zip"
-            shutil.copyfile(confined(workspace, SESSION + "/" + SHARE), result)
-            if verify_pilot(result) != raw["receipt"]:
-                raise ValueError("copied pilot result differs from the private replay")
-        else:
-            code = code or 2
-            result = folder / "round028-pilot-diagnostics.zip"
-            capture = {k:raw[k] for k in ("reason", "progress", "failure_locations", "error_type", "missing", "deficit") if k in raw}
-            with zipfile.ZipFile(result, "w") as bundle:
-                bundle.writestr("summary.json", json.dumps(dict(summary=summary, pilot=capture), sort_keys=True))
+        if not code:
+            try:
+                if raw.get("mechanical_status") != "COMPLETE" or raw.get("archive") != SHARE:
+                    raise ValueError("no committed pilot publication")
+                result = folder / "round028-pilot.zip"
+                shutil.copyfile(confined(workspace, SESSION + "/" + SHARE), result)
+                if verify_pilot(result) != raw["receipt"]:
+                    raise ValueError("copied pilot result differs from the private replay")
+                print(f"Verified pilot. Return this file:\n{result}", flush=True)
+                return 0
+            except (KeyError, TypeError, ValueError, OSError, zipfile.BadZipFile) as exc:
+                summary["steps"]["publication"] = dict(error_type=type(exc).__name__, exit=2)
+                code = 2
+        result = folder / "round028-pilot-diagnostics.zip"
+        capture = {k:raw[k] for k in ("reason", "progress", "failure_locations", "error_type", "missing", "deficit", "costs") if k in raw}
+        with zipfile.ZipFile(result, "x", zipfile.ZIP_DEFLATED) as bundle:
+            bundle.writestr("summary.json", json.dumps(dict(summary=summary, pilot=capture), sort_keys=True))
         print(f"Pilot exit {code}. Return this file:\n{result}", flush=True)
         return code
     if action == "collect-final":
