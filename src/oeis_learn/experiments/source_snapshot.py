@@ -79,10 +79,11 @@ def collect_snapshot(root):
     })
     feature = "015-learned-program-search"
     prefix = "generalization/progressive/contracts/" + feature + "/"
-    resources.update({prefix + p.name: p for p in (root / "specs" / feature / "contracts").glob("*.md")})
-    resources[prefix + "learned-program-search.json"] = (
-        root / "configs/foundation/progressive/learned-program-search.json"
-    )
+    feature_contracts = root / "specs" / feature / "contracts"
+    profile = root / "configs/foundation/progressive/learned-program-search.json"
+    resources.update({prefix + p.name: p for p in feature_contracts.glob("*.md")})
+    if feature_contracts.is_dir() or profile.exists():
+        resources[prefix + profile.name] = profile
     snapshot.update(
         {"src/oeis_learn/" + name: file_digest(p.read_bytes()) for name, p in resources.items()}
     )

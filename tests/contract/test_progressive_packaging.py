@@ -75,12 +75,32 @@ def test_round028_sdist_and_installed_wheel_keep_both_experiment_contracts(tmp_p
         "contracts/015-learned-program-search/learned-program-search.json":
             "configs/foundation/progressive/learned-program-search.json",
     }
-    # Build the wheel from the actual released sdist, including the build hook.
+    # The checkout in the installed acceptance role is read-only. Ask setuptools
+    # for its source manifest, then let sdist create its staging tree in scratch.
+    import shutil
+    metadata = tmp_path / "metadata"
+    metadata.mkdir()
+    subprocess.run([sys.executable, "setup.py", "--quiet", "egg_info", "--egg-base", str(metadata)],
+                   cwd=root, check=True)
+    stage = tmp_path / "source"
+    stage.mkdir()
+    manifest = next(metadata.glob("*.egg-info/SOURCES.txt"))
+    for name in manifest.read_text().splitlines():
+        path = (root / name).resolve()
+        if path.is_relative_to(metadata):
+            continue
+        relative = path.relative_to(root)
+        destination = stage / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+    # Exercise the real sdist and its build hook on the files setuptools selected.
     subprocess.run([sys.executable, "setup.py", "--quiet", "sdist", "--dist-dir", str(tmp_path)],
-                   cwd=root, check=True, capture_output=True)
+                   cwd=stage, check=True)
+    extracted = tmp_path / "extracted"
+    extracted.mkdir()
     with tarfile.open(next(tmp_path.glob("*.tar.gz"))) as archive:
-        archive.extractall(tmp_path, filter="data")
-    sdist = next(tmp_path.glob("*/setup.py")).parent
+        archive.extractall(extracted, filter="data")
+    sdist = next(extracted.glob("*/setup.py")).parent
     subprocess.run([sys.executable, "setup.py", "--quiet", "bdist_wheel", "--dist-dir", str(tmp_path)],
                    cwd=sdist, check=True, capture_output=True)
     installed = tmp_path / "installed"
