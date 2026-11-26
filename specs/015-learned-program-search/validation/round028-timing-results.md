@@ -31,7 +31,9 @@ The physical collection held the GPU lease for 1,301.93 s across five roles. Tel
 | Returned timing ZIP (SHA-256) | `9e1b326b61aebf331833badb0f6ff745b7a53ba4875bc86a5238b88cc3baccae` |
 | Timing registration | `sha256:76b37c68936e85d5f692c7c572b1a65f7b02afb746e716a762f8a71f27578042` |
 | Timing report | `sha256:ec4f586852826843a3315f2355426acc057e539aee0baafbf7e2eedcb48c7ce1` |
-| Terminal implementation | `f0b44acaf7d27591304456f99c4f2e19151a81ba` |
+| First workstation close-out | `f0b44acaf7d27591304456f99c4f2e19151a81ba` |
+| Returned close-out diagnostic (SHA-256, 548 bytes) | `8568d734338f4d5b07e22c57b4f38c6a5c9bb8d8e8ee20a3c06cc71b8c7f79a8` |
+| Journal recovery implementation | `6d4c79adbff84a06bb3d2ddaa196837f4ea59f1b` |
 | Final public ZIP (SHA-256, 42,882 bytes) | `af2ec6fcff0fdd32886162a6cf272249fb0adc9e0168e41659c77099000982fe` |
 | Final public report | `sha256:dd4faada77e3168e3496ab885b3dbc0e86a2f140f3c098eaa38adcc9a16bbb97` |
 
@@ -41,9 +43,19 @@ The nested evidence preserves the original 128-case audit, its 64-case spending 
 
 An independent Python process with only the final ZIP and the pinned reader reproduced the historical routing bounds, the timing forecast, the `INCOMPLETE` evidence verdict and the `RETAIN_BASELINE` action. The final ZIP contains the decision and the four public JSON reports from which it was derived. Rebuilding it from the original timing ZIP produced identical bytes. The fresh-panel gain and retention fields are null.
 
-The workstation action reopens the saved visible/scoring channels, both full-state checkpoints, D's original evaluation weights, 40 portfolios, all ten search/scoring roles and their original budget debits. The collector includes a separate receipt identifying the committed private replay and checks the copied result independently. An interrupted publication and repeated invocation were exercised with fixtures. Installation and replay on the original workstation await its receipt. [Workstation command](../quickstart.md#record-the-stop-decision-on-the-workstation)
+The workstation diagnostic traces the failure to the final transition in `RunStore.append`. Reaching that call required checking the original visible/scoring channels, both full-state checkpoints, D's evaluation weights, all 40 portfolios, all ten search/scoring roles, their budget debits and the installed public ZIP. The workstation preserved the original audit and wrote the private replay closure. It reported zero GPU dispatches. The final journal entry and its exported receipt are outstanding. [Workstation recovery command](../quickstart.md#record-the-stop-decision-on-the-workstation)
 
-The clean implementation checkout passed 262 local regression tests. Four tests require the native qualification image and skipped locally. Coverage included sdist and installed-wheel packaging, 013 Optuna feedback, original archive readers, the matched generator, existing same-list selector controls, training recovery, freeze recovery and the new workstation receipt. On a detached donor checkout without the private campaign, the pinned launcher returned metadata-only preflight and status and twice produced the expected zero-GPU diagnostic. A separate checkout fetched by the public verification command reproduced `VERIFIED INCOMPLETE RETAIN_BASELINE` from the real final ZIP.
+The first close-out implementation passed 262 local regression tests. Four tests require the native qualification image and skipped locally. Coverage included sdist and installed-wheel packaging, 013 Optuna feedback, original archive readers, the matched generator, existing same-list selector controls, training recovery, freeze recovery and the new workstation receipt.
+
+### Journal accounting and recovery
+
+The old write guard measured the whole session against the journal's default limits of 64 MiB and 8,192 inodes. Each of the two retained checkpoint trees accounted for 1,257,820,683 logical bytes. The trace ended at the journal quota check, before the filesystem free-space check.
+
+The repaired diagnostic run journal counts the session root, journal records, temporary files and unrecognized entries. Its separately owned `private`, `share` and `accounting` directories have their own storage scopes. The write still checks the original journal limits and the filesystem's available space and inodes. If a publication is pending, the normal run and timing commands can reuse only a completed timing boundary.
+
+A cross-revision test used the authentic public timing return, a private replay fixture and sparse files matching both checkpoint sizes. The original pin installed the real final archive and stopped at its last journal write. A second Python process on the repaired pin committed exactly one transition against that same session. Repeated publication reproduced the receipt and preserved the installed archive's bytes, inode and modification time. The archive digest matched the distributed public ZIP.
+
+The repaired release passed 340 local regression tests. Five tests require the qualification image and skipped locally. The tests exercised journal byte and inode exhaustion, simulated a shortage of filesystem bytes or inodes, and checked the numerical deficits in the diagnostic ZIP. A separate run retained 8,200 private files while committing the journal entry. The exact launcher ran twice on a detached donor checkout lacking the private campaign and returned a zero-GPU diagnostic both times. The documented independent reader fetched the repaired revision and reproduced `VERIFIED INCOMPLETE RETAIN_BASELINE` from the final public ZIP.
 
 | Checklist | Total | Checked | Unchecked | Status |
 | --- | ---: | ---: | ---: | --- |

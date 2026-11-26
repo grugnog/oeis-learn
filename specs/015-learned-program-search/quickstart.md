@@ -4,13 +4,13 @@
 
 **Retain D.** The 4M pilot is projected to take 10 h 21 min 37 s against the eight-hour shift. The estimate for candidate evaluation alone is 8 h 32 min 14 s. The public report records the funding shortfall, the unmeasured comparison and zero further GPU work. [Measured costs and decision](validation/round028-timing-results.md)
 
-Run this block on the original round027 workstation. It checks the recorded choices, scorer results, costs and both checkpoint closures, saves the final report to the session, and returns one ZIP with a receipt for the private checks. It uses CPU only. An interrupted invocation can be repeated.
+The first workstation close-out verified the private records and installed the report. Its last journal write counted the saved checkpoints against the journal's storage allowance. Run this block on the original round027 workstation to finish that write. It checks the staged report against the saved evidence, commits the decision once, and returns one ZIP with the receipt. It uses CPU only.
 
 ```bash
 (
   set -euo pipefail
   cd "$HOME/workspace/oies-learn"
-  rev=f0b44acaf7d27591304456f99c4f2e19151a81ba
+  rev=6d4c79adbff84a06bb3d2ddaa196837f4ea59f1b
   git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
   git merge-base --is-ancestor "$rev" FETCH_HEAD
   git show "${rev}:specs/015-learned-program-search/validation/launch-round028.sh" |
@@ -18,7 +18,7 @@ Run this block on the original round027 workstation. It checks the recorded choi
 )
 ```
 
-Return the one ZIP at the path printed by the command. On success, `round028-final-workstation.zip` contains the verified `round028.zip` and `workstation.json`. The receipt binds the private replay to the committed journal boundary. If verification stops early, `round028-final-diagnostics.zip` contains the recorded reason. The canonical session report is `run-state/discovery/015-research-round-028/share/round028.zip`. The original audit is preserved byte-for-byte beside it as `round028-audit.zip`.
+Return the one ZIP at the path printed by the command. On success, `round028-final-workstation.zip` contains the verified `round028.zip` and `workstation.json`. The receipt binds the private replay to the committed journal boundary. If the journal write encounters a capacity limit, `round028-final-diagnostics.zip` records the required, available and missing bytes and inodes together with the original study decision. The canonical session report is `run-state/discovery/015-research-round-028/share/round028.zip`. The original audit is preserved byte-for-byte beside it as `round028-audit.zip`.
 
 ### Verify the final public report on any computer
 
@@ -27,7 +27,7 @@ Start beside the downloaded `round028.zip`. This block obtains the pinned reader
 ```bash
 (
   set -euo pipefail
-  rev=f0b44acaf7d27591304456f99c4f2e19151a81ba
+  rev=6d4c79adbff84a06bb3d2ddaa196837f4ea59f1b
   report="$(pwd -P)/round028.zip"
   reader=$(mktemp -d "$(pwd -P)/round028-reader.XXXXXXXX")
   trap 'rm -rf -- "$reader"' EXIT
