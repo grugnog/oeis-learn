@@ -1,6 +1,6 @@
 """Measure a cold resident learner and independently score its exposed choices."""
 
-from oeis_learn.generalization.progressive.contracts import read_bound_record, reference, seal
+from oeis_learn.generalization.progressive.contracts import digest, read_bound_record, reference, seal
 
 from .preparation_recovery import retain
 from .progressive_panel_sources import require
@@ -96,6 +96,48 @@ def score_choices(cpu, block, truth, candidates, path, seconds):
                 unscored_choices=missing,
             )
         ordinal += 1
+
+
+def exposed_scorer_control(root, historical, cpu, count):
+    """Exercise the installed scorer on a known historical choice when the learner chose nothing."""
+    from .progressive_round028_pilot import PilotDeficit
+    from .progressive_round028_timing import original_channels
+
+    look = "trial-05-1M"
+    solved = sorted((row for row in historical["cases"]
+                     if row["observations"].get(look, {}).get("frozen") == "success"),
+                    key=lambda row: row["task"])
+    if not solved:
+        raise PilotDeficit("EXPOSED_SCORER_CONTROL_UNAVAILABLE", historical_solves=0)
+    row = solved[0]
+    parent = historical["producers"][look]["generation"]
+    prior = read_bound_record(root, parent, version="discovery-candidates/v1")
+    record = prior["records"][row["task"]]
+    chosen = record["selections"]["equal_budget"]
+    require(chosen["selected"]["source_sha256"] == row["observations"][look]["candidate"],
+            "exposed scorer control differs from the audited choice")
+    prompts, truths = original_channels(root, [row])
+    ids = [f"exposed-scorer-control-{i:03d}" for i in range(count)]
+    # The seal binds the visible terms and indices, which every alias retains.
+    # This CPU replay has its own input and never enters the learner's search bank.
+    projection = {k: {"equal_budget": record[k]["equal_budget"]} for k in ("selections", "arm_evidence")}
+    binding = {key: prior[key] for key in ("version", "model", "checkpoint", "recipe", "model_control", "methods")}
+    control = seal(dict(binding, prompts=digest([dict(prompts[0], id=k) for k in ids]),
+                        records=dict.fromkeys(ids, projection), counts={"replayed_choices": count},
+                        clock={"historical_candidates": parent["sha256"]}, elapsed_us=0))
+    path = cpu.area / "exposed-scorer-control/candidates.json"
+    retain(path, control)
+    scored, ref, selected = score_choices(cpu, "qualify-exposed-scorer-control",
+        [dict(truths[0], id=k) for k in ids], control, path, resident_seconds(count))
+    require(selected == count and all(r["equal_budget"]["success"] for r in scored["outcomes"].values()),
+            "the independent scorer did not reproduce the exposed historical solve")
+    wall = cpu.last_wall_us
+    supervisor = (resident_seconds(count) + RESIDENT_SUPERVISOR_GRACE_SECONDS) * 1_000_000
+    return seal(dict(historical_candidates=parent["sha256"], candidates=reference(cpu.area, path)["sha256"],
+                     scores=ref["sha256"], checked_choices=selected, scored_bytes=ref["bytes"],
+                     worker_us=cpu.last_producer["elapsed_us"], supervisor_us=wall,
+                     supervisor_margin_us=None if wall is None else supervisor - wall,
+                     measurements=cpu.last_producer["result"].get("measurements")))
 
 
 def resident_scale(cpu, gpu, prompts, truth, recipe, weight, weights, seed, progress):

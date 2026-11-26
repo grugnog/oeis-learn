@@ -606,6 +606,15 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
                       dict(selected_choices=0, no_selection=160), dict(search_measurements=None)):
             with pytest.raises(ValueError, match="measurements"):
                 verify_changed(dict(valid, scale=seal(dict(valid["scale"], **edits))))
+        control = seal(dict(historical_candidates=digest("exposed bank"), candidates=digest("replayed choices"),
+                            scores=digest("replayed scores"), checked_choices=160, scored_bytes=50,
+                            worker_us=170, supervisor_us=180, supervisor_margin_us=21_120_000_000-180,
+                            measurements={"score_choices_us": 100, "publish_scores_us": 50}))
+        empty = seal(dict(valid["scale"], selected_choices=0, no_selection=160, score_control=control))
+        assert verify_changed(dict(valid, scale=empty))["scale"]["selected_choices"] == 0
+        bad_control = seal(dict(control, candidates=empty["candidate"]))
+        with pytest.raises(ValueError, match="scorer control"):
+            verify_changed(dict(valid, scale=seal(dict(empty, score_control=bad_control))))
         with pytest.raises(ValueError, match="filesystem"):
             verify_changed(dict(valid, workspace_space={"free_bytes": True, "free_inodes": 100}))
         legacy = dict(valid, version="round028-resident-qualification/v1")

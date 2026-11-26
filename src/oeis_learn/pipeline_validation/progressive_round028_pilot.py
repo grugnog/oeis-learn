@@ -383,7 +383,7 @@ def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, w
     from .progressive_round028_timing import original_channels, timing_cases
     from .progressive_pilot_recovery import qualification_role, resident_seconds
 
-    from .progressive_pilot_qualification import resident_scale, score_choices
+    from .progressive_pilot_qualification import exposed_scorer_control, resident_scale, score_choices
 
     checks = {}
     entry = package["stream"]["pairs"][0]
@@ -453,6 +453,9 @@ def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, w
     weight = dict(trained["weights"], path="inputs/weights.pt")
     scale = resident_scale(cpu, gpu, exposed, exposed_truth, package["profile"], weight, weights,
                            freeze["seeds"]["initialization"], progress)
+    if scale["selected_choices"] == 0:
+        progress("accept_frozen_pilot", role="exposed_scorer_control")
+        scale = seal(dict(scale, score_control=exposed_scorer_control(root, historical, cpu, scale["cases"])))
     checks["resident_scale"] = retain_resident_scale(area, freeze["registration"], scale)
     return checks
 
@@ -582,7 +585,8 @@ def publication_inputs(area, root=None):
     leaves = []
     for pattern in ("training*.json", "predecessor.json", "reservations/*.json",
                     "qualification-costs/*.json", "qualification-scale.json", "resident-measurements.json",
-                    "resident-clock-margins.json", "recovered/**/*", "roles/*/request.json",
+                    "resident-clock-margins.json", "resident-score-control.json", "exposed-scorer-control/candidates.json",
+                    "recovered/**/*", "roles/*/request.json",
                     "roles/*/data.json", "roles/*/attempt-*/start.json", "roles/*/attempt-*/end.json",
                     "roles/*/attempt-*/output/producer.json", "roles/*/attempt-*/output/case-boundaries/**/*",
                     "roles/*/attempt-*/output/accounting/**/*", "roles/*/attempt-*/output/checkpoint/**/*",
@@ -615,7 +619,9 @@ def retain_resident_scale(area, registration, scale):
         if "cold_attempt" in previous:
             require(all(scale.get(k) == v for k, v in previous.items() if k != "identity"),
                     "original cold measurement changed")
-        retain(area / "resident-clock-margins.json",
+        supplement = ("resident-score-control.json" if "minimum_case_allowance_us" in previous
+                      else "resident-clock-margins.json")
+        retain(area / supplement,
                seal(dict(registration=registration, original=expected, scale=scale)))
     return expected
 
@@ -625,7 +631,7 @@ def accepted_scale(area, registration, acceptance):
     require(original == seal(original) and original["identity"] == acceptance["checks"]["resident_scale"]
             and original["cases"] == 160, "qualification scale or acceptance differs")
     scale = original
-    for name in ("resident-measurements.json", "resident-clock-margins.json"):
+    for name in ("resident-measurements.json", "resident-clock-margins.json", "resident-score-control.json"):
         extra = confined(area, name, exists=False)
         if not extra.is_file():
             continue

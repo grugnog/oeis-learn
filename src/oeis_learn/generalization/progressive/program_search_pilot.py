@@ -431,15 +431,43 @@ def pilot_archive(report, parent):
     return archive_bytes({"pilot.json": encode(report), "round028-parent.zip": parent})
 
 
+def verify_score_control(control, scale):
+    fields = {"identity", "historical_candidates", "candidates", "scores", "checked_choices",
+              "scored_bytes", "worker_us", "supervisor_us", "supervisor_margin_us", "measurements"}
+    if not isinstance(control, dict) or set(control) != fields or control != seal(control):
+        raise ValueError("invalid exposed scorer control record")
+    parts, wall = control["measurements"], control["supervisor_us"]
+    digests = (control[k] for k in ("historical_candidates", "candidates", "scores"))
+    if (
+        scale["selected_choices"] != 0
+        or type(control["checked_choices"]) is not int or control["checked_choices"] != scale["cases"]
+        or any(type(control[k]) is not int or control[k] <= 0 for k in ("scored_bytes", "worker_us"))
+        or any(not isinstance(d, str) or not re.fullmatch("sha256:[0-9a-f]{64}", d) for d in digests)
+        or control["candidates"] == scale["candidate"] or control["scores"] == scale["scores"]
+        or (wall is not None and (type(wall) is not int or wall < control["worker_us"]))
+        or control["supervisor_margin_us"] != (None if wall is None else scale["score_supervisor_allowance_us"] - wall)
+        or (parts is not None and (
+            not isinstance(parts, dict) or set(parts) != {"score_choices_us", "publish_scores_us"}
+            or any(type(v) is not int or v < 0 for v in parts.values()) or sum(parts.values()) > control["worker_us"]
+        ))
+    ):
+        raise ValueError("invalid exposed scorer control measurements")
+
+
 def resident_measurement_gaps(scale, portfolio_seconds):
     """Count missing physical evidence before opening a fresh pilot look."""
     minimum = scale.get("minimum_case_allowance_us")
+    control = scale.get("score_control")
     gaps = {
         "missing_full_case_allowance": int(type(minimum) is not int or minimum != portfolio_seconds * 1_000_000),
-        "missing_selected_program": int(not scale.get("selected_choices")),
+        "missing_selected_program": int(not scale.get("selected_choices") and control is None),
         "missing_phase_timings": sum(scale.get(k + "_measurements") is None for k in ("search", "score")),
         "missing_supervisor_timings": sum(scale.get(k + "_supervisor_us") is None for k in ("search", "score")),
     }
+    if "score_control" in scale:
+        verify_score_control(control, scale)
+        gaps["missing_phase_timings"] += int(control["measurements"] is None)
+        gaps["missing_supervisor_timings"] += int(control["supervisor_us"] is None)
     return {key: count for key, count in gaps.items() if count}
 
 
@@ -517,6 +545,8 @@ def verify_qualification(path):
             for field in ("worker", "supervisor", "supervisor_allowance", "supervisor_margin")
         ),
     }
+    if current and "score_control" in scale:
+        keys.add("score_control")
     if (
         set(scale) != keys
         or scale != seal(scale)

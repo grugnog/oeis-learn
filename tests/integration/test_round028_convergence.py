@@ -499,6 +499,60 @@ def test_collector_keeps_the_reason_for_a_blocked_qualification(tmp_path, monkey
         assert b"hidden-case" not in archive.read("qualification.json")
 
 
+def test_empty_learner_roster_replays_a_separate_exposed_scorer_control(tmp_path):
+    import shutil
+    import time
+    from oeis_learn.generalization.progressive.contracts import atomic_write, load
+    from oeis_learn.pipeline_validation.progressive_pilot_worker import evaluate_role
+    from oeis_learn.pipeline_validation.progressive_pilot_qualification import exposed_scorer_control
+    from tests.unit.test_bigint_diagnostic_evidence import Client, selection
+
+    chosen = selection()
+    key = "historical-solve"
+    original = tmp_path / "historical-candidates.json"
+    atomic_write(original, seal(dict(version="discovery-candidates/v1", model=digest("trial 05"),
+        checkpoint=digest("checkpoint"), recipe=digest("recipe"), model_control="earlier_checkpoint",
+        methods=["correct"], records={key: {"selections": {"equal_budget": chosen},
+        "arm_evidence": {"equal_budget": {"complete": True, "reason": "verified"}}}})))
+    original_bytes = original.read_bytes()
+    channels = {}
+    for name, role, kind, n in (("visible", "generator", "visible_prompt", 20),
+                                ("truth", "scorer", "development_truth", 100)):
+        path = tmp_path / (name + ".json")
+        exact = list(map(str, range(n)))
+        atomic_write(path, seal(dict(version="discovery-channel/v1", role=role, kind=kind,
+                                     data=dict(id=key, values=exact, indices=exact))))
+        channels[name] = reference(tmp_path, path)
+    observed = {"frozen": "success", "candidate": chosen["selected"]["source_sha256"]}
+    cut = {"cases": [dict(task=key, channels=channels, observations={"trial-05-1M": observed})],
+           "producers": {"trial-05-1M": {"generation": reference(tmp_path, original)}}}
+
+    class Scorer:
+        area = tmp_path / "pilot"
+
+        def __call__(self, role, data, *, seconds, inputs):
+            assert role == "score" and len(inputs) == 1
+            work = self.area / "worker"
+            (work / "inputs").mkdir(parents=True)
+            shutil.copyfile(inputs[0][0], work / "inputs/candidates.json")
+            start = time.monotonic_ns()
+            result = evaluate_role(work, data, Client(), role)
+            self.last_wall_us = (time.monotonic_ns() - start) // 1000
+            self.last_output = work / "output"
+            self.last_producer = {"elapsed_us": self.last_wall_us, "result": result}
+            return result
+
+    cpu = Scorer()
+    control = exposed_scorer_control(tmp_path, cut, cpu, 160)
+    assert control["checked_choices"] == 160 and control["historical_candidates"] == reference(tmp_path, original)["sha256"]
+    assert control["measurements"]["score_choices_us"] > 0 and control["supervisor_margin_us"] > 0
+    assert all(row["equal_budget"]["success"] for row in load(cpu.last_output / "scored/scores.json")["outcomes"].values())
+    assert original.read_bytes() == original_bytes
+    observed["candidate"] = digest("another original")
+    with pytest.raises(ValueError, match="audited choice"):
+        exposed_scorer_control(tmp_path, cut, cpu, 160)
+
+
 def test_recovered_work_is_scored_before_measuring_a_single_cold_resident(tmp_path, monkeypatch):
     from oeis_learn.generalization.progressive.contracts import atomic_write
     from oeis_learn.pipeline_validation import progressive_pilot_qualification as qualification
