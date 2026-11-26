@@ -23,3 +23,7 @@ The report uses the original eight-attempt search clocks and the selected progra
 | Earned replication | A second matched training pair and 800 full portfolios. Four learned policies and the common incumbent run on the same 128 replication and 32 retention cases. |
 
 The two learned arms use trial 05 as their pricing proxy. Familiar retention uses the parameter-stratum rate. The incumbent has its own measured rate. The archive shows the excess over an eight-hour shift for the pilot alone and for the pilot plus an earned repeat. Candidate-specific device timings and campaign qualification are still required to fund the pilot. No comparative yield, advancement or assessment score is produced by this action.
+
+## Release checks
+
+At implementation `8954cbd0644273bed4a8cf413df7573519c86d10`, the combined source, packaging, historical audit, training recovery, reporting and panel suite passed 161 tests. One census test requires the native qualification image and skipped locally. The pinned launcher produced a verified diagnostic ZIP on a detached round027 checkout with no private campaign. The same release independently verified the returned physical rehearsal and reproduced the 6,252.966991-second training estimate. Physical fresh-family counts and evaluation costs come from the workstation collection.
