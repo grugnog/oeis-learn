@@ -270,3 +270,18 @@ class TrialJournal:
             and s["tokens"] >= target
             and eligible(s["result"], root=self.provenance_root) is not None
         ]
+
+
+def historical_trials(root, folder, study):
+    """Read-only snapshot of a closed original study, without creating a binding or a lock."""
+    from oeis_learn.pipeline_validation.identity import confined
+    binding = load(confined(root, Path(folder) / "binding.json"))
+    if (seal(binding) != binding or binding["version"] != "progressive-trial-journal/v1"
+            or binding["study"] != study):
+        raise ValueError("original study binding differs")
+    journal = TrialJournal.__new__(TrialJournal)
+    journal.root = confined(root, folder)
+    journal.provenance_root = root
+    journal.binding = binding
+    journal.read()
+    return journal.trials, journal.tip

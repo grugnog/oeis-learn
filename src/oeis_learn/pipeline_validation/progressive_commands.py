@@ -265,7 +265,10 @@ def _main(args, root, host_factory, stack):
     token = _INVOCATION.set(invocation)
     caught = None
     try:
-        if args.operation == "init":
+        if args.operation == "round028":
+            from .progressive_round028 import execute
+            result, code = execute(args, root)
+        elif args.operation == "init":
             result, code = init(args, root)
         elif args.operation == 'qualify':
             from .progressive_handoff import qualify_command

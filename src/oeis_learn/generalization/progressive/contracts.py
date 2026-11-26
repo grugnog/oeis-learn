@@ -275,3 +275,20 @@ def atomic_write(path, value, *, compact=False):
     raw = (json.dumps(value, sort_keys=True, allow_nan=False, **formatting) + "\n").encode()
     with writing(path, len(raw)):
         return _atomic_write(path, raw)
+
+
+def read_bound_record(root, artifact, *, version=None, identity=None):
+    """Authenticate the exact bytes used by the caller against their parent's commitment."""
+    import json
+
+    # Check existence separately. An absent original and a present, altered original
+    # are different dispositions. The historical verifier wraps OS errors in ValueError.
+    confined(root, artifact["path"])
+    data = json.loads(verify_artifact(root, artifact, max_bytes=artifact["bytes"]))
+    if not isinstance(data, dict) or seal(data) != data:
+        raise ValueError("producer identity differs from its bytes")
+    if version is not None and data.get("version") != version:
+        raise ValueError("producer version differs")
+    if identity is not None and data["identity"] != identity:
+        raise ValueError("producer differs from its committed parent reference")
+    return data

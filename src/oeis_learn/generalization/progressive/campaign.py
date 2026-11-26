@@ -442,3 +442,37 @@ def initializer_origin(root, initializer, *, track, purpose):
 
     visit(initializer["origin"], initializer["artifact"], initializer["mode"])
     return read(initializer["origin"]), list(refs.values())
+
+
+def learned_search_policy():
+    from importlib.resources import files
+    from pathlib import Path
+
+    filename = "learned-program-search.json"
+    source = Path(__file__).resolve().parents[4] / "configs/foundation/progressive" / filename
+    resource = files(__package__).joinpath("contracts", "015-learned-program-search", filename)
+    return json.loads((source if source.is_file() else resource).read_text())
+
+
+def diagnostic_registration(revision):
+    from .contracts import seal
+
+    return validate_diagnostic_registration(seal(dict(
+        version="learned-program-search-diagnosis/v1", candidate=revision,
+        policy=learned_search_policy(), access="historical_development_only",
+    )))
+
+
+def validate_diagnostic_registration(value):
+    import re
+    from .contracts import seal
+    from .cohorts import validate_profile
+
+    if (set(value) != {"version", "candidate", "policy", "access", "identity"} or seal(value) != value
+            or value["version"] != "learned-program-search-diagnosis/v1"
+            or value["policy"] != learned_search_policy()
+            or value["access"] != "historical_development_only"
+            or not re.fullmatch("[0-9a-f]{40}", value["candidate"])):
+        raise ValueError("diagnostic registration differs from the candidate policy")
+    validate_profile(value["policy"]["profile"])
+    return value

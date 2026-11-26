@@ -57,3 +57,41 @@ def test_diagnostic_templates_ship_identically_and_all_feature_tests_are_registe
     actual = {str(p.relative_to(root)) for p in (root/'tests').rglob('test_progressive*.py')}
     assert actual == set(CPU_TESTS).intersection(actual) | excluded
     assert not set(CPU_TESTS).intersection(excluded)
+
+
+def test_round028_sdist_and_installed_wheel_keep_both_experiment_contracts(tmp_path):
+    import json
+    import os
+    import tarfile
+    import zipfile
+    from oeis_learn.experiments.source_snapshot import collect_snapshot, file_digest
+
+    root = Path(__file__).resolve().parents[2]
+    snapshot = collect_snapshot(root)
+    resources = {
+        "contracts/experiment.md": "specs/013-progressive-mathematical-discovery/contracts/experiment.md",
+        **{"contracts/015-learned-program-search/" + name:
+           "specs/015-learned-program-search/contracts/" + name for name in ("experiment.md", "operations.md")},
+        "contracts/015-learned-program-search/learned-program-search.json":
+            "configs/foundation/progressive/learned-program-search.json",
+    }
+    # Build the wheel from the actual released sdist, including the build hook.
+    subprocess.run([sys.executable, "setup.py", "--quiet", "sdist", "--dist-dir", str(tmp_path)],
+                   cwd=root, check=True, capture_output=True)
+    with tarfile.open(next(tmp_path.glob("*.tar.gz"))) as archive:
+        archive.extractall(tmp_path, filter="data")
+    sdist = next(tmp_path.glob("*/setup.py")).parent
+    subprocess.run([sys.executable, "setup.py", "--quiet", "bdist_wheel", "--dist-dir", str(tmp_path)],
+                   cwd=sdist, check=True, capture_output=True)
+    installed = tmp_path / "installed"
+    with zipfile.ZipFile(next(tmp_path.glob("*.whl"))) as wheel:
+        wheel.extractall(installed)
+    for packaged, source in resources.items():
+        asset = "oeis_learn/generalization/progressive/" + packaged
+        assert (sdist / source).read_bytes() == (root / source).read_bytes()
+        assert file_digest((installed / asset).read_bytes()) == snapshot[source] == snapshot["src/" + asset]
+    code = "from oeis_learn.experiments.source_snapshot import source_snapshot; import json; print(json.dumps(source_snapshot()))"
+    installed_snapshot = json.loads(subprocess.check_output(
+        [sys.executable, "-c", code], cwd=tmp_path, env={**os.environ, "PYTHONPATH": str(installed)}))
+    for source in resources.values():
+        assert installed_snapshot[source] == snapshot[source]

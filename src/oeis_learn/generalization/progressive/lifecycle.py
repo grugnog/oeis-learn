@@ -10,10 +10,14 @@ from .contracts import digest, load, record, seal
 
 
 class RunStore:
-    def __init__(self, root, campaign):
+    def __init__(self, root, campaign, *, diagnostic=False):
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
-        self.campaign = validate_campaign(campaign)
+        if diagnostic:
+            from .campaign import validate_diagnostic_registration
+            self.campaign = validate_diagnostic_registration(campaign)
+        else:
+            self.campaign = validate_campaign(campaign)
         binding = self.root / "campaign.json"
         if binding.exists():
             if load(binding,maximum=CAMPAIGN_DOCUMENT_BYTES) != self.campaign:
@@ -26,9 +30,17 @@ class RunStore:
 
     @contextmanager
     def lease(self):
+        with self.owner(self.root):
+            self.read()
+            yield
+
+    @staticmethod
+    @contextmanager
+    def owner(root):
+        """Acquire the same exclusive lease before creating a diagnostic binding."""
         import fcntl
 
-        path = self.root / "run.lock"
+        path = Path(root) / "run.lock"
         if path.is_symlink():
             raise ValueError("run lease alias")
         with path.open("a") as stream:
@@ -36,7 +48,6 @@ class RunStore:
                 fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
                 raise ValueError("another invocation owns this campaign") from None
-            self.read()
             yield
 
     def read(self):

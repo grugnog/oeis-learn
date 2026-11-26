@@ -18,6 +18,9 @@ COMMANDS = {
 # Explicit inventory avoids the unrelated legacy rl/progressive harness whose
 # tests also begin with test_progressive_. New cases remain in source closure.
 CPU_TESTS = (
+    "tests/contract/test_round028_routing.py",
+    "tests/integration/test_round028_audit.py",
+    "tests/unit/test_round028_training.py",
     "tests/unit/test_environment_preflight.py",
     "tests/unit/test_oeis_corpus.py",
     "tests/unit/test_progressive_research_inputs.py",
@@ -139,6 +142,11 @@ CPU_TESTS = (
 def register(commands):
     group = commands.add_parser("discovery", help="bounded spec 013 discovery operations")
     operations = group.add_subparsers(dest="operation", required=True)
+    round028 = operations.add_parser("round028", help="registered learned program search")
+    round028.add_argument("--action", choices=("preflight", "audit", "rehearse", "run", "status", "verify"), required=True)
+    authority = round028.add_mutually_exclusive_group(required=True)
+    authority.add_argument("--workspace", help="absolute physical round027 donor workspace")
+    authority.add_argument("--archive", help="copied round028 publication (verify only)")
     for name, arguments in COMMANDS.items():
         command = operations.add_parser(name)
         for argument in arguments:

@@ -43,3 +43,64 @@ def validate_row(row, *, native_verified, short=False):
     ):
         raise ValueError("complete target/codec binding required")
     return row
+
+
+def first_divergence(positive, negative, positives):
+    """The negative logit must be available at the positive's teacher-forced context."""
+    for i, (good, bad) in enumerate(zip(positive, negative)):
+        if good != bad:
+            if any(seq[:i + 1] == negative[:i + 1] for seq in positives):
+                return None
+            return dict(position=i, positive=good, negative=bad)
+    return None
+
+
+def verified_training_pairs(shards):
+    """Mine only the registered strict training stream for same-index, prefix-matching alternatives."""
+    from collections import defaultdict
+    import re
+    from oeis_learn.decoder.bigint_codec import decode_body
+    from oeis_learn.generalization.targets import ground
+    from oeis_learn.synthesis.reference import evaluate
+    from oeis_learn.synthesis.reference_parser import parse
+    from .shared_support import validated_rows
+
+    rows = validated_rows(shards, native_verified=True)
+    groups = defaultdict(list)
+    for row in rows.values():
+        groups[tuple(row["indices"]), tuple(row["values"][:20])].append(row)
+    pairs = []
+    for group in groups.values():
+        if len({tuple(r["values"][20:]) for r in group}) < 2:
+            continue
+        verified = []
+        for row in sorted(group, key=lambda r: r["draw_identity"]):
+            decoded = decode_body(row["tokens"])
+            target = parse(decoded, allow_parameters=True)
+            if target != parse(row["target_source"], allow_parameters=True):
+                raise ValueError("decoded training target differs")
+            if "param.get" in row["target_source"]:
+                # Preparation numbers literal occurrences in source order.
+                constants = re.findall(r"\(int (-?(?:0|[1-9][0-9]*))\)", row["source"])
+                assignment = {f"p{i}": v for i, v in enumerate(constants)}
+                decoded = ground(decoded, assignment)
+            if parse(decoded) != parse(row["source"]):
+                raise ValueError("training target grounding differs from the verified program")
+            result = evaluate(decoded, row["indices"])
+            if result.outcome != "ok":
+                continue
+            if list(result.values) != row["values"]:
+                raise ValueError("independent training continuation differs")
+            verified.append(row)
+        for pos in verified:
+            same = [r["tokens"] for r in group if r["values"] == pos["values"]]
+            for neg in verified:
+                if neg["values"] == pos["values"]:
+                    continue
+                label = first_divergence(pos["tokens"], neg["tokens"], same)
+                if label is not None:
+                    pairs.append(dict(positive_row=pos["draw_identity"], negative_row=neg["draw_identity"],
+                                      family=pos["structure"], label=label))
+                    break
+    return dict(eligible_rows=len(pairs), eligible_families=len({p["family"] for p in pairs}),
+                positions=len({p["label"]["position"] for p in pairs}), pairs=pairs)

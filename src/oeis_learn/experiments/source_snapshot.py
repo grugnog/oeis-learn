@@ -33,6 +33,7 @@ def collect_snapshot(root):
         "specs/011-controlled-generalization/contracts",
         "specs/012-parameterized-adaptive-curriculum/contracts",
         "specs/013-progressive-mathematical-discovery/contracts",
+        "specs/015-learned-program-search/contracts",
     ):
         files.update(
             p
@@ -76,6 +77,12 @@ def collect_snapshot(root):
         "generalization/progressive/contracts/" + p.name: p
         for p in (root / "specs/013-progressive-mathematical-discovery/contracts").glob("*.md")
     })
+    feature = "015-learned-program-search"
+    prefix = "generalization/progressive/contracts/" + feature + "/"
+    resources.update({prefix + p.name: p for p in (root / "specs" / feature / "contracts").glob("*.md")})
+    resources[prefix + "learned-program-search.json"] = (
+        root / "configs/foundation/progressive/learned-program-search.json"
+    )
     snapshot.update(
         {"src/oeis_learn/" + name: file_digest(p.read_bytes()) for name, p in resources.items()}
     )

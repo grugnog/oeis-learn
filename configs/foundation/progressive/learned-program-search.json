@@ -1,0 +1,19 @@
+{
+  "version": "learned-program-search/v1",
+  "donor_revision": "77667e67176ae32fa16457d52565bae1dbe41afc",
+  "campaign": "sha256:b35444dcbdc68693917a61d05ac3dc11efbdebee568a074b80f2596191035304",
+  "followup": "sha256:1d6cf2fe309316a1e15280ad98bcc82ce55012bb8f82db93421a81daf3e63324",
+  "capability_cut": {"bytes": 26457, "sha256": "sha256:83150679881f59f0f3631871463ff2dea9114c505cada674ba4dc8d4ac7affd1", "name": "transition-0096.json"},
+  "two_m_report": "sha256:15147c373c2a854bdc79fab9d4a10995b0337cd76b386eb23602deec47504302",
+  "diversity_index": "sha256:4d67a539c4f58ba4ec6b9d4002d15b1ba85575b9eee8bd5d0496d211916f20d9",
+  "roster": {"source": "sealed_original_screening", "per_stratum": 32, "strata": ["parameter", "composition", "unseen_structure", "oeis"], "primary": ["composition", "unseen_structure"]},
+  "historical_looks": [[0,1000000],[1,1000000],[2,1000000],[3,1000000],[4,1000000],[5,1000000],[0,2000000]],
+  "diagnosis": {"trial": 5, "tokens": 1000000, "method": "equal_budget", "first_comparator": "retained_D", "order": ["reproduced_fault", "witnessed_proposal_lower_bound_positive_with_training_support", "proved_selection_upper_bound_nonpositive", "one_affordable_discriminating_replay", "retain_reference"], "replay_order": ["case_id", "attempt_ordinal"], "replay_prefix": "shortest_decision_changing", "protected_panels": ["confirmation", "retention", "assessment"]},
+  "incumbent": {"methods": ["retained_D","trial-05-1M","template","polynomial","linear_recurrence"], "order": ["primary_family_macro_yield_desc","unresolved_asc","method_id_asc"], "fallback": "retained_D"},
+  "profile": {"id":"bigint-20-100/v1","visible":20,"total":100,"attempts":8,"portfolio_us":60000000,"fit_us":4000000,"token_cap":1024,"schedule":"drain"},
+  "selector": {"bank_slots":["trial-05","template","trial-05","template","trial-05","template","trial-05","template"],"fallback":"template_only","arms":["incumbent","learned","shuffled"],"loss":"case_weighted_pairwise_logistic","l2":1,"tie":"incumbent_order","spending_contrast":"live_challenger_minus_frozen_incumbent"},
+  "generator": {"arms":["ordinary","first_divergence"],"additional_token_looks":[0,1000000,4000000],"intermediate_attempts":1,"intermediate_cases":"first_per_development_family","matched_random_start":true,"settings":{"effective_batch":32,"lr_multiplier":1,"schedule":"constant","weight_decay":0,"dropout":0},"preference_weight":1,"spending_contrast":"treatment_minus_ordinary_at_4M"},
+  "seeds": {"derivation":"sha256_canonical_array_of_registration_stream_and_pair_ordinal","streams":["initialization","training_families","shuffle","family_resampling"],"pairs":2,"replication":"same_reserved_panel_both_pairs"},
+  "decision": {"primary_weights":[0.5,0.5],"minimum_mean_gain_pp":2,"both_seed_effects_positive":true,"minimum_measured_fraction":0.95,"maximum_retention_loss_pp":2,"minimum_groups_per_primary_stratum":16,"joint_family_resamples":10000,"adjusted_lower_bound_positive":true},
+  "planning": {"post_qualification_gpu_shift_hours":8,"evaluation_and_replication_minimum_fraction":0.5,"confirmation":"separate_authorization"}
+}
