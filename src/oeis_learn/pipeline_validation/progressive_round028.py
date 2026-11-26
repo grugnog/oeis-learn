@@ -199,6 +199,20 @@ def settle(store, journal, root, folder, registration, active, finish):
                       last_timing=reference(folder, finish)))
 
 
+def audit_store(folder, revision):
+    """Resume an unfinished audit on its owning revision or reuse its published result."""
+    binding = confined(folder, "campaign.json", exists=False)
+    registered = load(binding) if binding.exists() else diagnostic_registration(revision)
+    store = RunStore(folder, registered, diagnostic=True)
+    if registered["candidate"] != revision:
+        if store.state.get("active") or not store.state.get("audit") or not store.state.get("publication"):
+            raise ValueError("resume the unfinished audit with its registered implementation")
+        published = verify_archive(confined(folder, ARCHIVE))
+        if published["report"] != store.state["publication"]:
+            raise ValueError("published diagnostic parent differs from its registered boundary")
+    return store
+
+
 def execute(args, source):
     if args.archive:
         if args.action != "verify":
@@ -223,13 +237,13 @@ def execute(args, source):
                     missing="qualified round027 donor and original frozen campaign required",
                     authenticated_cases=0, expected_cases=128), 2
     revision = candidate_revision(source, root)
-    registration = diagnostic_registration(revision)
     if args.action == "verify" and not (folder / ARCHIVE).is_file():
         return dict(mechanical_status="BLOCKED", missing="audit publication"), 2
     folder.mkdir(parents=True, exist_ok=True)
     try:
         with RunStore.owner(folder):
-            store = RunStore(folder, registration, diagnostic=True)
+            store = audit_store(folder, revision)
+            registration = store.campaign
             if args.action == "verify":
                 if not store.state.get("publication"):
                     raise ValueError("uncommitted public audit")

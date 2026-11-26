@@ -202,6 +202,12 @@ def test_registered_audit_consumes_all_original_looks_then_reuses_one_boundary(t
     assert commands.execute(args, tmp_path)[0]["scientific_status"] == "HISTORICAL_AUDIT"
     args.action = "run"
     assert commands.execute(args, tmp_path) == (original, 0)
+    monkeypatch.setattr(commands, "candidate_revision", lambda source, root: "b" * 40)
+    # A new implementation verifies the published parent under its original
+    # registration. The same physical work must never acquire a second debit.
+    assert commands.execute(args, tmp_path) == (original, 0)
+    assert RunStore(folder, reg, diagnostic=True).tip == state
+    assert json.loads((folder / "campaign.json").read_text()) == reg
     (tmp_path / "original/trial-05-1M/weights.json").write_text("modified donor")
     with pytest.raises(ValueError, match="identity"):
         reopen(tmp_path, folder, reg, store.state["audit"])
