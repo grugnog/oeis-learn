@@ -1,8 +1,30 @@
-# Round028 CPU audit on the round027 workstation
+# Round028 workstation commands
+
+[The verified historical audit](validation/round028-audit.md) selected the matched generator. All 128 cases were accounted for. On the 64 routing cases, 51 had a witnessed proposal failure, seven had a selected solve, and six remained unresolved.
+
+## Run or resume the matched generator rehearsal
+
+Run this block on the original detached donor. It reopens the published audit, uses only its registered strict training producer for a fresh candidate measurement, and returns one ZIP. The CPU stage rechecks both programs in a training pair on the installed native evaluator and measures the auxiliary gradient on freshly initialized model parameters. A finite nonzero gradient admits a bounded HIP rehearsal. Both arms start from identical weights, see identical ordered batches, save full optimizer and RNG state and replay their next complete update after a cold restore.
+
+```bash
+(
+  set -euo pipefail
+  cd "$HOME/workspace/oies-learn"
+  rev=46594ef8ba9e4098b1f5759b28635a4537d6d399
+  git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
+  git merge-base --is-ancestor "$rev" FETCH_HEAD
+  git show "${rev}:specs/015-learned-program-search/validation/launch-round028.sh" |
+    bash -s -- "$rev" collect-rehearsal
+)
+```
+
+Return the printed `round028-workstation.zip`. Its `summary.json` contains the original audit reference, training support after excluding fixed probes, the native gradient, per-arm charges, update and restore times, device memory and telemetry coverage, GPU lease time and an eight-hour shift forecast. A measured projection uses the slower of the two observed updates per arm and reserves four hours for evaluation and replication. The forecast covers training only. Missing counters have an explicit coverage measure. A blocked stage records its phase and available code locations. Raw training programs and checkpoints stay in the workstation's private directory.
+
+The paired 4M research comparison still requires fresh development, retention and replication panels, matched evaluation timings and campaign-bound acceptance. The rehearsal uses historical training data and carries no prospective scores. The pinned launcher and ZIP failure path were exercised on a data-free detached donor. The CPU test suite exercised real parameter changes and checkpoint continuation. The physical native and HIP measurements come from the workstation ZIP.
+
+## Original audit command
 
 The audit is the first decision in round028. The implementation pin is `f864f238c8a741924ef29707fecc0dcd0688fffc` on `015-learned-program-search`. The workstation's physical checkout must be detached at `77667e67176ae32fa16457d52565bae1dbe41afc` with its original `run-state` tree. The launcher verifies the pin, extracts the candidate alongside that state, and checks the cached Git files on reuse.
-
-## Run or resume the audit
 
 Paste this whole block into Bash on Owen's NixOS workstation. It fetches the feature, runs metadata preflight and the CPU audit, verifies a publication against the private originals, verifies a copy through the archive-only CLI, and records final status. The command prints the absolute path of one ZIP to return, including when required original evidence is missing. A concurrent owner returns promptly. Repeating this block reuses the committed audit and its charges.
 
