@@ -6,7 +6,7 @@ description: "Implementation and workstation acceptance tasks for round028 learn
 
 Work on `015-learned-program-search`, stacked on feature 013. Paths are relative to the repository root. `[P]` identifies tasks that can proceed together at the entry points listed under [Dependencies and parallel work](#dependencies-and-parallel-work). All workstation evidence belongs under the owning private session. A checkbox for physical validation requires its real receipt.
 
-[Specification](spec.md) · [Plan](plan.md) · [Research and production measurements](research.md) · [Data model](data-model.md) · [Experiment contract](contracts/experiment.md) · [Operations contract](contracts/operations.md) · [Quickstart](quickstart.md)
+[Implementation handoff and historical results](research.md) · [Evidence file index](research.md#finding-the-evidence-without-the-conversation) · [Specification](spec.md) · [Plan](plan.md) · [Data model](data-model.md) · [Experiment contract](contracts/experiment.md) · [Operations contract](contracts/operations.md) · [Quickstart](quickstart.md)
 
 ## Phase 1 — Set up the study
 
