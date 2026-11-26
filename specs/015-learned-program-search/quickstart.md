@@ -2,25 +2,27 @@
 
 [The verified historical audit](validation/round028-audit.md) selected the matched generator. All 128 cases were accounted for. On the 64 routing cases, 51 had a witnessed proposal failure, seven had a selected solve, and six remained unresolved.
 
-## Run or resume the matched generator rehearsal
+## Recover the original workstation rehearsal
 
-Run this block on the original detached donor. It reopens the published audit, uses only its registered strict training producer for a fresh candidate measurement, and returns one ZIP. The CPU stage rechecks both programs in a training pair on the installed native evaluator and measures the auxiliary gradient on freshly initialized model parameters. A finite nonzero gradient admits a bounded HIP rehearsal. Both arms start from identical weights, see identical ordered batches, save full optimizer and RNG state and replay their next complete update after a cold restore.
+The [returned collection](validation/round028-rehearsal-collection.md) contains the verified historical audit and exit status zero. The first collector could silently discard the final rehearsal JSON. A build-progress line before the result reproduces the loss. Run this block once in Bash on the original workstation to recover the recorded CPU and HIP results. It reads the original producer's receipts and dispatches zero GPU jobs.
 
 ```bash
 (
   set -euo pipefail
   cd "$HOME/workspace/oies-learn"
-  rev=46594ef8ba9e4098b1f5759b28635a4537d6d399
+  collector=48529c5e4b52aa34183bde475428a4dce95e2e5c
+  producer=46594ef8ba9e4098b1f5759b28635a4537d6d399
   git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
-  git merge-base --is-ancestor "$rev" FETCH_HEAD
-  git show "${rev}:specs/015-learned-program-search/validation/launch-round028.sh" |
-    bash -s -- "$rev" collect-rehearsal
+  git merge-base --is-ancestor "$collector" FETCH_HEAD
+  git merge-base --is-ancestor "$producer" "$collector"
+  git show "${collector}:specs/015-learned-program-search/validation/launch-round028.sh" |
+    bash -s -- "$collector" collect-receipts "$producer"
 )
 ```
 
-Return the printed `round028-workstation.zip`. Its `summary.json` contains the original audit reference, training support after excluding fixed probes, the native gradient, per-arm charges, update and restore times, device memory and telemetry coverage, GPU lease time and an eight-hour shift forecast. A measured projection uses the slower of the two observed updates per arm and reserves four hours for evaluation and replication. The forecast covers training only. Missing counters have an explicit coverage measure. A blocked stage records its phase and available code locations. Raw training programs and checkpoints stay in the workstation's private directory.
+Attach the one ZIP printed at the end, including when a receipt is missing. A complete export is named `round028-rehearsal.zip`. It contains the original historical audit and a verified aggregate with the native gradient, per-arm token charges and timing, checkpoint closure, and the forecast for two 4M arms. A diagnostic export is named `round028-receipt-diagnostics.zip`. It includes the first verification gap and available original console figures. Both exports keep case data and checkpoints on the workstation.
 
-The paired 4M research comparison still requires fresh development, retention and replication panels, matched evaluation timings and campaign-bound acceptance. The rehearsal uses historical training data and carries no prospective scores. The pinned launcher and ZIP failure path were exercised on a data-free detached donor. The CPU test suite exercised real parameter changes and checkpoint continuation. The physical native and HIP measurements come from the workstation ZIP.
+The original producer ran CPU native and gradient checks first. Its HIP rehearsal was bounded to two ordered updates per arm and a cold checkpoint restore. The training projection takes the slower observed update per charged token for each arm and reserves four of the eight hours for evaluation and replication. Fresh panels, matched evaluation timings and campaign-bound acceptance are still required before the research comparison.
 
 ## Original audit command
 
@@ -51,7 +53,7 @@ The collector writes detailed output for each action to its own local directory 
 | What could justify spending | `projection` contains the feasible-set histogram for the 64 primary cases. `decision` gives the lower and upper bounds on proposal minus selection opportunities. `coverage` gives bank gaps, exact witnesses and measured training support. A potentially decisive CPU replay with unmeasured funding has a null action, a blocker, a case count and an original service-time estimate. |
 | Independent checks | `verify-private` reopens the bound inputs and recomputes the audit. `verify-copied` recomputes the decision from the aggregate alone. The owner keeps private records under `run-state/discovery/015-research-round-028/`. |
 
-A successful historical audit can identify an experiment or settle a retain decision. This release stops at that decision. Native replay dispatch, the prospective pilot executors, and physical qualification remain open in [tasks.md](tasks.md). A blocked or invalid audit supplies a diagnostic and authorizes zero GPU work. The original Optuna decisions, donor images and charges belong to round027.
+A successful historical audit can identify an experiment or settle a retain decision. The audit command publishes that decision. The selected generator rehearsal uses its own receipts. Prospective panel freeze, evaluation timing and campaign acceptance remain open in [tasks.md](tasks.md). A blocked or invalid audit supplies a diagnostic and authorizes zero GPU work. The original Optuna decisions, donor images and charges belong to round027.
 
 ## Verify the returned ZIP on a different computer
 
