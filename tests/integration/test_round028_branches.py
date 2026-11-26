@@ -175,6 +175,16 @@ def test_selector_compares_same_bank_then_scores_sealed_choices(tmp_path, monkey
             assert "truth" not in data
             return selector.selector_choice(data, Client())
 
+    prefix = {"id": "fixture", "indices": list(map(str, range(20))), "values": ["0"] * 20}
+    truth = dict(prefix, indices=list(map(str, range(100))), values=["0"] * 20 + ["1"] * 80)
+    correct = "(program (return (select (lt $index (int 20)) (int 0) (int 1))))"
+    names = (*selector.ARM_NAMES, *selector.LIVE_NAMES)
+    for body, closed, opened in [(correct, "S", "S"), (const, "F", "U"), (None, "F", "U")]:
+        for complete, expected in [(True, closed), (False, opened)]:
+            row = dict(chosen=envelope(body, prefix) if body else None, complete=complete, comparable=True)
+            scored = selector.selector_score(dict(truth=truth, selections=dict.fromkeys(names, row)), Client())
+            assert scored["outcomes"] == dict.fromkeys(names, expected)
+
     keys = ["zero", "index"]
     roster = [dict(task=k, group=k, stratum="composition") for k in keys]
     idx = list(map(str, range(100)))
@@ -248,7 +258,7 @@ def test_selector_compares_same_bank_then_scores_sealed_choices(tmp_path, monkey
     )
     monkeypatch.setattr(progressive_round028_audit, "Donor", lambda *a: donor)
     monkeypatch.setattr(
-        progressive_round028_support, "training_package", lambda *a: {"shards": [training_rows()]}
+        progressive_round028_support, "training_package", lambda *a: {"shards": [training_rows()], "layout": {"probes": {}}}
     )
     monkeypatch.setattr(
         command,
@@ -372,7 +382,8 @@ def test_installed_audit_reserves_and_reopens_native_replay(tmp_path, monkeypatc
         seal(
             dict(
                 version="discovery-candidates/v1",
-                records={case["task"]: dict(costs=dict(correct=dict(details=[draw])))},
+                records={case["task"]: dict(costs=dict(correct=dict(details=[draw], equal_budget=None,
+                                                                  archive={"omitted": [], "retained": []})))},
             )
         ),
     )

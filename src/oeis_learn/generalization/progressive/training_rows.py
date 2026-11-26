@@ -55,6 +55,10 @@ def first_divergence(positive, negative, positives):
     return None
 
 
+def held_out_probes(layout):
+    return {probe["id"] for probe in layout["probes"].values()}
+
+
 def verified_training_pairs(shards, *, excluded=()):
     """Mine only the registered strict training stream for same-index, prefix-matching alternatives."""
     from collections import defaultdict
@@ -128,7 +132,7 @@ def matched_stream(shards, layout, registration, ordinal, *, law=None):
         if validate_policy(law)["seed"] != seeds["training_families"]:
             raise ValueError("mechanical draw law belongs to another paired seed")
     rows = validated_rows(shards, native_verified=True)
-    excluded = {probe["id"] for probe in layout["probes"].values()}
+    excluded = held_out_probes(layout)
     if not excluded <= rows.keys():
         raise ValueError("missing held-out training probe")
     order = sorted(rows.keys() - excluded, key=lambda key: (digest([seeds["training_families"], key]), key))

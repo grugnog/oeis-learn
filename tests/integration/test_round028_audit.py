@@ -245,6 +245,18 @@ def test_replay_separates_passed_over_source_absent_bytes_and_unfinished_selecti
     def run():
         return inspect_bank(rec, score, "success" if score["success"] else "failure", clock, prompt, truth, witness)
     assert run()["feasible"] == "S"
+    from oeis_learn.pipeline_validation.progressive_round028_replay import replayed_vote
+    extra = "(program (return (add (int 0) (int 0))))"
+    sha = source_identity(extra)
+    archive["omitted"] = [dict(id=sha)]
+    details[2]["fitting"]["admission"] = [dict(outcome="verified_solution", source_sha256=sha)]
+    partial = run()
+    assert partial["feasible"] == "NSP"
+    assert replayed_vote(partial, portfolio, "failure", [], prompt, truth)["feasible"] == "NSP"
+    fits = [dict(position=2, complete=True, admitted=[extra])]
+    assert replayed_vote(partial, portfolio, "failure", fits, prompt, truth)["feasible"] == "S"
+    archive["omitted"] = []
+    details[2]["fitting"]["admission"] = []
     archive["retained"] = [originals[0]]
     archive["omitted"] = [dict(id=source_identity(good))]
     assert run()["bank_gap"] == "missing_discarded_source" and run()["feasible"] == "NSP"

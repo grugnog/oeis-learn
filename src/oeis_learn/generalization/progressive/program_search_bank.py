@@ -44,6 +44,38 @@ def selected_source(envelope, score, prompt):
     return chosen
 
 
+def checked_bank(portfolio, chosen, fits=()):
+    """Rebuild only original admissions, including a missing source recovered at its recorded attempt."""
+    if "archive" not in portfolio:
+        return [], set(), "missing_archive"
+    candidates, missing = candidate_sources(portfolio, reconstruct=True)
+    eligible = {r["source_sha256"] for r in candidates} | missing
+    admissions = {d["position"]: {r["source_sha256"] for r in d["fitting"].get("admission", [])
+                                  if r["outcome"] == "verified_solution"} for d in portfolio["details"]}
+    if eligible != set().union(*admissions.values()):
+        return candidates, missing, "incomplete_admission_index"
+    for fit in fits:
+        for source in fit["admitted"]:
+            sha = source_identity(source)
+            if sha in missing and sha in admissions[fit["position"]]:
+                candidates.append(dict(source_sha256=sha, source=source))
+                missing.remove(sha)
+    if missing:
+        return candidates, missing, "missing_discarded_source"
+    selected = chosen["source_sha256"] if chosen else None
+    if chosen is None or chosen["selection"] == "visible-only/v2":
+        check_original(candidates, selected)
+    else:
+        costs = {r["id"]: r["cost"] for r in portfolio["archive"]["retained"]}
+        shortest = min(len(c["source"].encode()) for c in candidates)
+        ties = [c for c in candidates if len(c["source"].encode()) == shortest]
+        if len(ties) > 1 and any(c["source_sha256"] not in costs for c in ties):
+            return candidates, missing, "missing_original_tie_cost"
+        if min(ties, key=lambda c: (costs.get(c["source_sha256"], 0), c["source_sha256"]))["source_sha256"] != selected:
+            raise ValueError("original cost/length selection not reproduced")
+    return candidates, missing, None
+
+
 def inspect_bank(rec, score, companion, clock, prompt, truth, witness):
     portfolio = rec["costs"]["correct"]
     envelope = rec["selections"]["equal_budget"]
@@ -82,37 +114,15 @@ def inspect_bank(rec, score, companion, clock, prompt, truth, witness):
                 or witness["values"] != truth["values"]):
             raise ValueError("independent witness belongs to another case")
         exact = bool(witness["source"] and replay_source(witness["source"], prompt, truth) == "solve")
-    gap, candidates, missing = None, None, set()
-    if "archive" not in portfolio:
-        gap = "missing_archive"
-    else:
-        candidates, missing = candidate_sources(portfolio, reconstruct=True)
-        admissions = {r["source_sha256"] for d in details for r in d["fitting"].get("admission", [])
-                      if r["outcome"] == "verified_solution"}
-        if admissions != {c["source_sha256"] for c in candidates} | missing:
-            gap = "incomplete_admission_index"
-        elif missing:
-            gap = "missing_discarded_source"
+    candidates, missing, gap = checked_bank(portfolio, chosen)
+    if chosen and chosen["selection"] == "visible-only/v2" and (
+            chosen["provenance"]["snapshot"] != clock["snapshot"]
+            or details[chosen["attempt_ordinal"]]["fitting"]["job_id"] != chosen["job_id"]):
+        raise ValueError("sealed selection attempt or model differs")
     verdicts = {}
     fault = False
-    if candidates is not None and gap is None:
+    if gap in (None, "missing_original_tie_cost"):
         selected_id = chosen["source_sha256"] if chosen else None
-        if chosen is None or chosen["selection"] == "visible-only/v2":
-            check_original(candidates, selected_id)
-            if chosen and (chosen["provenance"]["snapshot"] != clock["snapshot"]
-                           or details[chosen["attempt_ordinal"]]["fitting"]["job_id"] != chosen["job_id"]):
-                raise ValueError("sealed selection attempt or model differs")
-        else:
-            retained = portfolio["archive"]["retained"]
-            costs = {r["id"]: r["cost"] for r in retained}
-            min_bytes = min(len(c["source"].encode()) for c in candidates)
-            ties = [c for c in candidates if len(c["source"].encode()) == min_bytes]
-            if len(ties) > 1 and any(c["source_sha256"] not in costs for c in ties):
-                gap = "missing_original_tie_cost"
-            else:
-                expected = min(ties, key=lambda c: (costs.get(c["source_sha256"], 0), c["source_sha256"]))
-                if expected["source_sha256"] != selected_id:
-                    raise ValueError("original cost/length selection not reproduced")
         for candidate in candidates:
             key = candidate["source_sha256"]
             verdict = replay_source(candidate["source"], prompt, truth)
@@ -121,7 +131,7 @@ def inspect_bank(rec, score, companion, clock, prompt, truth, witness):
                 fault |= replay_source(candidate["source"], prompt, truth) == verdict
                 verdict = "unknown"
             verdicts[key] = verdict
-        if chosen is not None:
+        if selected_id in verdicts:
             v = verdicts[selected_id]
             if (score["success"] and v == "miss") or (score["scoring"]["outcome"] == "continuation_mismatch" and v == "solve"):
                 fault |= replay_source(chosen["source"], prompt, truth) == v

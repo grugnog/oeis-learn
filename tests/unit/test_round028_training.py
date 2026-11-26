@@ -27,6 +27,25 @@ def training_rows():
     return rows
 
 
+def test_audit_funding_uses_only_executable_pairs(monkeypatch):
+    from oeis_learn.pipeline_validation import progressive_round028_support as audit
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.program_search_routing import project, route
+    from oeis_learn.generalization.progressive.training_rows import matched_stream
+    from tests.contract.test_round028_routing import sample
+
+    rows = training_rows()
+    for probes, expected in [({"held": {"id": rows[0]["draw_identity"]}}, 0), ({}, 2)]:
+        package = seal(dict(shards=[rows], layout={"probes": probes}))
+        monkeypatch.setattr(audit, "training_package", lambda *args: package)
+        support = audit.training_support(None, {})
+        stream = matched_stream(package["shards"], package["layout"], digest("registered"), 0)
+        assert stream["pairs"] == support["pairs"]
+        assert support["eligible_rows"] == expected
+        decision = route(project(sample(["P"]), training_support=bool(expected)))
+        assert (decision["action"] == "MATCHED_GENERATOR") == bool(expected)
+
+
 def test_only_independently_grounded_training_pairs_supply_a_label():
     rows = training_rows()
     result = verified_training_pairs([rows])

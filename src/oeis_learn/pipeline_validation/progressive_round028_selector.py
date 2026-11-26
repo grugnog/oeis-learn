@@ -262,7 +262,7 @@ def selector_score(data, client):
                 and actual["values"][:20] == truth["values"][:20],
                 "independent selector verdict or prefix differs",
             )
-            outcomes[arm] = "S" if actual["values"] == truth["values"] else "F"
+            outcomes[arm] = "S" if actual["values"] == truth["values"] else ("F" if row["complete"] else "U")
     return {"outcomes": outcomes}
 
 
@@ -371,7 +371,7 @@ def selector_command(args, source, root, folder, revision, store, host_factory, 
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES, load
     from oeis_learn.generalization.progressive.shared_support import validated_rows
-    from oeis_learn.generalization.progressive.training_rows import verified_training_pairs
+    from oeis_learn.generalization.progressive.training_rows import held_out_probes, verified_training_pairs
     from .progressive_round028 import reopen
     from .progressive_round028_audit import ORIGINAL, Donor
     from .progressive_round028_panels import NativeRoles, prepare
@@ -390,7 +390,7 @@ def selector_command(args, source, root, folder, revision, store, host_factory, 
     )
     refs = {r["name"]: r for r in campaign["payload"]["references"]}
     package = training_package(donor, refs)
-    probes = [p["id"] for p in (package or {}).get("layout", {}).get("probes", {}).values()]
+    probes = held_out_probes(package["layout"]) if package else set()
     pairs = verified_training_pairs(package["shards"], excluded=probes)["pairs"] if package else []
     if not pairs:
         return dict(

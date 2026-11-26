@@ -384,7 +384,9 @@ def execute(args, source, *, host_factory=None):
                 if not store.state.get("publication"):
                     raise ValueError("uncommitted public audit")
                 private = reopen(root, folder, registration, store.state["audit"])
-                repeated = audit(Donor(root, folder, registration))
+                donor = Donor(root, folder, registration)
+                old_support = private["support"]["status"] == "measured" and "eligibility" not in private["support"]
+                repeated = audit(donor, legacy_support=True) if old_support else audit(donor)
                 original = {r["task"]: r for r in private["cases"]}
                 if (original != {r["task"]: r for r in repeated["cases"]}
                         or any(private[k] != v for k, v in repeated.items() if k != "cases")):

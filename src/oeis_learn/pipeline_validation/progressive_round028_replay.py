@@ -104,10 +104,27 @@ def replay_decision(votes, support, budget, run_case):
     return dict(result, projection=final, decision=route(final), deficit_us=0)
 
 
+def replayed_vote(row, portfolio, selected, fits, prompt, truth):
+    from oeis_learn.fresh.synthesis_policy import validate_selection_envelope
+    from oeis_learn.generalization.progressive.program_search_bank import checked_bank
+    from oeis_learn.synthesis.admission import source_identity
+
+    envelope = portfolio["equal_budget"]
+    chosen = validate_selection_envelope(envelope) if envelope else None
+    candidates, missing, gap = checked_bank(portfolio, chosen, fits)
+    verdicts = {c["source_sha256"]: replay_source(c["source"], prompt, truth) for c in candidates}
+    fault = "prefix_mismatch" in verdicts.values()
+    new_solution = any(source_identity(body) not in verdicts and replay_source(body, prompt, truth) == "solve"
+                       for fit in fits for body in fit["admitted"])
+    mask = feasible(selected=selected, bank=None if gap or missing or fault else list(verdicts.values()),
+                    closed=all(f["complete"] for f in fits) and not new_solution, exact_witness=row["exact_witness"])
+    return dict(feasible=mask, fault=row["fault"] or fault)
+
+
 def diagnostic_replay(args, source, root, folder, revision, store, host_factory, report):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from oeis_learn.generalization.selector_fit_replay import original_attempt
-    from oeis_learn.synthesis.admission import VisiblePrompt, source_identity
+    from oeis_learn.synthesis.admission import VisiblePrompt
     from .progressive_round028 import reopen
     from .progressive_round028_timing import original_channels
 
@@ -168,25 +185,11 @@ def diagnostic_replay(args, source, root, folder, revision, store, host_factory,
         )
         fits = result["attempts"]
         require([v["position"] for v in fits] == row["replay"]["ordinals"], "replay order changed")
-        verdicts = dict(row["eligible_verdicts"])
-        missing = set(row["missing_sources"])
-        new_solution = False
-        for fit in fits:
-            for body in fit["admitted"]:
-                sha = source_identity(body)
-                verdict = replay_source(body, prompts[0], truths[0])
-                if sha in missing:
-                    verdicts[sha] = verdict
-                    missing.remove(sha)
-                elif verdict == "solve" and sha not in verdicts:
-                    new_solution = True
-        merged = feasible(
-            selected=case["observations"]["trial-05-1M"]["companion"],
-            bank=None if missing else list(verdicts.values()),
-            closed=all(v["complete"] for v in fits) and not new_solution,
-            exact_witness=row["exact_witness"],
-        )
-        return {"feasible": merged}, native.last_wall_us
+        observation = case["observations"]["trial-05-1M"]
+        selected = ("failure" if observation.get("scoring", {}).get("outcome") == "continuation_mismatch"
+                    and observation["scoring"]["complete"] else observation["companion"])
+        return replayed_vote(row, records[row["task"]]["costs"]["correct"], selected,
+                             fits, prompts[0], truths[0]), native.last_wall_us
 
     result = replay_decision(votes, cut["support"]["eligible_rows"] > 0, budget, run_case)
     receipt = seal(dict(registration=reg["identity"], **result))

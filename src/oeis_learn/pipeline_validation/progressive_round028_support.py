@@ -1,5 +1,5 @@
 """Training-only evidence for the diagnostic funding predicate."""
-from oeis_learn.generalization.progressive.training_rows import verified_training_pairs
+from oeis_learn.generalization.progressive.training_rows import held_out_probes, verified_training_pairs
 
 
 def training_package(donor, references):
@@ -21,8 +21,11 @@ def training_package(donor, references):
     return package
 
 
-def training_support(donor, references):
+def training_support(donor, references, *, legacy=False):
     package = training_package(donor, references)
     if package is None:
         return dict(status="unavailable", eligible_rows=0, eligible_families=0, positions=0, pairs=[])
-    return dict(status="measured", input=package["identity"], **verified_training_pairs(package["shards"]))
+    if legacy:
+        return dict(status="measured", input=package["identity"], **verified_training_pairs(package["shards"]))
+    pairs = verified_training_pairs(package["shards"], excluded=held_out_probes(package["layout"]))
+    return dict(status="measured", input=package["identity"], eligibility="executable-training/v1", **pairs)

@@ -361,7 +361,7 @@ def summarize(cases, methods):
     return result, pairs
 
 
-def audit(donor):
+def audit(donor, *, legacy_support=False):
     policy = donor.policy
     campaign = donor.saved(ORIGINAL + "/prepare-research/frozen/campaign.json", policy["campaign"],
                            maximum=CAMPAIGN_DOCUMENT_BYTES)
@@ -419,7 +419,7 @@ def audit(donor):
         case["diagnosis"] = evidence
         votes.append(dict(evidence, task=case["task"], stratum=case["stratum"]))
     from .progressive_round028_support import training_support
-    support = training_support(donor, refs)
+    support = training_support(donor, refs, legacy=True) if legacy_support else training_support(donor, refs)
     projection = project(votes, training_support=support["eligible_rows"] > 0, replay_budget_us=None)
     inventory = {}
     for name, entry in refs.items():
