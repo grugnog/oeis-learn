@@ -20,7 +20,7 @@ Both primary strata clear the 16-family requirement. Each descriptive developmen
 | Historical-cost projection | Wall time |
 | --- | ---: |
 | Training both 4M arms | 1 h 44 min 13 s |
-| One descriptive look across both arms, using full historical portfolios | 41 min 14 s |
+| Both descriptive looks across both arms, using full historical portfolios | 41 min 14 s |
 | One 480-portfolio full endpoint | 51 min 02 s |
 | Pilot | 3 h 16 min 29 s |
 | Earned independent repeat | 3 h 09 min 06 s |

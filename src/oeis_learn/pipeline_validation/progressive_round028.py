@@ -81,6 +81,14 @@ def status(folder):
         if seal(panel_progress) != panel_progress:
             raise ValueError("panel supply progress changed")
         extra["panel_supply"] = dict(candidate=panel_path.parent.name,phase=panel_progress["phase"])
+    timing_progress = folder / "private/evaluation-timing/progress.json"
+    if timing_progress.is_file():
+        measured = load(confined(folder,timing_progress))
+        if (seal(measured) != measured or type(measured["completed_blocks"]) is not int
+                or not 0 <= measured["completed_blocks"] <= 5
+                or measured["portfolios"] != 8 * measured["completed_blocks"]):
+            raise ValueError("candidate timing progress differs")
+        extra["evaluation_timing"] = {k:measured[k] for k in ("completed_blocks","portfolios")}
     return dict(**extra, mechanical_status=store.state["status"], scientific_status=scientific,
                 owner_active=busy, boundary=store.tip, decision=store.state.get("route"), active=store.state.get("active"))
 

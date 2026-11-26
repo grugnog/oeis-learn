@@ -38,13 +38,18 @@ CELL = (
 def parent_plan(panel, rehearsal):
     historical = panel["historical_forecast"]
     hip = rehearsal["hip"]
+    checkpoint = sum(v["save_us"] + v["restore_us"] for v in hip["arms"].values())
+    updates = sum(sum(v["update_us"]) + v["replay_us"] for v in hip["arms"].values())
+    # Includes cold setup, model construction, waiting, inspection and cleanup.
+    # Saved update and checkpoint intervals are charged independently.
+    training_overhead = max(0, hip["elapsed_us"] - checkpoint - updates)
     return {
         "training_us": historical["training_us"],
         "shift_us": historical["shift_us"],
         "reserve_us": historical["reserve_us"],
         "probes": panel["descriptive_cases_per_arm_look"],
-        "training_role_overhead_us": hip["elapsed_us"] - hip["producer_us"],
-        "checkpoint_cycle_us": sum(v["save_us"] + v["restore_us"] for v in hip["arms"].values()),
+        "training_role_overhead_us": training_overhead,
+        "checkpoint_cycle_us": checkpoint,
         "score_floor_us": {
             arm: {
                 s: (cell["score_us"] + 31) // 32

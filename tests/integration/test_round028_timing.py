@@ -9,6 +9,7 @@ from oeis_learn.generalization.progressive.contracts import digest
 from oeis_learn.generalization.progressive.program_search_timing import BLOCKS, project
 from oeis_learn.pipeline_validation.pilot_clocks import DESCRIPTIVE, DRAIN, clock_record
 from oeis_learn.pipeline_validation.progressive_round028_timing import timing_cases
+from tests.integration.test_round028_receipts import original as original  # noqa: PLC0414 - shared fixture
 
 
 def test_timing_fixtures_are_distinct_historical_families_independent_of_outcomes():
@@ -327,6 +328,7 @@ def test_transport_recomputes_changed_prices_and_refuses_substituted_panel(
     parent = tmp_path / "panels.zip"
     panels.publish(parent, panel, previous)
     monkeypatch.setattr(timing, "PANEL", panel["identity"])
+    exercise_collection(o, parent, panel, weights, monkeypatch)
     blocks = measured()
     result = seal(
         {
@@ -363,3 +365,208 @@ def test_transport_recomputes_changed_prices_and_refuses_substituted_panel(
     monkeypatch.setattr(timing, "PANEL", digest("other valid supply"))
     with pytest.raises(ValueError):
         timing.verify_timing(output)
+
+
+def exercise_collection(o, parent, panel, weights, monkeypatch):
+    """Drive the actual custodian, journal, collection and private replay with isolated role doubles."""
+    import shutil
+
+    from oeis_learn.generalization.progressive.contracts import atomic_write, load, reference, seal
+    from oeis_learn.pipeline_validation import progressive_round028_timing as host
+    from oeis_learn.pipeline_validation.pilot_clocks import CORRECT_FULL
+    from tests.integration.test_round028_receipts import SOURCE
+
+    with monkeypatch.context() as patch:
+        prior = o.folder / host.PANEL_ARCHIVE
+        prior.parent.mkdir(parents=True)
+        shutil.copyfile(parent, prior)
+        private = o.folder / "private/panel-supply" / host.PANEL_REVISION
+        private.mkdir(parents=True)
+        atomic_write(private / "boundary.json", seal({}))
+        patch.setattr(host, "PANEL", panel["identity"])
+        patch.setattr(host, "bind_private", lambda area, report: None)
+        o.store.append(dict(o.store.state, route="MATCHED_GENERATOR"))
+        calls = []
+
+        def channels(root, rows):
+            truth = [
+                {"id": r["task"], "indices": list(map(str, range(100))), "values": ["1"] * 100}
+                for r in rows
+            ]
+            return [{k: v if k == "id" else v[:20] for k, v in r.items()} for r in truth], truth
+
+        patch.setattr(host, "original_channels", channels)
+        all_weights = dict(weights, incumbent=weights["ordinary"])
+        patch.setattr(
+            host,
+            "original_weights",
+            lambda *a: ({n: {"model": n} for n in all_weights}, all_weights),
+        )
+
+        class Roles:
+            phase = "cpu"
+            build_us = 2
+
+            def __init__(self, args, source, root, revision, area, registration, host_factory):
+                self.area = area
+
+            def __call__(self, role, data, *, seconds, inputs):
+                block = data["block"]
+                calls.append((role, block))
+                folder = self.area / "roles" / (block + "-" + role)
+                folder.mkdir(parents=True)
+                out = folder / "output"
+                model = digest(block.split("-")[0])
+                keys = [r["id"] for r in data["rows"]]
+                if role == "search":
+                    assert self.phase == "hip" and set(data) == {
+                        "block",
+                        "rows",
+                        "weights",
+                        "recipe",
+                        "identity",
+                    }
+                    assert all(len(r["values"]) == 20 for r in data["rows"])
+                    assert inputs[0][1] == "/work/inputs/weights.pt"
+                    count = 1 if block.endswith("-one") else 8
+                    policy = DESCRIPTIVE if count == 1 else CORRECT_FULL
+                    clocks = [
+                        clock_record(
+                            policy=policy,
+                            prompt=k,
+                            mode="correct",
+                            snapshot=model,
+                            start=0,
+                            scope_deadline=90,
+                            finish=0.00004,
+                            expected=count,
+                            started=count,
+                            terminal=count,
+                        )
+                        for k in keys
+                    ]
+                    records = {
+                        k: {
+                            "costs": {
+                                "correct": {"details": [{"generation_seconds": 0.0}] * count}
+                            },
+                            "selections": {"equal_budget": None},
+                        }
+                        for k in keys
+                    }
+                    gen = seal(
+                        {
+                            "version": "discovery-candidates/v1",
+                            "model": model,
+                            "methods": ["correct"],
+                            "checkpoint": data["weights"]["sha256"],
+                            "recipe": digest(data["recipe"]),
+                            "model_control": "retained_D"
+                            if block == "incumbent-full"
+                            else "earlier_checkpoint",
+                            "prompts": digest(sorted(data["rows"], key=lambda r: r["id"])),
+                            "records": records,
+                            "clock": seal(
+                                {
+                                    "policy": policy,
+                                    "clocks": clocks,
+                                    "work": model,
+                                    "source": digest(data["recipe"]),
+                                    "expected_portfolios": 8,
+                                    "missing_portfolios": 0,
+                                }
+                            ),
+                        }
+                    )
+                    atomic_write(out / "generation/candidates.json", gen)
+                    result = {
+                        "candidates": reference(out, "generation/candidates.json"),
+                        "case_us": dict.fromkeys(keys, 50),
+                        "peak_device_bytes": 32,
+                        "telemetry": {
+                            "samples": 0,
+                            "readable_samples": 0,
+                            "covered_us": 0,
+                            "busy_us": None,
+                        },
+                    }
+                else:
+                    assert self.phase == "cpu" and set(data) == {
+                        "block",
+                        "rows",
+                        "candidates",
+                        "identity",
+                    }
+                    assert all(len(r["values"]) == 100 for r in data["rows"])
+                    path, dest = inputs[0]
+                    assert path.is_file() and dest == "/work/inputs/candidates.json"
+                    assert set(load(path)["records"]) == set(keys)
+                    raw = {
+                        "complete": True,
+                        "outcome": "no_selected_candidate",
+                        "elapsed_seconds": 0.000002,
+                    }
+                    scores = seal(
+                        {
+                            "version": "discovery-scoring/v1",
+                            "denominator": 8,
+                            "candidates": data["candidates"]["sha256"],
+                            "outcomes": {k: {"equal_budget": {"scoring": raw}} for k in keys},
+                        }
+                    )
+                    atomic_write(out / "scored/scores.json", scores)
+                    result = {"scores": reference(out, "scored/scores.json")}
+                self.last_output, self.last_wall_us, self.last_lease_us = (
+                    out,
+                    2000,
+                    1700 if role == "search" else 0,
+                )
+                self.last_producer = {"elapsed_us": 1400}
+                for file, value in (
+                    ("request.json", {}),
+                    ("data.json", data),
+                    ("producer.json", self.last_producer),
+                ):
+                    atomic_write(folder / file, seal(value))
+                self.last_boundary = folder / "boundary.json"
+                atomic_write(
+                    self.last_boundary, seal({"producer": reference(folder, "producer.json")})
+                )
+                return result
+
+        patch.setattr(host, "TimingRole", Roles)
+
+        def collect(rev):
+            return host.timing_command(None, SOURCE, o.workspace, o.folder, rev, o.store, None)
+
+        raw, code = collect("2" * 40)
+        assert code == 0 and raw["receipt"]["portfolios"] == 40
+        assert calls == [(role, block) for block in BLOCKS for role in ("search", "score")]
+        assert collect("3" * 40) == (raw, code) and len(calls) == 10
+        publication = o.folder / raw["archive"]
+        publication.unlink()
+        assert collect("2" * 40) == (raw, code) and publication.is_file() and len(calls) == 10
+        first = next((o.folder / host.AREA).glob("roles/*/output/generation/candidates.json"))
+        with first.open("ab") as stream:
+            stream.write(b" ")
+        with pytest.raises(ValueError):
+            collect("2" * 40)
+        assert len(calls) == 10
+
+
+def test_supply_deficit_prevents_device_creation(tmp_path, monkeypatch):
+    from oeis_learn.pipeline_validation import progressive_round028_timing as host
+
+    parent = tmp_path / host.PANEL_ARCHIVE
+    parent.parent.mkdir(parents=True)
+    parent.touch()
+    monkeypatch.setattr(
+        host,
+        "verify_panels",
+        lambda path: {"action": "EXTEND_FRESH_SUPPLY", "deficits": {"oeis": 1}},
+    )
+    raw, code = host.timing_command(
+        None, None, tmp_path, tmp_path, "1" * 40, None, lambda *a: pytest.fail("device opened")
+    )
+    assert code == 2 and raw["reason"] == "EXTEND_FRESH_SUPPLY" and raw["gpu_dispatches"] == 0
+    assert not (tmp_path / host.AREA).exists()

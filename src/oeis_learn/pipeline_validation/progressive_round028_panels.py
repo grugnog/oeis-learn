@@ -98,7 +98,7 @@ def original_costs(root, cut):
 
 
 class NativeRoles:
-    """One immutable CPU image, separate read-only role requests and recoverable completed outputs."""
+    """Run installed roles on an immutable image and reopen their inspected outputs."""
 
     phase = "cpu"
     worker = "oeis_learn.pipeline_validation.progressive_panel_worker"
@@ -151,6 +151,18 @@ class NativeRoles:
         if self.fixed_attempt:
             # A restart or changed physical scope cannot issue a second draw allowance.
             claim = self.area / "assignments" / (data["block"] + "-" + role + ".json")
+            if claim.exists():
+                saved = load(confined(self.area, claim))
+                require(seal(saved) == saved, "original timing assignment differs")
+                old = confined(self.area, "roles/" + saved["request"][7:], exists=False)
+                if (old / "boundary.json").is_file() or any(old.glob("attempt-*/end.json")):
+                    original = load(confined(old, "request.json"))
+                    require(
+                        original == seal(dict(req, physical=original["physical"]))
+                        and original["identity"] == saved["request"],
+                        "timing input or candidate changed",
+                    )
+                    req = original
             retain(claim, seal({"request": req["identity"]}))
         folder = confined(self.area, "roles/" + req["identity"][7:], exists=False)
         folder.mkdir(parents=True, exist_ok=True)
@@ -179,6 +191,8 @@ class NativeRoles:
         if not receipt.exists():
             if self.fixed_attempt and any(folder.glob("attempt-*")):
                 raise ValueError("original timing attempt lacks a completed inspected receipt")
+            if self.fixed_attempt:
+                retain(self.area / ("physical-" + self.phase + ".json"), seal({"scope": physical}))
             require(self.host.engine.image(self.image) == self.image, "candidate image changed")
             ordinal = len(list(folder.glob("attempt-*")))
             attempt = confined(folder, f"attempt-{ordinal:04d}", exists=False)

@@ -265,11 +265,15 @@ def timing_command(args, source, root, folder, revision, store, host_factory):
 
     parent = confined(folder, PANEL_ARCHIVE)
     verified = verify_panels(parent)
+    if verified["action"] != "MEASURE_CANDIDATE_EVALUATION_COST" or verified["deficits"]:
+        return {
+            "mechanical_status": "BLOCKED",
+            "scientific_status": "PILOT_UNMEASURED",
+            "reason": verified["action"],
+            "gpu_dispatches": 0,
+        }, 2
     require(
-        verified["evidence"] == PANEL
-        and verified["action"] == "MEASURE_CANDIDATE_EVALUATION_COST"
-        and not verified["deficits"]
-        and store.state["route"] == "MATCHED_GENERATOR",
+        verified["evidence"] == PANEL and store.state["route"] == "MATCHED_GENERATOR",
         "verified supply must warrant physical timing",
     )
     with zipfile.ZipFile(parent) as archive:
