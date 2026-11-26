@@ -302,8 +302,8 @@ def _portfolio(
         job = logical_job(contract=contract_identity,snapshot=snapshot,
             mode=mode,arm='portfolio',prompt_id=row['id'],attempt_ordinal=position,
             method=attempt['method'],seed=attempt['seed'])
-        from oeis_learn.pipeline_validation.pilot_clocks import MATCHED,DRAIN
-        isolated=evaluation_policy in (MATCHED,DRAIN) and position==0 and not template
+        from oeis_learn.pipeline_validation.pilot_clocks import CORRECT_FULL,DESCRIPTIVE,MATCHED,DRAIN
+        isolated=evaluation_policy in (CORRECT_FULL,DESCRIPTIVE,MATCHED,DRAIN) and position==0 and not template
         isolated_found,isolated_status=None,detail['raw']
         if isolated:
             raw_job=logical_job(contract=contract_identity,snapshot=snapshot,mode=mode,arm='raw',

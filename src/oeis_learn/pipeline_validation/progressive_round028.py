@@ -282,6 +282,22 @@ def execute(args, source, *, host_factory=None):
                     raise ValueError("private/public audit mismatch")
                 return dict(private_replay="VERIFIED", public_recomputation=receipt), 0
             from .progressive_round028_panels import PRODUCER, panels_command
+            from .progressive_round028_timing import AREA, PANEL_ARCHIVE, timing_command
+            if args.action == "timing" or (args.action == "run" and (folder / PANEL_ARCHIVE).is_file()):
+                try:
+                    observed, code = timing_command(args,source,root,folder,revision,store,host_factory)
+                except (ValueError, OSError, KeyError, TypeError, RuntimeError, subprocess.SubprocessError) as exc:
+                    import traceback
+                    from .progressive_round028_rehearsal import failure_locations
+                    area = confined(folder,AREA,exists=False)
+                    area.mkdir(parents=True,mode=0o700,exist_ok=True)
+                    (area/"exception.txt").write_text(traceback.format_exc())
+                    return dict(mechanical_status="BLOCKED", scientific_status="PILOT_UNMEASURED",
+                                reason="CANDIDATE_TIMING_COLLECTION_FAILED", error_type=type(exc).__name__,
+                                failure_locations=failure_locations(source,area,role_folder="roles")), 2
+                if args.action == "run":
+                    return dict(observed,mechanical_status="BLOCKED",next_action=observed["reason"]), 2
+                return observed,code
             prior_training = folder / "private/generator-rehearsal" / PRODUCER / "progress.json"
             if args.action == "panels" or (args.action == "run" and prior_training.is_file()
                                           and store.state.get("route") == "MATCHED_GENERATOR"):

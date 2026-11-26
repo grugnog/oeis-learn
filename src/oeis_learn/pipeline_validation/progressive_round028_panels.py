@@ -100,6 +100,12 @@ def original_costs(root, cut):
 class NativeRoles:
     """One immutable CPU image, separate read-only role requests and recoverable completed outputs."""
 
+    phase = "cpu"
+    worker = "oeis_learn.pipeline_validation.progressive_panel_worker"
+    request_version = "round028-panel-role/v1"
+    producer_version = "round028-panel-output/v1"
+    fixed_attempt = False
+
     def __init__(self, args, source, root, revision, area, registration, host_factory):
         self.args, self.source, self.root, self.revision = args, source, root, revision
         self.area, self.registration, self.host_factory = area, registration, host_factory
@@ -107,7 +113,7 @@ class NativeRoles:
         self.build_us = 0
         self.charges = []
 
-    def __call__(self, role, data, *, seconds):
+    def __call__(self, role, data, *, seconds, inputs=()):
         from .progressive_handoff import stage
 
         if self.host is None:
@@ -119,11 +125,20 @@ class NativeRoles:
                 "workstation free-space floor",
             )
             self.image, self.build_us, _ = candidate_image(
-                self.host, self.source, self.area, self.revision, "cpu"
+                self.host, self.source, self.area, self.revision, self.phase
+            )
+        if self.fixed_attempt:
+            from .progressive_round028_rehearsal import physical_scope
+
+            physical = physical_scope(self.host, self.phase)
+            require(
+                space(self.area)["free_bytes"] >= self.host.policy["free_disk_floor_bytes"],
+                "candidate timing workstation free-space floor",
             )
         req = seal(
             {
-                "version": "round028-panel-role/v1",
+                "version": self.request_version,
+                **({"physical": physical} if self.fixed_attempt else {}),
                 "registration": self.registration["identity"],
                 "source": self.registration["source"],
                 "engine": self.host.engine.name,
@@ -133,11 +148,20 @@ class NativeRoles:
                 "data": data["identity"],
             }
         )
+        if self.fixed_attempt:
+            # A restart or changed physical scope cannot issue a second draw allowance.
+            claim = self.area / "assignments" / (data["block"] + "-" + role + ".json")
+            retain(claim, seal({"request": req["identity"]}))
         folder = confined(self.area, "roles/" + req["identity"][7:], exists=False)
         folder.mkdir(parents=True, exist_ok=True)
         req_path, data_path = folder / "request.json", folder / "data.json"
         retain(req_path, req)
         retain(data_path, data)
+        mounts = [
+            (req_path, "/work/inputs/request.json"),
+            (data_path, "/work/inputs/data.json"),
+            *inputs,
+        ]
         receipt = folder / "boundary.json"
         # Recover a role that finished and passed engine inspection before its boundary was written.
         if not receipt.exists():
@@ -153,7 +177,9 @@ class NativeRoles:
                         self.bind(folder, attempt, req)
                         break
         if not receipt.exists():
-            require(self.host.engine.image(self.image) == self.image, "candidate CPU image changed")
+            if self.fixed_attempt and any(folder.glob("attempt-*")):
+                raise ValueError("original timing attempt lacks a completed inspected receipt")
+            require(self.host.engine.image(self.image) == self.image, "candidate image changed")
             ordinal = len(list(folder.glob("attempt-*")))
             attempt = confined(folder, f"attempt-{ordinal:04d}", exists=False)
             attempt.mkdir()
@@ -174,14 +200,12 @@ class NativeRoles:
                         "python",
                         "-I",
                         "-m",
-                        "oeis_learn.pipeline_validation.progressive_panel_worker",
+                        self.worker,
                     ],
-                    gpu=False,
+                    gpu=self.phase == "hip",
                     seconds=seconds,
-                    readonly_inputs=[
-                        (req_path, "/work/inputs/request.json"),
-                        (data_path, "/work/inputs/data.json"),
-                    ],
+                    readonly_inputs=mounts,
+                    **({"record_lease": True} if self.phase == "hip" else {}),
                 )
                 success = True
             finally:
@@ -201,9 +225,7 @@ class NativeRoles:
             seal(boundary) == boundary and boundary["request"] == req["identity"],
             "panel CPU boundary changed",
         )
-        producer = read_bound_record(
-            folder, boundary["producer"], version="round028-panel-output/v1"
-        )
+        producer = read_bound_record(folder, boundary["producer"], version=self.producer_version)
         from .progressive_round028_receipts import verify_role_mounts
 
         inspected = load(
@@ -215,8 +237,7 @@ class NativeRoles:
             req["image"],
             {
                 "/work/output": (output, True),
-                "/work/inputs/request.json": (req_path, False),
-                "/work/inputs/data.json": (data_path, False),
+                **{dest: (path, False) for path, dest in mounts},
             },
         )
         timing = read_bound_record(folder, boundary["timing"])
@@ -230,6 +251,16 @@ class NativeRoles:
             "panel role producer registration differs",
         )
         self.native = producer["native"]
+        self.last_output, self.last_producer = output, producer
+        self.last_wall_us, self.last_lease_us = timing["elapsed_us"], 0
+        self.last_boundary = receipt
+        if self.phase == "hip":
+            lease = load(checked_file(folder, boundary["lease"]))
+            self.last_lease_us = lease["elapsed_us"]
+            require(
+                type(self.last_lease_us) is int and 0 < self.last_lease_us <= self.last_wall_us,
+                "original GPU lease differs from the role interval",
+            )
         for p in sorted(folder.glob("attempt-*/start.json")):
             start = load(confined(folder, p))
             require(
@@ -248,8 +279,7 @@ class NativeRoles:
                 self.charges.append(None)
         return producer["result"]
 
-    @staticmethod
-    def bind(folder, attempt, req):
+    def bind(self, folder, attempt, req):
         output = attempt / "output"
         producer = load(confined(folder, output / "producer.json"), maximum=CAMPAIGN_DOCUMENT_BYTES)
         end = load(confined(folder, attempt / "end.json"))
@@ -269,6 +299,11 @@ class NativeRoles:
                     "producer": reference(folder, output / "producer.json"),
                     "inspection": reference(folder, output / "container-inspect.json"),
                     "timing": reference(folder, attempt / "end.json"),
+                    **(
+                        {"lease": reference(folder, output / "gpu-lease.json")}
+                        if self.phase == "hip"
+                        else {}
+                    ),
                 }
             ),
         )

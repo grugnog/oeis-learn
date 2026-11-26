@@ -73,7 +73,7 @@ def inspection(root, boundary, request, area):
     return output
 
 
-def checkpoint_closures(output, training, details):
+def checkpoint_closures(output, training, details, *, weight_slices=None):
     from oeis_learn.generalization.state import restore
     from .progressive_training import resolve_update_policy
 
@@ -108,13 +108,17 @@ def checkpoint_closures(output, training, details):
             total = sum(confined(root, p.relative_to(root)).stat().st_size for p in files)
             if (len(files), total) != (measured["checkpoint_files"], measured["checkpoint_bytes"]):
                 raise ReceiptGap("ORIGINAL_CHECKPOINT_FILE_ACCOUNTING_DIFFERS")
+            if weight_slices is not None:
+                from .progressive_research_inputs import checked_file
+                weight = state["states"]["weights"]
+                weight_slices[arm] = (checked_file(root, weight), weight)
             result[arm] = "VERIFIED"
         except FileNotFoundError:
             result[arm] = "UNAVAILABLE"
     return result
 
 
-def stage_chain(area, *, revision, source, training, progress):
+def stage_chain(area, *, revision, source, training, progress, weight_slices=None):
     parent = None
     measurements = {}
     closures = {}
@@ -153,7 +157,7 @@ def stage_chain(area, *, revision, source, training, progress):
         measurements[stage] = result
         parent = producer["identity"]
         if stage == "hip":
-            closures = checkpoint_closures(output, training, producer["details"])
+            closures = checkpoint_closures(output, training, producer["details"], weight_slices=weight_slices)
             capacity = sealed(confined(root, boundary["end"]["path"]))["space"]
     return measurements, closures, capacity
 
@@ -188,7 +192,7 @@ def verify_sample_origin(base, training, registration):
             raise ReceiptGap("SAMPLED_PREFERENCE_LABEL_DIFFERS")
 
 
-def recover(root, folder, prior_source, revision, store):
+def recover(root, folder, prior_source, revision, store, *, weight_slices=None):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from .progressive_round028 import ARCHIVE, reopen
 
@@ -218,7 +222,7 @@ def recover(root, folder, prior_source, revision, store):
         raise ReceiptGap("ORIGINAL_TRAINING_PRODUCER_UNAVAILABLE")
     verify_sample_origin(base, training, store.campaign["identity"])
     source = digest(collect_snapshot(prior_source))
-    stages, closures, filesystem = stage_chain(area, revision=revision, source=source, training=training, progress=progress)
+    stages, closures, filesystem = stage_chain(area, revision=revision, source=source, training=training, progress=progress, weight_slices=weight_slices)
     forecast = training_forecast(stages["hip"]["arms"])
     if "forecast" in progress and forecast != progress["forecast"]:
         raise ReceiptGap("SAVED_FORECAST_DIFFERS")

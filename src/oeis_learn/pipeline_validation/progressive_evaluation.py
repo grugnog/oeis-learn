@@ -20,6 +20,7 @@ from oeis_learn.generalization.progressive.contracts import (
     verify_refs,
 )
 from oeis_learn.pipeline_validation.identity import confined, seal
+from .pilot_clocks import CORRECT_FULL, DESCRIPTIVE, DRAIN, FullClockEvidence, attempts
 
 
 def generate(
@@ -40,6 +41,8 @@ def generate(
     methods=("correct", "shuffled", "absent", "template", "polynomial", "linear_recurrence"),
     forced=None,
     component_library=None,
+    evaluation_policy=DRAIN,
+    case_elapsed_us=None,
 ):
     import torch
 
@@ -49,7 +52,10 @@ def generate(
     from oeis_learn.generalization.progressive.baselines import conditioning
     from oeis_learn.synthesis.admission import VisiblePrompt
 
-    from .pilot_clocks import DRAIN, FullClockEvidence
+    if evaluation_policy not in (DRAIN, DESCRIPTIVE, CORRECT_FULL) or (
+        evaluation_policy in (DESCRIPTIVE, CORRECT_FULL) and (methods != ("correct",) or forced is not None or component_library is not None)
+    ):
+        raise ValueError("timed candidate generation requires the registered visible-only arm")
 
     if type(seconds) not in (int, float) or not 0 < seconds <= _maximum_seconds(budget):
         raise ValueError("bounded installed generation required")
@@ -111,10 +117,11 @@ def generate(
     )
     rows = {}
     evidence = FullClockEvidence(
-        output / "attempts", prompts, source=digest(recipe), work=snapshot, policy=DRAIN
+        output / "attempts", prompts, source=digest(recipe), work=snapshot, policy=evaluation_policy
     )
     try:
         for ordinal, p in enumerate(prompts):
+            case_start = time.monotonic_ns() if case_elapsed_us is not None else None
             memories = {}
             with torch.no_grad():
                 for mode, values in [
@@ -180,8 +187,9 @@ def generate(
                     continue
                 # The canonical synchronous driver drains native work before
                 # asking the model for another draw. No second scheduler.
+                count = attempts(evaluation_policy)[mode]
                 if budget:
-                    budget.consume(draws=8, attempts=8, rejections=8)
+                    budget.consume(draws=count, attempts=count, rejections=count)
                 proposals = None
                 if component_library is not None:
                     from oeis_learn.generalization.progressive.component_search import Proposals
@@ -199,12 +207,12 @@ def generate(
                     runtime_recipe,
                     client,
                     deadline=deadline,
-                    attempt_count=8,
+                    attempt_count=count,
                     template=mode == "template",
                     mode=mode,
                     snapshot=snapshot,
                     evidence=evidence,
-                    evaluation_policy=DRAIN,
+                    evaluation_policy=evaluation_policy,
                     component_proposals=proposals,
                 )
                 for name in ("raw", "rescue", "equal_budget") if mode == "correct" else (mode,):
@@ -266,6 +274,8 @@ def generate(
                 }
                 record["costs"][method] = portfolio_budget.report()
             rows[p["id"]] = record
+            if case_elapsed_us is not None:
+                case_elapsed_us[p["id"]] = (time.monotonic_ns() - case_start + 999) // 1000
     finally:
         evidence.finish()
     if model_snapshot(encoder, decoder) != snapshot:
@@ -289,7 +299,7 @@ def generate(
     return reference(output_root, output / "candidates.json")
 
 
-def score(root, candidates, truth, *, client, output, seconds=3600, budget=None):
+def score(root, candidates, truth, *, client, output, seconds=3600, budget=None, selected_only=False):
     from oeis_learn.fresh.bigint_diagnostics import score as canonical_score
     from oeis_learn.synthesis.contracts import canonical_integer
 
@@ -355,6 +365,8 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None)
         "polynomial",
         "linear_recurrence",
     )
+    if selected_only:
+        methods = ("equal_budget",)
     outcomes = {r["id"]: {} for r in truth}
     for method in methods:
         if budget:

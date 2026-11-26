@@ -200,13 +200,17 @@ def verify_panels(path):
 
 
 def publish(path, value, rehearsal):
+    return publish_child(path, value, rehearsal, MEMBERS, verify_panels)
+
+
+def publish_child(path, value, parent, members, verifier):
     path = Path(path)
     with tempfile.NamedTemporaryFile(dir=path.parent) as staged:
         with zipfile.ZipFile(staged, "w", zipfile.ZIP_DEFLATED) as archive:
-            archive.writestr(MEMBERS[0], encode(value))
-            archive.write(rehearsal, MEMBERS[1])
+            archive.writestr(members[0], encode(value))
+            archive.write(parent, members[1])
         staged.flush()
         os.fsync(staged.fileno())
-        receipt = verify_panels(staged.name)
+        receipt = verifier(staged.name)
         os.link(staged.name, path)
     return receipt
