@@ -267,7 +267,7 @@ def _main(args, root, host_factory, stack):
     try:
         if args.operation == "round028":
             from .progressive_round028 import execute
-            result, code = execute(args, root)
+            result, code = execute(args, root, host_factory=host_factory)
         elif args.operation == "init":
             result, code = init(args, root)
         elif args.operation == 'qualify':

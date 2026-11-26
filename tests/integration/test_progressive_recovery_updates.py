@@ -220,3 +220,28 @@ def test_matched_generator_updates_restore_the_same_rows_clocks_and_initial_weig
     ordinary, treatment = summaries.values()
     assert ordinary[0] == treatment[0] and ordinary[1] != treatment[1]
     assert ordinary[2:] == treatment[2:] == (count, 1)
+
+
+def test_rehearsal_measures_native_pair_signal_and_reloads_next_matched_update(tmp_path):
+    from oeis_learn.generalization.progressive.training_rows import verified_training_pairs
+    from oeis_learn.pipeline_validation.progressive_generator_probe import gradient, measured_updates, verify_sample
+    from tests.unit.test_round028_training import training_rows
+
+    rows = training_rows()
+    labels = verified_training_pairs([rows])["pairs"]
+    by_id = {r["draw_identity"]: r for r in rows}
+    samples = [dict(positive=by_id[p["positive_row"]], negative=by_id[p["negative_row"]], label=p["label"])
+               for p in labels]
+    for s in samples:
+        verify_sample(s)
+    class Native:
+        def execute(self, source, indices, **kw):
+            return dict(outcome="ok", values=next(r["values"] for r in rows if r["source"] == source))
+    result = gradient(profile(), samples, client=Native())
+    assert result["native_verified_terms"] == 200 and result["gradient_l2"] > 0
+    batches = [samples * 16, list(reversed(samples)) * 16]
+    a, b = [measured_updates(profile(), batches, arm, tmp_path / arm, device="cpu", microbatch=7)
+            for arm in ("ordinary", "first_divergence")]
+    assert a["charged_tokens"] == b["charged_tokens"] and a["row_schedule"] == b["row_schedule"]
+    assert a["initial"] == b["initial"] and a["final"] != b["final"] and b["preference_rows"] == 32
+    assert all(v["full_restore"] and v["checkpoint_bytes"] > 0 and v["restore_us"] > 0 for v in (a, b))

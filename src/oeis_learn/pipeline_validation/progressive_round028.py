@@ -68,7 +68,14 @@ def status(folder):
     binding = load(confined(folder, "campaign.json"))
     store = RunStore(folder, binding, diagnostic=True)
     scientific = "HISTORICAL_AUDIT" if store.state.get("publication") else "UNMEASURED"
-    return dict(mechanical_status=store.state["status"], scientific_status=scientific,
+    extra = {}
+    for path in sorted(folder.glob("private/generator-rehearsal/*/progress.json"),
+                       key=lambda p: p.stat().st_mtime_ns, reverse=True)[:1]:
+        progress = load(confined(folder, path.relative_to(folder)))
+        if seal(progress) != progress:
+            raise ValueError("generator rehearsal progress changed")
+        extra["rehearsal"] = {k: progress[k] for k in ("candidate", "phase", "reason", "next_action") if k in progress}
+    return dict(**extra, mechanical_status=store.state["status"], scientific_status=scientific,
                 owner_active=busy, boundary=store.tip, decision=store.state.get("route"), active=store.state.get("active"))
 
 
@@ -213,7 +220,7 @@ def audit_store(folder, revision):
     return store
 
 
-def execute(args, source):
+def execute(args, source, *, host_factory=None):
     if args.archive:
         if args.action != "verify":
             raise ValueError("archive authority is restricted to verification")
@@ -229,9 +236,6 @@ def execute(args, source):
     if args.action == "preflight":
         return dict(info, mechanical_status="INSPECTED", scope="historical_audit",
                     admission="AVAILABLE" if info["qualified_checkout"] and all(info["files"].values()) else "BLOCKED"), 0
-    if args.action == "rehearse":
-        return dict(status(folder), mechanical_status="BLOCKED",
-                    missing="eligible pilot and candidate-bound rehearsal"), 2
     if not info["qualified_checkout"] or not info["files"][ORIGINAL + "/prepare-research/frozen/campaign.json"]:
         return dict(info, mechanical_status="BLOCKED", scientific_status="UNMEASURED",
                     missing="qualified round027 donor and original frozen campaign required",
@@ -264,6 +268,16 @@ def execute(args, source):
             result = audit_command(root, folder, store, registration)
             if result["decision"].get("blocker"):
                 return result, 2
+            if args.action in {"run", "rehearse"} and result["decision"]["action"] == "MATCHED_GENERATOR":
+                from .progressive_round028_rehearsal import rehearse
+                observed, code = rehearse(args, root, source, folder, store, revision, result,
+                                         host_factory=host_factory)
+                if args.action == "rehearse" or code:
+                    return observed, code
+                return dict(observed, mechanical_status="BLOCKED", reason="PROSPECTIVE_ADMISSION_PENDING",
+                            missing="fresh panel freeze, evaluation timing and campaign acceptance"), 2
+            if args.action == "rehearse":
+                return dict(result, mechanical_status="SKIPPED", reason="GENERATOR_NOT_SELECTED"), 0
             if args.action == "run" and result["decision"]["action"] != "RETAIN_REFERENCE":
                 return dict(result, mechanical_status="BLOCKED", missing="registered next-stage execution"), 2
             return result, 0

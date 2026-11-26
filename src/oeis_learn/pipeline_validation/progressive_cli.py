@@ -20,6 +20,7 @@ COMMANDS = {
 CPU_TESTS = (
     "tests/contract/test_round028_routing.py",
     "tests/integration/test_round028_audit.py",
+    "tests/integration/test_round028_rehearsal.py",
     "tests/unit/test_round028_training.py",
     "tests/unit/test_environment_preflight.py",
     "tests/unit/test_oeis_corpus.py",
