@@ -1,6 +1,7 @@
 """Disclosure-limited historical audit archive; each released sum has a checked denominator."""
 
 import json
+from collections import Counter
 import os
 from pathlib import Path
 import re
@@ -31,10 +32,18 @@ def public_audit(registration, private, *, elapsed_us, private_identity):
     if followup and "charges" in followup:
         charges = followup["charges"]
         units = {k: sum(task[k] for task in charges.values()) for k in ("tokens", "elapsed_us", "draws", "native_work")}
+    primary = [r["diagnosis"] for r in private["cases"] if r["stratum"] in registration["policy"]["roster"]["primary"]]
+    support = private["support"]
+    coverage = dict(
+        banks=dict(Counter(d.get("bank_gap") or "complete" for d in primary)),
+        closed_searches=sum(d.get("search_closed", False) for d in primary),
+        exact_witnesses=sum(d.get("exact_witness", False) for d in primary),
+        training={k: support[k] for k in ("status", "eligible_rows", "eligible_families", "positions")},
+    )
     value = seal(dict(version=VERSION, candidate=registration["candidate"], registration=registration["identity"],
                       private_cut=private_identity, scope="historical_development", denominator=128,
                       methods=private["methods"], pairs=private["pairs"], checkpoints=checkpoints,
-                      projection=private["projection"], decision=private["decision"],
+                      projection=private["projection"], decision=private["decision"], coverage=coverage,
                       audit_elapsed_us=elapsed_us, gpu_dispatches=0, historical_1m_cost_us=old_costs, followup_charge=units,
                       trial05_unfinished_composition=sum(r["stratum"] == "composition"
                           and r["diagnosis"]["unfinished_fit"] for r in private["cases"] if r["stratum"] in
@@ -46,7 +55,8 @@ def public_audit(registration, private, *, elapsed_us, private_identity):
 def validate_public(value):
     fields = {"version", "identity", "registration", "candidate", "private_cut", "scope", "denominator",
               "methods", "pairs", "checkpoints", "projection", "decision", "audit_elapsed_us",
-              "gpu_dispatches", "trial05_unfinished_composition", "historical_1m_cost_us", "followup_charge"}
+              "gpu_dispatches", "trial05_unfinished_composition", "historical_1m_cost_us", "followup_charge",
+              "coverage"}
     def require(ok):
         if not ok:
             raise ValueError("inconsistent public audit evidence")
@@ -59,6 +69,21 @@ def validate_public(value):
             and value["denominator"] == 128 and count(value["audit_elapsed_us"], 2**63 - 1)
             and count(value["gpu_dispatches"], 0) and count(value["trial05_unfinished_composition"], 32))
     require(value["decision"] == route(value["projection"]))
+    coverage = value["coverage"]
+    require(set(coverage) == {"banks", "closed_searches", "exact_witnesses", "training"})
+    banks = coverage["banks"]
+    require(set(banks) <= {"complete", "missing_producers", "missing_archive", "missing_discarded_source",
+                           "incomplete_admission_index", "missing_original_tie_cost"}
+            and all(count(v, 64) for v in banks.values()) and sum(banks.values()) == 64
+            and count(coverage["closed_searches"], 64) and count(coverage["exact_witnesses"], 64)
+            and value["decision"]["proved_proposal"] <= min(coverage["closed_searches"], coverage["exact_witnesses"]))
+    training = coverage["training"]
+    require(set(training) == {"status", "eligible_rows", "eligible_families", "positions"}
+            and training["status"] in {"unavailable", "measured"}
+            and all(count(training[k], 2**63 - 1) for k in ("eligible_rows", "eligible_families", "positions"))
+            and max(training["eligible_families"], training["positions"]) <= training["eligible_rows"]
+            and (not training["eligible_rows"] or training["status"] == "measured")
+            and (training["eligible_rows"] > 0) == value["projection"]["training_support"])
     require(not set(value["historical_1m_cost_us"]) - {f"trial-{t:02d}-1M" for t in range(6)})
     for phases in value["historical_1m_cost_us"].values():
         require(set(phases) == {"startup", "training", "inference", "search", "verification"}

@@ -130,9 +130,10 @@ class Donor:
 
     def saved(self, name, expected, *, maximum=32 << 20):
         path = confined(self.root, name)
-        value = load(path, maximum=maximum)
-        need(seal(value) == value and value["identity"] == expected, "committed historical identity differs: " + name)
-        self.remember(reference(self.root, path))
+        need(path.stat().st_size <= maximum, "historical record exceeds original reader allowance: " + name)
+        ref = reference(self.root, path)
+        value = read_bound_record(self.root, ref, identity=expected)
+        self.remember(ref)
         return value
 
     def optional(self, fn, *args, **kwargs):
@@ -365,7 +366,12 @@ def audit(donor):
     campaign = donor.saved(ORIGINAL + "/prepare-research/frozen/campaign.json", policy["campaign"],
                            maximum=CAMPAIGN_DOCUMENT_BYTES)
     refs = {r["name"]: r for r in campaign["payload"]["references"]}
-    study = donor.bound(refs["study-policy"]["artifact"])
+    need(len(refs) == len(campaign["payload"]["references"]), "duplicate historical reference")
+    binding = refs["study-policy"]
+    need((binding["role"], binding["kind"]) == ("proposal", "policy"), "original study policy authority differs")
+    study = donor.bound(binding["artifact"])
+    need(all(t["trial"]["study"] == study["identity"] for t in campaign["payload"]["tasks"] if t.get("trial")),
+         "study identity differs from registered original trials")
     members = roster_map(study["evaluations"]["trial-05-1000000-development-score"]["roster"])
     cases = {k: dict(task=k, stratum=s, group=g, observations={}) for k, (s, g) in members.items()}
     inputs = channels(donor, refs, members)
@@ -414,7 +420,7 @@ def audit(donor):
         votes.append(dict(evidence, task=case["task"], stratum=case["stratum"]))
     from .progressive_round028_support import training_support
     support = training_support(donor, refs)
-    projection = project(votes, training_support=support["eligible_rows"] > 0)
+    projection = project(votes, training_support=support["eligible_rows"] > 0, replay_budget_us=None)
     inventory = {}
     for name, entry in refs.items():
         if (name.startswith(("iteration_calibration", "panel:")) or name in {

@@ -1,7 +1,10 @@
 """Inspect the original trial-05 portfolio without drawing or fitting another program."""
 
+import math
+
 from oeis_learn.fresh.synthesis_policy import validate_selection_envelope
-from oeis_learn.generalization.selector_audit import candidate_pool, check_original
+from oeis_learn.generalization.selector_audit import candidate_sources, check_original
+from oeis_learn.generalization.selector_fit_replay import original_attempt
 from oeis_learn.synthesis.admission import VisiblePrompt, source_identity
 from oeis_learn.synthesis.reference import evaluate
 
@@ -74,24 +77,21 @@ def inspect_bank(rec, score, companion, clock, prompt, truth, witness):
                    and finished + spent + len(unfinished) == 8 and all(
                        details[i]["fitting"].get("reason") == "control_range" for i in unfinished))))
     exact = False
-    if witness is not None:
-        if (truth is None or witness["task"] != truth["id"] or witness["indices"] != truth["indices"]
+    if witness is not None and truth is not None:
+        if (witness["task"] != truth["id"] or witness["indices"] != truth["indices"]
                 or witness["values"] != truth["values"]):
             raise ValueError("independent witness belongs to another case")
         exact = bool(witness["source"] and replay_source(witness["source"], prompt, truth) == "solve")
-    gap, candidates = None, None
+    gap, candidates, missing = None, None, set()
     if "archive" not in portfolio:
         gap = "missing_archive"
     else:
-        try:
-            candidates = candidate_pool(portfolio, reconstruct=True)
-            admissions = {r["source_sha256"] for d in details for r in d["fitting"].get("admission", [])
-                          if r["outcome"] == "verified_solution"}
-            if admissions != {c["source_sha256"] for c in candidates}:
-                gap = "incomplete_admission_index"
-        except ValueError as exc:
-            if str(exc) != "missing eligible candidate source; subset replay forbidden":
-                raise
+        candidates, missing = candidate_sources(portfolio, reconstruct=True)
+        admissions = {r["source_sha256"] for d in details for r in d["fitting"].get("admission", [])
+                      if r["outcome"] == "verified_solution"}
+        if admissions != {c["source_sha256"] for c in candidates} | missing:
+            gap = "incomplete_admission_index"
+        elif missing:
             gap = "missing_discarded_source"
     verdicts = {}
     fault = False
@@ -128,7 +128,36 @@ def inspect_bank(rec, score, companion, clock, prompt, truth, witness):
     selected = ("success" if score["success"] else "failure" if score["scoring"]["outcome"]
                 == "continuation_mismatch" and score["scoring"]["complete"] else companion)
     bank = None if gap else list(verdicts.values())
-    return dict(feasible=feasible(selected=selected, bank=bank, closed=closed, exact_witness=exact),
+    mask = feasible(selected=selected, bank=bank, closed=closed, exact_witness=exact)
+    replay = None
+    # Only accounted-for native work on an original decoded source can be replayed.
+    # A fresh decoder draw cannot fill in a lost source or change its original choice.
+    replay_inputs = []
+    if (mask == "NSP" and (unfinished or missing) and gap in (None, "missing_discarded_source")
+            and clock["termination"] == "attempt_roster_terminal" and len(details) == 8
+            and finished + spent + len(unfinished) == 8 and prompt is not None and truth is not None):
+        original = VisiblePrompt(tuple(prompt["indices"]), tuple(prompt["values"]))
+        ordinals = set(unfinished)
+        for sha in missing:
+            ordinals.add(next(d["position"] for d in details if any(
+                a["outcome"] == "verified_solution" and a["source_sha256"] == sha
+                for a in d["fitting"].get("admission", []))))
+        for i in sorted(ordinals):
+            draw = details[i]
+            timing = draw["fitting"].get("clock", {})
+            if "admitted" not in timing or "deadline" not in timing or "seed" not in draw:
+                break
+            packet = original_attempt(prompt["id"], draw, i, draw["fitting"]["outcome"], original)
+            replay_inputs.append({k: packet[k] for k in ("position", "seed", "source_sha256", "prompt_sha256",
+                                                         "original_resource", "original_clock", "service_seconds")})
+        else:
+            # A newly fitted program did not belong to the original eligible bank.
+            # Only recovering an originally admitted identity can prove a selection miss.
+            resolves = "N" + ("S" if missing and selected == "failure" else "") + ("P" if exact else "")
+            replay = dict(ordinals=sorted(ordinals), cost_us=sum(math.ceil(p["service_seconds"] * 1_000_000)
+                          for p in replay_inputs), resolves=resolves)
+    return dict(feasible=mask,
                 fault=fault, unfinished_fit=bool(unfinished), unfinished_ordinals=unfinished, late_ordinals=late,
                 bank_gap=gap, eligible_verdicts=verdicts, selected=chosen["source_sha256"] if chosen else None,
-                search_closed=closed, exact_witness=exact, band_witness=False, replay=None)
+                search_closed=closed, exact_witness=exact, band_witness=False, replay=replay,
+                replay_inputs=replay_inputs, missing_sources=sorted(missing))

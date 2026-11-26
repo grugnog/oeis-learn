@@ -159,6 +159,8 @@ def install_donor_fixture(root, monkeypatch):
 
 
 def test_registered_audit_consumes_all_original_looks_then_reuses_one_boundary(tmp_path, monkeypatch):
+    from argparse import Namespace
+    from oeis_learn.pipeline_validation import progressive_round028 as commands
     from oeis_learn.pipeline_validation.progressive_round028 import audit_command, ARCHIVE, reopen
     from oeis_learn.pipeline_validation.progressive_round028_audit import SESSION
     from oeis_learn.generalization.progressive.program_search_report import verify_archive
@@ -186,6 +188,20 @@ def test_registered_audit_consumes_all_original_looks_then_reuses_one_boundary(t
     with zipfile.ZipFile(archive) as zipped:
         raw = zipped.read("audit.json")
         assert b"case-composition" not in raw and b"(program" not in raw and b"original/" not in raw
+    # The launcher checks the actual Git identity separately. Here the test donor
+    # keeps its fixture hashes for both the workspace and archive verification.
+    monkeypatch.setattr(commands, "learned_search_policy", lambda: reg["policy"])
+    monkeypatch.setattr(commands, "metadata", lambda root, policy: dict(qualified_checkout=True,
+                        files={commands.ORIGINAL + "/prepare-research/frozen/campaign.json": True}))
+    monkeypatch.setattr(commands, "candidate_revision", lambda source, root: reg["candidate"])
+    args = Namespace(workspace=str(tmp_path), archive=None, action="verify")
+    receipt, code = commands.execute(args, tmp_path)
+    assert code == 0 and receipt["private_replay"] == "VERIFIED"
+    assert receipt["public_recomputation"]["report"] == original["receipt"]["report"]
+    args.action = "status"
+    assert commands.execute(args, tmp_path)[0]["scientific_status"] == "HISTORICAL_AUDIT"
+    args.action = "run"
+    assert commands.execute(args, tmp_path) == (original, 0)
     (tmp_path / "original/trial-05-1M/weights.json").write_text("modified donor")
     with pytest.raises(ValueError, match="identity"):
         reopen(tmp_path, folder, reg, store.state["audit"])
@@ -226,11 +242,19 @@ def test_replay_separates_passed_over_source_absent_bytes_and_unfinished_selecti
     archive["retained"] = [originals[0]]
     archive["omitted"] = [dict(id=source_identity(good))]
     assert run()["bank_gap"] == "missing_discarded_source" and run()["feasible"] == "NSP"
+    details[1]["seed"] = 128
+    details[1]["fitting"]["clock"] = dict(admitted=2.0, deadline=5.75)
+    recovered = run()
+    assert recovered["replay"] == dict(ordinals=[1], cost_us=3750000, resolves="NSP")
+    assert recovered["replay_inputs"][0]["source_sha256"] == source_identity(good)
     archive["omitted"] = []
     details[1]["fitting"].update(outcome="unsat_in_scope", admission=[])
     assert run()["feasible"] == "P"
     details[3]["fitting"].update(complete=False, outcome="resource_exhausted", reason="timeout")
     portfolio["complete"] = False
+    details[3]["seed"] = 129
+    details[3]["fitting"]["clock"] = dict(admitted=2., deadline=6.)
+    assert run()["replay"] == dict(ordinals=[3], cost_us=4000000, resolves="NP")
     score.update(success=True, scoring=dict(outcome="success", complete=True))
     truth["values"][20:] = ["0"] * 80
     evidence = run()
@@ -296,6 +320,7 @@ def test_copied_public_share_recomputes_route_without_workspace(tmp_path):
     checkpoints = [dict(arm=a, seed=i, target=25000000, disposition="unavailable", reason="missing_checkpoint_index")
                    for a in ("refreshed", "static") for i in (1, 2)]
     public = public_audit(reg, dict(methods=counts, pairs=pairs, checkpoints=checkpoints, original_trials={}, followup_training={},
+                          support=dict(status="unavailable", eligible_rows=0, eligible_families=0, positions=0),
                           projection=p, decision=route(p), cases=cases), elapsed_us=14, private_identity=digest("private"))
     archive = tmp_path / "round028.zip"
     publish_archive(archive, public)

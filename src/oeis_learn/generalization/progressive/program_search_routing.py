@@ -64,7 +64,8 @@ def route(p):
     if (sum(hist.values()) != 64 or any(n > hist.get(mask, 0) for mask, n in p["unfinished_fit"].items())
             or any(type(p[k]) is not int or not 0 <= p[k] <= 64 for k in ("faults", "band_witnesses"))
             or type(p["training_support"]) is not bool or type(p["replay_used"]) is not bool
-            or type(p["replay_budget_us"]) is not int or p["replay_budget_us"] < 0):
+            or p["replay_budget_us"] is not None
+            and (type(p["replay_budget_us"]) is not int or p["replay_budget_us"] < 0)):
         raise ValueError("invalid diagnostic coverage, funding or availability")
     result = dict(denominator=64, lower=lo, upper=hi, proved_selection=hist.get("S", 0),
                   proved_proposal=hist.get("P", 0), replay_cases=0, replay_cost_us=0)
@@ -89,7 +90,7 @@ def route(p):
         best_lower += max(map(VALUES.get, resolves)) - min(map(VALUES.get, mask))
         best_upper += min(map(VALUES.get, resolves)) - max(map(VALUES.get, mask))
         can_prove_s |= "S" in resolves
-        if prefix is None and cost <= p["replay_budget_us"] and (
+        if prefix is None and (p["replay_budget_us"] is None or cost <= p["replay_budget_us"]) and (
                 (p["training_support"] and best_lower > 0) or (can_prove_s and best_upper <= 0)):
             prefix = i, cost
     if p["faults"]:
@@ -99,8 +100,11 @@ def route(p):
     elif result["proved_selection"] and hi <= 0:
         action = "CPU_SELECTOR"
     elif prefix is not None and not p["replay_used"]:
-        action = "REPLAY"
         result["replay_cases"], result["replay_cost_us"] = prefix
+        if p["replay_budget_us"] is None:
+            # A missing workstation reservation cannot decide whether to spend or retain.
+            return dict(result, action=None, blocker="REPLAY_RESERVATION_UNMEASURED")
+        action = "REPLAY"
     else:
         action = "RETAIN_REFERENCE"
     return dict(result, action=action)

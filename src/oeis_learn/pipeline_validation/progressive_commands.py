@@ -376,6 +376,16 @@ def _main(args, root, host_factory, stack):
             }
         )
         code = 1
+    if caught is not None and args.operation == "round028":
+        import traceback
+        # Code locations let a remote operator share a failure without exporting
+        # the private exception text, local variables or absolute donor paths.
+        locations = []
+        for frame in traceback.extract_tb(caught.__traceback__):
+            path = Path(frame.filename)
+            if path.is_relative_to(root):
+                locations.append(dict(file=str(path.relative_to(root)), line=frame.lineno))
+        result = seal(dict(result, source_locations=locations))
     if caught is not None and getattr(args, "output", None):
         # Only a newly owned output may receive terminal diagnostics. A failed
         # attempt to reuse an earlier output never mutates that earlier run.

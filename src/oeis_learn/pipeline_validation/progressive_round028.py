@@ -10,9 +10,7 @@ import time
 from oeis_learn.generalization.progressive.budgets import BudgetJournal, KEYS
 from oeis_learn.generalization.progressive.campaign import diagnostic_registration, learned_search_policy
 from oeis_learn.generalization.progressive.cohorts import STRATA
-from oeis_learn.generalization.progressive.contracts import (
-    CAMPAIGN_DOCUMENT_BYTES, atomic_write, load, read_bound_record, reference, seal,
-)
+from oeis_learn.generalization.progressive.contracts import load, read_bound_record, reference, seal
 from oeis_learn.generalization.progressive.lifecycle import RunStore
 from oeis_learn.generalization.progressive.program_search_report import public_audit, publish_archive, verify_archive
 from .identity import confined
@@ -69,7 +67,8 @@ def status(folder):
         return dict(mechanical_status="UNREGISTERED", scientific_status="UNMEASURED", owner_active=busy)
     binding = load(confined(folder, "campaign.json"))
     store = RunStore(folder, binding, diagnostic=True)
-    return dict(mechanical_status=store.state["status"], scientific_status="UNMEASURED",
+    scientific = "HISTORICAL_AUDIT" if store.state.get("publication") else "UNMEASURED"
+    return dict(mechanical_status=store.state["status"], scientific_status=scientific,
                 owner_active=busy, boundary=store.tip, decision=store.state.get("route"), active=store.state.get("active"))
 
 
@@ -105,7 +104,7 @@ def reopen(root, folder, registration, cut, *, recheck_inputs=True):
     methods, pairs = summarize(cases, list(value["methods"]))
     votes = [dict(r["diagnosis"], task=r["task"], stratum=r["stratum"]) for r in cases
              if r["stratum"] in registration["policy"]["roster"]["primary"]]
-    projected = project(votes, training_support=value["support"]["eligible_rows"] > 0)
+    projected = project(votes, training_support=value["support"]["eligible_rows"] > 0, replay_budget_us=None)
     if (methods != value["methods"] or pairs != value["pairs"] or projected != value["projection"]
             or route(projected) != value["decision"]):
         raise ValueError("private case reduction differs from the sealed report")
@@ -172,10 +171,11 @@ def audit_command(root, folder, store, registration):
     receipt = publish_archive(confined(folder, ARCHIVE, exists=False), public)
     if not store.state.get("publication"):
         store.append(dict(store.state, status="AUDIT_PUBLISHED", publication=receipt["report"],
-                          route=data["decision"]["action"]))
+                          route=data["decision"]["action"], pending=data["decision"].get("blocker")))
     if receipt["report"] != store.state["publication"]:
         raise ValueError("published report differs from committed audit")
-    return dict(mechanical_status="COMPLETE", scientific_status="HISTORICAL_AUDIT", archive=ARCHIVE,
+    return dict(mechanical_status="BLOCKED" if data["decision"].get("blocker") else "COMPLETE",
+                scientific_status="HISTORICAL_AUDIT", archive=ARCHIVE,
                 decision=data["decision"], methods=data["methods"], pairs=data["pairs"]["trial-05-1M vs retained_D"],
                 checkpoints=[c["disposition"] for c in data["checkpoints"]],
                 missing_inputs=data["missing_inputs"], denominators=dict(historical=128, routing=64),
@@ -215,6 +215,9 @@ def execute(args, source):
     if args.action == "preflight":
         return dict(info, mechanical_status="INSPECTED", scope="historical_audit",
                     admission="AVAILABLE" if info["qualified_checkout"] and all(info["files"].values()) else "BLOCKED"), 0
+    if args.action == "rehearse":
+        return dict(status(folder), mechanical_status="BLOCKED",
+                    missing="eligible pilot and candidate-bound rehearsal"), 2
     if not info["qualified_checkout"] or not info["files"][ORIGINAL + "/prepare-research/frozen/campaign.json"]:
         return dict(info, mechanical_status="BLOCKED", scientific_status="UNMEASURED",
                     missing="qualified round027 donor and original frozen campaign required",
@@ -244,9 +247,9 @@ def execute(args, source):
                 if receipt["report"] != store.state["publication"] or rebuilt["identity"] != receipt["report"]:
                     raise ValueError("private/public audit mismatch")
                 return dict(private_replay="VERIFIED", public_recomputation=receipt), 0
-            if args.action == "rehearse":
-                return dict(mechanical_status="BLOCKED", missing="eligible pilot and candidate-bound rehearsal"), 2
             result = audit_command(root, folder, store, registration)
+            if result["decision"].get("blocker"):
+                return result, 2
             if args.action == "run" and result["decision"]["action"] != "RETAIN_REFERENCE":
                 return dict(result, mechanical_status="BLOCKED", missing="registered next-stage execution"), 2
             return result, 0

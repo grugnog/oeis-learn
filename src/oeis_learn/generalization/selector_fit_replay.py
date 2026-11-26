@@ -20,6 +20,28 @@ def timeout_targets(outcomes):
     return selected
 
 
+def original_attempt(case, draw, position, outcome, visible):
+    """Bind an original fit to its source, visible values, seed and admitted allowance."""
+    clock = draw['fitting']['clock']
+    allowance = clock['deadline'] - clock['admitted']
+    if (type(draw['position']) is not int or draw['position'] != position or type(draw['seed']) is not int
+            or not -(2**63) <= draw['seed'] < 2**64 or draw['generation']['complete'] is not True
+            or not isinstance(draw['source'], str) or len(draw['source'].encode()) > 65536
+            or source_identity(draw['source']) != draw['source_sha256'] or draw['fitting']['outcome'] != outcome
+            or not math.isfinite(allowance) or not 0 < allowance <= 4.000001):
+        raise ValueError('changed or incomplete original fitting attempt')
+    native = draw.get('native') or {}
+    evidence = native.get('evidence') or {}
+    if evidence and (evidence['source_sha256'] != draw['source_sha256'] or evidence['prompt_sha256'] != visible.sha256):
+        raise ValueError('original source/prompt evidence mismatch')
+    return dict(case=case, position=position, seed=draw['seed'] % 2**32,
+                source=draw['source'], source_sha256=draw['source_sha256'], prompt_sha256=visible.sha256,
+                service_seconds=min(4., allowance), original_outcome=outcome, original_clock=clock,
+                original_native={k: v for k, v in native.items() if k in {
+                    'outcome', 'reason', 'elapsed_seconds', 'timing', 'searches', 'completed_bounds', 'phase'}},
+                original_resource=evidence.get('resource_sha256'))
+
+
 def extract(records,prompts,targets):
     visible={p['id']:p for p in prompts};attempts=[]
     if len(visible)!=len(prompts):raise ValueError('unique visible prompts required')
@@ -32,23 +54,7 @@ def extract(records,prompts,targets):
         if row['selections']['equal_budget'] is not None or len(details)!=8 or len(outcomes)!=8:
             raise ValueError('original no-selection eight-attempt portfolio required')
         for position,d in enumerate(details):
-            clock=d['fitting']['clock'];allowance=clock['deadline']-clock['admitted']
-            if (type(d['position']) is not int or d['position']!=position or type(d['seed']) is not int
-                    or not -(2**63)<=d['seed']<2**64 or d['generation']['complete'] is not True
-                    or not isinstance(d['source'],str) or len(d['source'].encode())>65536
-                    or source_identity(d['source'])!=d['source_sha256']
-                    or d['fitting']['outcome']!=outcomes[position]
-                    or not math.isfinite(allowance) or not 0<allowance<=4.000001):
-                raise ValueError('changed or incomplete original fitting attempt')
-            evidence=(d.get('native') or {}).get('evidence') or {}
-            if evidence and (evidence['source_sha256']!=d['source_sha256'] or evidence['prompt_sha256']!=vp.sha256):
-                raise ValueError('original source/prompt evidence mismatch')
-            attempts.append(dict(case=case,position=position,seed=d['seed']%2**32,
-                source=d['source'],source_sha256=d['source_sha256'],prompt_sha256=vp.sha256,
-                service_seconds=min(4.,allowance),original_outcome=d['fitting']['outcome'],
-                original_clock=clock,original_native={k:v for k,v in (d.get('native') or {}).items()
-                    if k in {'outcome','reason','elapsed_seconds','timing','searches','completed_bounds','phase'}},
-                original_resource=evidence.get('resource_sha256')))
+            attempts.append(original_attempt(case, d, position, outcomes[position], vp))
     return seal(dict(version='pac-fit-replay-packet/v1',prompts=[visible[k] for k in sorted(targets)],attempts=attempts))
 
 

@@ -108,7 +108,7 @@ def verify_details(records, inputs, evidence):
     return plan, workflow
 
 
-def candidate_pool(portfolio, *, reconstruct=False):
+def candidate_sources(portfolio, *, reconstruct=False):
     archive = portfolio['archive']
     rows = archive['retained'] + archive['omitted']
     if len(rows) > 64 or len(portfolio['details']) > 8:
@@ -137,9 +137,15 @@ def candidate_pool(portfolio, *, reconstruct=False):
                         add(sha, source)
                 continue
             add(sha, row['source'])
-    if set(found) != eligible:
+    sources = [dict(source=found[sha], source_sha256=sha) for sha in sorted(found)]
+    return sources, eligible - found.keys()
+
+
+def candidate_pool(portfolio, *, reconstruct=False):
+    sources, missing = candidate_sources(portfolio, reconstruct=reconstruct)
+    if missing:
         raise ValueError('missing eligible candidate source; subset replay forbidden')
-    return [dict(source=found[sha], source_sha256=sha) for sha in sorted(found)]
+    return sources
 
 
 def check_original(candidates, original):

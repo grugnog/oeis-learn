@@ -57,6 +57,9 @@ def test_ordered_replay_must_fit_change_the_action_and_run_once():
     assert decision(16, True)["action"] == "RETAIN_REFERENCE"
     assert decision(16) == decision(16)
     assert decision(16) == route(project(list(reversed(cases)), training_support=True, replay_budget_us=16))
+    pending = decision(None)
+    assert pending["action"] is None and pending["blocker"] == "REPLAY_RESERVATION_UNMEASURED"
+    assert (pending["replay_cases"], pending["replay_cost_us"]) == (2, 16)
 
 
 def test_incomplete_banks_and_band_witness_cannot_prove_proposal():
