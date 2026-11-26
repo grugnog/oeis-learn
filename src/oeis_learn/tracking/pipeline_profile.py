@@ -251,21 +251,27 @@ class Recorder:
             },
         )
 
+    def _observation(self):
+        try:
+            return self.snapshot()
+        except (OSError, ValueError, IndexError) as exc:
+            return {"time": time.monotonic(), "error": type(exc).__name__}
+
     def _collect(self):
         due = time.monotonic()
         with (self.output / "samples.jsonl").open("a") as handle:
             while not self.stop.is_set() and self.records < self.MAX_SAMPLES:
                 begin = time.thread_time()
-                try:
-                    row = self.snapshot()
+                row = self._observation()
+                if "error" not in row:
                     row["sample_lateness_seconds"] = max(0, time.monotonic() - due)
+                try:
                     payload = json.dumps(row, allow_nan=False) + "\n"
-                    measured = True
-                except (OSError, ValueError, IndexError) as exc:
-                    # Keep errors observable within the same record and byte budgets.
-                    payload = json.dumps({"time": time.monotonic(), "error": type(exc).__name__}) + "\n"
-                    measured = False
-                    self.missed += 1
+                except (ValueError, TypeError) as exc:
+                    row = {"time": time.monotonic(), "error": type(exc).__name__}
+                    payload = json.dumps(row) + "\n"
+                measured = "error" not in row
+                self.missed += int(not measured)
                 if self.sample_bytes is not None and len(payload.encode()) > self.sample_bytes:
                     self.collector_error = "telemetry sample exceeds prospective byte cap"
                     self.ready.set()
@@ -322,7 +328,7 @@ class Recorder:
     def phase(self, name, **metadata):
         depth = self.depth
         self.depth += 1
-        start = self.snapshot() if depth == 0 else dict(time=time.monotonic())
+        start = self._observation() if depth == 0 else dict(time=time.monotonic())
         error = None
         try:
             yield
@@ -331,7 +337,7 @@ class Recorder:
             raise
         finally:
             self.depth -= 1
-            finish = self.snapshot() if depth == 0 else dict(time=time.monotonic())
+            finish = self._observation() if depth == 0 else dict(time=time.monotonic())
             row = dict(
                 name=name,
                 start=start["time"],

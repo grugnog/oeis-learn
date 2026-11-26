@@ -419,6 +419,7 @@ def main():
                     instrumented=True,
                     render_node=nodes[0] if len(nodes) == 1 else None,
                     host_counters=False,
+                    sample_bytes=16 << 10,
                     planned_seconds=data.get("seconds", 24 * 3600) + 120,
                 ) as recorder,
                 recorder.phase(role),
