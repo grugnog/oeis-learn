@@ -157,7 +157,10 @@ def main():
     data = load(root / "data.json", maximum=128 << 20)
     if seal(data) != data or data["identity"] != request["data"]:
         raise ValueError("panel role data changed")
-    operations = {"draws": native_draws, "choose": calibration_choices, "score": calibration_scores}
+    from .progressive_round028_replay import replay_attempts
+    from .progressive_round028_selector import selector_choice, selector_score
+    operations = {"selector_choice": selector_choice, "selector_score": selector_score,
+                  "fit_replay": replay_attempts, "draws": native_draws, "choose": calibration_choices, "score": calibration_scores}
     began = time.monotonic_ns()
     with SynthesisClient(digest(["round028-panel-role", request["identity"]])) as client:
         native = client.runtime_identity("bigint-body/v1")

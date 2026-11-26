@@ -156,7 +156,6 @@ def selector_candidates(items, prompt, **kwargs):
     groups = {}
     for item in items:
         groups.setdefault(item['source_sha256'], []).append(item)
-    if len(groups)>64:raise ValueError('eight-attempt admitted source cap exceeded')
     return [_seal(groups[key], prompt, **kwargs) for key in sorted(groups)]
 
 
@@ -180,6 +179,7 @@ def _portfolio(
     retain_selector_candidates=False,
     component_proposals=None,
     independent_case_clock=False,
+    alternate_templates=False,
 ):
     if component_proposals is not None and (attempt_count != 8 or portfolio_seconds != 60 or template or mode != "correct"):
         raise ValueError("component search requires the matched eight-attempt/60s portfolio")
@@ -223,8 +223,8 @@ def _portfolio(
             result = component_proposals(position, deadline)
             source, complete, tokens = result["source"], result["complete"], result["tokens"]
             generated = result["generation_seconds"]
-        elif template:
-            source, tokens = _template_candidate(position)
+        elif template or (alternate_templates and position % 2 == 1):
+            source, tokens = _template_candidate(position // 2 if alternate_templates else position)
             complete = True
         else:
             from oeis_learn.decoder.bigint_generation import GenerationRequest
@@ -436,7 +436,10 @@ def _portfolio(
     return dict(
         **(dict(selector_candidates={key:selector_candidates(items, prompt, cost=cost,
             selection=selection, snapshot=snapshot, policies=pipeline)
-            for key,items in [('raw',raw),('rescue',rescued),('equal_budget',fitted)]})
+            for key,items in [('equal_budget',fitted)]},
+            proposal_sources={str(position):sorted({r['source_sha256'] for r in fitted
+                                                    if r['_attempt_ordinal'] == position})
+                              for position in range(len(details))})
             if retain_selector_candidates else {}),
         raw=_seal(raw, prompt, cost=cost, selection=selection, snapshot=snapshot, policies=pipeline),
         rescue=_seal(rescued, prompt, cost=cost, selection=selection, snapshot=snapshot, policies=pipeline),

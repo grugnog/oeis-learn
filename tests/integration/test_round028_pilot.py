@@ -426,9 +426,12 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
         "hardware_qualification",
         lambda *a: {p: {"image": digest(p)} for p in ("cpu", "hip")},
     )
-    monkeypatch.setattr(
-        pilot, "accept_pilot", lambda *a: {"installed": digest("on exposed fixtures")}
-    )
+    def accept_fixture(root, folder, store, area, *rest):
+        from oeis_learn.pipeline_validation.preparation_recovery import retain
+        scale = seal({"cases":160, "candidates_bytes":100, "scored_bytes":50})
+        retain(area / "qualification-scale.json", scale)
+        return {"installed": digest("on exposed fixtures"), "resident_scale":scale["identity"]}
+    monkeypatch.setattr(pilot, "accept_pilot", accept_fixture)
     monkeypatch.setattr(probe, "candidate_image", lambda *a: (digest(a[-1]), 0, True))
     monkeypatch.setattr(probe, "physical_scope", lambda h, p, **scope: digest(p))
     monkeypatch.setattr(pilot, "checkpoint_inputs", lambda *a: ([], weights))
@@ -548,6 +551,24 @@ def test_child_owner_runs_three_looks_reuses_boundaries_and_leaves_parent_unchan
         lambda *a, **kw: SimpleNamespace(policy={"free_disk_floor_bytes": 0}),
     )
     initial = original.store.tip
+    with pytest.raises(pilot.PilotDeficit) as blocked:
+        pilot.run_pilot(SimpleNamespace(action="qualify-pilot"), *args[1:-1],
+            lambda *a, **kw: SimpleNamespace(policy={"free_disk_floor_bytes":pilot.space(tmp_path)["free_bytes"] + (1<<20)}))
+    assert blocked.value.code == "PILOT_STORAGE_DEFICIT" and blocked.value.counts["deficit_bytes"] > 0 and not calls
+    for _ in range(2):
+        qualified, code = pilot.run_pilot(SimpleNamespace(action="qualify-pilot"), *args[1:])
+        assert code == 0 and qualified["mechanical_status"] == "QUALIFIED"
+        assert qualified["worker"] == args[4] and qualified["scale"]["cases"] == 160
+        assert not (original.folder / pilot.AREA / "accounting").exists() and not calls
+    with monkeypatch.context() as limited:
+        limited.setattr(pilot, "AREA", pilot.AREA+"-time-deficit")
+        limited.setattr(pilot, "SHIFT_US", qualified["projected_us"] - 1)
+        with pytest.raises(pilot.PilotDeficit) as unfunded:
+            pilot.run_pilot(*args)
+        assert unfunded.value.code == "PILOT_ROLE_TIME_DEFICIT"
+        prices = unfunded.value.counts
+        assert prices["deficit_us"] == 1 and prices["next_role_us"] < prices["remaining_us"]
+        assert not calls
     result, code = pilot.run_pilot(*args)
     expected_action = "ENDPOINT_NOT_ADMITTED" if lost_update else "RETAIN_REFERENCE"
     assert code == 0 and result["receipt"]["next_action"] == expected_action

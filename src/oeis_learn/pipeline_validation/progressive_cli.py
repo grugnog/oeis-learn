@@ -27,6 +27,8 @@ CPU_TESTS = (
     "tests/integration/test_round028_terminal.py",
     "tests/integration/test_round028_pilot.py",
     "tests/integration/test_round028_pilot_resume.py",
+    "tests/integration/test_round028_branches.py",
+    "tests/integration/test_round028_convergence.py",
     "tests/unit/test_round028_training.py",
     "tests/unit/test_environment_preflight.py",
     "tests/unit/test_oeis_corpus.py",
@@ -150,7 +152,8 @@ def register(commands):
     group = commands.add_parser("discovery", help="bounded spec 013 discovery operations")
     operations = group.add_subparsers(dest="operation", required=True)
     round028 = operations.add_parser("round028", help="registered learned program search")
-    round028.add_argument("--action", choices=("preflight", "audit", "rehearse", "recover-rehearsal", "panels", "timing", "finalize", "pilot", "pilot-status", "run", "status", "verify"), required=True)
+    round028.add_argument("--action", choices=("preflight", "audit", "rehearse", "recover-rehearsal", "panels", "timing", "finalize", "pilot", "qualify-pilot", "pilot-status", "run", "status", "verify"), required=True)
+    round028.add_argument("--replay-budget-seconds", type=int, help="CPU allowance for the single discriminating audit replay")
     round028.add_argument("--producer-revision", help="full Git SHA that measured the saved rehearsal")
     authority = round028.add_mutually_exclusive_group(required=True)
     authority.add_argument("--workspace", help="absolute physical round027 donor workspace")

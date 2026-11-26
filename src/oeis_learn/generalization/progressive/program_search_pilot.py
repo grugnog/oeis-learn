@@ -94,7 +94,7 @@ def family_counts(roster, outcomes, arms):
     ]
 
 
-def frozen_family_sizes(graph, registration, private_freeze):
+def frozen_family_sizes(graph, registration, private_freeze, prices):
     """Project only archive-local group numbers and sizes before opening scores."""
     sizes = {}
     for target, looks in graph.items():
@@ -103,7 +103,8 @@ def frozen_family_sizes(graph, registration, private_freeze):
         counts = Counter((r["stratum"], numbers[r["group"]]) for r in rows)
         sizes[target] = [dict(stratum=s, group=g, size=n) for (s, g), n in sorted(counts.items())]
     return seal(dict(version="round028-pilot-family-freeze/v1", registration=registration,
-                     private_freeze=private_freeze, sizes=sizes))
+                     private_freeze=private_freeze, sizes=sizes,
+                     prices=sorted([block, role, price] for (block, role),price in prices.items())))
 
 
 def summary(cells, number):
@@ -203,6 +204,8 @@ def verify_pilot(path):
         zipfile.ZipFile(io.BytesIO(wrapper.read("round028.zip"))) as evidence,
     ):
         panel = json.loads(evidence.read("panels.json"))
+        rehearsal = json.loads(evidence.read("rehearsal.json"))
+        timing = json.loads(evidence.read("timing.json"))
     fields = {
         "version",
         "identity",
@@ -239,7 +242,10 @@ def verify_pilot(path):
         raise ValueError("invalid pilot registration or endpoint")
     if current:
         design = doc["design"]
-        if (set(design) != {"version", "registration", "identity", "private_freeze", "sizes"}
+        from .program_search_timing import public_pilot_prices
+        prices = public_pilot_prices(panel, rehearsal, timing)
+        if (set(design) != {"version", "registration", "identity", "private_freeze", "sizes", "prices"}
+                or design["prices"] != sorted([b, r, p] for (b,r),p in prices.items())
                 or design != seal(design) or design["identity"] != doc["freeze"]
                 or design["version"] != "round028-pilot-family-freeze/v1"
                 or design["registration"] != doc["registration"]["identity"]
@@ -332,6 +338,8 @@ def verify_pilot(path):
         paired = paired_generator_exposure(*(cuts[k] for k in ARMS)) == "MATCHED"
         counts = look["counts"]
         contrasted = summary(counts, count)
+        if any(sum(c["counts"].values()) > (2 if count == 3 else 1) for c in counts):
+            raise ValueError("family size exceeds the registered allocation")
         if current:
             observed = [dict(stratum=c["stratum"], group=c["group"], size=sum(c["counts"].values())) for c in counts]
             if observed != design["sizes"][str(target)]:
@@ -401,7 +409,9 @@ def verify_pilot(path):
         research_gpu_us=doc["research_gpu_us"],
         research_role_us=doc["research_role_us"],
         endpoint=doc["looks"][-1]["contrasts"] if targets[-1] == LOOKS[-1] else None,
-        **({"unmeasured_looks": list(LOOKS[len(targets):])} if current else {}),
+        **({"unmeasured_looks": list(LOOKS[len(targets):]),
+            "forecast_without_sharing_us": sum(prices.values()),
+            "forecast_with_observed_sharing_us": sum(prices.values()) - (sum(prices[(ARMS[1]+"-0",role)] for role in ("search","score")) if doc["looks"][0]["zero_reused"] else 0)} if current else {}),
         assessment="SEALED",
         repeat_funded=False,
     )

@@ -105,6 +105,26 @@ def pilot_prices(graph, strata, timing, rehearsal, plan):
     return prices
 
 
+def public_pilot_prices(panels, rehearsal, timing):
+    from .program_search_pilot import ARMS, LOOKS
+    plan = parent_plan(panels, rehearsal)
+    graph, strata = {}, {}
+    for target in LOOKS:
+        counts = dict(plan["probes"])
+        if target == LOOKS[-1]:
+            counts = {s: cell["cases"] for split in ("development", "development_retention")
+                      for s, cell in panels["summary"]["panels"][split].items()}
+        members = []
+        for s, size in counts.items():
+            for i in range(size):
+                key = f"{s}-{i}"
+                strata[key] = s
+                members.append(dict(task=key))
+        arms = (*ARMS, "incumbent") if target == LOOKS[-1] else ARMS
+        graph[str(target)] = {arm: dict(members=members) for arm in arms}
+    return pilot_prices(graph, strata, timing, rehearsal, plan)
+
+
 def remaining_price(prices, completed, current, estimate):
     return estimate + sum(price for key, price in prices.items() if key != current and key not in completed)
 

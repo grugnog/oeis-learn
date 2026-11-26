@@ -329,6 +329,9 @@ def recovery_suite(output):
         "tests/integration/test_progressive_recovery_updates.py::test_matched_generator_updates_restore_the_same_rows_clocks_and_initial_weights",
         "tests/integration/test_round028_timing.py::test_timing_role_boundaries_and_original_budget_survive_interruption",
         "tests/integration/test_round028_pilot.py",
+        "tests/integration/test_round028_pilot_resume.py",
+        "tests/integration/test_round028_convergence.py",
+        "tests/integration/test_round028_branches.py",
     ]
     report = output / "tests.xml"
     with (output / "tests.log").open("wb") as log:

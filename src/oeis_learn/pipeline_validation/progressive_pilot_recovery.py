@@ -237,27 +237,66 @@ def qualification_role(runner, role, data, *, seconds, inputs):
     """Retry only exposed qualification work after proving termination of the original."""
     block = data["block"]
     ordinal = 0
+    pending = data.get("rows", [])
+    segments = []
+    debits = []
     while True:
         name = block if ordinal == 0 else f"{block}-retry-{ordinal}"
-        request = seal(dict(data, block=name))
+        request = dict(data, block=name)
+        allowance = seconds
+        if role == "search" and segments:
+            request.update(rows=pending, seconds=resident_seconds(len(pending)))
+            allowance = request["seconds"] + 120
+        request = seal(request)
         previous = interrupted(runner, role, request, inputs)
         if previous is None:
-            return runner(role, request, seconds=seconds, inputs=inputs)
+            result = runner(role, request, seconds=allowance, inputs=inputs)
+            if not segments:
+                return result
+            value = read_bound_record(runner.last_output, result["candidates"], version="discovery-candidates/v1")
+            segments.append(value)
+            break
         output, lease, wall = previous
         failures = runner.area / "qualification-costs"
         debit = seal(dict(request=request["identity"], role=role, lease_us=lease, wall_us=wall))
         retain(failures / f"{name}-{role}.json", debit)
+        debits.append(debit)
         if role == "search":
             part, unopened, unresolved = recover_choices(
                 runner.area, output, name, request["rows"], request["weights"],
                 request["recipe"], request["arm"], request["target"], request["inference_seed"]
             )
-            if part and not unopened and not unresolved:
-                ref, path, value, _ = part
-                runner.last_output = path.parent
-                runner.last_producer = seal(dict(debit=debit["identity"], recovered=value["identity"]))
-                return {"candidates": dict(ref, path=path.name)}
+            if part:
+                segments.append(part[2])
+                missing = {p["id"] for p in unopened} | set(unresolved)
+                pending = [p for p in pending if p["id"] in missing]
+                if not pending:
+                    break
         ordinal += 1
+    # Join the verified per-case boundaries. An already sealed choice is never drawn again.
+    first = segments[0]
+    records, clocks = {}, {}
+    for part in segments:
+        require(all(part[k] == first[k] for k in ("model", "model_control", "checkpoint", "recipe", "methods"))
+                and not records.keys() & part["records"].keys()
+                and part["clock"]["inference_seed"] == data["inference_seed"]
+                and part["clock"]["policy"] == first["clock"]["policy"], "qualification segment changed")
+        records.update(part["records"])
+        clocks.update({row["prompt"]: row for row in part["clock"]["clocks"]})
+    ordered = sorted(data["rows"], key=lambda p: p["id"])
+    require(set(records) == set(clocks) == {p["id"] for p in ordered}, "incomplete qualification recovery")
+    clock = seal(dict(first["clock"], expected_portfolios=len(clocks), missing_portfolios=0,
+        cost_complete=all(c["cost_complete"] for c in clocks.values()),
+        terminations=dict(Counter(c["termination"] for c in clocks.values())),
+        attempts=digest(sorted(clocks.items())), clocks=[clocks[k] for k in sorted(clocks)]))
+    candidate = seal(dict(first, clock=clock, records=records, prompts=digest(ordered),
+                          elapsed_us=sum(s["elapsed_us"] for s in segments), counts={"recovered_portfolios":len(records)}))
+    dest = runner.area / "recovered" / (block + "-complete")
+    retain(dest / "candidates.json", candidate)
+    runner.last_output = dest
+    runner.last_producer = seal(dict(recovered=candidate["identity"], segments=[p["identity"] for p in segments],
+                                      debits=[d["identity"] for d in debits], elapsed_us=candidate["elapsed_us"]))
+    return {"candidates": reference(dest, dest / "candidates.json")}
 
 
 def measured_score(run, settle, cpu, data, mounts):

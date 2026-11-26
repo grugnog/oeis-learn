@@ -33,6 +33,12 @@ def read_result(path, step, exit_code):
             or value.get("mechanical_status") == "COMPLETE" and value.get("reason") == "MATCHED_REHEARSAL_MEASURED"
             and all(isinstance(value.get(k), dict) and value[k] for k in ("cpu", "hip", "forecast"))):
         raise ValueError("successful rehearsal lacks its measurements")
+    if exit_code == 0 and step == "qualification":
+        from oeis_learn.generalization.progressive.contracts import seal
+        scale = value.get("scale", {})
+        if (value.get("mechanical_status") != "QUALIFIED" or value.get("scientific_status") not in {"PILOT_UNMEASURED", "PILOT_INCOMPLETE", "PILOT_MEASURED"}
+                or scale != seal(scale) or scale.get("cases") != 160):
+            raise ValueError("missing full-size physical qualification")
     if exit_code == 0 and step == "verify-copied" and value.get("status") != "VERIFIED":
         raise ValueError("missing copied archive verification")
     return value
@@ -96,7 +102,7 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
 
     destination = confined(workspace, "run-state/discovery-tools")
     rehearsal = action == "collect-rehearsal"
-    prefix = {"collect-pilot":"round028-pilot-", "collect-audit":"round028-cpu-", "collect-rehearsal":"round028-rehearsal-",
+    prefix = {"collect-pilot-qualification":"round028-qualification-", "collect-pilot":"round028-pilot-", "collect-audit":"round028-cpu-", "collect-rehearsal":"round028-rehearsal-",
               "collect-panels":"round028-panels-", "collect-timing":"round028-timing-", "collect-final":"round028-final-", "collect-receipts":"round028-receipts-"}[action]
     folder = Path(tempfile.mkdtemp(prefix=prefix, dir=destination))
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONNOUSERSITE="1")
@@ -158,6 +164,17 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
         return process.returncode, raw
 
     root = ["--workspace", str(workspace)]
+    if action == "collect-pilot-qualification":
+        code, raw = run("qualification", "qualify-pilot", *root)
+        result = folder / "round028-pilot-qualification.zip"
+        public = {k:raw[k] for k in ("registration","worker","acceptance","scale","projected_us","registered_us",
+                  "costs","reason","deficit","error_type","failure_locations","mechanical_status","scientific_status")
+                  if k in raw}
+        with zipfile.ZipFile(result, "x", zipfile.ZIP_DEFLATED) as bundle:
+            bundle.writestr("qualification.json", json.dumps(public, sort_keys=True))
+            bundle.writestr("summary.json", json.dumps(summary, sort_keys=True))
+        print(f"Qualification exit {code}. Return this file:\n{result}", flush=True)
+        return code
     if action == "collect-pilot":
         from oeis_learn.pipeline_validation.progressive_round028_pilot import SHARE
         from oeis_learn.generalization.progressive.program_search_pilot import verify_pilot

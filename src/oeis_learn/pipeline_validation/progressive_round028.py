@@ -329,7 +329,7 @@ def execute(args, source, *, host_factory=None):
         with RunStore.owner(folder):
             store = audit_store(folder, revision)
             registration = store.campaign
-            if args.action == "pilot":
+            if args.action in {"pilot", "qualify-pilot"}:
                 from .progressive_round028_pilot import AREA as PILOT_AREA, PilotDeficit, cost_status, run_pilot
                 try:
                     return run_pilot(args, source, root, folder, revision, store, host_factory)
@@ -433,8 +433,14 @@ def execute(args, source, *, host_factory=None):
                     return dict(observed,mechanical_status="BLOCKED",next_action=observed["reason"]), 2
                 return observed, code
             result = audit_command(root, folder, store, registration)
+            if result["decision"].get("blocker") == "REPLAY_RESERVATION_UNMEASURED":
+                from .progressive_round028_replay import diagnostic_replay
+                result = diagnostic_replay(args, source, root, folder, revision, store, host_factory, result)
             if result["decision"].get("blocker"):
                 return result, 2
+            if args.action == "run" and result["decision"]["action"] == "CPU_SELECTOR":
+                from .progressive_round028_selector import selector_command
+                return selector_command(args, source, root, folder, revision, store, host_factory, result)
             if args.action in {"run", "rehearse"} and result["decision"]["action"] == "MATCHED_GENERATOR":
                 from .progressive_round028_rehearsal import rehearse
                 observed, code = rehearse(args, root, source, folder, store, revision, result,

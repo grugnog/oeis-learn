@@ -379,6 +379,7 @@ def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, w
     from .pilot_clocks import CORRECT_FULL
     from .progressive_round028 import reopen
     from .progressive_round028_timing import original_channels, timing_cases
+    from .progressive_pilot_recovery import qualification_role, resident_seconds
 
     checks = {}
     entry = package["stream"]["pairs"][0]
@@ -415,13 +416,11 @@ def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, w
             rows=prompts,
             recipe=recipe,
             weights=weight,
-            seconds=180,
+            seconds=resident_seconds(len(prompts)),
         )
     )
     progress("accept_frozen_pilot", role="search")
-    from .progressive_pilot_recovery import qualification_role
-
-    output = qualification_role(gpu, "search", data, seconds=300, inputs=[(weights, "/work/inputs/weights.pt")])
+    output = qualification_role(gpu, "search", data, seconds=data["seconds"] + 120, inputs=[(weights, "/work/inputs/weights.pt")])
     candidate = output["candidates"]
     generated = read_bound_record(gpu.last_output, candidate, version="discovery-candidates/v1")
     checks["search"] = gpu.last_producer["identity"]
@@ -429,8 +428,8 @@ def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, w
     progress("accept_frozen_pilot", role="score")
     out = qualification_role(
         cpu, "score",
-        seal(dict(block="qualify-resident-search", rows=truth, candidates=ref, seconds=180)),
-        seconds=300,
+        seal(dict(block="qualify-resident-search", rows=truth, candidates=ref, seconds=data["seconds"])),
+        seconds=data["seconds"] + 120,
         inputs=[(checked_file(gpu.last_output, candidate), "/work/inputs/candidates.json")],
     )
     scored = read_bound_record(cpu.last_output, out["scores"], version="discovery-scoring/v1")
@@ -440,27 +439,68 @@ def accept_pilot(root, folder, store, area, cpu, gpu, package, freeze, recipe, w
     )
     require(closed, "candidate-bound exposed qualification portfolio did not close")
     checks["score"] = cpu.last_producer["identity"]
+
+    # Use only previously exposed historical terms for the cold, endpoint-sized
+    # qualification. Alias repeated inputs so all 160 registered clocks are exercised.
+    from oeis_learn.generalization.progressive.runtime_reservation import TRAINING_SECONDS
+    exposed, exposed_truth = original_channels(root, timing_cases(historical))
+    exposed = [dict(exposed[i % len(exposed)], id=f"qualification-{i:03d}") for i in range(160)]
+    exposed_truth = [dict(exposed_truth[i % len(exposed_truth)], id=f"qualification-{i:03d}") for i in range(160)]
+    progress("accept_frozen_pilot", role="full_size_learner")
+    training = freeze["training"]
+    trained = qualification_role(gpu, "train", seal(dict(
+        block="qualify-zero-state", arm=ARMS[0], target=0, previous=None, resume_charge=None,
+        registration=freeze["registration"], training=dict(training, path="inputs/training.json"),
+        package=package["identity"])), seconds=TRAINING_SECONDS,
+        inputs=[(area / training["path"], "/work/inputs/training.json")])
+    _, weights = checkpoint_inputs(gpu.last_output, trained)
+    weight = dict(trained["weights"], path="inputs/weights.pt")
+    seconds = resident_seconds(len(exposed))
+    seed = freeze["seeds"]["initialization"]
+    material = seal(dict(block="qualify-resident-endpoint", arm=ARMS[0], target=LOOKS[-1],
+                         inference_seed=seed, rows=exposed, recipe=package["profile"],
+                         weights=weight, seconds=seconds))
+    generated = qualification_role(gpu, "search", material, seconds=seconds+120,
+                                  inputs=[(weights, "/work/inputs/weights.pt")])
+    ref = generated["candidates"]
+    candidate_path = checked_file(gpu.last_output, ref)
+    value = read_bound_record(gpu.last_output, ref, version="discovery-candidates/v1")
+    search_worker_us = gpu.last_producer["elapsed_us"]
+    search_wall_us = getattr(gpu, "last_wall_us", None) if "recovered" not in gpu.last_producer else None
+    progress("accept_frozen_pilot", role="full_size_score")
+    scored = qualification_role(cpu, "score", seal(dict(block=material["block"], rows=exposed_truth,
+                                candidates=dict(ref, path="inputs/candidates.json"), seconds=seconds)),
+                                seconds=seconds+120, inputs=[(candidate_path, "/work/inputs/candidates.json")])
+    answer = read_bound_record(cpu.last_output, scored["scores"], version="discovery-scoring/v1")
+    _, closed = score_projection(value, answer, ref["sha256"], exposed, weight, package["profile"],
+                                 CORRECT_FULL, inference_seed=seed)
+    require(closed, "exposed endpoint-sized learner qualification incomplete")
+    clocks = value["clock"]["clocks"]
+    scale = seal(dict(cases=len(clocks), candidates_bytes=ref["bytes"], scored_bytes=scored["scores"]["bytes"],
+                      search_us=value["elapsed_us"], search_allowance_us=seconds*1_000_000,
+                      search_margin_us=seconds*1_000_000-value["elapsed_us"],
+                      slowest_case_us=max(round((c["finish"]-c["start"])*1e6) for c in clocks),
+                      search_worker_us=search_worker_us, search_supervisor_us=search_wall_us,
+                      search_supervisor_allowance_us=(seconds+120)*1_000_000,
+                      search_supervisor_margin_us=None if search_wall_us is None else (seconds+120)*1_000_000-search_wall_us,
+                      score_supervisor_us=getattr(cpu, "last_wall_us", None),
+                      score_us=cpu.last_producer["elapsed_us"], score_allowance_us=(seconds+120)*1_000_000,
+                      score_margin_us=(seconds+120)*1_000_000-cpu.last_producer["elapsed_us"], candidate=ref["sha256"],
+                      scores=scored["scores"]["sha256"]))
+    retain(area / "qualification-scale.json", scale)
+    checks["resident_scale"] = scale["identity"]
     return checks
 
 
-def check_space(area, host, checkpoint_bytes):
-    measured = space(area)
-    # Six pinned model cuts and one simultaneous save/restore. Include the observed original report workload.
-    needed = (
-        host.policy["free_disk_floor_bytes"] + 7 * checkpoint_bytes + 2 * (209010758 + 56568256)
-    )
-    inodes = 7 * 13 + 2 * 160 * 8 * 4 + 352
-    if measured["free_bytes"] < needed or measured["free_inodes"] < inodes:
-        raise PilotDeficit(
-            "PILOT_STORAGE_DEFICIT",
-            required_bytes=needed,
-            free_bytes=measured["free_bytes"],
-            deficit_bytes=max(0, needed - measured["free_bytes"]),
-            required_inodes=inodes,
-            free_inodes=measured["free_inodes"],
-            deficit_inodes=max(0, inodes - measured["free_inodes"]),
-        )
-    return dict(**measured, required_bytes=needed, required_inodes=inodes)
+def check_space(area, host, checkpoint_bytes, *, scale, share, cached=False, outstanding=None):
+    from .progressive_pilot_capacity import capacity
+
+    records = capacity(area, host, checkpoint_bytes, scale=scale, share=share, cached=cached, measure=space,
+                       outstanding=outstanding)
+    for record in records:
+        if record["deficit_bytes"] or record["deficit_inodes"]:
+            raise PilotDeficit("PILOT_STORAGE_DEFICIT", **record)
+    return records
 
 
 def score_projection(generated, scored, candidates_sha, prompts, weights, recipe, policy, *, inference_seed=None):
@@ -482,6 +522,9 @@ def score_projection(generated, scored, candidates_sha, prompts, weights, recipe
         and clock["policy"] == policy
         and clock["work"] == generated["model"]
         and clock.get("inference_seed") == inference_seed
+        and clock.get("source", digest(recipe)) == digest(recipe)
+        and clock.get("expected_portfolios", len(prompts)) == len(prompts)
+        and clock.get("missing_portfolios", 0) == 0
         and type(clock["cost_complete"]) is bool
         and clock["cost_complete"] == all(r["cost_complete"] for r in clock["clocks"])
         and len(clock["clocks"]) == len(prompts)
@@ -524,7 +567,7 @@ def cost_status(area):
     )
 
 
-def publication_inputs(area):
+def publication_inputs(area, root=None):
     paths = [
         "registration.json",
         "freeze.json",
@@ -558,14 +601,19 @@ def publication_inputs(area):
                 read_bound_record(output, result["result"][field])
         if "checkpoint" in result.get("result", {}):
             checkpoint_inputs(output, result["result"])
+    if root is not None:
+        frozen = load(confined(area, "freeze.json"))
+        checked_file(root, frozen["reference"])
+        checked_file(root, frozen["roster_source"])
+        checked_file(area, frozen["training"])
     leaves = []
     for pattern in ("training*.json", "predecessor.json", "reservations/*.json",
-                    "qualification-costs/*.json", "recovered/**/*", "roles/*/request.json",
+                    "qualification-costs/*.json", "qualification-scale.json", "recovered/**/*", "roles/*/request.json",
                     "roles/*/data.json", "roles/*/attempt-*/start.json", "roles/*/attempt-*/end.json",
                     "roles/*/attempt-*/output/producer.json", "roles/*/attempt-*/output/case-boundaries/**/*",
                     "roles/*/attempt-*/output/accounting/**/*", "roles/*/attempt-*/output/checkpoint/**/*",
                     "roles/*/attempt-*/output/training-origin.json", "roles/*/attempt-*/output/scored/scores.json",
-                    "roles/*/attempt-*/output/generation/candidates.json"):
+                    "roles/*/attempt-*/output/generation/candidates.json", "roles/*/attempt-*/output/generation/attempts/**/*"):
         leaves.extend(reference(area, file) for file in sorted(area.glob(pattern)) if file.is_file())
     return dict(boundaries=files, private_files=len(leaves), private_digest=digest(leaves))
 
@@ -577,6 +625,15 @@ def published_pilot(receipt):
         archive=SHARE,
         receipt=receipt,
     ), 0
+
+
+def qualification_result(area, registration, acceptance, projected, scientific_status="PILOT_UNMEASURED"):
+    scale = load(confined(area, "qualification-scale.json"))
+    require(scale == seal(scale) and scale["identity"] == acceptance["checks"]["resident_scale"]
+            and scale["cases"] == 160, "qualification scale or acceptance differs")
+    return dict(mechanical_status="QUALIFIED", scientific_status=scientific_status,
+                registration=registration["identity"], worker=registration["candidate"], acceptance=acceptance["identity"],
+                scale=scale, projected_us=projected, registered_us=SHIFT_US), 0
 
 
 def registered_pilot_source(root, controller_source, controller_revision, area, parent):
@@ -668,13 +725,18 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             boundary == seal(boundary)
             and boundary["registration"] == registration["identity"]
             and boundary["original_receipt"] == parent["workstation"]["identity"]
-            and boundary["evidence"] == publication_inputs(area)
+            and boundary["evidence"] == publication_inputs(area, root)
             and boundary["archive"] == reference(folder, archive),
             "changed pilot publication boundary",
         )
         receipt = verify_pilot(archive)
         require(receipt["report"] == boundary["report"], "published pilot receipt differs")
         progress("complete", report=receipt["report"], action=receipt["next_action"])
+        if getattr(args, "action", None) == "qualify-pilot":
+            freeze = load(confined(area, "freeze.json"))
+            acceptance = load(confined(area, "acceptance.json"))
+            return qualification_result(area, registration, acceptance, sum(r[2] for r in freeze["forecast"]),
+                                        published_pilot(receipt)[0]["scientific_status"])
         return published_pilot(receipt)
     progress("check_original_inputs")
     supply, refs, d_recipe, d_weights, panel_area = original_inputs(root, folder, store)
@@ -718,7 +780,8 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
     prices = pilot_prices(graph, strata, timing, rehearsal, plan)
     completed = set()
     largest = max(v["checkpoint_bytes"] for v in old_arms.values())
-    check_space(area, host, largest)
+    space_args = dict(scale=rehearsal["original_scale"], share=archive.parent)
+    check_space(area, host, largest, outstanding=set(prices), **space_args)
     progress("qualify_candidate")
     qualified = hardware_qualification(
         args, root, source, folder, store, revision, host_factory, area
@@ -742,6 +805,8 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             training=training,
             panels=digest(panels),
             roster=reference(panel_area, panel_area / "supply.json"),
+            roster_source=reference(root, panel_area / "supply.json"),
+            predecessor=load(area / "predecessor.json")["registration"] if (area / "predecessor.json").is_file() else None,
             graph=graph,
             forecast=sorted([block, role, price] for (block, role), price in prices.items()),
             stream=package["stream"]["identity"],
@@ -752,9 +817,10 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
         )
     )
     retain(area / "freeze.json", freeze)
-    design = frozen_family_sizes(graph, registration["identity"], freeze["identity"])
+    design = frozen_family_sizes(graph, registration["identity"], freeze["identity"], prices)
     retain(area / "public-freeze.json", design)
     progress("accept_frozen_pilot")
+    check_space(area, host, largest, outstanding=set(prices), **space_args)
     checks = accept_pilot(
         root, folder, store, area, cpu, gpu, package, freeze, d_recipe, d_weights, progress
     )
@@ -798,6 +864,9 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
             )
         )
         retain(path, acceptance)
+    if getattr(args, "action", None) == "qualify-pilot":
+        progress("qualified", acceptance=acceptance["identity"])
+        return qualification_result(area, registration, acceptance, sum(prices.values()))
     budgets = BudgetJournal(
         area / "accounting",
         registration["identity"],
@@ -846,7 +915,13 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
 
     def run(runner, role, data, mounts=()):
         # Persist original time reservations. Completed boundaries can be reverified after a reboot.
-        check_space(area, host, largest)
+        assignment = area / "assignments" / (data["block"] + "-" + role + ".json")
+        cached = False
+        if assignment.is_file():
+            claim = load(confined(area, assignment))
+            require(claim == seal(claim), "changed capacity assignment")
+            cached = (confined(area, "roles/" + claim["request"][7:], exists=False) / "boundary.json").is_file()
+        check_space(area, host, largest, cached=cached, outstanding=set(prices)-completed, **space_args)
         key = data["block"] + "/" + role + "/0"
         saved = area / "reservations" / (data["block"] + "-" + role + ".json")
         if saved.exists():
@@ -1023,7 +1098,7 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
                 version="round028-pilot-publication/v1",
                 registration=registration["identity"],
                 original_receipt=parent["workstation"]["identity"],
-                evidence=publication_inputs(area),
+                evidence=publication_inputs(area, root),
                 archive=reference(folder, archive),
                 report=receipt["report"],
             )
