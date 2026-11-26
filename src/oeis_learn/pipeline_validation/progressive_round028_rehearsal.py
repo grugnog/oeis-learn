@@ -137,7 +137,11 @@ def measure_stage(host, source, folder, base_path, stage, image, request, *, inv
                           lease=reference(base, output / "gpu-lease.json") if stage == "hip" else None))
         validate_boundary(base, request, value)
         retain(receipt, value)
-    value = load(receipt)
+    return read_stage(base, request, reused=reused)
+
+
+def read_stage(base, request, *, reused):
+    value = load(confined(base, "receipt.json"))
     producer, elapsed = validate_boundary(base, request, value)
     spent = 0
     unknown = 0
@@ -190,6 +194,22 @@ def validate_boundary(root, request, value):
                        for v in (a, b))):
             raise ValueError("matched physical update and exact restore required")
     return producer, end["elapsed_us"]
+
+
+CPU_MEASURES = ("gradient_l2", "gradient_loss", "gradient_probe_rows", "native_verified_terms", "parameter_bytes")
+ARM_MEASURES = ("charged_tokens", "update_us", "preference_rows", "save_us", "restore_us",
+                "replay_us", "checkpoint_bytes", "checkpoint_files", "full_restore", "actual_update")
+TELEMETRY = ("samples", "readable_samples", "covered_us", "busy_us", "role_wall_us")
+
+
+def stage_measurements(phase, producer, cost, *, image, build_us, image_reused):
+    details = producer["details"]
+    common = dict(cost, image=image, build_us=build_us, image_reused=image_reused, producer_us=producer["elapsed_us"])
+    if phase == "cpu":
+        return dict(common, **{k:details[k] for k in CPU_MEASURES})
+    arms = {arm:{k:details["arms"][arm][k] for k in ARM_MEASURES} for arm in ("ordinary", "first_divergence")}
+    return dict(common, arms=arms, matched=True, peak_device_bytes=details["peak_device_bytes"],
+                telemetry={k:details["telemetry"][k] for k in TELEMETRY})
 
 
 def training_forecast(arms):
@@ -281,19 +301,11 @@ def rehearse(args, root, source, folder, store, revision, audit_result, *, host_
                                 physical=physical))
             producer, cost = measure_stage(host, source, area, base_path, phase, image, request, invoke=invoke)
             parent = producer["identity"]
-            details = producer["details"]
-            common = dict(cost, image=image, build_us=build_us, image_reused=build_reused, producer_us=producer["elapsed_us"])
-            if phase == "cpu":
-                output["cpu"] = dict(common, **{k: details[k] for k in ("gradient_l2", "gradient_loss",
-                                     "gradient_probe_rows", "native_verified_terms", "parameter_bytes")})
-            else:
-                arms = {k: {n: a[n] for n in ("charged_tokens", "update_us", "preference_rows", "save_us", "restore_us",
-                        "replay_us", "checkpoint_bytes", "checkpoint_files", "full_restore", "actual_update")}
-                        for k, a in details["arms"].items()}
+            output[phase] = stage_measurements(phase, producer, cost, image=image, build_us=build_us,
+                                               image_reused=build_reused)
+            if phase == "hip":
                 output["gpu_dispatches"] = int(not cost["reused"])
-                output["hip"] = dict(common, arms=arms, matched=True, peak_device_bytes=details["peak_device_bytes"],
-                                     telemetry=details["telemetry"])
-                output["forecast"] = training_forecast(arms)
+                output["forecast"] = training_forecast(output["hip"]["arms"])
             output["filesystem"] = space(folder)
         except Exception as exc:
             # Only aggregates and code locations travel. Preserve raw diagnostics on the workstation.

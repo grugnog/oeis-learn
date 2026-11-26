@@ -99,7 +99,8 @@ def test_workstation_rehearsal_reuses_an_audit_and_checks_cpu_before_the_device(
                          update_us=[323, 411], actual_update=True, full_restore=True, save_us=20, restore_us=29,
                          replay_us=33, checkpoint_bytes=22, checkpoint_files=4)
             atomic_write(output / "gpu-lease.json", {"elapsed_us": 1})
-            details = dict(peak_device_bytes=100, telemetry={}, arms={
+            details = dict(peak_device_bytes=100, telemetry=dict(samples=0, readable_samples=0, covered_us=0,
+                           busy_us=None, role_wall_us=20), arms={
                 "ordinary": dict(scope, final="a", preference_rows=0),
                 "first_divergence": dict(scope, final="b", preference_rows=1)})
         else:
@@ -128,3 +129,23 @@ def test_unavailable_gpu_samples_reduce_coverage_and_preserve_unknown_busy_time(
     assert result["samples"] == 5 and result["covered_us"] == 1_000_000 and result["busy_us"] == 500_000
     path.write_text(json.dumps({"time": 0, "gpu": None}) + "\n")
     assert usage_summary(tmp_path, 1_000_000)["busy_us"] is None
+
+
+def test_collector_preserves_final_json_after_image_build_and_fails_closed(tmp_path):
+    import runpy
+    root = Path(__file__).resolve().parents[2]
+    collector = runpy.run_path(str(root / "specs/015-learned-program-search/validation/collect_audit.py"))
+    read_result = collector["read_result"]
+    path = tmp_path / "rehearsal.json"
+    value = dict(mechanical_status="COMPLETE", scientific_status="PILOT_UNMEASURED",
+                 reason="MATCHED_REHEARSAL_MEASURED", cpu={"gradient_l2":1.25},
+                 hip={"matched":True}, forecast={"combined_training_us":100})
+    path.write_bytes(b"STEP 1/12: FROM base\n"+b"x"*4000000+b"\n"+json.dumps(value).encode()+b"\n")
+    assert read_result(path, "rehearsal", 0) == value
+    for raw in (b"", b"STEP 1/12\n", b'{"exit":0}\n', b'{"mechanical_status":"COMPLETE"}\n',
+                json.dumps(value).encode()+b"\ntrailing garbage\n"):
+        path.write_bytes(raw)
+        with pytest.raises(ValueError):
+            read_result(path, "rehearsal", 0)
+    path.write_text('log line\n{"mechanical_status":"BLOCKED","reason":"CPU_REHEARSAL_FAILED"}\n')
+    assert read_result(path, "rehearsal", 2)["reason"] == "CPU_REHEARSAL_FAILED"

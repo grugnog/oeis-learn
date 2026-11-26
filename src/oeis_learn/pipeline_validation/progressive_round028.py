@@ -221,10 +221,14 @@ def audit_store(folder, revision):
 
 
 def execute(args, source, *, host_factory=None):
+    producer_revision = getattr(args, "producer_revision", None)
+    if producer_revision is not None and args.action != "recover-rehearsal":
+        raise ValueError("producer revision is restricted to original rehearsal recovery")
     if args.archive:
         if args.action != "verify":
             raise ValueError("archive authority is restricted to verification")
-        return verify_archive(Path(args.archive)), 0
+        from oeis_learn.generalization.progressive.program_search_rehearsal_report import verify_transport
+        return verify_transport(Path(args.archive)), 0
     root = Path(args.workspace)
     if not root.is_absolute() or root != root.resolve(strict=True):
         raise ValueError("absolute physical donor workspace required")
@@ -233,6 +237,12 @@ def execute(args, source, *, host_factory=None):
         return status(folder), 0
     policy = learned_search_policy()
     info = metadata(root, policy)
+    if args.action == "recover-rehearsal":
+        from .progressive_round028_receipts import recover_command
+        if not info["qualified_checkout"]:
+            return dict(mechanical_status="BLOCKED", reason="ORIGINAL_DONOR_REQUIRED", gpu_dispatches=0), 2
+        candidate_revision(source, root)
+        return recover_command(root, folder, source, producer_revision)
     if args.action == "preflight":
         return dict(info, mechanical_status="INSPECTED", scope="historical_audit",
                     admission="AVAILABLE" if info["qualified_checkout"] and all(info["files"].values()) else "BLOCKED"), 0

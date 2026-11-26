@@ -73,7 +73,7 @@ def validate(kind, record):
     return FrozenAuthority(kind, json.dumps(record, sort_keys=True, allow_nan=False).encode())
 
 
-def verify_artifact(root, ref, *, max_bytes=64 * 1024**3):
+def verify_artifact(root, ref, *, max_bytes=64 * 1024**3, read=True):
     """Read a bounded regular file, rejecting every symlink component and tampering.
 
     Roots must be immutable while verification runs (container read-only mounts in C).
@@ -90,6 +90,19 @@ def verify_artifact(root, ref, *, max_bytes=64 * 1024**3):
         if not stat.S_ISREG(path.stat().st_mode) or path.stat().st_size != ref['bytes']:
             raise ValueError('artifact size/type mismatch')
         with path.open('rb') as stream:
+            if not read:
+                # State-only verification also opens optimizer-sized blobs on a stdlib host.
+                h = hashlib.sha256()
+                remaining = ref['bytes']
+                while remaining:
+                    block = stream.read(min(remaining, 1 << 20))
+                    if not block:
+                        break
+                    h.update(block)
+                    remaining -= len(block)
+                if remaining or stream.read(1) or 'sha256:' + h.hexdigest() != ref['sha256']:
+                    raise ValueError('artifact hash/size mismatch')
+                return None
             data = stream.read(ref['bytes'] + 1)
     except OSError as exc:
         raise ValueError('missing artifact') from exc
