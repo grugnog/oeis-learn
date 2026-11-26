@@ -25,3 +25,9 @@ Each stratum uses the slower of its two observed search times and its two scorer
 An incomplete search clock or an incomplete check of a selected program yields a measurement gap. A projected pilot over eight hours yields a cost deficit. A pilot that fits with an unaffordable repeat proceeds to pilot-only qualification. If both fit, the next action is prospective qualification. Measurements on these eight exposed families establish a planning estimate. The scientific comparison, independent repeat decision and production-scale acceptance still require their own evidence.
 
 The workstation prints one verified `round028-timing.zip` or a `round028-timing-diagnostics.zip` containing the recorded stage, elapsed work and available failure locations. Raw prompts, scores, program text and model weights remain on the workstation.
+
+## Release validation
+
+Implementation `bf9d223501fa3bd6281b6c767c3d963c7587afab` passed 156 tests in a clean checkout across the round028 audit, timing, panel and checkpoint readers, installed packaging, evaluation, trial lifecycle, reporting and decision logic. One census test requires the native qualification image and skipped locally.
+
+The dependency-free host verified the returned physical panel ZIP. A separate Python process reproduced the nested timing forecast from the authentic panel ZIP and explicitly constructed timing fixtures. The pinned workstation command on a detached round027 checkout without private campaign data produced the expected diagnostic ZIP with zero device roles. The candidate-specific HIP times will come from the physical workstation collection.

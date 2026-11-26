@@ -8,6 +8,24 @@ The [returned and verified training rehearsal](validation/round028-generator-reh
 
 The [returned CPU collection](validation/round028-panel-results.md) reserved all 576 cases. Historical costs project 6 h 26 min for a pilot and an earned repeat, leaving 1 h 34 min for differences in candidate costs and operating overhead.
 
+## Measure candidate evaluation time
+
+Use implementation `bf9d223501fa3bd6281b6c767c3d963c7587afab` on the original workstation. This collection measures how quickly both restored learners and the incumbent can search and check programs on the same eight previously exposed cases. It publishes the revised time budget and preserves the fresh panels for the scientific comparison. [Measurement and spending rules](validation/round028-candidate-timing.md)
+
+```bash
+(
+  set -euo pipefail
+  cd "$HOME/workspace/oies-learn"
+  rev=bf9d223501fa3bd6281b6c767c3d963c7587afab
+  git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
+  git merge-base --is-ancestor "$rev" FETCH_HEAD
+  git show "${rev}:specs/015-learned-program-search/validation/launch-round028.sh" |
+    bash -s -- "$rev" collect-timing
+)
+```
+
+Return the ZIP at the printed path. The verified artifact is `round028-timing.zip`. If collection stops early, the same command produces `round028-timing-diagnostics.zip` with the available measurements and failure locations.
+
 ## Original CPU supply and historical costing procedure
 
 Use implementation `8954cbd0644273bed4a8cf413df7573519c86d10` on the original workstation. The collector reuses the verified training rehearsal, prices the historical 128-case search and scorer work, and checks the fresh-family supply for both seeds. It can extend the original source order and run isolated native CPU preparation in the same invocation.
