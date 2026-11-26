@@ -2,7 +2,7 @@
 
 ## Run the eleven-hour generator pilot
 
-**Workstation qualification is pending.** The CPU audit selected a one-seed comparison of ordinary and first-divergence training. Controller `81ed15740934e982877d6d340e4b3af23443281d` passed CPU regressions for case clocks, independent scoring, reboot recovery and pre-score evidence. Physical qualification needs the original detached round027 checkout, its private receipts and its Podman/HIP workstation.
+**Workstation qualification is pending.** The CPU audit selected a one-seed comparison of ordinary and first-divergence training. Controller `04e0fd9c30ce64d835c91fb06e5014799bceccee` passed CPU regressions for case clocks, independent scoring, reboot recovery and pre-score evidence. Physical qualification needs the original detached round027 checkout, its private receipts and its Podman/HIP workstation.
 
 ### Collect qualification only
 
@@ -12,7 +12,7 @@ Run this block to measure the candidate on 160 slots drawn from eight exposed pr
 (
   set -euo pipefail
   cd "$HOME/workspace/oies-learn"
-  rev=81ed15740934e982877d6d340e4b3af23443281d
+  rev=04e0fd9c30ce64d835c91fb06e5014799bceccee
   git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
   git merge-base --is-ancestor "$rev" FETCH_HEAD
   git show "${rev}:specs/015-learned-program-search/validation/launch-round028.sh" |
@@ -30,7 +30,7 @@ Use this block when you intend to spend the eleven-hour allocation. The first ac
 (
   set -euo pipefail
   cd "$HOME/workspace/oies-learn"
-  rev=81ed15740934e982877d6d340e4b3af23443281d
+  rev=04e0fd9c30ce64d835c91fb06e5014799bceccee
   git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
   git merge-base --is-ancestor "$rev" FETCH_HEAD
   launcher=specs/015-learned-program-search/validation/launch-round028.sh

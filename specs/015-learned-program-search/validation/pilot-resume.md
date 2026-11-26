@@ -1,6 +1,6 @@
 # Pilot qualification and recovery
 
-Use controller `81ed15740934e982877d6d340e4b3af23443281d` from the detached round027 checkout. The [operator quickstart](../quickstart.md#run-the-eleven-hour-generator-pilot) gives the qualification-only command and the guarded start/resume command. The physical qualification receipt for this controller is pending.
+Use controller `04e0fd9c30ce64d835c91fb06e5014799bceccee` from the detached round027 checkout. The [operator quickstart](../quickstart.md#run-the-eleven-hour-generator-pilot) gives the qualification-only command and the guarded start/resume command. The physical qualification receipt for this controller is pending.
 
 The controller authenticates the saved registration, its source tree and its parent receipt, then runs the worker named in that registration. A new registration uses the controller revision as its worker. On recovery, the two SHAs may differ. The qualification collector prints both after verifying the copied archive. A diagnostic includes the worker SHA when the controller has resolved it.
 
@@ -15,7 +15,7 @@ Start beside the returned `round028-pilot-qualification.zip` on a computer with 
 ```bash
 (
   set -euo pipefail
-  rev=81ed15740934e982877d6d340e4b3af23443281d
+  rev=04e0fd9c30ce64d835c91fb06e5014799bceccee
   report="$(pwd -P)/round028-pilot-qualification.zip"
   reader=$(mktemp -d)
   trap 'rm -rf -- "$reader"' EXIT
