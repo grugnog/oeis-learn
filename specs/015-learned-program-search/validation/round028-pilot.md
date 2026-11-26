@@ -6,7 +6,9 @@
 
 The verified historical audit accounted for all 128 round027 cases. On the 64 cases used for routing it found 51 witnessed proposal failures. The original workstation measured both learner profiles and D on eight previously exposed problems, reserved 576 cases and closed the eight-hour study with zero fresh pilot scores. The child binds that original workstation receipt and reuses its reservations. [Audit](round028-audit.md) · [Panel supply](round028-panel-results.md) · [Original timing and receipt](round028-timing-results.md)
 
-| Work | Forecast |
+The following estimates belong to the original timing collection. The current qualification return recomputes the launch forecast from its verified parent and registered role plan.
+
+| Work | Historical forecast |
 | --- | ---: |
 | One pilot seed, with one resident search process per arm and look | 10 h 21 min 37 s |
 | Headroom in the eleven-hour research allocation | 38 min 23 s |
@@ -21,12 +23,12 @@ The two descriptive looks use the first reserved case in each development family
 
 The launcher prints one path. A completed `round028-pilot.zip` contains `pilot.json` and the verified parent package. The standalone reader checks the registered denominators, treatment and incumbent contrasts, missing-outcome bounds, retention rule, role costs and spending decision. A positive pilot can earn an independent repeat. The current allocation covers one seed. A diagnostic ZIP identifies the last phase, gives available spending and reports a numerical shortage when measured. Full logs, per-case choices, training data and model checkpoints stay on the workstation.
 
-The implementation pin is `cafceae40f385aa0137355a79f339f3b62e2069d`. To verify a copied pilot ZIP on a computer with Git and Python, run this from the directory containing the ZIP. The reader writes the full result to `round028-pilot-verification.json`.
+To verify a copied pilot ZIP with the pinned controller, run this from the directory containing the ZIP. The reader writes the full result to `round028-pilot-verification.json`. The qualification ZIP has its own [copied-archive check](pilot-resume.md#verify-a-copied-qualification).
 
 ```bash
 (
   set -euo pipefail
-  rev=cafceae40f385aa0137355a79f339f3b62e2069d
+  rev=1aaea5b90c187d35f33552bcec783cb45fb9c425
   report="$(pwd -P)/round028-pilot.zip"
   reader=$(mktemp -d)
   trap 'rm -rf -- "$reader"' EXIT
@@ -39,7 +41,13 @@ The implementation pin is `cafceae40f385aa0137355a79f339f3b62e2069d`. To verify 
 )
 ```
 
-## Release verification
+## Qualification checks on this revision
+
+The installed CPU tests exercised a cold 160-slot roster, a slow admitted choice through both scoring engines, and recovery through the shell launcher with a saved worker distinct from the controller. A separate fixture checked the scorer on 160 exposed replays when the learner selected zero programs. These tests used a simulated native engine.
+
+From the original detached donor without its private campaign, both quickstart commands returned `ORIGINAL_FROZEN_CAMPAIGN_MISSING` and zero GPU dispatches. The workstation receipt is still needed to establish the real timings, available storage, and registered worker for this pilot.
+
+## Earlier release verification
 
 The local release suite passed 234 tests. Two tests require the native qualification image. The pilot fixture ran the 0, 1M and 4M planner, the three-arm endpoint and a second invocation with no new research roles. A separate CPU test restored both models and performed real optimizer updates with the original discarded-token charge. Recovery cases covered a partially completed search and an interrupted independent scorer.
 

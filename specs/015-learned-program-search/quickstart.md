@@ -2,21 +2,44 @@
 
 ## Run the eleven-hour generator pilot
 
-The CPU audit selected a matched generator experiment. This command fetches the pinned implementation, reuses the original workstation receipts and reserved cases, qualifies the current images and starts or resumes one pilot seed. Run it from the account that owns the detached round027 checkout. The research forecast is **10 h 21 min 37 s after qualification**, leaving **38 min 23 s** in the eleven-hour allocation. First-time image builds, native data preparation and qualification take additional time.
+**Workstation qualification is pending.** The CPU audit selected a one-seed comparison of ordinary and first-divergence training. Controller `1aaea5b90c187d35f33552bcec783cb45fb9c425` passed the focused CPU regressions for case clocks, independent scoring and recovery. Physical qualification needs the original detached round027 checkout, its private receipts and its Podman/HIP workstation.
+
+### Collect qualification only
+
+Run this block to measure the candidate on 160 slots drawn from eight exposed problems. It preserves the fresh development and retention cases.
 
 ```bash
 (
   set -euo pipefail
   cd "$HOME/workspace/oies-learn"
-  rev=cafceae40f385aa0137355a79f339f3b62e2069d
+  rev=1aaea5b90c187d35f33552bcec783cb45fb9c425
   git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
   git merge-base --is-ancestor "$rev" FETCH_HEAD
   git show "${rev}:specs/015-learned-program-search/validation/launch-round028.sh" |
-    bash -s -- "$rev" collect-pilot
+    bash -s -- "$rev" collect-pilot-qualification
 )
 ```
 
-Return the single ZIP at the printed path. A completed run produces `round028-pilot.zip`. A blocked run produces `round028-pilot-diagnostics.zip` with its last recorded phase and available costs or shortage. Running the same command again recovers saved work. After completion it verifies and copies the committed report without acquiring the GPU. [Pilot design, verification command and acceptance evidence](validation/round028-pilot.md)
+Return the printed `round028-pilot-qualification.zip` or `round028-pilot-qualification-diagnostics.zip`. The successful collector independently verifies a copy and prints both the controller SHA and the installed worker SHA selected by the saved registration. The receipt gives the shortest case allowance, the slowest case, cold load and publication times, independent scoring coverage, free bytes and inodes at collection, and the research forecast for this registration. [Verify a copied qualification](validation/pilot-resume.md#verify-a-copied-qualification)
+
+### Start or resume after qualification
+
+Use this block when you intend to spend the eleven-hour allocation. The first action reopens the workstation evidence and verifies a copied qualification ZIP. A failed check exits the block before the research action. Both actions use the same pinned launcher.
+
+```bash
+(
+  set -euo pipefail
+  cd "$HOME/workspace/oies-learn"
+  rev=1aaea5b90c187d35f33552bcec783cb45fb9c425
+  git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
+  git merge-base --is-ancestor "$rev" FETCH_HEAD
+  launcher=specs/015-learned-program-search/validation/launch-round028.sh
+  git show "${rev}:${launcher}" | bash -s -- "$rev" collect-pilot-qualification
+  git show "${rev}:${launcher}" | bash -s -- "$rev" collect-pilot
+)
+```
+
+The pilot prints the path to `round028-pilot.zip` or `round028-pilot-diagnostics.zip`. Repeating the block reuses committed work and its charges. Keep raw logs, choices, training rows and checkpoints on the workstation. [Pilot design and archive verification](validation/round028-pilot.md)
 
 ## Original eight-hour workstation run
 
