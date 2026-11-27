@@ -440,7 +440,13 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     )
     rows = velocity_supply_rows
     ids = [r["draw_identity"] for r in rows]
-    stream = seal(dict(order=ids, row_identities=digest([r["identity"] for r in rows])))
+    stream = seal(
+        dict(
+            order=ids,
+            seeds={"training_families": 17},
+            row_identities=digest([r["identity"] for r in rows]),
+        )
+    )
     pairs = matching_pairs([rows], ids, seed=29)
     payment = seal(
         dict(kind="matching_pairs", grant=digest("prior grant"), receipt=digest("prior payment"))
@@ -469,7 +475,9 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     grant = host.authorize_timing(tmp_path, 10, revision)
     for k, charge in design["cost"].items():
         assert load(grant)["resources"][k] >= 2 * charge
-    monkeypatch.setattr(host, "donor_inputs", lambda *_: (projection, design))
+    monkeypatch.setattr(
+        host, "donor_inputs", lambda *_: (projection, design, host.matching_scope(pairs, stream))
+    )
     args = SimpleNamespace(
         action="qualify",
         authority=grant,
@@ -676,7 +684,12 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     }
     assert scope["incremental"]["resources"]["covered_us"]["observed"] == 500
     assert "optimizer_to_4M_recipe_03" in prices["wave"]["missing"]
-    assert "optimizer_to_4M_recipe_02" not in prices["wave"]["missing"]
+    assert "optimizer_to_4M_recipe_02" in prices["wave"]["missing"]
+    assert (
+        prices["timed_updates"]["sampled_methods"]["02"]
+        == completed["receipt"]["units"]["methods"]["02"]
+    )
+    assert prices["timed_updates"]["matching_scope"]["trial_seed"] == 17
     assert prices["wave"]["operations"]["ordinary_matching_calibration"] == 1
     assert prices["wave_with_reserve_us"] is None
     samples = launches[0] / "telemetry/samples.jsonl"

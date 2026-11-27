@@ -264,7 +264,56 @@ def matching_proof(tokens, donor, *, client=None, replay=None):
     return seal(dict(**binding, status=status, proof=proof))
 
 
-def matching_pairs(shards, order, *, seed, client=None):
+def _recorded_label(tokens, prompt, label, runtime, reference):
+    """Reopen the worker's replayed UNSAT certificate against the exact target and donor."""
+    from .contracts import digest
+    from oeis_learn.decoder.bigint_codec import decode_body, fitting_policy
+    from oeis_learn.synthesis.evidence import classify_scope
+
+    expected = matching_proof(tokens, prompt)
+    if expected["status"] != "needs_native_replay":
+        if label != expected:
+            raise ValueError("fixed-target matching proof differs")
+        return expected
+    if label != seal(label) or any(label[k] != expected[k] for k in ("target", "prompt", "policy")):
+        raise ValueError("native matching proof belongs to another target or donor")
+    status, proof = label["status"], label["proof"]
+    if status == "eligible":
+        source = decode_body(tokens)
+        if not isinstance(proof, dict) or proof.get("identity_sha256") != digest(
+            {k: v for k, v in proof.items() if k != "identity_sha256"}
+        ):
+            raise ValueError("native matching proof identity differs")
+        fit = proof["result"]
+        if (
+            runtime is None
+            or reference is None
+            or proof["runtime"] != runtime
+            or proof["reference"] != reference
+            or proof["original_source"] != source
+            or proof["policy"] != fitting_policy(source)
+            or proof["profile"] != "bigint-body/v1"
+            or proof["indices"] != list(prompt.indices)
+            or proof["values"] != list(prompt.values)
+            or fit["outcome"] != "unsat_in_scope"
+            or classify_scope(fit["native"]) != "unsat_in_scope"
+            or fit["native"]["coefficient_bits"] != 4096
+        ):
+            raise ValueError("full-scope matching proof or native identity differs")
+    elif status not in {
+        "needs_native_replay",
+        "timed_out",
+        "unverified",
+        "regroundable",
+        "unfinished",
+        "partial_scope",
+        "unsupported",
+    }:
+        raise ValueError("unknown matching proof disposition")
+    return label
+
+
+def matching_pairs(shards, order, *, seed, client=None, recorded=None):
     """Freeze a within-band derangement. All positives retain their original stream slots."""
     from collections import Counter, defaultdict
     from .contracts import digest
@@ -282,6 +331,22 @@ def matching_pairs(shards, order, *, seed, client=None):
         values = [canonical_integer(v) for v in rows[key]["values"][:20]]
         signs = tuple((v > 0) - (v < 0) for v in values)
         bands[len(values), max(abs(v).bit_length() for v in values), signs].append(key)
+    runtime = client.runtime_identity("bigint-body/v1") if client is not None else None
+    reference = client.reference_sha256 if client is not None else None
+    if recorded is not None:
+        if (
+            recorded != seal(recorded)
+            or recorded["seed"] != seed
+            or recorded["order"] != digest(order)
+        ):
+            raise ValueError("matching evidence belongs to a different seed or stream")
+        if client is not None and (recorded["runtime"], recorded["reference"]) != (
+            runtime,
+            reference,
+        ):
+            raise ValueError("recorded matching evidence belongs to a different native worker")
+        runtime, reference = recorded["runtime"], recorded["reference"]
+    labels, donor_map = {}, {}
     statuses = Counter()
     pairs = {}
     for members in bands.values():
@@ -295,16 +360,42 @@ def matching_pairs(shards, order, *, seed, client=None):
                    for k in sorted(groups[values], key=lambda k: digest([seed, k]))]
         for i, key in enumerate(ordered):
             donor = ordered[(i + largest) % len(ordered)]
+            donor_map[key] = donor
             row = rows[key]
             values = rows[donor]["values"][:20]
             if values == row["values"][:20]:
                 statuses["no_differing_donor"] += 1
                 continue
-            proof = matching_proof(row["tokens"], VisiblePrompt(tuple(row["indices"][:20]), tuple(values)),
-                                   client=client)
+            prompt = VisiblePrompt(tuple(row["indices"][:20]), tuple(values))
+            if recorded is None:
+                proof = matching_proof(row["tokens"], prompt, client=client)
+            else:
+                proof = _recorded_label(
+                    row["tokens"], prompt, recorded["labels"][key], runtime, reference
+                )
+            labels[key] = proof
             statuses[proof["status"]] += 1
             if proof["status"] == "eligible":
                 pairs[key] = dict(donor=donor, family=row["structure"], proof=proof)
-    return seal(dict(version="round029-training-pairs/v1", seed=seed, order=digest(order),
-                     positive_rows=len(order), eligible_rows=len(pairs), dispositions=dict(statuses),
-                     eligible_families=len({rows[k]["structure"] for k in pairs}), pairs=pairs))
+    missing = statuses.get("needs_native_replay", 0)
+    result = seal(
+        dict(
+            version="round029-training-pairs/v1",
+            seed=seed,
+            order=digest(order),
+            rows=digest([rows[k]["identity"] for k in order]),
+            labels=labels,
+            donor_map=donor_map,
+            runtime=runtime,
+            reference=reference,
+            coverage=dict(full=missing == 0, rows=len(order), unmeasured_native=missing),
+            positive_rows=len(order),
+            eligible_rows=len(pairs),
+            dispositions=dict(statuses),
+            eligible_families=len({rows[k]["structure"] for k in pairs}),
+            pairs=pairs,
+        )
+    )
+    if recorded is not None and result != recorded:
+        raise ValueError("matching donor map, evidence or coverage differs")
+    return result

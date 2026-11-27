@@ -24,7 +24,7 @@ The minutes are a cumulative ceiling for funded work, including cleanup. Repeati
 
 ## Broader-composition timings
 
-After the ordinary timings and family census have settled, use the same detached checkout and the next published implementation revision. One cumulative grant covers the custodian audit, native preparation, and available optimizer samples for recipes 01 and 03.
+After the ordinary timings and family census have settled, use the same detached checkout and the next published implementation revision. One cumulative grant covers the custodian audit, native preparation, and eligible optimizer samples for recipes 01, 02 and 03.
 
 ```bash
 (
@@ -41,4 +41,8 @@ After the ordinary timings and family census have settled, use the same detached
 
 The custodian reopens the original family reservations, difficulty map, positive stream and paid ordinary calibration. It checks the original slots first, then audits the next block of up to 512 mechanical draws against protected family links. A collision in the original slots records the need for a fresh matched start and ends the qualification before acquiring a device.
 
-The CPU role replays eligible training witnesses and measures the realized diversity at matched token lengths and difficulty. Repeated draws retain every occupied slot. If breadth increases, one HIP lease samples recipe 01 and, when proven donors and the frozen ordinary loss weight are available, recipe 03. The receipt reports unresolved adjustable-target fits separately. The last two steps verify the receipt and reprice the wave. Return the saved `broader.json` file. It contains the disposition and charges even when no GPU work was eligible.
+The CPU role replays the training witnesses and measures diversity at matched token lengths and difficulty. Repeated draws retain every occupied slot. If breadth increases, the native worker applies the trial stream seed to both streams, checks adjustable targets and retains each donor map and its proof identities. One HIP lease measures the ordinary matching weight on that selection, samples recipe 01, and samples 02 and 03 wherever the measured support covers their learner inputs. The learner reopens those private manifests. Fits that time out contribute only ordinary positive rows.
+
+The earlier ordinary receipt retains its measured updates, tokens and preparation cost. When its donor selection differs, its recipe 02 sample and calibration remain visible as historical measurements. The forecast carries forward eligible ordinary optimizer prices and admits each matching price after verifying its registered scope.
+
+The command verifies the receipt and refreshes the forecast. Return the saved `broader.json` file. It includes the disposition and charges if the exposure or diversity check ends the run before HIP. A physical capacity block reports the affected mount, byte and inode deficits and an affordable draw count where one exists. A retry against the same grant reuses settled stages and its remaining allowance.

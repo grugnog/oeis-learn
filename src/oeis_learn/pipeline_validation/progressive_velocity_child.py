@@ -15,7 +15,12 @@ def child_package(package, cut, *, parent_cap, registration):
     _check(schema("common")["$defs"]["hash"], registration, {})
     if (
         package != seal(package)
-        or package["version"] not in {"round029-learner-input/v1", "round029-learner-input/v2"}
+        or package["version"]
+        not in {
+            "round029-learner-input/v1",
+            "round029-learner-input/v2",
+            "round029-learner-input/v3",
+        }
         or registration == package["registration"]
         or not crossed(cut, cut["target"])
         or cut["updates"] < 1

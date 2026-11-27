@@ -410,18 +410,22 @@ def velocity_forecast(info, policy):
         # A broad stream has its own shapes and eligible donors. It needs its own price.
         del plan["wave"]["six_treatment_trajectories"]
         del plan["wave"]["matching_calibration_and_auxiliary_passes"]
+        device = (broad or {}).get("device") or {}
         for row in policy["recipes"]:
             if row["id"] == "00":
                 continue
             key = "optimizer_to_4M_recipe_" + row["id"]
             plan["wave"][key] = 1
-            if row["stream"] == "ordinary" and row["id"] in timed["methods"]:
+            if row["id"] in device.get("methods", {}):
+                prices[key] = device["methods"][row["id"]]
+            elif row["stream"] == "ordinary" and row["id"] in timed["methods"]:
                 prices[key] = timed["methods"][row["id"]]
-            elif row["stream"] != "ordinary" and broad and broad["device"] and row["id"] in broad["device"]["methods"]:
-                prices[key] = broad["device"]["methods"][row["id"]]
-        clock = timed["calibration_us"]
+        clock = device.get("calibration", {}).get("elapsed_us")
+        if clock is None and timed.get("matching_scope", {}).get("full"):
+            clock = timed["calibration_us"]
         plan["wave"]["ordinary_matching_calibration"] = 1
-        prices["ordinary_matching_calibration"] = dict(expected_us=clock, tail_us=clock)
+        if clock is not None:
+            prices["ordinary_matching_calibration"] = dict(expected_us=clock, tail_us=clock)
         plan["wave"]["trajectory_startup_checkpoint_io_and_drain"] = 1
     result = price_wave(plan, prices)
     for scope, row in result.items():

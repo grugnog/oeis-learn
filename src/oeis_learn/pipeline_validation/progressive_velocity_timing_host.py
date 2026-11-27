@@ -70,9 +70,43 @@ def donor_inputs(root, pointer):
         or cut["seeds"] != package["stream"]["seeds"]
     ):
         raise ValueError("ordinary zero cut differs from the exposed training stream")
+    if "donor_map" in pairs:
+        from oeis_learn.generalization.progressive.training_rows import matching_pairs
+        from .progressive_velocity_broad import shards
+
+        matching_pairs(
+            shards(package["rows"]),
+            package["stream"]["order"],
+            seed=package["stream"]["seeds"]["training_families"],
+            recorded=pairs,
+        )
     projection = timing_projection(package, pairs, cut["initial"], public["measurement"])
-    return projection, timing_design(
-        projection, len(package["stream"]["order"]), package["microbatch"]
+    scope = matching_scope(pairs, package["stream"])
+    return (
+        projection,
+        timing_design(projection, len(package["stream"]["order"]), package["microbatch"]),
+        scope,
+    )
+
+
+def matching_scope(pairs, stream):
+    """Describe exactly which matching inputs the original optimizer samples saw."""
+    seed = stream["seeds"]["training_families"]
+    coverage = pairs.get("coverage")
+    if coverage is None:
+        coverage = dict(
+            full=False,
+            rows=pairs["positive_rows"],
+            unmeasured_native=pairs["dispositions"].get("needs_native_replay", 0),
+        )
+    return dict(
+        seed=pairs["seed"],
+        trial_seed=seed,
+        manifest=pairs["identity"],
+        donor_map=digest(pairs["donor_map"]) if "donor_map" in pairs else None,
+        coverage=coverage,
+        eligible_rows=pairs["eligible_rows"],
+        full=bool(pairs.get("donor_map") and coverage["full"] and pairs["seed"] == seed),
     )
 
 
@@ -264,11 +298,12 @@ def combined(binding, prepared_receipt, measurement):
     )
 
 
-def replay(root, area, binding, grant, snapshot):
+def replay(root, area, binding, grant, snapshot, *, data=None):
     pointer = binding["pair_pointer"]
     if binding != bind(binding["candidate"], binding["source"], grant, pointer):
         raise ValueError("timing binding changed")
-    data = donor_inputs(root, pointer)
+    if data is None:
+        data = donor_inputs(root, pointer)[:2]
     req = request_at(root, area, binding, data)
     pre = replay_operation(
         area,
@@ -339,6 +374,60 @@ def preparation_cost(area, grant, snapshot, record):
     return workstation_accounting(records, **boundaries)
 
 
+def ordinary_workload_unchanged(name, original, source):
+    """Only the ordinary optimizer runs from the frozen projection on this price path."""
+    import ast
+
+    path = Path(name)
+    base = "src/oeis_learn/"
+    if name == base + "generalization/schemas/progressive-round029.schema.json":
+
+        def science_schema(root):
+            data = json.loads((root / name).read_bytes())
+            del data["$defs"]["diagnostic"]
+            return data
+
+        return science_schema(original) == science_schema(source)
+    # These modules implement custody, reporting and supervision outside the timed worker.
+    outside = {
+        "generalization/progressive/program_search_panels.py",
+        "generalization/progressive/velocity_metrics.py",
+        "generalization/progressive/velocity_report.py",
+        "pipeline_validation/progressive_evaluation.py",
+        "pipeline_validation/progressive_preparation.py",
+        "pipeline_validation/progressive_research_resources.py",
+        "pipeline_validation/progressive_study.py",
+        "pipeline_validation/progressive_velocity_census.py",
+        "pipeline_validation/progressive_velocity_child.py",
+        "pipeline_validation/progressive_velocity_operations.py",
+    }
+    if name.removeprefix(base) in outside:
+        return True
+    ignored = {
+        "generalization/progressive/budgets.py": {"BudgetJournal"},
+        "generalization/progressive/campaign.py": {"velocity_registration"},
+        "generalization/progressive/graph.py": {"velocity_study_looks"},
+        "generalization/progressive/trials.py": {"TrialJournal"},
+        "generalization/progressive/training_rows.py": {"matching_pairs", "_recorded_label"},
+        "pipeline_validation/progressive_velocity_matching.py": {
+            "prepare_calibration",
+            "qualified_pairs",
+            "registered_update_policy",
+        },
+        "pipeline_validation/progressive_velocity_runtime.py": {"package_worker"},
+        "pipeline_validation/progressive_velocity_worker.py": {"train_to", "rehearse_batch"},
+    }.get(name.removeprefix(base))
+    if not ignored or not all((root / path).is_file() for root in (original, source)):
+        return False
+
+    def kernel(root):
+        module = ast.parse((root / path).read_bytes())
+        module.body = [n for n in module.body if getattr(n, "name", None) not in ignored]
+        return ast.dump(module)
+
+    return kernel(original) == kernel(source)
+
+
 def checked_price_source(root, source, binding):
     """Retain historical prices across reader changes while pinning the measured workload."""
     if source is None:
@@ -369,7 +458,8 @@ def checked_price_source(root, source, binding):
         "progressive_velocity_broad.py",
         "progressive_velocity_broad_host.py",
     }
-    if binding.get("version") == "round029-broader-timing/v1":
+    broader = binding.get("version", "").startswith("round029-broader-timing/")
+    if broader:
         host_only -= {"progressive_velocity_broad.py", "progressive_velocity_broad_host.py"}
     for name in previous.keys() | current.keys():
         if previous.get(name) == current.get(name) or name.startswith("tests/"):
@@ -381,6 +471,10 @@ def checked_price_source(root, source, binding):
         ):
             continue
         if name == "src/oeis_learn/generalization/progressive/program_search_costing.py":
+            continue
+        if binding.get("version") == VERSION and ordinary_workload_unchanged(
+            name, original, source
+        ):
             continue
         raise ValueError("workload changed since the original optimizer timing: " + name)
 
@@ -413,18 +507,28 @@ def timing_inventory(root, source):
     snapshot = BudgetJournal.inspect_existing(
         confined(area, "accounting"), grant["identity"], grant["resources"], include_windows=True
     )
-    record = replay(root, area, binding, grant, snapshot)
+    projection, design, scope = donor_inputs(root, binding["pair_pointer"])
+    record = replay(root, area, binding, grant, snapshot, data=(projection, design))
     if (
         snapshot["pending"]
         or record != load(confined(area, "receipt.json"))
         or marker["receipt"] != record["identity"]
     ):
         raise ValueError("original timing receipt differs from the physical journal")
+    units = dict(record["units"], matching_scope=scope)
+    if not scope["full"]:
+        units["methods"] = dict(units["methods"])
+        units["sampled_methods"] = {}
+        if "02" in units["methods"]:
+            units["sampled_methods"]["02"] = units["methods"].pop("02")
+        units["unavailable"] = dict(
+            units["unavailable"], **{"02": "registered full-stream matching inputs required"}
+        )
     return dict(
         candidate=binding["candidate"],
         measurement=record["measurement"],
         preparation_cost=preparation_cost(area, grant, snapshot, record),
-        **record["units"],
+        **units,
     )
 
 
@@ -447,7 +551,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
     def inputs():
         nonlocal data
         if data is None:
-            data = donor_inputs(root, pointer)
+            data = donor_inputs(root, pointer)[:2]
         return data
 
     def worker():

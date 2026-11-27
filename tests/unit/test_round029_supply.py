@@ -1,3 +1,5 @@
+import pytest
+
 from oeis_learn.generalization.progressive.program_search_panels import reserve_velocity_families
 
 
@@ -214,3 +216,125 @@ def test_prior_calibration_and_every_pilot_training_member_are_protected():
     assert history[0]["declared_groups"] == ["linked"]
     with pytest.raises(ValueError, match="calibration"):
         prior_exposures(dict(inputs, candidates=[]), supply, calibration, [training])
+
+
+@pytest.fixture
+def adjustable_matching_rows(velocity_supply_rows):
+    from oeis_learn.decoder.bigint_codec import encode_body
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.generator import structure_id
+
+    rows = list(velocity_supply_rows)
+    source = "(program (return (int 180)))"
+    values = ["180"] * 100
+    rows[1] = seal(
+        dict(
+            rows[1],
+            source=source,
+            target_source=source,
+            tokens=encode_body(source),
+            values=values,
+            behavior=digest(values),
+            structure=structure_id(source),
+        )
+    )
+    return rows
+
+
+def test_matching_selection_reopens_trial_seed_and_full_scope_native_proof(
+    adjustable_matching_rows, monkeypatch
+):
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.training_rows import matching_pairs
+    from oeis_learn.synthesis import replay
+
+    rows = adjustable_matching_rows
+    order = [r["draw_identity"] for r in rows]
+    native = dict(
+        outcome="unsat_in_scope",
+        completed_bounds=[16, 64, 256, 1024, 4096],
+        coefficient_bits=4096,
+        evidence={"fixture": "only a constant can be grounded"},
+    )
+    client = SimpleNamespace(
+        fit=lambda *a, **kw: dict(outcome="unsat_in_scope", native=native),
+        runtime_identity=lambda _: digest("native"),
+        reference_sha256=digest("reference"),
+    )
+    monkeypatch.setattr(replay, "replay_native", lambda r: r["result"]["native"] == native)
+    results = [matching_pairs([rows], order, seed=k, client=client) for k in (1, 2, 3, 29)]
+    assert len({digest(p["donor_map"]) for p in results}) == 2
+    receipt = results[0]
+    assert receipt["coverage"]["full"] and receipt["pairs"][order[1]]["proof"]["proof"][
+        "runtime"
+    ] == digest("native")
+    assert matching_pairs([rows], order, seed=1, recorded=receipt) == receipt
+    with pytest.raises(ValueError):
+        matching_pairs([rows], order, seed=29, recorded=receipt)
+    from copy import deepcopy
+
+    forged = deepcopy(receipt)
+    forged["donor_map"][order[1]] = order[1]
+    with pytest.raises(ValueError, match="donor map"):
+        matching_pairs([rows], order, seed=1, recorded=seal(forged))
+
+    partial = matching_pairs([rows], order, seed=1)
+    assert not partial["coverage"]["full"] and partial["coverage"]["unmeasured_native"] == 1
+
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.fresh.bigint_diagnostics import model_snapshot
+    from oeis_learn.generalization.progressive.models import construct, resolve_profile
+    from oeis_learn.pipeline_validation import progressive_velocity_broad as broad
+
+    model = resolve_profile(
+        resolve({"version": "bigint-bootstrap/v1"}), seed=1, shape="smaller_width"
+    )
+    encoder, decoder, _ = construct(model, device="cpu")
+    ordinary = seal(dict(order=order, seeds={"training_families": 1}))
+    stream = seal(dict(order=[*order, order[1]], seed=1))
+    data = dict(
+        profile=model,
+        initial_weights=model_snapshot(encoder, decoder),
+        pair_seed=1,
+        stream=ordinary,
+        ordinary_rows=rows,
+    )
+    by_key = {r["draw_identity"]: r for r in rows}
+    old = dict(
+        weight=None,
+        observation=digest("original calibration"),
+        measurement=digest("original paid matrix"),
+    )
+    view, manifests = broad.matching_views(data, stream, by_key, client=client)
+    assert broad.matching_views(data, stream, by_key, recorded=manifests) == (view, manifests)
+    assert all(m == receipt for m in manifests.values())
+    assert all(v["pair_proof"] == receipt["identity"] for v in view["streams"].values())
+    for name, keys in (("ordinary", order), ("broader", stream["order"])):
+        projected = view["streams"][name]
+        assert [projected["donors"].get(k) for k in projected["order"][: len(keys)]] == [
+            by_key[receipt["pairs"][k]["donor"]]["values"][:20] if k in receipt["pairs"] else None
+            for k in keys
+        ]
+    plan = broad.design(view, 8, old)
+    observed = broad.run(view, plan, device="cpu")
+    assert observed["calibration"]["weight"] > 0
+    assert set(broad.prices(view, plan, observed)) == {"01", "02", "03"}
+    subset, _ = broad.matching_views(
+        data, stream, by_key, recorded=dict(ordinary=partial, broader=receipt)
+    )
+    assert subset["support"]["ordinary"]["coverage"]["unmeasured_native"] == 1
+    assert set(broad.design(subset, 8, old)["methods"]) == {"01"}
+
+
+def test_native_adjustable_selection_reopens_its_learner_manifest(
+    adjustable_matching_rows, fitting_client
+):
+    from oeis_learn.generalization.progressive.training_rows import matching_pairs
+    from oeis_learn.synthesis.replay import replay_native
+
+    rows = adjustable_matching_rows
+    keys = [r["draw_identity"] for r in rows]
+    pairs = matching_pairs([rows], keys, seed=1, client=fitting_client)
+    assert replay_native(pairs["pairs"][keys[1]]["proof"]["proof"])
+    assert matching_pairs([rows], keys, seed=1, recorded=pairs) == pairs

@@ -58,7 +58,34 @@ def check_projection(request):
     return request
 
 
-def prepare_calibration(journal, registration, profile, stream, shards, *, batches, client=None):
+def qualified_pairs(journal, stream, role):
+    """Recover the registered stream's exact labels from its paid private qualification."""
+    from . import progressive_velocity_broad_host as broad
+
+    folder = journal.root.parent.parent
+    if not (folder / broad.MARKER).is_file():
+        return None
+    marker = load(confined(folder, broad.MARKER))
+    area = confined(folder, "qualification/" + marker["grant"][7:])
+    root = folder.parents[2]
+    binding = load(confined(area, "binding.json"))
+    source = confined(root, "run-state/discovery-tools/round028-source/" + binding["candidate"])
+    receipt = broad.inventory(root, source)
+    support = ((receipt.get("supply") or {}).get("matching") or {}).get(role)
+    if support is None or support["stream"] != stream["identity"]:
+        return None
+    grant = load(confined(area, "grant.json"))
+    native = broad.attempt(area, broad.coordinates(grant, "prepare"), grant)
+    path = confined(native, "native/pairs.json")
+    pairs = load(path, maximum=path.stat().st_size)[role]
+    if pairs != seal(pairs) or pairs["identity"] != support["manifest"]:
+        raise ValueError("stored training pairs differ from their paid workload")
+    return pairs
+
+
+def prepare_calibration(
+    journal, registration, profile, stream, shards, *, batches, client=None, pair_manifest=None
+):
     """Commit the outcome-blind ordinary slots before fitting labels or exposing their worker view."""
     from oeis_learn.experiments.source_snapshot import source_snapshot
     from oeis_learn.generalization.progressive.models import validate_profile
@@ -97,6 +124,10 @@ def prepare_calibration(journal, registration, profile, stream, shards, *, batch
             reference=client.reference_sha256 if client is not None else None,
         )
     )
+    paid = qualified_pairs(journal, stream, "ordinary")
+    if pair_manifest is not None and paid is not None and pair_manifest != paid:
+        raise ValueError("calibration pairs differ from the priced ordinary workload")
+    pair_manifest = paid if paid is not None else pair_manifest
     area = journal.root
     with journal.lock():
         if reg != load(confined(area, "velocity-registration.json")):
@@ -108,7 +139,12 @@ def prepare_calibration(journal, registration, profile, stream, shards, *, batch
         retain(path, plan)
         if not projection.exists():
             unique = list(dict.fromkeys(keys))
-            pairs = matching_pairs(shards, unique, seed=origin["stream_seed"], client=client)
+            saved = confined(area, "matching-pairs.json", exists=False)
+            if saved.is_file() and pair_manifest is None:
+                pair_manifest = load(saved, maximum=saved.stat().st_size)
+            pairs = matching_pairs(
+                shards, order, seed=origin["stream_seed"], client=client, recorded=pair_manifest
+            )
             retain(area / "matching-pairs.json", pairs)
             projection_data = seal(
                 dict(
@@ -122,7 +158,11 @@ def prepare_calibration(journal, registration, profile, stream, shards, *, batch
                         k: dict(values=rows[k]["values"][:20], tokens=rows[k]["tokens"])
                         for k in unique
                     },
-                    donors={k: rows[v["donor"]]["values"][:20] for k, v in pairs["pairs"].items()},
+                    donors={
+                        k: rows[v["donor"]]["values"][:20]
+                        for k, v in pairs["pairs"].items()
+                        if k in unique
+                    },
                 )
             )
             retain(projection, check_projection(projection_data))
@@ -131,9 +171,10 @@ def prepare_calibration(journal, registration, profile, stream, shards, *, batch
         pairs = load(pairs_path, maximum=pairs_path.stat().st_size)
         if (
             pairs != seal(pairs)
+            or (pair_manifest is not None and pairs != pair_manifest)
             or pairs["identity"] != request["pair_proof"]
             or pairs["seed"] != origin["stream_seed"]
-            or pairs["order"] != digest(list(dict.fromkeys(keys)))
+            or pairs["order"] != digest(order)
             or request["plan"] != plan["identity"]
             or request["profile"] != profile
             or request["order"] != keys
@@ -143,7 +184,11 @@ def prepare_calibration(journal, registration, profile, stream, shards, *, batch
                 for k in set(keys)
             )
             or request["donors"]
-            != {k: rows[p["donor"]]["values"][:20] for k, p in pairs["pairs"].items()}
+            != {
+                k: rows[p["donor"]]["values"][:20]
+                for k, p in pairs["pairs"].items()
+                if k in request["rows"]
+            }
         ):
             raise ValueError("retained matching labels or learner projection changed")
         return request
@@ -264,6 +309,16 @@ def registered_update_policy(journal, profile, method, *, microbatch):
         plan = load(confined(journal.root, "matching-plan.json"))
         path = confined(journal.root, "matching-projection.json")
         request = load(path, maximum=path.stat().st_size)
+        pairs_path = confined(journal.root, "matching-pairs.json")
+        pairs = load(pairs_path, maximum=pairs_path.stat().st_size)
+        if (
+            pairs != seal(pairs)
+            or pairs["identity"] != request["pair_proof"]
+            or not pairs.get("coverage", {}).get("full")
+        ):
+            raise ValueError(
+                "eligible matching treatment needs its full registered calibration scope"
+            )
         if (
             plan != seal(plan)
             or plan["registration"] != reg["identity"]

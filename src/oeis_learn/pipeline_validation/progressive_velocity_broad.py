@@ -36,7 +36,7 @@ def projection(stream, rows, pairs, origin):
         if draw in pairs["pairs"]:
             pair = pairs["pairs"][draw]
             if pair["proof"]["status"] != "eligible" or pair["donor"] not in rows:
-                raise ValueError("broader donor lacks its fixed-target proof")
+                raise ValueError("matching donor lacks its registered negative proof")
             donors[slot] = rows[pair["donor"]]["values"][:20]
     return check_projection(
         seal(
@@ -54,7 +54,83 @@ def projection(stream, rows, pairs, origin):
     )
 
 
+def matching_views(data, stream, selected, *, client=None, recorded=None):
+    seed = data["stream"]["seeds"]["training_families"]
+    if data["pair_seed"] != seed or stream["seed"] != seed:
+        raise ValueError("matching selection must use the registered trial stream seed")
+    ordinary = {r["draw_identity"]: r for r in data["ordinary_rows"]}
+    views, manifests, summary = {}, {}, {}
+    for name, positives, rows in (
+        ("ordinary", data["stream"], ordinary),
+        ("broader", stream, selected),
+    ):
+        order = list(dict.fromkeys(positives["order"]))
+        pairs = matching_pairs(
+            shards(list(rows.values())),
+            order,
+            seed=seed,
+            client=client,
+            recorded=recorded[name] if recorded is not None else None,
+        )
+        manifests[name] = pairs
+        views[name] = projection(positives, rows, pairs, data)
+        summary[name] = dict(
+            seed=seed,
+            stream=positives["identity"],
+            manifest=pairs["identity"],
+            donors=digest(pairs["donor_map"]),
+            coverage=pairs["coverage"],
+            dispositions=pairs["dispositions"],
+            eligible_unique=pairs["eligible_rows"],
+            eligible_slots=len(views[name]["donors"]),
+            eligible_families=pairs["eligible_families"],
+        )
+    return seal(
+        dict(version="round029-paired-timing-input/v1", streams=views, support=summary)
+    ), manifests
+
+
 def design(view, microbatch, calibration):
+    if "streams" in view:
+        if view != seal(view):
+            raise ValueError("matching timing inputs differ")
+        methods, cells = {}, {}
+        for method, name, source_method in (
+            ("01", "broader", "00"),
+            ("02", "ordinary", "02"),
+            ("03", "broader", "02"),
+        ):
+            projected = view["streams"][name]
+            timing = timing_design(projected, len(projected["rows"]), microbatch)
+            if source_method not in timing["methods"]:
+                continue
+            if source_method == "02" and (
+                not view["streams"]["ordinary"]["donors"]
+                or not all(view["support"][k]["coverage"]["full"] for k in ("ordinary", name))
+            ):
+                continue
+            methods[method] = timing["methods"][source_method]
+            cells[method] = timing["plans"]["32"]
+        ordinary = view["streams"]["ordinary"]
+        batches = len(ordinary["order"]) // 32
+        calibration_tokens = sum(len(ordinary["rows"][k]["tokens"]) for k in ordinary["order"])
+        samples = [s for m in methods.values() for s in m["samples"].values()]
+        return seal(
+            dict(
+                version="round029-paired-timing-design/v1",
+                projection=view["identity"],
+                calibration=calibration,
+                microbatch=microbatch,
+                methods=methods,
+                cells=cells,
+                calibration_batches=batches,
+                calibration_tokens=calibration_tokens,
+                cost=dict(
+                    attempts=batches + len(samples),
+                    tokens=calibration_tokens + sum(s["positive_tokens"] for s in samples),
+                ),
+            )
+        )
     ordinary = timing_design(view, len(view["rows"]), microbatch)
     methods = {"01": ordinary["methods"]["00"]}
     if calibration["weight"] is not None and "02" in ordinary["methods"]:
@@ -113,20 +189,11 @@ def prepare(data, out, client):
                 design=None,
             )
         )
-    unique = list(dict.fromkeys(stream["order"]))
-    # Every eligible proof is exact. Adjustable targets without a captured native
-    # fit stay individually unresolved; the remaining targets still pay positive work.
-    pairs = matching_pairs(shards(list(selected.values())), unique, seed=data["pair_seed"])
-    view = projection(stream, selected, pairs, data)
+    view, manifests = matching_views(data, stream, selected, client=client)
     plan = design(view, data["microbatch"], data["calibration"])
-    atomic_write(out / "pairs.json", pairs)
+    atomic_write(out / "pairs.json", manifests)
     atomic_write(out / "projection.json", view)
-    stats.update(
-        pair_dispositions=pairs["dispositions"],
-        eligible_unique=pairs["eligible_rows"],
-        eligible_slots=len(view["donors"]),
-        eligible_families=pairs["eligible_families"],
-    )
+    stats["matching"] = view["support"]
     return seal(dict(request=data["identity"], disposition="prepared", supply=stats, design=plan))
 
 
@@ -145,28 +212,48 @@ def run(view, plan, *, device):
             torch.cuda.synchronize()
         return time.monotonic_ns() // 1000
 
-    order = dict(order=view["order"][: len(view["rows"])])
+    calibration = plan["calibration"]
+    extra = {}
+    if "streams" in view:
+        from .progressive_velocity_worker import measure_calibration
+        from .progressive_velocity_matching import _verified
+
+        ordinary = view["streams"]["ordinary"]
+        calibration = _verified(measure_calibration(ordinary, device=device), ordinary)
+        extra["calibration"] = calibration
     methods = {}
     for method, terms in plan["methods"].items():
+        projected = (
+            view["streams"]["ordinary" if method == "02" else "broader"]
+            if "streams" in view
+            else view
+        )
+        if terms["matching"] and calibration["weight"] is None:
+            methods[method] = dict(unavailable=calibration.get("reason", "no ordinary calibration"))
+            continue
+        order = dict(order=projected["order"][: len(projected["rows"])])
         start = now()
         policy = update_policy(
-            view["profile"],
+            projected["profile"],
             method,
             microbatch=min(32, plan["microbatch"]),
-            matching_weight=plan["calibration"]["weight"] if terms["matching"] else None,
+            matching_weight=calibration["weight"] if terms["matching"] else None,
         )
-        runner = PolicyUpdate(view["profile"], policy, device=device)
+        runner = PolicyUpdate(projected["profile"], policy, device=device)
         startup = now() - start
-        if model_snapshot(runner.encoder, runner.decoder) != view["initial_weights"]:
+        if model_snapshot(runner.encoder, runner.decoder) != projected["initial_weights"]:
             raise ValueError("broader optimizer has different initial weights")
         ledger = Ledger(sum(s["positive_tokens"] for s in terms["samples"].values()))
         samples = {}
         for cursor in sorted(terms["samples"], key=int):
             keys = matched_batch(order, int(cursor), 32)
             start = now()
-            seq, tokens = batch([view["rows"][k] for k in keys], device)
+            seq, tokens = batch([projected["rows"][k] for k in keys], device)
             donors = (
-                [list(map(int, view["donors"][k])) if k in view["donors"] else None for k in keys]
+                [
+                    list(map(int, projected["donors"][k])) if k in projected["donors"] else None
+                    for k in keys
+                ]
                 if terms["matching"]
                 else None
             )
@@ -185,7 +272,7 @@ def run(view, plan, *, device):
             )
         methods[method] = dict(startup_us=startup, policy=policy["identity"], samples=samples)
         del runner
-    return seal(dict(design=plan["identity"], methods=methods))
+    return seal(dict(design=plan["identity"], methods=methods, **extra))
 
 
 def prices(view, plan, observed):
@@ -196,14 +283,28 @@ def prices(view, plan, observed):
         or observed["methods"].keys() != plan["methods"].keys()
     ):
         raise ValueError("broader measurements differ from the frozen sample")
+    calibration = plan["calibration"]
+    if "streams" in view:
+        from .progressive_velocity_matching import _verified
+
+        calibration = _verified(observed["calibration"], view["streams"]["ordinary"])
     result = {}
     for method, terms in plan["methods"].items():
         row = observed["methods"][method]
+        if terms["matching"] and calibration["weight"] is None:
+            if row != dict(unavailable=calibration["reason"]):
+                raise ValueError("matching optimizer requires a registered loss weight")
+            continue
+        projected = (
+            view["streams"]["ordinary" if method == "02" else "broader"]
+            if "streams" in view
+            else view
+        )
         expected = update_policy(
-            view["profile"],
+            projected["profile"],
             method,
             microbatch=min(32, plan["microbatch"]),
-            matching_weight=plan["calibration"]["weight"] if terms["matching"] else None,
+            matching_weight=calibration["weight"] if terms["matching"] else None,
         )
         if (
             row["policy"] != expected["identity"]
@@ -225,7 +326,12 @@ def prices(view, plan, observed):
                 raise ValueError("broader positive work or auxiliary passes differ")
             clocks[int(cursor)] = clock
         startup = integer(row["startup_us"], 1)
-        result[method] = {k: v + startup for k, v in unit_price(plan["cells"], clocks).items()}
+        result[method] = {
+            k: v + startup
+            for k, v in unit_price(
+                plan["cells"][method] if "streams" in view else plan["cells"], clocks
+            ).items()
+        }
     return result
 
 
@@ -261,6 +367,7 @@ def checked_request(data, action):
         keys = stream["order"]
         if (
             stream != seal(stream)
+            or data["pair_seed"] != stream["seeds"]["training_families"]
             or set(keys) != rows.keys()
             or len(keys) != len(rows)
             or stream["row_identities"] != digest([rows[k]["identity"] for k in keys])

@@ -137,7 +137,7 @@ def measure(root, kind):
             digest([indexed[key]["identity"] for key in order]) == stream["row_identities"],
             "original positive order differs",
         )
-        measured = matching_pairs(shards, order, seed=SEED)
+        measured = matching_pairs(shards, order, seed=stream["seeds"]["training_families"])
     else:
         campaign_path = confined(root, ORIGINAL + "/prepare-research/frozen/campaign.json")
         campaign_ref = reference(root, campaign_path)

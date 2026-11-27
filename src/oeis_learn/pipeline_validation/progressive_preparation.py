@@ -623,13 +623,22 @@ def _measure_velocity_broad(
 
 
 def prepare_velocity_learner(
-    journal, method, profile, stream, shards, *, microbatch, audit=None, client=None
+    journal,
+    method,
+    profile,
+    stream,
+    shards,
+    *,
+    microbatch,
+    audit=None,
+    client=None,
+    pair_manifest=None,
 ):
     """Project a registered recipe's actual ordered decoder targets and eligible donor prefixes."""
     from oeis_learn.generalization.progressive.contracts import digest, seal
     from oeis_learn.generalization.progressive.shared_support import validated_rows
     from oeis_learn.generalization.progressive.training_rows import matching_pairs
-    from .progressive_velocity_matching import registered_update_policy
+    from .progressive_velocity_matching import qualified_pairs, registered_update_policy
 
     trial = journal.velocity_trial(method)["binding"]
     if stream != seal(stream) or stream["identity"] != trial["stream_ref"]:
@@ -649,6 +658,7 @@ def prepare_velocity_learner(
     elif (
         stream["version"] != "round029-broad-stream/v1"
         or not stream["available"]
+        or stream["seed"] != trial["stream_seed"]
         or audit is None
         or audit != seal(audit)
         or audit["identity"] != stream.get("audit")
@@ -657,11 +667,38 @@ def prepare_velocity_learner(
         raise ValueError("broader composition requires its independently verified witnesses")
     policy = registered_update_policy(journal, profile, method, microbatch=microbatch)
     unique = list(dict.fromkeys(order))
-    pairs = (
-        matching_pairs(shards, unique, seed=trial["stream_seed"], client=client)
-        if trial["recipe"]["matching"]
-        else None
-    )
+    pairs = None
+    if trial["recipe"]["matching"]:
+        from .identity import confined
+        from .preparation_recovery import retain
+        from oeis_learn.generalization.progressive.contracts import load
+
+        ordinary = trial["recipe"]["stream"] == "ordinary"
+        name = (
+            "matching-pairs.json"
+            if ordinary
+            else "matching-pairs-" + stream["identity"][7:] + ".json"
+        )
+        paid = None if ordinary else qualified_pairs(journal, stream, "broader")
+        with journal.lock():
+            original = confined(journal.root, name, exists=ordinary)
+            if original.is_file():
+                saved = load(original, maximum=original.stat().st_size)
+                if paid is not None and saved != paid:
+                    raise ValueError("registered learner pairs differ from their timing evidence")
+                paid = saved
+            if pair_manifest is not None and paid is not None and pair_manifest != paid:
+                raise ValueError("learner and priced matching selections differ")
+            pairs = matching_pairs(
+                shards,
+                unique,
+                seed=trial["stream_seed"],
+                client=client,
+                recorded=paid if paid is not None else pair_manifest,
+            )
+            if not pairs["coverage"]["full"]:
+                raise ValueError("full matching-pair coverage required for a training workload")
+            retain(original, pairs)
     donors = (
         {k: rows[v["donor"]]["values"][:20] for k, v in pairs["pairs"].items()} if pairs else {}
     )
@@ -669,7 +706,8 @@ def prepare_velocity_learner(
         raise ValueError("matching treatment has no eligible training pairs")
     projection = seal(
         dict(
-            version="round029-learner-input/v2",
+            version="round029-learner-input/v3" if pairs else "round029-learner-input/v2",
+            **({"pair_proof": pairs["identity"]} if pairs else {}),
             initial_weights=trial["initial_weights"],
             registration=trial["registration"],
             profile=profile,

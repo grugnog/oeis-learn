@@ -363,6 +363,9 @@ def matched_composition_inputs(tmp_path):
         def runtime_identity(self, profile):
             return digest(["fixture", profile])
 
+        def fit(self, source, prompt, **_):
+            return dict(outcome="timeout")
+
         def execute(self, source, indices, **_):
             self.calls += 1
             return dict(outcome="ok", values=list(evaluate(source, indices).values))
@@ -545,6 +548,17 @@ def test_matching_weight_frozen_from_ordinary_rows_for_both_treatments(
     assert sidecar["package"] == package["identity"] and all(
         set(r) == {"tokens", "values"} for r in package["rows"].values()
     )
+    assert package["pair_proof"] == req["pair_proof"] == sidecar["matching_pairs"]["identity"]
+    with pytest.raises(ValueError, match="selections differ"):
+        prepare_velocity_learner(
+            journal,
+            "02",
+            model,
+            stream,
+            [rows],
+            microbatch=8,
+            pair_manifest=seal(dict(sidecar["matching_pairs"], seed=29)),
+        )
     assert package["initial_weights"] == sidecar["initial_weights"] == value["initial_weights"]
     mismatched = seal(dict(package, initial_weights=digest("other weights at zero")))
     with pytest.raises(ValueError, match="initial learner weights"):
@@ -859,7 +873,7 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
                 familiar=x["familiar"],
                 difficulty=x["calibration"],
                 eligible_ordinals=[25, 26] if prospects else [],
-                pair_seed=29,
+                pair_seed=x["stream"]["seeds"]["training_families"],
                 microbatch=8,
                 calibration=cal,
             )
@@ -938,9 +952,18 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
             }
             view = load(requests["/work/inputs/projection.json"])
             observed = broad.run(view, req["design"], device="cpu")
-            elapsed = 1 + sum(
-                m["startup_us"] + sum(s["elapsed_us"] for s in m["samples"].values())
-                for m in observed["methods"].values()
+            # This fixture emulates the HIP producer. The actual backend is CPU.
+            observed = seal(
+                dict(observed, calibration=seal(dict(observed["calibration"], device="cuda")))
+            )
+            elapsed = (
+                1
+                + observed["calibration"]["elapsed_us"]
+                + sum(
+                    m["startup_us"] + sum(s["elapsed_us"] for s in m["samples"].values())
+                    for m in observed["methods"].values()
+                    if "samples" in m
+                )
             )
             (out / "telemetry").mkdir()
             (out / "telemetry/samples.jsonl").write_text("")

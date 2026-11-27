@@ -157,14 +157,24 @@ def train_to(directory, package, *, target, cap, device, interrupt=False, parent
     child = package.get("version") == "round029-learner-child/v1"
     source_version = package["parent"]["package_version"] if child else package["version"]
     fields = {"version", "identity", "profile", "policy", "order", "rows", "donors", "registration"}
-    if source_version == "round029-learner-input/v2":
+    if source_version == "round029-learner-input/v3":
+        from oeis_learn.generalization.progressive.contracts import _check, schema
+
+        _check(schema("common")["$defs"]["hash"], package.get("pair_proof"), {})
+        fields.add("pair_proof")
+    if source_version in {"round029-learner-input/v2", "round029-learner-input/v3"}:
         fields.add("initial_weights")
     if child:
         fields.add("parent")
     if (
         package != seal(package)
         or set(package) != fields
-        or source_version not in {"round029-learner-input/v1", "round029-learner-input/v2"}
+        or source_version
+        not in {
+            "round029-learner-input/v1",
+            "round029-learner-input/v2",
+            "round029-learner-input/v3",
+        }
     ):
         raise ValueError("sealed registered learner projection required")
     parent = parent_terms(package) if child else None

@@ -175,7 +175,7 @@ def preflight(root, source=None):
         "prices"
     ].get("broader_updates"):
         reason, next_action = (
-            "Prepare the broader-composition training stream and verify its matching support to price recipes 01 and 03",
+            "Audit the broader stream and measure eligible recipes 01, 02 and 03 with their registered matching inputs",
             "qualify",
         )
     elif (info["prices"].get("broader_updates") or {}).get(
@@ -192,11 +192,12 @@ def preflight(root, source=None):
             "Restore the frozen difficulty calibration before pricing broader composition",
             "inspect_inputs",
         )
-    elif ((info["prices"].get("broader_updates") or {}).get("device") or {}).get(
-        "methods", {}
-    ).keys() == {"01"}:
+    elif info["prices"].get("broader_updates") and any(
+        "optimizer_to_4M_recipe_" + method in info["prices"]["wave"]["missing"]
+        for method in ("02", "03")
+    ):
         reason, next_action = (
-            "Resolve broader matching support and the shared loss weight before pricing recipe 03",
+            "Inspect each stream’s measured matching coverage and common calibration before pricing the missing matching recipes",
             "qualify",
         )
     else:

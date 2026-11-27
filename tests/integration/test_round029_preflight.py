@@ -289,12 +289,31 @@ def test_preflight_prices_verified_exposed_clocks_even_without_private_freeze(
     from oeis_learn.pipeline_validation import progressive_velocity_broad_host as broad
     from oeis_learn.pipeline_validation import progressive_velocity_timing_host as ordinary
     rate = dict(expected_us=10, tail_us=12)
-    paid = dict(measurement=digest("fixture ordinary timing"),methods={"02":rate},calibration_us=5)
+    paid = dict(
+        measurement=digest("fixture ordinary timing"),
+        methods={},
+        sampled_methods={"02": rate},
+        matching_scope={"full": False},
+        calibration_us=5,
+    )
     monkeypatch.setattr(ordinary, "timing_inventory", lambda *_: paid)
-    measurement = dict(ordinary_measurement=paid["measurement"], disposition="prepared", device={"methods":{"01":rate, "03":rate}})
+    previous = host.preflight(tmp_path)["inventory"]["prices"]
+    assert {"optimizer_to_4M_recipe_02", "ordinary_matching_calibration"} <= set(
+        previous["wave"]["missing"]
+    )
+    measurement = dict(
+        ordinary_measurement=paid["measurement"],
+        disposition="prepared",
+        device={"methods": {"01": rate, "02": rate, "03": rate}, "calibration": {"elapsed_us": 7}},
+    )
     monkeypatch.setattr(broad, "inventory", lambda *_: measurement)
     both = host.preflight(tmp_path)["inventory"]["prices"]
-    assert not {"optimizer_to_4M_recipe_01","optimizer_to_4M_recipe_03"}.intersection(both["wave"]["missing"])
+    assert not {
+        "optimizer_to_4M_recipe_01",
+        "optimizer_to_4M_recipe_02",
+        "optimizer_to_4M_recipe_03",
+        "ordinary_matching_calibration",
+    }.intersection(both["wave"]["missing"])
     assert both["wave"]["operations"]["ordinary_matching_calibration"] == 1
     assert both["broader_updates"] == measurement
     monkeypatch.setattr(broad, "inventory", lambda *_: dict(measurement, ordinary_measurement=digest("other calibration")))
@@ -515,8 +534,13 @@ def test_donor_census_opens_the_committed_stream_and_all_prior_roles(tmp_path, m
 
     area = root / census.PARENT / census.AREA
     order = [r["draw_identity"] for r in velocity_supply_rows[:-1]]
-    stream = seal(dict(order=order, seeds={"pair": 0},
-                       row_identities=digest([r["identity"] for r in velocity_supply_rows[:-1]])))
+    stream = seal(
+        dict(
+            order=order,
+            seeds={"pair": 0, "training_families": 113},
+            row_identities=digest([r["identity"] for r in velocity_supply_rows[:-1]]),
+        )
+    )
     def row(n):
         return dict(id=str(n), indices=list(map(str, range(100))), group="family-" + str(n),
                     values=[str(n * 1000 + i) for i in range(100)], stratum="oeis")
@@ -582,6 +606,7 @@ def test_donor_census_opens_the_committed_stream_and_all_prior_roles(tmp_path, m
     )
     pairs, pair_refs = census.measure(root, "matching_pairs")
     families, family_refs = census.measure(root, "families")
+    assert pairs["seed"] == stream["seeds"]["training_families"]
     assert pairs["positive_rows"] == len(order) and pairs["order"] == digest(order)
     assert families["eligible"] == 1 and families["excluded"] == 2
     assert {p["task"] for members in families["panels"].values() for p in members} == {fresh["id"]}

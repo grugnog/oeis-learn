@@ -28,7 +28,7 @@ from .progressive_roles import ROUND029_ROLE_POLICY
 from .progressive_round028_receipts import verify_role_mounts
 from .progressive_round028_rehearsal import physical_scope
 from .progressive_velocity_broad import MAX_INPUT, checked_request, design, prices, supply_counts
-from .progressive_velocity_census import SEED, prior_exposures, practice_prompts, training_source
+from .progressive_velocity_census import prior_exposures, practice_prompts, training_source
 from .progressive_velocity_image import preparation_boundary
 from .progressive_velocity_operations import InsufficientAuthority, replay_operation, run_operation
 from .progressive_velocity_preparation import funded_inventory
@@ -155,15 +155,19 @@ def authorize(root, minutes, revision):
     from .progressive_velocity_qualification import authorize_qualification
 
     folder = confined(root, "run-state/discovery/" + SESSION)
-    # Two recipes, two support classes, three load bands and two samples, with one retry.
-    attempts = 2 * 2 * 3 * 2 * 2
+    # Three recipes, two support classes, three load bands, two samples and one calibration, with one retry.
     plan = preparation_plan(root)
+    attempts = 2 * (3 * 2 * 3 * 2 + (plan["slots"] + 31) // 32)
     return authorize_qualification(
         root,
         minutes,
         parent(revision, original_pointers(root, folder)),
-        dict(attempts=attempts, tokens=attempts * 32 * MAX_BODY_TOKENS,
-             draws=2 * plan["draws"], native_work=2 * (plan["slots"] + plan["draws"])),
+        dict(
+            attempts=attempts,
+            tokens=attempts * 32 * MAX_BODY_TOKENS,
+            draws=2 * plan["draws"],
+            native_work=2 * (5 * plan["slots"] + plan["draws"]),
+        ),
     )
 
 
@@ -339,7 +343,7 @@ def custodian(root, source, out, origins, *, work_plan=None):
             familiar=sorted(familiar & {r["structure"] for r in positives}),
             difficulty=difficulty,
             eligible_ordinals=ordinals,
-            pair_seed=SEED,
+            pair_seed=stream["seeds"]["training_families"],
             profile=pkg["profile"],
             microbatch=pkg["microbatch"],
             initial_weights=weights,
@@ -434,7 +438,6 @@ def cpu_evidence(root, area, binding, out):
         raise ValueError("native composition receipt differs")
     # Reopen all selected original rows, the complete audit and the signed stream,
     # even when the prescribed draws did not increase diversity.
-    from .progressive_velocity_broad import projection
     from oeis_learn.generalization.progressive.generator import broader_stream
 
     (receipt_path,) = stage_out.glob(
@@ -494,21 +497,16 @@ def cpu_evidence(root, area, binding, out):
     ):
         raise ValueError("broader availability differs from observed diversity")
     if stream["available"]:
-        from oeis_learn.generalization.progressive.training_rows import matching_pairs
-        from .progressive_velocity_broad import shards
+        from .progressive_velocity_broad import matching_views
 
-        pairs = load(confined(stage_out, "pairs.json"), maximum=MAX_INPUT)
-        if pairs != matching_pairs(
-            shards(list(rows.values())), list(dict.fromkeys(stream["order"])), seed=SEED
+        manifests = load(confined(stage_out, "pairs.json"), maximum=MAX_INPUT)
+        if any(
+            pair["runtime"] != plan["runtime"] or pair["reference"] != plan["reference"]
+            for pair in manifests.values()
         ):
-            raise ValueError("broader matching support differs from native training rows")
-        view = projection(stream, rows, pairs, requested)
-        expected_stats.update(
-            pair_dispositions=pairs["dispositions"],
-            eligible_unique=pairs["eligible_rows"],
-            eligible_slots=len(view["donors"]),
-            eligible_families=pairs["eligible_families"],
-        )
+            raise ValueError("matching evidence belongs to another native verifier")
+        view, _ = matching_views(requested, stream, rows, recorded=manifests)
+        expected_stats["matching"] = view["support"]
         if view != load(confined(stage_out, "projection.json"), maximum=MAX_INPUT) or produced[
             "design"
         ] != design(view, requested["microbatch"], base["calibration"]):
@@ -602,9 +600,13 @@ def gpu_evidence(area, out, cpu, prepared, binding):
     lease = load(confined(out, "gpu-lease.json"))["elapsed_us"]
     elapsed = rec["elapsed_us"]
     telemetry = usage_summary(confined(out, "telemetry/samples.jsonl").parent, elapsed)
-    accounted = sum(
-        m["startup_us"] + sum(s["elapsed_us"] for s in m["samples"].values())
-        for m in rec["matrix"]["methods"].values()
+    accounted = (
+        sum(
+            m["startup_us"] + sum(s["elapsed_us"] for s in m["samples"].values())
+            for m in rec["matrix"]["methods"].values()
+            if "samples" in m
+        )
+        + rec["matrix"]["calibration"]["elapsed_us"]
     )
     if (
         type(elapsed) is not int
@@ -612,6 +614,7 @@ def gpu_evidence(area, out, cpu, prepared, binding):
         or type(rec["worker_cpu_us"]) is not int
         or rec["worker_cpu_us"] < 0
         or not 0 < accounted <= elapsed <= lease
+        or rec["matrix"]["calibration"]["device"] != "cuda"
         or rec["telemetry"] != telemetry
         or telemetry["covered_us"] > elapsed
         or type(rec["peak_device_bytes"]) is not int
@@ -620,6 +623,7 @@ def gpu_evidence(area, out, cpu, prepared, binding):
         raise ValueError("broader device clocks, sampled activity or memory are inconsistent")
     return seal(
         dict(
+            calibration=rec["matrix"]["calibration"],
             methods=prices(load(view_path, maximum=MAX_INPUT), req["design"], rec["matrix"]),
             producer=rec["identity"],
             lease_us=lease,
@@ -675,6 +679,8 @@ def stages(root, area, grant, binding, run):
     prep = custody
     witnesses = custody["evidence"].get("native_witnesses", 0)
     if custody["evidence"].get("training"):
+        # Each stream can fit and replay one adjustable target per positive slot.
+        witnesses += 4 * plan["slots"]
         package = run("package", custody, {}, lambda out: runtime_evidence(root, area, binding, out),
                       lambda out: (out / "runtime.json").is_file())
         prep = run("prepare", package, {"native_work": witnesses},
@@ -701,7 +707,13 @@ def replay(root, area, grant, binding, snapshot):
         raise ValueError("original broader work plan differs")
     def reopen(phase, request, cost, verify, installed):
         return replay_operation(area, coordinates(grant, phase), request, grant, cost, snapshot, verify)
-    return stages(root, area, grant, binding, reopen)
+
+    return with_charges(stages(root, area, grant, binding, reopen), snapshot)
+
+
+def with_charges(record, snapshot):
+    keys = ("draws", "native_work", "attempts", "tokens")
+    return seal(dict(record, charged_work={k: snapshot["consumed"][k] for k in keys}))
 
 
 def inventory(root, source):
@@ -880,7 +892,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
                              before_dispatch=lambda: check_capacity(root, area, binding, phase, args))
 
     try:
-        rec = stages(root, area, grant, binding, dispatch)
+        rec = with_charges(stages(root, area, grant, binding, dispatch), journal.snapshot())
         retain(area / "receipt.json", rec)
         marker = seal(dict(grant=grant["identity"], receipt=rec["identity"]))
         if not (folder / MARKER).exists() or load(confined(folder, MARKER)) != marker:

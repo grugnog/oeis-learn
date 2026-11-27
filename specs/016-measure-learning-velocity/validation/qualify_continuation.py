@@ -281,7 +281,12 @@ def donor_timings(action, root, revision, minutes, *, broader=False):
         from oeis_learn.pipeline_validation.progressive_velocity_image import failure_details
 
         current = first.get("diagnostics") or summary["first_error"]
-        return dict(summary, diagnostics=failure_details(root, summary["grant"], current))
+        return dict(
+            summary,
+            problem=current,
+            next_action=first["next_action"],
+            diagnostics=failure_details(root, summary["grant"], current),
+        )
     verification = action("verify")
     record = first["receipt"]
     if (
