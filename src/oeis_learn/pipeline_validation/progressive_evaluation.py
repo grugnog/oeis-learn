@@ -28,28 +28,59 @@ def velocity_probe(look, prompts, *, mode, inference_seed):
     """Freeze encoder conditioning separately from the recipient used by the fitter and scorer."""
     from collections import defaultdict
     from oeis_learn.generalization.progressive.campaign import velocity_policy
+    from oeis_learn.generalization.progressive.graph import velocity_look
     from oeis_learn.generalization.progressive.metrics import _seed
 
     cfg = velocity_policy()
     _seed(inference_seed)
-    if (look != seal(look) or look["version"] != "round029-look/v1" or mode not in {"true", "shuffled"}
-            or look["attempts"] != cfg["profiles"][look["profile"]]["attempts"] or look["opportunity"] != cfg["opportunity"]
-            or [r["task"] for r in look["members"]] != [validate_prompt(p)["id"] for p in prompts]
-            or not prompts or len({p["id"] for p in prompts}) != len(prompts)):
+    rebuilt = velocity_look(
+        registration=look["registration"],
+        method=look["method"],
+        seed=look["seed"],
+        look=look["look"],
+        profile=look["profile"],
+        extension=look["look"] == cfg["conditional_look"],
+        development=[row for row in look["members"] if row["stratum"] != "retention"],
+        retention=[row for row in look["members"] if row["stratum"] == "retention"],
+    )
+    if (
+        look != rebuilt
+        or mode not in {"true", "shuffled"}
+        or look["method"] in cfg["controls"]
+        and (look["profile"] != "full" or mode != "true")
+        or [r["task"] for r in look["members"]] != [validate_prompt(p)["id"] for p in prompts]
+        or not prompts
+        or len({p["id"] for p in prompts}) != len(prompts)
+    ):
         raise ValueError("registered ordered recipient roster and probe opportunity required")
     donors = {p["id"]: p["id"] for p in prompts}
     if mode == "shuffled":
-        groups = defaultdict(list)
-        for p in prompts:
-            groups[tuple(p["values"])].append(p["id"])
-        shift = max(map(len, groups.values()))
-        if 2 * shift > len(prompts):
-            raise ValueError("no differing donor permutation for this frozen panel")
-        order = [key for group in sorted(groups, key=lambda v: digest([inference_seed, v]))
-                 for key in sorted(groups[group], key=lambda v: digest([inference_seed, v]))]
-        donors = {key: order[(i + shift) % len(order)] for i, key in enumerate(order)}
-    return seal(dict(version="round029-probe/v1", look=look, recipients=digest(prompts), mode=mode,
-                     inference_seed=inference_seed, donors=donors))
+        strata = defaultdict(list)
+        for member, prompt in zip(look["members"], prompts, strict=True):
+            strata[member["stratum"]].append(prompt)
+        for stratum, recipients in strata.items():
+            groups = defaultdict(list)
+            for p in recipients:
+                groups[tuple(p["values"])].append(p["id"])
+            shift = max(map(len, groups.values()))
+            if 2 * shift > len(recipients):
+                raise ValueError(f"no differing donor permutation in registered stratum {stratum}")
+            order = [
+                key
+                for group in sorted(groups, key=lambda v: digest([inference_seed, v]))
+                for key in sorted(groups[group], key=lambda v: digest([inference_seed, v]))
+            ]
+            donors.update({key: order[(i + shift) % len(order)] for i, key in enumerate(order)})
+    return seal(
+        dict(
+            version="round029-probe/v1",
+            look=look,
+            recipients=digest(prompts),
+            mode=mode,
+            inference_seed=inference_seed,
+            donors=donors,
+        )
+    )
 
 
 def generate(
@@ -77,31 +108,75 @@ def generate(
     measurements=None,
     registered_probe=None,
 ):
-    import torch
+    prompts = list(prompts)
+    if type(seconds) not in (int, float) or not 0 < seconds <= _maximum_seconds(budget):
+        raise ValueError("bounded installed generation required")
+    if registered_probe is not None:
+        from oeis_learn.generalization.progressive.campaign import velocity_policy
 
+        look = registered_probe["look"]
+        if (
+            registered_probe
+            != velocity_probe(
+                look,
+                prompts,
+                mode=registered_probe["mode"],
+                inference_seed=registered_probe["inference_seed"],
+            )
+            or inference_seed is not None
+            or evaluation_policy != DRAIN
+            or forced is not None
+            or component_library is not None
+        ):
+            raise ValueError("original registered probe required")
+        if look["method"] in velocity_policy()["controls"]:
+            from .progressive_velocity_controls import generate_control
+
+            if methods != (look["method"],) or checkpoint is not None or device != "cpu":
+                raise ValueError(
+                    "registered CPU control requires its own method and visible inputs"
+                )
+            return generate_control(
+                output_root if output_root is not None else root,
+                output,
+                prompts,
+                recipe,
+                probe=registered_probe,
+                client=client,
+                seconds=seconds,
+                budget=budget,
+                case_elapsed_us=case_elapsed_us,
+                case_boundary_dir=case_boundary_dir,
+                measurements=measurements,
+            )
+        if methods != ("correct",) or look["method"] not in {
+            "00",
+            "01",
+            "02",
+            "03",
+            "04",
+            "05",
+            "06",
+            "D",
+        }:
+            raise ValueError("original registered neural probe required")
+        if look["method"] == "D" and (model_control != "retained_D" or checkpoint is None):
+            raise ValueError("D requires its normal registered weights")
+        inference_seed = registered_probe["inference_seed"]
+        evaluation_policy = DESCRIPTIVE if look["profile"] == "common" else CORRECT_FULL
+    if evaluation_policy not in (DRAIN, DESCRIPTIVE, CORRECT_FULL) or (
+        evaluation_policy in (DESCRIPTIVE, CORRECT_FULL)
+        and (methods != ("correct",) or forced is not None or component_library is not None)
+    ):
+        raise ValueError("timed candidate generation requires the registered visible-only arm")
+
+    import torch
     from oeis_learn.decoder.bigint_codec import fitting_policy
     from oeis_learn.fresh.bigint_diagnostics import _seal, model_snapshot, portfolio
     from oeis_learn.fresh.conditioning_controls import condition_memory
     from oeis_learn.generalization.progressive.baselines import conditioning
     from oeis_learn.synthesis.admission import VisiblePrompt
 
-    prompts = list(prompts)
-    if registered_probe is not None:
-        look = registered_probe["look"]
-        if (registered_probe != velocity_probe(look, prompts, mode=registered_probe["mode"],
-                                               inference_seed=registered_probe["inference_seed"])
-                or methods != ("correct",) or inference_seed is not None or evaluation_policy != DRAIN
-                or look["method"] not in {"00", "01", "02", "03", "04", "05", "06", "D"}):
-            raise ValueError("original registered neural probe required")
-        inference_seed = registered_probe["inference_seed"]
-        evaluation_policy = DESCRIPTIVE if look["profile"] == "common" else CORRECT_FULL
-    if evaluation_policy not in (DRAIN, DESCRIPTIVE, CORRECT_FULL) or (
-        evaluation_policy in (DESCRIPTIVE, CORRECT_FULL) and (methods != ("correct",) or forced is not None or component_library is not None)
-    ):
-        raise ValueError("timed candidate generation requires the registered visible-only arm")
-
-    if type(seconds) not in (int, float) or not 0 < seconds <= _maximum_seconds(budget):
-        raise ValueError("bounded installed generation required")
     if (
         not isinstance(methods, tuple)
         or not methods
@@ -121,7 +196,8 @@ def generate(
             raise ValueError("component comparison requires one ordinary matched portfolio")
     for p in prompts:
         validate_prompt(p)
-    prompts.sort(key=lambda p: p["id"])
+    if registered_probe is None:
+        prompts.sort(key=lambda p: p["id"])
     if not prompts or len({p["id"] for p in prompts}) != len(prompts):
         raise ValueError("nonempty unique visible roster required")
     if "shuffled" in methods:
@@ -357,7 +433,7 @@ def generate(
             "model_control": model_control,
             "recipe": digest(recipe),
             "methods": list(methods),
-            "prompts": digest(prompts),
+            "prompts": digest(sorted(prompts, key=lambda p: p["id"])),
             "records": rows,
             "clock": evidence.clock_summary,
             "counts": counts,
@@ -520,20 +596,54 @@ def generate_short(encoder, decoder, prompts, *, seed, seconds=4, max_tokens=64)
 def score_velocity(root, candidates, truth, *, client, output, probe, seconds=3600):
     """The scored choice must have been issued at this look, mode and frozen opportunity."""
     from .progressive_research_inputs import checked_file
+    from oeis_learn.generalization.progressive.campaign import velocity_policy
 
     generated = load(checked_file(root, candidates), maximum=candidates["bytes"])
-    if generated["clock"].get("velocity_probe") != probe["identity"]:
+    clock = generated["clock"]
+    method = probe["look"]["method"]
+    control = method in velocity_policy()["controls"]
+    policy = (
+        "round029-conventional-full/v1"
+        if control
+        else DESCRIPTIVE if probe["look"]["profile"] == "common" else CORRECT_FULL
+    )
+    if (
+        clock != seal(clock)
+        or clock.get("velocity_probe") != probe["identity"]
+        or clock.get("inference_seed") != probe["inference_seed"]
+        or clock["policy"] != policy
+        or generated["methods"] != ([method] if control else ["correct"])
+    ):
         raise ValueError("sealed choices come from another probe profile or conditioning")
     truth = list(truth)
     by_id = {row["id"]: row for row in truth}
     if len(by_id) != len(truth) or set(by_id) != set(probe["donors"]):
         raise ValueError("original recipient truth roster required")
-    prompts = [dict(id=m["task"], indices=by_id[m["task"]]["indices"][:20],
-                    values=by_id[m["task"]]["values"][:20]) for m in probe["look"]["members"]]
-    if velocity_probe(probe["look"], prompts, mode=probe["mode"], inference_seed=probe["inference_seed"]) != probe:
+    prompts = [
+        dict(
+            id=m["task"],
+            indices=by_id[m["task"]]["indices"][:20],
+            values=by_id[m["task"]]["values"][:20],
+        )
+        for m in probe["look"]["members"]
+    ]
+    if (
+        velocity_probe(
+            probe["look"], prompts, mode=probe["mode"], inference_seed=probe["inference_seed"]
+        )
+        != probe
+    ):
         raise ValueError("scoring truth differs from frozen recipient prompt")
-    return score(root, candidates, truth, client=client, output=output, seconds=seconds,
-                 selected_only=True, independent_case_clock=True)
+    return score(
+        root,
+        candidates,
+        truth,
+        client=client,
+        output=output,
+        seconds=seconds,
+        selected_only=True,
+        independent_case_clock=True,
+    )
 
 
 def score_short(source, truth, *, client):

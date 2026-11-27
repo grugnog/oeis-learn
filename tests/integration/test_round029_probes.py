@@ -38,8 +38,8 @@ def test_shuffled_probe_changes_encoder_values_and_keeps_true_fitting_and_scorin
     from oeis_learn.pipeline_validation import progressive_evaluation as evaluation
 
     xs = list(range(-7, 93))
-    truth = [dict(id="a", indices=list(map(str, xs)), values=list(map(str, xs))),
-             dict(id="b", indices=list(map(str, xs)), values=[str(n+1) for n in xs])]
+    truth = [dict(id="b", indices=list(map(str, xs)), values=list(map(str, xs))),
+             dict(id="a", indices=list(map(str, xs)), values=[str(n+1) for n in xs])]
     prompts = [dict(id=r["id"], indices=r["indices"][:20], values=r["values"][:20]) for r in truth]
     cells = [dict(task=p["id"], group=p["id"], stratum="oeis") for p in prompts]
     coords = dict(registration=digest("study"), method="00", seed=29, development=cells, retention=[])
@@ -90,3 +90,142 @@ def test_shuffled_probe_changes_encoder_values_and_keeps_true_fitting_and_scorin
     with pytest.raises(ValueError):
         evaluation.velocity_probe(common, [prompts[0], dict(prompts[1], values=prompts[0]["values"])],
                                   mode="shuffled", inference_seed=57)
+
+
+def test_registered_derangement_uses_each_donor_once_within_its_own_stratum():
+    from oeis_learn.pipeline_validation.progressive_evaluation import velocity_probe
+
+    cells = [
+        dict(task=str(i), group=str(i), stratum=s)
+        for i, s in enumerate(("oeis", "parameter", "oeis", "parameter"))
+    ]
+    look = velocity_look(registration=digest("study"), method="00", seed=29, look=0,
+                         profile="common", development=cells, retention=[])
+    prompts = [dict(id=r["task"], indices=list(map(str, range(20))), values=[r["task"]] * 20)
+               for r in cells]
+    probe = velocity_probe(look, prompts, mode="shuffled", inference_seed=57)
+    assert probe["donors"] == {"0": "2", "2": "0", "1": "3", "3": "1"}
+    prompts[2]["values"] = prompts[0]["values"]
+    with pytest.raises(ValueError, match="stratum oeis"):
+        velocity_probe(look, prompts, mode="shuffled", inference_seed=57)
+
+
+@pytest.mark.parametrize("method,expected_calls", [("template", 8), ("polynomial", 1), ("linear_recurrence", 1)])
+def test_registered_conventional_opportunity_and_selected_scoring(tmp_path, method, expected_calls):
+    import time
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.pipeline_validation import progressive_evaluation as ev
+    from oeis_learn.synthesis.admission import source_identity
+    from oeis_learn.synthesis.contracts import ResourceProfile
+    from oeis_learn.synthesis.reference import evaluate
+
+    class Client:
+        limits = ResourceProfile()
+        calls = []
+
+        def fit(self, source, visible, *, policy, deadline, seed):
+            assert len(visible.values) == len(visible.indices) == 20
+            assert 0 < deadline - time.monotonic() <= 4 and type(seed) is int
+            self.calls.append(source)
+            accepted = []
+            if method == "polynomial":
+                assert list(evaluate(source, visible.indices).values) == list(visible.values)
+                accepted.append(
+                    dict(
+                        source=source,
+                        transformed_source=source,
+                        source_sha256=source_identity(source),
+                        original_source_sha256=source_identity(source),
+                        assignment={},
+                        verification=dict(prompt_sha256=visible.sha256),
+                    )
+                )
+            return dict(complete=True, outcome="ok", admitted=accepted)
+
+        def execute(self, source, indices, *, deadline):
+            result = evaluate(source, indices, deadline=deadline)
+            return dict(values=list(result.values), outcome=result.outcome)
+
+    truth = dict(
+        id="p", indices=list(map(str, range(100))), values=[str(i + 1) for i in range(100)]
+    )
+    prompt = dict(id="p", indices=truth["indices"][:20], values=truth["values"][:20])
+    look = velocity_look(
+        registration=digest("study"),
+        method=method,
+        seed=29,
+        look=4_000_000,
+        profile="full",
+        development=[dict(task="p", group="f", stratum="oeis")],
+        retention=[],
+    )
+    probe = ev.velocity_probe(look, [prompt], mode="true", inference_seed=57)
+    client = Client()
+    measurements, elapsed = {}, {}
+    ref = ev.generate(
+        tmp_path,
+        "generated",
+        [prompt],
+        resolve({"version": "bigint-bootstrap/v1"}),
+        client=client,
+        methods=(method,),
+        registered_probe=probe,
+        measurements=measurements,
+        case_elapsed_us=elapsed,
+        case_boundary_dir=tmp_path / "boundaries",
+    )
+    body = load(tmp_path / ref["path"])
+    clock = body["clock"]["clocks"][0]
+    assert len(client.calls) == clock["started"] == expected_calls and clock["allowed"] == 8
+    assert elapsed == {"p": clock["elapsed_us"]} and "publish_candidates_us" in measurements
+    assert set(body["records"]["p"]["selections"]) == {"equal_budget"}
+    scored = ev.score_velocity(tmp_path, ref, [truth], client=client, output="scored", probe=probe)
+    assert scored["outcomes"]["p"]["equal_budget"]["success"] == (method == "polynomial")
+    with pytest.raises(ValueError):
+        ev.velocity_probe(look, [prompt], mode="shuffled", inference_seed=57)
+    with pytest.raises(ValueError):
+        ev.generate(
+            tmp_path,
+            "incorrect",
+            [prompt],
+            {},
+            client=client,
+            methods=("correct",),
+            registered_probe=probe,
+        )
+
+
+def test_registered_polynomial_uses_installed_native_fit_and_independent_score(
+    tmp_path, fitting_client
+):
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.pipeline_validation import progressive_evaluation as ev
+
+    truth = dict(
+        id="offset", indices=list(map(str, range(-5, 95))), values=list(map(str, range(100)))
+    )
+    prompt = dict(id="offset", indices=truth["indices"][:20], values=truth["values"][:20])
+    look = velocity_look(
+        registration=digest("study"),
+        method="polynomial",
+        seed=29,
+        look=4_000_000,
+        profile="full",
+        development=[dict(task="offset", group="f", stratum="oeis")],
+        retention=[],
+    )
+    probe = ev.velocity_probe(look, [prompt], mode="true", inference_seed=57)
+    ref = ev.generate(
+        tmp_path,
+        "generated",
+        [prompt],
+        resolve({"version": "bigint-bootstrap/v1"}),
+        client=fitting_client,
+        methods=("polynomial",),
+        registered_probe=probe,
+    )
+    scored = ev.score_velocity(
+        tmp_path, ref, [truth], client=fitting_client, output="score", probe=probe
+    )
+    assert scored["outcomes"]["offset"]["equal_budget"]["success"]
