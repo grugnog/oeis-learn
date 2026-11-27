@@ -274,7 +274,9 @@ def donor_timings(action, root, revision, minutes):
         research_dispatches=first.get("research_dispatches"),
     )
     if first["mechanical_status"] != "COMPLETE":
-        return summary
+        from oeis_learn.pipeline_validation.progressive_velocity_image import failure_details
+
+        return dict(summary, diagnostics=failure_details(root, summary["grant"], summary["first_error"]))
     verification = action("verify")
     record = first["receipt"]
     if (

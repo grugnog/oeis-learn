@@ -171,3 +171,24 @@ def test_explicit_readonly_files_preserve_mount_and_network_boundary(tmp_path, n
     os.mkfifo(pipe)
     with pytest.raises(ValueError, match='read-only regular file'):
         engine.command(**dict(args, mounts=[(pipe, '/work/inputs/original.json', False)]))
+
+
+def test_recorded_local_build_keeps_both_log_tails_and_termination(tmp_path):
+    engine_cli = tmp_path / "podman"
+    engine_cli.write_text(
+        "#!/bin/sh\n"
+        "python3 -c 'print(\"x\" * 100000)'\n"
+        "echo 'fixture final build step'\n"
+        "echo 'fixture layer could not be committed' >&2\n"
+        "exit 125\n"
+    )
+    engine_cli.chmod(0o700)
+    engine = Engine("podman", executable=str(engine_cli), details={"host": {"serviceIsRemote": False}})
+    evidence = tmp_path / "build-logs"
+    with pytest.raises(RuntimeError, match="fixture layer could not be committed"):
+        engine.build(tmp_path, seconds=10, evidence=evidence)
+    process = json.loads((evidence / "process.json").read_bytes())
+    assert process["returncode"] == 125 and process["cleanup_failure"] is None
+    assert "fixture final build step" in (evidence / "stdout.log").read_text()
+    assert (evidence / "stdout.log").stat().st_size <= 65536
+    assert json.loads((evidence / "cleanup.json").read_bytes())["acknowledged"] is True

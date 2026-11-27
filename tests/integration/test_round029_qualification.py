@@ -331,8 +331,9 @@ def test_matrix_requires_prior_paid_supply_before_creating_a_grant(tmp_path):
     assert not (tmp_path / "run-state").exists()
 
 
+@pytest.mark.parametrize("cold_retry", [False, True])
 def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
-    tmp_path, monkeypatch, velocity_supply_rows
+    tmp_path, monkeypatch, velocity_supply_rows, cold_retry
 ):
     from types import SimpleNamespace
     from oeis_learn.fresh.bigint_config import resolve
@@ -388,7 +389,8 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
         action="qualify",
         authority=grant,
         workspace=str(tmp_path),
-        image=image,
+        image=None if cold_retry else image,
+        gpu_base_image=None,
         archive=None,
         qualification_archive=None,
     )
@@ -489,15 +491,38 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
 
     monkeypatch.setattr(host, "stage", stage)
 
+    engine = SimpleNamespace(image=lambda img: img)
+    if cold_retry:
+        from oeis_learn.container_runtime import Engine
+
+        cli = tmp_path / "podman-fixture"
+        cli.write_text("#!/bin/sh\necho 'storage fixture detail' >&2\nexit 125\n")
+        cli.chmod(0o700)
+        engine = Engine("podman", executable=str(cli), details={"host": {"serviceIsRemote": False}})
+
     def run():
         return progressive_round029.execute(
             args,
             tmp_path,
-            host_factory=lambda *_a, **_k: SimpleNamespace(
-                engine=SimpleNamespace(image=lambda img: img)
-            ),
+            host_factory=lambda *_a, **_k: SimpleNamespace(engine=engine),
         )
 
+    if cold_retry:
+        from oeis_learn.pipeline_validation.progressive_velocity_image import failure_details
+
+        failed, code = run()
+        assert code and failed["mechanical_status"] == "FAILED" and not launches
+        assert "storage fixture detail" in failed["reason"]
+        assert 0 < failed["elapsed_us"] < load(grant)["total_us"]
+        assert failed["remaining_authority"] + failed["elapsed_us"] == load(grant)["total_us"]
+        assert failed["charged_tokens"] == failed["research_dispatches"] == 0
+        details = failure_details(tmp_path, load(grant)["identity"], failed["first_error"])
+        item = details["steps"]["image_build"]
+        assert (
+            item["process"]["returncode"] == 125 and item["stderr_tail"] == "storage fixture detail"
+        )
+        assert details["steps"]["operation"]["storage-before"]["workspace"]["free_bytes"] > 0
+        cli.write_text(f"#!/bin/sh\necho '{image}'\n")
     completed, code = run()
     assert code == 0, completed
     assert run() == (completed, 0) and len(launches) == 1
@@ -521,7 +546,7 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     assert scope["incremental"]["ledger_us"] == completed["elapsed_us"]
     assert scope["incremental"]["resources"]["worker_cpu_us"] == {
         "observed": 1500,
-        "missing_operations": 1,
+        "missing_operations": 1 + int(cold_retry),
     }
     assert scope["incremental"]["resources"]["busy_us"] == {
         "observed": 200,

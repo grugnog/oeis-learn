@@ -22,6 +22,7 @@ from .progressive_round028_receipts import verify_role_mounts
 from .progressive_round028_rehearsal import physical_scope
 from .progressive_velocity_census import training_source
 from .progressive_velocity_donor import PILOT_REPORT
+from .progressive_velocity_image import preparation_boundary, storage
 from .progressive_velocity_operations import InsufficientAuthority, replay_operation, run_operation
 from .progressive_velocity_preparation import funded_inventory
 from .progressive_velocity_supply import _area
@@ -386,23 +387,26 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
             )
         return min(count, 86400)
 
-    def prepare(out, reserve):
-        deadline = time.monotonic_ns() + reserve * 1000
+    def acquire(out, deadline):
         projection, design = inputs()
         retain(area / "projection.json", projection)
         physical = worker()
+        retain(out / "storage-before.json", storage(root, physical.engine))
         path = area / "request.json"
         if path.exists():
             image = physical.engine.image(load(confined(area, path))["image"])
         elif args.image:
             image = physical.engine.image(args.image)
         else:
+            logs = out / "image-build"
+            logs.mkdir()
             image = physical.engine.build(
                 source,
                 target="gpu",
                 tag="oeis-learn:round029-" + revision,
                 base_image=args.gpu_base_image,
                 seconds=seconds(deadline),
+                evidence=logs,
             )
         req = seal(
             dict(
@@ -418,12 +422,23 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
         )
         retain(path, req)
         retain(out / "producer.json", seal(dict(request=req["identity"])))
-        retain(
-            out / "cleanup.json",
-            dict(acknowledged=True, within_bound=time.monotonic_ns() <= deadline),
-        )
+
+    attempt_out = None
+
+    def prepare(out, reserve):
+        nonlocal attempt_out
+        attempt_out = out
+        deadline = time.monotonic_ns() + reserve * 1000
+        with preparation_boundary(out, deadline):
+            try:
+                acquire(out, deadline)
+            finally:
+                if host is not None:
+                    retain(out / "storage-after.json", storage(root, host.engine))
 
     def measure(out, reserve):
+        nonlocal attempt_out
+        attempt_out = out
         deadline = time.monotonic_ns() + reserve * 1000
         physical = worker()
         if (
@@ -487,7 +502,10 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
         reason = str(exc) or type(exc).__name__
         path = area / "first-error.json"
         if not path.exists():
-            retain(path, seal(dict(stage=phase, error=type(exc).__name__, reason=reason)))
+            problem = dict(stage=phase, error=type(exc).__name__, reason=reason)
+            if attempt_out is not None:
+                problem["attempt_path"] = str(attempt_out.relative_to(root))
+            retain(path, seal(problem))
         blocked = isinstance(exc, InsufficientAuthority)
         state, code, next_action = (
             ("BLOCKED", 2, "inspect_attempt")

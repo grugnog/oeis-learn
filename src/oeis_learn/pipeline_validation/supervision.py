@@ -7,6 +7,18 @@ import subprocess
 import time
 
 
+def log_tail(directory, stream, *, limit=2048):
+    """Return the end of a retained supervisor stream without reading an unbounded log."""
+    if stream not in ("stdout", "stderr"):
+        raise ValueError("unknown supervisor stream")
+    path = Path(directory) / (stream + ".log")
+    if not path.is_file() or path.is_symlink():
+        return ""
+    with path.open("rb") as body:
+        body.seek(max(0, os.fstat(body.fileno()).st_size - limit))
+        return body.read(limit).decode("utf-8", errors="replace").strip()
+
+
 def diagnostic_program(body, label):
     """Wrap installed code with progress only; never walk another thread's frames.
 
