@@ -168,7 +168,11 @@ def private_result(root, folder):
         learner = binding["version"] == "round029-learner-rehearsal/v1"
         if not learner and binding["version"] != "round029-donation/v1":
             raise ValueError("unknown diagnostic publication")
-        parent = qualification_parent if learner else donation.donation_parent
+        parent = (
+            qualification_parent(binding["candidate"], children=binding.get("child_restore", False))
+            if learner
+            else donation.donation_parent(binding["candidate"])
+        )
         approval = load(
             confined(
                 root,
@@ -181,7 +185,7 @@ def private_result(root, folder):
             grant,
             approval,
             root=physical_root_id(root),
-            parent=parent(binding["candidate"]),
+            parent=parent,
             action="qualify",
         )
         snapshot = BudgetJournal.inspect_existing(

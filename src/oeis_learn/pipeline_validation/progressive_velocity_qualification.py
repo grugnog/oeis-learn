@@ -32,21 +32,28 @@ def _original_profile(root):
     return resolve_profile(recipe, seed=29, dropout=0)
 
 
-def learner_mount(space, *, floor):
+def learner_mount(space, *, floor, children=False):
     from .progressive_research_resources import velocity_guard
     from .progressive_pilot_capacity import mount_demand
 
+    generations = 5 if children else 3
     basis = dict(
         owner="qualification learner",
-        scope="three coexisting disposable full-state generations",
+        scope=(
+            "five coexisting parent and child full-state generations"
+            if children
+            else "three coexisting disposable full-state generations"
+        ),
         revision="3ecac2fdca8613dc1601864d51f610254308a58a",
         harm="checkpoint publication could consume the physical reserve",
         rehearsal="batch-16/32 update, backward interruption and restore",
         exhaustion="retain earlier cut and price the next batch",
     )
     guards = [
-        velocity_guard(units="bytes", observed=1_257_820_683, projected=3 * 1_257_820_683, **basis),
-        velocity_guard(units="inodes", observed=13, projected=3 * (13 + 6), **basis),
+        velocity_guard(
+            units="bytes", observed=1_257_820_683, projected=generations * 1_257_820_683, **basis
+        ),
+        velocity_guard(units="inodes", observed=13, projected=generations * (13 + 6), **basis),
     ]
     available = {u: space["free_" + u] for u in ("bytes", "inodes")}
     return dict(
@@ -74,6 +81,12 @@ def _receipt(area, out, binding):
     issued = load(confined(out, "issued.json"))
     if (
         request != seal(request)
+        or request["version"]
+        != (
+            "round029-device-request/v2"
+            if binding.get("child_restore")
+            else "round029-device-request/v1"
+        )
         or request["binding"] != binding["identity"]
         or issued != seal(issued)
         or issued["request"] != request["identity"]
@@ -140,11 +153,13 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
     from .progressive_roles import ROUND029_ROLE_POLICY
     from .progressive_velocity_worker import rehearsal_work
 
+    children = grant["registration_or_parent_ref"] == qualification_parent(revision, children=True)
     area = confined(folder, "qualification/" + grant["identity"][7:], exists=False)
     area.mkdir(parents=True, exist_ok=True)
     binding = seal(
         dict(
             version="round029-learner-rehearsal/v1",
+            **({"child_restore": True} if children else {}),
             grant=grant["identity"],
             candidate=revision,
             role_policy=ROUND029_ROLE_POLICY,
@@ -169,7 +184,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
             next_action,
             remaining=snapshot["remaining"]["elapsed_us"],
             stage="qualification",
-            scope="learner_update_restore_only",
+            scope="learner_child_restore" if children else "learner_update_restore_only",
             charged_tokens=snapshot["consumed"]["tokens"],
             elapsed_us=snapshot["consumed"]["elapsed_us"],
             remaining_tokens=snapshot["remaining"]["tokens"],
@@ -229,10 +244,10 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
             "inspect_grant",
             cleanup_seconds=cleanup_seconds,
         ), 2
-    costs = rehearsal_work()
-    costs["disk_bytes"] = learner_mount({"free_bytes": 0, "free_inodes": 0}, floor=0)[
-        "required_bytes"
-    ]
+    costs = rehearsal_work(children=children)
+    costs["disk_bytes"] = learner_mount(
+        {"free_bytes": 0, "free_inodes": 0}, floor=0, children=children
+    )["required_bytes"]
     if any(state["remaining"][k] < v for k, v in costs.items()):
         return status(
             "BLOCKED", "Original rehearsal resources cannot fund this dispatch", "inspect_attempt"
@@ -287,7 +302,9 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
         )
         profile = _original_profile(root)
         host = host_factory(args, source_root=source, workspace=root, revision=revision)
-        capacity = learner_mount(space(root), floor=host.policy["free_disk_floor_bytes"])
+        capacity = learner_mount(
+            space(root), floor=host.policy["free_disk_floor_bytes"], children=children
+        )
         if capacity["deficit_bytes"] or capacity["deficit_inodes"]:
             raise ArithmeticError("Physical checkpoint reserve would be exceeded")
         request_path = area / "request.json"
@@ -306,13 +323,15 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
                 base_image=args.gpu_base_image,
                 seconds=min(86400, seconds_left()),
             )
-        capacity = learner_mount(space(root), floor=host.policy["free_disk_floor_bytes"])
+        capacity = learner_mount(
+            space(root), floor=host.policy["free_disk_floor_bytes"], children=children
+        )
         if capacity["deficit_bytes"] or capacity["deficit_inodes"]:
             raise ArithmeticError("Insufficient post-build checkpoint capacity")
         physical = physical_scope(host, "hip", machine=True)
         request = seal(
             dict(
-                version="round029-device-request/v1",
+                version="round029-device-request/v2" if children else "round029-device-request/v1",
                 binding=binding["identity"],
                 source=digest(collect_snapshot(source)),
                 image=image,
@@ -405,18 +424,31 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
     return complete(out)
 
 
-def qualification_parent(revision):
+def qualification_parent(revision, *, children=False):
     from oeis_learn.generalization.progressive.campaign import velocity_policy
 
-    return digest([velocity_policy(), revision, "disposable_learner_restore"])
+    return digest(
+        [
+            velocity_policy(),
+            revision,
+            "disposable_child_restore" if children else "disposable_learner_restore",
+        ]
+    )
 
 
-def authorize_learner_check(root, minutes, revision):
+def authorize_learner_check(root, minutes, revision, *, children=False):
     """Create operator-side authorization only on an explicit, priced-duration invocation."""
     from .progressive_velocity_worker import rehearsal_work
 
-    work = dict(rehearsal_work(), disk_bytes=learner_mount({"free_bytes": 0, "free_inodes": 0}, floor=0)["required_bytes"])
-    return authorize_qualification(root, minutes, qualification_parent(revision), work)
+    work = dict(
+        rehearsal_work(children=children),
+        disk_bytes=learner_mount({"free_bytes": 0, "free_inodes": 0}, floor=0, children=children)[
+            "required_bytes"
+        ],
+    )
+    return authorize_qualification(
+        root, minutes, qualification_parent(revision, children=children), work
+    )
 
 
 def authorize_qualification(root, minutes, parent, work):

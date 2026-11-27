@@ -33,7 +33,7 @@ The donor reopened the seven retained artifacts twice under the original qualifi
 }
 ```
 
-The remaining release checks include measuring CPU contention against a serial reference (T059) and independently verifying the copied report (T062).
+The remaining release checks include measuring CPU contention against a serial reference (T059) and independently verifying the full study report (T062).
 
 ## Ordinary 4M continuation on HIP
 
@@ -67,6 +67,10 @@ The helper returned this summary after verifying the private receipt and checkin
   "scientific_verdict": null
 }
 ```
+
+## Separately funded child qualification
+
+The recorded 4M result above applies to the ordinary donor import on its pinned candidate. Source tests also exercise a round029 parent that retained a discarded update. The child receives a new grant, carries the parent’s complete state and historical charges, and advances its own ledger only for new work. The combined batch-16/32 HIP result for this path is pending. [Child qualification command](../quickstart.md#rehearse-a-separately-funded-child)
 
 ## Reopen the saved qualification
 

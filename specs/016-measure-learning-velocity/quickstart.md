@@ -87,6 +87,24 @@ The last argument sets a cumulative qualification budget in minutes. On the qual
 
 The helper retains a pre-update commitment, reopens the same funded operation twice, verifies the private evidence, and checks copied public ZIPs from a separate directory. Its final JSON gives the candidate, parent, receipt, report, measured times and charged tokens. This diagnostic publishes a null scientific verdict.
 
+## Rehearse a separately funded child
+
+The 4M donor comparison is recorded in the [workstation results](validation/round029-release.md#ordinary-4m-continuation-on-hip). The following qualification uses disposable training prefixes and a fresh small parent at each batch size. It checks the transition to an 8M schedule horizon with a separately accounted child grant. Each child performs one update, then reopens its complete cut twice. Its cumulative token clock includes the parent and its interrupted update. Weights, AdamW state, RNG state and next rows must match an uninterrupted third update.
+
+Run from the physical root of the detached donor at `77667e67176ae32fa16457d52565bae1dbe41afc`. Use the candidate SHA from the handoff.
+
+```bash
+(
+  set -euo pipefail
+  : "${ROUND029_REV:?full candidate commit from the handoff}"
+  git fetch --no-tags origin "$ROUND029_REV"
+  git show "${ROUND029_REV}:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - "$ROUND029_REV" 20 children
+)
+```
+
+The grant funds 4,182 training tokens across the references, interrupted parents and children. The children charge 209 and 400 incremental tokens at logical batches 16 and 32. The runtime measures both parent and child checkpoint storage while they coexist. A 15–20 minute wall-time budget is a planning allowance for cached layers based on the roughly three-minute parent-only rehearsal. The helper reopens the committed qualification twice, verifies the private receipt and prints the measured charge, lease and child checkpoint identities. It issues zero research dispatches.
+
 ## Start or resume after the round029 release
 
 Use the original private workstation, a local Podman engine with resource controls and a qualified HIP device for learner work. Start in the **physical root of the detached round027 donor**. Set `ROUND029_REV` from the implementation release, and `ROUND029_GRANT` to the absolute path of the operator-authorized grant. If all you need is inventory, run through the preflight line. The same `run` line starts or resumes an authorized campaign.

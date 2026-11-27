@@ -242,8 +242,15 @@ def execute(args, source, *, host_factory=None):
 
         from .progressive_velocity_donation import donation_parent
 
-        donation = action == "qualify" and grant["registration_or_parent_ref"] == donation_parent(revision)
-        parent = (donation_parent(revision) if donation else qualification_parent(revision)) if action == "qualify" else None
+        claimed = grant["registration_or_parent_ref"]
+        donation = action == "qualify" and claimed == donation_parent(revision)
+        parent = None
+        if action == "qualify":
+            parent = (
+                claimed
+                if donation or claimed == qualification_parent(revision, children=True)
+                else qualification_parent(revision)
+            )
         registration = folder / "accepted.json"
         if parent is None and registration.exists():
             parent = accepted_grant_parent(load(confined(folder, "accepted.json")), grant["scope"])

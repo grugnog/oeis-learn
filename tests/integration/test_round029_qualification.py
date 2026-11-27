@@ -55,14 +55,17 @@ def test_saved_learner_review_uses_the_original_grant(tmp_path, fault, expected_
     assert len(calls) == expected_calls
 
 
-def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(tmp_path, monkeypatch):
+@pytest.mark.parametrize("children", [False, True])
+def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(
+    tmp_path, monkeypatch, children
+):
     revision = "1" * 40
     root = tmp_path / "donor"
     root.mkdir()
     folder = root / "run-state/discovery/016-research-round-029"
     folder.mkdir(parents=True)
-    grant = load(controller.authorize_learner_check(root, 10, revision))
-    assert controller.authorize_learner_check(root, 10, revision).is_file()
+    grant = load(controller.authorize_learner_check(root, 10, revision, children=children))
+    assert controller.authorize_learner_check(root, 10, revision, children=children).is_file()
     low = {"free_bytes": 1 << 40, "free_inodes": 1}
     monkeypatch.setattr(progressive_round028_rehearsal, "space", lambda root: dict(low))
     monkeypatch.setattr(
@@ -86,7 +89,7 @@ def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(tmp
         req = load(path)
         from oeis_learn.pipeline_validation.progressive_velocity_worker import rehearsal_counts
 
-        counts = rehearsal_counts()
+        counts = rehearsal_counts(children=children)
         batches = {}
         for size in req["batch_sizes"]:
             batches[str(size)] = dict(
@@ -109,6 +112,24 @@ def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(tmp
                 matching_eligible=int(size == 32),
                 matching_passes=int(size == 32),
             )
+            if children:
+                assert req["version"] == "round029-device-request/v2"
+                row = batches[str(size)]
+                inc = row["child_update_tokens"]
+                comparison = {k: digest(k) for k in ("weights", "optimizer", "rng", "next_rows")}
+                row["child"] = dict(
+                    parent=digest("parent"),
+                    checkpoint=digest("child"),
+                    reference=comparison,
+                    restored=comparison,
+                    horizon=8_000_000,
+                    updates=3,
+                    verified_replays=2,
+                    incremental_charged_tokens=inc,
+                    useful_tokens=row["useful_tokens"] + inc,
+                    charged_tokens=row["charged_tokens"] + inc,
+                    discarded_tokens=row["discarded_tokens"],
+                )
         atomic_write(
             out / "producer.json",
             seal(
@@ -169,6 +190,35 @@ def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(tmp
         assert code == 0 and repeated == accepted and len(issued) == 1
     assert inspect_status(folder)["last_committed_ref"] == accepted["receipt"]["identity"]
     assert set((folder / "recovery-records").iterdir()) == summaries
+    if children:
+        from oeis_learn.generalization.progressive.lifecycle import RunStore
+        from oeis_learn.pipeline_validation.progressive_velocity_verify import private_result
+
+        with RunStore.owner(folder):
+            pass
+
+        def invoke(action, *params):
+            if action == "status":
+                return inspect_status(folder)
+            if action == "verify":
+                response, code = private_result(root, folder)
+            else:
+                assert action == "qualify" and load(params[0]) == grant
+                response, code = run()
+            assert code == 0, response
+            return response
+
+        helper = (
+            Path(__file__).resolve().parents[2]
+            / "specs/016-measure-learning-velocity/validation/qualify_continuation.py"
+        )
+        report = runpy.run_path(str(helper))["child_rehearsal"](invoke, root, revision, "10")
+        assert (
+            report["charged_tokens"] == 4182
+            and report["verified_replays"] == 2
+            and len(issued) == 1
+        )
+        assert report["children"]["32"]["incremental_charged_tokens"] == 400
     mounts = load(issued[0] / "container-inspect.json")
     mounts[0]["Mounts"][0]["RW"] = True
     (issued[0] / "container-inspect.json").unlink()

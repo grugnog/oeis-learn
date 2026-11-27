@@ -142,23 +142,36 @@ def optimizer_digest(runner):
     return digest([state["param_groups"], moments])
 
 
-def train_to(directory, package, *, target, cap, device, interrupt=False):
+def train_to(directory, package, *, target, cap, device, interrupt=False, parent_directory=None):
     """Resume a committed useful-token cut. Each issued update keeps its physical debit."""
     from oeis_learn.fresh.bigint_diagnostics import model_snapshot
     from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
     from .progressive_generator_probe import batch
     from .progressive_training import PolicyUpdate, RecoverableUpdate
+    from oeis_learn.generalization.budgets import integer
     from .generalization_persistence import snapshot_due
+    from .progressive_velocity_child import parent_terms, restore_parent
+    from .progressive_velocity_continuation import _rng_digest
 
+    integer(cap, 1)
+    child = package.get("version") == "round029-learner-child/v1"
+    source_version = package["parent"]["package_version"] if child else package["version"]
+    fields = {"version", "identity", "profile", "policy", "order", "rows", "donors", "registration"}
+    if source_version == "round029-learner-input/v2":
+        fields.add("initial_weights")
+    if child:
+        fields.add("parent")
     if (
         package != seal(package)
-        or type(target) is not int
-        or not 0 <= target <= cap
-        or set(package)
-        != {"version", "identity", "profile", "policy", "order", "rows", "donors", "registration"}
-        or package["version"] != "round029-learner-input/v1"
+        or set(package) != fields
+        or source_version not in {"round029-learner-input/v1", "round029-learner-input/v2"}
     ):
-        raise ValueError("sealed registered learner projection and target required")
+        raise ValueError("sealed registered learner projection required")
+    parent = parent_terms(package) if child else None
+    inherited_charge = parent["charged_tokens"] if child else 0
+    inherited_useful = parent["useful_tokens"] if child else 0
+    if type(target) is not int or not inherited_useful <= target <= inherited_useful + cap:
+        raise ValueError("useful-token look outside funded cumulative range")
     rows, order = package["rows"], package["order"]
     if not order or set(order) != set(rows) or not package["donors"].keys() <= rows.keys():
         raise ValueError("ordered training-only support required")
@@ -166,7 +179,7 @@ def train_to(directory, package, *, target, cap, device, interrupt=False):
     size = policy["effective_batch"]
     contract = digest([package["identity"], cap])
     area = Path(directory)
-    store = GeneralizationCheckpointStore(area / "checkpoint", contract, cap)
+    store = GeneralizationCheckpointStore(area / "checkpoint", contract, inherited_charge + cap)
     pointer_path = store.root / "generalization-latest.json"
     debits = BudgetJournal(area / "accounting", contract, dict(dict.fromkeys(KEYS, 0), tokens=cap))
     runner = PolicyUpdate(profile, policy, device=device)
@@ -179,13 +192,21 @@ def train_to(directory, package, *, target, cap, device, interrupt=False):
         saved = store.load(pointer)
         state = saved["states"]
         useful, updates = state["history"]["useful_tokens"], saved["ledger"].updates
+        schedule = state["optimizer"]["scheduler"]
         prior = exposure(package, rows, updates=updates, batch=size)
         cursor, chain = prior["cursor"], prior["order_digest"]
         if (
             prior["useful_tokens"] != useful
+            or useful < inherited_useful
             or state["data"] != dict(cursor=cursor, pending_batch=None)
             or state["selection"] != dict(order_digest=chain, package=package["identity"])
-            or saved["ledger"].consumed > debits.snapshot()["consumed"]["tokens"]
+            or state["scheduler"] != dict(completed_updates=updates)
+            or schedule["updates"] != updates
+            or not useful <= schedule["tokens"] <= saved["ledger"].consumed
+            or saved["ledger"].consumed < inherited_charge
+            or saved["ledger"].pending is not None
+            or (device == "cuda") != bool(state["rng"]["device"])
+            or saved["ledger"].consumed > inherited_charge + debits.snapshot()["consumed"]["tokens"]
         ):
             raise ValueError("checkpoint row cursor, charge or positive-token replay differs")
         runner.encoder.load_state_dict(state["weights"]["encoder"])
@@ -196,6 +217,15 @@ def train_to(directory, package, *, target, cap, device, interrupt=False):
         if useful > target and target <= useful - prior["last_update_tokens"]:
             raise ValueError("target precedes the last committed update")
         del state, saved
+    elif child:
+        metrics = restore_parent(parent_directory, package, runner)
+        useful, updates, cursor, chain = (
+            parent[k] for k in ("useful_tokens", "updates", "cursor", "order_digest")
+        )
+    elif "initial_weights" in package and package["initial_weights"] != model_snapshot(
+        runner.encoder, runner.decoder
+    ):
+        raise ValueError("initial learner weights differ from the registered start")
     if interrupt:
         if not pointer:
             raise ValueError("backward fault requires an original completed cut")
@@ -215,7 +245,7 @@ def train_to(directory, package, *, target, cap, device, interrupt=False):
         debits.commit(key)
     accounting = debits.snapshot()
     charged = accounting["consumed"]["tokens"]
-    ledger = Ledger(cap, consumed=charged, updates=updates)
+    ledger = Ledger(inherited_charge + cap, consumed=inherited_charge + charged, updates=updates)
     attempt = len(accounting["committed"])
     boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
 
@@ -237,7 +267,7 @@ def train_to(directory, package, *, target, cap, device, interrupt=False):
         ids = matched_batch(package, cursor, size)
         seq, tokens = batch([rows[k] for k in ids], device)
         count = sum(len(rows[k]["tokens"]) for k in ids)
-        if ledger.consumed + count > cap:
+        if ledger.consumed + count > ledger.cap:
             raise ValueError("remaining grant cannot fund the next whole update")
         reserved = debits.reserve(
             "learner",
@@ -287,6 +317,10 @@ def train_to(directory, package, *, target, cap, device, interrupt=False):
         scheduler=runner.scheduler.state_dict(),
         next_rows=digest(matched_batch(package, cursor, size)),
         metrics=metrics,
+        rng=_rng_digest(device),
+        target=target,
+        overshoot=useful - target,
+        incremental_charged_tokens=ledger.consumed - inherited_charge,
         **replay,
     )
 
@@ -324,7 +358,7 @@ def _disposable_rows(native=None):
     return rows, donors
 
 
-def rehearsal_counts():
+def rehearsal_counts(*, children=False):
     rows, _ = _disposable_rows()
     stream = {"order": sorted(rows)}
     result = {}
@@ -334,15 +368,21 @@ def rehearsal_counts():
         result[str(size)] = dict(
             useful_tokens=both, discarded_tokens=both - first, charged_tokens=2 * both - first
         )
+        if children:
+            third = exposure(stream, rows, updates=3, batch=size)["useful_tokens"]
+            result[str(size)]["child_update_tokens"] = third - both
     return result
 
 
-def rehearsal_work():
-    counts = rehearsal_counts()
+def rehearsal_work(*, children=False):
+    counts = rehearsal_counts(children=children)
     rows, _ = _disposable_rows()
     # Each batch checks every exposed witness natively. Each literal probe can need a fit and replay.
     return dict(
-        tokens=sum(row["useful_tokens"] + row["charged_tokens"] for row in counts.values()),
+        tokens=sum(
+            row["useful_tokens"] + row["charged_tokens"] + 2 * row.get("child_update_tokens", 0)
+            for row in counts.values()
+        ),
         native_work=len(counts) * len(rows) + 2 * 2,
     )
 
@@ -388,13 +428,26 @@ def disposable_batch(profile, batch_size, *, device="cpu", native=None):
     )
 
 
-def rehearse_batch(directory, profile, *, batch_size, device, native=None):
+def rehearse_batch(directory, profile, *, batch_size, device, native=None, children=False):
     from tempfile import TemporaryDirectory
     from .progressive_pilot_capacity import owned_allocations
 
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     package = disposable_batch(profile, batch_size, device=device, native=native)
+    if children:
+        from oeis_learn.fresh.bigint_diagnostics import model_snapshot
+        from oeis_learn.generalization.progressive.models import construct
+
+        encoder, decoder, _ = construct(profile, device="cpu")
+        package = seal(
+            dict(
+                package,
+                version="round029-learner-input/v2",
+                initial_weights=model_snapshot(encoder, decoder),
+            )
+        )
+        del encoder, decoder
     first = exposure(package, package["rows"], updates=1, batch=batch_size)["useful_tokens"]
     second = exposure(package, package["rows"], updates=2, batch=batch_size)["useful_tokens"]
     cap = second + second - first
@@ -402,7 +455,19 @@ def rehearse_batch(directory, profile, *, batch_size, device, native=None):
         area = Path(private)
         path = area / "package.json"
         atomic_write(path, package)
-        expected = train_to(area / "reference", package, target=second, cap=cap, device=device)
+        third = (
+            exposure(package, package["rows"], updates=3, batch=batch_size)["useful_tokens"]
+            if children
+            else None
+        )
+        reference_cap = third if children else cap
+        expected = train_to(
+            area / "reference", package, target=second, cap=reference_cap, device=device
+        )
+        if children:
+            reference_child = train_to(
+                area / "reference", package, target=third, cap=reference_cap, device=device
+            )
         # The reference trajectory is disposable once its comparison evidence is in memory.
         import shutil
 
@@ -454,8 +519,55 @@ def rehearse_batch(directory, profile, *, batch_size, device, native=None):
             or actual["updates"] != 2
         ):
             raise ValueError("full-state continuation differs or discarded work was refunded")
-        allocated = owned_allocations([area / "recover/checkpoint"])
+        extra = {}
+        live_checkpoints = [area / "recover/checkpoint"]
+        if children:
+            from .progressive_velocity_child import child_package
+
+            child = child_package(
+                package,
+                actual,
+                parent_cap=cap,
+                registration=digest([package["registration"], "paired_extension", batch_size]),
+            )
+            increment = third - second
+            args = dict(target=third, cap=increment, device=device)
+            value = train_to(area / "child", child, parent_directory=area / "recover", **args)
+            for _ in range(2):
+                if train_to(area / "child", child, **args) != value:
+                    raise ValueError("reopened child cut or charges changed")
+            fields = ("weights", "optimizer", "rng", "next_rows")
+            ref = {k: reference_child[k] for k in fields}
+            restored = {k: value[k] for k in fields}
+            if (
+                ref != restored
+                or value["scheduler"]["tokens"] != cap + increment
+                or value["incremental_charged_tokens"] != increment
+                or value["discarded_tokens"] != actual["discarded_tokens"]
+            ):
+                raise ValueError(
+                    "child differs from the uninterrupted trajectory or lost inherited charges"
+                )
+            extra = dict(
+                child_update_tokens=increment,
+                child=dict(
+                    parent=actual["checkpoint"]["sha256"],
+                    checkpoint=value["checkpoint"]["sha256"],
+                    reference=ref,
+                    restored=restored,
+                    useful_tokens=value["useful_tokens"],
+                    charged_tokens=value["charged_tokens"],
+                    discarded_tokens=value["discarded_tokens"],
+                    incremental_charged_tokens=value["incremental_charged_tokens"],
+                    horizon=child["policy"]["schedule_horizon_tokens"],
+                    updates=value["updates"],
+                    verified_replays=2,
+                ),
+            )
+            live_checkpoints.append(area / "child/checkpoint")
+        allocated = owned_allocations(live_checkpoints)
         return dict(
+            **extra,
             batch=batch_size,
             full_restore=True,
             uninterrupted_weights=expected["weights"],
@@ -489,7 +601,8 @@ def verify_rehearsal(producer, request):
         or producer["peak_device_bytes"] <= 0
     ):
         raise ValueError("installed HIP rehearsal receipt differs")
-    expected = rehearsal_counts()
+    children = request["version"] == "round029-device-request/v2"
+    expected = rehearsal_counts(children=children)
     for name, row in producer["batches"].items():
         if (
             row["batch"] != int(name)
@@ -514,6 +627,26 @@ def verify_rehearsal(producer, request):
             or (name == "32") != (row["matching_passes"] > 0 and row["matching_eligible"] > 0)
         ):
             raise ValueError("invalid batch, matching or restore evidence")
+        if children:
+            from oeis_learn.generalization.progressive.contracts import _check, schema
+
+            child = row["child"]
+            increment = expected[name]["child_update_tokens"]
+            if (
+                set(child["reference"]) != {"weights", "optimizer", "rng", "next_rows"}
+                or child["reference"] != child["restored"]
+                or child["checkpoint"] == child["parent"]
+                or child["verified_replays"] != 2
+                or child["incremental_charged_tokens"] != increment
+                or child["horizon"] != 8_000_000
+                or child["updates"] != 3
+                or child["discarded_tokens"] != row["discarded_tokens"]
+                or child["charged_tokens"] != row["charged_tokens"] + increment
+                or child["useful_tokens"] != row["useful_tokens"] + increment
+            ):
+                raise ValueError("child checkpoint, paired reference or separate debit differs")
+            for value in (child["checkpoint"], child["parent"], *child["restored"].values()):
+                _check(schema("common")["$defs"]["hash"], value, {})
 
 
 def main():
@@ -535,7 +668,7 @@ def main():
     req = load("/work/inputs/request.json")
     if (
         req != seal(req)
-        or req["version"] != "round029-device-request/v1"
+        or req["version"] not in {"round029-device-request/v1", "round029-device-request/v2"}
         or req["batch_sizes"] != [16, 32]
         or req["image"] != os.environ["OEIS_QUALIFICATION_IMAGE"]
         or req["source"] != digest(source_snapshot())
@@ -560,7 +693,12 @@ def main():
         for size in req["batch_sizes"]:
             with recorder.phase("batch-" + str(size)):
                 batches[str(size)] = rehearse_batch(
-                    out, req["profile"], batch_size=size, device="cuda", native=native
+                    out,
+                    req["profile"],
+                    batch_size=size,
+                    device="cuda",
+                    native=native,
+                    children=req["version"] == "round029-device-request/v2",
                 )
         with recorder.phase("matching-literal-probes"):
             probes = literal_probes(native)

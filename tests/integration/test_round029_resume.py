@@ -225,3 +225,76 @@ def test_supervisor_loss_after_output_keeps_full_debit_and_reopens_without_redis
     assert first["evidence"] == produced and first["attempt"] == 0
     assert run_operation(**args) == first
     assert journal.snapshot()["remaining"]["elapsed_us"] == 5 and not journal.snapshot()["pending"]
+
+
+def test_child_horizon_carries_complete_parent_and_charges_only_new_work(tmp_path):
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal, KEYS
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.velocity_trials import exposure
+    from oeis_learn.pipeline_validation.progressive_velocity_child import child_package
+    from oeis_learn.pipeline_validation.progressive_velocity_worker import (
+        disposable_batch,
+        train_to,
+    )
+
+    pkg = disposable_batch(profile(), 16)
+    totals = [exposure(pkg, pkg["rows"], updates=i, batch=16)["useful_tokens"] for i in (1, 2)]
+    path = tmp_path / "original"
+    cut = train_to(path, pkg, target=totals[0] - 1, cap=totals[1], device="cpu")
+    before = {p: p.stat().st_mtime_ns for p in path.rglob("*")}
+    child = child_package(pkg, cut, parent_cap=totals[1], registration=digest("funded child"))
+    added = totals[1] - totals[0]
+    kwargs = dict(target=totals[1] - 1, cap=added, device="cpu", parent_directory=path)
+    original = train_to(
+        tmp_path / "reference", pkg, target=totals[1] - 1, cap=totals[1], device="cpu"
+    )
+    end = train_to(tmp_path / "child", child, **kwargs)
+    assert (
+        end["weights"] == original["weights"]
+        and end["optimizer"] == original["optimizer"]
+        and end["rng"] == original["rng"]
+    )
+    assert (
+        end["useful_tokens"] == totals[1]
+        and end["last_update_tokens"] == added
+        and end["overshoot"] == 1
+    )
+    assert end["charged_tokens"] == totals[1] and end["incremental_charged_tokens"] == added
+    assert end["next_rows"] == original["next_rows"] and end["scheduler"]["updates"] == 2
+    assert train_to(tmp_path / "child", child, **dict(kwargs, parent_directory=None)) == end
+    assert before == {p: p.stat().st_mtime_ns for p in path.rglob("*")}
+    with pytest.raises(ValueError):
+        train_to(
+            tmp_path / "foreign", seal(dict(child, order=list(reversed(pkg["order"])))), **kwargs
+        )
+    changed = seal(
+        dict(child, parent=seal(dict(child["parent"], charged_tokens=cut["charged_tokens"] + 1)))
+    )
+    with pytest.raises(ValueError):
+        train_to(tmp_path / "unpaid", changed, **kwargs)
+    with pytest.raises((ValueError, FileNotFoundError)):
+        train_to(
+            tmp_path / "wrong-tree", child, **dict(kwargs, parent_directory=tmp_path / "reference")
+        )
+    caps = dict(dict.fromkeys(KEYS, 0), tokens=added)
+    snapshot = BudgetJournal.inspect_existing(
+        tmp_path / "child/accounting", digest([child["identity"], added]), caps
+    )
+    assert snapshot["consumed"]["tokens"] == added and snapshot["remaining"]["tokens"] == 0
+
+
+@pytest.mark.parametrize("batch_size", [16, 32])
+def test_funded_child_rehearsal_preserves_failed_parent_charge(tmp_path, batch_size):
+    from oeis_learn.pipeline_validation.progressive_velocity_worker import rehearsal_work
+
+    result = rehearse_batch(tmp_path, profile(), batch_size=batch_size, device="cpu", children=True)
+    child = result["child"]
+    assert child["restored"] == child["reference"] and child["verified_replays"] == 2
+    assert child["charged_tokens"] == result["charged_tokens"] + child["incremental_charged_tokens"]
+    assert child["useful_tokens"] + result["discarded_tokens"] == child["charged_tokens"]
+    assert (
+        result["child_update_tokens"]
+        == child["incremental_charged_tokens"]
+        == {16: 209, 32: 400}[batch_size]
+    )
+    assert rehearsal_work(children=True)["tokens"] == 4182

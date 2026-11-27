@@ -620,3 +620,72 @@ def _measure_velocity_broad(
     )
     result = seal(dict(result, audit=audit["identity"]))
     return result, {k: witnesses[k] for k in result["order"]}, audit
+
+
+def prepare_velocity_learner(
+    journal, method, profile, stream, shards, *, microbatch, audit=None, client=None
+):
+    """Project a registered recipe's actual ordered decoder targets and eligible donor prefixes."""
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.shared_support import validated_rows
+    from oeis_learn.generalization.progressive.training_rows import matching_pairs
+    from .progressive_velocity_matching import registered_update_policy
+
+    trial = journal.velocity_trial(method)["binding"]
+    if stream != seal(stream) or stream["identity"] != trial["stream_ref"]:
+        raise ValueError("recipe requires its registered positive stream")
+    rows = validated_rows(shards, native_verified=True)
+    order = stream["order"]
+    if not order or not set(order) <= rows.keys():
+        raise ValueError("positive stream includes an unavailable verified row")
+    if trial["recipe"]["stream"] == "ordinary":
+        if (
+            stream["version"] != "round028-matched-stream/v1"
+            or stream["seeds"]["initialization"] != trial["initialization"]
+            or stream["seeds"]["training_families"] != trial["stream_seed"]
+            or stream["row_identities"] != digest([rows[k]["identity"] for k in order])
+        ):
+            raise ValueError("ordinary training rows differ from original provenance")
+    elif (
+        stream["version"] != "round029-broad-stream/v1"
+        or not stream["available"]
+        or audit is None
+        or audit != seal(audit)
+        or audit["identity"] != stream.get("audit")
+        or any(rows[k]["identity"] != audit["witnesses"][k] for k in set(order))
+    ):
+        raise ValueError("broader composition requires its independently verified witnesses")
+    policy = registered_update_policy(journal, profile, method, microbatch=microbatch)
+    unique = list(dict.fromkeys(order))
+    pairs = (
+        matching_pairs(shards, unique, seed=trial["stream_seed"], client=client)
+        if trial["recipe"]["matching"]
+        else None
+    )
+    donors = (
+        {k: rows[v["donor"]]["values"][:20] for k, v in pairs["pairs"].items()} if pairs else {}
+    )
+    if pairs and not donors:
+        raise ValueError("matching treatment has no eligible training pairs")
+    projection = seal(
+        dict(
+            version="round029-learner-input/v2",
+            initial_weights=trial["initial_weights"],
+            registration=trial["registration"],
+            profile=profile,
+            policy=policy,
+            order=order,
+            rows={k: dict(tokens=rows[k]["tokens"], values=rows[k]["values"][:20]) for k in unique},
+            donors=donors,
+        )
+    )
+    return projection, seal(
+        dict(
+            trial=trial["identity"],
+            origin=trial["origin"],
+            initial_weights=trial["initial_weights"],
+            stream=stream["identity"],
+            package=projection["identity"],
+            matching_pairs=pairs,
+        )
+    )

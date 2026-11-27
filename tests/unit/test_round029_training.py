@@ -478,6 +478,26 @@ def test_matching_weight_frozen_from_ordinary_rows_for_both_treatments(
     assert value["elapsed_us"] > 0 and value["extra_passes"] == 1
     saved = commit_calibration(journal, req, value)
     assert commit_calibration(journal, req, value) == saved
+    from oeis_learn.pipeline_validation.progressive_preparation import prepare_velocity_learner
+    from oeis_learn.pipeline_validation.progressive_velocity_worker import train_to
+
+    package, sidecar = prepare_velocity_learner(journal, "02", model, stream, [rows], microbatch=8)
+    assert sidecar["package"] == package["identity"] and all(
+        set(r) == {"tokens", "values"} for r in package["rows"].values()
+    )
+    assert package["initial_weights"] == sidecar["initial_weights"] == value["initial_weights"]
+    mismatched = seal(dict(package, initial_weights=digest("other weights at zero")))
+    with pytest.raises(ValueError, match="initial learner weights"):
+        train_to(tmp_path / "mismatched-start", mismatched, target=1, cap=2000, device="cpu")
+    assert not (tmp_path / "mismatched-start/checkpoint/generalization-latest.json").exists()
+    trained = train_to(tmp_path / "registered-training", package, target=1, cap=2000, device="cpu")
+    assert trained["updates"] == 1 and trained["metrics"]["matching_eligible"] > 0
+    assert (
+        math.isfinite(trained["metrics"]["gradient_norm"])
+        and trained["metrics"]["matching_forward_us"] > 0
+    )
+    with pytest.raises(ValueError):
+        prepare_velocity_learner(journal, "03", model, stream, [rows], microbatch=8)
     assert (
         registered_update_policy(journal, model, "02", microbatch=8)["matching_weight"]
         == value["weight"]
