@@ -17,7 +17,12 @@ def test_profiles_and_final_selected_outcome_have_separate_identities():
     assert full["identity"] != cheap[-1]["identity"]
     with pytest.raises(ValueError):
         velocity_look(**args, look=1000000, profile="full")
-    assert velocity_outcome(selected_exact=True, closed=False, complete=False)["status"] == "solve"
+    evidence = dict(case="0", outcome_ref=digest("score"), choice_ref=digest("selected"),
+                    scorer_ref=digest("independent reference"), truth_ref=digest("exact indexed truth"))
+    observation = velocity_outcome(selected_exact=True, closed=False, complete=False, evidence=evidence)
+    assert observation["status"] == "solve" and not observation["closed"]
+    receipt = observation["receipt"]
+    assert all(receipt[k] == v for k, v in evidence.items()) and receipt["status"] == observation["status"]
     assert velocity_outcome(selected_exact=None, closed=True, complete=True)["status"] == "miss"
     assert (
         velocity_outcome(selected_exact=None, closed=False, complete=False)["status"]

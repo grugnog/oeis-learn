@@ -166,3 +166,20 @@ def test_crossing_clocks_use_latest_verified_look_and_measured_overlap():
                      for arm in (first, second)) == levels
         assert affordable_look(first, axis, overlap[1] + 1, overlap=overlap) is None
     assert rates(2, 1_000_000, 0)["pp_per_hour"] is None
+
+
+def test_missing_structural_stratum_preserves_cells_and_profiles_cannot_be_substituted():
+    members = [dict(task="0", group="F", stratum="composition")]
+    def look(method, profile):
+        return velocity_look(registration=digest("study"), method=method, seed=1, look=4_000_000,
+                             profile=profile, development=members, retention=[])
+    views = {"a": look("00", "full"), "b": look("01", "full")}
+    rows = [dict(cell(0, "miss", "solve"), stratum="composition", family="F")]
+    coeff = {"a": -1, "b": 1}
+    report = contrast(rows, coeff, stratum="structural", looks=views)
+    assert report["observed_pp"] is None and report["reason"] and report["denominator"] == 1
+    assert report["families"][0]["frozen_size"] == 1
+    sampled = sampling_interval(rows, coeff, stratum="structural", looks=views, seed=1, draws=5)
+    assert sampled["supported_draws"] == 0 and sampled["lower"] is None
+    with pytest.raises(ValueError, match="profile"):
+        contrast(rows, coeff, stratum="composition", looks=dict(views, a=look("00", "common")))

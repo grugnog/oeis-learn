@@ -80,6 +80,7 @@ def open_live_inputs(operation, inputs, authority):
     request = control["request"]
     # The controller inspected the candidate checkout and physical image. Independently
     # identify this installed package, CPU role and supervisor-provided container image.
+    registered_worker(request["worker"], control["current_worker"])
     observed = dict(control["current_worker"], image=os.environ.get("OEIS_QUALIFICATION_IMAGE"),
                     device="cpu", role_policy=ROUND029_ROLE_POLICY)
     channels = _check_request(request, observed)

@@ -10,6 +10,7 @@ from oeis_learn.generalization.progressive.lifecycle import RunStore
 from oeis_learn.generalization.progressive.program_search_costing import price_wave
 from oeis_learn.generalization.progressive.velocity_records import (
     SESSION,
+    accepted_grant_parent,
     checked,
     physical_root_id,
     validate_grant,
@@ -172,7 +173,7 @@ def execute(args, source, *, host_factory=None):
         parent = qualification_parent(revision) if action == "qualify" else None
         registration = folder / "accepted.json"
         if parent is None and registration.exists():
-            parent = load(confined(folder, "accepted.json"))["identity"]
+            parent = accepted_grant_parent(load(confined(folder, "accepted.json")), grant["scope"])
         validate_grant(
             grant, load(authorizer), root=physical_root_id(root), parent=parent, action=action
         )

@@ -181,6 +181,7 @@
             "additionalProperties": {"$ref": "progressive-common.schema.json#/$defs/integer"}
           }
         },
+        "provenance_reason": {"oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]},
         "provenance_unavailable": {"$ref": "progressive-common.schema.json#/$defs/integer"},
         "registration": {"$ref": "progressive-common.schema.json#/$defs/hash"},
         "measurement": {"$ref": "progressive-common.schema.json#/$defs/hash"},
@@ -194,6 +195,7 @@
         "excluded_cases",
         "deficits",
         "provenance_unavailable",
+        "provenance_reason",
         "registration",
         "measurement",
         "reason"
@@ -338,7 +340,7 @@
       "additionalProperties": false,
       "oneOf": [
         {
-          "properties": {"action": {"const": "preflight"}},
+          "properties": {"action": {"const": "preflight"}, "scientific_verdict": {"type": "null"}},
           "propertyNames": {
             "oneOf": [
               {"$ref": "#/$defs/result_field"},
@@ -398,7 +400,7 @@
           ]
         },
         {
-          "properties": {"action": {"const": "qualify"}},
+          "properties": {"action": {"const": "qualify"}, "scientific_verdict": {"type": "null"}},
           "propertyNames": {
             "oneOf": [
               {"$ref": "#/$defs/result_field"},

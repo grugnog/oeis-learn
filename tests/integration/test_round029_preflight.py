@@ -100,6 +100,7 @@ def test_public_preflight_reports_only_bound_supply(tmp_path, velocity_supply_ro
     assert pending["families"]["by_role"] == {"development": {"oeis": {"cases": 2, "families": 1}},
                                               "replication": {"composition": {"cases": 1, "families": 1}}}
     assert pending["families"]["count"] == 2 and pending["families"]["excluded_cases"] == 1
+    assert pending["families"]["provenance_reason"] is None
     assert pending["matching_pairs"]["count"] is None and pending["matching_pairs"]["reason"]
     measure_supply(tmp_path, "matching_pairs")
     measured = inspect()["matching_pairs"]

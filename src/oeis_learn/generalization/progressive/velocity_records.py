@@ -32,6 +32,20 @@ def grant_terms(grant):
     return {k: v for k, v in grant.items() if k not in {"identity", "authorizing_record_ref"}}
 
 
+def accepted_grant_parent(accepted, scope):
+    """A prospective exploration registration cannot authorize opening a replication panel."""
+    if not isinstance(accepted, dict) or accepted != seal(accepted):
+        raise ValueError("sealed accepted registration required")
+    if scope == "confirmation":
+        if accepted.get("scope") != "confirmation":
+            raise ValueError("independently accepted confirmation child required")
+        for field in ("parent_ref", "panel_ref"):
+            _check(schema("common")["$defs"]["hash"], accepted.get(field), {})
+    elif accepted.get("scope") == "confirmation":
+        raise ValueError("confirmation panel requires its own grant")
+    return accepted["identity"]
+
+
 def validate_grant(grant, authorization, *, root, parent, action):
     checked("grant", grant)
     allowed = set(grant["allowed_operations"])

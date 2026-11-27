@@ -183,6 +183,43 @@ def test_public_action_documents_match_the_installed_schema(tmp_path):
             assert str(workspace.name) in result["first_error"]["reason"]
         if action == "preflight":
             with pytest.raises(ValueError):
+                validate_result(dict(result, scientific_verdict="pending score interpreted as a gain"))
+            with pytest.raises(ValueError):
                 validate_result({k: v for k, v in result.items() if k != "inventory"})
             with pytest.raises(ValueError):
                 validate_result(dict(result, receipt_path="wrong_action"))
+
+
+def test_launcher_binds_confirmation_grant_to_an_accepted_child(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive.campaign import velocity_policy
+    from oeis_learn.generalization.progressive.contracts import atomic_write
+    from oeis_learn.generalization.progressive.velocity_records import SESSION, physical_root_id
+    from oeis_learn.pipeline_validation import progressive_round028, progressive_round029
+
+    monkeypatch.setattr(progressive_round029, "candidate_revision", lambda *a: "1" * 40)
+    monkeypatch.setattr(progressive_round028, "git", lambda root, op, *args:
+                        velocity_policy()["donor_revision"] if op == "rev-parse" else None)
+    for i, accepted in enumerate([
+        seal(dict(scope="exploration")),
+        seal(dict(scope="confirmation", parent_ref=digest("screen"))),
+        seal(dict(scope="confirmation", parent_ref=digest("screen"), panel_ref=digest("untouched"))),
+    ]):
+        root = tmp_path / str(i)
+        area = root / "run-state/discovery" / SESSION
+        area.mkdir(parents=True)
+        atomic_write(area / "accepted.json", accepted)
+        g, approval = grant("confirmation", registration_or_parent_ref=accepted["identity"],
+                            state_root_id=physical_root_id(root), allowed_operations=["run", "confirmation"])
+        auth = root / "run-state/discovery-authorizations" / (approval["identity"][7:] + ".json")
+        atomic_write(auth, approval)
+        atomic_write(root / "grant.json", g)
+        args = SimpleNamespace(action="run", workspace=str(root), archive=None, qualification_archive=None,
+                               authority=root / "grant.json")
+        result, code = progressive_round029.execute(args, tmp_path)
+        if i < 2:
+            assert code == 1 and result["mechanical_status"] == "FAILED"
+            assert not (area / "run.lock").exists()
+        else:
+            assert code == 2 and result["next_action"] == "qualify"
+            assert (area / "run.lock").exists()

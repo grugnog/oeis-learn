@@ -117,7 +117,8 @@ def _counts(kind, measured):
             by_role[role][stratum] = dict(cases=len(members), families=len({r["family"] for r in members}))
     return dict(count=len(families), by_role=by_role, eligible_cases=measured["eligible"],
                 eligible_components=measured["components"], excluded_cases=measured["excluded"],
-                deficits=measured["deficits"], provenance_unavailable=measured["provenance_unavailable"])
+                deficits=measured["deficits"], provenance_unavailable=measured["provenance_unavailable"],
+                provenance_reason=measured["provenance_reason"])
 
 
 def supply_inventory(root):

@@ -514,7 +514,7 @@ def _maximum_seconds(budget):
     return budget.evaluation_seconds if isinstance(budget,RoleWorkBudget) else 21600
 
 
-def velocity_outcome(*, selected_exact, closed, complete):
+def velocity_outcome(*, selected_exact, closed, complete, evidence=None):
     """Private selected-choice outcome independent of other unfinished portfolio work."""
     if (type(complete) is not bool or type(closed) is not bool or
             selected_exact is not None and type(selected_exact) is not bool):
@@ -525,4 +525,9 @@ def velocity_outcome(*, selected_exact, closed, complete):
         status = "miss"
     else:
         status = "unresolved"
-    return dict(status=status, complete=complete, closed=closed)
+    observation = dict(status=status, complete=complete, closed=closed)
+    if evidence is not None:
+        from oeis_learn.generalization.progressive.velocity_metrics import case_outcome_receipt
+
+        observation["receipt"] = case_outcome_receipt(status=status, **evidence)
+    return observation

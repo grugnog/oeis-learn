@@ -35,10 +35,13 @@ def _frozen_rows(rows, looks, names):
         development = [r for r in look["members"] if r["stratum"] != "retention"]
         retention = [r for r in look["members"] if r["stratum"] == "retention"]
         coord = {field: look[field] for field in ("method", "seed", "look", "profile")}
-        if (type(coord["seed"]) is not int or coord["seed"] < 0 or
-                velocity_look(registration=look["registration"], **coord, development=development,
-                              retention=retention, extension=look["look"] == 8_000_000) != look):
+        _check(schema("common")["$defs"]["hash"], look["registration"], {})
+        expected = velocity_look(registration=look["registration"], **coord, development=development,
+                                 retention=retention, extension=True)
+        if type(coord["seed"]) is not int or coord["seed"] < 0 or expected != look:
             raise ValueError("invalid frozen look or roster")
+        if coordinates and coord["profile"] != coordinates[0]["profile"]:
+            raise ValueError("compared looks have different inference profiles")
         if members is not None and members != look["members"]:
             raise ValueError("compared looks have different frozen rosters")
         members = look["members"]
@@ -57,10 +60,11 @@ def _frozen_rows(rows, looks, names):
             if not isinstance(obs, dict) or type(obs.get("closed")) is not bool or type(obs.get("complete")) is not bool:
                 raise ValueError("explicit case observation and completion required on frozen roster")
             receipt = obs.get("receipt")
-            if not isinstance(receipt, dict) or not {"outcome_ref", "choice_ref", "truth_ref", "scorer_ref"} <= receipt.keys():
+            evidence_fields = ("outcome_ref", "choice_ref", "truth_ref", "scorer_ref")
+            if not isinstance(receipt, dict) or not all(k in receipt for k in evidence_fields):
                 raise ValueError("sealed per-case outcome receipt required")
-            binding = case_outcome_receipt(case, status=obs["status"], **{
-                k: receipt[k] for k in ("outcome_ref", "choice_ref", "truth_ref", "scorer_ref")})
+            evidence = {k: receipt[k] for k in evidence_fields}
+            binding = case_outcome_receipt(case, status=obs["status"], **evidence)
             if receipt != binding or known.setdefault(receipt["outcome_ref"], binding["identity"]) != binding["identity"]:
                 raise ValueError("inconsistent case, choice, scorer or truth on outcome receipt")
         families[roster[case]].append(row)
@@ -77,17 +81,7 @@ def contrast(rows, coefficients, *, stratum, looks):
     families = {k: v for k, v in sorted(all_families.items()) if k[0] in strata}
     support = Counter(s for s, _ in families)
     denominator = sum(len(members) for members in families.values())
-    if any(not support[s] for s in strata):
-        return dict(
-            observed_pp=None,
-            lower_pp=None,
-            upper_pp=None,
-            reason="missing stratum",
-            coordinates=coordinates,
-            families=[],
-            family_counts=dict(support),
-            denominator=denominator,
-        )
+    supported = all(support[s] for s in strata)
     unknown = defaultdict(Fraction)
     paired = Counter(
         {
@@ -141,17 +135,20 @@ def contrast(rows, coefficients, *, stratum, looks):
                     (False, False): "neither",
                 }[a == "solve", b == "solve"]
                 paired[key] += 1
-        joint.append(dict(stratum=s, family=family, frozen_size=len(members), patterns=[
-            dict(count=count, outcomes=[dict(status=status, complete=complete, closed=closed, equality=equality)
-                                        for status, complete, closed, equality in pattern])
-            for pattern, count in sorted(patterns.items())]))
+        cells = []
+        for pattern, count in sorted(patterns.items()):
+            outcomes = [dict(status=status, complete=complete, closed=closed, equality=equality)
+                        for status, complete, closed, equality in pattern]
+            cells.append(dict(count=count, outcomes=outcomes))
+        joint.append(dict(stratum=s, family=family, frozen_size=len(members), patterns=cells))
         if binary:
             paired["first_solve_families"] += not solved[pair[0]] and bool(solved[pair[1]])
             paired["last_solve_families"] += bool(solved[pair[0]]) and not solved[pair[1]]
     return dict(
-        observed_pp=float(observed),
-        lower_pp=float(observed + sum(min(0, c) for c in unknown.values())),
-        upper_pp=float(observed + sum(max(0, c) for c in unknown.values())),
+        observed_pp=float(observed) if supported else None,
+        lower_pp=float(observed + sum(min(0, c) for c in unknown.values())) if supported else None,
+        upper_pp=float(observed + sum(max(0, c) for c in unknown.values())) if supported else None,
+        **({} if supported else {"reason": "missing stratum"}),
         denominator=denominator,
         family_counts=dict(support),
         coordinates=coordinates,
@@ -180,6 +177,7 @@ def affordable_look(looks, axis, budget, *, overlap):
         for row in looks
         if row["verified"] and row.get(axis) is not None and row[axis] <= budget
     ]
+
     def coordinate(row):
         tokens = row.get("useful_tokens", 0)
         return row[axis], row.get("look", tokens), tokens
