@@ -15,14 +15,15 @@ from oeis_learn.generalization.progressive.program_search_selector import (
     choose,
     fit_ranker,
     shuffled_values,
+    SELECTOR_ARMS, COMPONENTS, selector_spending, selector_counts, verify_selector,
 )
 from .identity import confined
 from .preparation_recovery import retain
 from .progressive_panel_sources import require
 
-ARM_NAMES = ("incumbent", "learned", "shuffled")
-LIVE_NAMES = ("live_incumbent", "live_learned", "reference")
-COMPONENT_NAMES = ("model_component", "template_component")
+ARM_NAMES = SELECTOR_ARMS[:3]
+LIVE_NAMES = SELECTOR_ARMS[3:]
+COMPONENT_NAMES = COMPONENTS
 CONVENTIONAL = {
     "template": "templates",
     "polynomial": "polynomial",
@@ -143,6 +144,7 @@ def selector_choice(data, client):
         return seal(
             dict(
                 bank=digest(bank),
+                request=data["identity"],
                 eligible=bank,
                 choices={mode: result["choice"] if elapsed <= 60 else None},
                 comparable={mode: elapsed <= 60},
@@ -224,6 +226,9 @@ def selector_choice(data, client):
     return seal(
         dict(
             bank=digest(bank),
+            request=data["identity"],
+            attempts_in_order=pool["details"],
+            proposal_sources=pool.get("proposal_sources", {}),
             eligible=bank,
             choices={k: None if expired else v for k, v in choices.items()},
             comparable={
@@ -279,8 +284,18 @@ def compare_selector(area, registration, roster, witnesses, model, native, recip
     visible, truth = outcome_channels({"members": roster}, witnesses)
     prompts = {r["id"]: r for r in visible}
     shuffled = shuffled_values(roster, prompts, registration["seed"])
+    groups = {g:i for i, g in enumerate(sorted({m["group"] for m in roster}))}
+    sizes = Counter((m["stratum"], groups[m["group"]]) for m in roster)
+    arms = (*SELECTOR_ARMS, *COMPONENT_NAMES) if registration["proposer"] == "trial05_and_templates" else SELECTOR_ARMS
+    design = seal(dict(version="round028-selector-design/v1", registration=registration["identity"],
+                       roster=digest(roster), shuffle=digest(shuffled), model=model["identity"],
+                       reference=registration["reference"]["method"], arms=list(arms), seed=registration["seed"],
+                       profile=dict(attempts=8, portfolio_us=60_000_000, fit_us=4_000_000, tokens=1024),
+                       sizes=[dict(stratum=s, group=g, cases=n) for (s,g),n in sorted(sizes.items())]))
+    retain(area / "design.json", design)
     selected = {}
     charges = []
+    searches = {}
     for member in roster:
         key = member["task"]
         choices = {}
@@ -307,15 +322,24 @@ def compare_selector(area, registration, roster, witnesses, model, native, recip
             )
             result = native("selector_choice", packet, seconds=600, inputs=mounts)
             require(
-                result == seal(result) and result["bank"] == digest(result["eligible"]),
+                result == seal(result) and result["request"] == packet["identity"]
+                and result["bank"] == digest(result["eligible"]) and result["seconds"] == 60
+                and result["seed"] == registration["seed"] and result["proposer"] == proposer
+                and set(result["choices"]) == (set(ARM_NAMES) | (set(COMPONENT_NAMES) if len(arms) == 8 else set())
+                                                if mode == "bank" else {mode}),
                 "unsealed eligible bank",
             )
             eligible_sources(result["eligible"], prompts[key])
+            path = area / "banks" / (packet["block"] + ".json")
+            retain(path, result)
+            artifact = reference(area, path)
+            searches[packet["block"]] = artifact
             for arm, choice in result["choices"].items():
                 require(choice is None or choice in result["eligible"], "substituted selector bank")
                 choices[arm] = dict(
                     chosen=choice,
                     bank=result["bank"],
+                    producer=artifact,
                     complete=result["complete"],
                     comparable=result["comparable"][arm],
                 )
@@ -328,6 +352,7 @@ def compare_selector(area, registration, roster, witnesses, model, native, recip
     )
     retain(area / "selections.json", freeze)
     results = []
+    scores = {}
     for member, row in zip(roster, truth, strict=True):
         key = member["task"]
         scored = native(
@@ -342,26 +367,23 @@ def compare_selector(area, registration, roster, witnesses, model, native, recip
             ),
             seconds=300,
         )
+        charges.append(dict(mode="score", wall_us=native.last_wall_us, search_us=0))
+        scored_path = area / "scores" / (digest(key)[7:] + ".json")
+        retain(scored_path, seal(dict(parent=freeze["identity"], truth=digest(row), outcomes=scored["outcomes"])))
+        scores[key] = reference(area, scored_path)
         results.append(dict(member=member, outcomes=scored["outcomes"]))
-    counts = {}
-    for name in results[0]["outcomes"]:
-        counts[name] = dict(Counter(r["outcomes"][name] for r in results))
-    pairs = {}
-    for a, b in (
-        ("learned", "incumbent"),
-        ("learned", "shuffled"),
-        ("live_learned", "live_incumbent"),
-        ("live_learned", "reference"),
-    ):
-        grouped = {}
-        for r in results:
-            group = (r["member"]["stratum"], r["member"]["group"])
-            grouped.setdefault(group, Counter())[r["outcomes"][a] + r["outcomes"][b]] += 1
-        pairs[a + "_minus_" + b] = [
-            dict(stratum=s, counts=dict(c)) for (s, _), c in sorted(grouped.items())
-        ]
+    retain(area / "closure.json", seal(dict(design=design["identity"], selections=freeze["identity"],
+                                           searches=searches, scores=scores, charges=charges)))
+    joint = defaultdict(Counter)
+    for row in results:
+        member = row["member"]
+        joint[member["stratum"], groups[member["group"]]]["".join(row["outcomes"][a] for a in arms)] += 1
+    cells = [dict(stratum=s, group=g, counts=dict(c)) for (s,g),c in sorted(joint.items())]
+    counts, pairs = selector_counts(cells, arms)
     return seal(
         dict(
+            version="round028-selector-report/v1", design=design, cells=cells,
+            spending=selector_spending(cells, comparable_cost=True),
             registration=registration["identity"],
             selections=freeze["identity"],
             cases=len(roster),
@@ -369,6 +391,8 @@ def compare_selector(area, registration, roster, witnesses, model, native, recip
             pairs=pairs,
             elapsed_us=sum(charge["wall_us"] for charge in charges),
             search_us=sum(charge["search_us"] for charge in charges),
+            costs={mode:sum(c["wall_us"] for c in charges if c["mode"] == mode)
+                   for mode in ("bank", *LIVE_NAMES, "score")},
             gpu_dispatches=0,
         )
     )
@@ -377,8 +401,7 @@ def compare_selector(area, registration, roster, witnesses, model, native, recip
 def selector_command(args, source, root, folder, revision, store, host_factory, audit):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES, load
-    from oeis_learn.generalization.progressive.shared_support import validated_rows
-    from oeis_learn.generalization.progressive.training_rows import held_out_probes, verified_training_pairs
+    from oeis_learn.generalization.progressive.training_rows import held_out_probes, verified_training_pairs, pair_seeds
     from .progressive_round028 import reopen
     from .progressive_round028_audit import ORIGINAL, Donor
     from .progressive_round028_panels import NativeRoles, prepare
@@ -386,7 +409,7 @@ def selector_command(args, source, root, folder, revision, store, host_factory, 
     from .progressive_round028_support import training_package
     from .progressive_panel_sources import read_inputs
     from .progressive_research_inputs import checked_file, _json
-    from .progressive_round028_pilot import research_rosters
+    from .progressive_round028_pilot import research_rosters, PilotRole, prepare_training
 
     require(audit["decision"]["action"] == "CPU_SELECTOR", "CPU selector audit required")
     donor = Donor(root, folder, store.campaign)
@@ -403,17 +426,7 @@ def selector_command(args, source, root, folder, revision, store, host_factory, 
         return dict(
             mechanical_status="BLOCKED", reason="SELECTOR_TRAINING_PAIR_DEFICIT", eligible_pairs=0
         ), 2
-    rows = validated_rows(package["shards"], native_verified=True)
-    examples = [
-        dict(
-            case=p["positive_row"],
-            values=rows[p["positive_row"]]["values"][:20],
-            positive=rows[p["positive_row"]]["source"],
-            negative=rows[p["negative_row"]]["source"],
-        )
-        for p in pairs
-    ]
-    model = fit_ranker(examples)
+    seed = int(digest([store.campaign["identity"], "selector"])[7:15], 16)
     cut = reopen(root, folder, store.campaign, store.state["audit"])
     trial = cut["producers"].get("trial-05-1M", {})
     proposer = "template_only"
@@ -478,15 +491,17 @@ def selector_command(args, source, root, folder, revision, store, host_factory, 
             candidate=revision,
             audit=audit["receipt"]["report"],
             route=digest(audit["decision"]),
-            seed=int(digest([store.campaign["identity"], "selector"])[7:15], 16),
+            seed=seed,
             calibration_limit=48,
             proposer=proposer,
-            training=model["identity"],
+            training_support=digest(pairs),
+            profile=store.campaign["policy"]["profile"], multiplicity=1,
+            repeat="requires_registered_reservation", final_assessment="SEALED",
             reference=incumbent,
             weights={k: v[0] for k, v in weight_inputs.items()},
         )
     )
-    area = confined(folder, "private/cpu-selector", exists=False)
+    area = confined(folder, "private/cpu-selector-v2", exists=False)
     retain(area / "registration.json", reg)
     supply_area = area / "supply"
     supply_area.mkdir(exist_ok=True)
@@ -526,6 +541,11 @@ def selector_command(args, source, root, folder, revision, store, host_factory, 
         ), 2
     rosters = research_rosters(private["allocations"]["panels"])
     roster = rosters["development"] + rosters["development_retention"]
+    training_area = area / "training-0"
+    training_area.mkdir(exist_ok=True)
+    cpu = PilotRole(args, source, root, revision, training_area, reg, host_factory)
+    training = prepare_training(root, training_area, reg, cpu, refs, private, supply_area)
+    model = rank_training_stream(training, pair_seeds(reg["identity"], 0)["training_families"])
     retain(
         area / "freeze.json",
         seal(dict(registration=reg["identity"], panels=digest(rosters), model=model)),
@@ -535,6 +555,98 @@ def selector_command(args, source, root, folder, revision, store, host_factory, 
         area, reg, roster, private["witnesses"], model, native, recipes, weight_inputs
     )
     retain(area / "result.json", result)
+    from io import BytesIO
+    from oeis_learn.generalization.progressive.contracts import _atomic_write
+    from oeis_learn.generalization.progressive.program_search_outcome import archive_bytes
+    from oeis_learn.generalization.progressive.program_search_rehearsal_report import encode
+    packed = archive_bytes({"selector.json":encode(result)})
+    receipt = verify_selector(BytesIO(packed))
+    share = confined(folder, "share/round028-selector.zip", exists=False)
+    if share.exists():
+        require(share.read_bytes() == packed, "existing selector publication differs")
+    else:
+        _atomic_write(share, packed)
     return dict(
-        mechanical_status="COMPLETE", scientific_status="SELECTOR_EXPLORATORY", result=result
+        mechanical_status="COMPLETE", scientific_status="SELECTOR_EXPLORATORY", result=result,
+        receipt=receipt, archive=str(share.relative_to(folder)), next_action=receipt["next_action"]
     ), 0
+
+
+def verify_private_selector(area, share):
+    """Reopen choices, ordered producers and the frozen roster without dispatching a role."""
+    from oeis_learn.generalization.progressive.contracts import load, CAMPAIGN_DOCUMENT_BYTES
+    from oeis_learn.fresh.synthesis_policy import validate_selection_envelope
+    from oeis_learn.synthesis.reference import evaluate
+    from .progressive_round028_pilot import research_rosters, outcome_channels
+    def record(name):
+        item = load(confined(area, name), maximum=CAMPAIGN_DOCUMENT_BYTES)
+        require(item == seal(item), "changed private selector record")
+        return item
+
+    public = verify_selector(share)
+    result, closure, freeze = (record(n) for n in ("result.json", "closure.json", "freeze.json"))
+    choices, design, reg = (record(n) for n in ("selections.json", "design.json", "registration.json"))
+    supply_cut = record("supply/prepared-supply.json")
+    supply = read_bound_record(area / "supply", supply_cut["supply"])
+    panels = research_rosters(supply["allocations"]["panels"])
+    roster = panels["development"] + panels["development_retention"]
+    require(freeze["panels"] == digest(panels) and design["roster"] == digest(roster)
+            and choices["registration"] == freeze["registration"] == design["registration"] == reg["identity"]
+            and freeze["model"]["identity"] == choices["model"] == design["model"]
+            and choices["identity"] == result["selections"] == closure["selections"]
+            and design["identity"] == closure["design"] == public["design"]
+            and public["report"] == result["identity"], "selector private/public parent differs")
+    visible, truths = outcome_channels({"members":roster}, supply["witnesses"])
+    shuffled = shuffled_values(roster, {r["id"]:r for r in visible}, reg["seed"])
+    require(design["shuffle"] == digest(shuffled), "selector conditioning donor differs")
+    groups = {g:i for i,g in enumerate(sorted({m["group"] for m in roster}))}
+    joint = defaultdict(Counter)
+    for member, prompt, truth in zip(roster, visible, truths, strict=True):
+        key = member["task"]
+        sealed = choices["choices"][key]
+        score = read_bound_record(area, closure["scores"][key])
+        require(score["parent"] == choices["identity"] and score["truth"] == digest(truth),
+                "selector scorer parent differs")
+        for mode in ("bank", *LIVE_NAMES):
+            block = digest([key, mode])[7:]
+            producer = read_bound_record(area, closure["searches"][block])
+            bank = producer["eligible"]
+            require(producer["bank"] == digest(bank) and producer["seed"] == reg["seed"], "selector bank changed")
+            eligible_sources(bank, prompt)
+            for arm, chosen in producer["choices"].items():
+                row = sealed[arm]
+                require(row == dict(chosen=chosen, bank=producer["bank"], producer=closure["searches"][block],
+                                    comparable=producer["comparable"][arm], complete=producer["complete"])
+                        and (chosen is None or chosen in bank), "selector choice differs from its bank")
+                if arm in ("learned", "shuffled", "live_learned") and row["comparable"]:
+                    values = shuffled[key] if arm == "shuffled" else prompt["values"]
+                    require(chosen == choose(bank, values, freeze["model"]), "learned choice differs")
+                verdict = score["outcomes"][arm]
+                if chosen is None or not row["comparable"]:
+                    expected = "F" if row["comparable"] and row["complete"] else "U"
+                    require(verdict == expected, "empty or late selection differs")
+                elif verdict != "U":
+                    source = validate_selection_envelope(chosen)["source"]
+                    execution = evaluate(source, truth["indices"])
+                    require(execution.outcome == "ok" and
+                            verdict == ("S" if list(execution.values) == truth["values"] else "F")
+                            and (verdict == "S" or row["complete"]), "private continuation differs")
+        joint[member["stratum"], groups[member["group"]]]["".join(score["outcomes"][a] for a in design["arms"])] += 1
+    rebuilt = [dict(stratum=s, group=g, counts=dict(c)) for (s,g),c in sorted(joint.items())]
+    by_mode = Counter()
+    for charge in closure["charges"]:
+        by_mode[charge["mode"]] += charge["wall_us"]
+    require(rebuilt == result["cells"] and by_mode == result["costs"]
+            and sum(c["search_us"] for c in closure["charges"]) == result["search_us"], "selector reduction differs")
+    return dict(private_replay="VERIFIED", public_recomputation=public)
+
+
+def rank_training_stream(training, seed):
+    stream = training["stream"]
+    require(stream == seal(stream) and stream["seeds"]["training_families"] == seed,
+            "selector training seed differs")
+    rows = {r["draw_identity"]:r for r in training["rows"]}
+    examples = [dict(case=p["positive_row"], values=rows[p["positive_row"]]["values"][:20],
+                     positive=rows[p["positive_row"]]["source"], negative=rows[p["negative_row"]]["source"])
+                for p in stream["pairs"]]
+    return fit_ranker(examples, seed=seed, stream=stream["identity"])

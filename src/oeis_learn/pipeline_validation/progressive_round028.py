@@ -341,6 +341,10 @@ def execute(args, source, *, host_factory=None):
         with RunStore.owner(folder):
             store = audit_store(folder, revision)
             registration = store.campaign
+            selector_share = confined(folder, "share/round028-selector.zip", exists=False)
+            if args.action == "verify" and selector_share.is_file():
+                from .progressive_round028_selector import verify_private_selector
+                return verify_private_selector(confined(folder, "private/cpu-selector-v2"), selector_share), 0
             if args.action in {"pilot", "qualify-pilot"}:
                 from .progressive_round028_pilot import AREA as PILOT_AREA, PilotDeficit, cost_status, run_pilot
                 try:

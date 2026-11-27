@@ -191,6 +191,26 @@ def test_nested_choice_and_missing_checkpoint_break_private_reexport(tmp_path):
         pilot.publication_inputs(area)
 
 
+@pytest.mark.parametrize(("live", "action"), [("F", "RETAIN_REFERENCE"),
+                                               ("U", "UNRESOLVED_SPENDING_CONTRAST"),
+                                               ("S", "REPLICATION_UNFUNDED")])
+def test_selector_budget_and_shuffled_control_govern_spending(live, action):
+    from oeis_learn.generalization.progressive.program_search_selector import selector_spending
+
+    def cells(stratum, outcomes, group):
+        return dict(stratum=stratum, group=group, counts={outcomes: 2})
+
+    # Incumbent, learned and shuffled on one list, followed by three independently timed arms.
+    rows = [cells(s, "FSFF" + live + "F", i) for i, s in enumerate(("composition", "unseen_structure"))]
+    rows.append(cells("retention", "SSSSSS", 2))
+    decision = selector_spending(rows, comparable_cost=True)
+    assert decision["action"] == action
+    assert decision["contrasts"]["same_bank"]["gain"] == 1.0
+    assert selector_spending(rows, comparable_cost=False)["action"] == "INCOMPARABLE"
+    rows[0]["counts"] = rows[1]["counts"] = {"FSSF" + live + "F": 2}
+    assert selector_spending(rows, comparable_cost=True)["action"] == "RETAIN_REFERENCE"
+
+
 def test_selector_compares_same_bank_then_scores_sealed_choices(tmp_path, monkeypatch):
     from oeis_learn.fresh import bigint_diagnostics, synthesis_policy
     from oeis_learn.synthesis.admission import source_identity
@@ -357,6 +377,13 @@ def test_selector_compares_same_bank_then_scores_sealed_choices(tmp_path, monkey
         return {"calibrated": True}
 
     monkeypatch.setattr(progressive_round028_panels, "prepare", prepare)
+    from oeis_learn.pipeline_validation import progressive_round028_pilot as pilot
+    from oeis_learn.generalization.progressive.training_rows import matched_stream
+    def prepare_training(root, area, reg, cpu, refs, supply, panel_area, *, pair=0):
+        rows = training_rows()
+        stream = matched_stream([rows], {"probes":{}}, reg["identity"], pair)
+        return dict(rows=rows, stream=stream)
+    monkeypatch.setattr(pilot, "prepare_training", prepare_training)
     monkeypatch.setattr(progressive_round028_replay, "DiagnosticRole", lambda *a: Role())
     args = SimpleNamespace(action="run", workspace=str(work), archive=None)
     outcome, code = command.execute(args, Path(__file__).resolve().parents[2])
@@ -365,6 +392,17 @@ def test_selector_compares_same_bank_then_scores_sealed_choices(tmp_path, monkey
         and outcome["scientific_status"] == "SELECTOR_EXPLORATORY"
         and outcome["result"]["arms"] == report_arms
     )
+    from oeis_learn.generalization.progressive.program_search_rehearsal_report import verify_transport
+    assert verify_transport(owner / outcome["archive"]) == outcome["receipt"]
+    args.action = "verify"
+    assert command.execute(args, Path(__file__).resolve().parents[2])[0]["private_replay"] == "VERIFIED"
+    from oeis_learn.generalization.progressive.program_search_outcome import archive_bytes
+    from oeis_learn.generalization.progressive.program_search_rehearsal_report import encode
+    tampered = seal(dict(outcome["result"], spending={"action":"RUN_RESERVED_REPLICATION"}))
+    copied = tmp_path / "tampered.zip"
+    copied.write_bytes(archive_bytes({"selector.json":encode(tampered)}))
+    with pytest.raises(ValueError, match="spending"):
+        verify_transport(copied)
 
 
 def test_installed_audit_reserves_and_reopens_native_replay(tmp_path, monkeypatch):

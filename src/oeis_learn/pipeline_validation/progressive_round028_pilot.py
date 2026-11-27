@@ -196,7 +196,7 @@ def calibration_rows(area):
     return rows
 
 
-def prepare_training(root, area, registration, cpu, refs, supply, panel_area):
+def prepare_training(root, area, registration, cpu, refs, supply, panel_area, *, pair=0):
     from oeis_learn.generalization.progressive.models import resolve_profile
     from oeis_learn.generalization.progressive.training_rows import matched_stream
     from oeis_learn.generalization.progressive.generator import default_policy, draw
@@ -215,7 +215,9 @@ def prepare_training(root, area, registration, cpu, refs, supply, panel_area):
             saved == seal(saved) and saved["registration"] == registration["identity"],
             "wrong sealed training cut",
         )
-        return read_bound_record(area, saved["training"], version="round028-pilot-training/v1")
+        package = read_bound_record(area, saved["training"], version="round028-pilot-training/v1")
+        require(package["stream"]["pair"] == pair, "training stream belongs to another seed pair")
+        return package
     inputs = read_inputs(root, refs, include_protected=True)
     protected = [*inputs["protected"], *supply["witnesses"].values(), *calibration_rows(panel_area)]
     deny = set()
@@ -226,7 +228,7 @@ def prepare_training(root, area, registration, cpu, refs, supply, panel_area):
         elif row.get("source"):
             keys.add(("composition", composition(row, allow_parameters=True)))
         deny.update(keys)
-    seed = pair_seeds(registration["identity"], 0)["training_families"]
+    seed = pair_seeds(registration["identity"], pair)["training_families"]
     law = default_policy(seed=seed)
     rows = []
     # Same native mechanical source as the historical strict training reservoir, with a new seed.
@@ -289,7 +291,7 @@ def prepare_training(root, area, registration, cpu, refs, supply, panel_area):
                 [rows[i : i + law["shard_rows"]] for i in range(0, len(rows), law["shard_rows"])],
                 {"probes": probes},
                 registration["identity"],
-                0,
+                pair,
                 law=law,
             )
             if stream["eligible_rows"]:

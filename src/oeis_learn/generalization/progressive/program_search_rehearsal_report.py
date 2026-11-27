@@ -115,6 +115,9 @@ def audit_context(path):
 
 def verify_transport(path):
     with zipfile.ZipFile(path) as archive:
+        if archive.namelist() == ["selector.json"]:
+            from .program_search_selector import verify_selector
+            return verify_selector(path)
         if archive.namelist() == ["replay.json", "round028-audit.zip"]:
             from .program_search_report import verify_replay
             return verify_replay(path)
