@@ -1,12 +1,12 @@
 # Eleven-hour matched generator pilot
 
-**The scientific endpoint awaits the original workstation.** The pilot tests whether training on the first token that distinguishes a correct program from a misleading one improves exact continuation. Its main comparison is against ordinary training from the same random start, on the same rows and positive tokens. The retained D model is the incumbent reference.
+**The workstation has qualified the one-seed pilot. Its scientific result is still unmeasured.** The pilot tests whether training on the first token that distinguishes a correct program from a misleading one improves exact continuation. Its main comparison is against ordinary training from the same random start, on the same rows and positive tokens. The retained D model is the incumbent reference.
 
 ## What the allocation covers
 
 The verified historical audit accounted for all 128 round027 cases. On the 64 cases used for routing it found 51 witnessed proposal failures. The original workstation measured both learner profiles and D on eight previously exposed problems, reserved 576 cases and closed the eight-hour study with zero fresh pilot scores. The child binds that original workstation receipt and reuses its reservations. [Audit](round028-audit.md) · [Panel supply](round028-panel-results.md) · [Original timing and receipt](round028-timing-results.md)
 
-The following estimates belong to the original timing collection. The current qualification return recomputes the launch forecast from its verified parent and registered role plan.
+The following estimates belong to the original timing collection. The copied pre-score qualification recomputed the forecast for the registered launch at 10 h 24 min 12 s.
 
 | Work | Historical forecast |
 | --- | ---: |
@@ -23,32 +23,60 @@ The two descriptive looks use the first reserved case in each development family
 
 The launcher prints one path. A completed `round028-pilot.zip` contains `pilot.json` and the verified parent package. The standalone reader checks the registered denominators, treatment and incumbent contrasts, missing-outcome bounds, retention rule, role costs and spending decision. A positive pilot can earn an independent repeat. The current allocation covers one seed. A diagnostic ZIP identifies the last phase, gives available spending and reports a numerical shortage when measured. Full logs, per-case choices, training data and model checkpoints stay on the workstation.
 
-To verify a copied pilot ZIP with the pinned controller, run this from the directory containing the ZIP. The reader writes the full result to `round028-pilot-verification.json`. The qualification ZIP has its own [copied-archive check](pilot-resume.md#verify-a-copied-qualification).
+To verify a copied pilot and its original pre-score evidence, put `round028-pilot.zip` and the returned `round028-pilot-qualification.zip` in the same directory and run this block there. The reader writes `round028-pilot-verification.json`. [Verify the qualification on its own](pilot-resume.md#verify-a-copied-qualification)
 
 ```bash
 (
   set -euo pipefail
-  rev=1aaea5b90c187d35f33552bcec783cb45fb9c425
+  rev=04e0fd9c30ce64d835c91fb06e5014799bceccee
   report="$(pwd -P)/round028-pilot.zip"
+  qualification="$(pwd -P)/round028-pilot-qualification.zip"
   reader=$(mktemp -d)
   trap 'rm -rf -- "$reader"' EXIT
   git -C "$reader" init --quiet
   git -C "$reader" fetch --quiet --depth=1 https://github.com/grugnog/oeis-learn.git "$rev"
   git -C "$reader" checkout --quiet --detach "$rev"
   python3 -S -B "$reader/scripts/foundation_run.py" --engine podman discovery round028 \
-    --action verify --archive "$report" > round028-pilot-verification.json
+    --action verify --archive "$report" --qualification-archive "$qualification" > round028-pilot-verification.json
   python3 -c 'import json; r=json.load(open("round028-pilot-verification.json")); print(r["status"], r["next_action"])'
 )
 ```
 
-## Qualification checks on this revision
+## Verified workstation qualification
+
+The pinned reader independently verified the copied pre-score ZIP. The controller and registered worker were both `04e0fd9c30ce64d835c91fb06e5014799bceccee`, and the worker source digest matched a clean checkout of that commit. The embedded parent matched the previously verified round028 workstation ZIP byte for byte. [Original workstation receipt](round028-timing-results.md#workstation-receipt-and-public-reports)
+
+| Measurement | Original workstation |
+| --- | ---: |
+| Cold search roster | 160 slots on eight exposed problems, first cold attempt |
+| Search elapsed / supervisor wall | 6,140.289864 s / 6,142.073628 s |
+| Cold checkpoint load and identification / candidate publication | 1.095830 s / 0.292683 s |
+| Minimum case allowance / slowest elapsed | 60.000000 s / 60.133643 s |
+| Slowest case margin | −0.133643 s |
+| Independently scored selections / slots with no selection | 2 / 158 |
+| Scoring elapsed / score publication | 0.203206 s / 0.014177 s |
+| Scoring supervisor wall | 0.805648 s |
+| Time remaining in search / scoring supervisor envelopes | 14,977.926372 s / 21,119.194352 s |
+| Free storage at collection | 237,173,972,992 bytes and 119,533,038 inodes |
+
+The 60-second deadline controls when another attempt may start. Under the registered drain rule, the clock also records the time to finish outstanding work. The slowest observed case closed 0.133643 s after its deadline. The search supervisor measured **1 h 42 min 22 s** for the full roster. The ZIP gives per-role timings and omits the collector’s total wall time. [Registered search rule](../contracts/experiment.md)
+
+The verified forecast was **37,452.119219 s** out of **39,600 s**, leaving **35 min 48 s**. At collection the research ledger had zero charges and zero open reservations, and the scientific status was `PILOT_UNMEASURED`. Keep this ZIP for comparison with the later pilot archive.
+
+| Evidence | SHA-256 |
+| --- | --- |
+| Returned qualification ZIP | `ef61b2e243c2bb95035baaa230b71093ef7ecb36433f577063c39a3d65350812` |
+| Saved registration | `4325677a7b083bcc38cc541a3b0999fc328f39d898320457e7f6a72af7a54755` |
+| Pre-score commitment | `0867bb3c56089449f7bfae95c0154a2ec041ccda6fad41ef6cddefc3a5797fc6` |
+
+## Qualification fixtures
 
 The installed CPU tests exercised a cold 160-slot roster, a slow admitted choice through both scoring engines, and recovery through the shell launcher with a saved worker distinct from the controller. A separate fixture checked the scorer on 160 exposed replays when the learner selected zero programs. These tests used a simulated native engine.
 
-From the original detached donor without its private campaign, both quickstart commands returned `ORIGINAL_FROZEN_CAMPAIGN_MISSING` and zero GPU dispatches. The workstation receipt is still needed to establish the real timings, available storage, and registered worker for this pilot.
+In a detached donor fixture without its private campaign, the qualification and pilot commands each returned `ORIGINAL_FROZEN_CAMPAIGN_MISSING` and zero GPU dispatches.
 
 ## Earlier release verification
 
 The local release suite passed 234 tests. Two tests require the native qualification image. The pilot fixture ran the 0, 1M and 4M planner, the three-arm endpoint and a second invocation with no new research roles. A separate CPU test restored both models and performed real optimizer updates with the original discarded-token charge. Recovery cases covered a partially completed search and an interrupted independent scorer.
 
-The pinned shell launcher was fetched and extracted in a detached checkout at the original donor commit. Metadata preflight, status and pilot status ran without acquiring a device. Two invocations with the private donor evidence absent each produced a diagnostic ZIP identifying the missing original campaign. An isolated Git checkout with standard-library Python verified the real historical workstation ZIP and a synthetic pilot archive built over that real parent. The latter exercised the reader with simulated outcomes. Physical qualification, pilot training and the fresh 4M comparison await the workstation command.
+The pinned shell launcher was fetched and extracted in a detached checkout at the original donor commit. Metadata preflight, status and pilot status ran without acquiring a device. Two invocations with the private donor evidence absent each produced a diagnostic ZIP identifying the missing original campaign. An isolated Git checkout with standard-library Python verified the real historical workstation ZIP and a synthetic pilot archive built over that real parent. The latter exercised the reader with simulated outcomes.

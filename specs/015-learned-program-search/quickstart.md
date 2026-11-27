@@ -2,7 +2,7 @@
 
 ## Run the eleven-hour generator pilot
 
-**Workstation qualification is pending.** The CPU audit selected a one-seed comparison of ordinary and first-divergence training. Controller `04e0fd9c30ce64d835c91fb06e5014799bceccee` passed CPU regressions for case clocks, independent scoring, reboot recovery and pre-score evidence. Physical qualification needs the original detached round027 checkout, its private receipts and its Podman/HIP workstation.
+**The original workstation is qualified for the one-seed pilot.** The copied pre-score receipt verified controller and worker `04e0fd9c30ce64d835c91fb06e5014799bceccee` on a cold 160-slot search and independent scoring. The forecast is 10 h 24 min 12 s, leaving 35 min 48 s of the eleven-hour research allocation. The saved registration has zero research charges and zero open reservations. [Workstation measurements and receipt](validation/round028-pilot.md#verified-workstation-qualification)
 
 ### Collect qualification only
 
@@ -24,7 +24,7 @@ Return the printed `round028-pilot-qualification.zip` or `round028-pilot-qualifi
 
 ### Start or resume after qualification
 
-Use this block when you intend to spend the eleven-hour allocation. The first action reopens the workstation evidence and verifies a copied qualification ZIP. A failed check exits the block before the research action. Both actions use the same pinned launcher.
+Run this block on the same workstation from its original detached round027 checkout. The pilot reopens the saved qualification and registration before spending research time. Keep the returned pre-score qualification ZIP for comparison with the final pilot.
 
 ```bash
 (
@@ -33,9 +33,8 @@ Use this block when you intend to spend the eleven-hour allocation. The first ac
   rev=04e0fd9c30ce64d835c91fb06e5014799bceccee
   git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
   git merge-base --is-ancestor "$rev" FETCH_HEAD
-  launcher=specs/015-learned-program-search/validation/launch-round028.sh
-  git show "${rev}:${launcher}" | bash -s -- "$rev" collect-pilot-qualification
-  git show "${rev}:${launcher}" | bash -s -- "$rev" collect-pilot
+  git show "${rev}:specs/015-learned-program-search/validation/launch-round028.sh" |
+    bash -s -- "$rev" collect-pilot
 )
 ```
 

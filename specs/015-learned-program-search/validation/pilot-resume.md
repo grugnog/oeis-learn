@@ -1,6 +1,6 @@
 # Pilot qualification and recovery
 
-Use controller `04e0fd9c30ce64d835c91fb06e5014799bceccee` from the detached round027 checkout. The [operator quickstart](../quickstart.md#run-the-eleven-hour-generator-pilot) gives the qualification-only command and the guarded start/resume command. The physical qualification receipt for this controller is pending.
+The independently verified pre-score qualification identified `04e0fd9c30ce64d835c91fb06e5014799bceccee` as both the controller and the worker on the original workstation. Use that pin and the same detached round027 checkout to start or resume. [Operator quickstart](../quickstart.md#start-or-resume-after-qualification) · [Workstation receipt](round028-pilot.md#verified-workstation-qualification)
 
 The controller authenticates the saved registration, its source tree and its parent receipt, then runs the worker named in that registration. A new registration uses the controller revision as its worker. On recovery, the two SHAs may differ. The qualification collector prints both after verifying the copied archive. A diagnostic includes the worker SHA when the controller has resolved it.
 
@@ -47,7 +47,7 @@ PY
 )
 ```
 
-T056 and T060 require the physical return. T046 and T047 track broader workstation acceptance. T048 tracks the subsequent scientific result.
+The verified physical return closes T056 and T060. T046 and T047 track broader workstation acceptance. T048 tracks the scientific pilot result.
 
 ## Compare a copied pilot with its pre-score qualification
 
