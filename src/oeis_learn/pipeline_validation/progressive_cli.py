@@ -155,6 +155,7 @@ def register(commands):
     round028 = operations.add_parser("round028", help="registered learned program search")
     round028.add_argument("--action", choices=("preflight", "audit", "rehearse", "recover-rehearsal", "panels", "timing", "finalize", "pilot", "qualify-pilot", "pilot-status", "release-acceptance", "run", "status", "verify"), required=True)
     round028.add_argument("--replay-budget-seconds", type=int, help="CPU allowance for the single discriminating audit replay")
+    round028.add_argument("--selector-repeat-seconds", type=int, help="prospective CPU reservation for an earned selector replication")
     round028.add_argument("--producer-revision", help="full Git SHA that measured the saved rehearsal")
     authority = round028.add_mutually_exclusive_group(required=True)
     authority.add_argument("--workspace", help="absolute physical round027 donor workspace")

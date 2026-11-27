@@ -205,6 +205,8 @@ def test_selector_budget_and_shuffled_control_govern_spending(live, action):
     rows.append(cells("retention", "SSSSSS", 2))
     decision = selector_spending(rows, comparable_cost=True)
     assert decision["action"] == action
+    funded = selector_spending(rows, comparable_cost=True, repeat_funded=True, replay_funded=True)
+    assert funded["action"] == {"F":"RETAIN_REFERENCE","U":"REPLAY","S":"RUN_RESERVED_REPLICATION"}[live]
     assert decision["contrasts"]["same_bank"]["gain"] == 1.0
     assert selector_spending(rows, comparable_cost=False)["action"] == "INCOMPARABLE"
     rows[0]["counts"] = rows[1]["counts"] = {"FSSF" + live + "F": 2}

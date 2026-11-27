@@ -216,9 +216,11 @@ def verify_selector(path):
               "elapsed_us","search_us","costs","gpu_dispatches","identity"}
     design = report["design"]
     arms = tuple(design["arms"])
+    reserved = design.get("replication")
+    extra = {"replication"} if reserved is not None else set()
     if (set(report) != fields or report["version"] != "round028-selector-report/v1" or report != seal(report)
             or raw != encode(report) or design != seal(design) or set(design) !=
-            {"version","registration","roster","shuffle","model","reference","arms","seed","profile","sizes","identity"}
+            {"version","registration","roster","shuffle","model","reference","arms","seed","profile","sizes","identity"} | extra
             or design["version"] != "round028-selector-design/v1" or design["registration"] != report["registration"]
             or arms not in (SELECTOR_ARMS, SELECTOR_ARMS + COMPONENTS)
             or design["reference"] not in {"retained_D","trial05","template","polynomial","linear_recurrence"}
@@ -228,7 +230,11 @@ def verify_selector(path):
                    (design["roster"], design["model"], design["shuffle"], report["registration"], report["selections"]))):
         raise ValueError("closed selector design and report required")
     cells = report["cells"]
-    spending = selector_spending(cells, comparable_cost=True)
+    if reserved is not None and (not isinstance(reserved,dict) or set(reserved)!={"identity","seconds"}
+            or not re.fullmatch(r"sha256:[0-9a-f]{64}",reserved["identity"])
+            or type(reserved["seconds"]) is not int or reserved["seconds"] <= 0):
+        raise ValueError("invalid prospective selector reservation")
+    spending = selector_spending(cells, comparable_cost=True, repeat_funded=bool(reserved))
     sizes = [dict(stratum=c["stratum"], group=c["group"], cases=sum(c["counts"].values())) for c in cells]
     totals, pairs = selector_counts(cells, arms)
     costs = report["costs"]
@@ -240,4 +246,5 @@ def verify_selector(path):
         raise ValueError("selector counts, costs or spending differ")
     return dict(status="VERIFIED", scope="archive_only_selector", report=report["identity"],
                 design=design["identity"], cases=report["cases"], next_action=spending["action"],
-                elapsed_us=report["elapsed_us"], final_assessment="SEALED")
+                elapsed_us=report["elapsed_us"], final_assessment="SEALED",
+                **({"replication":reserved["identity"]} if reserved else {}))

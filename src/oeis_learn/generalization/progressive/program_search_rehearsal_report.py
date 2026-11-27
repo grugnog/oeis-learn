@@ -121,6 +121,9 @@ def verify_transport(path):
         if archive.namelist() == ["selector.json"]:
             from .program_search_selector import verify_selector
             return verify_selector(path)
+        if archive.namelist() == ["replication.json", "development.zip"]:
+            from .selector_replication import verify_replication
+            return verify_replication(path)
         if archive.namelist() == ["replay.json", "round028-audit.zip"]:
             from .program_search_report import verify_replay
             return verify_replay(path)

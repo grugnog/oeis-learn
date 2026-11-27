@@ -251,8 +251,9 @@ def selector_score(data, client):
 
     truth, selected = data["truth"], data["selections"]
     required = set((*ARM_NAMES, *LIVE_NAMES))
+    allowed = ({"reference","live_learned"},) if data.get("scope") == "replication" else (required, required | set(COMPONENT_NAMES))
     require(
-        set(selected) in (required, required | set(COMPONENT_NAMES))
+        set(selected) in allowed
         and len(truth["indices"]) == len(truth["values"]) == 100,
         "exact selector scoring roster required",
     )
@@ -278,7 +279,7 @@ def selector_score(data, client):
     return {"outcomes": outcomes}
 
 
-def compare_selector(area, registration, roster, witnesses, model, native, recipes, weight_inputs):
+def compare_selector(area, registration, roster, witnesses, model, native, recipes, weight_inputs, *, replication=None):
     from .progressive_round028_pilot import outcome_channels
 
     visible, truth = outcome_channels({"members": roster}, witnesses)
@@ -291,7 +292,8 @@ def compare_selector(area, registration, roster, witnesses, model, native, recip
                        roster=digest(roster), shuffle=digest(shuffled), model=model["identity"],
                        reference=registration["reference"]["method"], arms=list(arms), seed=registration["seed"],
                        profile=dict(attempts=8, portfolio_us=60_000_000, fit_us=4_000_000, tokens=1024),
-                       sizes=[dict(stratum=s, group=g, cases=n) for (s,g),n in sorted(sizes.items())]))
+                       sizes=[dict(stratum=s, group=g, cases=n) for (s,g),n in sorted(sizes.items())],
+                       **({"replication":dict(identity=replication["identity"],seconds=replication["seconds"])} if replication else {})))
     retain(area / "design.json", design)
     selected = {}
     charges = []
@@ -383,7 +385,7 @@ def compare_selector(area, registration, roster, witnesses, model, native, recip
     return seal(
         dict(
             version="round028-selector-report/v1", design=design, cells=cells,
-            spending=selector_spending(cells, comparable_cost=True),
+            spending=selector_spending(cells, comparable_cost=True,repeat_funded=bool(replication)),
             registration=registration["identity"],
             selections=freeze["identity"],
             cases=len(roster),
@@ -485,6 +487,12 @@ def selector_command(args, source, root, folder, revision, store, host_factory, 
         recipes[name] = base_recipe
         weight_inputs[name] = (None, [])
     incumbent = historical_reference(cut, trial_eligible=proposer == "trial05_and_templates")
+    area = confined(folder, "private/cpu-selector-v2", exists=False)
+    seconds = getattr(args, "selector_repeat_seconds", None)
+    if seconds is None:
+        old = area / "registration.json"
+        seconds = load(confined(area,old)).get("repeat_seconds",0) if old.exists() else 0
+    require(type(seconds) is int and seconds >= 0, "nonnegative prospective selector reservation required")
     reg = seal(
         dict(
             source=digest(collect_snapshot(source)),
@@ -497,11 +505,11 @@ def selector_command(args, source, root, folder, revision, store, host_factory, 
             training_support=digest(pairs),
             profile=store.campaign["policy"]["profile"], multiplicity=1,
             repeat="requires_registered_reservation", final_assessment="SEALED",
+            **({"repeat_seconds":seconds} if seconds else {}),
             reference=incumbent,
             weights={k: v[0] for k, v in weight_inputs.items()},
         )
     )
-    area = confined(folder, "private/cpu-selector-v2", exists=False)
     retain(area / "registration.json", reg)
     supply_area = area / "supply"
     supply_area.mkdir(exist_ok=True)
@@ -541,6 +549,14 @@ def selector_command(args, source, root, folder, revision, store, host_factory, 
         ), 2
     rosters = research_rosters(private["allocations"]["panels"])
     roster = rosters["development"] + rosters["development_retention"]
+    replication = None
+    reserved = rosters["replication"] + rosters["replication_retention"]
+    if seconds:
+        from oeis_learn.generalization.progressive.selector_replication import freeze_panel
+        require(reserved and not {r["task"] for r in reserved}.intersection(r["task"] for r in roster),
+                "disjoint registered replication roster required")
+        replication = freeze_panel(reg["identity"],reserved,seconds)
+        retain(area / "reserved-panel.json",replication)
     training_area = area / "training-0"
     training_area.mkdir(exist_ok=True)
     cpu = PilotRole(args, source, root, revision, training_area, reg, host_factory)
@@ -552,7 +568,7 @@ def selector_command(args, source, root, folder, revision, store, host_factory, 
     )
     native = DiagnosticRole(args, source, root, revision, area, reg, host_factory)
     result = compare_selector(
-        area, reg, roster, private["witnesses"], model, native, recipes, weight_inputs
+        area, reg, roster, private["witnesses"], model, native, recipes, weight_inputs, replication=replication
     )
     retain(area / "result.json", result)
     from io import BytesIO
@@ -566,6 +582,16 @@ def selector_command(args, source, root, folder, revision, store, host_factory, 
         require(share.read_bytes() == packed, "existing selector publication differs")
     else:
         _atomic_write(share, packed)
+    if receipt["next_action"] == "RUN_RESERVED_REPLICATION":
+        from .progressive_selector_replication import run_repeat
+        def runner(work, *, training=False):
+            cls = PilotRole if training else DiagnosticRole
+            role = cls(args,source,root,revision,work,reg,host_factory)
+            role.repeatable_preparation = frozenset()
+            return role
+        return run_repeat(area,folder,reg,replication,reserved,private["witnesses"],model,runner,
+                lambda work,role: prepare_training(root,work,reg,role,refs,private,supply_area,pair=1),
+                recipes,weight_inputs,packed)
     return dict(
         mechanical_status="COMPLETE", scientific_status="SELECTOR_EXPLORATORY", result=result,
         receipt=receipt, archive=str(share.relative_to(folder)), next_action=receipt["next_action"]
@@ -638,6 +664,23 @@ def verify_private_selector(area, share):
         by_mode[charge["mode"]] += charge["wall_us"]
     require(rebuilt == result["cells"] and by_mode == result["costs"]
             and sum(c["search_us"] for c in closure["charges"]) == result["search_us"], "selector reduction differs")
+    if (area / "reserved-panel.json").is_file():
+        from oeis_learn.generalization.progressive.selector_replication import freeze_panel, verify_replication
+        from .progressive_selector_replication import SHARE, reopen as reopen_replication
+        registered = record("reserved-panel.json")
+        reserved = panels["replication"] + panels["replication_retention"]
+        require(registered == freeze_panel(reg["identity"],reserved,reg["repeat_seconds"])
+                and registered["identity"] == public["replication"], "selector repeat registration differs")
+        path = confined(share.parent.parent, SHARE, exists=False)
+        if path.is_file():
+            rep = record("replication/result.json")
+            models,cells = reopen_replication(area / "replication",registered,reserved,supply["witnesses"])
+            from oeis_learn.generalization.progressive.budgets import BudgetJournal, KEYS
+            budget=BudgetJournal(area / "replication/budget",registered["identity"],
+                        dict(dict.fromkeys(KEYS,0),elapsed_us=reg["repeat_seconds"]*1_000_000)).snapshot()
+            public=verify_replication(path)
+            require(cells==rep["cells"] and models==rep["models"] and budget["consumed"]["elapsed_us"]==rep["charged_us"]
+                    and not budget["pending"] and public["report"]==rep["identity"], "selector replication replay differs")
     return dict(private_replay="VERIFIED", public_recomputation=public)
 
 

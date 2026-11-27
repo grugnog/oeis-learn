@@ -296,3 +296,172 @@ def test_combined_primary_retention_scope_and_unselected_accounting(tmp_path,mon
 def test_report_preserves_unknown_complexity_without_zero_measurements(tmp_path,monkeypatch,capsys):
     test_run_report_verify_collects_owned_scores_and_resource_journal(
         tmp_path,monkeypatch,capsys,'PARTIAL',with_difficulty=True)
+
+
+def test_two_seed_selector_reopens_private_scores_and_canonical_nested_publication(tmp_path):
+    import base64
+    import gzip
+    import io
+    import json
+    import zipfile
+    from oeis_learn.generalization.progressive.program_search_outcome import archive_bytes
+    from oeis_learn.generalization.progressive.program_search_rehearsal_report import (
+        encode,
+        verify_transport,
+    )
+    from oeis_learn.generalization.progressive.program_search_selector import (
+        SELECTOR_ARMS,
+        selector_counts,
+        selector_spending,
+    )
+    from oeis_learn.generalization.progressive.selector_replication import freeze_panel
+    from oeis_learn.pipeline_validation.progressive_round028_selector import (
+        rank_training_stream,
+        selector_score,
+    )
+    from oeis_learn.pipeline_validation.progressive_selector_replication import run_repeat, reopen
+
+    secret = "private-case-and-trace-a715"
+    sequence = "81726354019283746501"
+    body = "(program (return (int 81726354019283746501)))"
+    reg = seal(
+        dict(repeat_seconds=620, proposer="template_only", reference={"method": "template_only"})
+    )
+    roster = [
+        dict(task=secret + s, stratum=s, group="private-family-" + s)
+        for s in ("composition", "unseen_structure", "retention")
+    ]
+    witnesses = {
+        r["task"]: dict(id=r["task"], indices=list(map(str, range(100))), values=[sequence] * 100)
+        for r in roster
+    }
+    design = freeze_panel(reg["identity"], roster, reg["repeat_seconds"])
+
+    def training(i):
+        return dict(
+            rows=[
+                dict(
+                    draw_identity="positive", values=[sequence if i == 0 else "1"] * 20, source=body
+                ),
+                dict(draw_identity="negative", source="(program (return $index))"),
+            ],
+            stream=seal(
+                dict(
+                    seeds={"training_families": design["seeds"][i]},
+                    pairs=[{"positive_row": "positive", "negative_row": "negative"}],
+                )
+            ),
+        )
+
+    model = rank_training_stream(training(0), design["seeds"][0])
+    cells = [
+        dict(
+            stratum=r["stratum"],
+            group=i,
+            counts={"SSSSSS" if r["stratum"] == "retention" else "FSFFSF": 1},
+        )
+        for i, r in enumerate(roster)
+    ]
+    registered = seal(
+        dict(
+            version="round028-selector-design/v1",
+            registration=reg["identity"],
+            roster=digest("development"),
+            shuffle=digest("shuffle"),
+            model=model["identity"],
+            reference="retained_D",
+            arms=list(SELECTOR_ARMS),
+            seed=3,
+            profile=dict(attempts=8, portfolio_us=60_000_000, fit_us=4_000_000, tokens=1024),
+            sizes=[dict(stratum=c["stratum"], group=c["group"], cases=1) for c in cells],
+            replication=dict(identity=design["identity"], seconds=reg["repeat_seconds"]),
+        )
+    )
+    totals, pairs = selector_counts(cells, SELECTOR_ARMS)
+    costs = dict(bank=1, live_incumbent=2, live_learned=2, reference=2, score=1)
+    result = seal(
+        dict(
+            version="round028-selector-report/v1",
+            design=registered,
+            registration=reg["identity"],
+            selections=digest("choices"),
+            cells=cells,
+            cases=3,
+            arms=totals,
+            pairs=pairs,
+            spending=selector_spending(cells, comparable_cost=True, repeat_funded=True),
+            costs=costs,
+            elapsed_us=sum(costs.values()),
+            search_us=4,
+            gpu_dispatches=0,
+        )
+    )
+    development = archive_bytes({"selector.json": encode(result)})
+
+    class Role:
+        last_wall_us = 12
+
+        def __call__(self, action, data, **_):
+            if action == "selector_score":
+                return selector_score(data, None)
+            mode = data["mode"]
+            return seal(
+                dict(
+                    choices={mode: None},
+                    comparable={mode: True},
+                    complete=True,
+                    seconds=60,
+                    seed=data["seed"],
+                    eligible=[],
+                    bank=digest([]),
+                    request=data["identity"],
+                    proposer=data["proposer"],
+                )
+            )
+
+    area = tmp_path / "private"
+    area.mkdir()
+    for _ in range(2):
+        report, code = run_repeat(
+            area,
+            tmp_path,
+            reg,
+            design,
+            roster,
+            witnesses,
+            model,
+            lambda work, **kw: Role(),
+            lambda *args: training(1),
+            {"template_only": {}},
+            {"template_only": (None, [])},
+            development,
+        )
+        assert code == 0 and report["scientific_status"] == "INCOMPLETE"
+        saved = load(area / "replication/result.json")
+        fit_us = load(area / "training-1/ranker-result.json")["elapsed_us"]
+        assert saved["charged_us"] == 2 * len(roster) * 3 * Role.last_wall_us + fit_us
+        assert reopen(area / "replication", design, roster, witnesses) == (
+            saved["models"],
+            saved["cells"],
+        )
+    path = tmp_path / report["archive"]
+    assert verify_transport(path) == report["receipt"]
+    with zipfile.ZipFile(path) as z:
+        parts = {n: z.read(n) for n in z.namelist()}
+    with zipfile.ZipFile(io.BytesIO(parts["development.zip"])) as z:
+        decoded = z.read("selector.json") + parts["replication.json"]
+    for value in (secret, sequence, body):
+        assert value.encode() not in decoded and base64.b64encode(value.encode()) not in decoded
+    for modified in (
+        dict(
+            parts, **{"development.zip": parts["development.zip"] + gzip.compress(secret.encode())}
+        ),
+        dict(parts, **{"replication.json": encode(seal(dict(saved, charged_us=10**12)))}),
+    ):
+        with pytest.raises(ValueError):
+            verify_transport(io.BytesIO(archive_bytes(modified)))
+    with pytest.raises(ValueError):
+        broken = seal(dict(saved, design=seal(dict(design, comparisons=7))))
+        verify_transport(
+            io.BytesIO(archive_bytes(dict(parts, **{"replication.json": encode(broken)})))
+        )

@@ -174,3 +174,142 @@ def test_expired_diagnostic_fit_remains_charged_and_unresolved(tmp_path):
     assert row['arm_evidence']['equal_budget']['complete'] is False
     assert row['costs']['diagnostic']['expired_fits']==1
     assert row['costs']['diagnostic']['autonomous_discoveries']==0
+
+
+def test_selector_selection_time_spends_the_live_search_allowance(monkeypatch):
+    """Use both installed choice and scoring roles with a deterministic slow selection."""
+    from types import SimpleNamespace
+    from oeis_learn.fresh import bigint_diagnostics
+    from oeis_learn.fresh.synthesis_policy import select_visible
+    from oeis_learn.generalization.progressive.contracts import seal
+    from oeis_learn.pipeline_validation import progressive_round028_selector as selector
+    from oeis_learn.synthesis.admission import VisiblePrompt, source_identity
+    from oeis_learn.synthesis.contracts import ResourceProfile
+    from oeis_learn.synthesis.reference import evaluate
+
+    import time
+
+    clock = [time.monotonic()]
+    monkeypatch.setattr(selector, "time", SimpleNamespace(monotonic=lambda: clock[0]))
+    truth = dict(
+        id="private-case", indices=list(map(str, range(100))), values=["0"] * 20 + ["1"] * 80
+    )
+    prompt = dict(truth, indices=truth["indices"][:20], values=truth["values"][:20])
+    visible = VisiblePrompt(tuple(prompt["indices"]), tuple(prompt["values"]))
+    bodies = [
+        "(program (return (int 0)))",
+        "(program (return (select (lt $index (int 20)) (int 0) (int 1))))",
+    ]
+    model = selector.fit_ranker(
+        [dict(case="training", values=["0"] * 20, positive=bodies[1], negative=bodies[0])]
+    )
+    bank = [
+        dict(
+            prompt_sha256=visible.sha256,
+            selected=select_visible(
+                [
+                    dict(
+                        source=b,
+                        source_sha256=source_identity(b),
+                        verified=True,
+                        visible_count=20,
+                        cost=0.0,
+                    )
+                ]
+            ),
+        )
+        for b in bodies
+    ]
+
+    def portfolio(*args, **kwargs):
+        clock[0] += 59
+        return dict(
+            selector_candidates={"equal_budget": bank},
+            equal_budget=bank[0],
+            details=[{}] * 8,
+            arm_evidence={"equal_budget": {"complete": True}},
+        )
+
+    original = selector.choose
+
+    def slow(*args):
+        clock[0] += 2
+        return original(*args)
+
+    monkeypatch.setattr(bigint_diagnostics, "portfolio", portfolio)
+    monkeypatch.setattr(selector, "choose", slow)
+    client = SimpleNamespace(
+        limits=ResourceProfile(),
+        execute=lambda b, indices, **kw: dict(
+            outcome="ok", values=list(evaluate(b, indices).values)
+        ),
+    )
+    rows = {}
+    for mode in ("bank", "live_incumbent", "live_learned", "reference"):
+        packet = seal(
+            dict(
+                block=mode,
+                prompt=prompt,
+                mode=mode,
+                proposer="template_only",
+                recipe={"model": {}},
+                weights=None,
+                seed=1,
+                model=model,
+                shuffled=["1"] * 20,
+            )
+        )
+        value = selector.selector_choice(packet, client)
+        if mode == "live_learned":
+            assert value["elapsed_us"] == 61_000_000
+        rows.update(
+            {
+                k: dict(chosen=v, complete=value["complete"], comparable=value["comparable"][k])
+                for k, v in value["choices"].items()
+            }
+        )
+    result = selector.selector_score(dict(truth=truth, selections=rows), client)["outcomes"]
+    assert (result["incumbent"], result["learned"], result["live_learned"]) == ("F", "S", "U")
+
+
+def test_selector_common_replication_gate_and_design_tampering():
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.selector_replication import (
+        formal_result,
+        freeze_panel,
+        joint_cells,
+    )
+
+    roster = [
+        dict(task=f"{s}-{g}", stratum=s, group=f"family-{g}")
+        for s in ("composition", "unseen_structure", "parameter", "oeis", "retention")
+        for g in range(16)
+    ]
+    design = freeze_panel(digest("registered-selector"), roster, 7200)
+    models = [
+        dict(
+            seed=seed,
+            model=digest([i, "model"]),
+            stream=digest([i, "stream"]),
+            training=digest([i, "rows"]),
+        )
+        for i, seed in enumerate(design["seeds"])
+    ]
+    scores = {r["task"]: dict(reference="F", live_learned="S") for r in roster}
+    cells = joint_cells(roster, [scores, scores])
+    result = formal_result(design, models, cells)
+    assert result["verdict"] == "CONFIRMED_GAIN" and len(design["links"]) == 16
+    observed = result["metrics"]["cells"]["candidate"][str(design["seeds"][0])]
+    assert "oeis" in observed and "parameter" in observed
+    for changed in (
+        dict(links=[]),
+        dict(comparisons=2),
+        dict(resamples=100),
+        dict(sizes=design["sizes"][1:]),
+    ):
+        with pytest.raises(ValueError):
+            formal_result(seal(dict(design, **changed)), models, cells)
+    with pytest.raises(ValueError, match="independent"):
+        formal_result(design, [models[0], dict(models[1], stream=models[0]["stream"])], cells)
+    with pytest.raises(ValueError):
+        joint_cells(roster, [scores, {}])
