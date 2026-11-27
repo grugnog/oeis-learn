@@ -105,6 +105,24 @@ Run from the physical root of the detached donor at `77667e67176ae32fa16457d5256
 
 The grant funds 4,182 training tokens across the references, interrupted parents and children. The children charge 209 and 400 incremental tokens at logical batches 16 and 32. The runtime measures both parent and child checkpoint storage while they coexist. A 15–20 minute wall-time budget is a planning allowance for cached layers based on the roughly three-minute parent-only rehearsal. The helper reopens the committed qualification twice, verifies the private receipt and prints the measured charge, lease and child checkpoint identities. It issues zero research dispatches.
 
+### Recover the child receipt as a file
+
+Use this after losing the console output or seeing a JSON decoding error during qualification. Run it from the same detached donor. The reader checks the saved worker evidence and settled journal twice under a shared lock. It finds the original grant even if another qualification has since updated session status. The commit and minutes identify the original run. This review uses zero GPU time and creates no grant.
+
+```bash
+(
+  set -euo pipefail
+  : "${ROUND029_REVIEW_REV:?full review helper commit from the handoff}"
+  candidate=a89af7fe820138a925090e340bbfeef45094adb7
+  git fetch --no-tags origin "$ROUND029_REVIEW_REV" "$candidate"
+  out=$(mktemp -d "$HOME/round029-child.XXXXXX")
+  git show "${ROUND029_REVIEW_REV}:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - "$candidate" 20 review-children --output "$out/qualification.json"
+)
+```
+
+Attach the printed file. It contains the compact verified summary on success or an `UNVERIFIED` diagnostic if the receipt is missing, busy or inconsistent. The reader preserves existing files and returns a nonzero exit on failure. The updated helper also accepts `--output FILE` for funded runs.
+
 ## Start or resume after the round029 release
 
 Use the original private workstation, a local Podman engine with resource controls and a qualified HIP device for learner work. Start in the **physical root of the detached round027 donor**. Set `ROUND029_REV` from the implementation release, and `ROUND029_GRANT` to the absolute path of the operator-authorized grant. If all you need is inventory, run through the preflight line. The same `run` line starts or resumes an authorized campaign.

@@ -1,6 +1,9 @@
 """Run and reopen either the donated ordinary comparison or the disposable parent/child rehearsal."""
 
+import argparse
+import fcntl
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -13,11 +16,28 @@ CACHE_HELPER = "specs/015-learned-program-search/validation/candidate_source.py"
 LAUNCHER = "specs/016-measure-learning-velocity/validation/launch-round029.sh"
 
 
-def checked_json(argv, cwd):
-    proc = subprocess.run(argv, cwd=cwd, stdout=subprocess.PIPE)
+def checked_json(argv, cwd, action):
+    from oeis_learn.generalization.progressive.velocity_records import validate_result
+
+    # Older launchers inherit stdout for Podman builds and finish with one JSON line.
+    with tempfile.TemporaryFile() as output:
+        proc = subprocess.run(argv, cwd=cwd, stdout=output)
+        output.seek(0)
+        terminal = b""
+        for line in output:
+            if line.strip():
+                terminal = line
+    try:
+        value = validate_result(json.loads(terminal))
+        if value["action"] != action:
+            raise ValueError("foreign action")
+    except (ValueError, KeyError, TypeError) as exc:
+        raise ValueError(
+            f"Missing or invalid terminal {action} result (exit {proc.returncode})"
+        ) from exc
     if proc.returncode:
-        raise SystemExit(proc.stdout.decode().strip() or f"command exited {proc.returncode}")
-    return json.loads(proc.stdout)
+        raise SystemExit(json.dumps(value))
+    return value
 
 
 def child_rehearsal(action, root, revision, minutes):
@@ -42,6 +62,12 @@ def child_rehearsal(action, root, revision, minutes):
         or verification["scientific_verdict"] is not None
     ):
         raise SystemExit("Private child verification disagrees with committed session evidence.")
+    return child_summary(
+        revision, record, first["charged_tokens"], first["elapsed_us"], first["remaining_authority"]
+    )
+
+
+def child_summary(revision, record, charged_tokens, elapsed_us, remaining_us):
     return dict(
         candidate=revision,
         receipt=record["identity"],
@@ -61,9 +87,9 @@ def child_rehearsal(action, root, revision, minutes):
             }
             for size, row in record["batches"].items()
         },
-        charged_tokens=first["charged_tokens"],
-        elapsed_us=first["elapsed_us"],
-        remaining_us=first["remaining_authority"],
+        charged_tokens=charged_tokens,
+        elapsed_us=elapsed_us,
+        remaining_us=remaining_us,
         lease_us=record["lease_us"],
         peak_device_bytes=record["peak_device_bytes"],
         verified_replays=2,
@@ -72,8 +98,115 @@ def child_rehearsal(action, root, revision, minutes):
     )
 
 
+def saved_children(root, source, revision, minutes):
+    """Verify the original grant twice, even after a later action has replaced session status."""
+    from oeis_learn.experiments.source_snapshot import collect_snapshot
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.generalization.progressive.contracts import digest, load, seal
+    from oeis_learn.generalization.progressive.velocity_records import (
+        SESSION,
+        physical_root_id,
+        validate_grant,
+    )
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_roles import ROUND029_ROLE_POLICY
+    from oeis_learn.pipeline_validation.progressive_velocity_qualification import (
+        _receipt,
+        qualification_parent,
+    )
+    from oeis_learn.pipeline_validation.progressive_velocity_worker import rehearsal_work
+
+    folder = confined(root, "run-state/discovery/" + SESSION, exists=False)
+    missing = f"No saved child qualification for {revision} with a {minutes}-minute grant"
+    if not (folder / "run.lock").is_file():
+        raise ValueError(missing)
+    with confined(folder, "run.lock").open("rb") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_SH | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise ValueError(
+                "A session owner is active; retry the read-only review once it finishes"
+            ) from exc
+        matches = []
+        for path in folder.glob("qualification/*/binding.json"):
+            binding = load(confined(folder, path))
+            if binding.get("candidate") != revision or binding.get("child_restore") is not True:
+                continue
+            area = path.parent
+            grant = load(confined(area, "grant.json"))
+            if grant["total_us"] == minutes * 60_000_000:
+                matches.append((area, binding, grant))
+        if not matches:
+            raise ValueError(missing)
+        if len(matches) != 1:
+            raise ValueError("Multiple child grants match this candidate and duration")
+        area, binding, grant = matches[0]
+        expected = seal(
+            dict(
+                version="round029-learner-rehearsal/v1",
+                candidate=revision,
+                role_policy=ROUND029_ROLE_POLICY,
+                grant=grant["identity"],
+                child_restore=True,
+            )
+        )
+        auth = confined(root, "run-state/discovery-authorizations")
+        if (
+            binding != expected
+            or area.name != grant["identity"][7:]
+            or load(confined(auth, "grant-" + area.name + ".json")) != grant
+        ):
+            raise ValueError("Original child binding or retained grant differs")
+        approval = load(confined(auth, grant["authorizing_record_ref"][7:] + ".json"))
+        validate_grant(
+            grant,
+            approval,
+            root=physical_root_id(root),
+            parent=qualification_parent(revision, children=True),
+            action="qualify",
+        )
+        if not (area / "receipt.json").is_file():
+            first_error = confined(area, "first-error.json", exists=False)
+            reason = (
+                load(first_error)["reason"] if first_error.is_file() else "no committed receipt"
+            )
+            raise ValueError(f"Child grant found without a completed receipt: {reason}")
+        if load(confined(area, "request.json"))["source"] != digest(collect_snapshot(source)):
+            raise ValueError("Original learner source differs from the requested candidate")
+        token_charge = rehearsal_work(children=True)["tokens"]
+        reports = []
+        for _ in range(2):
+            prior = load(confined(area, "receipt.json"))
+            record = _receipt(area, confined(area, prior["attempt"]), binding)
+            journal = BudgetJournal.inspect_existing(
+                confined(area, "accounting"), grant["identity"], grant["resources"]
+            )
+            if (
+                record != prior
+                or journal["pending"]
+                or len(set(record["debits"])) != 2
+                or not set(record["debits"]).issubset(journal["committed"])
+                or journal["consumed"]["tokens"] != token_charge
+            ):
+                raise ValueError(
+                    "Child evidence differs from the original receipt or settled debits"
+                )
+            reports.append(
+                child_summary(
+                    revision,
+                    record,
+                    journal["consumed"]["tokens"],
+                    journal["consumed"]["elapsed_us"],
+                    journal["remaining"]["elapsed_us"],
+                )
+            )
+        if reports[0] != reports[1]:
+            raise ValueError("Read-only replays disagree")
+        return reports[0]
+
+
 def main(revision, minutes, mode="donation"):
-    if mode not in {"donation", "children"}:
+    if mode not in {"donation", "children", "review-children"}:
         raise SystemExit("Unknown continuation qualification mode.")
     root = Path.cwd().resolve()
     if not re.fullmatch(r"[a-f0-9]{40}", revision) or not re.fullmatch(r"[1-9][0-9]*", minutes):
@@ -102,18 +235,19 @@ def main(revision, minutes, mode="donation"):
         .decode()
         .strip()
     )
+    sys.path.insert(0, str(source / "src"))
+    if mode == "review-children":
+        return saved_children(root, source, revision, int(minutes))
     launcher = ["bash", str(source / LAUNCHER), revision]
 
     def action(name, *args):
-        return checked_json([*launcher, name, *map(str, args)], root)
+        return checked_json([*launcher, name, *map(str, args)], root, name)
 
     inventory = action("preflight")["inventory"]
     if inventory["gpu_dispatches"] != 0:
         raise SystemExit("A read-only preflight issued device work.")
-    sys.path.insert(0, str(source / "src"))
     if mode == "children":
-        print(json.dumps(child_rehearsal(action, root, revision, minutes), indent=2))
-        return
+        return child_rehearsal(action, root, revision, minutes)
     ordinary = next(r for r in inventory["cuts"] if (r["method"], r["look"]) == ("00", 4_000_000))
     if not ordinary["full_state"] or inventory["gpu_dispatches"] != 0:
         raise SystemExit(
@@ -159,6 +293,7 @@ def main(revision, minutes, mode="donation"):
                 str(before),
             ],
             out,
+            "verify",
         )
     if (
         public["report_ref"] != private["report_ref"]
@@ -167,30 +302,65 @@ def main(revision, minutes, mode="donation"):
     ):
         raise SystemExit("Independent diagnostic replay differs from the private workspace.")
     record = first["receipt"]
-    print(
-        json.dumps(
-            dict(
-                candidate=revision,
-                receipt=record["identity"],
-                report=public["report_ref"],
-                parent_cut=ordinary["full_state"],
-                parent_useful_tokens=ordinary["useful_tokens"],
-                next_update_tokens=record["comparison"]["charged_tokens"] // 2,
-                charged_tokens=first["charged_tokens"],
-                elapsed_us=first["elapsed_us"],
-                remaining_us=first["remaining_authority"],
-                lease_us=record["lease_us"],
-                peak_device_bytes=record["peak_device_bytes"],
-                verified_replays=2,
-                research_dispatches=first["research_dispatches"],
-                scientific_verdict=None,
-            ),
-            indent=2,
-        )
+    return dict(
+        candidate=revision,
+        receipt=record["identity"],
+        report=public["report_ref"],
+        parent_cut=ordinary["full_state"],
+        parent_useful_tokens=ordinary["useful_tokens"],
+        next_update_tokens=record["comparison"]["charged_tokens"] // 2,
+        charged_tokens=first["charged_tokens"],
+        elapsed_us=first["elapsed_us"],
+        remaining_us=first["remaining_authority"],
+        lease_us=record["lease_us"],
+        peak_device_bytes=record["peak_device_bytes"],
+        verified_replays=2,
+        research_dispatches=first["research_dispatches"],
+        scientific_verdict=None,
     )
 
 
+def cli(argv):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("revision", metavar="FULL_COMMIT")
+    parser.add_argument("minutes", metavar="MAXIMUM_MINUTES")
+    parser.add_argument(
+        "mode", nargs="?", default="donation", choices=("donation", "children", "review-children")
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="save the verified summary or failure diagnostic to a new JSON file",
+    )
+    args = parser.parse_args(argv)
+    request = (args.revision, args.minutes, args.mode)
+    if args.output is None:
+        print(json.dumps(main(*request), indent=2))
+        return 0
+    if os.path.lexists(args.output):
+        parser.error(f"Output already exists; choose a new file: {args.output}")
+    # Open the destination directory before any funded work. Publish only complete bytes.
+    with tempfile.NamedTemporaryFile(dir=args.output.parent, mode="w", encoding="utf-8") as out:
+        try:
+            report = main(*request)
+            code = 0
+        except (SystemExit, Exception) as exc:
+            report = dict(
+                candidate=args.revision,
+                mode=args.mode,
+                status="UNVERIFIED",
+                error=type(exc).__name__,
+                reason=str(exc),
+            )
+            code = 1
+        json.dump(report, out, indent=2, allow_nan=False)
+        out.write("\n")
+        out.flush()
+        os.fsync(out.fileno())
+        os.link(out.name, args.output)
+    print(f"Saved {args.output.resolve()}", file=sys.stderr)
+    return code
+
+
 if __name__ == "__main__":
-    if len(sys.argv) not in (3, 4):
-        raise SystemExit("Expected FULL_COMMIT MAXIMUM_MINUTES [donation|children].")
-    main(*sys.argv[1:])
+    raise SystemExit(cli(sys.argv[1:]))

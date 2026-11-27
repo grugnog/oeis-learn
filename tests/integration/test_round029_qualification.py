@@ -13,6 +13,73 @@ from oeis_learn.pipeline_validation.progressive_round029 import inspect_status
 from oeis_learn.generalization.progressive.velocity_records import validate_result
 
 
+def test_operator_reads_only_the_terminal_round029_result(tmp_path):
+    import json
+    import sys
+
+    helper = (
+        Path(__file__).resolve().parents[2]
+        / "specs/016-measure-learning-velocity/validation/qualify_continuation.py"
+    )
+    read = runpy.run_path(str(helper))["checked_json"]
+    reply = inspect_status(tmp_path)
+    log = "[1/2] STEP 1/3: FROM base\n" + json.dumps({"unrelated": True}) + "\n"
+
+    def read_stdout(text):
+        return read(
+            [sys.executable, "-c", "import sys; print(sys.argv[1])", text], tmp_path, "status"
+        )
+
+    assert read_stdout(log + json.dumps(reply)) == reply
+    for malformed in (
+        log,
+        log + json.dumps(reply) + "\ntrailing build log",
+        json.dumps(dict(reply, action="verify")),
+    ):
+        with pytest.raises(ValueError, match="terminal status result"):
+            read_stdout(malformed)
+
+
+@pytest.mark.parametrize("missing", [False, True])
+def test_operator_writes_a_complete_attachment_on_success_or_failure(
+    tmp_path, monkeypatch, capsys, missing
+):
+    import json
+    import stat
+
+    helper = (
+        Path(__file__).resolve().parents[2]
+        / "specs/016-measure-learning-velocity/validation/qualify_continuation.py"
+    )
+    cli = runpy.run_path(str(helper))["cli"]
+    path = tmp_path / "qualification.json"
+    candidate = "1" * 40
+    expected = {"candidate": candidate, "verified_replays": 2}
+    visits = []
+
+    def review(revision, minutes, mode):
+        visits.append((revision, minutes, mode))
+        if missing:
+            raise ValueError("No saved child qualification")
+        return expected
+
+    monkeypatch.setitem(cli.__globals__, "main", review)
+    args = [candidate, "20", "review-children", "--output", str(path)]
+    assert cli(args) == int(missing)
+    capture = capsys.readouterr()
+    assert capture.out == "" and str(path) in capture.err
+    saved = json.loads(path.read_bytes())
+    if missing:
+        assert saved["status"] == "UNVERIFIED" and saved["reason"] == "No saved child qualification"
+    else:
+        assert saved == expected
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600 and list(tmp_path.iterdir()) == [path]
+    with pytest.raises(SystemExit):
+        cli(args)
+    assert json.loads(path.read_bytes()) == saved
+    assert visits == [(candidate, "20", "review-children")]
+
+
 @pytest.mark.parametrize(
     "fault,expected_calls",
     [("none", 2), ("missing_receipt", 0), ("other_grant", 0), ("other_status", 0), ("extra_charge", 2)],
@@ -212,17 +279,33 @@ def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(
             Path(__file__).resolve().parents[2]
             / "specs/016-measure-learning-velocity/validation/qualify_continuation.py"
         )
-        report = runpy.run_path(str(helper))["child_rehearsal"](invoke, root, revision, "10")
+        review = runpy.run_path(str(helper))
+        report = review["child_rehearsal"](invoke, root, revision, "10")
         assert (
             report["charged_tokens"] == 4182
             and report["verified_replays"] == 2
             and len(issued) == 1
         )
         assert report["children"]["32"]["incremental_charged_tokens"] == 400
+        # The session's latest status may already show a different qualification.
+        (folder / "status.json").unlink()
+        before = {p: p.stat().st_mtime_ns for p in root.rglob("*")}
+        assert review["saved_children"](root, root, revision, 10) == report
+        with pytest.raises(ValueError, match="No saved child"):
+            review["saved_children"](root, root, "2" * 40, 10)
+        with pytest.raises(ValueError, match="No saved child"):
+            review["saved_children"](root, root, revision, 20)
+        with RunStore.owner(folder), pytest.raises(ValueError, match="active"):
+            review["saved_children"](root, root, revision, 10)
+        assert before == {p: p.stat().st_mtime_ns for p in root.rglob("*")}
+        assert len(issued) == 1
     mounts = load(issued[0] / "container-inspect.json")
     mounts[0]["Mounts"][0]["RW"] = True
     (issued[0] / "container-inspect.json").unlink()
     atomic_write(issued[0] / "container-inspect.json", mounts)
+    if children:
+        with pytest.raises(ValueError, match="MOUNTS"):
+            review["saved_children"](root, root, revision, 10)
     with pytest.raises(ValueError, match="MOUNTS"):
         run()
 
