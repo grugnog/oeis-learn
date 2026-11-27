@@ -116,6 +116,7 @@ def test_feature_contracts_in_source_sdist_and_installed_wheel(tmp_path):
     for helper in (
         "specs/015-learned-program-search/validation/candidate_source.py",
         "specs/015-learned-program-search/validation/collect_audit.py",
+        "specs/015-learned-program-search/validation/launch-round028.sh",
         f"specs/{velocity}/validation/launch-round029.sh",
         f"specs/{velocity}/validation/qualify-learner.sh",
         f"specs/{velocity}/validation/replay_learner.py",

@@ -380,6 +380,17 @@ def ordinary_workload_unchanged(name, original, source):
 
     path = Path(name)
     base = "src/oeis_learn/"
+    if name == "MANIFEST.in":
+        # Shipping the existing diagnostic launcher changes only the source archive's contents.
+        launcher = "specs/015-learned-program-search/validation/launch-round028.sh"
+        include = ("include " + launcher + "\n").encode()
+        old_manifest = (original / path).read_bytes()
+        new_manifest = (source / path).read_bytes()
+        return (
+            new_manifest.count(include) == 1
+            and new_manifest.replace(include, b"", 1) == old_manifest
+            and (original / launcher).read_bytes() == (source / launcher).read_bytes()
+        )
     if name == base + "generalization/schemas/progressive-round029.schema.json":
 
         def science_schema(root):
