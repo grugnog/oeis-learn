@@ -991,6 +991,28 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
     assert (first["charged_tokens"] > 0) is prospects
     assert qualify() == (first, 0) and host.inventory(tmp_path, source) == first["receipt"]
     assert calls == ["custodian", "prepare-broad"] + (["time-broad"] if prospects else [])
+    # Interrupt after nested producer installation, before the host publishes its boundary.
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.pipeline_validation.progressive_velocity_operations import run_operation
+    recovery = tmp_path / "separate-recovery"
+    ledger = BudgetJournal(recovery / "ledger", grant["identity"], grant["resources"])
+    from oeis_learn.generalization.progressive.velocity_records import operation_key
+    from oeis_learn.generalization.progressive.budgets import KEYS
+    original_area = next(folder.glob("qualification/*/binding.json")).parent
+    binding = load(original_area / "binding.json")
+    coords = host.coordinates(grant, "prepare")
+    logical = operation_key(coords, 0)["logical"]
+    block = original_area / "operations" / logical[7:]
+    for name in ("boundary-0000.json", "receipt.json"):
+        (block / name).unlink()
+    work = load(block / "input.json")["work"]
+    ledger.reserve(logical, "dispatch", 0, dict(work, elapsed_us=grant["total_us"]), boot="lost", monotonic_us=0)
+    args = dict(area=original_area, journal=ledger, grant=grant, coordinates=coords,
+                request=binding, cost={k: work[k] for k in KEYS if work[k]}, execute=lambda *_: pytest.fail("redispatch"),
+                installed=host.preparation_installed, verify=lambda out: host.cpu_evidence(tmp_path, original_area, binding, out))
+    restored = run_operation(**args)
+    assert run_operation(**args) == restored and restored["evidence"]["disposition"] == first["receipt"]["disposition"]
+    assert ledger.snapshot()["remaining"]["elapsed_us"] == 0
 
 
 @pytest.mark.parametrize("collision", [False, True])

@@ -301,3 +301,46 @@ def test_funded_child_rehearsal_preserves_failed_parent_charge(tmp_path, batch_s
         == {16: 209, 32: 400}[batch_size]
     )
     assert rehearsal_work(children=True)["tokens"] == 4182
+
+
+def test_funded_verifier_stops_and_complete_nested_output_survives(tmp_path):
+    import time
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal, KEYS
+    from oeis_learn.generalization.progressive.contracts import atomic_write, digest, load, seal
+    from oeis_learn.pipeline_validation.progressive_velocity_operations import InsufficientAuthority, run_operation
+    from oeis_learn.pipeline_validation import progressive_velocity_broad_host as broad
+
+    g = dict(identity=digest("grant"), resources=dict(dict.fromkeys(KEYS, 0), elapsed_us=300_000),
+             holdback_us=100_000)
+    journal = BudgetJournal(tmp_path / "accounting", g["identity"], g["resources"])
+    binding = seal(dict(origins={}))
+    attempts = []
+
+    def installed(out, reserve):
+        attempts.append(out)
+        folder = out / "custodian"
+        atomic_write(folder / "custody.json", seal(dict(origins={}, disposition="requires_fresh_disjoint_start",
+                     training=None, sources=[], counts=dict(candidates=2, excluded=1), ordinary_slots=2,
+                     drawn=0, calibration={}, physical=digest("device"))))
+        atomic_write(folder / "process.json", dict(outcome="COMPLETE", returncode=0, cleanup_failure=None))
+        for p in (out, folder):
+            atomic_write(p / "cleanup.json", dict(acknowledged=True, within_bound=True))
+
+    def slow(out):
+        time.sleep(1.5)
+        (out / "late-write").touch()
+        return broad.cpu_evidence(tmp_path, tmp_path, binding, out)
+
+    args = dict(area=tmp_path, journal=journal, grant=g, coordinates=broad.coordinates(g, "prepare"),
+                request=binding, cost={}, execute=installed, verify=slow, installed=broad.preparation_installed)
+    start = time.monotonic()
+    with pytest.raises(InsufficientAuthority, match="verification"):
+        run_operation(**args)
+    assert time.monotonic() - start < 1
+    assert not (attempts[0] / "late-write").exists()
+    assert journal.snapshot()["remaining"]["elapsed_us"] == g["holdback_us"]
+    args["verify"] = lambda out: broad.cpu_evidence(tmp_path, tmp_path, binding, out)
+    first = run_operation(**args)
+    assert first["evidence"]["disposition"] == "requires_fresh_disjoint_start"
+    assert run_operation(**args) == first and len(attempts) == 1
+    assert "verification" in load(attempts[0].parent / "first-error.json")["reason"]

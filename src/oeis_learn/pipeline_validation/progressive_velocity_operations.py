@@ -14,6 +14,59 @@ class InsufficientAuthority(ValueError):
     pass
 
 
+class VerificationExpired(InsufficientAuthority):
+    pass
+
+
+def funded_verification(verify, out, deadline_us):
+    """A pure host reader can block on I/O. Give it a separately terminable process group."""
+    import json
+    import multiprocessing
+    import os
+    import signal
+    import tempfile
+
+    def remaining():
+        return (deadline_us - time.monotonic_ns() // 1000) / 1_000_000
+
+    with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as response:
+        def read():
+            os.setsid()
+            signal.signal(signal.SIGALRM, signal.SIG_DFL)
+            signal.setitimer(signal.ITIMER_REAL, max(0.000001, remaining()))
+            try:
+                value = dict(evidence=verify(out))
+            except Exception as exc:
+                value = dict(error=type(exc).__name__, reason=str(exc))
+            json.dump(value, response, allow_nan=False)
+            response.flush()
+
+        if remaining() <= 0:
+            raise VerificationExpired("funded verification reached its deadline")
+        reader = multiprocessing.get_context("fork").Process(target=read)
+        reader.start()
+        try:
+            available = max(0, remaining())
+            reader.join(max(0, available - min(0.05, available / 10)))
+            if reader.is_alive() or reader.exitcode == -signal.SIGALRM:
+                raise VerificationExpired("funded verification reached its deadline")
+            if reader.exitcode:
+                raise ValueError(f"verification process exited with status {reader.exitcode}")
+            response.seek(0)
+            result = json.load(response)
+            if "error" in result:
+                raise ValueError(result["error"] + ": " + result["reason"])
+            return result["evidence"]
+        finally:
+            if reader.is_alive():
+                try:
+                    os.killpg(reader.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    reader.kill()
+            reader.join()
+            reader.close()
+
+
 def input_record(coordinates, request, work, grant):
     return seal(
         dict(
@@ -72,6 +125,7 @@ def run_operation(
     verify,
     minimum_us=1,
     max_attempts=None,
+    installed=None,
 ):
     """Only a verified supervisor boundary may release unused time. Issued work stays charged."""
     if (
@@ -125,7 +179,8 @@ def run_operation(
             if out.is_dir():
                 retain(recovery, seal(dict(reservation=key)))
             journal.commit(key)
-            if (out / "producer.json").is_file() and (out / "cleanup.json").is_file():
+            available = installed(out) if installed else (out / "producer.json").is_file()
+            if available and (out / "cleanup.json").is_file():
                 cleanup = load(confined(out, "cleanup.json"))
                 if cleanup.get("acknowledged") is True and cleanup.get("within_bound") is True:
                     proof = verified(out, attempt)
@@ -168,7 +223,8 @@ def run_operation(
     try:
         out.mkdir()
         execute(out, reserve)
-        proof = verified(out, attempt)
+        evidence = funded_verification(verify, out, start + reserve)
+        proof = operation_receipt(coordinates, request, grant, attempt, evidence)
         cleanup = load(confined(out, "cleanup.json"))
         if cleanup.get("acknowledged") is not True or cleanup.get("within_bound") is not True:
             raise ValueError("original supervisor termination and cleanup required")
@@ -193,12 +249,15 @@ def run_operation(
             )
         except (OSError, ValueError, TypeError):
             pass
+        expired = isinstance(exc, VerificationExpired)
+        if expired and acknowledged:
+            retain(block / f"recovering-{attempt:04d}.json", seal(dict(reservation=reservation["key"])))
         end = time.monotonic_ns() // 1000
         journal.commit(
             reservation["key"],
             boot=boot,
             monotonic_us=end,
-            termination_proven=acknowledged and end - start <= reserve,
+termination_proven=acknowledged and not expired and end - start <= reserve,
         )
         path = block / "first-error.json"
         if not path.exists():

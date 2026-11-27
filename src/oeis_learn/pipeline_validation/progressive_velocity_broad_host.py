@@ -263,6 +263,14 @@ def status_ok(out):
         raise ValueError("broader qualification worker did not terminate cleanly")
 
 
+def preparation_installed(out):
+    path = out / "custodian/custody.json"
+    if not path.is_file():
+        return False
+    custody = load(confined(out, path))
+    return custody["training"] is None or (out / "native/producer.json").is_file()
+
+
 def cpu_evidence(root, area, binding, out):
     status_ok(out / "custodian")
     custody = load(confined(out, "custodian/custody.json"))
@@ -731,6 +739,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
             request=binding,
             cost={},
             execute=prepare,
+            installed=preparation_installed,
             verify=lambda out: cpu_evidence(root, area, binding, out),
         )
         gpu = None
