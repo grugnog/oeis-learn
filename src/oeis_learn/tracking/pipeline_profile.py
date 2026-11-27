@@ -150,7 +150,10 @@ class Recorder:
     MAX_EVENTS = 20000
     MAX_SAMPLES = 5402
 
-    def __init__(self, output, *, instrumented, render_node=None, host_counters=True, sample_bytes=None):
+    def __init__(self, output, *, instrumented, render_node=None, host_counters=True, sample_bytes=None,
+                 planned_seconds=None):
+        import math
+        self.sample_interval = max(1, math.ceil((planned_seconds or 0) / (self.MAX_SAMPLES - 1)))
         self.output = Path(output)
         self.output.mkdir(parents=True, exist_ok=True)
         self.instrumented = instrumented
@@ -162,6 +165,7 @@ class Recorder:
         self.depth = 0
         self.events = []
         self.samples = 0
+        self.records = 0
         self.missed = 0
         self.collector_cpu = 0.0
         self.started = time.monotonic()
@@ -196,6 +200,7 @@ class Recorder:
             ancestor_quota_reason="container-visible limits only; host ancestor restrictions may be hidden",
             host_counters=self.host_counters,
             sample_bytes=self.sample_bytes,
+            sample_interval_seconds=self.sample_interval,
         )
 
     def snapshot(self):
@@ -246,38 +251,48 @@ class Recorder:
             },
         )
 
+    def _observation(self):
+        try:
+            return self.snapshot()
+        except (OSError, ValueError, IndexError) as exc:
+            return {"time": time.monotonic(), "error": type(exc).__name__}
+
     def _collect(self):
         due = time.monotonic()
         with (self.output / "samples.jsonl").open("a") as handle:
-            while not self.stop.is_set() and self.samples < self.MAX_SAMPLES:
+            while not self.stop.is_set() and self.records < self.MAX_SAMPLES:
                 begin = time.thread_time()
-                try:
-                    row = self.snapshot()
+                row = self._observation()
+                if "error" not in row:
                     row["sample_lateness_seconds"] = max(0, time.monotonic() - due)
-                    payload=json.dumps(row, allow_nan=False)+"\n"
-                    if self.sample_bytes is not None and len(payload.encode())>self.sample_bytes:
-                        self.collector_error='telemetry sample exceeds prospective byte cap'
-                        self.ready.set()
-                        return
+                try:
+                    payload = json.dumps(row, allow_nan=False) + "\n"
+                except (ValueError, TypeError) as exc:
+                    row = {"time": time.monotonic(), "error": type(exc).__name__}
+                    payload = json.dumps(row) + "\n"
+                measured = "error" not in row
+                self.missed += int(not measured)
+                if self.sample_bytes is not None and len(payload.encode()) > self.sample_bytes:
+                    self.collector_error = "telemetry sample exceeds prospective byte cap"
+                    self.ready.set()
+                    return
+                try:
                     handle.write(payload)
                     handle.flush()
-                    self.samples += 1
-                except (OSError, ValueError, IndexError) as exc:
-                    try:
-                        handle.write(json.dumps(dict(time=time.monotonic(), error=str(exc))) + "\n")
-                    except OSError:
-                        self.collector_error = f"{type(exc).__name__}: {exc}"
-                        self.ready.set()
-                        return
-                    self.missed += 1
+                except OSError as exc:
+                    self.collector_error = type(exc).__name__
+                    self.ready.set()
+                    return
+                self.records += 1
+                self.samples += int(measured)
                 self.ready.set()
                 self.collector_cpu += time.thread_time() - begin
-                due += 1
+                due += self.sample_interval
                 now = time.monotonic()
                 if now > due:
-                    skipped = int(now - due) + 1
+                    skipped = int((now - due) / self.sample_interval) + 1
                     self.missed += skipped
-                    due += skipped
+                    due += skipped * self.sample_interval
                 self.stop.wait(max(0, due - time.monotonic()))
 
     def __enter__(self):
@@ -298,6 +313,7 @@ class Recorder:
             json.dumps(
                 dict(
                     samples=self.samples,
+                    records=self.records,
                     missed=self.missed,
                     collector_cpu_seconds=self.collector_cpu,
                     collector_native_tid=None if self.thread is None else self.thread.native_id,
@@ -312,7 +328,7 @@ class Recorder:
     def phase(self, name, **metadata):
         depth = self.depth
         self.depth += 1
-        start = self.snapshot() if depth == 0 else dict(time=time.monotonic())
+        start = self._observation() if depth == 0 else dict(time=time.monotonic())
         error = None
         try:
             yield
@@ -321,7 +337,7 @@ class Recorder:
             raise
         finally:
             self.depth -= 1
-            finish = self.snapshot() if depth == 0 else dict(time=time.monotonic())
+            finish = self._observation() if depth == 0 else dict(time=time.monotonic())
             row = dict(
                 name=name,
                 start=start["time"],

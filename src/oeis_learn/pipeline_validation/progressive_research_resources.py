@@ -1,0 +1,373 @@
+"""Prospective measured resource finalization for the registered scientific round.
+
+Only disk partitions decrease. Scientific exposure/time entitlements and every
+finite choice remain unchanged; infeasible measured work becomes a deficit.
+"""
+import json
+from .research_limits import padded_us
+from oeis_learn.generalization.progressive.contracts import seal,verify_refs
+
+POLICY='progressive-measured-research-resources/v3'
+TRAJECTORY_POLICY='progressive-measured-research-resources/v4'
+
+
+def policy(*, legacy=False, global_storage=False, trajectory=False):
+    if trajectory:
+        return seal(dict(version=TRAJECTORY_POLICY, metadata_bytes=128<<20, generations=2,
+            checkpoint_scope='per-task exact calibrated full state plus 128 MiB context; evaluation weights only',
+            training_estimate='4x current mixed-length trajectory; exact setting ratios; probes already included; bounded hourly snapshots',
+            permits='decrease disk only; no scientific budget or search-domain changes'))
+    return seal(dict(version='progressive-measured-research-resources/v1' if legacy else 'progressive-measured-research-resources/v2' if global_storage else POLICY,metadata_bytes=128<<20,generations=2,
+        checkpoint_scope='maximum original retained or exact calibrated full state' if legacy or global_storage else 'per-task exact calibrated full state plus 128 MiB context; evaluation weights only',
+        training_estimate=('4x measured update and checkpoint per complete update; two probes per eight updates' if legacy else '4x measured updates/probes plus bounded hourly, milestone and terminal snapshots'),
+        permits='decrease disk only; no scientific budget or search-domain changes'))
+
+
+def uses_task_checkpoint_bounds(registered):
+    """Both reviewed per-task policies use identical calibrated storage rules."""
+    return registered in (policy(), policy(trajectory=True))
+
+
+def finalize(root,payload,cases,producers, *, historical=False):
+    refs=[r['artifact'] for r in payload['references'] if r['name']=='research_resource_policy']
+    if not refs:return None
+    if len(refs)!=1:raise ValueError('original prospective measured-resource rule required')
+    registered=json.loads(verify_refs(root,refs)[0])
+    if registered not in (policy(),policy(legacy=True),policy(global_storage=True),policy(trajectory=True)):
+        raise ValueError('original prospective measured-resource rule required')
+    if registered==policy(legacy=True) and any(c['package'].get('checkpoint_policy')=='hourly/v1' for c in cases):
+        raise ValueError('hourly resource estimates require the prospective v2 policy')
+    from oeis_learn.generalization.progressive.storage import checkpoint_size
+    from oeis_learn.generalization.progressive.trial_scopes import variants
+    original_bytes,_=checkpoint_size(root,payload['checkpoint'],checkpoint_root=payload.get('checkpoint_root'),research=True)
+    measured=max(original_bytes,max(p['checkpoint_bytes'] for p in producers))
+    by_scope={p['compatibility']:p for p in producers}
+    inputs={c['compatibility']:c['package'] for c in cases}
+    if set(inputs)!=set(by_scope):raise ValueError('complete exact resource measurement inventory required')
+    plans=payload['task_plans'];by_id={p['id']:p for p in plans}
+    scoped = uses_task_checkpoint_bounds(registered)
+    trajectory = None
+    if registered == policy(trajectory=True):
+        from .progressive_trajectory import replay, cost_context
+        trefs=[r['artifact'] for r in payload['references'] if r['name']=='training_trajectory']
+        if len(trefs)!=1:raise ValueError('original training trajectory required')
+        original=json.loads(verify_refs(root,trefs)[0])
+        from oeis_learn.pipeline_validation.identity import confined
+        runtime=json.loads(verify_refs(root,[payload['runtime']])[0])
+        replayed=replay(root,confined(root,original['request']['path']).parent,cases=cases,
+                        qualification=runtime['payload']['qualification'][0],historical=historical)
+        if replayed!=original:raise ValueError('original trajectory report differs')
+        if any(r['name']=='research-reservation-v2' for r in payload['references']):
+            from .progressive_trajectory import reservation
+            request=json.loads(verify_refs(root,[original['request']])[0])
+            reserved=[r['artifact'] for r in payload['references'] if r['name']=='trajectory_reservation']
+            if len(reserved)!=1 or json.loads(verify_refs(root,reserved)[0])!=reservation(root,payload['references'],request,research=True):
+                raise ValueError('original additional trajectory reservation required')
+        trajectory=cost_context(cases,producers,original)
+    estimate_cache={}
+    from oeis_learn.generalization.progressive.storage_plan import task_checkpoints
+    bounds = task_checkpoints(plans, producers, payload['milestone_pins']) if scoped else {}
+    old_total=sum(p['caps']['disk_bytes'] for p in plans)
+    old_slots={n['id']:sum(p['caps']['disk_bytes'] for p in plans if p['slot']==n['id']) for n in payload['graph']['nodes']}
+    estimates=[];deficits=[]
+    policies={r['artifact']['sha256']:r['artifact'] for r in payload['references'] if r['kind']=='policy'}
+    from . import progressive_round023_successor as round023
+    replacements=[r['artifact'] for r in payload['references'] if r['name']==round023.NAME]
+    extra={}
+    if replacements:
+        if len(replacements)!=1 or replacements[0]['path']!=round023.SUCCESSOR+'/preparation-owner-proof.json':
+            raise ValueError('original round024 storage authorization required')
+        extra=round023.additions(root,json.loads(verify_refs(root,replacements)[0]))
+    from . import progressive_round024_successor as round024
+    from . import progressive_round025_successor as round025
+    modules = {r.NAME: r for r in (round024,round025)}
+    carry = [r for r in payload['references'] if r['name'] in modules]
+    if carry:
+        recovery = modules[carry[0]['name']]
+        if replacements or len(carry) != 1:
+            raise ValueError('original round025 storage authorization required')
+        evidence, = verify_refs(root, [carry[0]['artifact']])
+        proof = json.loads(evidence)
+        recipient = round025.RETRY if recovery is round025 and proof['version'] == round025.RETRY_VERSION else recovery.SUCCESSOR
+        if carry[0]['artifact']['path'] != recipient+'/preparation-owner-proof.json':
+            raise ValueError('storage authorization belongs to another recipient')
+        recovery.setup_limits({}, proof)
+        extra = round024.additions(root)
+    for task in plans:
+        if task['kind']=='training':
+            bound=bounds.get(task['id'])
+            needed=(bound['checkpoint_bytes']*(2+bound['milestone_pins']) if bound else 2*measured)+(128<<20)
+            worst=None
+            parent=task['initializer'].get('parent_task')
+            delta=task['token_target']-(by_id[parent]['token_target'] if parent else 0)
+            for selected in variants(task):
+                key=selected['initializer']['compatibility'];package=inputs[key];producer=by_scope[key]
+                args=dict(delta=delta,target=task['token_target'],
+                    available=task['caps']['elapsed_us']-task['startup_us']-task['finalization_us'])
+                cache_key=(key,delta,task['token_target'],args['available'],task['arm'])
+                if cache_key not in estimate_cache:
+                    if trajectory:
+                        from .progressive_trajectory import estimate
+                        estimate_cache[cache_key]=estimate(package,producer,trajectory,arm=task['arm'],**args)
+                    else:estimate_cache[cache_key]=estimate_training(package,producer['measurements'],**args)
+                row=dict(estimate_cache[cache_key])
+                row.update(task=task['id'],compatibility=key)
+                if worst is None or row['estimated_work_us']>worst['estimated_work_us']:worst=row
+            estimates.append(worst)
+            if worst['estimated_work_us']>worst['available_work_us']:deficits.append('training_time:'+task['id'])
+        else:
+            request=json.loads(verify_refs(root,[policies[task['policy']]])[0])
+            model_bytes=measured
+            if scoped and request.get('operation')=='generate':
+                model_bytes=0
+                for item in request['artifacts']['model']:
+                    if isinstance(item,str):
+                        from oeis_learn.pipeline_validation.identity import confined
+                        channel=json.loads(confined(root,item).read_bytes())
+                        if channel['kind']=='checkpoint':model_bytes+=channel['data']['artifact']['bytes']
+                    elif item['kind']=='checkpoint':
+                        source=by_id[item['task']]
+                        model_bytes+=max(by_scope[v['initializer']['compatibility']].get('weights_bytes',by_scope[v['initializer']['compatibility']]['checkpoint_bytes']) for v in variants(source))
+            needed=(model_bytes if request.get('operation')=='generate' else 0)+(128<<20)
+        needed+=extra.get(task['id'],0)
+        if needed>task['caps']['disk_bytes']:
+            deficits.append('measured_task_storage:'+task['id'])
+        else:
+            task['caps']['disk_bytes']=needed
+    for node in payload['graph']['nodes']:
+        node['caps']['disk_bytes']+=sum(p['caps']['disk_bytes'] for p in plans if p['slot']==node['id'])-old_slots[node['id']]
+    payload['caps']['disk_bytes']+=sum(p['caps']['disk_bytes'] for p in plans)-old_total
+    payload['deficits']=sorted(set(payload['deficits']+deficits))
+    return seal(dict(version='progressive-research-resource-estimate/v1',status='BLOCKED' if deficits else 'READY',
+        deficits=deficits,checkpoint_bytes=measured,storage_before_bytes=old_total,
+        storage_after_bytes=sum(p['caps']['disk_bytes'] for p in plans),training=estimates,
+        all_choices_retained=True,exposure_caps_unchanged=True,time_caps_unchanged=True,
+        interpretation=('sampled trajectory with 4x margin; actual task clocks and exact iteration guards remain authoritative' if trajectory else 'conservative exact-input feasibility; actual task clocks remain authoritative')))
+
+
+def estimate_training(package, measurements, *, delta, target, available):
+    """Conservative feasibility, separate from unpadded expected-runtime reports."""
+    from .generalization_persistence import policy as checkpoint_policy, INTERVAL
+    from oeis_learn.generalization.progressive.milestones import MILESTONES
+    minimum=min(len(r['tokens']) for shard in package['shards'] for r in shard)*package['update_policy']['effective_batch']
+    updates=(delta+minimum-1)//minimum
+    snapshots=updates
+    if checkpoint_policy(package)=='hourly/v1':
+        snapshots=(2+max(0,available)//(INTERVAL*1000000)+
+            sum(target-delta<n<=target for n in MILESTONES))
+    m=measurements
+    elapsed=padded_us(updates*m['update_us']+snapshots*m['checkpoint_us']+2*((updates+7)//8)*m['probe_us'])
+    return dict(maximum_updates=updates,checkpoint_policy=checkpoint_policy(package),
+        maximum_snapshots=snapshots,estimated_work_us=elapsed,available_work_us=available)
+
+
+def guard_inventory(scale, hip):
+    from dataclasses import asdict
+    from oeis_learn.synthesis.contracts import MAX_FRAME_BYTES, ResourceProfile
+    from oeis_learn.synthesis.service_policy import ServiceLimits
+    from oeis_learn.tracking.pipeline_profile import Recorder
+    from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES
+    from oeis_learn.generalization.progressive.report import MAX_BYTES, MAX_MANIFEST, MAX_PART, MAX_ROWS
+    from oeis_learn.generalization.progressive.storage import JOURNAL_BYTES
+    from oeis_learn.pipeline_validation import research_limits as limits
+    from oeis_learn.pipeline_validation.progressive_workstation_state import LIMIT, LOG_LIMIT
+
+    def guard(owner, scope, units, limit, observed, harm, exhaustion, source):
+        return dict(
+            owner=owner,
+            scope=scope,
+            units=units,
+            limit=limit,
+            observed=observed,
+            margin=limit - observed if observed is not None else None,
+            production_check="collect-release on the candidate images",
+            basis=(
+                "measured_workstation_release"
+                if observed is not None
+                else "registered_owner_profile"
+            ),
+            source=source,
+            protects=harm,
+            exhaustion=exhaustion,
+        )
+
+    largest_batch = max(
+        (v["expanded_bytes"] + v["files"] - 1) // v["files"] for v in scale["corpora"].values()
+    )
+    rows = {
+        "campaign": guard(
+            "contracts",
+            "one campaign",
+            "bytes",
+            CAMPAIGN_DOCUMENT_BYTES,
+            scale["campaign_bytes"],
+            "reader memory",
+            "reject oversized campaign",
+            "contracts.CAMPAIGN_DOCUMENT_BYTES",
+        ),
+        "producer_reader": guard(
+            "workstation collector",
+            "one producer",
+            "bytes",
+            LIMIT,
+            largest_batch,
+            "reader memory",
+            "bound the individual read",
+            "progressive_workstation_state.LIMIT",
+        ),
+        "journal": guard(
+            "budget journal",
+            "campaign",
+            "bytes",
+            JOURNAL_BYTES,
+            scale["journal"]["bytes"],
+            "durable accounting",
+            "preserve completed charges",
+            "storage.JOURNAL_BYTES",
+        ),
+        "zip": guard(
+            "archive verifier",
+            "expanded aggregate",
+            "bytes",
+            MAX_BYTES,
+            None,
+            "reader memory",
+            "reject oversized archive",
+            "report.MAX_BYTES",
+        ),
+        "projection_part": guard(
+            "report transport",
+            "one part",
+            "bytes",
+            MAX_PART,
+            None,
+            "transport memory",
+            "split verified parts",
+            "report.MAX_PART",
+        ),
+        "manifest": guard(
+            "report transport",
+            "one manifest",
+            "bytes",
+            MAX_MANIFEST,
+            None,
+            "reader memory",
+            "reject oversized manifest",
+            "report.MAX_MANIFEST",
+        ),
+        "table": guard(
+            "report transport",
+            "one public table",
+            "rows",
+            MAX_ROWS,
+            None,
+            "reader memory",
+            "reject oversized table",
+            "report.MAX_ROWS",
+        ),
+        "fit": guard(
+            "native fitter",
+            "one fit",
+            "microseconds",
+            4_000_000,
+            None,
+            "equal service",
+            "mark unfinished fit",
+            "FR-006",
+        ),
+        "portfolio": guard(
+            "portfolio",
+            "one prompt",
+            "microseconds",
+            60_000_000,
+            None,
+            "equal search",
+            "preserve partial portfolio",
+            "FR-006",
+        ),
+        "learner": guard(
+            "acceptance supervisor",
+            "one disposable learner role",
+            "seconds",
+            limits.ACCEPTANCE_SECONDS,
+            hip["elapsed_us"] / 1e6,
+            "workstation lease",
+            "stop and preserve checkpoint",
+            "research_limits.ACCEPTANCE_SECONDS",
+        ),
+        "cleanup": guard(
+            "supervisor",
+            "one termination",
+            "seconds",
+            limits.CLEANUP_SECONDS,
+            None,
+            "stuck worker",
+            "verify termination",
+            "research_limits.CLEANUP_SECONDS",
+        ),
+        "samples": guard(
+            "telemetry",
+            "one role",
+            "samples",
+            Recorder.MAX_SAMPLES,
+            hip["telemetry"]["samples"],
+            "log storage",
+            "mark coverage gap",
+            "Recorder.MAX_SAMPLES",
+        ),
+        "telemetry_events": guard(
+            "telemetry",
+            "one role",
+            "events",
+            Recorder.MAX_EVENTS,
+            None,
+            "log storage",
+            "retain aggregate coverage",
+            "Recorder.MAX_EVENTS",
+        ),
+        "diagnostic_log": guard(
+            "workstation collector",
+            "one diagnostic log",
+            "bytes",
+            LOG_LIMIT,
+            None,
+            "report storage",
+            "truncate diagnostic copy",
+            "progressive_workstation_state.LOG_LIMIT",
+        ),
+        "frame": guard(
+            "native protocol",
+            "one request",
+            "bytes",
+            MAX_FRAME_BYTES,
+            None,
+            "decoder memory",
+            "reject oversized frame",
+            "synthesis.contracts.MAX_FRAME_BYTES",
+        ),
+    }
+    for key, value in asdict(ResourceProfile()).items():
+        if type(value) in (float, int):
+            rows["native_" + key] = guard(
+                "native runtime",
+                "one registered execution",
+                key,
+                value,
+                None,
+                "bounded exact execution",
+                "record native disposition",
+                "ResourceProfile." + key,
+            )
+    for key, value in asdict(ServiceLimits()).items():
+        units = "bytes" if key.endswith("bytes") else "entries" if "cache" in key else "batches"
+        rows["service_" + key] = guard(
+            "native service",
+            "one owning role",
+            units,
+            value,
+            None,
+            "bounded queue and cache",
+            "expire queued work or evict cache entries",
+            "ServiceLimits." + key,
+        )
+    return rows

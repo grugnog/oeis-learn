@@ -1,0 +1,395 @@
+{
+  "version": "research-input-resolution-review/v1",
+  "executable": false,
+  "registration_applied": false,
+  "research_ready": false,
+  "evidence": {
+    "zip_sha256": "sha256:14db5bf6a07382c353d86d87ea04b035fac8a3aebe909099052515f3f01be782",
+    "workstation_commit": "013808908716812039609e20c381eff6eb128fed",
+    "preflight": "sha256:3131d392b05eb3e544bce1d21d0d967991a1338256e379950dd6b2e59879aea0",
+    "preflight_status": "PASS",
+    "verified_uploaded_metadata_seals": 16
+  },
+  "retained": {
+    "selected_arm": "D",
+    "checkpoints": {
+      "B": {
+        "descriptor": {
+          "compatibility": "sha256:aec71cbbb0f25fb20ddaa2c0b0488703b53d4658ab3358787838bce6a1be1ff0",
+          "identity": "sha256:24b4a381f6d88cac3deb363bb8da925d2bfa528f6db5eb34808a21a606c0edd3",
+          "initialization": "sha256:94c08692e84ea85dacf272a1ee09a52675bc5e7faf862e05320c84257b0fcee8",
+          "kind": "full_state",
+          "parent": null,
+          "pins": [
+            "retained",
+            "latest"
+          ],
+          "state": {
+            "bytes": 24262,
+            "path": "generalization-16aba738120f4501809d8f57b6896bfd/state.json",
+            "sha256": "sha256:bd4973e755256daff72a43826418066c11e41bf1c1e0a4ee15fe0e6f3f4b6874"
+          },
+          "tokens": 24998929,
+          "updates": 12401,
+          "version": "generalization-checkpoint/v1",
+          "weights": {
+            "bytes": 421619985,
+            "path": "generalization-16aba738120f4501809d8f57b6896bfd/weights.pt",
+            "sha256": "sha256:5c42007d4696c84716508f7638123957c66f521ee49f52555965f9f46701c522"
+          }
+        },
+        "producer": {
+          "bytes": 5219368,
+          "path": "run-state/generalization/pac-012-bcd-r1-002/train-B/execution/result.json",
+          "sha256": "sha256:9455bd5c88d719ee2ff8642d0793791412f1dee9698063ed6230fee4f5cc2eca"
+        },
+        "root": "run-state/generalization/pac-012-bcd-r1-002/train-B/execution/training-B/role/private/learner/checkpoints",
+        "roster": {
+          "bytes": 5007,
+          "path": "run-state/generalization/pac-012-bcd-r1-002/train-B/execution/training-B/role/private/learner/checkpoints/retained.json",
+          "sha256": "sha256:7f5dcb128b4ed3be3918ed4ad8918ff4b47c60d292562ed50da1e1f7f66f0094"
+        }
+      },
+      "D": {
+        "descriptor": {
+          "compatibility": "sha256:6bda9ed475a24bf902c359c54bc0c812b61021e7d416118dfe42e9bf096e3f60",
+          "identity": "sha256:f0ea2815345ce87750b3133aa2dcf5843d51549ef55a1cbc19854f1cb9fc6da2",
+          "initialization": "sha256:94c08692e84ea85dacf272a1ee09a52675bc5e7faf862e05320c84257b0fcee8",
+          "kind": "full_state",
+          "parent": null,
+          "pins": [
+            "retained",
+            "latest"
+          ],
+          "state": {
+            "bytes": 22532,
+            "path": "generalization-6aae3f46e42e47b1b39cf6dec82b37e3/state.json",
+            "sha256": "sha256:a7b0107be65281966efecc8bb900b04605bab2c3aeb3e3f21cf0614d8f20e020"
+          },
+          "tokens": 24998016,
+          "updates": 12822,
+          "version": "generalization-checkpoint/v1",
+          "weights": {
+            "bytes": 421619985,
+            "path": "generalization-6aae3f46e42e47b1b39cf6dec82b37e3/weights.pt",
+            "sha256": "sha256:71c3f4ff1ad9dd2b707ef0e4fce3f9f0423713df537f3a93a2d4c22f47f71941"
+          }
+        },
+        "producer": {
+          "bytes": 5455623,
+          "path": "run-state/generalization/pac-012-bcd-r1-002/train-D/execution/result.json",
+          "sha256": "sha256:fbec4460cd29ee24a3eac7c6af48cc202027733e337fdcd73470e4deccd3246b"
+        },
+        "root": "run-state/generalization/pac-012-bcd-r1-002/train-D/execution/training-D/role/private/learner/checkpoints",
+        "roster": {
+          "bytes": 5007,
+          "path": "run-state/generalization/pac-012-bcd-r1-002/train-D/execution/training-D/role/private/learner/checkpoints/retained.json",
+          "sha256": "sha256:81f7a1e5a809683ebaf7f157d701be36a10416a09f68fe6dd6e70192b6a40be4"
+        }
+      }
+    },
+    "recipe": {
+      "bytes": 6412,
+      "path": "run-state/generalization/pac-012-bcd-r1-002/admission/execution/execution/role/private/assembly/resolved/recipe.json",
+      "sha256": "sha256:8fab6f0474e5f08fd23b8e3c16ed78d20faf85bd83deae02e5233f3139a01785"
+    },
+    "model": {
+      "attention": "eager",
+      "d_model": 768,
+      "decoder_layers": 6,
+      "dropout": 0,
+      "encoder_layers": 6,
+      "ff": 3072,
+      "heads": 12,
+      "position_scale": 16,
+      "precision": "float32",
+      "seed": 20261016,
+      "token_scale": 1
+    },
+    "model_profile": {
+      "backend": "eager",
+      "decoder_layers": 6,
+      "encoder_layers": 6,
+      "ff": 3072,
+      "heads": 12,
+      "identity": "sha256:f1374f2c3c2d23ff068273e4d6a8e1facccfe2aa0847e465f90ccf9b13a957b6",
+      "name": "m100",
+      "precision": "float32",
+      "seed": 20261016,
+      "version": "pipeline-model-size/v1",
+      "width": 768
+    },
+    "weights_verified_by_workstation_preflight": true,
+    "full_state_sidecars_verified_by_this_audit": false
+  },
+  "prior_inputs": {
+    "original_plan": {
+      "bytes": 9196,
+      "path": "run-state/generalization/pac-012-bcd-r1-002/plan.json",
+      "sha256": "sha256:ec59760b3613a0bcd9f0b78f3894316e0581eae764e2abecab438968cbaec3b4"
+    },
+    "workflow": {
+      "bytes": 914988,
+      "path": "run-state/generalization/pac-012-bcd-r1-002/workflow.json",
+      "sha256": "sha256:dd76876037ff57beb25cfe65babbbc94cd6c9f5f5adf4b65017c51e20b5dc62b"
+    },
+    "inventory": {
+      "bytes": 18290492,
+      "path": "run-state/generalization/pac-012-bcd-r1-002/admission/execution/execution/role/private/assembly/resolved/training/private/inventory.json",
+      "sha256": "sha256:56938c03926cf9c6b91cd01fa910b153ba81fb5fc69c59268426f746ecf37725"
+    },
+    "probes": {
+      "bytes": 1176292,
+      "path": "run-state/generalization/pac-012-bcd-r1-002/admission/execution/execution/role/private/assembly/resolved/training/private/probes.json",
+      "sha256": "sha256:5d4727da06404758c7041cbb4ef478b55884a4ed9f4c4fc8caab6d70d0bdc2d7"
+    },
+    "observed": {
+      "bytes": 687909,
+      "path": "run-state/generalization/pac-012-bcd-r1-002/admission/execution/execution/role/private/assembly/resolved/private/structural-targets.json",
+      "sha256": "sha256:309173c739ec5d58338e724520309ba415a2be857bd41e74aa8254c0843b4495"
+    },
+    "originals": [
+      {
+        "count": 128,
+        "holdout": "parameter",
+        "name": "selection-parameter",
+        "ref": {
+          "bytes": 630178,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/selection-parameter/private/selected.json",
+          "sha256": "sha256:06b662f14f17ba51f7fb76f737bf3f69e2de77b68eb930efd9a9279aa903ef2f"
+        },
+        "role": "selection"
+      },
+      {
+        "count": 128,
+        "holdout": "structural",
+        "name": "selection-structural",
+        "ref": {
+          "bytes": 721814,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/selection-structural/private/selected.json",
+          "sha256": "sha256:d7974d5e255f5e67ec565339454f140877b17faa0ab290d482d94bde4879a9b2"
+        },
+        "role": "selection"
+      },
+      {
+        "count": 128,
+        "holdout": "parameter",
+        "name": "assessment-parameter",
+        "ref": {
+          "bytes": 638199,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/assessment-parameter/private/selected.json",
+          "sha256": "sha256:25acd436ab2b8979b8dab5d546794c9e79336f0ee36b55d6ff6c0e6aa9e2a6d2"
+        },
+        "role": "assessment"
+      },
+      {
+        "count": 128,
+        "holdout": "structural",
+        "name": "assessment-structural",
+        "ref": {
+          "bytes": 712502,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/assessment-structural/private/selected.json",
+          "sha256": "sha256:486ad26a9204cd4df69b06295b36185ab138df42a74de868f15b61dc6b67b4c0"
+        },
+        "role": "assessment"
+      },
+      {
+        "count": 32768,
+        "holdout": "parameter",
+        "name": "static",
+        "ref": {
+          "bytes": 163872032,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/static/private/selected.json",
+          "sha256": "sha256:0be0c6b3fbe2d36b42ef064fb81841e5fc54aac4d174e264e9fd6dabf703ea85"
+        },
+        "role": "training"
+      },
+      {
+        "count": 32768,
+        "holdout": "parameter",
+        "name": "refresh-01",
+        "ref": {
+          "bytes": 163804838,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/refresh-01/private/selected.json",
+          "sha256": "sha256:4957a1646da6a84f02ac352701490c01406f7e6fa26c1539515b2dd5344480ac"
+        },
+        "role": "training"
+      },
+      {
+        "count": 32768,
+        "holdout": "parameter",
+        "name": "refresh-02",
+        "ref": {
+          "bytes": 163842271,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/refresh-02/private/selected.json",
+          "sha256": "sha256:0d195ba66c1b8cd46fce33daa44b771bc562f0f6147c74494831166273593e75"
+        },
+        "role": "training"
+      },
+      {
+        "count": 32768,
+        "holdout": "parameter",
+        "name": "refresh-03",
+        "ref": {
+          "bytes": 163641408,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/refresh-03/private/selected.json",
+          "sha256": "sha256:1bc8e4373cf3138147b5937e7d13607deb77b37b8826be0f44dcf3d81d1dced1"
+        },
+        "role": "training"
+      },
+      {
+        "count": 32768,
+        "holdout": "parameter",
+        "name": "refresh-04",
+        "ref": {
+          "bytes": 163805939,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/refresh-04/private/selected.json",
+          "sha256": "sha256:9dfed2728555d7fef74f34a900ad74001042bc9665ae852a92fafaae97103e17"
+        },
+        "role": "training"
+      },
+      {
+        "count": 32768,
+        "holdout": "parameter",
+        "name": "refresh-05",
+        "ref": {
+          "bytes": 163649002,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/refresh-05/private/selected.json",
+          "sha256": "sha256:2810420d7330303422f2c6b528d1ad775b73d0f13f2fbaa26e4426428e27e274"
+        },
+        "role": "training"
+      },
+      {
+        "count": 32768,
+        "holdout": "parameter",
+        "name": "refresh-06",
+        "ref": {
+          "bytes": 163595195,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/refresh-06/private/selected.json",
+          "sha256": "sha256:904325bc4bc8a47541f6a78adffe006be2b625153674d77bbcd5121ed813cd67"
+        },
+        "role": "training"
+      },
+      {
+        "count": 32768,
+        "holdout": "parameter",
+        "name": "refresh-07",
+        "ref": {
+          "bytes": 163666099,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/refresh-07/private/selected.json",
+          "sha256": "sha256:e1bac24694d06878d3463af4155418295926bce6461ef948d0c526b02c4c5367"
+        },
+        "role": "training"
+      },
+      {
+        "count": 32768,
+        "holdout": "parameter",
+        "name": "refresh-08",
+        "ref": {
+          "bytes": 163660442,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/refresh-08/private/selected.json",
+          "sha256": "sha256:fe6a0b82abad71b815495e75db548b8c30cbbdcf6ce81cf71080ecd9c11942c1"
+        },
+        "role": "training"
+      },
+      {
+        "count": 32768,
+        "holdout": "parameter",
+        "name": "refresh-09",
+        "ref": {
+          "bytes": 163647468,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/refresh-09/private/selected.json",
+          "sha256": "sha256:7b3560a1397cb501d0e108169cf34521024f61885f42ae39f14467ae4b563a22"
+        },
+        "role": "training"
+      },
+      {
+        "count": 32768,
+        "holdout": "parameter",
+        "name": "refresh-10",
+        "ref": {
+          "bytes": 163824280,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/refresh-10/private/selected.json",
+          "sha256": "sha256:f6c1fe1e9b8e03972aa89dbce871ca26c1c1c5ebee8eed55dc8cdbb95871af12"
+        },
+        "role": "training"
+      },
+      {
+        "count": 32768,
+        "holdout": "parameter",
+        "name": "refresh-11",
+        "ref": {
+          "bytes": 163627367,
+          "path": "run-state/generalization/fresh-p1-v2-20261103T035534Z/research/prepare/preparation/role/private/prepared/cells/refresh-11/private/selected.json",
+          "sha256": "sha256:4bc62dc3b4a5d3259ce729e2b3260aef194912de0a7141facb1c09a495f9aaf2"
+        },
+        "role": "training"
+      }
+    ]
+  },
+  "fresh_002": {
+    "plan": {
+      "path": "run-state/generalization/pac-selector-fresh-002/plan.json",
+      "bytes": 215252,
+      "sha256": "sha256:058c17ec32c696ed6027c23faf932f84614294be816b9fc3d4371fe389dc28c1"
+    },
+    "result": {
+      "path": "run-state/generalization/pac-selector-fresh-002/execution/result.json",
+      "bytes": 1038104,
+      "sha256": "sha256:21b6f5b6ea9d9156affaf40f75c6bc5f6a6a3461565208b6cf53670294576487"
+    },
+    "publication": {
+      "path": "run-state/generalization/pac-selector-fresh-002/execution/publication/role/result.json",
+      "bytes": 898,
+      "sha256": "sha256:52e36cb0de54a4ebb1f8a4e766c6b3ce3ebfec61cde62a956372370773be09d9"
+    },
+    "targets": {
+      "bytes": 618403,
+      "path": "run-state/generalization/pac-selector-fresh-002/execution/publication/role/private/targets.json",
+      "sha256": "sha256:1854dcedb6e9baa1d8e4ea12d8f8cbd5f5ab2f1d3087adf11229a1d9b508808a"
+    },
+    "roster": {
+      "bytes": 29477,
+      "path": "run-state/generalization/pac-selector-fresh-002/execution/publication/role/private/roster.json",
+      "sha256": "sha256:ba5ec007f5c83f842e9c394cdf611cc5ccc4b4587b6003a9190a156cbfb6c369"
+    },
+    "task_count": 128,
+    "scientific_status": "INCOMPLETE",
+    "checkpoint_match": "EXACT_B_AND_D",
+    "exposure_disposition": "PREVIOUSLY_OBSERVED_EXCLUDE_FROM_FRESH_PANELS",
+    "private_payloads_verified_by_this_audit": false
+  },
+  "historical": {
+    "qualification": {
+      "status": "HISTORICAL_ONLY",
+      "records": [
+        {
+          "bytes": 11086,
+          "path": "run-state/generalization/pac-012-bcd-r1-002/qualification/execution/qualification/qualification.json",
+          "sha256": "sha256:65d5f19dfdf029941231f84d659acfd7fa3b488e8b06cb1e3557bf3b6b07a16a"
+        }
+      ],
+      "current_scope_reuse_authorized": false
+    },
+    "calibration": {
+      "status": "HISTORICAL_ONLY",
+      "records": [
+        {
+          "bytes": 10797,
+          "path": "run-state/generalization/pac-012-bcd-r1-002/calibration/execution/execution/role/calibration.json",
+          "sha256": "sha256:60496e1061d05f2eded32efdb30cf7df00242efaa8533a5f281ec589113cdafd"
+        }
+      ],
+      "current_scope_reuse_authorized": false
+    }
+  },
+  "remaining": [
+    "Register these originals in the concrete research preparation; initial discovery inventory does not import the legacy layout.",
+    "Verify full-state sidecars and compatibility before any optimizer/state continuation; do not silently relabel the legacy checkpoint as a progressive state.",
+    "Materialize complete prior-exposure exclusions, including all original cells, observed PAC cohort, training probes and fresh-002; retain assessment isolation.",
+    "Prepare new spec-013 disjoint cohorts/support with original reservations and an outcome-blind feasibility census.",
+    "Qualify the actual retained m100 profile and calibrate exact prepared research inputs under the current source/images; tiny-model rehearsal and historical timings are not substitutes.",
+    "Freeze a concrete research blueprint and sustained protocol before launch."
+  ],
+  "identity": "sha256:270f531774e6aec466b68a394cefd04780b6e5f4f4ebfeaac5cd472bf6368f29"
+}

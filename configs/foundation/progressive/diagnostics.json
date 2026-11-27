@@ -1,0 +1,453 @@
+{
+  "version": "progressive-diagnostic-blueprints/v1",
+  "executable": false,
+  "budget_rule": "reallocate existing selected-campaign allowance; full path <=24h total, <=4 tasks, <=12h each; no additive budget",
+  "branches": [
+    {
+      "id": "weak-learning",
+      "tasks": [
+        "T094"
+      ],
+      "failure_class": "weak-learning",
+      "trigger": "weak_endpoint",
+      "arms": [
+        "tiny_verified_memorization",
+        "conditioning_control"
+      ],
+      "question": "Expressibility versus optimizer failure",
+      "observations": [
+        "training-only fit and held-out executable yield",
+        "fixed-candidate native acceptance"
+      ],
+      "terminal_action": "RETAIN_BASELINE",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "refresh-transfer",
+      "tasks": [
+        "T098"
+      ],
+      "failure_class": "refresh-transfer",
+      "trigger": "refresh_transfer_deficit",
+      "arms": [
+        "static",
+        "preset_refresh_mix"
+      ],
+      "question": "Novelty, difficulty, exposure or forgetting",
+      "observations": [
+        "verified novelty and matched exposure",
+        "transfer and retention at fixed policy"
+      ],
+      "terminal_action": "RETAIN_BASELINE",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "allocation",
+      "tasks": [
+        "T098"
+      ],
+      "failure_class": "allocation",
+      "trigger": "allocation_underperforms",
+      "arms": [
+        "frozen_D_allocation",
+        "fixed_allocation"
+      ],
+      "question": "Noisy reward versus mismatched bins",
+      "observations": [
+        "same prepared support with allocation alone changed",
+        "per-bin yield and reward variance"
+      ],
+      "terminal_action": "RETAIN_BASELINE",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "ranking-fidelity",
+      "tasks": [
+        "T100"
+      ],
+      "failure_class": "ranking-fidelity",
+      "trigger": "short_long_rank_reversal",
+      "arms": [
+        "reserved_unpruned_control",
+        "preset_longer_fidelity"
+      ],
+      "question": "Short-run ranking versus wall-limited partials",
+      "observations": [
+        "short/long ranks and censored trials",
+        "independent confirmation after new freeze"
+      ],
+      "terminal_action": "DEFER_BRANCH",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "efficiency",
+      "tasks": [
+        "T101"
+      ],
+      "failure_class": "efficiency",
+      "trigger": "registered_cost_frontier",
+      "arms": [
+        "baseline",
+        "frozen_candidate"
+      ],
+      "question": "Capability improvement versus cost efficiency",
+      "observations": [
+        "repeated total cost including preparation and extraction",
+        "registered >=20% reduction and >=-1pp adjusted lower bound with completion/retention"
+      ],
+      "terminal_action": "RETAIN_BASELINE",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "small-gain",
+      "tasks": [
+        "T104"
+      ],
+      "failure_class": "small-gain",
+      "trigger": "inconclusive_gain",
+      "arms": [
+        "retained_checkpoint",
+        "reserved_extension_or_independent_confirmation"
+      ],
+      "question": "Small effect versus inadequate precision",
+      "observations": [
+        "incremental executable yield and conditional uncertainty",
+        "original failed gate retained"
+      ],
+      "terminal_action": "RETAIN_BASELINE",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "seed-disagreement",
+      "tasks": [
+        "T102"
+      ],
+      "failure_class": "seed-disagreement",
+      "trigger": "paired_seed_disagreement",
+      "arms": [
+        "baseline_third_seed",
+        "candidate_third_seed"
+      ],
+      "question": "Training-seed variation versus censoring",
+      "observations": [
+        "all three seeds, mean >=2pp, two positive, none below -2pp",
+        "same completion retention and multiplicity-adjusted uncertainty; never best two"
+      ],
+      "terminal_action": "RETAIN_BASELINE",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "reliability",
+      "tasks": [
+        "T104"
+      ],
+      "failure_class": "reliability",
+      "trigger": "completion_or_retention_miss",
+      "arms": [
+        "original_fixed_inputs",
+        "reliability_replay"
+      ],
+      "question": "Scheduling, solver limits or termination tails",
+      "observations": [
+        "original scientific caps and unresolved cases",
+        "no learning on confirmation solutions"
+      ],
+      "terminal_action": "RETAIN_BASELINE",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "sparse-support",
+      "tasks": [
+        "T093"
+      ],
+      "failure_class": "sparse-support",
+      "trigger": "support_or_sensitivity_deficit",
+      "arms": [
+        "original_design",
+        "prospective_panel_or_domain_redesign"
+      ],
+      "question": "Availability, dependency and attainable detection",
+      "observations": [
+        "outcome-blind census and censoring sensitivity",
+        "fewer looks or independent cohort requires new freeze; no scores"
+      ],
+      "terminal_action": "DEFER_BRANCH",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "plateau",
+      "tasks": [
+        "T104"
+      ],
+      "failure_class": "plateau",
+      "trigger": "heldout_plateau",
+      "arms": [
+        "last_useful_checkpoint",
+        "preset_medium_continuation_or_representation_probe"
+      ],
+      "question": "Delayed learning versus unproductive compute",
+      "observations": [
+        "additional held-out or runtime signal beyond loss",
+        "incremental gain, tails and cost; terminal stop"
+      ],
+      "terminal_action": "RETAIN_BASELINE",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "oeis-yield",
+      "tasks": [
+        "T106"
+      ],
+      "failure_class": "oeis-yield",
+      "trigger": "low_or_repetitive_oeis_yield",
+      "arms": [
+        "original_training_pool",
+        "prospective_narrow_search_pilot"
+      ],
+      "question": "Coverage, verification rejection or duplicate dominance",
+      "observations": [
+        "independently verified new targets and full discovery cost",
+        "outcome-blind new pool commitment; imported formulas forbidden"
+      ],
+      "terminal_action": "DEFER_BRANCH",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "replay-transfer",
+      "tasks": [
+        "T106"
+      ],
+      "failure_class": "replay-transfer",
+      "trigger": "replay_without_transfer",
+      "arms": [
+        "continued_synthetic",
+        "preset_lower_replay_diversity_mix"
+      ],
+      "question": "Selection bias, forgetting or target weights",
+      "observations": [
+        "new-task yield and synthetic retention",
+        "archive growth alone cannot adopt"
+      ],
+      "terminal_action": "RETAIN_BASELINE",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "component-utility",
+      "tasks": [
+        "T108"
+      ],
+      "failure_class": "component-utility",
+      "trigger": "compression_without_utility",
+      "arms": [
+        "search_only_reuse",
+        "expanded_program_distillation"
+      ],
+      "question": "Source compression versus useful reuse",
+      "observations": [
+        "expanded search/execution/extraction cost and cross-group reuse",
+        "held-out capability under matched budgets; no automatic vocabulary change"
+      ],
+      "terminal_action": "DEFER_BRANCH",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "source-suitability",
+      "tasks": [
+        "T109"
+      ],
+      "failure_class": "source-suitability",
+      "trigger": "external_source_deficit",
+      "arms": [
+        "feasibility_census",
+        "separately_frozen_short_profile"
+      ],
+      "question": "Exact semantics and related-object support",
+      "observations": [
+        "enumeration cost, independent groups and task horizon",
+        "no padding rounding or arbitrary ordering"
+      ],
+      "terminal_action": "DEFER_BRANCH",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "proof-novelty",
+      "tasks": [
+        "T110"
+      ],
+      "failure_class": "proof-novelty",
+      "trigger": "finite_match_without_proof_or_novelty",
+      "arms": [
+        "sealed_finite_claim",
+        "independent_counterexample_proof_review"
+      ],
+      "question": "Known constructions versus supported proof class",
+      "observations": [
+        "bounded counterexamples and explicit assumptions",
+        "literature excluded from training; finite/conjectural label retained"
+      ],
+      "terminal_action": "DEFER_BRANCH",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    },
+    {
+      "id": "integrity-quarantine",
+      "tasks": [],
+      "failure_class": "integrity-quarantine",
+      "trigger": "integrity_or_leakage_or_accounting_failure",
+      "arms": [
+        "affected_lineage",
+        "independently_unaffected_baseline"
+      ],
+      "question": "Fault scope before interpreting scores",
+      "observations": [
+        "quarantine affected artifacts and retain debits",
+        "repair and requalify before affected execution; no reserve waiver"
+      ],
+      "terminal_action": "STOP_AFFECTED",
+      "maximum_visits": 1,
+      "assessment": false,
+      "selected": false,
+      "data": null,
+      "policy": null,
+      "design": null,
+      "task_slots": null,
+      "panel_slots": null,
+      "caps": null,
+      "ancillary_caps": null
+    }
+  ]
+}

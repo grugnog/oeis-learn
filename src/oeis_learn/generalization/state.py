@@ -34,7 +34,7 @@ def restore(record,*,contract,cap,root=None):
     _complete(record['states'])
     refs=tuple(artifact_refs(record['states']))
     if refs and root is None: raise ValueError('state artifact verification root required')
-    for ref in refs: verify_artifact(root,ref)
+    for ref in refs: verify_artifact(root,ref,read=False)
     ledger=Ledger.restore(record['ledger'],cap=cap)
     if ledger.pending and record['states']['data']['pending_batch'] is None: raise ValueError('lost pending batch')
     return dict(states=copy.deepcopy(record['states']),ledger=ledger)

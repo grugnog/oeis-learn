@@ -1,0 +1,145 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "discovery-coverage/v1"
+    },
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "parents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 0,
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "purpose": {
+      "enum": [
+        "acceptance",
+        "research"
+      ]
+    },
+    "track": {
+      "enum": [
+        "synthetic_strict",
+        "oeis_derived",
+        "external_assisted"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "task": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "operator_class": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 4096
+        },
+        "witness": {
+          "oneOf": [
+            {
+              "$ref": "progressive-common.schema.json#/$defs/artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "language": {
+          "const": "bigint-body/v1"
+        },
+        "limits": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "classification": {
+          "enum": [
+            "supported",
+            "over_budget",
+            "unresolved"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "missing_operations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "minItems": 0,
+          "maxItems": 4096
+        },
+        "reference_outcome": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "native_outcome": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "fitting_support": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "verification_scope": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "required": [
+        "task",
+        "operator_class",
+        "witness",
+        "language",
+        "limits",
+        "classification",
+        "reason",
+        "missing_operations",
+        "reference_outcome",
+        "native_outcome",
+        "fitting_support",
+        "verification_scope"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "identity",
+    "created_at",
+    "parents",
+    "purpose",
+    "track",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-coverage.schema.json"
+}

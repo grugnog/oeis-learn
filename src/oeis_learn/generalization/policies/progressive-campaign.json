@@ -1,0 +1,24 @@
+{
+  "version": "progressive-campaign-defaults/v1",
+  "executable": false,
+  "selected_stages": [
+    "capability",
+    "diversity"
+  ],
+  "full_path": {
+    "training_hours": 536,
+    "ancillary_hours": 136,
+    "total_hours": 672,
+    "scaling_hours": 192,
+    "routine_scaling_hours": 168,
+    "diagnostic_hours": 24,
+    "diagnostic_tasks": 4,
+    "diagnostic_task_hours": 12,
+    "routine_scaling_slots": 8
+  },
+  "training_task_max_us": 86400000000,
+  "default_finalization_min_us": 1800000000,
+  "progress_max_gap_us": 60000000,
+  "automatic_expansion": false,
+  "diagnostics_inherit_into_subset": false
+}

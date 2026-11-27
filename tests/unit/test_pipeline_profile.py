@@ -83,6 +83,62 @@ def test_recorder_retains_exception_and_stops_collector(tmp_path):
     assert json.loads((tmp_path / "telemetry.json").read_text())["samples"] >= 1
 
 
+@pytest.mark.parametrize(("role", "duration"), [("search", 21_000), ("train", 36_000)])
+def test_long_collector_bounds_errors_and_recovers(tmp_path, monkeypatch, role, duration):
+    import threading
+    import oeis_learn.tracking.pipeline_profile as profile
+    from oeis_learn.pipeline_validation.progressive_generator_probe import usage_summary
+
+    monkeypatch.setattr(Recorder, "MAX_SAMPLES", 5)
+    recorder = Recorder(tmp_path, instrumented=True, sample_bytes=160, planned_seconds=duration)
+    now = [0.0]
+    monkeypatch.setattr(profile.time, "monotonic", lambda: now[0])
+    sampled = threading.Event()
+    worker = threading.get_ident()
+
+    def advance(seconds):
+        now[0] += seconds
+        if recorder.records == recorder.MAX_SAMPLES:
+            sampled.set()
+
+    monkeypatch.setattr(recorder.stop, "wait", advance)
+
+    def snapshot():
+        if threading.get_ident() == worker or now[0] < 2 * recorder.sample_interval:
+            raise OSError("unavailable" * 100)
+        return {"time": now[0], "gpu": {"gpu_busy_percent": 50}}
+
+    monkeypatch.setattr(recorder, "snapshot", snapshot)
+    with recorder, recorder.phase(role):
+        assert sampled.wait(timeout=2)
+    event, = recorder.events
+    assert event["name"] == role and event["error"] is None
+    assert all(boundary["error"] == "OSError" for boundary in event["boundaries"].values())
+    records = (tmp_path / "samples.jsonl").read_bytes().splitlines(keepends=True)
+    assert len(records) == recorder.records == 5
+    assert all(len(line) <= 160 for line in records)
+    assert recorder.missed == 2 and recorder.samples == 3
+    summary = usage_summary(tmp_path, duration * 1_000_000, interval=recorder.sample_interval)
+    assert summary["readable_samples"] == 3
+    assert summary["covered_us"] == duration * 500_000
+    assert recorder.stop.is_set() and not recorder.thread.is_alive()
+
+
+def test_error_larger_than_the_sample_budget_leaves_the_role_running(tmp_path, monkeypatch):
+    recorder = Recorder(tmp_path, instrumented=True, sample_bytes=1)
+
+    def unavailable():
+        raise OSError("unreadable counter")
+
+    monkeypatch.setattr(recorder, "snapshot", unavailable)
+    with recorder, recorder.phase("train"):
+        assert recorder.ready.is_set()
+    assert recorder.events[0]["error"] is None
+    assert recorder.collector_error == "telemetry sample exceeds prospective byte cap"
+    assert recorder.records == 0 and recorder.missed == 1
+    assert (tmp_path / "samples.jsonl").stat().st_size == 0
+
+
 def test_host_help_and_scope_rejection_without_site_packages():
     module = runner()
     p = subprocess.run([sys.executable, "-S", module.__file__, "--help"], capture_output=True)

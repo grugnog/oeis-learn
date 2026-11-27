@@ -108,7 +108,7 @@ def verify_details(records, inputs, evidence):
     return plan, workflow
 
 
-def candidate_pool(portfolio):
+def candidate_sources(portfolio, *, reconstruct=False):
     archive = portfolio['archive']
     rows = archive['retained'] + archive['omitted']
     if len(rows) > 64 or len(portfolio['details']) > 8:
@@ -128,10 +128,24 @@ def candidate_pool(portfolio):
         if len(assignments) > 8:
             raise ValueError('original assignment count limit')
         for row in assignments:
-            add(row['source_sha256'], row['source'])
-    if set(found) != eligible:
+            sha = row['source_sha256']
+            if reconstruct and not isinstance(row.get('source'), str):
+                if sha in eligible and row.get('transformed_source') and 'assignment' in row:
+                    from .targets import ground
+                    source = ground(row['transformed_source'], row['assignment'])
+                    if source_identity(source) == sha:
+                        add(sha, source)
+                continue
+            add(sha, row['source'])
+    sources = [dict(source=found[sha], source_sha256=sha) for sha in sorted(found)]
+    return sources, eligible - found.keys()
+
+
+def candidate_pool(portfolio, *, reconstruct=False):
+    sources, missing = candidate_sources(portfolio, reconstruct=reconstruct)
+    if missing:
         raise ValueError('missing eligible candidate source; subset replay forbidden')
-    return [dict(source=found[sha], source_sha256=sha) for sha in sorted(found)]
+    return sources
 
 
 def check_original(candidates, original):

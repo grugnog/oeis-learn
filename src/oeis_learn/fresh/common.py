@@ -37,7 +37,7 @@ def read(path):
     return json.loads(payload, parse_constant=lambda x: (_ for _ in ()).throw(ValueError(x)))
 
 
-def write(path, value, *, immutable=False):
+def _write(path, value, *, immutable=False):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = value if isinstance(value, bytes) else canonical(value) + b"\n"
@@ -63,6 +63,15 @@ def write(path, value, *, immutable=False):
     finally:
         Path(name).unlink(missing_ok=True)
     return path
+
+
+def write(path, value, *, immutable=False):
+    # Only active discovery roles install a guard; historical callers retain
+    # their existing serialization and authority.
+    from oeis_learn.generalization.progressive.storage import writing
+    payload = value if isinstance(value, bytes) else canonical(value) + b"\n"
+    with writing(path, len(payload)):
+        return _write(path, payload, immutable=immutable)
 
 
 def confined(root, name):

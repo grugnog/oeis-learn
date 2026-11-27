@@ -1,0 +1,20 @@
+{
+  "version": "progressive-source-pilot/v1",
+  "executable": false,
+  "profile": "combinatorial-short/v1",
+  "track": "external_assisted",
+  "arms": {"with_source": [1, 4], "without_source": [0, 1]},
+  "paired_seeds": [13, 17],
+  "minimum_groups": {"training": 4, "evaluation": 4},
+  "minimum_tasks_per_group": 2,
+  "matched": ["initializer", "charged_tokens", "optimizer", "inference_allowance"],
+  "max_statistics": 32,
+  "moments": [1, 2],
+  "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+  "visible": 4,
+  "maximum_candidates_per_task": 8,
+  "maximum_generation_seconds": 60,
+  "primary_scaling_eligible": false,
+  "source_expansion": "frozen_before_outcomes",
+  "unresolved": ["snapshot_bytes", "use_conditions", "source_group_roster", "initializer", "qualified_runtime", "token_and_time_reservations"]
+}

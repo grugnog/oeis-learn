@@ -11,7 +11,7 @@ from .generalization_execution import startup_environment,POLICY_ID
 
 
 def inspect_device(host,image,output,*,seconds=120):
-    from .supervision import launch,reclaim
+    from .supervision import launch,reclaim,pending_gpu
     output=Path(output);output.mkdir(parents=True,exist_ok=False)
     name='generalization-inspect-'+uuid.uuid4().hex
     code="""import json,platform,torch
@@ -25,10 +25,22 @@ Path('/output/inspection.json').write_text(json.dumps(result,sort_keys=True))
 """
     command=host.engine.command(image=image,name=name,mounts=[(output,'/output',True)],argv=['python','-c',code],
         gpu=True,render_node=host.policy['render_node'],memory_bytes=host.policy['memory_bytes'],cpus=host.policy['cpus'],environment=startup_environment())
-    cleanup={}
-    try:
-        with host.gpu_lock():launch(command,output/'logs',seconds=seconds,stream_cap=1<<20,cleanup_state=cleanup)
-    finally:reclaim(host.engine,name,output/'logs',cleanup)
+    cleanup={'allowance_seconds':120}
+    failure=None
+    with host.gpu_lock():
+        pending=pending_gpu(host,name)
+        try:
+            launch(command,output/'logs',seconds=seconds,stream_cap=1<<20,
+                   cleanup_seconds=120,cleanup_state=cleanup)
+        except BaseException as exc:
+            failure=exc
+            raise
+        finally:
+            try:
+                reclaim(host.engine,name,output/'logs',cleanup)
+                if pending is not None:pending.unlink()
+            except Exception:
+                if failure is None:raise
     return json.loads((output/'inspection.json').read_text())
 
 
@@ -96,13 +108,15 @@ def consume_original(host,workspace,producer_root,output,*,required_suites,requi
     return dict(original=result['original'],authority=authority,root=producer_root)
 
 
-def produce(host,workspace,output,*,images,contract,pac_seconds=None):
+def produce(host,workspace,output,*,images,contract,pac_seconds=None,cpu_seconds=2100):
     """Canonical runner executes each required CPU/native and HIP scope once."""
     from .registry import Stage
     from .runner import execute
     from oeis_learn.container_validation import _stages,inspect_current_image
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from .generalization_roles import project_and_invoke
+    if type(cpu_seconds) is not int or not 2100 <= cpu_seconds <= 10800:
+        raise ValueError('CPU qualification allowance must be 2100..10800 seconds')
     workspace=Path(workspace);output=Path(output)
     if output.exists():raise ValueError('fresh qualification output required')
     if len(images)!=2:raise ValueError('prebuilt qualification/GPU image pair required')
@@ -121,11 +135,11 @@ def produce(host,workspace,output,*,images,contract,pac_seconds=None):
             else:result=_stages(host,'bigint-cpu',target,external_seconds=stage.seconds)[1]
             return dict(suite='bigint-gpu' if gpu else 'bigint-cpu',result=result)
     stages=[Stage('image.qualification',1,seconds=900,adapter='inspect'),
-        Stage('cpu.semantic',1,('image.qualification',),seconds=2100,adapter='cpu'),
+        Stage('cpu.semantic',1,('image.qualification',),seconds=cpu_seconds,adapter='cpu'),
         Stage('image.gpu',2,seconds=900,adapter='inspect'),
         Stage('hip.preflight',2,('image.gpu','cpu.semantic'),seconds=2400,adapter='hip')]
     code=execute(stages,output/'pipeline',adapter=Adapter(),binding=dict(source=collect_snapshot(workspace),contract=contract),
-                 cap=6600,reserve=300)
+                 cap=sum(s.seconds for s in stages)+300+(300 if cpu_seconds>2100 else 0),reserve=300)
     if code:
         # The serial fallback archive preserves stdout, even when no authority
         # exists for the normal report. Keep the original stage reasons visible.

@@ -91,8 +91,17 @@ def extended_settings(benchmark, output):
 
 
 class Host:
-    def __init__(self, args):
+    def __init__(self, args, *, source_root=None, workspace=None, revision=None):
         self.args = args
+        self.source_root = ROOT if source_root is None else Path(source_root).resolve(strict=True)
+        self.workspace = ROOT if workspace is None else Path(workspace)
+        if self.workspace != self.workspace.resolve(strict=True):
+            raise ValueError("physical workspace required")
+        self.revision = revision
+        if self.source_root != self.workspace:
+            import re
+            if not revision or not re.fullmatch(r"[0-9a-f]{40}", revision):
+                raise ValueError("separate candidate source requires its full Git revision")
         self.engine = Engine(args.engine)
         facts = self.engine.facts()
         available = facts["memory_bytes"] or 8 << 30
@@ -119,8 +128,8 @@ class Host:
             }
         )
         self.policy = {
-            "workspace": str(ROOT),
-            "state_root": str(ROOT / "run-state"),
+            "workspace": str(self.workspace),
+            "state_root": str(self.workspace / "run-state"),
             "engine": self.engine.name,
             "engine_executable": self.engine.executable,
             "engine_info": details,
@@ -137,8 +146,8 @@ class Host:
                 "memory_bytes": memory,
                 "cpus": cpus,
                 "render_node": args.render_node,
-                "coordinator_sha256": file_hash(ROOT / "scripts/foundation_host.py"),
-                "adapter_sha256": file_hash(ROOT / "src/oeis_learn/container_runtime.py"),
+                "coordinator_sha256": file_hash(self.source_root / "scripts/foundation_host.py"),
+                "adapter_sha256": file_hash(self.source_root / "src/oeis_learn/container_runtime.py"),
             },
         }
         self.policy["runtime"].update(
@@ -159,19 +168,22 @@ class Host:
             if self.args.image:
                 self.image = self.engine.image(self.args.image)
             else:
-                self.image = self.engine.build(ROOT, base_image=self.args.gpu_base_image)
+                self.image = self.engine.build(
+                    self.source_root, base_image=self.args.gpu_base_image,
+                    **({"tag": "oeis-learn:round028-" + self.revision} if self.revision else {}),
+                )
         return self.image
 
     def cpu(self, *argv, timeout=10800, network=False):
         if network != (list(argv[:2]) == ["data", "fetch"]):
             raise ValueError("only bulk acquisition may receive network access")
-        cache = ROOT / "container-cache"
+        cache = self.workspace / "container-cache"
         cache.mkdir(exist_ok=True)
         name = "oeis-cpu-" + uuid.uuid4().hex
         command = self.engine.command(
             image=self.ensure(),
             name=name,
-            mounts=[(ROOT, "/workspace", True), (cache, "/cache", True)],
+            mounts=[(self.workspace, "/workspace", True), (cache, "/cache", True)],
             auto_remove=False,
             argv=["python", "/opt/oeis-build/scripts/foundation_tasks.py", *argv],
             memory_bytes=self.policy["cpu_memory_bytes"],
@@ -206,15 +218,18 @@ class Host:
 
     @contextmanager
     def gpu_lock(self):
-        state = ROOT / "run-state"
+        from oeis_learn.pipeline_validation.identity import confined
+        state = confined(self.workspace, "run-state", exists=False)
         state.mkdir(exist_ok=True)
-        with (state / "gpu.lock").open("a+") as held:
+        with confined(state, "gpu.lock", exists=False).open("a+") as held:
             try:
                 fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
                 raise RuntimeError(
                     "another foundation GPU operation is active in this workspace"
                 ) from None
+            from oeis_learn.pipeline_validation.supervision import reconcile_gpu
+            reconcile_gpu(state, self.engine)
             yield
 
     def select_gpu(self):
@@ -291,6 +306,8 @@ def parser():
     commands = p.add_subparsers(dest="command", required=True)
     from oeis_learn.pipeline_validation.generalization_cli import register
     register(commands)
+    from oeis_learn.pipeline_validation.progressive_cli import register as register_discovery
+    register_discovery(commands)
     from oeis_learn.pipeline_validation.selector_validation_commands import register as register_selector_validation
     register_selector_validation(commands)
     from oeis_learn.pipeline_validation.selector_reliability_commands import register as register_reliability
@@ -428,6 +445,14 @@ def main(argv=None):
     args = parser().parse_args(argv)
     args.explicit_options = {v.split("=", 1)[0] for v in argv if v.startswith("--")}
     try:
+        if args.command == "data" and Path(args.config).suffix == ".json":
+            value = read(ROOT / relative(args.config))
+            if value.get("version") == "oeis-corpus/v1":
+                from oeis_learn.pipeline_validation.corpus_workstation import run
+                return run(ROOT, args)
+        if args.command == "discovery":
+            from oeis_learn.pipeline_validation.progressive_cli import main as discovery_main
+            return discovery_main(args, ROOT, Host)
         if args.command == "pac-reliability":
             from oeis_learn.pipeline_validation.selector_reliability_commands import main as reliability_main
             return reliability_main(args, ROOT, Host)

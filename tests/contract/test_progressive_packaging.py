@@ -1,0 +1,117 @@
+"""Only the installed proposal role depends on the exact tuning release."""
+
+import importlib.metadata
+import subprocess
+import sys
+from pathlib import Path
+
+
+def test_pinned_optuna_import_and_ask_tell():
+    import optuna
+
+    assert importlib.metadata.version("optuna") == "4.5.0"
+    study = optuna.create_study(sampler=optuna.samplers.RandomSampler(seed=13))
+    trial = study.ask()
+    trial.suggest_categorical("rate", [0.3, 1, 3])
+    study.tell(trial, 0.25)
+    assert study.trials[0].value == 0.25
+
+
+def test_namespace_and_cli_have_no_model_or_proposer_imports():
+    root = Path(__file__).resolve().parents[2]
+    code = """import sys
+sys.path.insert(0, 'src')
+import oeis_learn.generalization.progressive
+import oeis_learn.pipeline_validation.progressive_cli
+assert not {'torch','optuna','jsonschema'} & set(sys.modules)
+"""
+    subprocess.run([sys.executable, "-S", "-c", code], cwd=root, check=True)
+
+
+def test_cpu_inventory_covers_new_tests_without_legacy_name_collision():
+    from oeis_learn.pipeline_validation.progressive_cli import CPU_TESTS
+
+    assert "tests/contract/test_progressive_harness_contract.py" not in CPU_TESTS
+    assert "tests/unit/test_progressive_readiness.py" not in CPU_TESTS
+    assert "tests/unit/test_progressive_coverage.py" in CPU_TESTS
+    assert len(CPU_TESTS) == len(set(CPU_TESTS))
+    root = Path(__file__).resolve().parents[2]
+    assert all((root / path).is_file() for path in CPU_TESTS)
+
+
+def test_diagnostic_templates_ship_identically_and_all_feature_tests_are_registered():
+    import json
+    from oeis_learn.generalization.progressive.diagnostic_blueprints import inventory
+    from oeis_learn.pipeline_validation.progressive_cli import CPU_TESTS
+    from oeis_learn.experiments.source_snapshot import collect_snapshot
+
+    root = Path(__file__).resolve().parents[2]
+    blueprint = root / 'configs/foundation/progressive/diagnostics.json'
+    assert inventory() == json.loads(blueprint.read_text())
+    snapshot = collect_snapshot(root)
+    assert 'configs/foundation/progressive/diagnostics.json' in snapshot
+    assert 'src/oeis_learn/generalization/policies/progressive-diagnostics.json' in snapshot
+    excluded = {'tests/integration/test_progressive_gpu.py',
+                'tests/unit/test_progressive_readiness.py',
+                'tests/contract/test_progressive_harness_contract.py'}
+    actual = {str(p.relative_to(root)) for p in (root/'tests').rglob('test_progressive*.py')}
+    assert actual == set(CPU_TESTS).intersection(actual) | excluded
+    assert not set(CPU_TESTS).intersection(excluded)
+
+
+def test_round028_sdist_and_installed_wheel_keep_both_experiment_contracts(tmp_path):
+    import json
+    import os
+    import tarfile
+    import zipfile
+    from oeis_learn.experiments.source_snapshot import collect_snapshot, file_digest
+
+    root = Path(__file__).resolve().parents[2]
+    snapshot = collect_snapshot(root)
+    resources = {
+        "contracts/experiment.md": "specs/013-progressive-mathematical-discovery/contracts/experiment.md",
+        **{"contracts/015-learned-program-search/" + name:
+           "specs/015-learned-program-search/contracts/" + name for name in ("experiment.md", "operations.md")},
+        "contracts/015-learned-program-search/learned-program-search.json":
+            "configs/foundation/progressive/learned-program-search.json",
+    }
+    # The checkout in the installed acceptance role is read-only. Ask setuptools
+    # for its source manifest, then let sdist create its staging tree in scratch.
+    import shutil
+    metadata = tmp_path / "metadata"
+    metadata.mkdir()
+    subprocess.run([sys.executable, "setup.py", "--quiet", "egg_info", "--egg-base", str(metadata)],
+                   cwd=root, check=True)
+    stage = tmp_path / "source"
+    stage.mkdir()
+    manifest = next(metadata.glob("*.egg-info/SOURCES.txt"))
+    for name in manifest.read_text().splitlines():
+        path = (root / name).resolve()
+        if path.is_relative_to(metadata):
+            continue
+        relative = path.relative_to(root)
+        destination = stage / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+    # Exercise the real sdist and its build hook on the files setuptools selected.
+    subprocess.run([sys.executable, "setup.py", "--quiet", "sdist", "--dist-dir", str(tmp_path)],
+                   cwd=stage, check=True)
+    extracted = tmp_path / "extracted"
+    extracted.mkdir()
+    with tarfile.open(next(tmp_path.glob("*.tar.gz"))) as archive:
+        archive.extractall(extracted, filter="data")
+    sdist = next(extracted.glob("*/setup.py")).parent
+    subprocess.run([sys.executable, "setup.py", "--quiet", "bdist_wheel", "--dist-dir", str(tmp_path)],
+                   cwd=sdist, check=True, capture_output=True)
+    installed = tmp_path / "installed"
+    with zipfile.ZipFile(next(tmp_path.glob("*.whl"))) as wheel:
+        wheel.extractall(installed)
+    for packaged, source in resources.items():
+        asset = "oeis_learn/generalization/progressive/" + packaged
+        assert (sdist / source).read_bytes() == (root / source).read_bytes()
+        assert file_digest((installed / asset).read_bytes()) == snapshot[source] == snapshot["src/" + asset]
+    code = "from oeis_learn.experiments.source_snapshot import source_snapshot; import json; print(json.dumps(source_snapshot()))"
+    installed_snapshot = json.loads(subprocess.check_output(
+        [sys.executable, "-c", code], cwd=tmp_path, env={**os.environ, "PYTHONPATH": str(installed)}))
+    for source in resources.values():
+        assert installed_snapshot[source] == snapshot[source]
