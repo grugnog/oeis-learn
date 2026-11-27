@@ -21,32 +21,32 @@ RESERVATIONS = (
 PARAMETER = {"parameter", "retention"}
 
 
-def fresh_groups(candidates, historical, *, indexes):
+def fresh_groups(candidates, historical, *, indexes, velocity=False):
     """Close historical and prospective links before discarding any bridge row."""
     if len({r["id"] for r in candidates}) != len(candidates):
         raise ValueError("duplicate prospective source member")
     rows = [*candidates, *historical]
-    relations = [
-        composition(r, allow_parameters=True) if r.get("source") else r.get("composition")
-        for r in rows
-    ]
-    # Parameter variants can transfer a structure only when both sides allow it.
-    protected_structures = {r.get("structure") for r in rows if r["stratum"] not in PARAMETER}
-    protected_compositions = {c for r, c in zip(rows, relations) if r["stratum"] not in PARAMETER}
+    if velocity:
+        links = [ExposureIndex.relations(row) for row in rows]
+    else:
+        links = [dict(structure=r.get("structure"), composition=composition(r, allow_parameters=True)
+                      if r.get("source") else r.get("composition")) for r in rows]
+    # Parameter variants can transfer a structure only when both endpoints allow it.
+    protected = {(kind, value) for row, relation in zip(rows, links) if row["stratum"] not in PARAMETER
+                 for kind, value in relation.items() if value is not None}
     union = Union(len(candidates))
-    first, blocked = {}, set()
-    for i, (row, relation) in enumerate(zip(rows, relations)):
+    first, blocked, unknown = {}, set(), set()
+    for i, (row, relation) in enumerate(zip(rows, links)):
         indexed = set(ExposureIndex.keys(row))
         keys = {item for item in indexed if item[0] not in {"structure", "family", "group"}}
-        if row.get("structure") in protected_structures and row.get("structure") is not None:
-            keys.add(("structure", row["structure"]))
-        if relation and relation in protected_compositions:
-            keys.add(("composition", relation))
+        keys.update(protected.intersection(relation.items()))
         for value in [row.get("group"), row.get("family"), *row.get("declared_groups", ())]:
             if value:
                 keys.add(("declared", value))
                 if i < len(candidates):
                     indexed.update((kind, digest(value)) for kind in ("family", "group"))
+                    if velocity:
+                        indexed.add(("029:declared", digest(value)))
         if i >= len(candidates):
             # Every historical member is excluded. Keep only keys that intersect a
             # prospective component rather than retaining the entire old index again.
@@ -55,6 +55,14 @@ def fresh_groups(candidates, historical, *, indexes):
         for key in keys:
             union.join(i, first.setdefault(key, i))
         for index in indexes:
+            if velocity:
+                match = index.velocity_match(indexed, relation, allows_parameter=row["stratum"] in PARAMETER)
+                if match == "unavailable":
+                    unknown.add(i)
+                elif match == "excluded":
+                    blocked.add(i)
+                    break
+                continue
             matches = set(index.matching_keys(indexed))
             if row["stratum"] == "parameter":
                 matches.discard("structure")
@@ -62,6 +70,8 @@ def fresh_groups(candidates, historical, *, indexes):
                 blocked.add(i)
                 break
     dirty = {union.root(i) for i in blocked}
+    unavailable = {union.root(i) for i in unknown} - dirty
+    dirty.update(unavailable)
     result = defaultdict(list)
     for i, row in enumerate(candidates):
         owner = union.root(i)
@@ -78,6 +88,9 @@ def fresh_groups(candidates, historical, *, indexes):
         "eligible": eligible,
         "excluded": len(candidates) - eligible,
         "components": len(groups),
+        **(dict(provenance_unavailable=sum(union.root(i) in unavailable for i in range(len(candidates))),
+                provenance_reason="historical index lacks relation provenance; reopen original records"
+                if unavailable else None) if velocity else {}),
     }
 
 
@@ -310,7 +323,7 @@ def reserve_velocity_families(candidates, historical, *, indexes, quotas, seed):
              "replication_retention", "calibration", "practice", "teacher"}
     if not set(quotas) <= roles:
         raise ValueError("unknown family reservation")
-    groups, census = fresh_groups(candidates, historical, indexes=indexes)
+    groups, census = fresh_groups(candidates, historical, indexes=indexes, velocity=True)
     options = family_options(groups)
     panels = {r: [] for r in quotas}
     owners, used = {}, set()

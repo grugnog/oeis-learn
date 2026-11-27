@@ -71,3 +71,52 @@ def test_installed_literal_can_refit_and_full_scope_negative_replays(fitting_cli
     assert varying["status"] == "eligible"
     native = varying["proof"]["result"]["native"]
     assert native["coefficient_bits"] == 4096 and 4096 in native["completed_bounds"]
+
+
+def test_reopened_index_preserves_compositions_and_both_sides_of_exception(tmp_path):
+    from oeis_learn.generalization.progressive.generator import structure_id
+    from oeis_learn.pipeline_validation.progressive_research_inputs import ExposureIndex
+    from oeis_learn.synthesis.reference import evaluate
+
+    def witness(i, body, stratum):
+        source = f"(program (return {body}))"
+        row = case(i, f"group-{i}", stratum, source=source, structure=structure_id(source))
+        row["values"] = list(evaluate(source, row["indices"]).values)
+        return row
+
+    old = witness(1, "(add $index (int 500))", "composition")
+    flipped = witness(2, "(add (int 1000) $index)", "composition")
+    variant = witness(3, "(add $index (int 1000))", "parameter")
+    cases = [(old, flipped, 0), (old, variant, 0), (dict(old, stratum="parameter"), variant, 1)]
+    for i, (historical, candidate, expected) in enumerate(cases):
+        path = tmp_path / f"prior-{i}.sqlite"
+        with ExposureIndex(path) as index:
+            index.add(historical, origin="old panel", role="assessment")
+        args = dict(quotas={"replication": {candidate["stratum"]: 1}}, seed=29)
+        direct = reserve_velocity_families([candidate], [historical], indexes=[], **args)
+        with ExposureIndex(path, readonly=True) as index:
+            reopened = reserve_velocity_families([candidate], [], indexes=[index], **args)
+        assert direct["eligible"] == reopened["eligible"] == expected
+        assert direct["panels"] == reopened["panels"]
+
+
+def test_legacy_exposure_stays_readable_and_unknown_provenance_is_reported(tmp_path):
+    import sqlite3
+    from oeis_learn.pipeline_validation.progressive_research_inputs import ExposureIndex
+
+    path = tmp_path / "legacy.sqlite"
+    old = case(1, "reserved", stratum="composition", composition="shared")
+    with sqlite3.connect(path) as db:
+        db.execute("CREATE TABLE keys(kind TEXT, value TEXT, PRIMARY KEY(kind,value)) WITHOUT ROWID")
+        db.execute("CREATE TABLE origins(name TEXT PRIMARY KEY, rows INTEGER NOT NULL)")
+        db.execute("INSERT INTO origins VALUES ('prior',1)")
+        db.executemany("INSERT INTO keys VALUES (?,?)", ExposureIndex.keys(old))
+    candidate = case(2, "new", stratum="composition", composition="shared")
+    before = path.read_bytes()
+    with ExposureIndex(path, readonly=True) as index:
+        assert "window" in index.matches(old)
+        result = reserve_velocity_families([candidate], [], indexes=[index],
+                                          quotas={"replication": {"composition": 1}}, seed=29)
+    assert result["eligible"] == 0 and result["provenance_unavailable"] == 1
+    assert "provenance" in result["provenance_reason"]
+    assert path.read_bytes() == before
