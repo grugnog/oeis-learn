@@ -123,6 +123,25 @@ Use this after losing the console output or seeing a JSON decoding error during 
 
 Attach the printed file. It contains the compact verified summary on success or an `UNVERIFIED` diagnostic if the receipt is missing, busy or inconsistent. The reader preserves existing files and returns a nonzero exit on failure. The updated helper also accepts `--output FILE` for funded runs.
 
+## Inspect prices on the donor
+
+Run the following from the detached donor with `ROUND029_REV` set to the full preflight implementation commit. Attach the printed file. This reads the historical pilot and its independently retained qualification, the exposed one- and eight-attempt timing blocks, and any registered round029 family census. It acquires no device and requires no grant.
+
+```bash
+(
+  set -eu
+  : "${ROUND029_REV:?full preflight commit from the handoff}"
+  umask 077
+  out=$(mktemp -d "$HOME/round029-preflight.XXXXXX")
+  git fetch --no-tags origin "$ROUND029_REV"
+  git show "$ROUND029_REV:specs/016-measure-learning-velocity/validation/launch-round029.sh" > "$out/launch.sh"
+  bash "$out/launch.sh" "$ROUND029_REV" preflight > "$out/preflight.json"
+  printf '%s\n' "$out/preflight.json"
+)
+```
+
+The common-probe estimate covers ordinary and one challenger at one look. The follow-up reserve covers a matched full-profile comparison on one OEIS family with existing weights. Each price includes cold role startup and selected-choice scoring. Image acquisition is shown separately for an uncached host. Expected and tail estimates come from the historical exposed sample. The wave lists the sums of the priced items and each outstanding measurement. A null total means the listed work still needs pricing. Research funding requires a separate decision.
+
 ## Start or resume after the round029 release
 
 Use the original private workstation, a local Podman engine with resource controls and a qualified HIP device for learner work. Start in the **physical root of the detached round027 donor**. Set `ROUND029_REV` from the implementation release, and `ROUND029_GRANT` to the absolute path of the operator-authorized grant. If all you need is inventory, run through the preflight line. The same `run` line starts or resumes an authorized campaign.

@@ -7,7 +7,7 @@ from pathlib import Path
 from oeis_learn.generalization.progressive.campaign import velocity_policy
 from oeis_learn.generalization.progressive.contracts import digest, load
 from oeis_learn.generalization.progressive.lifecycle import RunStore
-from oeis_learn.generalization.progressive.program_search_costing import original_probe_costs, price_wave
+from oeis_learn.generalization.progressive.program_search_costing import velocity_forecast
 from oeis_learn.generalization.progressive.velocity_records import (
     SESSION,
     accepted_grant_parent,
@@ -61,7 +61,7 @@ def preflight(root, source=None):
 
     add_look_costs(info["cuts"], info["original_clocks"])
     try:
-        info["reuse"] = reuse_inventory(root, info["cuts"])
+        info["reuse"] = reuse_inventory(root, info["cuts"], info["original_clocks"])
     except (ValueError, OSError, KeyError) as exc:
         info["reuse"] = dict(
             measurements=[],
@@ -105,25 +105,9 @@ def preflight(root, source=None):
             info["mount"][
                 "reason"
             ] = "registered simultaneous owner peaks and physical mount reserve"
-    info["prices"] = price_wave(
-        {
-            "common_probe": {"cold_start": 1, "common_probe": 1, "selected_scoring": 1},
-            "wave": {
-                "six_new_4M_arms": 1,
-                "ordinary_control_shortfall": 1,
-                "probes_and_endpoints": 1,
-                "auxiliary_passes": 1,
-                "publication": 1,
-            },
-            "followup": {"matched_oeis_measurement": 1, "retention_and_verification": 1},
-        },
-        {},
-    )
-    info["prices"]["original_028_workloads"] = original_probe_costs(
-        info["cuts"], info["historical_scores"], info["original_clocks"]
-    )
     info["new_positive_tokens_before_overshoot_if_control_reusable"] = 24_000_000
     info.update(supply_inventory(root))
+    info["prices"] = velocity_forecast(info, policy)
     info["assessment"] = policy["assessment"]
     ordinary = next(r for r in info["cuts"] if (r["method"], r["look"]) == ("00", 4_000_000))
     if any(m["deficit_bytes"] or m["deficit_inodes"] for m in info["capacity"]["mounts"] or ()):
@@ -131,19 +115,24 @@ def preflight(root, source=None):
             "Registered simultaneous writes exceed a physical mount reserve",
             "inspect_capacity",
         )
-    elif ordinary["continuation"] == "requires_next_update_parity":
-        reason, next_action = (
-            "The ordinary 4M full state is available for one disposable next-update comparison",
-            "qualify",
-        )
     elif not ordinary["weights"]:
         reason, next_action = (
             "Original ordinary weights and training provenance are unavailable for the proposed reuse",
             "inspect_inputs",
         )
+    elif info["families"]["count"] is None:
+        reason, next_action = (
+            "Open the registered development family census to determine the matched probe size",
+            "inspect_inputs",
+        )
+    elif info["prices"]["followup_reserve_us"] is None:
+        reason, next_action = (
+            "Price one ordinary and one challenger OEIS portfolio with selected scoring on exposed inputs",
+            "qualify",
+        )
     else:
         reason, next_action = (
-            "Price the common probe and a protected follow-up on exposed inputs",
+            "Measure the outstanding treatment and CPU costs under a preparation grant before funding the screen",
             "qualify",
         )
     return result(

@@ -1,5 +1,11 @@
 # Round029 workstation qualification
 
+## Preflight pricing
+
+Preflight now reopens the exposed timing report inside the verified round028 pilot. It uses the per-stratum mean and slower observed case, separates search and selected scoring, and charges cold role overhead once per resident batch. The original pilot's 160-case qualification supplies the comparison for the proposed supervisor guard. Both the projected peak and the original measured clock appear beside that guard.
+
+The new screen still needs prices for its six treatments, matching passes, conventional CPU controls, conditioning sample, full-bank sample and publication. A matched OEIS follow-up can be priced independently on existing weights. The physical donor's family census and original receipts determine the coverage of the estimate. [File-based preflight command](../quickstart.md#inspect-prices-on-the-donor)
+
 The detached donor completed the learner update and restore rehearsal on candidate `73009e595e589a1f6780cec06d5d16989ee8dcd5`. The first attempt interrupted one backward pass at each batch size. Both resumed runs reproduced the uninterrupted final weights, AdamW state and next rows. Each scheduler recorded two useful updates and retained the discarded token charge.
 
 | Logical batch | Useful tokens | Discarded tokens | Tokens charged on recovery trajectory | Matching on the final update |

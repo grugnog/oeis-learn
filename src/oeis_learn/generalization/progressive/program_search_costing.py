@@ -248,6 +248,219 @@ def original_probe_costs(cuts, historical_looks, costs):
     return rows
 
 
+def exposed_timing_rates(timing, panels):
+    """Split the original exposed per-case clocks from each cold role's host overhead."""
+    from .program_search_timing import BLOCKS, prices
+
+    if timing != seal(timing) or panels != seal(panels) or timing["panel"] != panels["identity"]:
+        raise ValueError("exposed timing and its historical panel differ")
+    rates = {}
+    for name in BLOCKS:
+        block = timing["blocks"][name]
+        proxy = PROXIES[1 if name == "incumbent-full" else 0]
+        prior = panels["historical_clocks"][proxy]
+        floors = {
+            s: (c["score_us"] + c["cases"] - 1) // c["cases"]
+            for s, c in prior.items()
+            if c["cases"] and c["scored"] == c["cases"]
+        }
+        prices(
+            block, full=name.endswith("-full"), score_floors={s: floors.get(s, 0) for s in STRATA}
+        )
+        row = {"cases": {}, "overhead_us": {}}
+        for phase, device in (("search", "gpu"), ("score", "cpu")):
+            row["overhead_us"][phase] = max(
+                0,
+                block[device + "_wall_us"] - sum(c[phase + "_us"] for c in block["cells"].values()),
+            )
+        for s, c in block["cells"].items():
+            n = c["cases"]
+            row["cases"][s] = cell = dict(
+                observations=n, closed=c["closed"], empty=n - c["selected"], executed=c["executed"]
+            )
+            for phase, complete in (
+                ("search", c["closed"] == n),
+                (
+                    "score",
+                    c["scored"] == n
+                    and c["executed"] == c["selected"]
+                    and (c["executed"] > 0 or s in floors),
+                ),
+            ):
+                # Empty selections cannot establish the price of checking a nonempty program.
+                floor = floors.get(s, 0) if phase == "score" else 0
+                cell[phase] = (
+                    dict(
+                        expected_us=max(floor, (c[phase + "_us"] + n - 1) // n),
+                        tail_us=max(floor, c["max_" + phase + "_us"]),
+                    )
+                    if complete
+                    else None
+                )
+        rates[name] = row
+    return dict(
+        receipt=timing["identity"],
+        panel=panels["identity"],
+        candidate=timing["candidate"],
+        image_acquisition_us=timing["image_build_us"],
+        blocks=rates,
+    )
+
+
+def velocity_forecast(info, policy):
+    """Price the distinct registered opportunities from exposed clocks, before funding a screen."""
+    from collections import Counter
+
+    history = info["prices"].get("exposed_028_timing")
+    blocks = history["blocks"] if history else {}
+    prices = {}
+    plan = {scope: Counter() for scope in ("common_probe", "wave", "followup")}
+
+    def portfolios(scope, profile, method, counts, repeats):
+        # One cold search and scorer per resident block. Treatments use ordinary for the
+        # typical cost and include the slower learned checkpoint in the observed tail.
+        names = ["incumbent-full"] if method == "D" else ["ordinary-" + profile]
+        if method == "learner":
+            names.append("first_divergence-" + profile)
+        for phase in ("search", "score"):
+            for stratum, count in {"startup": 1, **counts}.items():
+                if not count:
+                    continue
+                kind = ".".join((method, profile, phase, stratum))
+                plan[scope][kind] += repeats * count
+                if all(name in blocks for name in names):
+                    rates = []
+                    for name in names:
+                        block = blocks[name]
+                        if stratum == "startup":
+                            clock = block["overhead_us"][phase]
+                            rates.append(dict(expected_us=clock, tail_us=clock))
+                        else:
+                            domain = "parameter" if stratum == "retention" else stratum
+                            rates.append(block["cases"][domain][phase])
+                    if all(rate is not None for rate in rates):
+                        prices[kind] = dict(
+                            expected_us=rates[0]["expected_us"],
+                            tail_us=max(r["tail_us"] for r in rates),
+                        )
+
+    supply = info["families"].get("by_role", {})
+    development = supply.get("development", {})
+    retained = supply.get("development_retention", {}).get("retention")
+    common = {s: development[s]["families"] for s in STRATA if s in development}
+    full = {s: min(32, development[s]["cases"]) for s in STRATA if s in development}
+    if retained is not None:
+        full["retention"] = min(32, retained["cases"])
+    learners = len(policy["recipes"]) - 1
+    looks = len(policy["profiles"]["common"]["looks"])
+    for scope in ("common_probe", "wave"):
+        if len(common) < len(STRATA) or not sum(common.values()):
+            plan[scope]["development_family_census"] = 1
+        for method, arms in (("ordinary", 1), ("learner", learners)):
+            portfolios(scope, "one", method, common, looks * arms if scope == "wave" else 1)
+    if retained is None or not sum(full.values()):
+        plan["wave"]["development_and_retention_census"] = 1
+    for method, arms in (("ordinary", 1), ("learner", learners), ("D", 1)):
+        portfolios("wave", "full", method, full, arms)
+
+    # A protected, incremental measurement with two existing full-profile models,
+    # on one distinct OEIS family. No new optimizer or full-bank pass is involved.
+    for method in ("ordinary", "learner"):
+        portfolios("followup", "full", method, {"oeis": 1}, 1)
+    if "oeis" in development and not development["oeis"]["families"]:
+        plan["followup"]["eligible_oeis_family"] = 1
+
+    work = original_probe_costs(info["cuts"], info["historical_scores"], info["original_clocks"])
+    control = [c for c in info["cuts"] if c["method"] == "00"]
+    ordinary_ready = all(c.get("weights") and c.get("lineage") for c in control)
+    control_needed = not ordinary_ready or any(
+        r["method"] == "00" and r["action"] == "rerun_control"
+        for r in info["reuse"]["measurements"]
+    )
+    # The historical ordinary base trajectory is a proxy for ordinary positive updates
+    # only. New optimizer batches, broader streams and auxiliary passes need their own prices.
+    train = [c for c in control if c["look"] == 4_000_000]
+    if train and train[0].get("training_to_look_us") is not None:
+        observed = train[0]["training_to_look_us"]
+        prices["ordinary_4M_trajectory"] = dict(expected_us=observed, tail_us=observed)
+    plan["wave"]["ordinary_4M_trajectory"] = int(control_needed)
+    plan["wave"].update(
+        {
+            k: 1
+            for k in (
+                "six_treatment_trajectories",
+                "matching_calibration_and_auxiliary_passes",
+                "paired_conditioning_sample",
+                "conventional_cpu_controls",
+                "matched_full_bank_scoring",
+                "verification_and_publication",
+            )
+        }
+    )
+    result = price_wave(plan, prices)
+    for scope, row in result.items():
+        row["operations"] = dict(plan[scope])
+    reserve = result["followup"]["tail_us"]
+    resident = info["prices"].get("resident_028")
+    guards = []
+    if resident and blocks:
+        from oeis_learn.pipeline_validation.progressive_research_resources import velocity_guard
+
+        for phase in ("search", "score"):
+            observed = resident[phase + "_supervisor_us"]
+            if phase == "score" and resident["nonempty_score_supervisor_us"] is not None:
+                observed = max(observed or 0, resident["nonempty_score_supervisor_us"])
+            # The production check is for a whole 160-case full-profile role. Use
+            # the same maximum workload even when a smaller panel was censused.
+            tails = []
+            for name in ("ordinary-full", "first_divergence-full", "incumbent-full"):
+                b = blocks[name]
+                cells = [b["cases"][s][phase] for s in (*STRATA, "parameter")]
+                if all(cell is not None for cell in cells):
+                    tails.append(b["overhead_us"][phase] + 32 * sum(c["tail_us"] for c in cells))
+            if resident["cases"] == 160 and observed is not None and len(tails) == 3:
+                guards.append(
+                    velocity_guard(
+                        owner="resident_" + phase,
+                        scope="one full-profile 160-case supervised role",
+                        units="microseconds",
+                        observed=observed,
+                        projected=max(tails),
+                        revision=resident["candidate"],
+                        harm="terminating a valid portfolio or its scorer",
+                        rehearsal="T058 cold/slow/empty portfolio",
+                        exhaustion="drain and resume a smaller batch",
+                    )
+                )
+    return dict(
+        **result,
+        basis="round028_exposed_proxy",
+        common_cases_per_arm=common,
+        full_cases_per_arm=full,
+        image_acquisition_us=history["image_acquisition_us"] if history else None,
+        assumption="cached images; one resident search and one selected scorer per method and look",
+        followup_scope="one matched full-profile OEIS family on existing ordinary and challenger weights",
+        followup_reserve_us=reserve,
+        followup_family_available=(
+            bool(development["oeis"]["families"]) if "oeis" in development else None
+        ),
+        wave_with_reserve_us=(
+            result["wave"]["tail_us"] + reserve
+            if reserve is not None and result["wave"]["tail_us"] is not None
+            else None
+        ),
+        additional_control_tokens=4_000_000 if control_needed else 0,
+        exposed_028_timing=history,
+        original_028_balance=info["prices"].get("original_028_balance"),
+        resident_028=resident,
+        provisional_guards=guards,
+        prior_score_credits=info["reuse"]["distinct_score_credits"],
+        inference_reuse_basis="aggregate screen assumes fresh requests until the ordered graph matches",
+        original_028_workloads=work,
+        unit_prices=prices,
+    )
+
+
 def affordable_prefix(batches, prices, *, remaining_us, holdback_us, paid=(), opened=()):
     """Price whole registered batches against *unreserved* time. Open work still needs settlement."""
     from oeis_learn.generalization.budgets import integer

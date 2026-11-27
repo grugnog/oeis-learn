@@ -1,5 +1,6 @@
 """Read immutable 028 outputs in place. A public score alone cannot authorize a new probe."""
 
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -229,6 +230,7 @@ def inventory(root):
         archives=archives,
         cuts=cuts,
         original_clocks=[],
+        prices={},
         stream=None,
         historical_scores=[],
         gpu_dispatches=0,
@@ -248,8 +250,38 @@ def inventory(root):
         if verified.get("report") != PILOT_REPORT:
             raise ValueError("original pilot report identity differs")
         archives["pilot"]["reader"] = archives["qualification"]["reader"] = policy["pilot_reader"]
+        from oeis_learn.generalization.progressive.program_search_costing import exposed_timing_rates
+
         with zipfile.ZipFile(files["pilot"]) as archive:
             pilot = json.loads(archive.read("pilot.json"))
+            with (
+                zipfile.ZipFile(io.BytesIO(archive.read("round028-parent.zip"))) as wrapper,
+                zipfile.ZipFile(io.BytesIO(wrapper.read("round028.zip"))) as evidence,
+            ):
+                out["prices"]["exposed_028_timing"] = exposed_timing_rates(
+                    json.loads(evidence.read("timing.json")), json.loads(evidence.read("panels.json"))
+                )
+        out["original_clocks"] = pilot["costs"]
+        with zipfile.ZipFile(files["qualification"]) as archive:
+            qualification = json.loads(archive.read("qualification.json"))
+        balance = qualification.get("balance")
+        if balance is not None:
+            out["prices"]["original_028_balance"] = dict(
+                receipt=balance["identity"],
+                settled_us=sum(row[2] for row in balance["charges"]),
+                outstanding_us={
+                    state: sum(row[3] for row in balance["opened"] if row[2] == state)
+                    for state in ("open", "ended", "unstarted")
+                },
+                stopped_after=balance["stopped_after"],
+            )
+        scale = qualification["scale"]
+        out["prices"]["resident_028"] = dict(
+            receipt=scale["identity"], candidate=qualification["registration"]["candidate"],
+            cases=scale["cases"], empty=scale["no_selection"], slowest_case_us=scale["slowest_case_us"],
+            search_supervisor_us=scale["search_supervisor_us"], score_supervisor_us=scale["score_supervisor_us"],
+            nonempty_score_supervisor_us=(scale.get("score_control") or {}).get("supervisor_us"),
+        )
         area = confined(root, f"{PARENT}/{AREA}")
         freeze = load(confined(area, "freeze.json"), maximum=CAMPAIGN_DOCUMENT_BYTES)
         if seal(freeze) != freeze or freeze["identity"] != pilot["design"]["private_freeze"]:
@@ -257,7 +289,6 @@ def inventory(root):
     except (ValueError, FileNotFoundError) as exc:
         out["reason"] = str(exc)
         return out
-    out["original_clocks"] = pilot["costs"]
     for look in pilot["looks"]:
         out["historical_scores"].append(
             dict(

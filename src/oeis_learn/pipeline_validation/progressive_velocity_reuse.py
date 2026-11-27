@@ -253,7 +253,7 @@ def add_look_costs(cuts, costs):
             cut["training_to_look_us"] = cumulative
 
 
-def reuse_inventory(root, cuts):
+def reuse_inventory(root, cuts, costs=()):
     folder = confined(root, f"run-state/discovery/{SESSION}/preparation/reuse", exists=False)
     result = dict(
         measurements=[],
@@ -270,6 +270,7 @@ def reuse_inventory(root, cuts):
     ):
         raise ValueError("frozen request registration differs")
     result.update(registration=reg["identity"], reason=None)
+    original_costs = {(c["block"], c["role"]): c for c in costs}
     prior, credited = {}, set()
     for r in reg["rows"]:
         method, look = r["method"], r["look"]
@@ -288,10 +289,28 @@ def reuse_inventory(root, cuts):
         new_credit = bool(score_key and score_key not in credited)
         if new_credit:
             credited.add(score_key)
+        block = f"{ARMS[method]}-{look}"
+        if r["segment"]:
+            block += f"-resume-{r['segment']}"
+        score_block = block + (f"-scoreretry-{r['score_attempt']}" if r["score_attempt"] else "")
+        paid = {}
+        for role, name in (("search", block), ("score", score_block)):
+            c = original_costs.get((name, role))
+            reusable = layers["action"] == "reuse_score" or (role == "search" and layers["action"] == "rescore")
+            paid[role] = dict(
+                original_receipt=c["identity"] if c else None,
+                original_charged_us=c["charged_us"] if c else None,
+                additional_us=0 if reusable else None,
+                state="reused" if reusable else "requires_new_work",
+            )
         result["measurements"].append(
             dict(
                 method=method,
                 look=look,
+                request=digest(r["request"]),
+                segment=r["segment"],
+                score_attempt=r["score_attempt"],
+                costs=paid,
                 **layers,
                 look_work_us=cut.get("look_work_us"),
                 historical_gap=gap,

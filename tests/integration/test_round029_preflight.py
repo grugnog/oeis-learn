@@ -153,11 +153,117 @@ def test_registered_preflight_reuse_is_once_per_verified_score_and_local_to_look
     rows = inv["reuse"]["measurements"]
     assert [r["action"] for r in rows[:5]] == ["reuse_score", "reuse_score", "rescore", "new_inference", "rerun_control"]
     assert rows[0]["credited"] and not rows[1]["credited"] and inv["reuse"]["distinct_score_credits"] == 1
+    assert [rows[i]["costs"]["search"]["additional_us"] for i in (0, 2, 3)] == [0, 0, None]
+    assert rows[2]["costs"]["score"]["additional_us"] is None
     assert [r["reason"] for r in rows[2:5]] == ["private truth or scorer differs", "search, selection or sealed choice differs",
                                                  "weights or training lineage unavailable"]
     assert rows[5]["continuation"] is False and rows[6]["look_work_us"] is None and rows[0]["look_work_us"] == 123
     assert inv["gpu_dispatches"] == inv["reuse"]["research_dispatches"] == 0
     assert times == {p: p.stat().st_mtime_ns for p in tmp_path.rglob("*")}
+
+
+def test_preflight_prices_verified_exposed_clocks_even_without_private_freeze(
+    tmp_path, monkeypatch
+):
+    from io import BytesIO
+    from zipfile import ZipFile
+    from oeis_learn.generalization.progressive.cohorts import STRATA
+    from oeis_learn.generalization.progressive.contracts import seal
+    from oeis_learn.generalization.progressive.program_search_costing import PROXIES
+    from oeis_learn.pipeline_validation import progressive_round029 as host
+    from oeis_learn.pipeline_validation import progressive_velocity_donor as donor
+    from tests.integration.test_round028_timing import measured
+
+    def archive(files):
+        stream = BytesIO()
+        with ZipFile(stream, "w") as z:
+            for name, value in files.items():
+                z.writestr(name, value if isinstance(value, bytes) else json.dumps(value))
+        return stream.getvalue()
+
+    cell = dict(cases=32, scored=32, score_us=32)
+    panels = seal(dict(historical_clocks={p: dict.fromkeys(STRATA, cell) for p in PROXIES}))
+    blocks = measured()
+    blocks["first_divergence-full"]["cells"]["oeis"]["max_search_us"] = 19
+    timing = seal(
+        dict(
+            panel=panels["identity"],
+            blocks=blocks,
+            candidate="a" * 40,
+            image_build_us=dict(cpu=200, hip=300),
+        )
+    )
+    nested = archive({"round028.zip": archive({"timing.json": timing, "panels.json": panels})})
+    pilot = tmp_path / "pilot.zip"
+    pilot.write_bytes(archive({"pilot.json": {"costs": []}, "round028-parent.zip": nested}))
+    scale = seal(
+        dict(
+            cases=160,
+            no_selection=160,
+            slowest_case_us=60_133_643,
+            search_supervisor_us=6_142_074_000,
+            score_supervisor_us=520,
+            score_control=dict(supervisor_us=550),
+        )
+    )
+    pre = tmp_path / "qualification.zip"
+    pre.write_bytes(
+        archive({"qualification.json": dict(scale=scale, registration=dict(candidate="b" * 40))})
+    )
+    monkeypatch.setattr(
+        donor,
+        "_archives",
+        lambda *_: ({"pilot": pilot, "qualification": pre}, {"pilot": {}, "qualification": {}}),
+    )
+    verified = {"report": donor.PILOT_REPORT}
+    monkeypatch.setattr(donor, "_verify_with_pin", lambda *_: verified)
+    before = {p: p.stat().st_mtime_ns for p in tmp_path.iterdir()}
+    prices = host.preflight(tmp_path)["inventory"]["prices"]
+    assert prices["exposed_028_timing"]["receipt"] == timing["identity"]
+    assert prices["followup"]["expected_us"] == 132 and prices["followup_reserve_us"] == 148
+    assert prices["image_acquisition_us"] == {"cpu": 200, "hip": 300}
+    assert prices["common_probe"]["expected_us"] is None
+    assert "development_family_census" in prices["common_probe"]["missing"]
+    assert prices["provisional_guards"][0]["value"] == 2 * 6_142_074_000
+    assert prices["provisional_guards"][1]["observed"] == 550
+    by_role = {
+        "development": {s: dict(cases=4, families=2) for s in STRATA},
+        "development_retention": {"retention": dict(cases=3, families=2)},
+    }
+    family_supply = dict(
+        count=10,
+        by_role=by_role,
+        eligible_cases=19,
+        eligible_components=10,
+        excluded_cases=0,
+        deficits={},
+        provenance_unavailable=0,
+        provenance_reason=None,
+        registration=digest("registration"),
+        measurement=digest("census"),
+        reason=None,
+    )
+    monkeypatch.setattr(
+        host,
+        "supply_inventory",
+        lambda _: dict(
+            families=family_supply, matching_pairs=dict(count=None, reason="missing training pairs")
+        ),
+    )
+    priced = host.preflight(tmp_path)["inventory"]["prices"]
+    assert priced["common_probe"]["expected_us"] == 2 * (54 + 8 * 12)
+    assert priced["wave"]["operations"]["learner.one.search.oeis"] == 6 * 3 * 2
+    assert priced["wave"]["operations"]["D.full.score.retention"] == 3
+    assert priced["additional_control_tokens"] == 4_000_000 and priced["wave"]["tail_us"] is None
+    assert "matched_full_bank_scoring" in priced["wave"]["missing"]
+    assert priced["wave"]["known_tail_us"] > priced["common_probe"]["tail_us"]
+    by_role["development"]["oeis"] = dict(cases=0, families=0)
+    zero = host.preflight(tmp_path)["inventory"]["prices"]
+    assert zero["followup_family_available"] is False and zero["followup_reserve_us"] is None
+    verified["report"] = digest("unrelated report")
+    rejected = host.preflight(tmp_path)["inventory"]["prices"]
+    assert rejected["exposed_028_timing"] is rejected["followup_reserve_us"] is None
+    assert before == {p: p.stat().st_mtime_ns for p in tmp_path.iterdir()}
 
 
 def test_preflight_opens_the_two_original_installed_role_boundaries(tmp_path):
