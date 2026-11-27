@@ -82,10 +82,18 @@ def test_operator_writes_a_complete_attachment_on_success_or_failure(
 
 @pytest.mark.parametrize(
     "fault,expected_calls",
-    [("none", 2), ("missing_receipt", 0), ("other_grant", 0), ("other_status", 0), ("extra_charge", 2)],
+    [
+        ("none", 2),
+        ("missing_receipt", 0),
+        ("other_grant", 0),
+        ("other_status", 0),
+        ("extra_charge", 2),
+    ],
 )
 def test_saved_learner_review_uses_the_original_grant(tmp_path, fault, expected_calls):
-    validation = Path(__file__).resolve().parents[2] / "specs/016-measure-learning-velocity/validation"
+    validation = (
+        Path(__file__).resolve().parents[2] / "specs/016-measure-learning-velocity/validation"
+    )
     helper = runpy.run_path(str(validation / "replay_learner.py"))
     grant_id = helper["GRANT"]
     authority = tmp_path / "run-state/discovery-authorizations" / f"grant-{grant_id}.json"
@@ -93,8 +101,11 @@ def test_saved_learner_review_uses_the_original_grant(tmp_path, fault, expected_
     atomic_write(authority, {"identity": retained_grant})
     receipt = {"identity": helper["RECEIPT_ID"]}
     saved = dict(
-        receipt_path="retained/receipt.json", receipt=receipt, elapsed_us=100,
-        charged_tokens=20, research_dispatches=0,
+        receipt_path="retained/receipt.json",
+        receipt=receipt,
+        elapsed_us=100,
+        charged_tokens=20,
+        research_dispatches=0,
     )
     if fault != "missing_receipt":
         atomic_write(tmp_path / saved["receipt_path"], receipt)
@@ -104,7 +115,8 @@ def test_saved_learner_review_uses_the_original_grant(tmp_path, fault, expected_
         if action == "status":
             status_id = digest("other") if fault == "other_status" else helper["STATUS_ID"]
             return dict(
-                owner_active=False, last_committed_ref=receipt["identity"],
+                owner_active=False,
+                last_committed_ref=receipt["identity"],
                 progress=dict(saved, identity=status_id),
             )
         assert action == "qualify" and args == (str(authority),)
@@ -689,3 +701,98 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     path.write_text('{"elapsed_us":1}')
     new, code = run()
     assert code == 0 and "timed_updates" not in new["inventory"]["prices"] and len(launches) == 1
+
+
+def test_broader_disjointness_failure_reopens_both_treatments_without_device_or_new_charge(
+    tmp_path, monkeypatch
+):
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive.contracts import atomic_write, digest, load, seal
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from oeis_learn.pipeline_validation import progressive_round028, progressive_round029
+    from oeis_learn.pipeline_validation import progressive_velocity_broad_host as broad
+    from oeis_learn.pipeline_validation import supervision
+    from oeis_learn.pipeline_validation.progressive_velocity_supply import _area
+
+    folder = tmp_path / "run-state/discovery" / SESSION
+    pointer = seal(dict(grant=digest("ordinary payment"), receipt=digest("paid matrix")))
+    family = seal(
+        dict(kind="families", grant=digest("prior supply"), receipt=digest("family census"))
+    )
+    atomic_write(folder / "preparation/update-prices.json", pointer)
+    atomic_write(_area(tmp_path, "families") / "funded.json", family)
+    # Grant routing can encounter the older ordinary payment before testing the broader parent.
+    atomic_write(
+        _area(tmp_path, "matching_pairs") / "funded.json",
+        seal(dict(kind="matching_pairs", grant=family["grant"], receipt=digest("pairs"))),
+    )
+    revision = "a" * 40
+    monkeypatch.setattr(progressive_round029, "candidate_revision", lambda *_: revision)
+    monkeypatch.setattr(
+        progressive_round028,
+        "git",
+        lambda root, *args: (
+            None
+            if "symbolic-ref" in args
+            else progressive_round029.velocity_policy()["donor_revision"]
+        ),
+    )
+    source = Path(__file__).resolve().parents[2]
+    args = SimpleNamespace(
+        workspace=tmp_path,
+        action="qualify",
+        authority=broad.authorize(tmp_path, 5, revision),
+        archive=None,
+        qualification_archive=None,
+    )
+    calls = []
+
+    def custody(argv, out, **options):
+        calls.append(argv)
+        binding = load(Path(argv[-1]))
+        atomic_write(
+            out / "process.json", dict(outcome="COMPLETE", returncode=0, cleanup_failure=None)
+        )
+        atomic_write(
+            out / "custody.json",
+            seal(
+                dict(
+                    origins=binding["origins"],
+                    ordinary_slots=8,
+                    sources=[],
+                    physical=digest("device"),
+                    calibration=dict(
+                        observation=digest("weight"), measurement=digest("paid matrix")
+                    ),
+                    disposition="requires_fresh_disjoint_start",
+                    counts=dict(candidates=8, excluded=3),
+                    drawn=0,
+                    training=None,
+                )
+            ),
+        )
+
+    monkeypatch.setattr(supervision, "launch", custody)
+
+    def no_device(*args, **kwargs):
+        pytest.fail("a protected ordinary stream acquired a device")
+
+    def run():
+        return progressive_round029.execute(args, source, host_factory=no_device)
+
+    first, code = run()
+    assert code == 0, first
+    assert first["receipt"]["disposition"] == "requires_fresh_disjoint_start"
+    assert first["charged_tokens"] == 0 and first["research_dispatches"] == 0
+    assert run() == (first, 0) and len(calls) == 1
+    args.action, args.authority = "verify", None
+    checked, code = run()
+    assert code == 0 and checked["verification_scope"] == "private_broader_timings", checked
+    assert checked["last_committed_ref"] == first["receipt"]["identity"]
+    assert broad.inventory(tmp_path, source) == first["receipt"]
+    c = next(folder.glob("qualification/*/operations/*/attempt-*/custodian/custody.json"))
+    import json
+
+    c.write_text(json.dumps(seal(dict(load(c), counts=dict(candidates=8, excluded=0)))))
+    with pytest.raises(ValueError, match="measured exclusion"):
+        broad.inventory(tmp_path, source)

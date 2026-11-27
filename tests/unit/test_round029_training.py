@@ -72,22 +72,41 @@ def test_composition_preserves_familiar_slots_and_closes_only_shortage():
     assert not broader_stream(slots, supply[:1], seed=12)["available"]
 
 
-
 def test_frozen_study_registers_and_reopens_looks_without_sampler_feedback(tmp_path):
     from oeis_learn.generalization.progressive.campaign import velocity_registration
     from oeis_learn.generalization.progressive.graph import velocity_study_looks
-    from oeis_learn.pipeline_validation.progressive_study import open_velocity_study, close_velocity_study
+    from oeis_learn.pipeline_validation.progressive_study import (
+        open_velocity_study,
+        close_velocity_study,
+    )
 
-    development = [dict(task="a", group="f", stratum="oeis"), dict(task="b", group="f", stratum="oeis")]
+    development = [
+        dict(task="a", group="f", stratum="oeis"),
+        dict(task="b", group="f", stratum="oeis"),
+    ]
     retention = [dict(task="r", group="known", stratum="retention")]
-    args = dict(source="a" * 40, design=digest("frozen hypotheses, workers and prices"),
-                development=development, retention=retention, initialization=53, stream_seed=67,
-                ordinary=digest("ordinary stream"), broad=digest("broad stream"))
+    args = dict(
+        source="a" * 40,
+        design=digest("frozen hypotheses, workers and prices"),
+        development=development,
+        retention=retention,
+        initialization=53,
+        stream_seed=67,
+        ordinary=digest("ordinary stream"),
+        broad=digest("broad stream"),
+    )
     reg = velocity_registration(**args)
     journal = open_velocity_study(tmp_path, reg)
     assert len(journal.trials) == 7
     assert [journal.velocity_trial(f"{i:02d}")["binding"]["recipe"]["id"] for i in range(7)] == [
-        "00", "01", "02", "03", "04", "05", "06"]
+        "00",
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+    ]
     graph = velocity_study_looks(reg)
     cheap = graph["00"]["common"]
     assert [r["look"] for r in cheap] == [0, 1_000_000, 4_000_000]
@@ -104,34 +123,70 @@ def test_frozen_study_registers_and_reopens_looks_without_sampler_feedback(tmp_p
     journal.observe_velocity(reg, cheap[1], evidence=digest("one million"))
     journal.observe_velocity(reg, cheap[2], reason="physical budget exhausted")
     assert all(row["status"] == "PROPOSED" for row in journal.trials.values())
-    assert open_velocity_study(tmp_path, reg).observe_velocity(reg, cheap[0], evidence=digest("zero")) == first
+    assert (
+        open_velocity_study(tmp_path, reg).observe_velocity(reg, cheap[0], evidence=digest("zero"))
+        == first
+    )
     from oeis_learn.generalization.progressive.budgets import KEYS
     from oeis_learn.generalization.progressive.contracts import seal
     from oeis_learn.generalization.progressive.velocity_records import SESSION, physical_root_id
+
     accepted = seal(dict(registration=reg["identity"], scope="exploration"))
     authority = physical_root_id(tmp_path)
-    terms = dict(version="round029-grant/v1", study_id=SESSION, scope="cpu", state_root_id=authority,
-                 registration_or_parent_ref=accepted["identity"], total_us=100, holdback_us=10,
-                 allowed_operations=["cpu", "structure_search"], resources=dict(dict.fromkeys(KEYS, 0), elapsed_us=100))
+    terms = dict(
+        version="round029-grant/v1",
+        study_id=SESSION,
+        scope="cpu",
+        state_root_id=authority,
+        registration_or_parent_ref=accepted["identity"],
+        total_us=100,
+        holdback_us=10,
+        allowed_operations=["cpu", "structure_search"],
+        resources=dict(dict.fromkeys(KEYS, 0), elapsed_us=100),
+    )
     approval = seal(dict(version="round029-authorization/v1", terms=digest(terms)))
     grant = seal(dict(terms, authorizing_record_ref=approval["identity"]))
-    funded = dict(decision=digest("observed deficit"), reason="price a fixed-order comparison",
-                  grant=grant, approval=approval, accepted=accepted, root_id=authority)
-    assert journal.record_velocity_branch("structure_search", **funded)["grant"] == grant["identity"]
-    assert journal.record_velocity_branch("paired_extension", decision=first, reason="unfunded")["state"] == "unused"
+    funded = dict(
+        decision=digest("observed deficit"),
+        reason="price a fixed-order comparison",
+        grant=grant,
+        approval=approval,
+        accepted=accepted,
+        root_id=authority,
+    )
+    assert (
+        journal.record_velocity_branch("structure_search", **funded)["grant"] == grant["identity"]
+    )
+    assert (
+        journal.record_velocity_branch("paired_extension", decision=first, reason="unfunded")[
+            "state"
+        ]
+        == "unused"
+    )
     with pytest.raises(ValueError):
         journal.record_velocity_branch("confirmation", **funded)
     boundary = close_velocity_study(tmp_path, reg, state="resumable", evidence=first)
-    child = velocity_registration(**dict(args, initialization=71, stream_seed=99, ordinary=digest("new stream"),
-                                         development=[dict(task="new", group="fresh", stratum="oeis")],
-                                         retention=[dict(task="new-r", group="fresh-r", stratum="retention")]),
-                                  scope="confirmation", parent=boundary, finalist="03")
+    child = velocity_registration(
+        **dict(
+            args,
+            initialization=71,
+            stream_seed=99,
+            ordinary=digest("new stream"),
+            development=[dict(task="new", group="fresh", stratum="oeis")],
+            retention=[dict(task="new-r", group="fresh-r", stratum="retention")],
+        ),
+        scope="confirmation",
+        parent=boundary,
+        finalist="03",
+    )
     assert set(velocity_study_looks(child)) == {"00", "03", "D"}
     assert len(open_velocity_study(tmp_path, child).trials) == 2
     with pytest.raises((FileNotFoundError, ValueError)):
         open_velocity_study(tmp_path / "foreign", child)
     with pytest.raises(ValueError):
-        velocity_registration(**args, scope="confirmation", parent=dict(boundary, state="running"), finalist="03")
+        velocity_registration(
+            **args, scope="confirmation", parent=dict(boundary, state="running"), finalist="03"
+        )
 
 
 def test_whole_update_crossing_after_discard_and_seed_provenance():
@@ -143,9 +198,15 @@ def test_whole_update_crossing_after_discard_and_seed_provenance():
     second = exposure(stream, rows, updates=2, batch=16, discarded=64)
     assert (first["useful_tokens"], first["charged_tokens"]) == (32, 96)
     assert not crossed(first, 48) and crossed(second, 48) and not crossed(second, 32)
-    args = dict(initialization=9, stream_seed=21, ordinary=digest("ordinary"), broad=digest("broad"))
+    args = dict(
+        initialization=9, stream_seed=21, ordinary=digest("ordinary"), broad=digest("broad")
+    )
     before = recipe_bindings(digest("study"), **args)
-    for changed in (dict(initialization=10), dict(stream_seed=22), dict(ordinary=digest("other ordinary"))):
+    for changed in (
+        dict(initialization=10),
+        dict(stream_seed=22),
+        dict(ordinary=digest("other ordinary")),
+    ):
         other = recipe_bindings(digest("study"), **dict(args, **changed))
         assert before["00"]["identity"] != other["00"]["identity"]
     for invalid in (-1, 2**32, True):
@@ -295,13 +356,13 @@ def test_screen_freezes_verified_shared_start_and_reruns_control_only_on_mismatc
         )
 
 
-def test_broad_preparation_rechecks_witnesses_preserves_slots_and_excludes_protected(tmp_path):
+@pytest.fixture
+def matched_composition_inputs(tmp_path):
     from oeis_learn.generalization.progressive import generator, training_rows
     from oeis_learn.generalization.progressive.complexity import measure
     from oeis_learn.generalization.progressive.contracts import seal
     from oeis_learn.generalization.progressive.program_search_panels import descriptor, bin_key
     from oeis_learn.pipeline_validation.progressive_preparation import (
-        prepare_velocity_broad,
         verify_draw,
     )
     from oeis_learn.synthesis.reference import evaluate
@@ -369,6 +430,20 @@ def test_broad_preparation_rechecks_witnesses_preserves_slots_and_excludes_prote
         indexes=[],
         client=client,
     )
+    return args, witnesses
+
+
+def test_broad_preparation_rechecks_witnesses_preserves_slots_and_excludes_protected(
+    tmp_path, matched_composition_inputs
+):
+    from oeis_learn.generalization.progressive.contracts import seal
+    from oeis_learn.pipeline_validation.progressive_preparation import prepare_velocity_broad
+
+    args, witnesses = matched_composition_inputs
+    client = args["client"]
+    stream = args["stream"]
+    order = stream["order"]
+    keys = {r["draw_identity"]: r for r in args["shards"][0]}
     broad, rows, audit = prepare_velocity_broad(**args)
     assert broad["available"] and broad["ordinary"]["tokens"] == broad["broad"]["tokens"]
     assert broad["broad"]["per_million"] > broad["ordinary"]["per_million"]
@@ -648,6 +723,7 @@ def test_historical_optimizer_prices_survive_reader_changes_and_reject_workload_
     helper = Path("specs/015-learned-program-search/validation/candidate_source.py")
     (source / helper).parent.mkdir(parents=True)
     shutil.copyfile(root / helper, source / helper)
+
     def git(*args):
         return subprocess.check_output(["git", "-C", str(tmp_path), *args], text=True).strip()
 
@@ -686,3 +762,338 @@ def test_historical_optimizer_prices_survive_reader_changes_and_reject_workload_
     (cache / "tests/clock.py").write_text("tampered")
     with pytest.raises(ValueError, match="cached candidate differs"):
         checked_price_source(tmp_path, source, binding)
+
+
+def test_broader_timings_share_ordinary_weight_count_repeated_slots_and_charge_both_recipes(
+    velocity_supply_rows,
+):
+    from copy import deepcopy
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.fresh.bigint_diagnostics import model_snapshot
+    from oeis_learn.generalization.progressive.contracts import seal
+    from oeis_learn.generalization.progressive.models import construct, resolve_profile
+    from oeis_learn.generalization.progressive.training_rows import matching_pairs
+    from oeis_learn.pipeline_validation import progressive_velocity_broad as broad
+
+    rows = {r["draw_identity"]: r for r in velocity_supply_rows}
+    keys = list(rows)
+    pairs = matching_pairs([list(rows.values())], keys, seed=29)
+    assert pairs["pairs"]
+    repeated = next(iter(pairs["pairs"]))
+    stream = seal(dict(order=[*keys, repeated]))
+    model = resolve_profile(
+        resolve({"version": "bigint-bootstrap/v1"}), seed=29, shape="smaller_width"
+    )
+    encoder, decoder, _ = construct(model, device="cpu")
+    origin = dict(profile=model, initial_weights=model_snapshot(encoder, decoder))
+    frozen = dict(
+        weight=0.125, observation=digest("ordinary calibration"), measurement=digest("paid timing")
+    )
+    view = broad.projection(stream, rows, pairs, origin)
+    assert len(view["rows"]) == len(keys) + 1
+    assert len(view["donors"]) == pairs["eligible_rows"] + 1
+    assert all(
+        set(row) == {"tokens", "values"} and len(row["values"]) == 20
+        for row in view["rows"].values()
+    )
+    design = broad.design(view, 8, frozen)
+    observed = broad.run(view, design, device="cpu")
+    prices = broad.prices(view, design, observed)
+    assert set(prices) == {"01", "03"}
+    assert all(r["tail_us"] >= r["expected_us"] > 0 for r in prices.values())
+    assert design["cost"]["tokens"] == sum(
+        s["positive_tokens"] for v in observed["methods"].values() for s in v["samples"].values()
+    )
+    assert set(broad.design(view, 8, dict(frozen, weight=None))["methods"]) == {"01"}
+    forged = deepcopy(observed)
+    forged["methods"]["03"]["samples"]["0"]["eligible"] += 1
+    with pytest.raises(ValueError, match="passes"):
+        broad.prices(view, design, seal(forged))
+
+
+@pytest.mark.parametrize("prospects", [True, False])
+def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes(
+    tmp_path, monkeypatch, matched_composition_inputs, prospects
+):
+    from pathlib import Path
+    from types import SimpleNamespace
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.fresh.bigint_diagnostics import model_snapshot
+    from oeis_learn.generalization.progressive.contracts import (
+        atomic_write,
+        digest,
+        load,
+        reference,
+        seal,
+    )
+    from oeis_learn.generalization.progressive.models import construct, resolve_profile
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from oeis_learn.pipeline_validation import (
+        progressive_velocity_broad as broad,
+        progressive_velocity_broad_host as host,
+    )
+    from oeis_learn.pipeline_validation import supervision
+    from oeis_learn.pipeline_validation.progressive_generator_probe import usage_summary
+    from oeis_learn.pipeline_validation.progressive_velocity_supply import _area
+
+    x, _ = matched_composition_inputs
+    source = Path(__file__).resolve().parents[2]
+    folder = tmp_path / "run-state/discovery" / SESSION
+    image, machine = digest("test image"), digest("test hardware")
+    pointer = seal(dict(grant=digest("ordinary-grant"), receipt=digest("ordinary-measurement")))
+    atomic_write(folder / "preparation/update-prices.json", pointer)
+    atomic_write(
+        _area(tmp_path, "families") / "funded.json",
+        seal(dict(kind="families", grant=digest("families-grant"), receipt=digest("families"))),
+    )
+    revision = "a" * 40
+    grant = load(host.authorize(tmp_path, 5, revision))
+    model = resolve_profile(
+        resolve({"version": "bigint-bootstrap/v1"}),
+        seed=x["stream"]["seeds"]["initialization"],
+        shape="smaller_width",
+    )
+    encoder, decoder, _ = construct(model, device="cpu")
+    origin = dict(profile=model, initial_weights=model_snapshot(encoder, decoder))
+    calls = []
+
+    def custody(argv, out, **kwargs):
+        calls.append("custodian")
+        cal = dict(
+            weight=0.25, observation=digest("fixed ordinary weight"), measurement=pointer["receipt"]
+        )
+        plan = seal(
+            dict(
+                **origin,
+                stream=seal(dict(x["stream"], law=x["law"])),
+                ordinary_rows=x["shards"][0],
+                familiar=x["familiar"],
+                difficulty=x["calibration"],
+                eligible_ordinals=x["ordinals"] if prospects else [],
+                pair_seed=29,
+                microbatch=8,
+                calibration=cal,
+            )
+        )
+        atomic_write(out / "training.json", plan)
+        atomic_write(
+            out / "custody.json",
+            seal(
+                dict(
+                    origins=load(Path(argv[-1]))["origins"],
+                    ordinary_slots=4,
+                    drawn=2,
+                    physical=machine,
+                    calibration=cal,
+                    counts={},
+                    disposition="eligible",
+                    sources=[],
+                    training=reference(out, out / "training.json"),
+                )
+            ),
+        )
+        atomic_write(
+            out / "process.json", dict(outcome="COMPLETE", returncode=0, cleanup_failure=None)
+        )
+
+    monkeypatch.setattr(supervision, "launch", custody)
+    base = seal(dict(image=image))
+    monkeypatch.setattr(host, "cached_runtime", lambda *_: base)
+
+    def package(root, source, area, out, revision, parent, src, worker, stage, seconds):
+        paths = [out / "bootstrap.py", out / "candidate.whl"]
+        for path in paths:
+            path.write_bytes(b"fixture")
+        return seal(
+            dict(parent=base, bootstrap=reference(area, paths[0]), wheel=reference(area, paths[1]))
+        )
+
+    monkeypatch.setattr(host, "package_worker", package)
+    monkeypatch.setattr(host, "package_evidence", lambda *_: None)
+    monkeypatch.setattr(host, "physical_scope", lambda *_args, **_kwargs: machine)
+
+    def engine_stage(
+        physical, source, image, out, argv, *, gpu, record_lease, readonly_inputs, seconds
+    ):
+        requests = {dest: p for p, dest in readonly_inputs}
+        req = load(requests["/work/inputs/request.json"])
+        binds = [
+            dict(Type="bind", Source=str(p), Destination=d, RW=False) for p, d in readonly_inputs
+        ]
+        binds.append(dict(Type="bind", Source=str(out), Destination="/work/output", RW=True))
+        atomic_write(
+            out / "container-inspect.json",
+            [
+                dict(
+                    Image=image,
+                    HostConfig=dict(NetworkMode="none", ReadonlyRootfs=True, Privileged=False),
+                    Mounts=binds,
+                )
+            ],
+        )
+        atomic_write(
+            out / "process.json", dict(outcome="COMPLETE", returncode=0, cleanup_failure=None)
+        )
+        atomic_write(out / "cleanup.json", dict(acknowledged=True, within_bound=True))
+        calls.append(req["role"])
+        assert record_lease is gpu and req["role"] == argv[4]
+        if not gpu:
+            assert "protected" not in req
+            produced = broad.prepare(req, out, x["client"])
+        else:
+            assert set(requests) == {
+                "/work/inputs/request.json",
+                "/work/inputs/projection.json",
+                "/work/inputs/candidate-wheel.py",
+                "/work/inputs/candidate.whl",
+            }
+            view = load(requests["/work/inputs/projection.json"])
+            observed = broad.run(view, req["design"], device="cpu")
+            elapsed = 1 + sum(
+                m["startup_us"] + sum(s["elapsed_us"] for s in m["samples"].values())
+                for m in observed["methods"].values()
+            )
+            (out / "telemetry").mkdir()
+            (out / "telemetry/samples.jsonl").write_text("")
+            atomic_write(out / "gpu-lease.json", dict(elapsed_us=elapsed + 1))
+            produced = seal(
+                dict(
+                    device="hip",
+                    request=req["identity"],
+                    matrix=observed,
+                    elapsed_us=elapsed,
+                    worker_cpu_us=1,
+                    peak_device_bytes=1,
+                    telemetry=usage_summary(out / "telemetry", elapsed),
+                )
+            )
+        atomic_write(out / "producer.json", produced)
+
+    monkeypatch.setattr(host, "stage", engine_stage)
+    engine = SimpleNamespace(image=lambda k: k)
+
+    def qualify():
+        return host.qualify(
+            None,
+            tmp_path,
+            folder,
+            source,
+            revision,
+            grant,
+            lambda *a, **kw: SimpleNamespace(engine=engine),
+        )
+
+    first, code = qualify()
+    assert code == 0, first
+    assert first["receipt"]["disposition"] == (
+        "prepared" if prospects else "no_breadth_at_matched_exposure"
+    )
+    assert (first["charged_tokens"] > 0) is prospects
+    assert qualify() == (first, 0) and host.inventory(tmp_path, source) == first["receipt"]
+    assert calls == ["custodian", "prepare-broad"] + (["time-broad"] if prospects else [])
+
+
+@pytest.mark.parametrize("collision", [False, True])
+def test_broader_custodian_checks_reserved_shift_before_native_projection(
+    tmp_path, monkeypatch, matched_composition_inputs, collision
+):
+    from oeis_learn.generalization.progressive.contracts import atomic_write, load, reference, seal
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from oeis_learn.pipeline_validation import progressive_velocity_broad_host as host
+    from oeis_learn.pipeline_validation import progressive_panel_sources
+    from oeis_learn.pipeline_validation.progressive_round028_audit import ORIGINAL
+
+    args, witnesses = matched_composition_inputs
+    (tmp_path / "run-state/discovery" / SESSION).mkdir(parents=True)
+    panel = tmp_path / "panel"
+    panel_id = digest("original panel")
+    difficulty = args["calibration"]
+    stock = seal(
+        dict(
+            version="round028-private-panel-supply/v1",
+            registration=panel_id,
+            calibrated=True,
+            allocations=dict(calibration=difficulty["identity"]),
+            witnesses={},
+        )
+    )
+    atomic_write(panel / "supply.json", stock)
+    atomic_write(panel / "difficulty-map.json", difficulty)
+    held = panel / "calibration-reservation.json"
+    atomic_write(held, seal(dict(registration=panel_id, witnesses={})))
+    original = seal(dict(payload={"references": []}))
+    atomic_write(tmp_path / ORIGINAL / "prepare-research/frozen/campaign.json", original)
+    monkeypatch.setattr(host, "learned_search_policy", lambda: dict(campaign=original["identity"]))
+    census, data = digest("exposures"), digest("donor data")
+    stream = seal(dict(args["stream"], law=args["law"]))
+    stock_ref = reference(tmp_path, panel / "supply.json")
+    package = dict(
+        stream=stream,
+        rows=args["shards"][0],
+        native_draws=42,
+        profile={},
+        microbatch=8,
+        exposure_cut=digest([census, data, stock["identity"], reference(panel, held)]),
+    )
+    monkeypatch.setattr(
+        host, "training_source", lambda _: (dict(roster_source=stock_ref), package, [stock_ref])
+    )
+    monkeypatch.setattr(
+        host,
+        "paid_calibration",
+        lambda *_: (
+            dict(weight=0.2, observation=digest("cal"), measurement=digest("paid")),
+            digest("weights"),
+            digest("device"),
+        ),
+    )
+    families = dict(panels={"assessment": [{"task": "reserved"}]})
+    monkeypatch.setattr(host, "funded_inventory", lambda *_a, **_kw: ({}, families))
+    monkeypatch.setattr(host, "DRAW_BLOCK", 2)
+    reserved = dict(
+        id="reserved",
+        stratum="oeis",
+        indices=list(map(str, range(100))),
+        values=[str((1 << 200) + i) for i in range(100)],
+    )
+    if collision:
+        reserved["values"][:20] = witnesses[0]["values"][80:]
+    monkeypatch.setattr(
+        progressive_panel_sources,
+        "read_inputs",
+        lambda *_a, **_kw: dict(
+            census=census,
+            data=dict(identity=data),
+            candidates=[reserved],
+            historical=[],
+            originals_used=[],
+            support={"structures": args["familiar"]},
+        ),
+    )
+    monkeypatch.setattr(host, "practice_prompts", lambda: [])
+    out = tmp_path / "custody"
+    out.mkdir()
+    host.custodian(tmp_path, tmp_path, out, {"families": {}})
+    receipt = load(out / "custody.json")
+    if collision:
+        assert receipt["disposition"] == "requires_fresh_disjoint_start"
+        assert (
+            receipt["counts"]["excluded"] > 0
+            and receipt["drawn"] == 0
+            and receipt["training"] is None
+        )
+    else:
+        assert receipt["disposition"] == "eligible" and receipt["drawn"] == 2
+        training = load(out / receipt["training"]["path"])
+        assert set(training["eligible_ordinals"]) <= {42, 43}
+        assert "reserved" not in str(training) and "protected" not in training
+        from oeis_learn.pipeline_validation.progressive_velocity_broad import checked_request
+
+        request = host.role_request(
+            dict(identity=digest("grant"), source=digest("source")),
+            dict(parent={"image": digest("image")}),
+            "prepare-broad",
+            training,
+        )
+        with pytest.raises(ValueError, match="closed training-only"):
+            checked_request(seal(dict(request, hidden_suffix=reserved["values"])), "prepare-broad")

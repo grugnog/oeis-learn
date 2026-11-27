@@ -360,15 +360,24 @@ def checked_price_source(root, source, binding):
     # Model, optimizer, calibration, input encoding, runtime, policy, and contracts
     # all retain their original identities. Acquisition is priced separately.
     host_only = {
-        "progressive_round029.py", "progressive_velocity_timing_host.py",
-        "progressive_velocity_verify.py", "progressive_velocity_wheel.py",
-        "progressive_velocity_broad.py", "progressive_velocity_broad_host.py",
+        "progressive_round029.py",
+        "progressive_velocity_timing_host.py",
+        "progressive_velocity_verify.py",
+        "progressive_velocity_wheel.py",
+        "progressive_velocity_image.py",
+        "progressive_velocity_broad.py",
+        "progressive_velocity_broad_host.py",
     }
+    if binding.get("version") == "round029-broader-timing/v1":
+        host_only -= {"progressive_velocity_broad.py", "progressive_velocity_broad_host.py"}
     for name in previous.keys() | current.keys():
         if previous.get(name) == current.get(name) or name.startswith("tests/"):
             continue
         path = Path(name)
-        if path.parent.as_posix() == "src/oeis_learn/pipeline_validation" and path.name in host_only:
+        if (
+            path.parent.as_posix() == "src/oeis_learn/pipeline_validation"
+            and path.name in host_only
+        ):
             continue
         if name == "src/oeis_learn/generalization/progressive/program_search_costing.py":
             continue
@@ -384,10 +393,7 @@ def timing_inventory(root, source):
         raise ValueError("original timing pointer differs")
     area = confined(folder, "qualification/" + marker["grant"][7:])
     grant, binding = [load(confined(area, p)) for p in ("grant.json", "binding.json")]
-    if (
-        marker["grant"] != grant["identity"]
-        or pair_pointer(root) != binding["pair_pointer"]
-    ):
+    if marker["grant"] != grant["identity"] or pair_pointer(root) != binding["pair_pointer"]:
         raise ValueError("price inputs differ from the funded donor census")
     checked_price_source(root, source, binding)
     approval = load(

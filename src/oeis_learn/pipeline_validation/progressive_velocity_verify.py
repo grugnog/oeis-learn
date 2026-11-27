@@ -169,12 +169,17 @@ def private_result(root, folder):
         from . import progressive_velocity_preparation as preparation
         from . import progressive_velocity_timing_host as timing
 
+        from . import progressive_velocity_broad_host as broad
+
+        broader = binding["version"] == broad.VERSION
         supply = binding["version"] == preparation.VERSION
         matrix = binding["version"] == timing.VERSION
         if learner:
             parent = qualification_parent(
                 binding["candidate"], children=binding.get("child_restore", False)
             )
+        elif broader:
+            parent = broad.parent(binding["candidate"], binding["origins"])
         elif supply:
             parent = preparation.preparation_parent(binding["candidate"])
         elif matrix:
@@ -214,6 +219,11 @@ def private_result(root, folder):
             if any(key not in snapshot["committed"] for key in record["debits"]):
                 raise ValueError("original learner debit missing")
             report, scope = record["identity"], "private_learner_rehearsal"
+        elif broader:
+            if binding["origins"] != broad.original_pointers(root, folder):
+                raise ValueError("broader inputs differ from the original paid records")
+            record = broad.replay(root, area, grant, binding, snapshot)
+            report, scope = record["identity"], "private_broader_timings"
         elif matrix:
             record = timing.replay(root, area, binding, grant, snapshot)
             report, scope = record["identity"], "private_update_timings"

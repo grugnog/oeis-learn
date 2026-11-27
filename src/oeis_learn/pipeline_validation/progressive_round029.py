@@ -109,12 +109,23 @@ def preflight(root, source=None):
     info.update(supply_inventory(root))
     from .progressive_velocity_timing_host import timing_inventory
 
+    measured = None
     try:
         measured = timing_inventory(root, source)
         if measured is not None:
             info["prices"]["timed_updates"] = measured
     except (OSError, ValueError, KeyError) as exc:
         info["prices"]["timing_reason"] = str(exc)
+    from .progressive_velocity_broad_host import inventory as broad_inventory
+
+    try:
+        broader = broad_inventory(root, source)
+        if broader is not None and measured is not None:
+            if broader["ordinary_measurement"] != measured["measurement"]:
+                raise ValueError("broader timing belongs to a different ordinary calibration")
+            info["prices"]["broader_updates"] = broader
+    except (OSError, ValueError, KeyError) as exc:
+        info["prices"]["broader_reason"] = str(exc)
     info["prices"] = velocity_forecast(info, policy)
     info["assessment"] = policy["assessment"]
     ordinary = next(r for r in info["cuts"] if (r["method"], r["look"]) == ("00", 4_000_000))
@@ -160,9 +171,32 @@ def preflight(root, source=None):
             "Measure the exposed ordinary-stream matching calibration and optimizer batches together",
             "qualify",
         )
-    elif "optimizer_to_4M_recipe_01" in info["prices"]["wave"]["missing"]:
+    elif "optimizer_to_4M_recipe_01" in info["prices"]["wave"]["missing"] and not info[
+        "prices"
+    ].get("broader_updates"):
         reason, next_action = (
             "Prepare the broader-composition training stream and verify its matching support to price recipes 01 and 03",
+            "qualify",
+        )
+    elif (info["prices"].get("broader_updates") or {}).get(
+        "disposition"
+    ) == "requires_fresh_disjoint_start":
+        reason, next_action = (
+            "The original positive stream overlaps protected families. Prepare a fresh matched start for the broader comparison",
+            "inspect_inputs",
+        )
+    elif (info["prices"].get("broader_updates") or {}).get(
+        "disposition"
+    ) == "requires_frozen_difficulty_map":
+        reason, next_action = (
+            "Restore the frozen difficulty calibration before pricing broader composition",
+            "inspect_inputs",
+        )
+    elif ((info["prices"].get("broader_updates") or {}).get("device") or {}).get(
+        "methods", {}
+    ).keys() == {"01"}:
+        reason, next_action = (
+            "Resolve broader matching support and the shared loss weight before pricing recipe 03",
             "qualify",
         )
     else:
@@ -271,7 +305,10 @@ def execute(args, source, *, host_factory=None):
         claimed = grant["registration_or_parent_ref"]
         donation = action == "qualify" and claimed == donation_parent(revision)
         preparation = action == "qualify" and claimed == preparation_parent(revision)
+        from . import progressive_velocity_broad_host as broad
+
         timing = False
+        broader = False
         if (
             action == "qualify"
             and not donation
@@ -284,6 +321,10 @@ def execute(args, source, *, host_factory=None):
         ):
             try:
                 timing = claimed == timing_parent(revision, pair_pointer(root)["receipt"])
+                if not timing:
+                    broader = claimed == broad.parent(
+                        revision, broad.original_pointers(root, folder)
+                    )
             except FileNotFoundError:
                 pass
         parent = None
@@ -293,6 +334,7 @@ def execute(args, source, *, host_factory=None):
                 if donation
                 or preparation
                 or timing
+                or broader
                 or claimed == qualification_parent(revision, children=True)
                 else qualification_parent(revision)
             )
@@ -312,6 +354,8 @@ def execute(args, source, *, host_factory=None):
         folder.mkdir(parents=True, exist_ok=True)
         with RunStore.owner(folder):
             if action == "qualify":
+                if broader:
+                    return broad.qualify(args, root, folder, source, revision, grant, host_factory)
                 if timing:
                     from .progressive_velocity_timing_host import qualify
                 elif preparation:
@@ -322,18 +366,26 @@ def execute(args, source, *, host_factory=None):
                     from .progressive_velocity_qualification import qualify
 
                 return qualify(args, root, folder, source, revision, grant, host_factory)
-            return result(
-                action,
-                "BLOCKED",
-                "Accepted pre-score commitment for this scope required",
-                "qualify",
-            ), 2
+            return (
+                result(
+                    action,
+                    "BLOCKED",
+                    "Accepted pre-score commitment for this scope required",
+                    "qualify",
+                ),
+                2,
+            )
     except Exception as exc:
-        return result(
-            action,
-            "FAILED",
-            str(exc) or type(exc).__name__,
-            "inspect_inputs",
-            first_error=dict(error=type(exc).__name__, stage=action, reason=str(exc) or type(exc).__name__),
-            **({"verification_scope": "unverified_inputs"} if action == "verify" else {}),
-        ), 1
+        return (
+            result(
+                action,
+                "FAILED",
+                str(exc) or type(exc).__name__,
+                "inspect_inputs",
+                first_error=dict(
+                    error=type(exc).__name__, stage=action, reason=str(exc) or type(exc).__name__
+                ),
+                **({"verification_scope": "unverified_inputs"} if action == "verify" else {}),
+            ),
+            1,
+        )

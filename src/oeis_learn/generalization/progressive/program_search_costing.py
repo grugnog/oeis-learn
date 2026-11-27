@@ -403,6 +403,7 @@ def velocity_forecast(info, policy):
             )
         }
     )
+    broad = info["prices"].get("broader_updates")
     timed = info["prices"].get("timed_updates")
     if timed is not None:
         # Each update sample includes positive work and its actual auxiliary pass.
@@ -416,6 +417,8 @@ def velocity_forecast(info, policy):
             plan["wave"][key] = 1
             if row["stream"] == "ordinary" and row["id"] in timed["methods"]:
                 prices[key] = timed["methods"][row["id"]]
+            elif row["stream"] != "ordinary" and broad and broad["device"] and row["id"] in broad["device"]["methods"]:
+                prices[key] = broad["device"]["methods"][row["id"]]
         clock = timed["calibration_us"]
         plan["wave"]["ordinary_matching_calibration"] = 1
         prices["ordinary_matching_calibration"] = dict(expected_us=clock, tail_us=clock)
@@ -469,6 +472,8 @@ def velocity_forecast(info, policy):
             else "round028_exposed_proxy"
         ),
         **({"timed_updates": timed} if timed else {}),
+        **({"broader_updates": broad} if broad else {}),
+        **({"broader_reason": info["prices"]["broader_reason"]} if "broader_reason" in info["prices"] else {}),
         **(
             {"timing_reason": info["prices"]["timing_reason"]}
             if info["prices"].get("timing_reason")

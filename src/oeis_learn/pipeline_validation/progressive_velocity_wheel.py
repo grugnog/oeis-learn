@@ -24,7 +24,7 @@ def file_digest(path):
         return "sha256:" + hashlib.file_digest(body, "sha256").hexdigest()
 
 
-def installed(wheel, expected_wheel, expected_source, *, run):
+def installed(wheel, expected_wheel, expected_source, *, action):
     if file_digest(wheel) != expected_wheel:
         raise ValueError("candidate wheel bytes differ from the issued artifact")
     with tempfile.TemporaryDirectory() as tmp:
@@ -32,13 +32,26 @@ def installed(wheel, expected_wheel, expected_source, *, run):
         # ROCm image provides pip. Both install just the already hashed wheel.
         if importlib.util.find_spec("pip") is None:
             installer = [
-                "uv", "--no-config", "--offline", "--no-cache", "pip", "install",
-                "--python", sys.executable,
+                "uv",
+                "--no-config",
+                "--offline",
+                "--no-cache",
+                "pip",
+                "install",
+                "--python",
+                sys.executable,
             ]
         else:
             installer = [
-                sys.executable, "-I", "-m", "pip", "--isolated", "--disable-pip-version-check",
-                "install", "--no-cache-dir", "--no-compile",
+                sys.executable,
+                "-I",
+                "-m",
+                "pip",
+                "--isolated",
+                "--disable-pip-version-check",
+                "install",
+                "--no-cache-dir",
+                "--no-compile",
             ]
         subprocess.run(
             [*installer, "--no-index", "--no-deps", "--target", tmp, str(wheel.resolve())],
@@ -51,7 +64,11 @@ def installed(wheel, expected_wheel, expected_source, *, run):
             digest(provenance.source_snapshot()) != expected_source
         ):
             raise ValueError("installed application differs from the registered candidate")
-        if run:
+        if action in {"prepare-broad", "time-broad"}:
+            from oeis_learn.pipeline_validation.progressive_velocity_broad import worker
+
+            worker(action)
+        elif action == "run":
             runpy.run_module(
                 "oeis_learn.pipeline_validation.progressive_velocity_timing", run_name="__main__"
             )
@@ -115,8 +132,8 @@ def main(argv):
     action, path, *args = argv
     if action == "package":
         package(Path(path), *args)
-    elif action in {"run", "check"}:
-        installed(Path(path), *args, run=action == "run")
+    elif action in {"run", "check", "prepare-broad", "time-broad"}:
+        installed(Path(path), *args, action=action)
     else:
         raise ValueError("unknown candidate packaging action")
 

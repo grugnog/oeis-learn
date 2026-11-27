@@ -286,6 +286,24 @@ def test_preflight_prices_verified_exposed_clocks_even_without_private_freeze(
     assert before == {p: p.stat().st_mtime_ns for p in tmp_path.iterdir()}
 
 
+    from oeis_learn.pipeline_validation import progressive_velocity_broad_host as broad
+    from oeis_learn.pipeline_validation import progressive_velocity_timing_host as ordinary
+    rate = dict(expected_us=10, tail_us=12)
+    paid = dict(measurement=digest("fixture ordinary timing"),methods={"02":rate},calibration_us=5)
+    monkeypatch.setattr(ordinary, "timing_inventory", lambda *_: paid)
+    measurement = dict(ordinary_measurement=paid["measurement"], disposition="prepared", device={"methods":{"01":rate, "03":rate}})
+    monkeypatch.setattr(broad, "inventory", lambda *_: measurement)
+    both = host.preflight(tmp_path)["inventory"]["prices"]
+    assert not {"optimizer_to_4M_recipe_01","optimizer_to_4M_recipe_03"}.intersection(both["wave"]["missing"])
+    assert both["wave"]["operations"]["ordinary_matching_calibration"] == 1
+    assert both["broader_updates"] == measurement
+    monkeypatch.setattr(broad, "inventory", lambda *_: dict(measurement, ordinary_measurement=digest("other calibration")))
+    stale = host.preflight(tmp_path)["inventory"]["prices"]
+    assert "different ordinary calibration" in stale["broader_reason"]
+    assert {"optimizer_to_4M_recipe_01", "optimizer_to_4M_recipe_03"} <= set(stale["wave"]["missing"])
+
+
+
 def test_preflight_opens_the_two_original_installed_role_boundaries(tmp_path):
     from oeis_learn.generalization.progressive.contracts import atomic_write, digest, reference, seal
     from oeis_learn.pipeline_validation.pilot_clocks import clock_record, DESCRIPTIVE

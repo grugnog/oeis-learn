@@ -33,7 +33,7 @@ def preparation_boundary(out, deadline):
         yield
     finally:
         stopped = True
-        for name in ("image-build", "package"):
+        for name in ("image-build", "package", "custodian", "native"):
             child = out / name
             if child.exists():
                 try:
@@ -62,6 +62,8 @@ def failure_details(root, grant, problem):
         ("operation", out),
         ("image_build", out / "image-build"),
         ("package", out / "package"),
+        ("custodian", out / "custodian"),
+        ("native_preparation", out / "native"),
     ):
         if not parent.is_dir():
             continue
