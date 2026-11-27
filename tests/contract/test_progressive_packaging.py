@@ -158,6 +158,17 @@ def test_feature_contracts_in_source_sdist_and_installed_wheel(tmp_path):
         check=True,
         cwd=tmp_path,
     )
+    if shutil.which("uv"):
+        import venv
+
+        # Mirror the unseeded interpreter used by the construction CI shard.
+        clean = tmp_path / "without-pip"
+        venv.EnvBuilder(with_pip=False).create(clean)
+        subprocess.run(
+            [str(clean / "bin/python"), "-I", "-B", str(root / BOOTSTRAP), "check",
+             str(original), file_digest(original.read_bytes()), fingerprint],
+            check=True, cwd=tmp_path,
+        )
     changed = tmp_path / "tampered" / original.name
     changed.parent.mkdir()
     with zipfile.ZipFile(original) as old, zipfile.ZipFile(changed, "w") as new:

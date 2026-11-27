@@ -1,6 +1,7 @@
 """Build or install the exact candidate wheel inside a previously qualified ROCm environment."""
 
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -27,23 +28,20 @@ def installed(wheel, expected_wheel, expected_source, *, run):
     if file_digest(wheel) != expected_wheel:
         raise ValueError("candidate wheel bytes differ from the issued artifact")
     with tempfile.TemporaryDirectory() as tmp:
+        # The CPU acceptance image uses an unseeded uv venv. The qualified
+        # ROCm image provides pip. Both install just the already hashed wheel.
+        if importlib.util.find_spec("pip") is None:
+            installer = [
+                "uv", "--no-config", "--offline", "--no-cache", "pip", "install",
+                "--python", sys.executable,
+            ]
+        else:
+            installer = [
+                sys.executable, "-I", "-m", "pip", "--isolated", "--disable-pip-version-check",
+                "install", "--no-cache-dir", "--no-compile",
+            ]
         subprocess.run(
-            [
-                sys.executable,
-                "-I",
-                "-m",
-                "pip",
-                "--isolated",
-                "--disable-pip-version-check",
-                "install",
-                "--no-index",
-                "--no-cache-dir",
-                "--no-deps",
-                "--no-compile",
-                "--target",
-                tmp,
-                str(wheel.resolve()),
-            ],
+            [*installer, "--no-index", "--no-deps", "--target", tmp, str(wheel.resolve())],
             check=True,
         )
         sys.path.insert(0, tmp)
