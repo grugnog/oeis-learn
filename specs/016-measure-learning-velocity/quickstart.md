@@ -103,7 +103,7 @@ Run from the physical root of the detached donor at `77667e67176ae32fa16457d5256
 )
 ```
 
-The grant funds 4,182 training tokens across the references, interrupted parents and children. The children charge 209 and 400 incremental tokens at logical batches 16 and 32. The runtime measures both parent and child checkpoint storage while they coexist. A 15–20 minute wall-time budget is a planning allowance for cached layers based on the roughly three-minute parent-only rehearsal. The helper reopens the committed qualification twice, verifies the private receipt and prints the measured charge, lease and child checkpoint identities. It issues zero research dispatches.
+The grant funds 4,182 training tokens across the references, interrupted parents and children. The children charge 209 and 400 incremental tokens at logical batches 16 and 32. The runtime measures both parent and child checkpoint storage while they coexist. The qualified donor used 6 minutes 18.529 seconds of its 20-minute grant for this child rehearsal. A 15–20 minute budget allows for variation with cached layers. [Measured result](validation/round029-release.md#separately-funded-child-qualification) The helper reopens the committed qualification twice, verifies the private receipt and prints the measured charge, lease and child checkpoint identities. It issues zero research dispatches.
 
 ### Recover the child receipt as a file
 

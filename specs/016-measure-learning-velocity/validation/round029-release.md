@@ -70,7 +70,14 @@ The helper returned this summary after verifying the private receipt and checkin
 
 ## Separately funded child qualification
 
-The recorded 4M result above applies to the ordinary donor import on its pinned candidate. Source tests also exercise a round029 parent that retained a discarded update. The child receives a new grant, carries the parent’s complete state and historical charges, and advances its own ledger only for new work. The combined batch-16/32 HIP result for this path is pending. [Child qualification command](../quickstart.md#rehearse-a-separately-funded-child)
+The detached donor completed the child rehearsal on candidate `a89af7fe820138a925090e340bbfeef45094adb7`. Each child restored its round029 parent under a separate grant, advanced one optimizer update at the 8M schedule horizon and matched the uninterrupted third update in weights, AdamW state, RNG and next rows. Both child checkpoints and the qualification receipt reopened twice. The two interrupted parent updates remained charged. [Returned workstation summary](round029-child-qualification.json) · [Read-only recovery command](../quickstart.md#recover-the-child-receipt-as-a-file)
+
+| Logical batch | New child tokens | Cumulative useful tokens | Inherited discarded tokens | Cumulative charged tokens |
+| ---: | ---: | ---: | ---: | ---: |
+| 16 | 209 | 600 | 200 | 800 |
+| 32 | 400 | 1,191 | 400 | 1,591 |
+
+The references, interrupted parents and children together charged 4,182 training tokens. The donor charged 378.528890 s of 1,200 s, with a 330.846476 s device lease and 821.471110 s remaining. Peak device use was 4,250,619,904 bytes, 601,768,448 bytes below the historical paired-learner peak. This qualification issued zero research dispatches and carries a null scientific verdict. The returned summary identifies receipt `sha256:2ee4df2b9d89996ec6e8c4353c93fd59d0bc85e5ec8edbe2783b3e7e4232f7a6`. The private evidence and debit journal remain on the donor.
 
 ## Reopen the saved qualification
 
