@@ -16,6 +16,15 @@ DEPENDENCIES = {
 }
 
 
+def round028_branches(action):
+    """Translate the registered routing decision into conditional graph nodes."""
+    nodes = {"CPU_SELECTOR": "selector", "MATCHED_GENERATOR": "generator", "REPLAY": "replay"}
+    if action is not None and action not in (*nodes, "RETAIN_REFERENCE", "ISOLATE_FAULT"):
+        raise ValueError("unregistered round028 route")
+    return {node: ("pending" if action is None else "selected" if action == route else "skipped:" + action)
+            for route, node in nodes.items()}
+
+
 def validate_graph(graph, *, caps):
     _check(schema("common")["$defs"]["graph"], graph, schema("common"))
     selected = set(graph["selected_stages"])

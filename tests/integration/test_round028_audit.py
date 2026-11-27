@@ -16,6 +16,67 @@ def roster():
             for s in ("parameter", "composition", "unseen_structure", "oeis") for i in range(32)]
 
 
+def test_owned_batch_rejects_an_alias_and_ambiguous_json(tmp_path):
+    import os
+    from oeis_learn.generalization.progressive.contracts import read_bound_record
+    from oeis_learn.pipeline_validation.progressive_outputs import round028_batch
+    from oeis_learn.pipeline_validation.progressive_research_inputs import checked_file
+
+    registration = digest("historical study")
+    batch = seal(dict(version="round028-cases/v1", registration=registration, ordinal=0, cases=[]))
+    original = tmp_path / "donor.json"
+    atomic_write(original, batch)
+    folder = tmp_path / "session"
+    path = folder / "private/batches" / (batch["identity"][7:] + ".json")
+    path.parent.mkdir(parents=True)
+    os.link(original, path)
+    binding = dict(authority="session", role="historical_audit", ordinal=0, registration=registration,
+                   artifact=reference(folder, path), identity=batch["identity"])
+    with pytest.raises(ValueError, match="alias"):
+        round028_batch(folder, binding, registration=registration, ordinal=0)
+    with pytest.raises(ValueError, match="relative"):
+        checked_file(folder, dict(binding["artifact"], path=str(path)))
+    path.unlink()
+    path.write_text('{"ordinal":1,' + json.dumps(batch)[1:])
+    with pytest.raises(ValueError, match="duplicate"):
+        read_bound_record(folder, reference(folder, path))
+
+
+def test_conditional_graph_records_skipped_branches():
+    from oeis_learn.generalization.progressive.graph import round028_branches
+
+    for action, selected in [("MATCHED_GENERATOR", "generator"), ("CPU_SELECTOR", "selector"),
+                             ("REPLAY", "replay"), ("ISOLATE_FAULT", None), ("RETAIN_REFERENCE", None)]:
+        dispositions = round028_branches(action)
+        assert {k for k, v in dispositions.items() if v == "selected"} == ({selected} if selected else set())
+        assert set(dispositions) == {"selector", "generator", "replay"}
+        assert all(v == "selected" or v == "skipped:" + action for v in dispositions.values())
+    assert set(round028_branches(None).values()) == {"pending"}
+    with pytest.raises(ValueError):
+        round028_branches("UNKNOWN")
+
+
+def test_reuse_inventory_binds_original_calibration_cost(tmp_path):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation.progressive_round028_audit import reuse_inventory
+
+    reserve = seal(dict(event="RESERVE", operation="preparation/calibrate/0", cost={"elapsed_us": 19}))
+    commit = seal(dict(reserve, event="COMMIT", previous=reserve["identity"]))
+    path = tmp_path / "cost.jsonl"
+    donor = SimpleNamespace(root=tmp_path, optional=lambda f, *args: f(*args), remember=lambda ref: None)
+
+    def collect(last):
+        path.write_text("\n".join(json.dumps(e) for e in (reserve, last)))
+        refs = {"iteration_calibration_cost": {"artifact": reference(tmp_path, path)}}
+        return reuse_inventory(donor, {"identity": digest("campaign")}, {}, refs)
+
+    record = collect(commit)
+    assert record["scope"] == "historical_only" and record["exposure"] is None
+    assert record["calibration_cost"]["cost"] == {"elapsed_us": 19}
+    with pytest.raises(ValueError, match="cost chain"):
+        collect(seal(dict(commit, previous=digest("unrelated"))))
+
+
 def test_private_reader_requires_committed_registration(tmp_path):
     reg = diagnostic_registration("a" * 40)
     with pytest.raises((OSError, ValueError)):

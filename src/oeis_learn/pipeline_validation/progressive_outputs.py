@@ -301,8 +301,10 @@ def round028_batch(root, binding, *, registration, ordinal):
             or binding["ordinal"] != ordinal):
         raise ValueError("audit batch role, parent or order differs")
     path = binding["artifact"]["path"]
-    if Path(path).parts[:2] != ("private", "batches") or Path(path).name != binding["identity"][7:] + ".json":
+    if path != "private/batches/" + binding["identity"][7:] + ".json":
         raise ValueError("private audit batch outside authority")
+    if confined(root, path).stat().st_nlink != 1:
+        raise ValueError("private audit batch has a mutable alias")
     item = read_bound_record(root, binding["artifact"], identity=binding["identity"], version="round028-cases/v1")
     if item["registration"] != registration or item["ordinal"] != ordinal:
         raise ValueError("audit batch producer differs")

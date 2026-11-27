@@ -35,7 +35,11 @@ def checked_file(root, ref, *, maximum=32 << 30):
     if (not isinstance(ref, dict) or set(ref) != {'path', 'bytes', 'sha256'}
         or type(ref['bytes']) is not int or not 0 <= ref['bytes'] <= maximum):
         raise ValueError('bounded original artifact reference required')
-    path = confined(root, ref['path'])
+    name = ref['path']
+    if (not isinstance(name, str) or '\\' in name or Path(name).is_absolute()
+            or any(part in ('', '.', '..') for part in name.split('/'))):
+        raise ValueError('canonical relative artifact path required')
+    path = confined(root, name)
     before = path.stat()
     if not stat.S_ISREG(before.st_mode) or before.st_size != ref['bytes']:
         raise ValueError('original artifact identity/size differs: ' + ref['path'])

@@ -13,6 +13,7 @@ from oeis_learn.generalization.progressive.campaign import diagnostic_registrati
 from oeis_learn.generalization.progressive.cohorts import STRATA
 from oeis_learn.generalization.progressive.contracts import load, read_bound_record, reference, seal
 from oeis_learn.generalization.progressive.lifecycle import RunStore
+from oeis_learn.generalization.progressive.graph import round028_branches
 from oeis_learn.generalization.progressive.program_search_report import public_audit, publish_archive, verify_archive
 from .identity import confined
 from .preparation_recovery import retain
@@ -109,7 +110,10 @@ def status(folder):
         mechanical = "PUBLICATION_PENDING"
         scientific = "PILOT_UNMEASURED"
         extra.update(reason="TERMINAL_PUBLICATION_PENDING", next_action="FINALIZE", remaining_authorized_gpu_us=0)
-    return dict(**extra, mechanical_status=mechanical, scientific_status=scientific,
+    branches = round028_branches(store.state.get("route"))
+    if store.state.get("branches", branches) != branches:
+        raise ValueError("branch dispositions differ from the committed route")
+    return dict(**extra, mechanical_status=mechanical, scientific_status=scientific, branches=branches,
                 owner_active=busy, boundary=store.tip, decision=store.state.get("route"), active=store.state.get("active"))
 
 
@@ -213,7 +217,8 @@ def audit_command(root, folder, store, registration):
     receipt = publish_archive(publication, public)
     if not store.state.get("publication"):
         store.append(dict(store.state, status="AUDIT_PUBLISHED", publication=receipt["report"],
-                          route=data["decision"]["action"], pending=data["decision"].get("blocker")))
+                          route=data["decision"]["action"], branches=round028_branches(data["decision"]["action"]),
+                          pending=data["decision"].get("blocker")))
     if receipt["report"] != store.state["publication"]:
         raise ValueError("published report differs from committed audit")
     return dict(mechanical_status="BLOCKED" if data["decision"].get("blocker") else "COMPLETE",
@@ -387,7 +392,7 @@ def execute(args, source, *, host_factory=None):
                 private = reopen(root, folder, registration, store.state["audit"])
                 donor = Donor(root, folder, registration)
                 old_support = private["support"]["status"] == "measured" and "eligibility" not in private["support"]
-                repeated = audit(donor, legacy_support=True) if old_support else audit(donor)
+                repeated = audit(donor, legacy_support=old_support, legacy_inventory="reuse" not in private)
                 original = {r["task"]: r for r in private["cases"]}
                 if (original != {r["task"]: r for r in repeated["cases"]}
                         or any(private[k] != v for k, v in repeated.items() if k != "cases")):
@@ -453,10 +458,11 @@ def execute(args, source, *, host_factory=None):
                 result = diagnostic_replay(args, source, root, folder, revision, store, host_factory, result)
             if result["decision"].get("blocker"):
                 return result, 2
-            if args.action == "run" and result["decision"]["action"] == "CPU_SELECTOR":
+            branches = round028_branches(result["decision"]["action"])
+            if args.action == "run" and branches["selector"] == "selected":
                 from .progressive_round028_selector import selector_command
                 return selector_command(args, source, root, folder, revision, store, host_factory, result)
-            if args.action in {"run", "rehearse"} and result["decision"]["action"] == "MATCHED_GENERATOR":
+            if args.action in {"run", "rehearse"} and branches["generator"] == "selected":
                 from .progressive_round028_rehearsal import rehearse
                 observed, code = rehearse(args, root, source, folder, store, revision, result,
                                          host_factory=host_factory)

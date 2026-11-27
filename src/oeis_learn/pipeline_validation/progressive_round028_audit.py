@@ -361,7 +361,37 @@ def summarize(cases, methods):
     return result, pairs
 
 
-def audit(donor, *, legacy_support=False):
+def reuse_inventory(donor, campaign, inventory, refs):
+    """Describe historical reuse without granting fresh evaluation or training authority."""
+    def available(name):
+        entry = refs.get(name)
+        if entry is None:
+            return None
+        ref = entry["artifact"]
+        if donor.optional(checked_file, donor.root, ref) is None:
+            return None
+        donor.remember(ref)
+        return ref
+
+    exposure = available("exposure")
+    source = available("registered-research-data")
+    cost = available("iteration_calibration_cost")
+    original_cost = None
+    if cost:
+        path = checked_file(donor.root, cost, maximum=64 << 20)
+        events = [json.loads(line) for line in path.read_bytes().splitlines()]
+        need(len(events) == 2 and [e["event"] for e in events] == ["RESERVE", "COMMIT"]
+             and all(seal(e) == e and e["operation"] == "preparation/calibrate/0" for e in events)
+             and events[1]["previous"] == events[0]["identity"] and events[0]["cost"] == events[1]["cost"],
+             "original calibration cost chain differs")
+        original_cost = dict(journal=cost, committed=events[1]["identity"], cost=events[1]["cost"])
+    return dict(campaign=campaign["identity"], source=source, exposure=exposure,
+                calibration_cost=original_cost, scope="historical_only",
+                products={name: dict(producer=row["artifact"]["sha256"], role=row["role"],
+                                      disposition=row["disposition"]) for name, row in inventory.items()})
+
+
+def audit(donor, *, legacy_support=False, legacy_inventory=False):
     policy = donor.policy
     campaign = donor.saved(ORIGINAL + "/prepare-research/frozen/campaign.json", policy["campaign"],
                            maximum=CAMPAIGN_DOCUMENT_BYTES)
@@ -431,7 +461,8 @@ def audit(donor, *, legacy_support=False):
                 donor.remember(artifact)
             inventory[name] = dict(artifact=artifact, role=entry["role"], kind=entry["kind"],
                                    disposition="verified_historical_scope" if present else "unavailable")
-    return dict(cases=rows, original_trials=trial_costs, donor_inventory=inventory, methods=aggregates, pairs=pairs, producers=producers, checkpoints=checkpoints,
+    reuse = {} if legacy_inventory else {"reuse": reuse_inventory(donor, campaign, inventory, refs)}
+    return dict(**reuse, cases=rows, original_trials=trial_costs, donor_inventory=inventory, methods=aggregates, pairs=pairs, producers=producers, checkpoints=checkpoints,
                 support=support, projection=projection, decision=route(projection),
                 followup_training=original_costs, original_budget=replay and replay["budget"],
                 inputs=list(donor.refs.values()), missing_inputs=sorted(donor.missing))
