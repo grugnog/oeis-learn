@@ -704,21 +704,21 @@ def execute(operation, **kwargs):
     return _execute(operation, **kwargs)
 
 
-def main(argv=None, *, inputs=Path("/inputs"), authority=Path("/authority/supervisor.json"),
-         output=Path("/output/discovery")):
+def main(argv=None, *, inputs=None, authority=None, output=None):
     args = list(sys.argv[1:] if argv is None else argv)
     from .progressive_roles import ROUND029_ROLES
     if len(args) == 1 and args[0].startswith("round029-") and args[0].removeprefix("round029-") in ROUND029_ROLES:
         from .progressive_velocity_roles import accept_role_inputs
 
         try:
-            receipt = accept_role_inputs(args[0].removeprefix("round029-"), inputs=inputs,
-                                         authority=authority, output=output)
+            receipt = accept_role_inputs(args[0].removeprefix("round029-"), inputs=inputs or Path("/work/inputs/channels"),
+                                         authority=authority or Path("/work/inputs/authority.json"), output=output or Path("/work/output"))
         except (OSError, ValueError, KeyError, TypeError, RuntimeError):
             print(json.dumps({"mechanical_status": "FAILED", "reason": "invalid role projection or worker"}))
             return 1
         print(json.dumps(receipt, sort_keys=True))
         return 0
+    output = output or Path("/output/discovery")
     if len(args) != 1 or args[0] not in IMPLEMENTED:
         raise ValueError("registered installed operation required")
     try:

@@ -50,7 +50,7 @@ The historical pilot should reproduce its one-seed 4M result retaining D. The re
 
 ## Qualify the learner on the detached donor
 
-The current implementation supports read-only inventory and status, plus a disposable learner qualification. Run the following from the physical root of the detached round027 donor at `77667e67176ae32fa16457d52565bae1dbe41afc`. For a fresh qualification, set `ROUND029_REV` to the full implementation SHA you intend to test. The prompt sets a cumulative wall-clock budget for this qualification. The funded clock starts after preflight and includes image acquisition, the learner and cleanup. The supervisor reserves the last two minutes for cleanup. A verified early finish charges only elapsed time. If termination cannot be verified, the full reservation stays charged. A retry with the same revision and minutes uses the same grant. Changing the minutes creates a separate authorization.
+The implementation supports read-only inventory, status and verification, plus separate disposable learner and donor-continuation qualifications. Run the following from the physical root of the detached round027 donor at `77667e67176ae32fa16457d52565bae1dbe41afc`. For a fresh qualification, set `ROUND029_REV` to the full implementation SHA you intend to test. The prompt sets a cumulative wall-clock budget for this qualification. The funded clock starts after preflight and includes image acquisition, the learner and cleanup. The supervisor reserves the last two minutes for cleanup. A verified early finish charges only elapsed time. If termination cannot be verified, the full reservation stays charged. A retry with the same revision and minutes uses the same grant. Changing the minutes creates a separate authorization.
 
 The donor completed both batch sizes in **3 min 8 s** under a **30-minute** grant. To review that run, reopen its saved receipt with the command in the [workstation record](validation/round029-release.md#reopen-the-saved-qualification). For a fresh qualification on the same donor with cached image layers, **10–15 minutes** is a planning range based on this one run and the two-minute cleanup reserve. Add the usual image-build time for a cold build.
 
@@ -67,7 +67,25 @@ The donor completed both batch sizes in **3 min 8 s** under a **30-minute** gran
 
 The helper verifies the candidate source and prints preflight. It opens an operator grant for the two registered batch sizes and starts the installed worker under the donor's GPU lock. It uses the original campaign's reference architecture with seed 29, zero dropout and exposed generated prefixes. Batch 16 exercises recipe 04 and batch 32 exercises recipe 02, including matching and its training-only calibration. For each, it computes an uninterrupted reference, kills a process during backward, resumes from the complete cut and reopens the final cut. The worker compares model weights, AdamW moments, the scheduler and the next rows. Two additional native checks report the disposition of a refittable literal and a constant program on varying terms.
 
-The command prints the qualification and final status. The qualification receipt records the device peak alongside the historical 4,852,388,352-byte peak, checkpoint bytes/inodes, discarded token charges, GPU lease time and sampled activity coverage. `receipt_path` identifies the private receipt. On failure, `first_error` retains the first reason and attempt path. A capacity block reports the byte/inode deficit before issuing tokens. Repeating a completed qualification verifies its saved receipt. The grant covers this rehearsal only. Historical continuation parity, full study qualification, comparative runs and report verification remain open.
+The command prints the qualification and final status. The qualification receipt records the device peak alongside the historical 4,852,388,352-byte peak, checkpoint bytes/inodes, discarded token charges, GPU lease time and sampled activity coverage. `receipt_path` identifies the private receipt. On failure, `first_error` retains the first reason and attempt path. A capacity block reports the byte/inode deficit before issuing tokens. Repeating a completed qualification verifies its saved receipt. The grant covers this rehearsal only. The donor-continuation check below has its own grant. Comparative study qualification and scientific reporting remain open.
+
+## Check the donated ordinary 4M continuation
+
+From the same detached workstation, use the full candidate SHA from the handoff. The helper authenticates the original pilot archive, pre-score package, frozen stream and complete checkpoint. It runs one batch twice on HIP under the retained round028 ordinary policy and the registered round029 recipe 00. Both updates restore the original AdamW moments, schedule, cursor and RNGs. Their weights, moments, RNGs, cumulative exposure and next rows must agree. The donor checkpoint is mounted read-only.
+
+```bash
+(
+  set -euo pipefail
+  : "${ROUND029_REV:?full candidate commit from the handoff}"
+  git fetch --no-tags origin "$ROUND029_REV"
+  git show "${ROUND029_REV}:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - "$ROUND029_REV" 30
+)
+```
+
+The last argument sets a cumulative qualification budget in minutes. A 20–30 minute allowance is a planning estimate for a donor with cached image layers. The earlier disposable learner took 188 seconds. The full donor-restore workload has its own timing. The funded preparation and HIP dispatch share the allowance, including image acquisition and cleanup. The operator’s initial metadata read and subsequent receipt replays use no training tokens or GPU lease.
+
+The helper retains a pre-update commitment, reopens the same funded operation twice, verifies the private evidence, and checks copied public ZIPs from a separate directory. Its final JSON gives the candidate, parent, receipt, report, measured times and charged tokens. This diagnostic publishes a null scientific verdict.
 
 ## Start or resume after the round029 release
 

@@ -138,13 +138,9 @@ def execute(args, source, *, host_factory=None):
                 raise ValueError(
                     "independent verify requires both the report and its pre-score archive"
                 )
-            return result(
-                action,
-                "BLOCKED",
-                "Independent round029 archive verification is pending implementation",
-                "status",
-                verification_scope="paired_archives",
-            ), 2
+            from .progressive_velocity_verify import archive_result
+
+            return archive_result(args.archive, args.qualification_archive)
         root = Path(args.workspace)
         if not root.is_absolute() or root != root.resolve(strict=True):
             raise ValueError("absolute physical donor workspace required")
@@ -154,13 +150,9 @@ def execute(args, source, *, host_factory=None):
         if action == "status":
             return inspect_status(folder), 0
         if not funded:
-            return result(
-                action,
-                "BLOCKED",
-                "Private round029 publication replay is pending implementation",
-                "status",
-                verification_scope="private_workspace",
-            ), 2
+            from .progressive_velocity_verify import private_result
+
+            return private_result(root, folder)
         grant = checked("grant", load(args.authority))
         authorizer = confined(
             root,

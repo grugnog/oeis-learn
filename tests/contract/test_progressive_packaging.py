@@ -118,6 +118,7 @@ def test_feature_contracts_in_source_sdist_and_installed_wheel(tmp_path):
         f"specs/{velocity}/validation/launch-round029.sh",
         f"specs/{velocity}/validation/qualify-learner.sh",
         f"specs/{velocity}/validation/replay_learner.py",
+        f"specs/{velocity}/validation/qualify_continuation.py",
         f"specs/{velocity}/validation/round029-release.md",
     ):
         assert (sdist / helper).read_bytes() == (root / helper).read_bytes()

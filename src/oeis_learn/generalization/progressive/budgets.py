@@ -304,16 +304,34 @@ class BudgetJournal:
                 )
             )
 
+    def _snapshot(self):
+        _, pending, finished, totals, previous = self._read()
+        return dict(
+            consumed=dict(totals),
+            remaining={k: self.binding["caps"][k] - totals[k] for k in KEYS},
+            pending=sorted(pending),
+            committed=sorted(finished),
+            watermark=previous,
+        )
+
     def snapshot(self):
         with self.lock():
-            events, pending, finished, totals, previous = self._read()
-            return dict(
-                consumed=dict(totals),
-                remaining={k: self.binding["caps"][k] - totals[k] for k in KEYS},
-                pending=sorted(pending),
-                committed=sorted(finished),
-                watermark=previous,
-            )
+            return self._snapshot()
+
+    @classmethod
+    def inspect_existing(cls, root, campaign, caps):
+        """Verify an existing journal under a shared lock, even on a read-only mount."""
+        from oeis_learn.pipeline_validation.identity import confined
+
+        view = cls.__new__(cls)
+        view.root = Path(root)
+        view.binding = dict(campaign=campaign, caps=vector(caps))
+        with confined(root, "budget.lock").open("rb") as lock:
+            fcntl.flock(lock, fcntl.LOCK_SH)
+            view.path = confined(root, "budget.jsonl")
+            if load(confined(root, "budget-binding.json")) != seal(view.binding):
+                raise ValueError("campaign budget binding changed")
+            return view._snapshot()
 
     def reconcile(self, task=None):
         # Without trustworthy termination proof, active time outside the last

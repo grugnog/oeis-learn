@@ -48,4 +48,5 @@ include specs/015-learned-program-search/validation/candidate_source.py
 include specs/016-measure-learning-velocity/validation/launch-round029.sh
 include specs/016-measure-learning-velocity/validation/qualify-learner.sh
 include specs/016-measure-learning-velocity/validation/replay_learner.py
+include specs/016-measure-learning-velocity/validation/qualify_continuation.py
 include specs/016-measure-learning-velocity/validation/round029-release.md

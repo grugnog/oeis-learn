@@ -123,6 +123,17 @@ def test_installed_live_projection_accepts_only_registered_visible_inputs(tmp_pa
         return main(["round029-" + operation], inputs=dest / "inputs",
                     authority=dest / "authority.json", output=output)
     assert accept(dest, output) == 0
+    # The actual supervisor mounts files only. An empty registered channel has no directory.
+    import shutil
+    from oeis_learn.pipeline_validation.progressive_velocity_roles import role_mounts
+    work = tmp_path / "work"
+    req = load(dest / "authority.json")["request"]
+    for src, target in role_mounts(dest, req):
+        arrived = work / Path(target).relative_to("/work")
+        arrived.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, arrived)
+    assert main(["round029-" + operation], inputs=work / "inputs/channels", authority=work / "inputs/authority.json",
+                output=work / "output") == 0
     accepted = load(output / "accepted-input.json")
     assert accepted["scope"] == "live_input_projection" and accepted["operation"] == operation
     for i, bad in enumerate([dict(prompt, witness="PRIVATE-WITNESS"), dict(prompt, hidden=["999"]),

@@ -126,6 +126,15 @@ def project_role_inputs(root, destination, *, request, current_worker, artifacts
         raise
 
 
+def role_mounts(projection, request):
+    """Build file-only binds for the shared socket-free stage supervisor."""
+    channels = _check_request(request, request["worker"])
+    return [(confined(projection, "authority.json"), "/work/inputs/authority.json"), *[
+        (confined(projection, f"inputs/{channel}/{ref[7:]}.json"), f"/work/inputs/channels/{channel}/{ref[7:]}.json")
+        for channel, refs in channels.items() for ref in refs
+    ]]
+
+
 def open_role_inputs(operation, inputs, authority):
     """Reopen only registered files at the installed boundary before starting any role work."""
     control = validate(load(authority), {"version", "request", "current_worker"}, "round029-live-supervisor/v1")
@@ -139,10 +148,15 @@ def open_role_inputs(operation, inputs, authority):
     if request["operation"] != operation or request["source_manifest"] != digest(source_snapshot()):
         raise ValueError("installed source or operation differs from registered worker")
     root = Path(inputs)
-    if root.is_symlink() or {p.name for p in root.iterdir()} != set(channels):
+    present = {p.name for p in root.iterdir()}
+    required = {name for name, refs in channels.items() if refs}
+    if root.is_symlink() or not required <= present <= set(channels):
         raise ValueError("unexpected installed live channel")
     values = {}
     for channel, identities in channels.items():
+        if channel not in present:
+            values[channel] = []
+            continue
         folder = confined(root, channel)
         names = [identity[7:] + ".json" for identity in identities]
         if {p.name for p in folder.iterdir()} != set(names):
