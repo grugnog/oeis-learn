@@ -115,6 +115,18 @@ def draw(policy, ordinal):
     }
 
 
+def draw_exclusion(row, law):
+    if row["structure"] in law["forbidden_structures"]:
+        return "held_out_structure"
+    if row["behavior"] in law["forbidden_behaviors"]:
+        return "finite_behavior_exclusion"
+    if law["forbidden_prefixes"] and any(
+        digest(row["values"][i:i + 20]) in law["forbidden_prefixes"] for i in range(81)
+    ):
+        return "finite_prefix_or_shift_exclusion"
+    return None
+
+
 def broader_stream(slots, support, *, seed, ordinary_ref=None):
     """Preserve exact token length and difficulty. A deficient band retains its ordinary slot."""
     from collections import Counter, defaultdict

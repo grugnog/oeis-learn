@@ -290,3 +290,118 @@ def test_screen_freezes_verified_shared_start_and_reruns_control_only_on_mismatc
             microbatch=8,
             device="cpu",
         )
+
+
+def test_broad_preparation_rechecks_witnesses_preserves_slots_and_excludes_protected(tmp_path):
+    from oeis_learn.generalization.progressive import generator, training_rows
+    from oeis_learn.generalization.progressive.complexity import measure
+    from oeis_learn.generalization.progressive.contracts import seal
+    from oeis_learn.generalization.progressive.program_search_panels import descriptor, bin_key
+    from oeis_learn.pipeline_validation.progressive_preparation import (
+        prepare_velocity_broad,
+        verify_draw,
+    )
+    from oeis_learn.synthesis.reference import evaluate
+
+    authority = digest("composition inputs")
+    seeds = training_rows.pair_seeds(authority, 0)
+    law = generator.default_policy(seed=seeds["training_families"])
+
+    class ExactClient:
+        calls = 0
+        reference_sha256 = digest("reference fixture")
+
+        def runtime_identity(self, profile):
+            return digest(["fixture", profile])
+
+        def execute(self, source, indices, **_):
+            self.calls += 1
+            return dict(outcome="ok", values=list(evaluate(source, indices).values))
+
+    client = ExactClient()
+    buckets, witnesses = {}, {}
+    for ordinal in (0, 11, 14, 46, 25, 43):
+        measurement = {}
+        row, reason = verify_draw(
+            generator.draw(law, ordinal), client=client, measurements=measurement
+        )
+        assert reason is None
+        witnesses[ordinal] = row
+        item = dict(
+            row,
+            stratum="training",
+            difficulty=measure(row["source"], reference_steps=measurement["reference_steps"]),
+        )
+        buckets[bin_key(descriptor(item))] = "middle"
+    calibration = seal(
+        dict(
+            version="round028-difficulty-map/v1",
+            bins=buckets,
+            families=len(buckets),
+            observations=digest("reserved calibration observations"),
+        )
+    )
+    ordinary = [witnesses[n] for n in (0, 11, 14, 46)]
+    keys = {r["draw_identity"]: r for r in ordinary}
+    order = sorted(keys, key=lambda k: (digest([seeds["training_families"], k]), k))
+    stream = seal(
+        dict(
+            version="round028-matched-stream/v1",
+            registration=authority,
+            pair=0,
+            seeds=seeds,
+            order=order,
+            row_identities=digest([keys[k]["identity"] for k in order]),
+        )
+    )
+    args = dict(
+        root=tmp_path,
+        stream=stream,
+        shards=[ordinary],
+        law=law,
+        ordinals=[25, 43],
+        familiar=[witnesses[0]["structure"]],
+        calibration=calibration,
+        protected=[],
+        indexes=[],
+        client=client,
+    )
+    broad, rows, audit = prepare_velocity_broad(**args)
+    assert broad["available"] and broad["ordinary"]["tokens"] == broad["broad"]["tokens"]
+    assert broad["broad"]["per_million"] > broad["ordinary"]["per_million"]
+    known = witnesses[0]["draw_identity"]
+    assert broad["order"][order.index(known)] == known and set(rows) == set(broad["order"])
+    assert broad["audit"] == audit["identity"] and audit["ordinary"] == stream["identity"]
+    first_calls = client.calls
+    assert prepare_velocity_broad(**args)[0] == broad and client.calls == first_calls
+    for old, new in zip(order, broad["order"], strict=True):
+        assert audit["slots"][old]["band"] == audit["slots"][new]["band"]
+        assert len(keys[old]["tokens"]) == len(rows[new]["tokens"])
+    # A protected original blocks a prospective composition even through a shifted window.
+    excluded = {
+        "id": "reserved",
+        "stratum": "oeis",
+        "group": "sealed",
+        "indices": list(map(str, range(100))),
+        "values": [str(1 << 200)] * 100,
+    }
+    excluded["values"][:20] = witnesses[43]["values"][80:]
+    blocked, _, audited = prepare_velocity_broad(**dict(args, protected=[excluded]))
+    assert witnesses[43]["draw_identity"] not in blocked["order"]
+    assert any(
+        x["reason"] == "protected_family_or_unverified_history" for x in audited["rejections"]
+    )
+    no_supply, _, _ = prepare_velocity_broad(**dict(args, ordinals=[]))
+    assert (
+        not no_supply["available"]
+        and no_supply["ordinary"]["tokens"] == broad["ordinary"]["tokens"]
+    )
+    with pytest.raises(ValueError):
+        prepare_velocity_broad(
+            **dict(args, stream=seal(dict(stream, row_identities=digest("changed"))))
+        )
+    counted = [p for p in tmp_path.rglob("audit.json") if audit["identity"] in p.read_text()]
+    assert len(counted) == 1
+    counted[0].write_text("{}")
+    with pytest.raises(ValueError):
+        prepare_velocity_broad(**args)
