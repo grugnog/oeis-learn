@@ -136,8 +136,8 @@ def test_feature_contracts_in_source_sdist_and_installed_wheel(tmp_path):
     code = "from oeis_learn.experiments.source_snapshot import source_snapshot; import json; print(json.dumps(source_snapshot()))"
     installed_snapshot = json.loads(subprocess.check_output(
         [sys.executable, "-c", code], cwd=tmp_path, env={**os.environ, "PYTHONPATH": str(installed)}))
-    for source in resources.values():
-        assert installed_snapshot[source] == snapshot[source]
+    assert installed_snapshot == snapshot
+    assert collect_snapshot(sdist) == snapshot
     from oeis_learn.generalization.progressive.contracts import digest
     from oeis_learn.pipeline_validation.progressive_velocity_runtime import BOOTSTRAP, wheel_sources
     import pytest

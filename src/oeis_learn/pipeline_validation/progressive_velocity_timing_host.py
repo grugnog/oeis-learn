@@ -381,16 +381,19 @@ def ordinary_workload_unchanged(name, original, source):
     path = Path(name)
     base = "src/oeis_learn/"
     if name == "MANIFEST.in":
-        # Shipping the existing diagnostic launcher changes only the source archive's contents.
-        launcher = "specs/015-learned-program-search/validation/launch-round028.sh"
-        include = ("include " + launcher + "\n").encode()
+        # These two existing host assets complete the archive used for donor verification.
         old_manifest = (original / path).read_bytes()
         new_manifest = (source / path).read_bytes()
-        return (
-            new_manifest.count(include) == 1
-            and new_manifest.replace(include, b"", 1) == old_manifest
-            and (original / launcher).read_bytes() == (source / launcher).read_bytes()
-        )
+        for asset in (
+            "specs/015-learned-program-search/validation/launch-round028.sh",
+            "specs/005-trustworthy-synthesis-readiness/contracts/cli-interface.md",
+        ):
+            include = ("include " + asset + "\n").encode()
+            if include not in old_manifest and new_manifest.count(include) == 1:
+                if (original / asset).read_bytes() != (source / asset).read_bytes():
+                    return False
+                new_manifest = new_manifest.replace(include, b"", 1)
+        return new_manifest == old_manifest
     if name == base + "generalization/schemas/progressive-round029.schema.json":
 
         def science_schema(root):
