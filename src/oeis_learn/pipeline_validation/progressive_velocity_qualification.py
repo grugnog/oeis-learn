@@ -413,29 +413,27 @@ def qualification_parent(revision):
 
 def authorize_learner_check(root, minutes, revision):
     """Create operator-side authorization only on an explicit, priced-duration invocation."""
+    from .progressive_velocity_worker import rehearsal_work
+
+    work = dict(rehearsal_work(), disk_bytes=learner_mount({"free_bytes": 0, "free_inodes": 0}, floor=0)["required_bytes"])
+    return authorize_qualification(root, minutes, qualification_parent(revision), work)
+
+
+def authorize_qualification(root, minutes, parent, work):
     from oeis_learn.generalization.budgets import integer
     from oeis_learn.generalization.progressive.velocity_records import physical_root_id
-
-    from .progressive_velocity_worker import rehearsal_work
 
     total = integer(minutes, 1) * 60_000_000
     terms = dict(
         version="round029-grant/v1",
         study_id=SESSION,
         scope="qualification",
-        registration_or_parent_ref=qualification_parent(revision),
+        registration_or_parent_ref=parent,
         state_root_id=physical_root_id(root),
         total_us=total,
         holdback_us=0,
         allowed_operations=["qualify"],
-        resources=dict(
-            dict.fromkeys(KEYS, 0),
-            elapsed_us=total,
-            **rehearsal_work(),
-            disk_bytes=learner_mount({"free_bytes": 0, "free_inodes": 0}, floor=0)[
-                "required_bytes"
-            ],
-        ),
+        resources=dict(dict.fromkeys(KEYS, 0), elapsed_us=total, **work),
     )
     approval = seal(dict(version="round029-authorization/v1", terms=digest(terms)))
     authority = confined(root, "run-state/discovery-authorizations", exists=False)

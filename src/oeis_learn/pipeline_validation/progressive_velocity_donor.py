@@ -150,6 +150,53 @@ def _checkpoint(cut, row, roles):
         return
 
 
+def _training_boundaries(area):
+    roles = []
+    for path in sorted(area.glob("roles/*/boundary.json")):
+        try:
+            bound = load(confined(area, path))
+            producer = read_bound_record(path.parent, bound["producer"])
+            if bound == seal(bound) and producer["request"] == bound["request"]:
+                if "milestone" in producer["result"]:
+                    roles.append((path.parent, bound, producer, producer["result"]))
+        except (ValueError, KeyError, FileNotFoundError):
+            continue
+    return roles
+
+
+def donated_ordinary(root):
+    """Open only the original ordinary 4M full cut authorized by the published pilot."""
+    from .progressive_velocity_continuation import continuation_plan
+
+    policy = velocity_policy()
+    files, _ = _archives(root, policy)
+    if not {"pilot", "qualification"} <= files.keys():
+        raise ValueError("original pilot and independent qualification archives required for donation")
+    verified = _verify_with_pin(root, policy["pilot_reader"], files["pilot"], files["qualification"])
+    if verified.get("report") != PILOT_REPORT:
+        raise ValueError("original pilot reader did not verify the registered report")
+    with zipfile.ZipFile(files["pilot"]) as archive:
+        pilot = json.loads(archive.read("pilot.json"))
+    cut = next(v for v in pilot["looks"] if v["target"] == 4_000_000)["cuts"]["ordinary"]
+    area = confined(root, f"{PARENT}/{AREA}")
+    freeze = load(confined(area, "freeze.json"), maximum=CAMPAIGN_DOCUMENT_BYTES)
+    if seal(freeze) != freeze or freeze["identity"] != pilot["design"]["private_freeze"]:
+        raise ValueError("original private freeze differs")
+    training = checked_file(area, freeze["training"])
+    package = load(training, maximum=CAMPAIGN_DOCUMENT_BYTES)
+    if package["stream"]["identity"] != freeze["stream"] or package["stream"]["seeds"] != freeze["seeds"]:
+        raise ValueError("original training seed or stream differs")
+    for role, bound, _, parent in _training_boundaries(area):
+        if parent["milestone"] == cut and parent["checkpoint"]["sha256"] == cut["parent"]:
+            output = confined(role, Path(bound["producer"]["path"]).parent)
+            mounts, _ = checkpoint_inputs(output, parent)
+            plan, _, _ = continuation_plan(package, parent)
+            return dict(parent=parent, plan=plan, training=dict(freeze["training"], path="training.json")), [
+                (training, "/work/inputs/training.json"), *mounts,
+            ]
+    raise ValueError("authenticated ordinary 4M full checkpoint missing")
+
+
 def inventory(root):
     policy = velocity_policy()
     files, archives = _archives(root, policy)
@@ -262,16 +309,7 @@ def inventory(root):
         )
     except (ValueError, FileNotFoundError) as exc:
         cuts[-1]["reason"] = str(exc)
-    roles = []
-    for path in sorted(area.glob("roles/*/boundary.json")):
-        try:
-            bound = load(confined(area, path))
-            producer = read_bound_record(path.parent, bound["producer"])
-            if bound == seal(bound) and producer["request"] == bound["request"]:
-                if "milestone" in producer["result"]:
-                    roles.append((path.parent, bound, producer, producer["result"]))
-        except (ValueError, KeyError, FileNotFoundError):
-            continue
+    roles = _training_boundaries(area)
     for row in cuts[:-1]:
         look = next((v for v in pilot["looks"] if v["target"] == row["look"]), None)
         if look is None:

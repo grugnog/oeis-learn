@@ -170,7 +170,10 @@ def execute(args, source, *, host_factory=None):
         revision = candidate_revision(Path(source), root)
         from .progressive_velocity_qualification import qualification_parent
 
-        parent = qualification_parent(revision) if action == "qualify" else None
+        from .progressive_velocity_donation import donation_parent
+
+        donation = action == "qualify" and grant["registration_or_parent_ref"] == donation_parent(revision)
+        parent = (donation_parent(revision) if donation else qualification_parent(revision)) if action == "qualify" else None
         registration = folder / "accepted.json"
         if parent is None and registration.exists():
             parent = accepted_grant_parent(load(confined(folder, "accepted.json")), grant["scope"])
@@ -187,7 +190,10 @@ def execute(args, source, *, host_factory=None):
         folder.mkdir(parents=True, exist_ok=True)
         with RunStore.owner(folder):
             if action == "qualify":
-                from .progressive_velocity_qualification import qualify
+                if donation:
+                    from .progressive_velocity_donation import qualify
+                else:
+                    from .progressive_velocity_qualification import qualify
 
                 return qualify(args, root, folder, source, revision, grant, host_factory)
             return result(
