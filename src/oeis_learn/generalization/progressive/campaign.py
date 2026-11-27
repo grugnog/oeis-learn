@@ -519,9 +519,15 @@ def velocity_registration(*, source, design, development, retention, initializat
     if training_start is not None:
         from .velocity_trials import validate_study_start
         validate_study_start(training_start, initialization, stream_seed, ordinary, broad)
-        if scope != "exploration":
-            raise ValueError("seed-one donor eligibility belongs to the initial screen")
+        if scope == "paired_extension":
+            raise ValueError("paired extension must continue its original training state")
+        if scope == "confirmation" and (
+            training_start["mode"] != "fresh_shared_control" or training_start["origin"]["pair"] != 1
+        ):
+            raise ValueError("confirmation requires the prepared independent paired start")
         start["training_start"] = training_start
+    if scope == "confirmation" and training_start is None:
+        raise ValueError("confirmation requires authenticated ordinary and finalist streams")
     panels = dict(development=development, retention=retention)
     velocity_look(registration=design, method="00", seed=initialization, profile="full",
                   look=4_000_000, **panels)

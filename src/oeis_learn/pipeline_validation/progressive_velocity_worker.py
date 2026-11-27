@@ -286,16 +286,21 @@ def train_to(directory, package, *, target, cap, device, interrupt=False, parent
         observed, ledger = runner.update(
             seq, tokens, ledger=ledger.reserve(str(attempt), count), matching_donors=matching
         )
+        # Older checkpoints retain only the last complete update. Preserve its measured
+        # contribution and disclose exactly where the cumulative series starts.
+        covered = metrics.get("measured_updates", int(bool(metrics)))
+        loss_sum = metrics.get("matching_loss_sum", metrics.get("matching_loss", 0.0))
+        loss_sum += observed.get("matching_loss", 0.0)
         metrics = {
-            k: observed.get(k, 0)
-            for k in (
-                "matching_passes",
-                "matching_eligible",
-                "matching_wins",
-                "matching_loss",
-                "matching_forward_us",
-                "gradient_norm",
-            )
+            **{k: metrics.get(k, 0) + observed.get(k, 0)
+               for k in ("matching_passes", "matching_eligible", "matching_wins", "matching_forward_us")},
+            "first_measured_update": ledger.updates - covered,
+            "measured_updates": covered + 1,
+            "matching_loss_sum": loss_sum,
+            "matching_loss": loss_sum / (covered + 1),
+            "gradient_norm": observed["gradient_norm"],
+            "peak_gradient_norm": max(metrics.get("peak_gradient_norm", metrics.get("gradient_norm", 0)),
+                                      observed["gradient_norm"]),
         }
         debits.commit(reserved["key"])
         useful += count
@@ -516,6 +521,9 @@ def rehearse_batch(directory, profile, *, batch_size, device, native=None, child
         repeated = train_to(area / "recover", package, target=second, cap=cap, device=device)
         if (
             actual != repeated
+            or train_to(area / "recover", package, target=second, cap=cap, device=device) != actual
+            or any(actual["metrics"][k] != expected["metrics"][k] for k in
+                   ("matching_eligible", "matching_wins", "matching_passes", "measured_updates"))
             or actual["next_rows"] != expected["next_rows"]
             or actual["weights"] != expected["weights"]
             or actual["optimizer"] != expected["optimizer"]

@@ -145,6 +145,7 @@ class TrialJournal:
             if reg != registration or reg["identity"] != self.binding["study"]:
                 raise ValueError("observation must use the original frozen study")
             series = velocity_study_looks(reg).get(look["method"], {}).get(look["profile"], [])
+            series = [entry for entry in series if entry["seed"] == look["seed"]]
             if look not in series:
                 raise ValueError("observation outside frozen roster or profile")
             if evidence is None:

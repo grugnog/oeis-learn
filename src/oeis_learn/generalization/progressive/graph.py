@@ -228,6 +228,13 @@ def velocity_study_looks(registration):
 
         target = policy["conditional_look"] if extension else 4_000_000
         graph[method] = {"full": [look(target, "full")]}
+        if reg["scope"] == "confirmation" and method in methods:
+            from .training_rows import pair_seeds
+
+            first = pair_seeds(reg["training_start"]["origin"]["seed_authority"], 0)["initialization"]
+            graph[method]["full"].insert(0, velocity_look(
+                registration=reg["identity"], method=method, seed=first, look=target, profile="full",
+                development=reg["development"], retention=reg["retention"]))
         if method in methods and (screen or extension):
             targets = [target] if extension else policy["profiles"]["common"]["looks"]
             graph[method]["common"] = [look(t, "common") for t in targets]

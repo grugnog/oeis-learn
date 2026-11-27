@@ -21,6 +21,20 @@ def test_interrupted_backward_and_two_restores(tmp_path, batch_size):
     assert (
         bool(result["matching_eligible"]) == bool(result["matching_passes"]) == (batch_size == 32)
     )
+    if batch_size == 32:
+        from oeis_learn.pipeline_validation.progressive_velocity_worker import disposable_batch
+        from oeis_learn.generalization.progressive.training_rows import matched_batch
+
+        package = disposable_batch(profile(), 32)
+        micro = package["policy"]["microbatch_size"]
+        batches = [matched_batch(package, start, 32) for start in (0, 32)]
+        assert [sum(k in package["donors"] for k in batch) for batch in batches] == [17, 16]
+        passes = sum(any(k in package["donors"] for k in batch[i:i+micro])
+                     for batch in batches for i in range(0, 32, micro))
+        assert result["matching_passes"] == passes and result["matching_eligible"] == 33
+        assert result["measured_updates"] == 2 and result["first_measured_update"] == 1
+        assert result["matching_loss"] == result["matching_loss_sum"] / 2
+        assert result["matching_forward_us"] > 0
     assert result["charged_tokens"] == result["useful_tokens"] + result["discarded_tokens"]
     assert result["discarded_tokens"] > 0 and result["checkpoint_bytes"] > 0
 

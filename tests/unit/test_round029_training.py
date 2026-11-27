@@ -166,23 +166,8 @@ def test_frozen_study_registers_and_reopens_looks_without_sampler_feedback(tmp_p
     with pytest.raises(ValueError):
         journal.record_velocity_branch("confirmation", **funded)
     boundary = close_velocity_study(tmp_path, reg, state="resumable", evidence=first)
-    child = velocity_registration(
-        **dict(
-            args,
-            initialization=71,
-            stream_seed=99,
-            ordinary=digest("new stream"),
-            development=[dict(task="new", group="fresh", stratum="oeis")],
-            retention=[dict(task="new-r", group="fresh-r", stratum="retention")],
-        ),
-        scope="confirmation",
-        parent=boundary,
-        finalist="03",
-    )
-    assert set(velocity_study_looks(child)) == {"00", "03", "D"}
-    assert len(open_velocity_study(tmp_path, child).trials) == 2
-    with pytest.raises((FileNotFoundError, ValueError)):
-        open_velocity_study(tmp_path / "foreign", child)
+    with pytest.raises(ValueError, match="authenticated"):
+        velocity_registration(**args, scope="confirmation", parent=boundary, finalist="03")
     with pytest.raises(ValueError):
         velocity_registration(
             **args, scope="confirmation", parent=dict(boundary, state="running"), finalist="03"

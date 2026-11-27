@@ -197,3 +197,56 @@ def test_completion_retention_and_multiplicity_can_each_block_a_formal_gain():
     assert metrics.decision_bounds(draws, comparisons=1)[0] > 0
     adjusted = metrics.decision_bounds(draws, comparisons=4)[0]
     assert adjusted < 0 and decisions.classify(**dict(args, lower=adjusted)) == "INCONCLUSIVE"
+
+
+@pytest.mark.parametrize("finalist", ["01", "03"])
+def test_registered_confirmation_authenticates_two_streams_and_reuses_one_incumbent(tmp_path, finalist):
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.generalization.progressive.campaign import velocity_registration
+    from oeis_learn.generalization.progressive.contracts import seal
+    from oeis_learn.generalization.progressive.generator import broader_stream
+    from oeis_learn.generalization.progressive.graph import velocity_study_looks
+    from oeis_learn.generalization.progressive.models import resolve_profile
+    from oeis_learn.pipeline_validation.progressive_preparation import prepare_velocity_start
+    from oeis_learn.pipeline_validation.progressive_study import open_velocity_study, close_velocity_study
+
+    authority = digest("paired donor")
+    def inputs(pair):
+        seeds = pair_seeds(authority, pair)
+        ids = [digest([pair, i]) for i in range(3)]
+        order = sorted(ids, key=lambda k: (digest([seeds["training_families"], k]), k))
+        stream = seal(dict(version="round028-matched-stream/v1", registration=authority, pair=pair,
+                           seeds=seeds, order=order, row_identities=digest(order)))
+        slots = [dict(draw=k, composition="A", tokens=4, band="middle", familiar=False) for k in order]
+        broad = broader_stream(slots, [dict(row, composition=str(i)) for i, row in enumerate(slots)],
+                               seed=seeds["training_families"], ordinary_ref=stream["identity"])
+        model = resolve_profile(resolve({"version":"bigint-bootstrap/v1"}), shape="smaller_width",
+                                seed=seeds["initialization"])
+        origin = prepare_velocity_start(model, stream, broad=broad, microbatch=8, device="cpu")
+        return dict(initialization=origin["initialization"], stream_seed=origin["stream_seed"],
+                    ordinary=origin["ordinary"], broad=origin["broad"],
+                    training_start=seal(dict(mode="fresh_shared_control", origin=origin, control_weights=None)))
+
+    common = dict(source="a"*40, design=digest("design"), retention=[])
+    first, second = inputs(0), inputs(1)
+    parent = velocity_registration(**common, **first, development=[dict(task="a", group="A", stratum="oeis")])
+    boundary = close_velocity_study(tmp_path, parent, state="closed", evidence=digest("decision"))
+    args = dict(**common, **second, development=[dict(task="b", group="B", stratum="oeis")],
+                scope="confirmation", parent=boundary, finalist=finalist)
+    for copied in (first["ordinary"], first["broad"]):
+        origin = seal(dict(second["training_start"]["origin"], broad=copied))
+        bad = dict(args, broad=copied, training_start=seal(dict(second["training_start"], origin=origin)))
+        with pytest.raises(ValueError, match="lineage"):
+            open_velocity_study(tmp_path, velocity_registration(**bad))
+    child = velocity_registration(**args)
+    journal = open_velocity_study(tmp_path, child)
+    assert journal.velocity_trial(finalist)["binding"]["stream_ref"] == second["broad"]
+    assert journal.velocity_trial("00")["binding"]["stream_ref"] == second["ordinary"]
+    looks = velocity_study_looks(child)
+    for method in (finalist, "00"):
+        assert [l["seed"] for l in looks[method]["full"]] == [first["initialization"], second["initialization"]]
+        assert all(l["members"] == child["development"] for l in looks[method]["full"])
+    assert len(looks["D"]["full"]) == 1
+    d = looks["D"]["full"][0]
+    receipt = journal.observe_velocity(child, d, evidence=digest("one scored incumbent"))
+    assert open_velocity_study(tmp_path, child).observe_velocity(child, d, evidence=digest("one scored incumbent")) == receipt

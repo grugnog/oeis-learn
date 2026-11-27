@@ -1086,8 +1086,21 @@ def open_velocity_study(folder, registration):
         if reg["scope"] == "confirmation":
             original = {row["group"] for k in ("development", "retention") for row in parent[k]}
             child = {row["group"] for k in ("development", "retention") for row in reg[k]}
-            if (original & child or reg["initialization"] == parent["initialization"]
-                    or reg["stream_seed"] == parent["stream_seed"] or reg["ordinary"] == parent["ordinary"]):
+            from oeis_learn.generalization.progressive.training_rows import pair_seeds
+
+            origin = reg["training_start"]["origin"]
+            first = pair_seeds(origin["seed_authority"], 0)
+            parent_streams = {parent["ordinary"], parent["broad"]} - {None}
+            child_streams = {reg["ordinary"]}
+            if reg["finalist"] in {"01", "03"}:
+                if reg["broad"] is None or parent["broad"] is None:
+                    raise ValueError("confirmation finalist requires both broader streams")
+                child_streams.add(reg["broad"])
+            prior_start = parent.get("training_start")
+            if (original & child or child_streams & parent_streams
+                    or first != dict(initialization=parent["initialization"], training_families=parent["stream_seed"])
+                    or prior_start and (prior_start["origin"]["seed_authority"] != origin["seed_authority"]
+                                        or prior_start["origin"]["initial_weights"] == origin["initial_weights"])):
                 raise ValueError("confirmation needs independent families and paired training lineage")
     root = confined(folder, "registrations/" + reg["identity"][7:], exists=False)
     journal = TrialJournal(root, study=reg["identity"], token_cap=8_000_000 if reg["scope"] == "paired_extension" else 4_000_000)
