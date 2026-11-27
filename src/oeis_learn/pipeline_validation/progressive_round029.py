@@ -21,7 +21,7 @@ from .progressive_velocity_donor import inventory
 
 
 def result(action, status, reason, next_action, *, last=None, remaining=None, **data):
-    header = validate_result(
+    return validate_result(
         dict(
             version="round029-result/v1",
             action=action,
@@ -32,9 +32,9 @@ def result(action, status, reason, next_action, *, last=None, remaining=None, **
             remaining_authority=remaining,
             next_action=next_action,
             reason=reason,
+            **data,
         )
     )
-    return {**header, **data}
 
 
 def preflight(root):
@@ -144,6 +144,7 @@ def execute(args, source, *, host_factory=None):
                 "BLOCKED",
                 "Independent round029 archive verification is pending implementation",
                 "status",
+                verification_scope="paired_archives",
             ), 2
         root = Path(args.workspace)
         if not root.is_absolute() or root != root.resolve(strict=True):
@@ -159,6 +160,7 @@ def execute(args, source, *, host_factory=None):
                 "BLOCKED",
                 "Private round029 publication replay is pending implementation",
                 "status",
+                verification_scope="private_workspace",
             ), 2
         grant = checked("grant", load(args.authority))
         authorizer = confined(
@@ -201,5 +203,6 @@ def execute(args, source, *, host_factory=None):
             "FAILED",
             str(exc) or type(exc).__name__,
             "inspect_inputs",
-            first_error=type(exc).__name__,
+            first_error=dict(error=type(exc).__name__, stage=action, reason=str(exc) or type(exc).__name__),
+            **({"verification_scope": "unverified_inputs"} if action == "verify" else {}),
         ), 1

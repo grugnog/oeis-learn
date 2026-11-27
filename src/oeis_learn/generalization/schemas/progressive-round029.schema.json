@@ -112,86 +112,131 @@
       ],
       "additionalProperties": false
     },
+    "result_field": {
+      "enum": [
+        "version",
+        "action",
+        "session_id",
+        "mechanical_status",
+        "scientific_verdict",
+        "last_committed_ref",
+        "remaining_authority",
+        "next_action",
+        "reason",
+        "first_error"
+      ]
+    },
+    "diagnostic": {
+      "type": "object",
+      "properties": {
+        "error": {"type": "string", "minLength": 1},
+        "stage": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1},
+        "attempt": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "attempt_path": {"$ref": "progressive-common.schema.json#/$defs/path"},
+        "exit": {"oneOf": [{"type": "integer"}, {"type": "null"}]},
+        "deficit_bytes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "deficit_inodes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "identity": {"$ref": "progressive-common.schema.json#/$defs/hash"}
+      },
+      "required": ["error", "stage", "reason"],
+      "additionalProperties": false
+    },
+    "inventory": {
+      "type": "object",
+      "properties": {
+        "archives": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "assessment": {"const": "sealed"},
+        "cuts": {"type": "array", "items": {"type": "object", "properties": {}, "additionalProperties": {}}},
+        "historical_scores": {"type": "array", "items": {"type": "object", "properties": {}, "additionalProperties": {}}},
+        "original_clocks": {},
+        "gpu_dispatches": {"const": 0},
+        "stream": {"oneOf": [{"type": "object", "properties": {}, "additionalProperties": {}}, {"type": "null"}]},
+        "families": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "matching_pairs": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "prices": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "new_positive_tokens_before_overshoot_if_control_reusable": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "mount": {
+          "type": "object",
+          "properties": {
+            "device": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "available_bytes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "available_inodes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "required_bytes": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},
+            "required_inodes": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},
+            "reason": {"type": "string", "minLength": 1}
+          },
+          "required": ["device", "available_bytes", "available_inodes", "required_bytes", "required_inodes", "reason"],
+          "additionalProperties": false
+        },
+        "reason": {"type": "string", "minLength": 1},
+        "stream_reason": {"type": "string", "minLength": 1},
+        "historical_reservations": {"type": "object", "properties": {}, "additionalProperties": {}}
+      },
+      "required": [
+        "archives",
+        "assessment",
+        "cuts",
+        "historical_scores",
+        "original_clocks",
+        "gpu_dispatches",
+        "stream",
+        "families",
+        "matching_pairs",
+        "prices",
+        "mount",
+        "new_positive_tokens_before_overshoot_if_control_reusable"
+      ],
+      "additionalProperties": false
+    },
     "result": {
       "type": "object",
       "properties": {
-        "version": {
-          "const": "round029-result/v1"
+        "version": {"const": "round029-result/v1"},
+        "action": {"enum": ["preflight", "status", "qualify", "cpu", "run", "verify"]},
+        "session_id": {"const": "016-research-round-029"},
+        "mechanical_status": {"enum": ["INSPECTED", "BLOCKED", "COMPLETE", "FAILED", "VERIFIED", "PARTIAL"]},
+        "scientific_verdict": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/text"}, {"type": "null"}]},
+        "last_committed_ref": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/hash"}, {"type": "null"}]},
+        "remaining_authority": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},
+        "next_action": {"$ref": "progressive-common.schema.json#/$defs/text"},
+        "reason": {"type": "string", "minLength": 1},
+        "report_ref": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "verification_scope": {"$ref": "progressive-common.schema.json#/$defs/text"},
+        "first_error": {"$ref": "#/$defs/diagnostic"},
+        "deficit_bytes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "deficit_inodes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "inventory": {"$ref": "#/$defs/inventory"},
+        "state_root_id": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "qualification_policy": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "owner_active": {"type": "boolean"},
+        "progress": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "stage": {"type": "string", "minLength": 1},
+        "recipe": {"oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]},
+        "seed": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},
+        "look": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},
+        "useful_tokens": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "charged_tokens": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "elapsed_us": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},
+        "telemetry": {"type": "string", "minLength": 1},
+        "scope": {"type": "string", "minLength": 1},
+        "remaining_tokens": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "research_dispatches": {"const": 0},
+        "operation": {
+          "type": "object",
+          "properties": {
+            "logical": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+            "physical": {"$ref": "progressive-common.schema.json#/$defs/hash"}
+          },
+          "required": ["logical", "physical"],
+          "additionalProperties": false
         },
-        "action": {
-          "enum": [
-            "preflight",
-            "status",
-            "qualify",
-            "cpu",
-            "run",
-            "verify"
-          ]
-        },
-        "session_id": {
-          "const": "016-research-round-029"
-        },
-        "mechanical_status": {
-          "enum": [
-            "INSPECTED",
-            "BLOCKED",
-            "COMPLETE",
-            "FAILED",
-            "VERIFIED",
-            "PARTIAL"
-          ]
-        },
-        "scientific_verdict": {
-          "oneOf": [
-            {
-              "$ref": "progressive-common.schema.json#/$defs/text"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "last_committed_ref": {
-          "oneOf": [
-            {
-              "$ref": "progressive-common.schema.json#/$defs/hash"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "remaining_authority": {
-          "oneOf": [
-            {
-              "$ref": "progressive-common.schema.json#/$defs/integer"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "next_action": {
-          "$ref": "progressive-common.schema.json#/$defs/text"
-        },
-        "reason": {
-          "$ref": "progressive-common.schema.json#/$defs/text"
-        },
-        "report_ref": {
-          "$ref": "progressive-common.schema.json#/$defs/hash"
-        },
-        "verification_scope": {
-          "$ref": "progressive-common.schema.json#/$defs/text"
-        },
-        "first_error": {
-          "$ref": "progressive-common.schema.json#/$defs/text"
-        },
-        "deficit_bytes": {
-          "$ref": "progressive-common.schema.json#/$defs/integer"
-        },
-        "deficit_inodes": {
-          "$ref": "progressive-common.schema.json#/$defs/integer"
-        }
+        "attempt": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "reserved_us": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "cleanup_seconds": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "receipt": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "receipt_path": {"$ref": "progressive-common.schema.json#/$defs/path"},
+        "diagnostics": {"$ref": "#/$defs/diagnostic"}
       },
       "required": [
         "version",
@@ -204,7 +249,153 @@
         "next_action",
         "reason"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {"action": {"const": "preflight"}},
+          "propertyNames": {
+            "oneOf": [
+              {"$ref": "#/$defs/result_field"},
+              {"enum": ["inventory", "state_root_id", "qualification_policy"]}
+            ]
+          },
+          "oneOf": [
+            {
+              "properties": {"mechanical_status": {"const": "INSPECTED"}},
+              "required": ["inventory", "state_root_id", "qualification_policy"]
+            },
+            {"properties": {"mechanical_status": {"const": "FAILED"}}, "required": ["first_error"]}
+          ]
+        },
+        {
+          "properties": {"action": {"const": "status"}},
+          "propertyNames": {
+            "oneOf": [
+              {"$ref": "#/$defs/result_field"},
+              {
+                "enum": [
+                  "owner_active",
+                  "progress",
+                  "stage",
+                  "recipe",
+                  "seed",
+                  "look",
+                  "useful_tokens",
+                  "charged_tokens",
+                  "elapsed_us",
+                  "telemetry"
+                ]
+              }
+            ]
+          },
+          "oneOf": [
+            {
+              "properties": {"mechanical_status": {"const": "INSPECTED"}},
+              "required": ["owner_active"],
+              "oneOf": [
+                {"required": ["progress"]},
+                {
+                  "required": [
+                    "stage",
+                    "recipe",
+                    "seed",
+                    "look",
+                    "useful_tokens",
+                    "charged_tokens",
+                    "elapsed_us",
+                    "telemetry"
+                  ]
+                }
+              ]
+            },
+            {"properties": {"mechanical_status": {"const": "FAILED"}}, "required": ["first_error"]}
+          ]
+        },
+        {
+          "properties": {"action": {"const": "qualify"}},
+          "propertyNames": {
+            "oneOf": [
+              {"$ref": "#/$defs/result_field"},
+              {
+                "enum": [
+                  "stage",
+                  "scope",
+                  "charged_tokens",
+                  "elapsed_us",
+                  "remaining_tokens",
+                  "research_dispatches",
+                  "cleanup_seconds",
+                  "operation",
+                  "attempt",
+                  "reserved_us",
+                  "receipt",
+                  "receipt_path",
+                  "diagnostics",
+                  "deficit_bytes",
+                  "deficit_inodes"
+                ]
+              }
+            ]
+          },
+          "oneOf": [
+            {"properties": {"mechanical_status": {"const": "BLOCKED"}}},
+            {"properties": {"mechanical_status": {"const": "FAILED"}}, "required": ["first_error"]},
+            {
+              "properties": {"mechanical_status": {"const": "PARTIAL"}},
+              "required": ["operation", "attempt", "reserved_us"]
+            },
+            {
+              "properties": {"mechanical_status": {"const": "COMPLETE"}},
+              "required": ["receipt", "receipt_path"]
+            }
+          ]
+        },
+        {
+          "properties": {"action": {"const": "cpu"}},
+          "propertyNames": {
+            "oneOf": [
+              {"$ref": "#/$defs/result_field"},
+              {
+                "enum": ["stage", "elapsed_us", "diagnostics", "deficit_bytes", "deficit_inodes", "report_ref"]
+              }
+            ]
+          },
+          "oneOf": [
+            {"properties": {"mechanical_status": {"const": "BLOCKED"}}},
+            {"properties": {"mechanical_status": {"const": "FAILED"}}, "required": ["first_error"]},
+            {"properties": {"mechanical_status": {"const": "PARTIAL"}}},
+            {"properties": {"mechanical_status": {"const": "COMPLETE"}}}
+          ]
+        },
+        {
+          "properties": {"action": {"const": "run"}},
+          "propertyNames": {
+            "oneOf": [
+              {"$ref": "#/$defs/result_field"},
+              {
+                "enum": ["stage", "elapsed_us", "diagnostics", "deficit_bytes", "deficit_inodes", "report_ref"]
+              }
+            ]
+          },
+          "oneOf": [
+            {"properties": {"mechanical_status": {"const": "BLOCKED"}}},
+            {"properties": {"mechanical_status": {"const": "FAILED"}}, "required": ["first_error"]},
+            {"properties": {"mechanical_status": {"const": "PARTIAL"}}},
+            {"properties": {"mechanical_status": {"const": "COMPLETE"}}, "required": ["report_ref"]},
+            {"properties": {"mechanical_status": {"const": "VERIFIED"}}, "required": ["report_ref"]}
+          ]
+        },
+        {
+          "properties": {"action": {"const": "verify"}},
+          "propertyNames": {"oneOf": [{"$ref": "#/$defs/result_field"}, {"enum": ["report_ref", "verification_scope"]}]},
+          "required": ["verification_scope"],
+          "oneOf": [
+            {"properties": {"mechanical_status": {"const": "BLOCKED"}}},
+            {"properties": {"mechanical_status": {"const": "FAILED"}}, "required": ["first_error"]},
+            {"properties": {"mechanical_status": {"const": "VERIFIED"}}, "required": ["report_ref"]}
+          ]
+        }
+      ]
     },
     "stored_reference": {
       "type": "object",

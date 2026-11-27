@@ -8,6 +8,7 @@ from oeis_learn.generalization.progressive.contracts import atomic_write, digest
 from oeis_learn.pipeline_validation import progressive_handoff, progressive_round028_rehearsal
 from oeis_learn.pipeline_validation import progressive_velocity_qualification as controller
 from oeis_learn.pipeline_validation.progressive_round029 import inspect_status
+from oeis_learn.generalization.progressive.velocity_records import validate_result
 
 
 def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(tmp_path, monkeypatch):
@@ -104,11 +105,14 @@ def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(tmp
         return controller.qualify(args, root, folder, root, revision, grant, lambda *a, **k: host)
 
     blocked, code = run()
+    assert validate_result(blocked) == blocked
+    assert blocked["deficit_inodes"] == blocked["first_error"]["deficit_inodes"]
     assert code == 2 and blocked["first_error"]["deficit_inodes"] > 0
     assert blocked["charged_tokens"] == 0 and not issued
     assert inspect_status(folder)["progress"]["next_action"] == "inspect_capacity"
     low["free_inodes"] = 10000
     accepted, code = run()
+    assert validate_result(accepted) == accepted
     assert code == 0 and len(issued) == 1
     assert accepted["charged_tokens"] == grant["resources"]["tokens"] > 0
     assert accepted["first_error"] == blocked["first_error"]
@@ -135,6 +139,7 @@ def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(tmp
     monkeypatch.setattr(progressive_handoff, "stage", interrupted)
     grant = load(controller.authorize_learner_check(root, 11, revision))
     failed, code = run()
+    assert validate_result(failed) == failed
     assert code == 130 and failed["first_error"]["exit"] == 130
     assert failed["remaining_authority"] == 0 and failed["remaining_tokens"] == 0
     stopped, code = run()

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from .contracts import _check, digest, schema, seal
+from .contracts import _check, _finite, digest, schema, seal
 
 SESSION = "016-research-round-029"
 ACTIONS = {
@@ -33,18 +33,24 @@ def grant_terms(grant):
 
 
 def validate_grant(grant, authorization, *, root, parent, action):
-    from .campaign import velocity_policy
-
     checked("grant", grant)
     allowed = set(grant["allowed_operations"])
-    routes = set(velocity_policy()["branches"])
+    # These are fundable operations. The prospective study policy lists possible
+    # future decisions, including confirmation, before any child has authority.
+    branches = {
+        "qualification": set(),
+        "cpu": {"structure_search", "same_bank_selection", "resolve_missing"},
+        "exploration": {"repair", "resolve_missing", "oeis_measurement", "paired_extension",
+                        "structure_search", "same_bank_selection", "conditioning", "retain_D"},
+        "confirmation": {"confirmation"},
+    }
     if (
         seal(grant) != grant
         or root != grant["state_root_id"]
         or parent != grant["registration_or_parent_ref"]
         or action not in ACTIONS[grant["scope"]]
         or action not in allowed
-        or not allowed <= ACTIONS[grant["scope"]] | routes
+        or not allowed <= ACTIONS[grant["scope"]] | branches[grant["scope"]]
         or grant["holdback_us"] > grant["total_us"]
         or grant["resources"]["elapsed_us"] != grant["total_us"]
     ):
@@ -69,7 +75,14 @@ def operation_key(coordinates, attempt):
 
 
 def validate_result(result):
-    return checked("result", result)
+    _finite(result)
+    checked("result", result)
+    if "progress" in result:
+        saved = result["progress"]
+        if saved != seal(saved) or saved.get("action") not in {"qualify", "cpu", "run"}:
+            raise ValueError("invalid saved action result")
+        validate_result({k: v for k, v in saved.items() if k != "identity"})
+    return result
 
 
 def visible_prompt(prompt):

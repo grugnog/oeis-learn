@@ -158,6 +158,10 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
 
     def status(state, reason, next_action, **data):
         snapshot = journal.snapshot()
+        if first_error.exists():
+            data["first_error"] = load(confined(area, "first-error.json"))
+        diagnostic = data.get("diagnostics", {})
+        data.update({k: diagnostic[k] for k in ("deficit_bytes", "deficit_inodes") if k in diagnostic})
         answer = result(
             "qualify",
             state,
@@ -172,8 +176,6 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
             research_dispatches=0,
             **data,
         )
-        if first_error.exists():
-            answer["first_error"] = load(confined(area, "first-error.json"))
         summary = folder / "status.json"
         sealed = seal(answer)
         if not summary.exists() or load(confined(folder, "status.json")) != sealed:

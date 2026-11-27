@@ -109,9 +109,9 @@ def test_grant_substitution_and_logical_coordinates():
     )
     result = dict(
         version="round029-result/v1",
-        action="preflight",
+        action="run",
         session_id="016-research-round-029",
-        mechanical_status="INSPECTED",
+        mechanical_status="BLOCKED",
         scientific_verdict=None,
         last_committed_ref=None,
         remaining_authority=None,
@@ -137,3 +137,52 @@ def test_artifact_checks_owner_format_and_bytes(tmp_path):
     path.write_text("[]")
     with pytest.raises(ValueError, match="identity"):
         open_stored(tmp_path, record, owner="custodian", format="recipe")
+
+
+@pytest.mark.parametrize("scope,action", [("qualification", "qualify"), ("cpu", "cpu"), ("exploration", "run")])
+def test_confirmation_branch_needs_a_separately_bound_child(scope, action):
+    parent, child, root = digest("parent"), digest("frozen child"), digest("physical")
+    g, a = grant(scope, allowed_operations=[action, "confirmation"])
+    with pytest.raises(ValueError, match="phase"):
+        validate_grant(g, a, root=root, parent=parent, action=action)
+    g, a = grant("confirmation", registration_or_parent_ref=child, allowed_operations=["run", "confirmation"])
+    assert validate_grant(g, a, root=root, parent=child, action="run") == g
+    with pytest.raises(ValueError):
+        validate_grant(g, a, root=root, parent=parent, action="run")
+
+
+def test_public_action_documents_match_the_installed_schema(tmp_path):
+    import json
+    from pathlib import Path
+    import subprocess
+    import sys
+
+    from jsonschema import Draft202012Validator
+    from referencing import Registry, Resource
+    from oeis_learn.generalization.progressive.contracts import schema
+
+    document = schema("round029")
+    registry = Registry().with_resources((d["$id"], Resource.from_contents(d)) for d in (document, schema("common")))
+    wire = Draft202012Validator(document, registry=registry)
+    cmd = [sys.executable, "-S", "-B", str(Path(__file__).resolve().parents[2] / "scripts/foundation_run.py"),
+           "--engine", "podman", "discovery", "round029"]
+    for action, workspace, code, state in [
+        ("preflight", tmp_path, 0, "INSPECTED"), ("status", tmp_path, 0, "INSPECTED"),
+        ("verify", tmp_path, 2, "BLOCKED"), ("qualify", tmp_path, 1, "FAILED"),
+        ("status", tmp_path / ("x" * 1200), 1, "FAILED")]:
+        proc = subprocess.run([*cmd, "--workspace", str(workspace), "--action", action], capture_output=True)
+        result = json.loads(proc.stdout)
+        assert (proc.returncode, result["mechanical_status"]) == (code, state)
+        wire.validate(result)
+        assert validate_result(result) == result
+        if action == "verify":
+            assert result["verification_scope"] == "private_workspace"
+        if state == "FAILED":
+            assert result["first_error"]["reason"] == result["reason"]
+        if workspace != tmp_path:
+            assert str(workspace.name) in result["first_error"]["reason"]
+        if action == "preflight":
+            with pytest.raises(ValueError):
+                validate_result({k: v for k, v in result.items() if k != "inventory"})
+            with pytest.raises(ValueError):
+                validate_result(dict(result, receipt_path="wrong_action"))
