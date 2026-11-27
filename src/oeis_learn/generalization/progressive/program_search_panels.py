@@ -300,3 +300,48 @@ def freeze_panels(groups, samples, observed, *, seed, per_stratum=32):
             **allocate_roles(available, seed=seed, per_stratum=per_stratum),
         )
     )
+
+
+def reserve_velocity_families(candidates, historical, *, indexes, quotas, seed):
+    """Deal one independent family per turn before any role takes a second member."""
+    from oeis_learn.generalization.budgets import integer
+
+    roles = {"development", "replication", "assessment", "development_retention",
+             "replication_retention", "calibration", "practice", "teacher"}
+    if not set(quotas) <= roles:
+        raise ValueError("unknown family reservation")
+    groups, census = fresh_groups(candidates, historical, indexes=indexes)
+    options = family_options(groups)
+    panels = {r: [] for r in quotas}
+    owners, used = {}, set()
+    deficits = {}
+    for stratum in sorted({s for limits in quotas.values() for s in limits}):
+        ordering = sorted(options[stratum], key=lambda f: (digest([seed, stratum, f]), f))
+        picked = {role: Counter() for role in quotas}
+        for turn in range(max(integer(q.get(stratum, 0)) for q in quotas.values())):
+            for role in sorted(quotas):
+                if turn >= quotas[role].get(stratum, 0):
+                    continue
+                for family in sorted(ordering, key=picked[role].__getitem__):
+                    if owners.get(family, role) != role:
+                        continue
+                    members = sorted(options[stratum][family],
+                                     key=lambda m: digest([seed, stratum, family, m[1]["id"]]))
+                    available = [(c, r) for c, r in members if r["id"] not in used
+                                 and owners.get(c, role) == role]
+                    if not available:
+                        continue
+                    component, row = available[0]
+                    owners[family] = owners[component] = role
+                    used.add(row["id"])
+                    picked[role][family] += 1
+                    panels[role].append(dict(task=row["id"], family=family, component=component,
+                                             stratum=stratum, difficulty=row.get("band", "unknown")
+                                             if descriptor(row) else "unknown"))
+                    break
+        for role, q in quotas.items():
+            short = q.get(stratum, 0) - sum(picked[role].values())
+            if short:
+                deficits.setdefault(role, {})[stratum] = short
+    return seal(dict(version="round029-family-reservations/v1", seed=seed, panels=panels,
+                     deficits=deficits, quotas=quotas, **census))

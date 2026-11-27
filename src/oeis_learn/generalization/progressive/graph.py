@@ -172,3 +172,37 @@ def generator_look(panels, *, registration, pair, arm, target, split):
                      seed=seeds["initialization"], arm=arm, target=target, split=split, panels=digest(panels),
                      members=members, attempts=8 if full else 1, portfolio_us=60_000_000, fit_us=4_000_000,
                      max_tokens=1024, profile="bigint-20-100/v1", spending=full))
+
+
+def velocity_look(*, registration, method, seed, look, profile, development, retention,
+                  extension=False):
+    from .campaign import velocity_policy
+    from .cohorts import STRATA
+    from .contracts import seal
+
+    policy = velocity_policy()
+    if profile not in policy["profiles"]:
+        raise ValueError("unregistered inference profile")
+    cfg = policy["profiles"][profile]
+    if (type(look) is not int or look not in cfg["looks"] and not (
+            extension and look == policy["conditional_look"])):
+        raise ValueError("unregistered look/profile")
+    if method not in {r["id"] for r in policy["recipes"]} and (
+            profile != "full" or method not in [policy["reference"], *policy["controls"]]):
+        raise ValueError("unregistered method at this profile")
+    members = []
+    seen, families = set(), set()
+    for panel, rows in (("development", development), ("retention", retention)):
+        for row in rows:
+            if (set(row) != {"task", "stratum", "group"} or row["task"] in seen
+                    or not all(type(v) is str and v for v in row.values())
+                    or row["stratum"] not in (STRATA if panel == "development" else ("retention",))):
+                raise ValueError("invalid or duplicate frozen case")
+            seen.add(row["task"])
+            key = row["stratum"], row["group"]
+            if profile == "full" or panel == "development" and key not in families:
+                members.append(row)
+            families.add(key)
+    return seal(dict(version="round029-look/v1", registration=registration, method=method,
+                     seed=seed, look=look, profile=profile, members=members,
+                     attempts=cfg["attempts"], opportunity=policy["opportunity"]))

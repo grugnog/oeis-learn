@@ -137,10 +137,37 @@ def first_divergence_loss(logits, targets, labels, *, pad_id):
     return nn.functional.softplus(difference).sum() / len(labels)
 
 
+def calibrate_matching(positive_losses, eligible_losses):
+    from math import isfinite
+    from statistics import median
+
+    if (not positive_losses or not eligible_losses or
+            any(not isfinite(v) or v <= 0 for v in (*positive_losses, *eligible_losses))):
+        raise ValueError("positive finite training-only calibration and eligible pairs required")
+    return 0.25 * median(positive_losses) / median(eligible_losses)
+
+
+def prefix_matching_loss(true_logits, donor_logits, targets, eligible, *, pad_id):
+    """Sum verified log-probability comparisons, normalized over all positive rows."""
+    indices = torch.as_tensor(eligible, dtype=torch.long, device=targets.device)
+    labels = targets.index_select(0, indices)
+    mask = labels.ne(pad_id)
+    if (donor_logits.shape != (len(eligible), *true_logits.shape[1:]) or
+            len(set(eligible)) != len(eligible) or not bool(mask.any(dim=1).all())):
+        raise ValueError("aligned nonempty eligible decoder targets required")
+
+    def scores(logits):
+        logs = logits.float().log_softmax(dim=-1).gather(-1, labels.unsqueeze(-1)).squeeze(-1)
+        return (logs * mask).sum(dim=1) / mask.sum(dim=1)
+
+    delta = scores(donor_logits) - scores(true_logits.index_select(0, indices))
+    return nn.functional.softplus(delta).sum() / len(targets), int((delta < 0).sum())
+
+
 def logical_update(
     encoder, decoder, optimizer, sequences, tokens, *, device, pad_id,
     microbatch_size=None, scheduler=None, allocation_clock=None, timer=None,
-    observe=True, learning_metrics=False, preference_labels=None,
+    observe=True, learning_metrics=False, preference_labels=None, matching_donors=None, matching_weight=None,
 ):
     """One per-program-mean update, optionally accumulated over smaller batches.
 
@@ -158,6 +185,14 @@ def logical_update(
         raise ValueError("one preference entry per positive training row required")
     if not examples or tokens.ndim != 2 or tokens.shape[0] != examples or tokens.shape[1] < 2:
         raise ValueError("nonempty matching logical batch required")
+    if matching_donors is not None:
+        from math import isfinite
+        if (preference_labels is not None or len(matching_donors) != examples
+                or type(matching_weight) not in (float, int) or not isfinite(matching_weight)
+                or matching_weight <= 0):
+            raise ValueError("one calibrated matching entry per positive row required")
+    elif matching_weight is not None:
+        raise ValueError("matching weight without a matching batch")
     size = examples if microbatch_size is None else microbatch_size
     if type(size) is not int or size < 1:
         raise ValueError("positive integer microbatch size required")
@@ -170,6 +205,9 @@ def logical_update(
     extra = {}
     if preference_labels is not None:
         extra.update(preference_rows=sum(label is not None for label in preference_labels), preference_loss=0.0)
+    if matching_donors is not None:
+        extra.update(matching_eligible=0, matching_wins=0, matching_loss=0.0, matching_passes=0,
+                     matching_forward_us=0)
     try:
         for start in range(0, examples, size):
             end = min(start + size, examples)
@@ -187,6 +225,26 @@ def logical_update(
                     loss = loss + auxiliary
                     extra["preference_loss"] += float(auxiliary.detach()) * weight
                     del auxiliary
+            if matching_donors is not None:
+                eligible = [i for i, donor in enumerate(matching_donors[start:end]) if donor is not None]
+                if eligible:
+                    import time
+                    if logits.is_cuda:
+                        torch.cuda.synchronize(logits.device)
+                    began = time.monotonic_ns()
+                    donors = [matching_donors[start+i] for i in eligible]
+                    other = teacher_forced_logits(encoder, decoder, donors, batch[eligible],
+                                                  device=device, pad_id=pad_id, timer=timer)
+                    auxiliary, wins = prefix_matching_loss(logits, other, targets, eligible, pad_id=pad_id)
+                    if logits.is_cuda:
+                        torch.cuda.synchronize(logits.device)
+                    extra["matching_forward_us"] += (time.monotonic_ns() - began) // 1000
+                    extra["matching_eligible"] += len(eligible)
+                    extra["matching_wins"] += wins
+                    extra["matching_passes"] += 1
+                    extra["matching_loss"] += float(auxiliary.detach()) * weight
+                    loss = loss + matching_weight * auxiliary
+                    del other, auxiliary
             if not torch.isfinite(loss):
                 raise FloatingPointError("nonfinite supervised loss")
             with timer.phase("backward_optimizer"):

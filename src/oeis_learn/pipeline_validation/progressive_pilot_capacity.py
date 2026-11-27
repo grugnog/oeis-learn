@@ -162,3 +162,34 @@ def capacity(area, host, checkpoint_bytes, *, scale, share, cached, measure, out
             deficit_inodes=max(0, record["required_inodes"] - record["free_inodes"]),
         )
     return list(required.values())
+
+
+def owned_allocations(paths):
+    """Physical allocations for one owner, counting overlapping paths and hard links once."""
+    import stat
+
+    seen = set()
+    total = 0
+    for root in paths:
+        for path in (root, *root.rglob("*")) if root.is_dir() else (root,):
+            info = path.lstat()
+            if stat.S_ISLNK(info.st_mode):
+                raise ValueError("physical allocation alias")
+            key = info.st_dev, info.st_ino
+            if key not in seen:
+                total += info.st_blocks * 512
+                seen.add(key)
+    return dict(bytes=total, inodes=len(seen))
+
+
+def mount_demand(*, available, reserve, pending):
+    """Only incremental simultaneous writers compete with the actual free space."""
+    from oeis_learn.generalization.budgets import integer
+
+    out = {}
+    for unit in ("bytes", "inodes"):
+        need = sum(integer(row[unit]) for row in pending)
+        free, floor = integer(available[unit]), integer(reserve[unit])
+        out.update({f"available_{unit}": free, f"required_{unit}": need, f"reserved_{unit}": floor,
+                    f"deficit_{unit}": max(0, need + floor - free)})
+    return out

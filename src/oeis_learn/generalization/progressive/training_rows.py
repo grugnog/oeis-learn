@@ -202,3 +202,90 @@ def matched_milestone(package, rows, checkpoint, restored, useful, target):
                      }), target=target,
                      charged=ledger.consumed, discarded=restored["discarded_tokens"],
                      overshoot=max(0, ledger.consumed-target), **expected))
+
+
+def matching_proof(tokens, donor, *, client=None, replay=None):
+    """Classify a donor under the *decoded* target's live grounding policy."""
+    from oeis_learn.decoder.bigint_codec import decode_body, encode_body, fitting_policy, TOKEN_TO_ID
+    from oeis_learn.synthesis.evidence import classify_scope
+    from oeis_learn.synthesis.reference import evaluate
+    from oeis_learn.synthesis.replay import replay_native
+    from .contracts import digest
+
+    source = decode_body(tokens)
+    if encode_body(source) != list(tokens):
+        raise ValueError("matching target did not round-trip")
+    policy = fitting_policy(source)
+    binding = dict(target=digest(tokens), prompt=donor.sha256, policy=policy)
+    # No integer or parameter syntax means there is no possible adjustable coefficient.
+    if not {TOKEN_TO_ID["int"], TOKEN_TO_ID["param.get"]}.intersection(tokens):
+        result = evaluate(source, list(donor.indices))
+        outcome = "unsupported" if result.outcome != "ok" else (
+            "equivalent" if tuple(result.values) == donor.values else "eligible")
+        return seal(dict(**binding, status=outcome, proof="independent_fixed_target"))
+    if client is None:
+        return seal(dict(**binding, status="needs_native_replay", proof=None))
+    fit = client.fit(source, donor, policy=policy)
+    native = fit.get("native") or {}
+    outcome = fit["outcome"]
+    proof = None
+    if outcome == "unsat_in_scope":
+        if classify_scope(native) != "unsat_in_scope" or native.get("coefficient_bits") != 4096:
+            status = "partial_scope"
+        else:
+            proof = dict(indices=list(donor.indices), values=list(donor.values), profile="bigint-body/v1",
+                         original_source=source, policy=policy, result=fit,
+                         runtime=client.runtime_identity("bigint-body/v1"), reference=client.reference_sha256)
+            proof["identity_sha256"] = digest(proof)
+            status = "eligible" if (replay or replay_native)(proof) else "unverified"
+    elif outcome == "verified_solution":
+        status = "regroundable"
+    elif outcome in {"resource_exhausted", "unknown", "timeout"}:
+        status = "unfinished"
+    else:
+        status = "unsupported"
+    return seal(dict(**binding, status=status, proof=proof))
+
+
+def matching_pairs(shards, order, *, seed, client=None):
+    """Freeze a within-band derangement. All positives retain their original stream slots."""
+    from collections import Counter, defaultdict
+    from .contracts import digest
+    from .shared_support import validated_rows
+    from oeis_learn.synthesis.admission import VisiblePrompt
+    from oeis_learn.synthesis.contracts import canonical_integer
+
+    rows = validated_rows(shards, native_verified=True)
+    if len(set(order)) != len(order) or not set(order) <= rows.keys():
+        raise ValueError("verified unique training support required")
+    bands = defaultdict(list)
+    for key in order:
+        values = [canonical_integer(v) for v in rows[key]["values"][:20]]
+        signs = tuple((v > 0) - (v < 0) for v in values)
+        bands[len(values), max(abs(v).bit_length() for v in values), signs].append(key)
+    statuses = Counter()
+    pairs = {}
+    for members in bands.values():
+        # Contiguous identical visible values and rotation by the largest group size
+        # yield a complete differing-value permutation whenever one exists.
+        groups = defaultdict(list)
+        for key in members:
+            groups[tuple(rows[key]["values"][:20])].append(key)
+        largest = max(map(len, groups.values()))
+        ordered = [k for values in sorted(groups, key=lambda v: digest([seed, v]))
+                   for k in sorted(groups[values], key=lambda k: digest([seed, k]))]
+        for i, key in enumerate(ordered):
+            donor = ordered[(i + largest) % len(ordered)]
+            row = rows[key]
+            values = rows[donor]["values"][:20]
+            if values == row["values"][:20]:
+                statuses["no_differing_donor"] += 1
+                continue
+            proof = matching_proof(row["tokens"], VisiblePrompt(tuple(row["indices"][:20]), tuple(values)),
+                                   client=client)
+            statuses[proof["status"]] += 1
+            if proof["status"] == "eligible":
+                pairs[key] = dict(donor=donor, proof=proof)
+    return seal(dict(version="round029-training-pairs/v1", seed=seed, order=digest(order),
+                     positive_rows=len(order), eligible_rows=len(pairs), dispositions=dict(statuses),
+                     eligible_families=len({rows[k]["structure"] for k in pairs}), pairs=pairs))

@@ -512,3 +512,17 @@ def score_short(source, truth, *, client):
 def _maximum_seconds(budget):
     from oeis_learn.generalization.progressive.budgets import RoleWorkBudget
     return budget.evaluation_seconds if isinstance(budget,RoleWorkBudget) else 21600
+
+
+def velocity_outcome(*, selected_exact, closed, complete):
+    """Private selected-choice outcome independent of other unfinished portfolio work."""
+    if (type(complete) is not bool or type(closed) is not bool or
+            selected_exact is not None and type(selected_exact) is not bool):
+        raise ValueError("verified selected result and explicit closure flags required")
+    if selected_exact is True:
+        status = "solve"
+    elif selected_exact is False or closed and complete:
+        status = "miss"
+    else:
+        status = "unresolved"
+    return dict(status=status, complete=complete, closed=closed)

@@ -145,3 +145,90 @@ def forecast(cells, training, probes):
         pilot_excess_us=max(0, pilot - training["shift_us"]),
         with_replication_excess_us=max(0, pilot + repeat - training["shift_us"]),
     )
+
+
+def price_wave(plan, prices, *, remaining_us=None, credited=None):
+    """Price only outstanding occurrences; missing receipts never imply free work."""
+    from oeis_learn.generalization.budgets import integer
+
+    result = {}
+    for scope, items in plan.items():
+        expected = tail = 0
+        missing = []
+        for kind, count in items.items():
+            credit = integer((credited or {}).get(scope, {}).get(kind, 0))
+            outstanding = integer(count) - credit
+            if outstanding < 0:
+                raise ValueError("reuse exceeds registered work")
+            if not outstanding:
+                continue
+            if kind not in prices:
+                missing.append(kind)
+                continue
+            price = prices[kind]
+            typical, slow = integer(price["expected_us"]), integer(price["tail_us"])
+            if slow < typical:
+                raise ValueError("tail price below expected price")
+            expected += outstanding * typical
+            tail += outstanding * slow
+        result[scope] = dict(expected_us=None if missing else expected,
+                             tail_us=None if missing else tail, missing=sorted(missing))
+    followup = result["followup"]["tail_us"]
+    for scope, row in result.items():
+        row["affordable_with_reserve"] = None
+        if row["tail_us"] is not None and remaining_us is not None and followup is not None:
+            row["affordable_with_reserve"] = (
+                row["tail_us"] + (0 if scope == "followup" else followup) <= integer(remaining_us)
+            )
+    return result
+
+
+def occupied_time(intervals):
+    """Union comparable intervals, dividing a shared span among its active beneficiaries."""
+    from collections import Counter, defaultdict
+    from fractions import Fraction
+    from .trials import integer
+
+    receipts = {}
+    domains = defaultdict(lambda: defaultdict(Counter))
+    unknown = []
+    for r in intervals:
+        receipt = r["receipt"]
+        if receipt in receipts:
+            if receipts[receipt] != r:
+                raise ValueError("one shared receipt has conflicting clocks or beneficiaries")
+            continue
+        receipts[receipt] = r
+        names = r["beneficiaries"]
+        if not names or len(names) != len(set(names)):
+            raise ValueError("explicit unique beneficiaries required")
+        if any(r[k] is None for k in ("host", "boot", "start_us", "end_us")):
+            unknown.append(receipt)
+            continue
+        start, end = integer(r["start_us"]), integer(r["end_us"])
+        if end < start:
+            raise ValueError("clock ran backwards")
+        edges = domains[r["host"], r["boot"]]
+        edges[start].update(names)
+        edges[end].subtract(names)
+    spans = []
+    attributed = defaultdict(Fraction)
+    for edges in domains.values():
+        active = Counter()
+        previous = min(edges)
+        span = 0
+        for at in sorted(edges):
+            if active:
+                elapsed = at - previous
+                span += elapsed
+                for name in active:
+                    attributed[name] += Fraction(elapsed, len(active))
+            active.update(edges[at])
+            active = +active
+            previous = at
+        spans.append(span)
+    comparable = len(domains) <= 1 and not unknown
+    return dict(union_us=sum(spans) if comparable else None,
+                attributed_us={k:float(v) for k,v in attributed.items()} if comparable else None,
+                lower_us=max(spans, default=0), upper_us=None if unknown else sum(spans),
+                unknown=unknown, receipt_count=len(receipts))

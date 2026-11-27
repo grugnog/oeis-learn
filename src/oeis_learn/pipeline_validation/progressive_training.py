@@ -350,6 +350,8 @@ def resolve_update_policy(
     weight_decay=0.01,
     warmup_tokens=None,
     objective=None,
+    velocity_recipe=None,
+    matching_weight=None,
 ):
     """Resolve learning semantics, not campaign/task execution authority.
 
@@ -392,6 +394,20 @@ def resolve_update_policy(
         or weight_decay != 0 or lr_multiplier != 1 or p["model"]["dropout"] != 0
     ):
         raise ValueError("matched generator requires the registered trial 05 policy")
+    if velocity_recipe is not None:
+        from oeis_learn.generalization.progressive.campaign import velocity_policy
+
+        rows = {r["id"]: r for r in velocity_policy()["recipes"]}
+        row = rows.get(velocity_recipe)
+        if (not row or objective is not None or schedule != "constant" or lr_multiplier != 1
+                or p["model"]["dropout"] != 0 or row["batch"] != effective_batch
+                or row["decay"] != weight_decay or schedule_horizon_tokens not in (4_000_000, 8_000_000)
+                or row["matching"] != (matching_weight is not None)):
+            raise ValueError("update differs from round029 recipe")
+    if matching_weight is not None and (velocity_recipe is None
+            or type(matching_weight) not in (int,float) or not math.isfinite(matching_weight)
+            or matching_weight <= 0):
+        raise ValueError("finite positive round029 matching calibration required")
     base = p["base_recipe"]["learning"]["learning_rate"]
     if type(base) not in (int, float) or not math.isfinite(base * lr_multiplier) or base <= 0:
         raise ValueError("positive finite verified baseline learning rate required")
@@ -399,6 +415,8 @@ def resolve_update_policy(
         {
             "version": "progressive-update-policy/v1" if objective is None else "round028-generator-update/v1",
             **({"objective": objective} if objective is not None else {}),
+            **({"version": "round029-velocity-update/v1", "velocity_recipe":velocity_recipe,
+                "matching_weight":matching_weight} if velocity_recipe is not None else {}),
             "model_profile": p["identity"],
             "optimizer": "AdamW",
             "betas": [0.9, 0.999],
@@ -434,7 +452,10 @@ def validate_update_policy(profile, policy):
     )
     if not isinstance(policy, dict) or not set(keys) <= set(policy):
         raise ValueError("closed research update policy required")
-    expected = resolve_update_policy(profile, objective=policy.get("objective"), **{k: policy[k] for k in keys})
+    expected = resolve_update_policy(profile, objective=policy.get("objective"),
+                                     velocity_recipe=policy.get("velocity_recipe"),
+                                     matching_weight=policy.get("matching_weight"),
+                                     **{k: policy[k] for k in keys})
     # Canonical serialization also distinguishes booleans from numeric constants.
     if digest(expected) != digest(policy):
         raise ValueError("research update policy/model binding changed")
@@ -603,7 +624,7 @@ class PolicyUpdate:
             raise ValueError("preference batch differs from the registered learning objective")
 
     @timed('optimizer_update')
-    def update(self, sequences, tokens, *, ledger, allocation=None, preference_labels=None):
+    def update(self, sequences, tokens, *, ledger, allocation=None, preference_labels=None, matching_donors=None):
         import torch
 
         from oeis_learn.decoder.bigint_codec import PAD_ID
@@ -612,6 +633,8 @@ class PolicyUpdate:
         if self.active or self.failed:
             raise ValueError("restore a complete checkpoint before retry")
         self.check_preferences(preference_labels, len(sequences))
+        if (matching_donors is not None) != (self.policy.get("matching_weight") is not None):
+            raise ValueError("matching batch differs from registered round029 objective")
         n = self.policy["effective_batch"]
         if (
             len(sequences) != n
@@ -661,6 +684,8 @@ class PolicyUpdate:
                 observe=False,
                 learning_metrics=True,
                 **({"preference_labels": preference_labels} if preference_labels is not None else {}),
+                **({"matching_donors": matching_donors, "matching_weight": self.policy["matching_weight"]}
+                   if matching_donors is not None else {}),
             )
             committed = ledger.commit(ledger.pending[0])
             return dict(
