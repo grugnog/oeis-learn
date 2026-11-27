@@ -4,39 +4,89 @@ from collections import Counter, defaultdict
 from fractions import Fraction
 from math import isfinite
 
+from .contracts import _check, schema, seal
 
-def contrast(rows, coefficients, *, stratum):
-    """Combine unresolved receipt coefficients before assigning adverse/favorable outcomes."""
-    strata = ("composition", "unseen_structure") if stratum == "structural" else (stratum,)
+
+def case_outcome_receipt(case, *, outcome_ref, choice_ref, scorer_ref, truth_ref, status):
+    """Bind a private score (or unresolved opportunity) independently of its use at a look."""
+    hashes = schema("common")["$defs"]["hash"]
+    for ref in (outcome_ref, scorer_ref, truth_ref):
+        _check(hashes, ref, {})
+    if choice_ref is not None:
+        _check(hashes, choice_ref, {})
+    if not isinstance(case, str) or not case or status not in {"solve", "miss", "unresolved"}:
+        raise ValueError("invalid case outcome receipt")
+    if status == "solve" and choice_ref is None:
+        raise ValueError("a verified solve requires a sealed choice")
+    return seal(dict(version="round029-case-outcome/v1", case=case, outcome_ref=outcome_ref,
+                     choice_ref=choice_ref, scorer_ref=scorer_ref, truth_ref=truth_ref, status=status))
+
+
+def _frozen_rows(rows, looks, names):
+    from .graph import velocity_look
+
+    if not names or not all(name in looks for name in names):
+        raise ValueError("registered look required for every contrast coordinate")
+    members = None
+    coordinates = []
+    for name in names:
+        look = looks[name]
+        # Reopen the actual registered graph record, including its order and profile.
+        development = [r for r in look["members"] if r["stratum"] != "retention"]
+        retention = [r for r in look["members"] if r["stratum"] == "retention"]
+        coord = {field: look[field] for field in ("method", "seed", "look", "profile")}
+        if (type(coord["seed"]) is not int or coord["seed"] < 0 or
+                velocity_look(registration=look["registration"], **coord, development=development,
+                              retention=retention, extension=look["look"] == 8_000_000) != look):
+            raise ValueError("invalid frozen look or roster")
+        if members is not None and members != look["members"]:
+            raise ValueError("compared looks have different frozen rosters")
+        members = look["members"]
+        coordinates.append(coord)
+    roster = {r["task"]: (r["stratum"], r["group"]) for r in members}
+    remaining = set(roster)
     families = defaultdict(list)
-    identities = set()
     known = {}
     for row in rows:
-        if row["stratum"] not in strata:
-            continue
-        if row["case"] in identities:
-            raise ValueError("duplicate case in frozen contrast")
-        identities.add(row["case"])
-        families[row["stratum"], row["family"]].append(row)
-        for name in coefficients:
-            obs = row["observations"][name]
-            if (
-                obs["status"] not in {"solve", "miss", "unresolved"}
-                or type(obs["closed"]) is not bool
-                or type(obs["complete"]) is not bool
-                or not obs["receipt"]
-                or known.setdefault(obs["receipt"], obs["status"]) != obs["status"]
-            ):
-                raise ValueError("inconsistent sealed case outcome")
+        case = row["case"]
+        if case not in remaining or roster[case] != (row["stratum"], row["family"]):
+            raise ValueError("case does not match the unique frozen roster")
+        remaining.remove(case)
+        for name in names:
+            obs = row["observations"].get(name)
+            if not isinstance(obs, dict) or type(obs.get("closed")) is not bool or type(obs.get("complete")) is not bool:
+                raise ValueError("explicit case observation and completion required on frozen roster")
+            receipt = obs.get("receipt")
+            if not isinstance(receipt, dict) or not {"outcome_ref", "choice_ref", "truth_ref", "scorer_ref"} <= receipt.keys():
+                raise ValueError("sealed per-case outcome receipt required")
+            binding = case_outcome_receipt(case, status=obs["status"], **{
+                k: receipt[k] for k in ("outcome_ref", "choice_ref", "truth_ref", "scorer_ref")})
+            if receipt != binding or known.setdefault(receipt["outcome_ref"], binding["identity"]) != binding["identity"]:
+                raise ValueError("inconsistent case, choice, scorer or truth on outcome receipt")
+        families[roster[case]].append(row)
+    if remaining:
+        raise ValueError("missing case on frozen roster")
+    return families, coordinates
+
+
+def contrast(rows, coefficients, *, stratum, looks):
+    """Compare only the complete authenticated rosters of the registered looks."""
+    strata = ("composition", "unseen_structure") if stratum == "structural" else (stratum,)
+    names = sorted(coefficients)
+    all_families, coordinates = _frozen_rows(rows, looks, names)
+    families = {k: v for k, v in sorted(all_families.items()) if k[0] in strata}
     support = Counter(s for s, _ in families)
+    denominator = sum(len(members) for members in families.values())
     if any(not support[s] for s in strata):
         return dict(
             observed_pp=None,
             lower_pp=None,
             upper_pp=None,
             reason="missing stratum",
+            coordinates=coordinates,
+            families=[],
             family_counts=dict(support),
-            denominator=len(identities),
+            denominator=denominator,
         )
     unknown = defaultdict(Fraction)
     paired = Counter(
@@ -57,12 +107,20 @@ def contrast(rows, coefficients, *, stratum):
     binary = [coefficients[k] for k in pair] == [-1, 1]
     observed = Fraction()
     counts = {name: Counter() for name in coefficients}
-    for (s, _), members in families.items():
+    joint = []
+    for (s, family), members in families.items():
+        patterns = Counter()
         weight = Fraction(100, len(strata) * support[s] * len(members))
         solved = Counter()
         for row in members:
             obs = row["observations"]
-            for name, coefficient in coefficients.items():
+            classes = {}
+            pattern = []
+            for name in names:
+                coefficient = coefficients[name]
+                receipt = obs[name]["receipt"]["identity"]
+                equality = classes.setdefault(receipt, len(classes))
+                pattern.append((obs[name]["status"], obs[name]["complete"], obs[name]["closed"], equality))
                 status = obs[name]["status"]
                 counts[name][status] += 1
                 counts[name]["complete"] += obs[name]["complete"]
@@ -71,7 +129,8 @@ def contrast(rows, coefficients, *, stratum):
                     observed += weight * coefficient
                     solved[name] += 1
                 elif status == "unresolved":
-                    unknown[obs[name]["receipt"]] += weight * coefficient
+                    unknown[receipt] += weight * coefficient
+            patterns[tuple(pattern)] += 1
             if binary:
                 a, b = [obs[k]["status"] for k in pair]
                 paired["unresolved_overlay"] += "unresolved" in (a, b)
@@ -82,6 +141,10 @@ def contrast(rows, coefficients, *, stratum):
                     (False, False): "neither",
                 }[a == "solve", b == "solve"]
                 paired[key] += 1
+        joint.append(dict(stratum=s, family=family, frozen_size=len(members), patterns=[
+            dict(count=count, outcomes=[dict(status=status, complete=complete, closed=closed, equality=equality)
+                                        for status, complete, closed, equality in pattern])
+            for pattern, count in sorted(patterns.items())]))
         if binary:
             paired["first_solve_families"] += not solved[pair[0]] and bool(solved[pair[1]])
             paired["last_solve_families"] += bool(solved[pair[0]]) and not solved[pair[1]]
@@ -89,8 +152,10 @@ def contrast(rows, coefficients, *, stratum):
         observed_pp=float(observed),
         lower_pp=float(observed + sum(min(0, c) for c in unknown.values())),
         upper_pp=float(observed + sum(max(0, c) for c in unknown.values())),
-        denominator=len(identities),
+        denominator=denominator,
         family_counts=dict(support),
+        coordinates=coordinates,
+        families=joint,
         outcomes={k: dict(v) for k, v in counts.items()},
         **(paired if binary else {}),
     )
@@ -115,7 +180,11 @@ def affordable_look(looks, axis, budget, *, overlap):
         for row in looks
         if row["verified"] and row.get(axis) is not None and row[axis] <= budget
     ]
-    return max(eligible, key=lambda row: row[axis], default=None)
+    def coordinate(row):
+        tokens = row.get("useful_tokens", 0)
+        return row[axis], row.get("look", tokens), tokens
+
+    return max(eligible, key=coordinate, default=None)
 
 
 def factorial(levels):
@@ -137,28 +206,25 @@ def factorial(levels):
     )
 
 
-def sampling_interval(rows, coefficients, *, stratum, seed, scale=1, draws=10000):
+def sampling_interval(rows, coefficients, *, stratum, seed, looks, scale=1, draws=10000):
     """Resample each linked family once per draw across all arms, looks and strata."""
     import random
 
     rng = random.Random(seed)
     strata = ("composition", "unseen_structure") if stratum == "structural" else (stratum,)
-    by_group = defaultdict(lambda: defaultdict(list))
-    for row in rows:
-        if row["stratum"] in strata:
-            by_group[row["family"]][row["stratum"]].append(row)
-    groups = sorted(by_group)
-    contributions = [
-        {
-            s: contrast(members, coefficients, stratum=s)["observed_pp"]
-            for s, members in by_group[g].items()
-        }
-        for g in groups
-    ]
+    result = contrast(rows, coefficients, stratum=stratum, looks=looks)
+    coefficients_in_order = [coefficients[name] for name in sorted(coefficients)]
+    by_group = defaultdict(dict)
+    for family in result["families"]:
+        net_solves = sum(pattern["count"] * sum(c for c, outcome in zip(coefficients_in_order, pattern["outcomes"])
+                                                if outcome["status"] == "solve")
+                         for pattern in family["patterns"])
+        by_group[family["family"]][family["stratum"]] = 100 * net_solves / family["frozen_size"]
+    contributions = [by_group[g] for g in sorted(by_group)]
     values = []
     for _ in range(draws):
         totals, counts = Counter(), Counter()
-        for entry in rng.choices(contributions, k=len(groups)):
+        for entry in rng.choices(contributions, k=len(contributions)):
             for s, value in entry.items():
                 totals[s] += value
                 counts[s] += 1
