@@ -112,6 +112,10 @@ def run_worker(root, source, out, kind, reserve):
     try:
         with redirect_stdout(sys.stderr):
             launch(argv, out, seconds=seconds, cleanup_seconds=cleanup_seconds)
+    except (RuntimeError, TimeoutError):
+        # launch records the child's exit and then raises. Prefer its original diagnostic.
+        if not (out / "process.json").is_file():
+            raise
     finally:
         if (out / "process.json").is_file():
             process = load(confined(out, "process.json"))
@@ -122,6 +126,8 @@ def run_worker(root, source, out, kind, reserve):
                     within_bound=time.monotonic_ns() <= deadline,
                 ),
             )
+    if process["cleanup_failure"]:
+        raise ValueError(process["cleanup_failure"])
     if process["outcome"] != "COMPLETE":
         if (out / "failure.json").is_file():
             failed = load(confined(out, "failure.json"))

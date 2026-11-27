@@ -568,3 +568,15 @@ def test_donor_census_opens_the_committed_stream_and_all_prior_roles(tmp_path, m
     train_path.write_text("{}")
     with pytest.raises(ValueError):
         census.measure(root, "matching_pairs")
+
+
+def test_cpu_supervisor_preserves_original_missing_input_reason(tmp_path):
+    import pytest
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.pipeline_validation.progressive_velocity_preparation import run_worker
+
+    out = tmp_path / "attempt"
+    source = Path(__file__).resolve().parents[2]
+    with pytest.raises(ValueError, match="pinned pilot and qualification archives required"):
+        run_worker(tmp_path, source, out, "matching_pairs", 15_000_000)
+    assert load(out / "cleanup.json") == dict(acknowledged=True, within_bound=True)
