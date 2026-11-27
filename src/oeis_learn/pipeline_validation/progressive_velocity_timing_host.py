@@ -1,6 +1,9 @@
 """Fund, run and reopen one exposed-input timing matrix on the physical HIP worker."""
 
 import json
+from pathlib import Path
+import re
+import runpy
 import time
 import zipfile
 
@@ -336,6 +339,42 @@ def preparation_cost(area, grant, snapshot, record):
     return workstation_accounting(records, **boundaries)
 
 
+def checked_price_source(root, source, binding):
+    """Retain historical prices across reader changes while pinning the measured workload."""
+    if source is None:
+        raise ValueError("candidate source required for timing reuse")
+    current = collect_snapshot(source)
+    if digest(current) == binding["source"]:
+        return
+    revision = binding["candidate"]
+    if not re.fullmatch("[0-9a-f]{40}", revision):
+        raise ValueError("original timed candidate revision required")
+    original = confined(root, "run-state/discovery-tools/round028-source/" + revision)
+    # Execute the reader's verified helper, never a verifier taken from the cache being checked.
+    helper = confined(source, "specs/015-learned-program-search/validation/candidate_source.py")
+    runpy.run_path(str(helper))["verify_tree"](root, original, revision)
+    previous = collect_snapshot(original)
+    if digest(previous) != binding["source"]:
+        raise ValueError("original timing source differs from the funded binding")
+    # Only these out-of-worker readers, orchestration and tests may change.
+    # Model, optimizer, calibration, input encoding, runtime, policy, and contracts
+    # all retain their original identities. Acquisition is priced separately.
+    host_only = {
+        "progressive_round029.py", "progressive_velocity_timing_host.py",
+        "progressive_velocity_verify.py", "progressive_velocity_wheel.py",
+        "progressive_velocity_broad.py", "progressive_velocity_broad_host.py",
+    }
+    for name in previous.keys() | current.keys():
+        if previous.get(name) == current.get(name) or name.startswith("tests/"):
+            continue
+        path = Path(name)
+        if path.parent.as_posix() == "src/oeis_learn/pipeline_validation" and path.name in host_only:
+            continue
+        if name == "src/oeis_learn/generalization/progressive/program_search_costing.py":
+            continue
+        raise ValueError("workload changed since the original optimizer timing: " + name)
+
+
 def timing_inventory(root, source):
     folder = confined(root, "run-state/discovery/" + SESSION, exists=False)
     if not folder.is_dir() or not (folder / "preparation/update-prices.json").exists():
@@ -348,10 +387,9 @@ def timing_inventory(root, source):
     if (
         marker["grant"] != grant["identity"]
         or pair_pointer(root) != binding["pair_pointer"]
-        or source is None
-        or binding["source"] != digest(collect_snapshot(source))
     ):
-        raise ValueError("price inputs or installed candidate source have changed")
+        raise ValueError("price inputs differ from the funded donor census")
+    checked_price_source(root, source, binding)
     approval = load(
         confined(
             root,

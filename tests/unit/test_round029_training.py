@@ -632,3 +632,57 @@ def test_cpu_replays_the_measured_optimizer_cells_and_rejects_changed_charges(ve
     observed["methods"]["02"]["samples"]["0"]["eligible"] += 1
     with pytest.raises(ValueError, match="charge"):
         matrix_prices(seal(observed), p, d, device="cpu")
+
+
+def test_historical_optimizer_prices_survive_reader_changes_and_reject_workload_drift(tmp_path):
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    from oeis_learn.experiments.source_snapshot import collect_snapshot
+    from oeis_learn.pipeline_validation.progressive_velocity_timing_host import checked_price_source
+
+    root = Path(__file__).resolve().parents[2]
+    source = tmp_path / "reader"
+    source.mkdir()
+    helper = Path("specs/015-learned-program-search/validation/candidate_source.py")
+    (source / helper).parent.mkdir(parents=True)
+    shutil.copyfile(root / helper, source / helper)
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(tmp_path), *args], text=True).strip()
+
+    git("init", "-q")
+    original = tmp_path / "tests/clock.py"
+    original.parent.mkdir()
+    original.write_text("value = 1")
+    assets = [
+        ".specify/memory/constitution.md",
+        "specs/007-experiment-foundation/validation/adoption.md",
+        "specs/007-experiment-foundation/validation/review-inputs.json",
+        "specs/007-experiment-foundation/tasks.md",
+    ]
+    for asset in assets:
+        for tree in (source, tmp_path):
+            (tree / asset).parent.mkdir(parents=True, exist_ok=True)
+            (tree / asset).write_text("fixture")
+    git("add", "tests/clock.py", *assets)
+    git("-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "timed")
+    revision = git("rev-parse", "HEAD")
+    cache = tmp_path / "run-state/discovery-tools/round028-source" / revision
+    (cache / "tests").mkdir(parents=True)
+    shutil.copyfile(original, cache / "tests/clock.py")
+    for asset in assets:
+        (cache / asset).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(tmp_path / asset, cache / asset)
+    binding = dict(candidate=revision, source=digest(collect_snapshot(cache)))
+    (source / "tests").mkdir()
+    (source / "tests/clock.py").write_text("value = 2")
+    checked_price_source(tmp_path, source, binding)
+    model = source / "src/oeis_learn/generalization/progressive/models.py"
+    model.parent.mkdir(parents=True)
+    model.write_text("changed = True")
+    with pytest.raises(ValueError, match="workload changed"):
+        checked_price_source(tmp_path, source, binding)
+    (cache / "tests/clock.py").write_text("tampered")
+    with pytest.raises(ValueError, match="cached candidate differs"):
+        checked_price_source(tmp_path, source, binding)
