@@ -83,7 +83,7 @@ From the same detached workstation, use the full candidate SHA from the handoff.
 )
 ```
 
-The last argument sets a cumulative qualification budget in minutes. A 20–30 minute allowance is a planning estimate for a donor with cached image layers. The earlier disposable learner took 188 seconds. The full donor-restore workload has its own timing. The funded preparation and HIP dispatch share the allowance, including image acquisition and cleanup. The operator’s initial metadata read and subsequent receipt replays use no training tokens or GPU lease.
+The last argument sets a cumulative qualification budget in minutes. On the qualified donor, the continuation took 182.685033 s of a 30-minute grant. For a future run with cached image layers, 10–15 minutes allows for that observed workload and the two-minute cleanup window. Allow additional time for a cold image build. Funded preparation and HIP dispatch share the allowance, including image acquisition and cleanup. The initial metadata read and subsequent receipt replays use no training tokens or GPU lease. [Measured continuation and receipt](validation/round029-release.md#ordinary-4m-continuation-on-hip)
 
 The helper retains a pre-update commitment, reopens the same funded operation twice, verifies the private evidence, and checks copied public ZIPs from a separate directory. Its final JSON gives the candidate, parent, receipt, report, measured times and charged tokens. This diagnostic publishes a null scientific verdict.
 

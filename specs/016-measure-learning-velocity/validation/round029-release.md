@@ -35,6 +35,39 @@ The donor reopened the seven retained artifacts twice under the original qualifi
 
 The remaining release checks include measuring CPU contention against a serial reference (T059) and independently verifying the copied report (T062).
 
+## Ordinary 4M continuation on HIP
+
+The detached donor restored the round028 ordinary checkpoint at 4,000,210 useful tokens on candidate `cfe8230a7a4427fb29cb852c32819404eed7fdf5`. Both the round028 policy and round029 recipe 00 consumed the same next 1,647 positive tokens. They reached 4,001,857 useful tokens with identical updated weights, AdamW state, scheduler counters, RNG state and next row order. The two disposable updates charged 3,294 tokens. Two subsequent replays returned the original receipt.
+
+| Workstation measurement | Observed |
+| --- | ---: |
+| Cumulative qualification budget | 1,800 s |
+| Charged elapsed time | 182.685033 s |
+| Remaining budget | 1,617.314967 s |
+| GPU lease | 126.814207 s |
+| Peak device allocation | 2,912,811,008 bytes |
+
+The helper returned this summary after verifying the private receipt and checking the copied report against the independently retained pre-score archive in a separate process. The result covers one disposable continuation of recipe 00. The seven-recipe study still requires its own registration, funding and results.
+
+```json
+{
+  "candidate": "cfe8230a7a4427fb29cb852c32819404eed7fdf5",
+  "receipt": "sha256:c785fdefae23440cf74b532ea75142b7d0e72b18bcf979803d6c5878f2565154",
+  "report": "sha256:6da4b6691e79f675dc91ee347da3cb4c3997a254463c43cd3966adeca12d18e3",
+  "parent_cut": "sha256:c8637061f54dc583d501f782a8bf33038baa2805bfc6a20f8807de4e7963daab",
+  "parent_useful_tokens": 4000210,
+  "next_update_tokens": 1647,
+  "charged_tokens": 3294,
+  "elapsed_us": 182685033,
+  "remaining_us": 1617314967,
+  "lease_us": 126814207,
+  "peak_device_bytes": 2912811008,
+  "verified_replays": 2,
+  "research_dispatches": 0,
+  "scientific_verdict": null
+}
+```
+
 ## Reopen the saved qualification
 
 This command reproduces the receipt check from the same detached donor root using the helper and candidate commits from the verified run.
