@@ -34,7 +34,7 @@ def test_scoped_donation_uses_one_installed_dispatch_and_reopens_twice(tmp_path,
         )
     )
     inputs = dict(
-        parent=dict(milestone=dict(seeds=dict(initialization=782196838))),
+        parent=dict(milestone=dict(seeds=dict(initialization=782196838), stream=digest("stream"))),
         plan=plan,
         training=dict(path="training.json", sha256=digest("fixture"), bytes=21),
     )
@@ -165,6 +165,11 @@ def test_scoped_donation_uses_one_installed_dispatch_and_reopens_twice(tmp_path,
         stream.write(b"private canary")
     rejected = subprocess.run(cmd, capture_output=True)
     assert rejected.returncode == 1 and json.loads(rejected.stdout)["mechanical_status"] == "FAILED"
+    from oeis_learn.pipeline_validation.progressive_velocity_verify import donor_continuation
+    monkeypatch.setattr(progressive_round028, "candidate_revision", lambda *_: revision)
+    cut = {"full_state": plan["checkpoint"], "lineage": digest("stream")}
+    assert donor_continuation(tmp_path, area.parent.parent, tmp_path, cut)["receipt"] == first["last_committed_ref"]
+    assert donor_continuation(tmp_path, area.parent.parent, tmp_path, dict(cut, lineage=digest("changed"))) is None
     original_process = (runs[0] / "process.json").read_bytes()
     (runs[0] / "process.json").write_text('{"outcome":"STOPPED"}')
     failure, code = progressive_round029.execute(args, tmp_path)

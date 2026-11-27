@@ -77,6 +77,36 @@ def _donation(root, area, binding, grant, snapshot):
     return record, report["identity"], "private_donated_next_update"
 
 
+def donor_continuation(root, folder, source, cut):
+    """Credit only the matching revision and cut after a full, read-only receipt replay."""
+    from .progressive_round028 import candidate_revision
+
+    if not cut.get("full_state") or not (folder / "qualification").is_dir():
+        return None
+    revision = candidate_revision(source, root)
+    for path in sorted(folder.glob("qualification/*/receipt.json")):
+        area = confined(root, path.parent)
+        binding = load(confined(area, "binding.json"))
+        if binding.get("version") != "round029-donation/v1" or binding.get("candidate") != revision:
+            continue
+        request = load(confined(area, "request.json"))
+        if cut["full_state"] != request["plan"]["checkpoint"] or cut.get("lineage") != request["parent"]["milestone"]["stream"]:
+            continue
+        grant = load(confined(area, "grant.json"))
+        if (binding != seal(binding) or binding["grant"] != grant["identity"] or area.name != grant["identity"][7:]
+                or request["binding"] != binding["identity"]):
+            raise ValueError("recorded donation grant or candidate binding differs")
+        approval = load(confined(root, "run-state/discovery-authorizations/" + grant["authorizing_record_ref"][7:] + ".json"))
+        validate_grant(grant, approval, root=physical_root_id(root), parent=donation.donation_parent(revision), action="qualify")
+        snapshot = BudgetJournal.inspect_existing(confined(area, "accounting"), grant["identity"], grant["resources"])
+        record, report, _ = _donation(root, area, binding, grant, snapshot)
+        if record != load(confined(area, "receipt.json")):
+            raise ValueError("original donation receipt differs")
+        return dict(candidate=revision, full_state=cut["full_state"], receipt=record["identity"], report=report,
+                    image=request["image"], device=request["physical"], policy=request["plan"]["new_policy"])
+    return None
+
+
 def private_result(root, folder):
     def blocked(reason):
         return (

@@ -238,6 +238,7 @@
         "cuts": {"type": "array", "items": {"type": "object", "properties": {}, "additionalProperties": {}}},
         "historical_scores": {"type": "array", "items": {"type": "object", "properties": {}, "additionalProperties": {}}},
         "original_clocks": {},
+        "reuse": {"type": "object", "properties": {}, "additionalProperties": {}},
         "gpu_dispatches": {"const": 0},
         "stream": {"oneOf": [{"type": "object", "properties": {}, "additionalProperties": {}}, {"type": "null"}]},
         "families": {"oneOf": [{"$ref": "#/$defs/unmeasured_supply"}, {"$ref": "#/$defs/family_supply"}]},

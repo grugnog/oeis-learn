@@ -225,7 +225,10 @@ def matching_proof(tokens, donor, *, client=None, replay=None):
         return seal(dict(**binding, status=outcome, proof="independent_fixed_target"))
     if client is None:
         return seal(dict(**binding, status="needs_native_replay", proof=None))
-    fit = client.fit(source, donor, policy=policy)
+    try:
+        fit = client.fit(source, donor, policy=policy)
+    except TimeoutError:
+        return seal(dict(**binding, status="timed_out", proof=None))
     native = fit.get("native") or {}
     outcome = fit["outcome"]
     proof = None
@@ -240,7 +243,9 @@ def matching_proof(tokens, donor, *, client=None, replay=None):
             status = "eligible" if (replay or replay_native)(proof) else "unverified"
     elif outcome == "verified_solution":
         status = "regroundable"
-    elif outcome in {"resource_exhausted", "unknown", "timeout"}:
+    elif outcome == "timeout":
+        status = "timed_out"
+    elif outcome in {"resource_exhausted", "unknown"}:
         status = "unfinished"
     else:
         status = "unsupported"
@@ -255,6 +260,8 @@ def matching_pairs(shards, order, *, seed, client=None):
     from oeis_learn.synthesis.admission import VisiblePrompt
     from oeis_learn.synthesis.contracts import canonical_integer
 
+    from .metrics import _seed
+    _seed(seed)
     rows = validated_rows(shards, native_verified=True)
     if len(set(order)) != len(order) or not set(order) <= rows.keys():
         raise ValueError("verified unique training support required")

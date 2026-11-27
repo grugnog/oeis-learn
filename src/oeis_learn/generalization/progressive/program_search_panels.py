@@ -321,8 +321,19 @@ def reserve_velocity_families(candidates, historical, *, indexes, quotas, seed):
 
     roles = {"development", "replication", "assessment", "development_retention",
              "replication_retention", "calibration", "practice", "teacher"}
+    from .cohorts import STRATA
+    from .metrics import _seed
+
+    _seed(seed)
     if not set(quotas) <= roles:
         raise ValueError("unknown family reservation")
+    for role, limits in quotas.items():
+        if not isinstance(limits, dict) or not set(limits) <= set(STRATA) | {"retention"}:
+            raise ValueError("unknown reservation stratum")
+        for stratum, count in limits.items():
+            integer(count)
+            if role == "calibration" and stratum == "oeis" and count:
+                raise ValueError("difficulty calibration requires synthetic cases")
     groups, census = fresh_groups(candidates, historical, indexes=indexes, velocity=True)
     options = family_options(groups)
     panels = {r: [] for r in quotas}

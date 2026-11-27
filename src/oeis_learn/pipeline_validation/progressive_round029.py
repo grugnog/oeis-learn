@@ -39,9 +39,25 @@ def result(action, status, reason, next_action, *, last=None, remaining=None, **
     )
 
 
-def preflight(root):
+def preflight(root, source=None):
     policy = velocity_policy()
     info = inventory(root)
+    if source is not None:
+        from .progressive_velocity_verify import donor_continuation
+
+        folder = confined(root, "run-state/discovery/" + SESSION, exists=False)
+        cut = next(r for r in info["cuts"] if (r["method"], r["look"]) == ("00", 4_000_000))
+        try:
+            parity = donor_continuation(root, folder, Path(source), cut)
+            if parity is not None:
+                cut.update(continuation="verified_disposable_next_update", parity=parity,
+                           permitted_roles=["generate", "disposable_restore", "continue_ordinary"])
+        except (ValueError, OSError, KeyError) as exc:
+            cut["continuation_reason"] = str(exc)
+    from .progressive_velocity_reuse import add_look_costs, reuse_inventory
+
+    add_look_costs(info["cuts"], info["original_clocks"])
+    info["reuse"] = reuse_inventory(root, info["cuts"])
     stat = os.statvfs(root)
     info["mount"] = dict(
         device=root.stat().st_dev,
@@ -146,7 +162,7 @@ def execute(args, source, *, host_factory=None):
             raise ValueError("absolute physical donor workspace required")
         folder = confined(root, "run-state/discovery/" + SESSION, exists=False)
         if action == "preflight":
-            return preflight(root), 0
+            return preflight(root, source), 0
         if action == "status":
             return inspect_status(folder), 0
         if not funded:

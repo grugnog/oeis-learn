@@ -10,6 +10,7 @@ import zipfile
 from oeis_learn.generalization.progressive.campaign import velocity_policy
 from oeis_learn.generalization.progressive.contracts import (
     CAMPAIGN_DOCUMENT_BYTES,
+    digest,
     load,
     read_bound_record,
     seal,
@@ -33,13 +34,12 @@ PILOT_REPORT = "sha256:71c8c2f807cbc9101983a1c74194e04629f535666d878b06664274464
 
 def reuse_layers(cut, receipt, request):
     """Compare authenticated operands from the donor and frozen requested measurement."""
-    continuation = bool(cut.get("full_state") and cut.get("lineage") == request.get("lineage"))
+    same_cut = bool(cut.get("weights") and cut.get("lineage") and
+                    all(cut[k] == request.get(k) for k in ("weights", "lineage")))
+    eligible = bool(same_cut and cut.get("full_state"))
+    continuation = eligible and cut.get("continuation") == "verified_disposable_next_update"
     action, reason = "rerun_control", "weights or training lineage unavailable"
-    if (
-        cut.get("weights")
-        and cut.get("lineage")
-        and all(cut[k] == request.get(k) for k in ("weights", "lineage"))
-    ):
+    if same_cut:
         action, reason = "new_inference", "search, selection or sealed choice differs"
         if (
             receipt
@@ -54,7 +54,7 @@ def reuse_layers(cut, receipt, request):
                 receipt.get(k) and receipt[k] == request.get(k) for k in ("scorer", "truth")
             ):
                 action, reason = "reuse_score", "choice, scorer and truth match"
-    return dict(action=action, continuation=continuation, reason=reason)
+    return dict(action=action, continuation=continuation, eligible_for_parity=eligible, reason=reason)
 
 
 def _archives(root, policy):
@@ -137,16 +137,17 @@ def _checkpoint(cut, row, roles):
         checked_file(base, weights)
         row.update(
             weights=weights["sha256"],
-            weight_bytes=weights["bytes"],
+            weight_bytes=weights["bytes"], permitted_roles=["generate"],
             inference=True,
             reason="verified weights; new measurement requires a frozen inference key",
         )
         try:
-            checkpoint_inputs(output, result)
+            mounts, _ = checkpoint_inputs(output, result)
         except (ValueError, FileNotFoundError):
             row["reason"] += "; full restore data missing or inconsistent"
         else:
-            row.update(full_state=cut["parent"], continuation="requires_next_update_parity")
+            row.update(full_state=cut["parent"], full_state_bytes=sum(p.stat().st_size for p,_ in mounts),
+                       continuation="requires_next_update_parity", permitted_roles=["generate", "disposable_restore"])
         return
 
 
@@ -302,10 +303,11 @@ def inventory(root):
         checked_file(root, freeze["reference"])
         cuts[-1].update(
             weights=freeze["reference"]["sha256"],
-            weight_bytes=freeze["reference"]["bytes"],
+            weight_bytes=freeze["reference"]["bytes"], permitted_roles=["generate"],
             inference=True,
             reason="normal D recipe and authenticated weights",
-            recipe=freeze["recipe"],
+            recipe=freeze["recipe"], source=pilot["registration"]["source"], images=freeze["images"],
+            registration=pilot["registration"]["identity"], lineage=digest(["D", freeze["recipe"], freeze["reference"]["sha256"]]),
         )
     except (ValueError, FileNotFoundError) as exc:
         cuts[-1]["reason"] = str(exc)
@@ -319,9 +321,11 @@ def inventory(root):
         row.update(
             lineage=cut["stream"],
             initial=cut["initial"],
-            useful_tokens=cut["useful_tokens"],
+            useful_tokens=cut["useful_tokens"], updates=cut["updates"], cursor=cut["cursor"], seeds=cut["seeds"],
+            discarded_tokens=cut["discarded"], overshoot=cut["overshoot"], codec=cut["codec"],
             charged_tokens=cut["charged"],
-            source=pilot["registration"]["source"],
+            source=pilot["registration"]["source"], registration=pilot["registration"]["identity"],
+            images=freeze["images"],
             image=freeze["images"]["hip"],
             policy=cut["common_policy"],
         )

@@ -57,6 +57,10 @@ def test_live_target_must_exclude_every_grounding_on_donor():
     literal = "(program (return (int 1)))"
     assert check(literal, "verified_solution", 16) == "regroundable"
     assert check(literal, "resource_exhausted", 16) == "unfinished"
+    assert check(literal, "timeout", 16) == "timed_out"
+    def expired(*args, **kwargs):
+        raise TimeoutError
+    assert matching_proof(encode_body(literal), prompt, client=SimpleNamespace(fit=expired))["status"] == "timed_out"
     assert check(literal, "unsat_in_scope", 16) == "partial_scope"
     assert check(literal, "unsat_in_scope", 4096, False) == "unverified"
     assert check(literal, "unsat_in_scope", 4096) == "eligible"
@@ -133,3 +137,19 @@ def test_verified_pair_rows_families_and_exclusions(velocity_supply_rows):
     zero = matching_pairs([rows], [r["draw_identity"] for r in rows[:2]], seed=29)
     assert zero["eligible_rows"] == zero["eligible_families"] == 0
     assert zero["positive_rows"] == zero["dispositions"]["no_differing_donor"] == 2
+
+
+def test_all_protected_roles_get_distinct_cases_and_families_before_second_slots():
+    import pytest
+
+    roles = ("development", "calibration", "teacher", "practice", "replication",
+             "development_retention", "replication_retention", "assessment")
+    cases = [case(i, str(i // 2), stratum="parameter") for i in range(1, 49)]
+    quotas = {role: {"parameter": 2} for role in roles}
+    frozen = reserve_velocity_families(cases, [], indexes=[], quotas=quotas, seed=613)
+    allocated = [r for panel in frozen["panels"].values() for r in panel]
+    assert len(allocated) == len({r["task"] for r in allocated}) == len({r["family"] for r in allocated}) == 16
+    assert frozen["deficits"] == {}
+    assert frozen == reserve_velocity_families(list(reversed(cases)), [], indexes=[], quotas=quotas, seed=613)
+    with pytest.raises(ValueError, match="synthetic"):
+        reserve_velocity_families(cases, [], indexes=[], quotas={"calibration": {"oeis": 1}}, seed=613)
