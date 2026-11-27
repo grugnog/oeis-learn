@@ -54,7 +54,7 @@ def replay_operation(area, coordinates, request, grant, cost, snapshot, verify):
         raise ValueError("original dispatch debit missing")
     out = confined(block, f"attempt-{attempt:04d}")
     proof = operation_receipt(coordinates, request, grant, attempt, verify(out))
-    boundary = load(confined(out, "boundary.json"))
+    boundary = load(confined(block, f"boundary-{attempt:04d}.json"))
     if prior != proof or boundary != seal(boundary) or boundary["result"] != proof["identity"]:
         raise ValueError("persisted operation differs from original dispatch")
     return proof
@@ -92,9 +92,11 @@ def run_operation(
         if key not in keys:
             raise ValueError("gap in physical operation attempts")
         out = confined(block, f"attempt-{attempt:04d}", exists=False)
-        boundary = out / "boundary.json"
+        # The worker can write only its attempt directory. Supervisor proofs live outside that mount.
+        boundary = confined(block, f"boundary-{attempt:04d}.json", exists=False)
+        recovery = confined(block, f"recovering-{attempt:04d}.json", exists=False)
         if boundary.exists():
-            recorded = load(confined(out, "boundary.json"))
+            recorded = load(boundary)
             proof = verified(out, attempt)
             if recorded != seal(recorded) or recorded["result"] != proof["identity"]:
                 raise ValueError("installed operation or original supervisor boundary differs")
@@ -106,12 +108,12 @@ def run_operation(
             )
             retain(receipt, proof)
             return proof
-        if key in state["pending"] or (out / "recovering.json").exists():
+        if key in state["pending"] or recovery.exists():
             # A dead supervisor cannot prove unused time. Still salvage an installed result
             # with independently verified process termination and a complete original debit.
             # Record the recovery intent before committing so a second interruption is resumable.
             if out.is_dir():
-                retain(out / "recovering.json", seal(dict(reservation=key)))
+                retain(recovery, seal(dict(reservation=key)))
             journal.commit(key)
             if (out / "producer.json").is_file() and (out / "cleanup.json").is_file():
                 cleanup = load(confined(out, "cleanup.json"))
@@ -162,7 +164,7 @@ def run_operation(
         if not within:
             raise InsufficientAuthority("operation exceeded its original wall-time reservation")
         retain(
-            out / "boundary.json",
+            block / f"boundary-{attempt:04d}.json",
             seal(dict(result=proof["identity"], boot=boot, end_us=end, within_reservation=within)),
         )
         journal.commit(reservation["key"], boot=boot, monotonic_us=end, termination_proven=True)

@@ -245,10 +245,15 @@
         "matching_pairs": {"oneOf": [{"$ref": "#/$defs/unmeasured_supply"}, {"$ref": "#/$defs/pair_supply"}]},
         "prices": {"type": "object", "properties": {}, "additionalProperties": {}},
         "new_positive_tokens_before_overshoot_if_control_reusable": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "capacity": {"type": "object", "properties": {}, "additionalProperties": {}},
         "mount": {
           "type": "object",
           "properties": {
             "device": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "reserved_bytes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "reserved_inodes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "deficit_bytes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "deficit_inodes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
             "available_bytes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
             "available_inodes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
             "required_bytes": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},

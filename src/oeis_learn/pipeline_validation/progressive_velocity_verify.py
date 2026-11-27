@@ -3,7 +3,7 @@
 import fcntl
 
 from oeis_learn.generalization.progressive.budgets import BudgetJournal
-from oeis_learn.generalization.progressive.contracts import load, seal
+from oeis_learn.generalization.progressive.contracts import digest, load, seal
 from oeis_learn.generalization.progressive.velocity_records import (
     SESSION,
     physical_root_id,
@@ -89,21 +89,52 @@ def donor_continuation(root, folder, source, cut):
         binding = load(confined(area, "binding.json"))
         if binding.get("version") != "round029-donation/v1" or binding.get("candidate") != revision:
             continue
+        if binding.get("source") != digest(donation.collect_snapshot(source)):
+            raise ValueError("registered donation source differs from the candidate checkout")
         request = load(confined(area, "request.json"))
-        if cut["full_state"] != request["plan"]["checkpoint"] or cut.get("lineage") != request["parent"]["milestone"]["stream"]:
+        if (
+            cut["full_state"] != request["plan"]["checkpoint"]
+            or cut.get("lineage") != request["parent"]["milestone"]["stream"]
+        ):
             continue
         grant = load(confined(area, "grant.json"))
-        if (binding != seal(binding) or binding["grant"] != grant["identity"] or area.name != grant["identity"][7:]
-                or request["binding"] != binding["identity"]):
+        if (
+            binding != seal(binding)
+            or binding["grant"] != grant["identity"]
+            or area.name != grant["identity"][7:]
+            or request["binding"] != binding["identity"]
+        ):
             raise ValueError("recorded donation grant or candidate binding differs")
-        approval = load(confined(root, "run-state/discovery-authorizations/" + grant["authorizing_record_ref"][7:] + ".json"))
-        validate_grant(grant, approval, root=physical_root_id(root), parent=donation.donation_parent(revision), action="qualify")
-        snapshot = BudgetJournal.inspect_existing(confined(area, "accounting"), grant["identity"], grant["resources"])
+        approval = load(
+            confined(
+                root,
+                "run-state/discovery-authorizations/"
+                + grant["authorizing_record_ref"][7:]
+                + ".json",
+            )
+        )
+        validate_grant(
+            grant,
+            approval,
+            root=physical_root_id(root),
+            parent=donation.donation_parent(revision),
+            action="qualify",
+        )
+        snapshot = BudgetJournal.inspect_existing(
+            confined(area, "accounting"), grant["identity"], grant["resources"]
+        )
         record, report, _ = _donation(root, area, binding, grant, snapshot)
         if record != load(confined(area, "receipt.json")):
             raise ValueError("original donation receipt differs")
-        return dict(candidate=revision, full_state=cut["full_state"], receipt=record["identity"], report=report,
-                    image=request["image"], device=request["physical"], policy=request["plan"]["new_policy"])
+        return dict(
+            candidate=revision,
+            full_state=cut["full_state"],
+            receipt=record["identity"],
+            report=report,
+            image=request["image"],
+            device=request["physical"],
+            policy=request["plan"]["new_policy"],
+        )
     return None
 
 

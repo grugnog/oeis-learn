@@ -383,3 +383,72 @@ def velocity_guard(*, owner, scope, units, observed, projected, revision, harm, 
     return dict(owner=owner,scope=scope,units=units,source=revision,observed=observed,
                 projected=projected,value=2*peak,headroom=peak,basis="provisional",
                 harm=harm,rehearsal=rehearsal,exhaustion=exhaustion)
+
+
+def capacity_registration(root, source):
+    from oeis_learn.generalization.progressive.contracts import digest, load, seal
+    from oeis_learn.generalization.progressive.velocity_records import (
+        SESSION,
+        physical_root_id,
+        open_stored,
+    )
+    from oeis_learn.generalization.progressive.campaign import velocity_policy
+    from .identity import validate
+
+    path = open_stored(root, source, owner="custodian", format="round029-mount-plan/v1")
+    plan = validate(
+        load(path, maximum=source["artifact"]["bytes"]),
+        {"version", "owners", "floors"},
+        "round029-mount-plan/v1",
+    )
+    binding = seal(
+        dict(
+            study=SESSION,
+            state_root_id=physical_root_id(root),
+            policy=digest(velocity_policy()),
+            source=source,
+        )
+    )
+    return plan, binding
+
+
+def register_velocity_capacity(root, source):
+    from oeis_learn.generalization.progressive.lifecycle import RunStore
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from .identity import confined
+    from .preparation_recovery import retain, revise
+    from oeis_learn.generalization.progressive.contracts import load
+
+    _, binding = capacity_registration(root, source)
+    folder = confined(root, f"run-state/discovery/{SESSION}/preparation/capacity", exists=False)
+    folder.mkdir(parents=True, exist_ok=True)
+    with RunStore.owner(folder):
+        retain(folder / (binding["identity"][7:] + ".json"), binding)
+        current = folder / "registration.json"
+        if not current.exists() or load(confined(folder, current)) != binding:
+            revise(current, binding)
+    return binding
+
+
+def velocity_capacity(root):
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from .identity import confined
+    from .progressive_pilot_capacity import velocity_mounts
+
+    folder = confined(root, f"run-state/discovery/{SESSION}/preparation/capacity", exists=False)
+    if not (folder / "registration.json").is_file():
+        return dict(
+            registration=None,
+            mounts=None,
+            reason="owner peaks and physical mount reserves have not been registered",
+        )
+    bound = load(confined(folder, "registration.json"))
+    plan, binding = capacity_registration(root, bound["source"])
+    if binding != bound or binding != load(confined(folder, binding["identity"][7:] + ".json")):
+        raise ValueError("registered physical capacity inputs differ")
+    return dict(
+        registration=binding["identity"],
+        mounts=velocity_mounts(root, plan["owners"], plan["floors"]),
+        reason=None,
+    )

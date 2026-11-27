@@ -171,16 +171,81 @@ def price_wave(plan, prices, *, remaining_us=None, credited=None):
                 raise ValueError("tail price below expected price")
             expected += outstanding * typical
             tail += outstanding * slow
-        result[scope] = dict(expected_us=None if missing else expected,
-                             tail_us=None if missing else tail, missing=sorted(missing))
+        result[scope] = dict(
+            expected_us=None if missing else expected,
+            tail_us=None if missing else tail,
+            known_expected_us=expected,
+            known_tail_us=tail,
+            missing=sorted(missing),
+        )
     followup = result["followup"]["tail_us"]
     for scope, row in result.items():
         row["affordable_with_reserve"] = None
         if row["tail_us"] is not None and remaining_us is not None and followup is not None:
-            row["affordable_with_reserve"] = (
-                row["tail_us"] + (0 if scope == "followup" else followup) <= integer(remaining_us)
-            )
+            row["affordable_with_reserve"] = row["tail_us"] + (
+                0 if scope == "followup" else followup
+            ) <= integer(remaining_us)
     return result
+
+
+def original_probe_costs(cuts, historical_looks, costs):
+    """Keep historical case and lease costs in the look/profile that actually incurred them."""
+    from oeis_learn.generalization.budgets import integer
+
+    rows = []
+    for look in historical_looks:
+        target, cases = integer(look["look"]), integer(look["denominator"], 1)
+        for method, arm in (
+            ("00", "ordinary"),
+            ("first_divergence", "first_divergence"),
+            ("D", "incumbent"),
+        ):
+            if method == "D" and target != 4_000_000:
+                continue
+            block = f"{arm}-{target}"
+            portions = {}
+            for role in ("search", "score"):
+                stage = [
+                    r
+                    for r in costs
+                    if r["role"] == role
+                    and (
+                        r["block"] == block
+                        or r["block"].startswith((block + "-resume-", block + "-scoreretry-"))
+                    )
+                ]
+                if not stage:
+                    portions[role] = dict(
+                        charged_us=None,
+                        lease_us=None,
+                        reason="original role clock unavailable or shared",
+                    )
+                    continue
+                if len({r["identity"] for r in stage}) != len(stage) or any(
+                    r != seal(r) for r in stage
+                ):
+                    raise ValueError("duplicated or inconsistent original stage cost")
+                paid = sum(integer(r["charged_us"]) for r in stage)
+                portions[role] = dict(
+                    charged_us=paid,
+                    lease_us=sum(integer(r["lease_us"]) for r in stage),
+                    average_per_case_us=(paid + cases - 1) // cases,
+                    reason=None,
+                )
+            cut = next(
+                c for c in cuts if c["method"] == method and (method == "D" or c["look"] == target)
+            )
+            rows.append(
+                dict(
+                    method=method,
+                    look=target,
+                    attempts=look["attempts"],
+                    cases=cases,
+                    training_to_look_us=cut.get("training_to_look_us"),
+                    roles=portions,
+                )
+            )
+    return rows
 
 
 def affordable_prefix(batches, prices, *, remaining_us, holdback_us, paid=(), opened=()):
@@ -201,10 +266,18 @@ def affordable_prefix(batches, prices, *, remaining_us, holdback_us, paid=(), op
     if paid & opened or not (paid | opened) <= known.keys():
         raise ValueError("invalid paid or open work")
     spent = paid | opened
-    result = dict(batches=[], expected_us=0, tail_us=0, holdback_us=holdback, next=None,
-                  deficit_us=0, missing=[], unsettled=sorted(opened))
+    result = dict(
+        batches=[],
+        expected_us=0,
+        tail_us=0,
+        holdback_us=holdback,
+        next=None,
+        deficit_us=0,
+        missing=[],
+        unsettled=sorted(opened),
+    )
     for batch in batches:
-        work = {k:v for k,v in batch["operations"].items() if k not in spent}
+        work = {k: v for k, v in batch["operations"].items() if k not in spent}
         missing = sorted({kind for kind in work.values() if kind not in prices})
         if missing:
             result.update(next=batch["id"], missing=missing, deficit_us=None)

@@ -61,3 +61,84 @@ def test_paid_initialization_open_drain_and_atomic_smaller_prefix():
     missing = affordable_prefix(batches, prices, remaining_us=75_000_000, holdback_us=10_000_000,
                                 paid={"init"}, opened={"a-search"})
     assert missing["batches"] == [] and missing["missing"] == ["score"] and missing["deficit_us"] is None
+
+
+def test_distinct_mount_peaks_count_shared_inodes_once_and_keep_owner_limits_separate(tmp_path):
+    import os
+    from oeis_learn.generalization.progressive.contracts import reference
+    from oeis_learn.pipeline_validation.progressive_pilot_capacity import velocity_mounts
+
+    state = tmp_path / "state"
+    public = tmp_path / "public"
+    state.mkdir()
+    public.mkdir()
+    existing = state / "cut.pt"
+    existing.write_bytes(b"x" * 4096)
+    alias = state / "checkpoint-alias.pt"
+    os.link(existing, alias)
+    size = existing.stat().st_blocks * 512
+
+    def owner(name, path, retained, size, nodes):
+        return dict(
+            owner=name,
+            scope=name + " simultaneous files",
+            path=path,
+            retained=retained,
+            observed=dict(bytes=size, inodes=nodes),
+            projected=dict(bytes=size, inodes=nodes),
+            revision="a" * 40,
+            harm="publication could exhaust the reserve",
+            exhaustion="shrink the batch",
+            rehearsal="T060 peak coexistence",
+        )
+
+    writers = [
+        owner(
+            "checkpoint", "state", [reference(tmp_path, p) for p in (existing, alias)], size * 2, 2
+        ),
+        owner("journal", "state", [], 900, 3),
+        owner("temporary_archive", "public", [], 1000, 3),
+        owner("published_archive", "public", [], 1000, 3),
+    ]
+
+    def facts(path):
+        return (1, 100_000, 50) if path == state else (2, 20_000, 13)
+
+    views = velocity_mounts(
+        tmp_path,
+        writers,
+        [dict(path="state", bytes=9, inodes=2), dict(path="public", bytes=3, inodes=2)],
+        measure=facts,
+    )
+    assert views[0]["retained_bytes"] == size and views[0]["retained_inodes"] == 1
+    assert views[0]["required_bytes"] == 3 * size + 1800 and views[0]["required_inodes"] == 9
+    assert views[1]["required_bytes"] == 4000 and views[1]["deficit_inodes"] == 1
+    assert views[1]["deficit_bytes"] == 0 and views[0]["owners"][1]["owner"] == "journal"
+
+
+def test_original_prices_count_retries_but_keep_profiles_and_missing_clocks_separate():
+    from oeis_learn.generalization.progressive.contracts import seal
+    from oeis_learn.generalization.progressive.program_search_costing import original_probe_costs
+
+    cuts = [
+        {"method": k, "look": 4_000_000, "training_to_look_us": n}
+        for k, n in (("00", 30), ("first_divergence", 31), ("D", None))
+    ]
+    looks = [dict(look=4_000_000, attempts=8, denominator=2)]
+    paid = [
+        seal(dict(block=k, role="search", charged_us=n, lease_us=n - 1))
+        for k, n in (
+            ("ordinary-4000000", 10),
+            ("ordinary-4000000-resume-1", 7),
+            ("incumbent-4000000", 20),
+            ("ordinary-1000000", 100),
+        )
+    ]
+    result = original_probe_costs(cuts, looks, paid)
+    assert result[0]["roles"]["search"] == dict(
+        charged_us=17, lease_us=15, average_per_case_us=9, reason=None
+    )
+    assert (
+        result[0]["roles"]["score"]["charged_us"] is None
+        and result[2]["roles"]["search"]["charged_us"] == 20
+    )

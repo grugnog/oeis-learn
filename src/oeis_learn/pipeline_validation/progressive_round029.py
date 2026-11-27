@@ -7,7 +7,7 @@ from pathlib import Path
 from oeis_learn.generalization.progressive.campaign import velocity_policy
 from oeis_learn.generalization.progressive.contracts import digest, load
 from oeis_learn.generalization.progressive.lifecycle import RunStore
-from oeis_learn.generalization.progressive.program_search_costing import price_wave
+from oeis_learn.generalization.progressive.program_search_costing import original_probe_costs, price_wave
 from oeis_learn.generalization.progressive.velocity_records import (
     SESSION,
     accepted_grant_parent,
@@ -50,14 +50,26 @@ def preflight(root, source=None):
         try:
             parity = donor_continuation(root, folder, Path(source), cut)
             if parity is not None:
-                cut.update(continuation="verified_disposable_next_update", parity=parity,
-                           permitted_roles=["generate", "disposable_restore", "continue_ordinary"])
+                cut.update(
+                    continuation="verified_disposable_next_update",
+                    parity=parity,
+                    permitted_roles=["generate", "disposable_restore", "continue_ordinary"],
+                )
         except (ValueError, OSError, KeyError) as exc:
             cut["continuation_reason"] = str(exc)
     from .progressive_velocity_reuse import add_look_costs, reuse_inventory
 
     add_look_costs(info["cuts"], info["original_clocks"])
-    info["reuse"] = reuse_inventory(root, info["cuts"])
+    try:
+        info["reuse"] = reuse_inventory(root, info["cuts"])
+    except (ValueError, OSError, KeyError) as exc:
+        info["reuse"] = dict(
+            measurements=[],
+            distinct_score_credits=0,
+            research_dispatches=0,
+            registration=None,
+            reason=str(exc),
+        )
     stat = os.statvfs(root)
     info["mount"] = dict(
         device=root.stat().st_dev,
@@ -67,6 +79,32 @@ def preflight(root, source=None):
         required_inodes=None,
         reason="pending measured peak and operator reserve for this scope",
     )
+    from .progressive_research_resources import velocity_capacity
+
+    try:
+        info["capacity"] = velocity_capacity(root)
+    except (ValueError, OSError, KeyError) as exc:
+        info["capacity"] = dict(mounts=None, registration=None, reason=str(exc))
+    for mount in info["capacity"]["mounts"] or ():
+        if mount["device"] == info["mount"]["device"]:
+            info["mount"].update(
+                {
+                    k: mount[k]
+                    for k in (
+                        "available_bytes",
+                        "available_inodes",
+                        "required_bytes",
+                        "required_inodes",
+                        "reserved_bytes",
+                        "reserved_inodes",
+                        "deficit_bytes",
+                        "deficit_inodes",
+                    )
+                }
+            )
+            info["mount"][
+                "reason"
+            ] = "registered simultaneous owner peaks and physical mount reserve"
     info["prices"] = price_wave(
         {
             "common_probe": {"cold_start": 1, "common_probe": 1, "selected_scoring": 1},
@@ -81,14 +119,38 @@ def preflight(root, source=None):
         },
         {},
     )
+    info["prices"]["original_028_workloads"] = original_probe_costs(
+        info["cuts"], info["historical_scores"], info["original_clocks"]
+    )
     info["new_positive_tokens_before_overshoot_if_control_reusable"] = 24_000_000
     info.update(supply_inventory(root))
     info["assessment"] = policy["assessment"]
+    ordinary = next(r for r in info["cuts"] if (r["method"], r["look"]) == ("00", 4_000_000))
+    if any(m["deficit_bytes"] or m["deficit_inodes"] for m in info["capacity"]["mounts"] or ()):
+        reason, next_action = (
+            "Registered simultaneous writes exceed a physical mount reserve",
+            "inspect_capacity",
+        )
+    elif ordinary["continuation"] == "requires_next_update_parity":
+        reason, next_action = (
+            "The ordinary 4M full state is available for one disposable next-update comparison",
+            "qualify",
+        )
+    elif not ordinary["weights"]:
+        reason, next_action = (
+            "Original ordinary weights and training provenance are unavailable for the proposed reuse",
+            "inspect_inputs",
+        )
+    else:
+        reason, next_action = (
+            "Price the common probe and a protected follow-up on exposed inputs",
+            "qualify",
+        )
     return result(
         "preflight",
         "INSPECTED",
-        "Inventory read; candidate-specific measurements pending",
-        "qualify",
+        reason,
+        next_action,
         inventory=info,
         state_root_id=physical_root_id(root),
         qualification_policy=digest(policy),

@@ -227,3 +227,51 @@ def test_preflight_opens_the_two_original_installed_role_boundaries(tmp_path):
     import pytest
     with pytest.raises(ValueError):
         historical_probe(tmp_path,cut,row)
+
+
+def test_registered_mount_plan_reports_only_affected_physical_deficit(tmp_path):
+    import os
+    from oeis_learn.generalization.progressive.contracts import atomic_write, reference, seal
+    from oeis_learn.pipeline_validation.progressive_research_resources import (
+        register_velocity_capacity,
+    )
+    from oeis_learn.pipeline_validation.progressive_round029 import preflight
+
+    fs = os.statvfs(tmp_path)
+    owner = dict(
+        owner="public_archive",
+        path=".",
+        scope="published files plus coexistence",
+        observed=dict(bytes=128, inodes=3),
+        projected=dict(bytes=160, inodes=4),
+        retained=[],
+        revision="b" * 40,
+        harm="would consume the mount reserve",
+        exhaustion="reduce the report batch",
+        rehearsal="T060 peak coexistence",
+    )
+    pre = tmp_path / "mounts.json"
+    atomic_write(
+        pre,
+        seal(
+            dict(
+                version="round029-mount-plan/v1",
+                owners=[owner],
+                floors=[dict(path=".", bytes=0, inodes=fs.f_favail + 1000)],
+            )
+        ),
+    )
+    register_velocity_capacity(
+        tmp_path,
+        dict(owner="custodian", format="round029-mount-plan/v1", artifact=reference(tmp_path, pre)),
+    )
+    before = {p: p.stat().st_mtime_ns for p in tmp_path.rglob("*")}
+    inv = preflight(tmp_path)["inventory"]
+    m = inv["mount"]
+    assert (m["required_bytes"], m["required_inodes"], m["deficit_bytes"]) == (320, 8, 0)
+    assert m["deficit_inodes"] == max(0, 8 + m["reserved_inodes"] - m["available_inodes"]) > 0
+    assert before == {p: p.stat().st_mtime_ns for p in tmp_path.rglob("*")}
+    pre.write_bytes(pre.read_bytes() + b" ")
+    scoped = preflight(tmp_path)["inventory"]
+    assert scoped["capacity"]["mounts"] is None and scoped["capacity"]["reason"]
+    assert len(scoped["cuts"]) == 7 and scoped["gpu_dispatches"] == 0
