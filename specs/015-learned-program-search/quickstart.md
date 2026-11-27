@@ -1,5 +1,31 @@
 # Round028 workstation commands
 
+## Collect release acceptance
+
+Run this block once on the Podman/HIP workstation that holds the completed round028 pilot. Start from its detached round027 donor checkout. The command creates an isolated acceptance directory for commit `3ecac2fd` and reopens the existing scientific result. The pilot retained D and the final assessment stays sealed.
+
+```bash
+(
+  set -euo pipefail
+  cd "$HOME/workspace/oies-learn"
+  rev=3ecac2fdca8613dc1601864d51f610254308a58a
+  git fetch --quiet --no-tags origin refs/heads/015-learned-program-search
+  git merge-base --is-ancestor "$rev" FETCH_HEAD
+  git show "${rev}:specs/015-learned-program-search/validation/launch-round028.sh" |
+    bash -s -- "$rev" collect-release
+)
+```
+
+| Open task | What the command collects |
+| --- | --- |
+| T044 | The same regressions against the candidate source and installed wheel, including its native fitter, 013 CLI and Optuna checks, both research branches and archive-only verification. |
+| T046 | Original admission, cold and warm measurements for both producer encodings and the full journal, native execution, observed HIP updates, complete checkpoint restore and a revised forecast for both seed pairs. |
+| T047 | A worker interruption during native fitting, a learner killed inside backward, a full disposable filesystem, freeze and publication recovery, cross-checkout ownership and two automatic restarts. |
+
+The saved rehearsal recorded 461,574,003 producer bytes. Each of the two test encodings covers at least that volume across 352 files. The journal fixture reopens 290,000 events and checks that both reads credit the same 145,000 completed operations.
+
+The last line gives the path to the file to return. **`round028-release.zip`** contains the verified evidence and both public parents. If a check fails, **`round028-release-diagnostics.zip`** contains the completed stages, failed checks and any measured capacity deficit. Detailed logs stay on the workstation. Running the same block after a recoverable failure reopens completed stages under the same candidate.
+
 ## Run the eleven-hour generator pilot
 
 **The one-seed pilot completed all three checkpoints and retained D.** The copied report verified against the original pre-score qualification. Both arms trained on 4,000,210 useful tokens and the endpoint covered all 160 reserved cases. Research roles charged 1 h 56 min 56 s against the 10 h 24 min 12 s forecast. The final assessment stayed sealed. [Verified endpoint and measured costs](validation/round028-pilot.md#verified-one-seed-result)
