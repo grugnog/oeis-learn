@@ -563,7 +563,7 @@ def _measure_velocity_broad(
         case = dict(
             row,
             id=key,
-            stratum="training",
+            stratum="parameter" if row["structure"] in familiar else "training",
             difficulty=measure(row["source"], reference_steps=measurement["reference_steps"]),
         )
         band = difficulty_band(descriptor(case), calibration)

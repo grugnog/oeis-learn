@@ -338,6 +338,24 @@ def freeze_panels(groups, samples, observed, *, seed, per_stratum=32):
     )
 
 
+def reserved_family_rows(candidates, selected):
+    """Reopen the entire private component and its clustered parameter variants."""
+    if not selected:
+        return []
+    pool = {row["id"]: row for row in candidates}
+    for row in selected:
+        pool.setdefault(row["id"], row)
+    wanted = {row["id"] for row in selected}
+    groups, _ = fresh_groups(list(pool.values()), [], indexes=(), velocity=True)
+    options = family_options(groups, joint=True)
+    held = {family for families in options.values() for family, entries in families.items()
+            if any(row["id"] in wanted for _, row in entries)}
+    reserved = {row["id"] for families in options.values() for family, entries in families.items()
+                if family in held for _, row in entries}
+    order = dict.fromkeys([*(row["id"] for row in selected), *sorted(reserved - wanted)])
+    return [pool[key] for key in order]
+
+
 def reserve_velocity_families(candidates, historical, *, indexes, quotas, seed, exposed_prompts=()):
     """Deal one independent family per turn before any role takes a second member."""
     from oeis_learn.generalization.budgets import integer

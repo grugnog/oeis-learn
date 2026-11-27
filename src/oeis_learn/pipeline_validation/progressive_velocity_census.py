@@ -105,7 +105,10 @@ def prior_exposures(inputs, supply, calibration, training):
     require(held.keys() == wanted, "original calibration witnesses missing")
     history = list(inputs["historical"])
     support = inputs["support"]
-    for row in [*supply["witnesses"].values(), *held.values()]:
+    from oeis_learn.generalization.progressive.program_search_panels import reserved_family_rows
+
+    selected = [*supply["witnesses"].values(), *held.values()]
+    for row in reserved_family_rows(inputs["candidates"], selected):
         history.append(historical_row(row, support, "reservation", velocity=True))
     for row in training:
         history.append(

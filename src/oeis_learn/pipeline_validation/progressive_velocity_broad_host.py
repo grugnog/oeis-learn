@@ -109,7 +109,7 @@ def paid_calibration(root, source, folder, origins):
 
 def custodian(root, source, out, origins):
     from oeis_learn.generalization.progressive.generator import draw
-    from oeis_learn.generalization.progressive.program_search_panels import fresh_groups
+    from oeis_learn.generalization.progressive.program_search_panels import fresh_groups, reserved_family_rows
     from .progressive_panel_sources import historical_row, read_inputs
     from .progressive_preparation import verify_draw
     from .progressive_round028_audit import ORIGINAL
@@ -192,9 +192,8 @@ def custodian(root, source, out, origins):
         raise ValueError("original reserved family witnesses missing")
     protected.extend(
         historical_row(r, inputs["support"], "reservation", velocity=True)
-        for r in reserved.values()
+        for r in reserved_family_rows(inputs["candidates"], list(reserved.values()))
     )
-    protected.extend(dict(rows[k], id=k, stratum="training") for k in rows.keys() - set(keys))
     familiar = set(inputs["support"]["structures"])
 
     def candidate(row):
@@ -204,13 +203,20 @@ def custodian(root, source, out, origins):
             stratum="parameter" if row["structure"] in familiar else "training",
         )
 
+    protected.extend(candidate(rows[k]) for k in rows.keys() - set(keys))
     positives = [candidate(rows[k]) for k in keys]
 
     def eligible(cases):
+        requested = {r["id"] for r in cases}
+        bridges = [r for r in inputs["candidates"] if r["id"] not in requested]
         groups, counts = fresh_groups(
-            cases, protected, indexes=(), velocity=True, exposed_prompts=practice_prompts()
+            [*cases, *bridges], protected, indexes=(), velocity=True, exposed_prompts=practice_prompts()
         )
-        return {r["id"] for group in groups.values() for r in group}, counts
+        eligible_ids = {r["id"] for group in groups.values() for r in group} & requested
+        counts.update(candidates=len(requested), eligible=len(eligible_ids),
+                      excluded=len(requested - eligible_ids),
+                      components=sum(any(r["id"] in requested for r in group) for group in groups.values()))
+        return eligible_ids, counts
 
     original_keys, counts = eligible(positives)
     if original_keys != set(keys):

@@ -1056,15 +1056,17 @@ def test_broader_custodian_checks_reserved_shift_before_native_projection(
         indices=list(map(str, range(100))),
         values=[str((1 << 200) + i) for i in range(100)],
     )
+    reserved["group"] = "replication-family"
+    sibling = dict(reserved, id="unchosen", values=[str((1 << 180) + i) for i in range(100)])
     if collision:
-        reserved["values"][:20] = witnesses[0]["values"][80:]
+        sibling["values"][:20] = witnesses[0]["values"][80:]
     monkeypatch.setattr(
         progressive_panel_sources,
         "read_inputs",
         lambda *_a, **_kw: dict(
             census=census,
             data=dict(identity=data),
-            candidates=[reserved],
+            candidates=[reserved, sibling],
             historical=[],
             originals_used=[],
             support={"structures": args["familiar"]},
@@ -1097,3 +1099,39 @@ def test_broader_custodian_checks_reserved_shift_before_native_projection(
         )
         with pytest.raises(ValueError, match="closed training-only"):
             checked_request(seal(dict(request, hidden_suffix=reserved["values"])), "prepare-broad")
+
+
+@pytest.mark.parametrize("indexed", [False, True])
+def test_broad_audit_preserves_declared_parameter_exception(tmp_path, matched_composition_inputs, indexed):
+    import re
+    from oeis_learn.generalization.progressive import generator
+    from oeis_learn.generalization.progressive.contracts import reference, seal
+    from oeis_learn.pipeline_validation.progressive_preparation import prepare_velocity_broad, verify_draw
+    from oeis_learn.pipeline_validation.progressive_research_inputs import ExposureIndex
+    from oeis_learn.synthesis.reference import evaluate
+
+    args, _ = matched_composition_inputs
+    draw = next(d for i in range(256) if re.fullmatch(r"\(program \(return \(int -?[0-9]+\)\)\)",
+                (d := generator.draw(args["law"], i))["source"]))
+    row, reason = verify_draw(draw, client=args["client"])
+    assert reason is None
+    stream = seal(dict(args["stream"], order=[row["draw_identity"]], row_identities=digest([row["identity"]])))
+    source = "(program (return (int 4321)))"
+    old = dict(id="prior", source=source, structure=generator.structure_id(source),
+               indices=row["indices"], values=list(evaluate(source, row["indices"]).values))
+    for stratum in ("parameter", "composition"):
+        prior = dict(old, stratum=stratum)
+        history, indexes = [prior], []
+        if indexed:
+            path = tmp_path / (stratum + ".sqlite")
+            with ExposureIndex(path) as db:
+                db.add(prior, origin="prior", role="assessment")
+            history, indexes = [], [reference(tmp_path, path)]
+        settings = dict(args, stream=stream, shards=[[row]], ordinals=[], protected=history,
+                        indexes=indexes, familiar=[row["structure"]])
+        if stratum == "parameter":
+            broader, _, _ = prepare_velocity_broad(**settings)
+            assert broader["order"] == stream["order"]
+        else:
+            with pytest.raises(ValueError, match="overlaps protected"):
+                prepare_velocity_broad(**settings)
