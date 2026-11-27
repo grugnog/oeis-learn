@@ -37,6 +37,10 @@ The journal charged 2,964 tokens across both uninterrupted references (1,182) an
 
 The returned preflight, qualification and status documents passed the candidate's result validator. The receipt matched the last committed reference in both replies. Recomputing the saved status digest reproduced its recorded identity. The candidate revision, donor root identity, role policy and 30-minute grant reproduced the binding in the receipt. Preflight reported fresh family and matching-pair supply as unmeasured. The run dispatched zero research operations and kept the final assessment sealed.
 
+### Combined CPU preparation
+
+Candidate `fbb3f9db8afd83c37b2cbe367f1ef5f401989ad1` accepts one qualification grant for the original ordinary matching-pair stream and the fresh family census. It publishes each measurement at its own debit boundary. The detached donor fixture without private archives returned the original missing-archive diagnostic, two unknown counts and zero device dispatches. A populated fixture exercised the original stream order, reserved panels, calibration exclusions and independent replay. A failure between the two steps preserved the completed result and its charge. The physical donor's counts and elapsed time are pending. [Run both measurements and save one attachment](../quickstart.md#measure-donor-family-and-matching-pair-supply)
+
 ## Donor replay
 
 The donor reopened the seven retained artifacts twice under the original qualification grant. Both launcher replies matched the entire first result, including its receipt and remaining budget. The review helper returned the following record.

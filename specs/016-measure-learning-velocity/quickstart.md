@@ -142,6 +142,26 @@ Run the following from the detached donor with `ROUND029_REV` set to the full pr
 
 The common-probe estimate covers ordinary and one challenger at one look. The follow-up reserve covers a matched full-profile comparison on one OEIS family with existing weights. Each price includes cold role startup and selected-choice scoring. Image acquisition is shown separately for an uncached host. Expected and tail estimates come from the historical exposed sample. The wave lists the sums of the priced items and each outstanding measurement. A null total means the listed work still needs pricing. Research funding requires a separate decision.
 
+## Measure donor family and matching-pair supply
+
+Run this block from the physical root of the detached round027 donor. One CPU preparation grant covers the two measurements. The helper then reopens the private receipts and runs read-only preflight to reprice the common probe and the follow-up. It saves the results and any first failure in one file.
+
+```bash
+(
+  set -euo pipefail
+  umask 077
+  candidate=fbb3f9db8afd83c37b2cbe367f1ef5f401989ad1
+  out=$(mktemp -d "$HOME/round029-supply.XXXXXX")
+  git fetch --no-tags origin "$candidate"
+  git show "$candidate:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - "$candidate" 30 supply --output "$out/supply.json"
+)
+```
+
+The 30-minute argument is a cumulative workstation spending cap for the two workers. A planning range of 30–45 minutes allows for reopening the original exposure index, the family scan and cleanup. The earlier round028 panel collection took 457.07 seconds. Round029 also checks later exposures and reconstructs links from the original source records. Completed operations release their unused time. Running the same block again uses the original grant and writes a new attachment. Changing the candidate or cap creates a different grant. [Historical CPU collection](../../015-learned-program-search/validation/round028-panel-results.md)
+
+The first step checks the ordered ordinary training stream. It reports proven fixed-target matching pairs and counts rows that still require native coefficient fitting. The second step proposes 32 cases per transfer stratum for development, replication and assessment, 32 for each retention role and one case per synthetic stratum for each of practice, teacher and calibration. These are provisional, outcome-blind reservation requests. The file records the actual cases, independent families and deficits by role. The command acquires no device, trains no learner and opens no comparative scores. Attach the resulting `supply.json`.
+
 ## Start or resume after the round029 release
 
 Use the original private workstation, a local Podman engine with resource controls and a qualified HIP device for learner work. Start in the **physical root of the detached round027 donor**. Set `ROUND029_REV` from the implementation release, and `ROUND029_GRANT` to the absolute path of the operator-authorized grant. If all you need is inventory, run through the preflight line. The same `run` line starts or resumes an authorized campaign.
