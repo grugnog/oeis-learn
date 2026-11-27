@@ -142,3 +142,61 @@ def test_installed_live_projection_accepts_only_registered_visible_inputs(tmp_pa
     (dest / "inputs/visible/witness.bin").write_bytes(b"PRIVATE-WITNESS")
     assert accept(dest, tmp_path / "extra") != 0
     assert not (tmp_path / "extra/accepted-input.json").exists()
+
+
+
+@pytest.mark.parametrize("operation", sorted(ROUND029_ROLES))
+def test_each_registered_role_reopens_only_its_own_projection(tmp_path, monkeypatch, operation):
+    from oeis_learn.decoder.bigint_codec import encode_body
+    from oeis_learn.experiments.source_snapshot import source_snapshot
+    from oeis_learn.generalization.progressive.contracts import atomic_write, load, seal
+    from oeis_learn.generalization.progressive.projections import describe
+    from oeis_learn.pipeline_validation import progressive_qualification
+    from oeis_learn.pipeline_validation.progressive_role import main
+    from oeis_learn.pipeline_validation.progressive_roles import ROUND029_ROLE_POLICY
+    from oeis_learn.pipeline_validation.progressive_velocity_roles import project_role_inputs
+
+    spec = ROUND029_ROLES[operation]
+    prompt = dict(indices=list(map(str, range(-3, 17))), values=list(map(str, range(20))))
+    target = encode_body("(program (return $index))")
+    channels = {
+        "visible": ("visible", prompt),
+        "training": ("training", dict(prompt=prompt, target=target, family_ref=digest("training family"))),
+        "guide": None,
+        "admissions": None,
+        "model": ("model", dict(weights_ref=digest("eligible weights"), profile_ref=digest("profile"))),
+        "skeleton": ("skeleton", dict(tokens=encode_body("(program (return (param.get p0)))"))),
+        "choices": ("choice", dict(prompt_ref=digest(prompt), source=None, closed=True, complete=True)),
+        "sealed_bank": ("bank", dict(prompt_ref=digest(prompt), choice_ref=digest("sealed"), sources=[], closed=True)),
+        "score_truth": ("truth", dict(indices=list(map(str, range(-3, 97))), values=list(map(str, range(100))))),
+    }
+    worker = dict(source="a" * 40, image=digest("installed"), device="hip" if spec.gpu else "cpu",
+                  role_policy=ROUND029_ROLE_POLICY)
+    monkeypatch.setenv("OEIS_QUALIFICATION_IMAGE", worker["image"])
+    hip = []
+    monkeypatch.setattr(progressive_qualification, "require_hip", lambda: hip.append(operation))
+    artifacts = {channel: [] for channel in spec.channels}
+    for channel, items in artifacts.items():
+        if channels[channel]:
+            kind, data = channels[channel]
+            path = tmp_path / (channel + ".json")
+            atomic_write(path, seal(dict(version="discovery-channel/v1", kind="round029_" + kind,
+                                         role=spec.role, data=data)))
+            items.append(describe(tmp_path, path))
+    request = seal(dict(version="round029-role-input/v1", operation=operation, worker=worker,
+                        source_manifest=digest(source_snapshot()),
+                        channels={c: [a.identity for a in items] for c, items in artifacts.items()}))
+    dest = tmp_path / "role"
+    project_role_inputs(tmp_path, dest, request=request, current_worker=worker, artifacts=artifacts,
+                        authorized=[a.ref for items in artifacts.values() for a in items])
+    output = tmp_path / "out"
+    assert main(["round029-" + operation], inputs=dest / "inputs", authority=dest / "authority.json", output=output) == 0
+    assert hip == ([operation] if spec.gpu else [])
+    assert load(output / "accepted-input.json")["request_ref"] == request["identity"]
+    foreign = next(c for c in ("score_truth", "training", "visible") if c not in spec.channels)
+    (dest / "inputs").chmod(0o755)
+    (dest / "inputs" / foreign).mkdir()
+    assert main(["round029-" + operation], inputs=dest / "inputs", authority=dest / "authority.json",
+                output=tmp_path / "bad") != 0
+    assert not (tmp_path / "bad/accepted-input.json").exists()
+    assert hip == ([operation] if spec.gpu else [])

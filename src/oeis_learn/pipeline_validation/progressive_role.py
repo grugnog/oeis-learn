@@ -707,14 +707,15 @@ def execute(operation, **kwargs):
 def main(argv=None, *, inputs=Path("/inputs"), authority=Path("/authority/supervisor.json"),
          output=Path("/output/discovery")):
     args = list(sys.argv[1:] if argv is None else argv)
-    if len(args) == 1 and args[0] in {"round029-search", "round029-select"}:
-        from .progressive_velocity_roles import accept_live_inputs
+    from .progressive_roles import ROUND029_ROLES
+    if len(args) == 1 and args[0].startswith("round029-") and args[0].removeprefix("round029-") in ROUND029_ROLES:
+        from .progressive_velocity_roles import accept_role_inputs
 
         try:
-            receipt = accept_live_inputs(args[0].removeprefix("round029-"), inputs=inputs,
+            receipt = accept_role_inputs(args[0].removeprefix("round029-"), inputs=inputs,
                                          authority=authority, output=output)
-        except (OSError, ValueError, KeyError, TypeError):
-            print(json.dumps({"mechanical_status": "FAILED", "reason": "invalid live projection or worker"}))
+        except (OSError, ValueError, KeyError, TypeError, RuntimeError):
+            print(json.dumps({"mechanical_status": "FAILED", "reason": "invalid role projection or worker"}))
             return 1
         print(json.dumps(receipt, sort_keys=True))
         return 0

@@ -287,9 +287,9 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
 
 
 def _validate_channel(kind, data):
-    if kind in {"round029_visible", "round029_guide", "round029_admission"}:
-        from oeis_learn.pipeline_validation.progressive_velocity_roles import validate_live_value
-        validate_live_value(kind, data)
+    if kind.startswith("round029_"):
+        from oeis_learn.pipeline_validation.progressive_velocity_roles import validate_role_value
+        validate_role_value(kind, data)
         return
     if kind in {'short_prompt','short_policy','short_candidates','short_training_truth','short_score_truth'}:
         from oeis_learn.pipeline_validation.progressive_short_roles import validate_channel
