@@ -1,3 +1,4 @@
+import json
 import subprocess
 from unittest.mock import Mock, patch
 
@@ -6,6 +7,23 @@ import pytest
 from oeis_learn.container_runtime import Engine, normalized_image
 
 IMAGE = "sha256:" + "a" * 64
+
+
+def test_build_progress_does_not_corrupt_the_host_json_result(tmp_path, capfd):
+    engine_cli = tmp_path / "engine"
+    engine_cli.write_text(
+        "#!/bin/sh\n"
+        'if [ "$1" = build ]; then\n'
+        "  echo '[1/2] STEP 1/3: FROM base'\n"
+        "  echo 'build warning' >&2\n"
+        f"else\n  echo '{IMAGE}'\nfi\n"
+    )
+    engine_cli.chmod(0o700)
+    engine = Engine("podman", executable=str(engine_cli))
+    print(json.dumps({"image": engine.build(tmp_path)}))
+    out, err = capfd.readouterr()
+    assert json.loads(out) == {"image": IMAGE}
+    assert "[1/2] STEP" in err and "build warning" in err
 
 
 @pytest.mark.parametrize("name", ["docker", "podman"])

@@ -9,6 +9,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -137,7 +138,8 @@ class Engine:
         args = ["build", "--target", target, "--tag", tag]
         if base_image:
             args += ["--build-arg", "GPU_BASE_IMAGE=" + base_image]
-        self.call([*args, str(Path(root).resolve())], timeout=seconds)
+        # Podman can print build steps on stdout. Host commands reserve it for their result.
+        self.call([*args, str(Path(root).resolve())], timeout=seconds, stdout=sys.stderr)
         return self.image(tag)
 
     def user_args(self):
