@@ -90,6 +90,9 @@ def test_registered_operation_recovers_receipt_before_commit_and_protects_holdba
     )
     with pytest.raises(ValueError, match="original fit stopped"):
         run_operation(**args)
+    with pytest.raises(ValueError, match="authorized dispatch attempts"):
+        run_operation(**args, max_attempts=1)
+    assert len(issued) == 1 and journal.snapshot()["consumed"]["attempts"] == 1
     good = run_operation(**args)
     assert good["attempt"] == 1 and len(issued) == 2
     block = issued[-1].parent

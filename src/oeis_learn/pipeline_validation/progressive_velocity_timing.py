@@ -63,6 +63,23 @@ def timing_projection(package, pairs, initial_weights, measurement):
     )
 
 
+LOAD_BANDS = 3
+SAMPLE_POINTS = ("typical", "slow")
+
+
+def timing_limits():
+    from oeis_learn.decoder.bigint_codec import MAX_BODY_TOKENS
+
+    # Each ordinary recipe has at most two pair-support classes, three load
+    # bands, and two observations in a band. The grant covers two dispatches.
+    attempts_per_recipe = 2 * LOAD_BANDS * len(SAMPLE_POINTS) * 2
+    recipes = [r for r in velocity_policy()["recipes"] if r["stream"] == "ordinary"]
+    return dict(
+        attempts=attempts_per_recipe * len(recipes),
+        tokens=attempts_per_recipe * sum(r["batch"] for r in recipes) * MAX_BODY_TOKENS,
+    )
+
+
 def batch_plan(order, rows, donors, batch, *, target=4_000_000):
     """Represent every reachable batch start, including cycles that straddle the end of the stream."""
     if batch not in (16, 32) or len(set(order)) != len(order) or not order:
@@ -91,8 +108,8 @@ def batch_plan(order, rows, donors, batch, *, target=4_000_000):
         batches.sort()
         # Within each donor-support class, split by padded length and token load. Use a
         # middle and largest registered load in each third, before observing any clocks.
-        for i in range(3):
-            subset = batches[len(batches) * i // 3 : len(batches) * (i + 1) // 3]
+        for i in range(LOAD_BANDS):
+            subset = batches[len(batches) * i // LOAD_BANDS : len(batches) * (i + 1) // LOAD_BANDS]
             if subset:
                 cells.append(
                     dict(
@@ -127,7 +144,7 @@ def timing_design(projection, count, microbatch):
         if r["stream"] != "ordinary" or (r["matching"] and not projection["donors"]):
             continue
         batch = r["batch"]
-        cursors = sorted({c[k] for c in plans[str(batch)] for k in ("typical", "slow")})
+        cursors = sorted({c[k] for c in plans[str(batch)] for k in SAMPLE_POINTS})
         work = {}
         for cursor in cursors:
             keys = matched_batch({"order": order}, cursor, batch)
@@ -161,7 +178,7 @@ def timing_design(projection, count, microbatch):
 
 def unit_price(cells, clocks):
     expected = tail = 0
-    if set(clocks) != {c[k] for c in cells for k in ("typical", "slow")}:
+    if set(clocks) != {c[k] for c in cells for k in SAMPLE_POINTS}:
         raise ValueError("timings must cover exactly the registered sample")
     for c in cells:
         mid = integer(clocks[c["typical"]], 1)

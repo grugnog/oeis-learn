@@ -323,6 +323,14 @@ def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(
     assert code == 2 and stopped["first_error"] == failed["first_error"]
 
 
+def test_matrix_requires_prior_paid_supply_before_creating_a_grant(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_velocity_timing_host import authorize_timing
+
+    with pytest.raises(FileNotFoundError, match="donor supply qualification"):
+        authorize_timing(tmp_path, 30, "1" * 40)
+    assert not (tmp_path / "run-state").exists()
+
+
 def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     tmp_path, monkeypatch, velocity_supply_rows
 ):
@@ -359,7 +367,11 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     )
     design = timing_design(projection, len(ids), 8)
     monkeypatch.setattr(host, "pair_pointer", lambda _: payment)
-    monkeypatch.setattr(host, "donor_inputs", lambda *_: (projection, design))
+
+    def unopened(*_):
+        pytest.fail("funding opened the private training archive before a time reservation")
+
+    monkeypatch.setattr(host, "donor_inputs", unopened)
     monkeypatch.setattr(host, "collect_snapshot", lambda _: ["source bytes"])
     monkeypatch.setattr(host, "physical_scope", lambda *_a, **_k: digest("test card"))
     monkeypatch.setattr(progressive_round029, "candidate_revision", lambda *_: revision)
@@ -369,6 +381,9 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
         lambda _, op, *a: velocity_policy()["donor_revision"] if op == "rev-parse" else None,
     )
     grant = host.authorize_timing(tmp_path, 10, revision)
+    for k, charge in design["cost"].items():
+        assert load(grant)["resources"][k] >= 2 * charge
+    monkeypatch.setattr(host, "donor_inputs", lambda *_: (projection, design))
     args = SimpleNamespace(
         action="qualify",
         authority=grant,

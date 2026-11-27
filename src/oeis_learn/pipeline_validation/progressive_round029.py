@@ -160,6 +160,11 @@ def preflight(root, source=None):
             "Measure the exposed ordinary-stream matching calibration and optimizer batches together",
             "qualify",
         )
+    elif "optimizer_to_4M_recipe_01" in info["prices"]["wave"]["missing"]:
+        reason, next_action = (
+            "Prepare the broader-composition training stream and verify its matching support to price recipes 01 and 03",
+            "qualify",
+        )
     else:
         reason, next_action = (
             "Measure the outstanding treatment and CPU costs under a preparation grant before funding the screen",

@@ -61,7 +61,17 @@ def replay_operation(area, coordinates, request, grant, cost, snapshot, verify):
 
 
 def run_operation(
-    *, area, journal, grant, coordinates, request, cost, execute, verify, minimum_us=1
+    *,
+    area,
+    journal,
+    grant,
+    coordinates,
+    request,
+    cost,
+    execute,
+    verify,
+    minimum_us=1,
+    max_attempts=None,
 ):
     """Only a verified supervisor boundary may release unused time. Issued work stays charged."""
     if (
@@ -144,6 +154,10 @@ def run_operation(
     if any(left[k] < amount for k, amount in work.items()):
         raise InsufficientAuthority("original remaining resources cannot fund the operation")
     attempt = len(keys)
+    if max_attempts is not None and attempt >= max_attempts:
+        raise InsufficientAuthority(
+            "the authorized dispatch attempts for this operation are exhausted"
+        )
     boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
     start = time.monotonic_ns() // 1000
     reservation = journal.reserve(

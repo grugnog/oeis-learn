@@ -30,8 +30,16 @@ VERSION = "round029-ordinary-timing/v1"
 
 
 def pair_pointer(root):
-    area = _area(root, "matching_pairs")
-    return load(confined(area, "funded.json"))
+    try:
+        area = _area(root, "matching_pairs")
+        pointer = load(confined(area, "funded.json"))
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            "Run the donor supply qualification on this detached workstation before timing updates"
+        ) from exc
+    if pointer != seal(pointer) or pointer["kind"] != "matching_pairs":
+        raise ValueError("original matching-pair payment required")
+    return pointer
 
 
 def timing_parent(revision, pair_receipt):
@@ -67,9 +75,11 @@ def authorize_timing(root, minutes, revision):
     from .progressive_velocity_qualification import authorize_qualification
 
     pointer = pair_pointer(root)
-    _, design = donor_inputs(root, pointer)
-    # Permit one supervised retry inside the same cumulative time ceiling.
-    work = {k: 2 * v for k, v in design["cost"].items()}
+    from .progressive_velocity_timing import timing_limits
+
+    # The paid preparation opens and verifies the training archive and selects the
+    # actual samples. Funding needs only the prior payment and public recipe limits.
+    work = timing_limits()
     return authorize_qualification(root, minutes, timing_parent(revision, pointer["receipt"]), work)
 
 
@@ -285,7 +295,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
     retain(area / "binding.json", binding)
     retain(area / "grant.json", grant)
     journal = BudgetJournal(area / "accounting", grant["identity"], grant["resources"])
-    base = dict(area=area, journal=journal, grant=grant, minimum_us=121_000_000)
+    base = dict(area=area, journal=journal, grant=grant, minimum_us=121_000_000, max_attempts=2)
     host = None
     data = None
 
