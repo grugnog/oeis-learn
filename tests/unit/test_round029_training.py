@@ -148,3 +148,145 @@ def test_whole_update_crossing_after_discard_and_seed_provenance():
     for invalid in (-1, 2**32, True):
         with pytest.raises(ValueError):
             recipe_bindings(digest("study"), **dict(args, initialization=invalid))
+
+
+def test_screen_freezes_verified_shared_start_and_reruns_control_only_on_mismatch(
+    tmp_path, monkeypatch
+):
+    from oeis_learn.generalization.progressive import training_rows
+    from oeis_learn.generalization.progressive.contracts import seal
+    from oeis_learn.generalization.progressive.generator import broader_stream
+    from oeis_learn.generalization.progressive.models import resolve_profile
+    from oeis_learn.pipeline_validation import progressive_velocity_donor as donor
+    from oeis_learn.pipeline_validation.progressive_preparation import (
+        freeze_velocity_screen,
+        prepare_velocity_start,
+    )
+    from oeis_learn.pipeline_validation.progressive_study import open_velocity_study
+    from oeis_learn.fresh.bigint_config import resolve
+
+    def prepared(anchor):
+        origin = digest(anchor)
+        seeds = training_rows.pair_seeds(origin, 0)
+        draws = list(map(digest, range(3)))
+        order = sorted(draws, key=lambda k: (digest([seeds["training_families"], k]), k))
+        stream = seal(
+            dict(
+                version="round028-matched-stream/v1",
+                registration=origin,
+                pair=0,
+                seeds=seeds,
+                order=order,
+                row_identities=digest(order),
+            )
+        )
+        p = resolve_profile(
+            resolve({"version": "bigint-bootstrap/v1"}),
+            shape="smaller_width",
+            seed=seeds["initialization"],
+        )
+
+        def member(key, composition):
+            return dict(draw=key, composition=composition, tokens=4, band="middle", familiar=False)
+
+        broad = broader_stream(
+            [member(key, "A") for key in order],
+            [member(key, str(i)) for i, key in enumerate(draws)],
+            seed=seeds["training_families"],
+            ordinary_ref=stream["identity"],
+        )
+        start = prepare_velocity_start(p, stream, microbatch=8, broad=broad, device="cpu")
+        return start, stream, p, broad
+
+    preferred, stream, model, broad = prepared("original seed authority")
+    replacement, _, _, _ = prepared("separately chosen fresh authority")
+    cut = dict(
+        method="00",
+        look=0,
+        updates=0,
+        cursor=0,
+        useful_tokens=0,
+        weights=digest("zero weight blob"),
+        initial=preferred["initial_weights"],
+        lineage=stream["identity"],
+        seeds=stream["seeds"],
+        policy=preferred["common_policy"],
+        codec=preferred["codec"],
+    )
+    inventory = dict(cuts=[cut], stream=dict(identity=stream["identity"], seeds=stream["seeds"]))
+    monkeypatch.setattr(donor, "inventory", lambda root: inventory)
+    kwargs = dict(
+        source="c" * 40,
+        design=digest("initial freeze"),
+        development=[dict(group="f", task="d", stratum="oeis")],
+        retention=[dict(group="r", task="r", stratum="retention")],
+    )
+    reg = freeze_velocity_screen(tmp_path, preferred=preferred, fallback=replacement, **kwargs)
+    assert reg["training_start"]["mode"] == "reuse_ordinary_start"
+    (tmp_path / "studies").mkdir()
+    journal = open_velocity_study(tmp_path / "studies", reg)
+    trials = {
+        method: journal.velocity_trial(method)["binding"]
+        for method in ("00", "01", "02", "03", "04", "05", "06")
+    }
+    assert {item["initial_weights"] for item in trials.values()} == {preferred["initial_weights"]}
+    assert {trials[k]["stream_ref"] for k in ("00", "02", "04", "05", "06")} == {stream["identity"]}
+    assert {trials[k]["stream_ref"] for k in ("01", "03")} == {broad["identity"]}
+    reg2 = freeze_velocity_screen(
+        tmp_path,
+        preferred=preferred,
+        fallback=replacement,
+        **dict(kwargs, design=digest("another design")),
+    )
+    assert reg2["identity"] != reg["identity"] and reg2["training_start"] == reg["training_start"]
+    for change in (
+        dict(initial=digest("changed weights")),
+        dict(seeds={**stream["seeds"], "initialization": 17}),
+        dict(lineage=digest("other order")),
+        dict(policy=digest("changed policy")),
+    ):
+        inventory["cuts"] = [{**cut, **change}]
+        fresh = freeze_velocity_screen(
+            tmp_path, preferred=preferred, fallback=replacement, **kwargs
+        )
+        assert fresh["training_start"]["mode"] == "fresh_shared_control"
+        assert (
+            fresh["ordinary"] == replacement["ordinary"]
+            and fresh["initialization"] == replacement["initialization"]
+        )
+        assert (
+            open_velocity_study(tmp_path / "studies", fresh).velocity_trial("00")["binding"][
+                "initial_weights"
+            ]
+            == replacement["initial_weights"]
+        )
+    inventory["cuts"] = [
+        dict(cut, weights=None),
+        dict(
+            cut,
+            look=4_000_000,
+            weights=digest("trained weights"),
+            updates=3010,
+            cursor=96320,
+            useful_tokens=4_000_210,
+        ),
+    ]
+    reproduced = freeze_velocity_screen(tmp_path, preferred=preferred, fallback=None, **kwargs)
+    assert reproduced["training_start"]["mode"] == "reconstruct_ordinary_start"
+    assert reproduced["training_start"]["control_weights"] is None
+    assert reproduced["training_start"]["origin"]["initial_weights"] == preferred["initial_weights"]
+    with pytest.raises(ValueError):
+        prepare_velocity_start(
+            model,
+            stream,
+            microbatch=8,
+            broad=seal(dict(broad, ordinary_ref=digest("foreign"))),
+            device="cpu",
+        )
+    with pytest.raises(ValueError):
+        prepare_velocity_start(
+            model,
+            seal(dict(stream, order=list(reversed(stream["order"])))),
+            microbatch=8,
+            device="cpu",
+        )

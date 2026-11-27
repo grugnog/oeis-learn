@@ -115,7 +115,7 @@ def draw(policy, ordinal):
     }
 
 
-def broader_stream(slots, support, *, seed):
+def broader_stream(slots, support, *, seed, ordinary_ref=None):
     """Preserve exact token length and difficulty. A deficient band retains its ordinary slot."""
     from collections import Counter, defaultdict
     from .contracts import seal
@@ -155,6 +155,7 @@ def broader_stream(slots, support, *, seed):
         usage[(chosen["tokens"], chosen["band"]), chosen["composition"]] += 1
         selected.append(chosen)
     ordinary, broad = describe(slots), describe(selected)
-    return seal(dict(version="round029-broad-stream/v1", seed=seed, ordinary=ordinary, broad=broad,
+    parent = {} if ordinary_ref is None else dict(ordinary_ref=ordinary_ref, slot_order=digest([r["draw"] for r in slots]))
+    return seal(dict(version="round029-broad-stream/v1", seed=seed, ordinary=ordinary, broad=broad, **parent,
                      spill="retain_ordinary_slot", shortage=short, order=[r["draw"] for r in selected],
                      available=broad["distinct"] > ordinary["distinct"]))

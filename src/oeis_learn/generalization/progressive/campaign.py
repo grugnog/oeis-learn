@@ -487,7 +487,7 @@ def validate_diagnostic_registration(value):
 
 
 def velocity_registration(*, source, design, development, retention, initialization, stream_seed,
-                          ordinary, broad, scope="exploration", parent=None, finalist=None):
+                          ordinary, broad, scope="exploration", parent=None, finalist=None, training_start=None):
     """Freeze the study inputs before issuing any look. Funding is a separate record."""
     import re
     from .contracts import _check, digest, schema, seal
@@ -515,6 +515,13 @@ def velocity_registration(*, source, design, development, retention, initializat
             _check(schema("common")["$defs"]["hash"], parent[key], {})
     else:
         raise ValueError("unknown study scope")
+    start = {}
+    if training_start is not None:
+        from .velocity_trials import validate_study_start
+        validate_study_start(training_start, initialization, stream_seed, ordinary, broad)
+        if scope != "exploration":
+            raise ValueError("seed-one donor eligibility belongs to the initial screen")
+        start["training_start"] = training_start
     panels = dict(development=development, retention=retention)
     velocity_look(registration=design, method="00", seed=initialization, profile="full",
                   look=4_000_000, **panels)
@@ -524,12 +531,14 @@ def velocity_registration(*, source, design, development, retention, initializat
                      predecessor=learned_search_policy()["campaign"], source=source, design=design,
                      scope=scope, parent=parent, parent_ref=parent["registration"] if parent else None,
                      finalist=finalist, development=development, retention=retention, panel_ref=digest(panels),
-                     initialization=initialization, stream_seed=stream_seed, ordinary=ordinary, broad=broad))
+                     initialization=initialization, stream_seed=stream_seed, ordinary=ordinary, broad=broad, **start))
 
 
 def validate_velocity_registration(registration):
     keys = ("source", "design", "development", "retention", "initialization", "stream_seed",
             "ordinary", "broad", "scope", "parent", "finalist")
+    if "training_start" in registration:
+        keys = (*keys, "training_start")
     if velocity_registration(**{k: registration[k] for k in keys}) != registration:
         raise ValueError("frozen velocity study differs")
     return registration

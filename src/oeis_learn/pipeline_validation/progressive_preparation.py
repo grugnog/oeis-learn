@@ -300,3 +300,88 @@ def prepare_combinatorial(root, output, statistics, **limits):
     value = prepare(statistics, **limits)
     atomic_write(confined(root, output, exists=False), value)
     return value
+
+
+def prepare_velocity_start(profile, stream, *, microbatch, broad=None, device):
+    """Prepare the actual random-weight fingerprint in a learner role from exposed inputs."""
+    from oeis_learn.fresh.bigint_diagnostics import model_snapshot
+    from oeis_learn.generalization.progressive.contracts import _check, digest, schema, seal
+    from oeis_learn.generalization.progressive.models import construct
+    from oeis_learn.generalization.progressive.training_rows import (
+        generator_common_policy,
+        pair_seeds,
+    )
+    from oeis_learn.generalization.progressive.velocity_trials import validate_start
+    from .progressive_training import resolve_update_policy
+
+    if stream != seal(stream) or stream["version"] != "round028-matched-stream/v1":
+        raise ValueError("sealed positive stream required")
+    seeds = pair_seeds(stream["registration"], stream["pair"])
+    order = stream["order"]
+    if (
+        seeds != stream["seeds"]
+        or profile["model"]["seed"] != seeds["initialization"]
+        or not order
+        or sorted(set(order), key=lambda k: (digest([seeds["training_families"], k]), k)) != order
+    ):
+        raise ValueError("training order or initial model seed differs from its frozen randomness")
+    _check(schema("common")["$defs"]["hash"], stream["row_identities"], {})
+    broad_ref = None
+    if broad is not None:
+        if (
+            broad != seal(broad)
+            or broad["version"] != "round029-broad-stream/v1"
+            or broad.get("ordinary_ref") != stream["identity"]
+            or broad.get("slot_order") != digest(order)
+            or broad["seed"] != seeds["training_families"]
+            or len(broad["order"]) != len(order)
+        ):
+            raise ValueError("broader composition treatment belongs to a different ordinary stream")
+        if broad["available"]:
+            broad_ref = broad["identity"]
+    ordinary = resolve_update_policy(
+        profile,
+        objective="ordinary",
+        effective_batch=32,
+        microbatch_size=microbatch,
+        weight_decay=0,
+        schedule_horizon_tokens=4_000_000,
+    )
+    encoder, decoder, _ = construct(profile, device=device)
+    return validate_start(
+        seal(
+            dict(
+                version="round029-initial-state/v1",
+                seed_authority=stream["registration"],
+                pair=stream["pair"],
+                initialization=seeds["initialization"],
+                stream_seed=seeds["training_families"],
+                ordinary=stream["identity"],
+                broad=broad_ref,
+                initial_weights=model_snapshot(encoder, decoder),
+                codec=profile["codec"],
+                common_policy=generator_common_policy(profile, ordinary),
+            )
+        )
+    )
+
+
+def freeze_velocity_screen(root, *, preferred, fallback, source, design, development, retention):
+    """Resolve historical seed-one provenance on the physical workspace before registering any look."""
+    from oeis_learn.generalization.progressive.campaign import velocity_registration
+    from oeis_learn.generalization.progressive.velocity_trials import select_start
+    from .progressive_velocity_donor import inventory
+
+    start = select_start(inventory(root), preferred, fallback)
+    origin = start["origin"]
+    return velocity_registration(
+        source=source,
+        design=design,
+        development=development,
+        retention=retention,
+        initialization=origin["initialization"],
+        stream_seed=origin["stream_seed"],
+        ordinary=origin["ordinary"],
+        broad=origin["broad"],
+        training_start=start,
+    )

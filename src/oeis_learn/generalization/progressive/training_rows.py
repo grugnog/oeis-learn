@@ -173,6 +173,23 @@ def exposure_at(stream, rows, updates, size=32):
                 updates=updates, cursor=updates * size)
 
 
+def generator_common_policy(profile, update):
+    """The model, features and update semantics committed by a round028 milestone."""
+    from .contracts import digest
+
+    return digest(
+        {
+            "update": {
+                k: v
+                for k, v in update.items()
+                if k not in {"objective", "identity", "model_profile"}
+            },
+            "model": {k: v for k, v in profile["model"].items() if k != "seed"},
+            "inputs": profile["inputs"],
+        }
+    )
+
+
 def matched_milestone(package, rows, checkpoint, restored, useful, target):
     """Bind a spending observation to the complete private recovery cut."""
     from .contracts import digest
@@ -194,12 +211,7 @@ def matched_milestone(package, rows, checkpoint, restored, useful, target):
                      registration=stream["registration"], pair=stream["pair"], seeds=stream["seeds"],
                      arm=package["update_policy"]["objective"], stream=stream["identity"],
                      initial=selection["initial_weights"], codec=package["profile"]["codec"],
-                     common_policy=digest({
-                         "update":{k:v for k,v in package["update_policy"].items()
-                                   if k not in {"objective", "identity", "model_profile"}},
-                         "model":{k:v for k,v in package["profile"]["model"].items() if k != "seed"},
-                         "inputs":package["profile"]["inputs"],
-                     }), target=target,
+                     common_policy=generator_common_policy(package["profile"], package["update_policy"]), target=target,
                      charged=ledger.consumed, discarded=restored["discarded_tokens"],
                      overshoot=max(0, ledger.consumed-target), **expected))
 

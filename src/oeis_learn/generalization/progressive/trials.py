@@ -106,7 +106,8 @@ class TrialJournal:
         with self.lock():
             retain(self.root / "velocity-registration.json", reg)
         bindings = recipe_bindings(reg["identity"], initialization=reg["initialization"],
-                                   stream_seed=reg["stream_seed"], ordinary=reg["ordinary"], broad=reg["broad"])
+                                   stream_seed=reg["stream_seed"], ordinary=reg["ordinary"], broad=reg["broad"],
+                                   training_start=reg.get("training_start"))
         methods = list(bindings) if reg["scope"] == "exploration" else ["00", reg["finalist"]]
         for ordinal, method in enumerate(methods):
             binding = bindings[method]
