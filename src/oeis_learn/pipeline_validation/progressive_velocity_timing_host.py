@@ -360,6 +360,7 @@ def checked_price_source(root, source, binding):
     # Model, optimizer, calibration, input encoding, runtime, policy, and contracts
     # all retain their original identities. Acquisition is priced separately.
     host_only = {
+        "progressive_cli.py",  # acceptance-suite inventory
         "progressive_round029.py",
         "progressive_velocity_timing_host.py",
         "progressive_velocity_verify.py",

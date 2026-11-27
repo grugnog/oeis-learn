@@ -27,6 +27,7 @@ CPU_TESTS = (
     "tests/integration/test_round029_qualification.py",
     "tests/integration/test_round029_resume.py",
     "tests/unit/test_round029_capacity.py",
+    "tests/unit/test_round029_confirmation.py",
     "tests/unit/test_round029_supply.py",
     "tests/unit/test_round029_training.py",
     "tests/unit/test_round029_velocity.py",
