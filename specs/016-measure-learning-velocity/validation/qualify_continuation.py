@@ -1,4 +1,4 @@
-"""Run and reopen either the donated ordinary comparison or the disposable parent/child rehearsal."""
+"""Run a pinned donor preparation or qualification and save its verified result."""
 
 import argparse
 import fcntl
@@ -205,8 +205,55 @@ def saved_children(root, source, revision, minutes):
         return reports[0]
 
 
+def donor_supply(action, root, revision, minutes):
+    from oeis_learn.pipeline_validation.progressive_velocity_preparation import preparation_parent
+    from oeis_learn.pipeline_validation.progressive_velocity_qualification import (
+        authorize_qualification,
+    )
+
+    grant = authorize_qualification(root, int(minutes), preparation_parent(revision), {})
+    try:
+        paid = action("qualify", grant)
+    except SystemExit as exc:
+        # A failed second step can still leave a verified, paid first measurement.
+        paid = json.loads(str(exc))
+    verified = None
+    if paid["mechanical_status"] == "COMPLETE":
+        verified = action("verify")
+        if (
+            verified["verification_scope"] != "private_donor_supply"
+            or verified["last_committed_ref"] != paid["last_committed_ref"]
+        ):
+            raise ValueError("private supply replay differs from the funded preparation")
+    inspected = action("preflight")
+    info = inspected["inventory"]
+    if info["gpu_dispatches"] != 0:
+        raise ValueError("donor supply preflight issued device work")
+    return dict(
+        candidate=revision,
+        status=paid["mechanical_status"],
+        scope="donor_supply",
+        grant=json.loads(grant.read_bytes())["identity"],
+        receipt=paid["last_committed_ref"],
+        verified=verified and verified["report_ref"],
+        elapsed_us=paid.get("elapsed_us"),
+        remaining_us=paid["remaining_authority"],
+        first_error=paid.get("first_error"),
+        qualification_reason=paid["reason"],
+        families=info["families"],
+        matching_pairs=info["matching_pairs"],
+        matching_scope="fixed_target_ordinary_stream",
+        prices=info["prices"],
+        mount=info["mount"],
+        next_action=inspected["next_action"],
+        reason=inspected["reason"],
+        gpu_dispatches=0,
+        research_dispatches=0,
+    )
+
+
 def main(revision, minutes, mode="donation"):
-    if mode not in {"donation", "children", "review-children"}:
+    if mode not in {"donation", "children", "review-children", "supply"}:
         raise SystemExit("Unknown continuation qualification mode.")
     root = Path.cwd().resolve()
     if not re.fullmatch(r"[a-f0-9]{40}", revision) or not re.fullmatch(r"[1-9][0-9]*", minutes):
@@ -243,6 +290,8 @@ def main(revision, minutes, mode="donation"):
     def action(name, *args):
         return checked_json([*launcher, name, *map(str, args)], root, name)
 
+    if mode == "supply":
+        return donor_supply(action, root, revision, minutes)
     inventory = action("preflight")["inventory"]
     if inventory["gpu_dispatches"] != 0:
         raise SystemExit("A read-only preflight issued device work.")
@@ -325,7 +374,10 @@ def cli(argv):
     parser.add_argument("revision", metavar="FULL_COMMIT")
     parser.add_argument("minutes", metavar="MAXIMUM_MINUTES")
     parser.add_argument(
-        "mode", nargs="?", default="donation", choices=("donation", "children", "review-children")
+        "mode",
+        nargs="?",
+        default="donation",
+        choices=("donation", "children", "review-children", "supply"),
     )
     parser.add_argument(
         "--output",
@@ -333,6 +385,8 @@ def cli(argv):
         help="save the verified summary or failure diagnostic to a new JSON file",
     )
     args = parser.parse_args(argv)
+    if args.mode == "supply" and args.output is None:
+        parser.error("Supply preparation requires an output file (--output PATH)")
     request = (args.revision, args.minutes, args.mode)
     if args.output is None:
         print(json.dumps(main(*request), indent=2))
@@ -343,7 +397,7 @@ def cli(argv):
     with tempfile.NamedTemporaryFile(dir=args.output.parent, mode="w", encoding="utf-8") as out:
         try:
             report = main(*request)
-            code = 0
+            code = 1 if report.get("status") in ("FAILED", "BLOCKED") else 0
         except (SystemExit, Exception) as exc:
             report = dict(
                 candidate=args.revision,

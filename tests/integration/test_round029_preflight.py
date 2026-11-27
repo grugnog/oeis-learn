@@ -401,3 +401,170 @@ def test_registered_mount_plan_reports_only_affected_physical_deficit(tmp_path):
     scoped = preflight(tmp_path)["inventory"]
     assert scoped["capacity"]["mounts"] is None and scoped["capacity"]["reason"]
     assert len(scoped["cuts"]) == 7 and scoped["gpu_dispatches"] == 0
+
+
+def test_combined_cpu_census_keeps_paid_pairs_across_family_failure(tmp_path, monkeypatch):
+    from oeis_learn.generalization.progressive.contracts import load, reference, seal
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from oeis_learn.pipeline_validation import progressive_velocity_preparation as prep
+    from oeis_learn.pipeline_validation.preparation_recovery import retain
+    from oeis_learn.pipeline_validation.progressive_velocity_qualification import (
+        authorize_qualification,
+    )
+    from oeis_learn.pipeline_validation.progressive_velocity_supply import supply_inventory
+    from oeis_learn.pipeline_validation.progressive_velocity_verify import private_result
+
+    revision = "a" * 40
+    folder = tmp_path / "run-state/discovery" / SESSION
+    folder.mkdir(parents=True)
+    (folder / "run.lock").touch()
+    grant = load(authorize_qualification(tmp_path, 2, prep.preparation_parent(revision), {}))
+    calls = []
+    original = tmp_path / "original.json"
+    retain(original, {"source": "exposed fixture"})
+    pair = seal(
+        dict(
+            version="round029-training-pairs/v1",
+            positive_rows=3,
+            eligible_rows=0,
+            eligible_families=0,
+            pairs={},
+            dispositions={"needs_native_replay": 3},
+        )
+    )
+    families = seal(
+        dict(
+            version="round029-family-reservations/v1",
+            quotas={"development": {"oeis": 2}},
+            panels={"development": []},
+            eligible=0,
+            components=0,
+            excluded=4,
+            deficits={"development": {"oeis": 2}},
+            provenance_unavailable=0,
+            provenance_reason=None,
+        )
+    )
+
+    def dispatch(root, source, out, kind, reserve):
+        calls.append(kind)
+        retain(out / "cleanup.json", dict(acknowledged=True, within_bound=True))
+        if calls == ["matching_pairs", "families"]:
+            raise ValueError("injected lost family worker")
+        retain(out / "measurement.json", pair if kind == "matching_pairs" else families)
+        retain(out / "inputs.json", seal(dict(kind=kind, originals=[reference(root, original)])))
+        prep.seal_output(out, kind)
+
+    monkeypatch.setattr(prep, "run_worker", dispatch)
+
+    def run():
+        return prep.qualify(None, tmp_path, folder, tmp_path, revision, grant, None)
+
+    failed, code = run()
+    assert code == 1 and failed["first_error"]["stage"] == "families"
+    assert supply_inventory(tmp_path)["matching_pairs"]["dispositions"] == {
+        "needs_native_replay": 3
+    }
+    assert supply_inventory(tmp_path)["families"]["count"] is None
+    completed, code = run()
+    assert code == 0 and calls == ["matching_pairs", "families", "families"]
+    assert run() == (completed, 0)
+    assert completed["charged_tokens"] == completed["research_dispatches"] == 0
+    assert completed["remaining_authority"] + completed["elapsed_us"] == 120_000_000
+    assert completed["first_error"] == failed["first_error"]
+    verified, code = private_result(tmp_path, folder)
+    assert code == 0 and verified["last_committed_ref"] == completed["last_committed_ref"]
+    assert supply_inventory(tmp_path)["families"]["count"] == 0
+    original.write_text("changed")
+    assert all(r["count"] is None for r in supply_inventory(tmp_path).values())
+
+
+def test_donor_census_opens_the_committed_stream_and_all_prior_roles(tmp_path, monkeypatch, velocity_supply_rows):
+    import zipfile
+    import pytest
+    from oeis_learn.generalization.progressive.contracts import digest, reference, seal
+    from oeis_learn.pipeline_validation import progressive_velocity_census as census
+    from oeis_learn.pipeline_validation.preparation_recovery import retain
+
+    root = tmp_path
+    def save(path, data):
+        retain(path, data)
+        return reference(root, path)
+
+    area = root / census.PARENT / census.AREA
+    order = [r["draw_identity"] for r in velocity_supply_rows[:-1]]
+    stream = seal(dict(order=order, seeds={"pair": 0},
+                       row_identities=digest([r["identity"] for r in velocity_supply_rows[:-1]])))
+    def row(n):
+        return dict(id=str(n), indices=list(map(str, range(100))), group="family-" + str(n),
+                    values=[str(n * 1000 + i) for i in range(100)], stratum="oeis")
+    old, calibration, fresh = row(1), row(2), row(3)
+    allocations = dict(panels={"assessment": [old], "development": []})
+    stock = seal(dict(version="round028-private-panel-supply/v1", registration=digest("panel"),
+                      allocations=allocations, witnesses={old["id"]: old}))
+    roster = save(root / "panel/supply.json", stock)
+    cal_path = root / "panel/calibration-reservation.json"
+    save(
+        cal_path,
+        seal(dict(registration=stock["registration"], witnesses={"family": digest(calibration)})),
+    )
+    data = dict(identity=digest("027 data"))
+    census_id = digest("027 census")
+    cut = digest(
+        [census_id, data["identity"], stock["identity"], reference(cal_path.parent, cal_path)]
+    )
+    train_path = area / "training.json"
+    save(
+        train_path,
+        seal(
+            dict(
+                version="round028-pilot-training/v1",
+                stream=stream,
+                rows=velocity_supply_rows,
+                exposure_cut=cut,
+            )
+        ),
+    )
+    freeze = seal(
+        dict(
+            training=reference(area, train_path),
+            stream=stream["identity"],
+            seeds=stream["seeds"],
+            roster_source=roster,
+        )
+    )
+    save(area / "freeze.json", freeze)
+    pilot, qualification = root / "pilot.zip", root / "qualification.zip"
+    with zipfile.ZipFile(pilot, "w") as z:
+        z.writestr("pilot.json", json.dumps(dict(design=dict(private_freeze=freeze["identity"]))))
+    qualification.write_bytes(b"fixture qualification")
+    monkeypatch.setattr(
+        census, "_archives", lambda *_: ({"pilot": pilot, "qualification": qualification}, {})
+    )
+    monkeypatch.setattr(census, "_verify_with_pin", lambda *_: {"report": census.PILOT_REPORT})
+    orig = seal(dict(payload={"references": []}))
+    save(root / census.ORIGINAL / "prepare-research/frozen/campaign.json", orig)
+    monkeypatch.setattr(census, "learned_search_policy", lambda: {"campaign": orig["identity"]})
+    historical = save(root / "historical.json", {"historical": 1})
+    monkeypatch.setattr(
+        census,
+        "read_inputs",
+        lambda *_, velocity: dict(
+            census=census_id,
+            data=data,
+            historical=[],
+            candidates=[old, calibration, fresh],
+            support={"structures": {}},
+            originals_used=[historical],
+        ),
+    )
+    pairs, pair_refs = census.measure(root, "matching_pairs")
+    families, family_refs = census.measure(root, "families")
+    assert pairs["positive_rows"] == len(order) and pairs["order"] == digest(order)
+    assert families["eligible"] == 1 and families["excluded"] == 2
+    assert {p["task"] for members in families["panels"].values() for p in members} == {fresh["id"]}
+    assert {r["path"] for r in pair_refs} < {r["path"] for r in family_refs}
+    assert historical in family_refs and reference(root, cal_path) in family_refs
+    train_path.write_text("{}")
+    with pytest.raises(ValueError):
+        census.measure(root, "matching_pairs")

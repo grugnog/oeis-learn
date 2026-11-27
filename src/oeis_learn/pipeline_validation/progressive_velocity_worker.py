@@ -325,6 +325,9 @@ def train_to(directory, package, *, target, cap, device, interrupt=False, parent
     )
 
 
+REHEARSAL_PROGRAMS = ("(program (return $index))", "(program (return (add $index (int 1))))")
+
+
 def _disposable_rows(native=None):
     """Generated, exposed calibration fixtures. A fixed target demonstrably rejects the donor."""
     from oeis_learn.decoder.bigint_codec import encode_body
@@ -332,8 +335,7 @@ def _disposable_rows(native=None):
     from oeis_learn.synthesis.admission import VisiblePrompt
     from oeis_learn.synthesis.reference import evaluate
 
-    source = "(program (return $index))"
-    alternate = "(program (return (add $index (int 1))))"
+    source, alternate = REHEARSAL_PROGRAMS
     rows, donors = {}, {}
     # Every slot is in the same positive sign/magnitude band. All examples are disposable.
     for start in (128, 132, 136, 140, 144):
@@ -387,14 +389,18 @@ def rehearsal_work(*, children=False):
     )
 
 
+def literal_controls():
+    indices = tuple(map(str, range(20)))
+    return "(program (return (int 3)))", indices, {"constant": ("7",) * 20, "varying": indices}
+
+
 def literal_probes(native):
     from oeis_learn.decoder.bigint_codec import encode_body
     from oeis_learn.generalization.progressive.training_rows import matching_proof
     from oeis_learn.synthesis.admission import VisiblePrompt
 
-    indices = tuple(map(str, range(20)))
-    tokens = encode_body("(program (return (int 3)))")
-    controls = {"constant": tuple("7" for _ in indices), "varying": indices}
+    source, indices, controls = literal_controls()
+    tokens = encode_body(source)
     return {
         name: matching_proof(tokens, VisiblePrompt(indices, values), client=native)
         for name, values in controls.items()

@@ -127,6 +127,11 @@ def supply_inventory(root):
     for kind in FORMATS:
         try:
             area = _area(root, kind)
+            if area.is_dir() and not (area / "registration.json").exists() and (area / "funded.json").is_file():
+                from .progressive_velocity_preparation import funded_inventory
+
+                inventory[kind] = funded_inventory(root, kind, load(confined(area, "funded.json")))
+                continue
             path = confined(area, "registration.json") if area.is_dir() else None
             if path is None:
                 raise FileNotFoundError

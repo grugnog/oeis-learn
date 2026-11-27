@@ -21,7 +21,7 @@ RESERVATIONS = (
 PARAMETER = {"parameter", "retention"}
 
 
-def fresh_groups(candidates, historical, *, indexes, velocity=False):
+def fresh_groups(candidates, historical, *, indexes, velocity=False, exposed_prompts=()):
     """Close historical and prospective links before discarding any bridge row."""
     if len({r["id"] for r in candidates}) != len(candidates):
         raise ValueError("duplicate prospective source member")
@@ -32,8 +32,28 @@ def fresh_groups(candidates, historical, *, indexes, velocity=False):
         links = [dict(structure=r.get("structure"), composition=composition(r, allow_parameters=True)
                       if r.get("source") else r.get("composition")) for r in rows]
     # Parameter variants can transfer a structure only when both endpoints allow it.
-    protected = {(kind, value) for row, relation in zip(rows, links) if row["stratum"] not in PARAMETER
-                 for kind, value in relation.items() if value is not None}
+    protected = {
+        (kind, value)
+        for row, relation in zip(rows, links)
+        if row["stratum"] not in PARAMETER
+        for kind, value in relation.items()
+        if value is not None
+    }
+    prompt_keys = set()
+    for prompt in exposed_prompts:
+        from oeis_learn.synthesis.contracts import canonical_integer
+
+        if not velocity or len(prompt["values"]) != 20:
+            raise ValueError("an exposed 20-term prompt is required")
+        for value in prompt["values"]:
+            canonical_integer(value)
+        prompt_keys.add(("window", digest(prompt["values"])))
+        relation = ExposureIndex.relations(prompt)
+        if prompt["stratum"] not in PARAMETER:
+            protected.update(relation.items())
+        if prompt.get("source"):
+            prompt_keys.add(("source", digest(prompt["source"])))
+        prompt_keys.update(relation.items())
     union = Union(len(candidates))
     first, blocked, unknown = {}, set(), set()
     for i, (row, relation) in enumerate(zip(rows, links)):
@@ -69,6 +89,7 @@ def fresh_groups(candidates, historical, *, indexes, velocity=False):
             if matches:
                 blocked.add(i)
                 break
+    blocked.update(first[k] for k in prompt_keys if k in first)
     dirty = {union.root(i) for i in blocked}
     unavailable = {union.root(i) for i in unknown} - dirty
     dirty.update(unavailable)
@@ -204,14 +225,16 @@ def calibration_families(groups, seed, *, count=48):
     return {f: eligible[f] for f in ordered[:count]}
 
 
-def family_options(groups):
+def family_options(groups, *, joint=False):
     """Keep parameter variants in one statistical family, allowing distinct components in different roles."""
     components = sorted(groups)
     union = Union(len(components))
     first = {}
     for i, component in enumerate(components):
         for row in groups[component]:
-            if row["stratum"] == "parameter" and row.get("structure"):
+            if (
+                row["stratum"] == "parameter" or (joint and row["stratum"] == "retention")
+            ) and row.get("structure"):
                 union.join(i, first.setdefault(row["structure"], i))
     parameter_groups = defaultdict(list)
     for i, component in enumerate(components):
@@ -220,7 +243,7 @@ def family_options(groups):
     options = defaultdict(lambda: defaultdict(list))
     for component in components:
         for row in groups[component]:
-            family = aliases[component] if row["stratum"] == "parameter" else component
+            family = aliases[component] if joint or row["stratum"] == "parameter" else component
             options[row["stratum"]][family].append((component, row))
     return options
 
@@ -315,12 +338,20 @@ def freeze_panels(groups, samples, observed, *, seed, per_stratum=32):
     )
 
 
-def reserve_velocity_families(candidates, historical, *, indexes, quotas, seed):
+def reserve_velocity_families(candidates, historical, *, indexes, quotas, seed, exposed_prompts=()):
     """Deal one independent family per turn before any role takes a second member."""
     from oeis_learn.generalization.budgets import integer
 
-    roles = {"development", "replication", "assessment", "development_retention",
-             "replication_retention", "calibration", "practice", "teacher"}
+    roles = {
+        "development",
+        "replication",
+        "assessment",
+        "development_retention",
+        "replication_retention",
+        "calibration",
+        "practice",
+        "teacher",
+    }
     from .cohorts import STRATA
     from .metrics import _seed
 
@@ -334,38 +365,59 @@ def reserve_velocity_families(candidates, historical, *, indexes, quotas, seed):
             integer(count)
             if role == "calibration" and stratum == "oeis" and count:
                 raise ValueError("difficulty calibration requires synthetic cases")
-    groups, census = fresh_groups(candidates, historical, indexes=indexes, velocity=True)
-    options = family_options(groups)
+    groups, census = fresh_groups(
+        candidates, historical, indexes=indexes, velocity=True, exposed_prompts=exposed_prompts
+    )
+    options = family_options(groups, joint=True)
     panels = {r: [] for r in quotas}
     owners, used = {}, set()
     deficits = {}
-    for stratum in sorted({s for limits in quotas.values() for s in limits}):
-        ordering = sorted(options[stratum], key=lambda f: (digest([seed, stratum, f]), f))
-        picked = {role: Counter() for role in quotas}
-        for turn in range(max(integer(q.get(stratum, 0)) for q in quotas.values())):
-            for role in sorted(quotas):
-                if turn >= quotas[role].get(stratum, 0):
+    # The native donor labels familiar rows "parameter", including the retention pool.
+    if not options["retention"]:
+        options["retention"] = options["parameter"]
+    slots = sorted((role, s) for role, limits in quotas.items() for s in limits)
+    ordering = {s: sorted(options[s], key=lambda f: (digest([seed, s, f]), f)) for _, s in slots}
+    picked = {slot: Counter() for slot in slots}
+    for turn in range(max((quotas[role][s] for role, s in slots), default=0)):
+        for role, s in slots:
+            if turn >= quotas[role][s]:
+                continue
+            counts = picked[role, s]
+            for family in sorted(ordering[s], key=counts.__getitem__):
+                if owners.get(family, role) != role:
                     continue
-                for family in sorted(ordering, key=picked[role].__getitem__):
-                    if owners.get(family, role) != role:
-                        continue
-                    members = sorted(options[stratum][family],
-                                     key=lambda m: digest([seed, stratum, family, m[1]["id"]]))
-                    available = [(c, r) for c, r in members if r["id"] not in used
-                                 and owners.get(c, role) == role]
-                    if not available:
-                        continue
-                    component, row = available[0]
-                    owners[family] = owners[component] = role
-                    used.add(row["id"])
-                    picked[role][family] += 1
-                    panels[role].append(dict(task=row["id"], family=family, component=component,
-                                             stratum=stratum, difficulty=row.get("band", "unknown")
-                                             if descriptor(row) else "unknown"))
-                    break
-        for role, q in quotas.items():
-            short = q.get(stratum, 0) - sum(picked[role].values())
-            if short:
-                deficits.setdefault(role, {})[stratum] = short
-    return seal(dict(version="round029-family-reservations/v1", seed=seed, panels=panels,
-                     deficits=deficits, quotas=quotas, **census))
+                available = [
+                    (c, r)
+                    for c, r in options[s][family]
+                    if r["id"] not in used and owners.get(c, role) == role
+                ]
+                if not available:
+                    continue
+                component, row = min(available, key=lambda m: digest([seed, s, family, m[1]["id"]]))
+                owners[family] = owners[component] = role
+                used.add(row["id"])
+                counts[family] += 1
+                panels[role].append(
+                    dict(
+                        task=row["id"],
+                        family=family,
+                        component=component,
+                        stratum=s,
+                        difficulty=row.get("band", "unknown") if descriptor(row) else "unknown",
+                    )
+                )
+                break
+    for role, s in slots:
+        short = quotas[role][s] - sum(picked[role, s].values())
+        if short:
+            deficits.setdefault(role, {})[s] = short
+    return seal(
+        dict(
+            version="round029-family-reservations/v1",
+            seed=seed,
+            panels=panels,
+            deficits=deficits,
+            quotas=quotas,
+            **census,
+        )
+    )

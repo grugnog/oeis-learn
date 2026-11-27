@@ -166,12 +166,19 @@ def private_result(root, folder):
         if binding != seal(binding) or binding["grant"] != grant["identity"]:
             raise ValueError("original worker binding differs")
         learner = binding["version"] == "round029-learner-rehearsal/v1"
-        if not learner and binding["version"] != "round029-donation/v1":
+        from . import progressive_velocity_preparation as preparation
+
+        supply = binding["version"] == preparation.VERSION
+        if not learner and not supply and binding["version"] != "round029-donation/v1":
             raise ValueError("unknown diagnostic publication")
         parent = (
             qualification_parent(binding["candidate"], children=binding.get("child_restore", False))
             if learner
-            else donation.donation_parent(binding["candidate"])
+            else (
+                preparation.preparation_parent(binding["candidate"])
+                if supply
+                else donation.donation_parent(binding["candidate"])
+            )
         )
         approval = load(
             confined(
@@ -204,6 +211,10 @@ def private_result(root, folder):
             if any(key not in snapshot["committed"] for key in record["debits"]):
                 raise ValueError("original learner debit missing")
             report, scope = record["identity"], "private_learner_rehearsal"
+        elif supply:
+            paid = {k: preparation.reopen(root, area, binding, grant, snapshot, k) for k in preparation.KINDS}
+            record = preparation.combined(binding, paid)
+            report, scope = record["identity"], "private_donor_supply"
         else:
             record, report, scope = _donation(root, area, binding, grant, snapshot)
         if (

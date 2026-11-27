@@ -140,6 +140,13 @@ def preflight(root, source=None):
             "Open the training-pair measurement to determine whether the matching arms can enter the wave",
             "inspect_inputs",
         )
+    elif info["matching_pairs"]["count"] == 0 and info["matching_pairs"]["dispositions"].get(
+        "needs_native_replay", 0
+    ):
+        reason, next_action = (
+            "Qualify native replay on the unresolved matching-pair rows before funding the matching arms",
+            "qualify",
+        )
     else:
         reason, next_action = (
             "Measure the outstanding treatment and CPU costs under a preparation grant before funding the screen",
@@ -240,14 +247,18 @@ def execute(args, source, *, host_factory=None):
         from .progressive_velocity_qualification import qualification_parent
 
         from .progressive_velocity_donation import donation_parent
+        from .progressive_velocity_preparation import preparation_parent
 
         claimed = grant["registration_or_parent_ref"]
         donation = action == "qualify" and claimed == donation_parent(revision)
+        preparation = action == "qualify" and claimed == preparation_parent(revision)
         parent = None
         if action == "qualify":
             parent = (
                 claimed
-                if donation or claimed == qualification_parent(revision, children=True)
+                if donation
+                or preparation
+                or claimed == qualification_parent(revision, children=True)
                 else qualification_parent(revision)
             )
         registration = folder / "accepted.json"
@@ -266,7 +277,9 @@ def execute(args, source, *, host_factory=None):
         folder.mkdir(parents=True, exist_ok=True)
         with RunStore.owner(folder):
             if action == "qualify":
-                if donation:
+                if preparation:
+                    from .progressive_velocity_preparation import qualify
+                elif donation:
                     from .progressive_velocity_donation import qualify
                 else:
                     from .progressive_velocity_qualification import qualify

@@ -153,3 +153,64 @@ def test_all_protected_roles_get_distinct_cases_and_families_before_second_slots
     assert frozen == reserve_velocity_families(list(reversed(cases)), [], indexes=[], quotas=quotas, seed=613)
     with pytest.raises(ValueError, match="synthetic"):
         reserve_velocity_families(cases, [], indexes=[], quotas={"calibration": {"oeis": 1}}, seed=613)
+
+
+def test_retention_claims_familiar_families_alongside_development():
+    rows = [case(i, str(i), "parameter", structure=str(i)) for i in range(8)]
+    quotas = {"development": {"parameter": 8}, "development_retention": {"retention": 8}}
+    result = reserve_velocity_families(rows, [], indexes=[], quotas=quotas, seed=23)
+    panels = result["panels"]
+    assert [len(panels[role]) for role in quotas] == [4, 4]
+    assert {r["stratum"] for r in panels["development_retention"]} == {"retention"}
+    assert len({r["family"] for rows in panels.values() for r in rows}) == 8
+
+
+def test_prior_short_practice_prompt_blocks_a_shift_and_its_linked_family():
+    first, bridge, independent = case(1, "shared"), case(2, "shared"), case(3, "free")
+    prompt = dict(values=first["values"][12:32], stratum="practice")
+    result = reserve_velocity_families(
+        [first, bridge, independent],
+        [],
+        indexes=[],
+        quotas={"development": {"oeis": 3}},
+        seed=19,
+        exposed_prompts=[prompt],
+    )
+    assert result["excluded"] == 2
+    assert [r["task"] for r in result["panels"]["development"]] == ["3"]
+
+
+def test_original_relation_provenance_requires_every_index_origin(tmp_path):
+    import pytest
+    from oeis_learn.pipeline_validation.progressive_panel_sources import verify_origins
+    from oeis_learn.pipeline_validation.progressive_research_inputs import ExposureIndex
+
+    index = tmp_path / "exposures.sqlite"
+    with ExposureIndex(index) as db:
+        db.add(case(1, "old"), origin="one", role="training")
+        db.add(case(2, "other"), origin="two", role="training")
+    verify_origins(index, {"one": 1, "two": 1})
+    with pytest.raises(ValueError, match="origin"):
+        verify_origins(index, {"one": 2})
+
+
+def test_prior_calibration_and_every_pilot_training_member_are_protected():
+    import pytest
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.pipeline_validation.progressive_velocity_census import prior_exposures
+
+    prior = case(1, "old", declared_groups=["linked"])
+    held = case(2, "held")
+    training = dict(case(3, "training"), draw_identity="draw", source=None)
+    calibration = seal(dict(registration="prior-reg", witnesses={"reserved": digest(held)}))
+    supply = dict(registration="prior-reg", witnesses={"member": prior})
+    inputs = dict(candidates=[held], historical=[], support={"structures": {}})
+    history = prior_exposures(inputs, supply, calibration, [training])
+    assert [(r["id"], r["group"]) for r in history] == [
+        ("1", "old"),
+        ("2", "held"),
+        ("3", "training"),
+    ]
+    assert history[0]["declared_groups"] == ["linked"]
+    with pytest.raises(ValueError, match="calibration"):
+        prior_exposures(dict(inputs, candidates=[]), supply, calibration, [training])
