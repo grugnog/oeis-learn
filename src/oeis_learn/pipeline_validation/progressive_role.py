@@ -704,11 +704,22 @@ def execute(operation, **kwargs):
     return _execute(operation, **kwargs)
 
 
-def main(argv=None):
+def main(argv=None, *, inputs=Path("/inputs"), authority=Path("/authority/supervisor.json"),
+         output=Path("/output/discovery")):
     args = list(sys.argv[1:] if argv is None else argv)
+    if len(args) == 1 and args[0] in {"round029-search", "round029-select"}:
+        from .progressive_velocity_roles import accept_live_inputs
+
+        try:
+            receipt = accept_live_inputs(args[0].removeprefix("round029-"), inputs=inputs,
+                                         authority=authority, output=output)
+        except (OSError, ValueError, KeyError, TypeError):
+            print(json.dumps({"mechanical_status": "FAILED", "reason": "invalid live projection or worker"}))
+            return 1
+        print(json.dumps(receipt, sort_keys=True))
+        return 0
     if len(args) != 1 or args[0] not in IMPLEMENTED:
         raise ValueError("registered installed operation required")
-    output = Path("/output/discovery")
     try:
         result = execute(args[0], output=output)
     except (ValueError, OSError, RuntimeError, KeyError) as exc:

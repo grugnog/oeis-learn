@@ -76,7 +76,7 @@ def describe(root, path):
     return Artifact(value["kind"], value["role"], reference(root, path), value["identity"])
 
 
-def project(root, destination, operation, artifacts, *, registry, forbidden=(), authorized=None):
+def project(root, destination, operation, artifacts, *, registry, forbidden=(), authorized=None, channel_types=CHANNELS):
     """Build exact separate channel roots. Partial projections are removed on failure."""
     if operation not in registry:
         raise ValueError("unregistered operation")
@@ -187,7 +187,7 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
             bound = describe(root, descriptor.ref["path"])
             if (
                 bound != descriptor
-                or descriptor.kind not in CHANNELS[channel]
+                or descriptor.kind not in channel_types[channel]
                 or descriptor.role not in {spec.role, "public"}
             ):
                 raise ValueError("wrong role/type/identity")
@@ -287,6 +287,10 @@ def project(root, destination, operation, artifacts, *, registry, forbidden=(), 
 
 
 def _validate_channel(kind, data):
+    if kind in {"round029_visible", "round029_guide", "round029_admission"}:
+        from oeis_learn.pipeline_validation.progressive_velocity_roles import validate_live_value
+        validate_live_value(kind, data)
+        return
     if kind in {'short_prompt','short_policy','short_candidates','short_training_truth','short_score_truth'}:
         from oeis_learn.pipeline_validation.progressive_short_roles import validate_channel
         validate_channel(kind,data)
