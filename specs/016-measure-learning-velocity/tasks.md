@@ -86,7 +86,7 @@ Give each trial, operation, grant, worker and retry an identity understood by th
 
 ### Acceptance tests
 
-- [ ] T033 [P] [US3] Add `tests/contract/test_round029_oracle.py` for an offset literal, repeated/shared unknowns, more than eight eligible occurrences, a control-tainted literal, zero unknowns and ambiguous visible fits. Inject private witness bytes into a live request and require rejection. *After T011.*
+- [X] T033 [P] [US3] Add `tests/contract/test_round029_oracle.py` for an offset literal, repeated/shared unknowns, more than eight eligible occurrences, a control-tainted literal, zero unknowns and ambiguous visible fits. Inject private witness bytes into a live request and require rejection. *After T011.*
 - [ ] T034 [P] [US3] Add `tests/unit/test_round029_family_search.py` for deterministic legal expansions, duplicate/rejected attempt charges, equal menus and tie order, weighted alternative positive steps, missing shuffle donors and donor-derived partial features. Include the negative-offset alternating affine example from `specs/016-measure-learning-velocity/research.md`. *After T011.*
 - [ ] T035 [P] [US3] Add `tests/integration/test_round029_cpu.py` to distinguish a completed empty bank, a partial bank, a correct unselected alternative and an exact choice with unfinished search. Assert matched live allowances, no oracle credit, separately charged teacher/full-bank work, and independent CPU progress when D inference is unfunded. *After T011.*
 
