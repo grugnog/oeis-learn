@@ -14,9 +14,11 @@ from oeis_learn.generalization.progressive.training_rows import matched_batch
 from oeis_learn.generalization.progressive.velocity_trials import exposure, update_policy
 
 
-def fit_calibration(profile, rows, order, donors, *, device, batch_size=32):
-    """Only the ordinary initialization and training projections enter lambda selection."""
+def _matching_observation(profile, rows, order, donors, *, device, batch_size):
+    from math import isfinite
+    from statistics import median
     import torch
+    from oeis_learn.fresh.bigint_diagnostics import model_snapshot
     from oeis_learn.decoder.bigint_codec import PAD_ID
     from oeis_learn.generalization.progressive.models import construct
     from oeis_learn.rl.sft_trainer import (
@@ -26,8 +28,11 @@ def fit_calibration(profile, rows, order, donors, *, device, batch_size=32):
     )
     from .progressive_generator_probe import batch
 
+    began = time.monotonic_ns()
     encoder, decoder, _ = construct(profile, device=device)
+    initial_weights = model_snapshot(encoder, decoder)
     positive_losses, aux_losses = [], []
+    wins = passes = 0
     with torch.no_grad():
         for start in range(0, len(order), batch_size):
             keys = order[start : start + batch_size]
@@ -46,12 +51,73 @@ def fit_calibration(profile, rows, order, donors, *, device, batch_size=32):
             other = teacher_forced_logits(
                 encoder, decoder, donor_seq, tokens[selected], device=device, pad_id=PAD_ID
             )
+            passes += 1
             for j, i in enumerate(selected):
-                aux, _ = prefix_matching_loss(
+                aux, win = prefix_matching_loss(
                     logits[i : i + 1], other[j : j + 1], labels[i : i + 1], [0], pad_id=PAD_ID
                 )
                 aux_losses.append(float(aux))
-    return calibrate_matching(positive_losses, aux_losses)
+                wins += win
+    if device == "cuda":
+        torch.cuda.synchronize()
+    try:
+        weight = calibrate_matching(positive_losses, aux_losses)
+        reason = None
+    except ValueError:
+        weight = None
+        reason = (
+            "no eligible training pairs"
+            if not aux_losses
+            else "nonfinite or nonpositive training calibration"
+        )
+
+    def observed(values):
+        value = median(values) if values and all(isfinite(v) and v > 0 for v in values) else None
+        return value if value is not None and isfinite(value) else None
+
+    return dict(
+        initial_weights=initial_weights,
+        positive_rows=len(positive_losses),
+        eligible_rows=len(aux_losses),
+        wins=wins,
+        extra_passes=passes,
+        median_positive=observed(positive_losses),
+        median_auxiliary=observed(aux_losses),
+        weight=weight,
+        reason=reason,
+        elapsed_us=(time.monotonic_ns() - began) // 1000,
+        device=device,
+    )
+
+
+def fit_calibration(profile, rows, order, donors, *, device, batch_size=32):
+    """Diagnostic compatibility wrapper for the original learner qualification."""
+    result = _matching_observation(
+        profile, rows, order, donors, device=device, batch_size=batch_size
+    )
+    if result["weight"] is None:
+        raise ValueError(result["reason"])
+    return result["weight"]
+
+
+def measure_calibration(request, *, device):
+    """Installed worker receives only ordinary training prefixes, decoder targets and proven donors."""
+    from .progressive_velocity_matching import check_projection
+
+    check_projection(request)
+    measured = _matching_observation(
+        request["profile"],
+        request["rows"],
+        request["order"],
+        request["donors"],
+        device=device,
+        batch_size=32,
+    )
+    if measured["initial_weights"] != request["initial_weights"]:
+        raise ValueError("matching calibration did not start from the registered random weights")
+    return seal(
+        dict(version="round029-matching-observation/v1", request=request["identity"], **measured)
+    )
 
 
 def optimizer_digest(runner):

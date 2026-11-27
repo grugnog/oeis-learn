@@ -144,7 +144,10 @@ def calibrate_matching(positive_losses, eligible_losses):
     if (not positive_losses or not eligible_losses or
             any(not isfinite(v) or v <= 0 for v in (*positive_losses, *eligible_losses))):
         raise ValueError("positive finite training-only calibration and eligible pairs required")
-    return 0.25 * median(positive_losses) / median(eligible_losses)
+    weight = 0.25 * median(positive_losses) / median(eligible_losses)
+    if not isfinite(weight) or weight <= 0:
+        raise ValueError("matching calibration produced a nonfinite or zero weight")
+    return weight
 
 
 def prefix_matching_loss(true_logits, donor_logits, targets, eligible, *, pad_id):

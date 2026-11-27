@@ -52,6 +52,9 @@ def test_masked_mean_scores_and_batch_normalization():
     assert calibrate_matching([2.0, 4.0, 6.0], [1.0, 2.0, 3.0]) == 0.5
     with pytest.raises(ValueError):
         calibrate_matching([2.0], [])
+    for positives, auxiliary in (([1e308], [1e-308]), ([1e-308], [1e308])):
+        with pytest.raises(ValueError):
+            calibrate_matching(positives, auxiliary)
 
 
 def test_composition_preserves_familiar_slots_and_closes_only_shortage():
@@ -405,3 +408,106 @@ def test_broad_preparation_rechecks_witnesses_preserves_slots_and_excludes_prote
     counted[0].write_text("{}")
     with pytest.raises(ValueError):
         prepare_velocity_broad(**args)
+
+
+def test_matching_weight_frozen_from_ordinary_rows_for_both_treatments(
+    tmp_path, velocity_supply_rows
+):
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.generalization.progressive.contracts import seal
+    from oeis_learn.generalization.progressive.graph import velocity_study_looks
+    from oeis_learn.generalization.progressive.models import resolve_profile
+    from oeis_learn.generalization.progressive.training_rows import pair_seeds
+    from oeis_learn.pipeline_validation.progressive_preparation import (
+        freeze_velocity_screen,
+        prepare_velocity_start,
+    )
+    from oeis_learn.pipeline_validation.progressive_study import open_velocity_study
+    from oeis_learn.pipeline_validation.progressive_velocity_matching import (
+        prepare_calibration,
+        commit_calibration,
+        registered_update_policy,
+    )
+    from oeis_learn.pipeline_validation.progressive_velocity_worker import measure_calibration
+
+    authority = digest("calibration seed")
+    seeds = pair_seeds(authority, 0)
+    model = resolve_profile(
+        resolve({"version": "bigint-bootstrap/v1"}),
+        seed=seeds["initialization"],
+        shape="smaller_width",
+    )
+
+    def study(rows):
+        by_key = {r["draw_identity"]: r for r in rows}
+        order = sorted(by_key, key=lambda k: (digest([seeds["training_families"], k]), k))
+        stream = seal(
+            dict(
+                version="round028-matched-stream/v1",
+                registration=authority,
+                pair=0,
+                seeds=seeds,
+                order=order,
+                row_identities=digest([by_key[k]["identity"] for k in order]),
+            )
+        )
+        start = prepare_velocity_start(model, stream, microbatch=8, device="cpu")
+        reg = freeze_velocity_screen(
+            tmp_path,
+            source="3" * 40,
+            design=digest("matching design"),
+            preferred=None,
+            fallback=start,
+            development=[dict(group="a", task="x", stratum="oeis")],
+            retention=[dict(group="b", task="y", stratum="retention")],
+        )
+        return stream, reg, open_velocity_study(tmp_path, reg)
+
+    rows = velocity_supply_rows
+    stream, reg, journal = study(rows)
+    req = prepare_calibration(journal, reg, model, stream, [rows], batches=1)
+    assert all(
+        set(row) == {"values", "tokens"} and len(row["values"]) == 20
+        for row in req["rows"].values()
+    )
+    value = measure_calibration(req, device="cpu")
+    assert value["positive_rows"] == 32 and 0 < value["eligible_rows"] < 32
+    assert value["weight"] * value["median_auxiliary"] == pytest.approx(
+        value["median_positive"] / 4
+    )
+    assert value["elapsed_us"] > 0 and value["extra_passes"] == 1
+    saved = commit_calibration(journal, req, value)
+    assert commit_calibration(journal, req, value) == saved
+    assert (
+        registered_update_policy(journal, model, "02", microbatch=8)["matching_weight"]
+        == value["weight"]
+    )
+    assert (
+        registered_update_policy(journal, model, "03", microbatch=8)["matching_weight"]
+        == value["weight"]
+    )
+    with pytest.raises(ValueError):
+        commit_calibration(journal, req, seal(dict(value, weight=2 * value["weight"])))
+    with pytest.raises(ValueError):
+        prepare_calibration(
+            journal,
+            reg,
+            model,
+            seal(dict(stream, order=list(reversed(stream["order"])))),
+            [rows],
+            batches=1,
+        )
+    with pytest.raises(ValueError):
+        prepare_calibration(journal, reg, model, stream, [rows], batches=2)
+    journal.observe_velocity(
+        reg, velocity_study_looks(reg)["00"]["common"][0], evidence=digest("zero look")
+    )
+    assert prepare_calibration(journal, reg, model, stream, [rows], batches=1) == req
+    zero, reg0, j0 = study(rows[:2])
+    req0 = prepare_calibration(j0, reg0, model, zero, [rows[:2]], batches=1)
+    unavailable = measure_calibration(req0, device="cpu")
+    assert unavailable["weight"] is None and unavailable["eligible_rows"] == 0
+    commit_calibration(j0, req0, unavailable)
+    assert registered_update_policy(j0, model, "00", microbatch=8)["matching_weight"] is None
+    with pytest.raises(ValueError, match="eligible"):
+        registered_update_policy(j0, model, "02", microbatch=8)
