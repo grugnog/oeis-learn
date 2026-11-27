@@ -483,3 +483,53 @@ def validate_diagnostic_registration(value):
         raise ValueError("diagnostic registration differs from the candidate policy")
     validate_profile(value["policy"]["profile"])
     return value
+
+
+
+def velocity_registration(*, source, design, development, retention, initialization, stream_seed,
+                          ordinary, broad, scope="exploration", parent=None, finalist=None):
+    """Freeze the study inputs before issuing any look. Funding is a separate record."""
+    import re
+    from .contracts import _check, digest, schema, seal
+    from .graph import velocity_look
+    from .trials import integer
+
+    policy = velocity_policy()
+    for ref in (design, ordinary, *([broad] if broad is not None else [])):
+        _check(schema("common")["$defs"]["hash"], ref, {})
+    integer(initialization)
+    integer(stream_seed)
+    if not isinstance(source, str) or not re.fullmatch(r"[0-9a-f]{40}", source):
+        raise ValueError("immutable candidate Git revision required")
+    row_ids = [r["id"] for r in policy["recipes"]]
+    if scope == "exploration":
+        if parent is not None or finalist is not None:
+            raise ValueError("exploration must use the registered predecessor")
+    elif scope in {"paired_extension", "confirmation"}:
+        if (not isinstance(parent, dict) or parent != seal(parent)
+                or set(parent) != {"version", "registration", "state", "evidence", "identity"}
+                or parent.get("version") != "round029-study-boundary/v1"
+                or parent.get("state") not in {"closed", "resumable"} or finalist not in row_ids[1:]):
+            raise ValueError("closed or resumable parent and registered finalist required")
+        for key in ("registration", "evidence"):
+            _check(schema("common")["$defs"]["hash"], parent[key], {})
+    else:
+        raise ValueError("unknown study scope")
+    panels = dict(development=development, retention=retention)
+    velocity_look(registration=design, method="00", seed=initialization, profile="full",
+                  look=4_000_000, **panels)
+    if {r["group"] for r in development} & {r["group"] for r in retention}:
+        raise ValueError("retention families must be disjoint")
+    return seal(dict(version="round029-study/v1", session=policy["session_id"], policy=digest(policy),
+                     predecessor=learned_search_policy()["campaign"], source=source, design=design,
+                     scope=scope, parent=parent, parent_ref=parent["registration"] if parent else None,
+                     finalist=finalist, development=development, retention=retention, panel_ref=digest(panels),
+                     initialization=initialization, stream_seed=stream_seed, ordinary=ordinary, broad=broad))
+
+
+def validate_velocity_registration(registration):
+    keys = ("source", "design", "development", "retention", "initialization", "stream_seed",
+            "ordinary", "broad", "scope", "parent", "finalist")
+    if velocity_registration(**{k: registration[k] for k in keys}) != registration:
+        raise ValueError("frozen velocity study differs")
+    return registration

@@ -206,3 +206,29 @@ def velocity_look(*, registration, method, seed, look, profile, development, ret
     return seal(dict(version="round029-look/v1", registration=registration, method=method,
                      seed=seed, look=look, profile=profile, members=members,
                      attempts=cfg["attempts"], opportunity=policy["opportunity"]))
+
+
+
+def velocity_study_looks(registration):
+    """The same pre-score registration fixes every coordinate, including separate full endpoints."""
+    from .campaign import velocity_policy, validate_velocity_registration
+
+    reg = validate_velocity_registration(registration)
+    policy = velocity_policy()
+    seed = reg["initialization"]
+    screen = reg["scope"] == "exploration"
+    extension = reg["scope"] == "paired_extension"
+    methods = ([r["id"] for r in policy["recipes"]] if screen else ["00", reg["finalist"]])
+    graph = {}
+    for method in [*methods, "D", *(policy["controls"] if screen else [])]:
+        def look(target, profile):
+            return velocity_look(registration=reg["identity"], method=method, seed=seed, look=target,
+                                 profile=profile, extension=extension,
+                                 development=reg["development"], retention=reg["retention"])
+
+        target = policy["conditional_look"] if extension else 4_000_000
+        graph[method] = {"full": [look(target, "full")]}
+        if method in methods and (screen or extension):
+            targets = [target] if extension else policy["profiles"]["common"]["looks"]
+            graph[method]["common"] = [look(t, "common") for t in targets]
+    return graph

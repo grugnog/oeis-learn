@@ -95,6 +95,105 @@ class TrialJournal:
                 atomic_write(path, result)
             return result["identity"]
 
+    def register_velocity(self, registration):
+        from .campaign import validate_velocity_registration
+        from .velocity_trials import recipe_bindings
+        from oeis_learn.pipeline_validation.preparation_recovery import retain
+
+        reg = validate_velocity_registration(registration)
+        if reg["identity"] != self.binding["study"]:
+            raise ValueError("different study journal")
+        with self.lock():
+            retain(self.root / "velocity-registration.json", reg)
+        bindings = recipe_bindings(reg["identity"], initialization=reg["initialization"],
+                                   stream_seed=reg["stream_seed"], ordinary=reg["ordinary"], broad=reg["broad"])
+        methods = list(bindings) if reg["scope"] == "exploration" else ["00", reg["finalist"]]
+        for ordinal, method in enumerate(methods):
+            binding = bindings[method]
+            row = binding["recipe"]
+            parameters = dict(lr_multiplier=1, schedule="constant", effective_batch=row["batch"],
+                              weight_decay=row["decay"], dropout=0)
+            proposal = self.propose(ordinal, parameters=parameters, seed=reg["initialization"])
+            with self.lock():
+                retain(self.root / ("trial-" + method + ".json"), seal(dict(
+                    version="round029-registered-trial/v1", binding=binding, proposal=proposal["identity"],
+                    ordinal=ordinal)))
+
+    def velocity_trial(self, method):
+        from .campaign import velocity_policy
+
+        if method not in {row["id"] for row in velocity_policy()["recipes"]}:
+            raise ValueError("unregistered recipe")
+        with self.lock():
+            entry = load(self.root / ("trial-" + method + ".json"))
+            proposal = self.proposal(entry["ordinal"])
+            binding = entry["binding"]
+            if (entry != seal(entry) or binding != seal(binding) or binding["registration"] != self.binding["study"]
+                    or binding["recipe"]["id"] != method or entry["proposal"] != proposal["identity"]):
+                raise ValueError("registered trial differs")
+            return entry
+
+    def observe_velocity(self, registration, look, *, evidence=None, reason=None):
+        """An interim measurement or a missed look always keeps its frozen denominator."""
+        from .contracts import _check, schema
+        from .graph import velocity_study_looks
+        from oeis_learn.pipeline_validation.preparation_recovery import retain
+
+        with self.lock():
+            reg = load(self.root / "velocity-registration.json")
+            if reg != registration or reg["identity"] != self.binding["study"]:
+                raise ValueError("observation must use the original frozen study")
+            series = velocity_study_looks(reg).get(look["method"], {}).get(look["profile"], [])
+            if look not in series:
+                raise ValueError("observation outside frozen roster or profile")
+            if evidence is None:
+                if not isinstance(reason, str) or not reason.strip():
+                    raise ValueError("unavailable look requires its disposition")
+            else:
+                _check(schema("common")["$defs"]["hash"], evidence, {})
+                if reason is not None:
+                    raise ValueError("measured look cannot also be unavailable")
+            previous = self.binding["identity"]
+            for earlier in series[:series.index(look)]:
+                path = self.root / ("look-" + earlier["identity"][7:] + ".json")
+                if not path.is_file():
+                    raise ValueError("previous registered look is missing")
+                entry = load(path)
+                if entry != seal(entry) or entry["look"] != earlier["identity"] or entry["previous"] != previous:
+                    raise ValueError("previous registered observation differs")
+                previous = entry["identity"]
+            record = seal(dict(version="round029-observation/v1", registration=reg["identity"],
+                               previous=previous, look=look["identity"], denominator=len(look["members"]),
+                               evidence=evidence, reason=reason))
+            retain(self.root / ("look-" + look["identity"][7:] + ".json"), record)
+            return record["identity"]
+
+    def record_velocity_branch(self, branch, *, decision, reason, grant=None, approval=None, root_id=None,
+                               accepted=None):
+        """Record an unused or independently funded branch without terminal optimizer feedback."""
+        from .campaign import velocity_policy
+        from .contracts import _check, schema
+        from .velocity_records import accepted_grant_parent, validate_grant
+        from oeis_learn.pipeline_validation.preparation_recovery import retain
+
+        if branch not in velocity_policy()["branches"] or not isinstance(reason, str) or not reason.strip():
+            raise ValueError("registered branch and reason required")
+        _check(schema("common")["$defs"]["hash"], decision, {})
+        with self.lock():
+            reg = load(self.root / "velocity-registration.json")
+            if grant is not None:
+                if (accepted is None or accepted.get("registration") != reg["identity"]
+                        or branch not in grant["allowed_operations"]):
+                    raise ValueError("branch missing from independently accepted and funded registration")
+                action = "cpu" if grant["scope"] == "cpu" else "run"
+                parent = accepted_grant_parent(accepted, grant["scope"])
+                validate_grant(grant, approval, root=root_id, parent=parent, action=action)
+            record = seal(dict(version="round029-branch/v1", study=reg["identity"], branch=branch,
+                               state="funded" if grant else "unused", decision=decision, reason=reason,
+                               grant=grant["identity"] if grant else None))
+            retain(self.root / ("branch-" + branch + "-" + decision[7:] + ".json"), record)
+            return record
+
     @contextmanager
     def lock(self):
         import fcntl
