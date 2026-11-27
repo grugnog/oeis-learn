@@ -72,6 +72,29 @@ class TrialJournal:
                 atomic_write(p, self.binding)
             self.read()
 
+    def observe_pilot(self, observation):
+        """Persist an exploratory look without giving the 013 optimizer terminal feedback."""
+        targets = (0, 1_000_000, 4_000_000)
+        target = observation["target"]
+        if (observation.get("version") != "round028-pilot-observation/v1" or seal(observation) != observation
+                or observation["registration"] != self.binding["study"] or observation["pair"] != 0 or target not in targets):
+            raise ValueError("registered pilot observation required")
+        with self.lock():
+            previous = self.binding["identity"]
+            for look in targets[:targets.index(target)]:
+                record = load(self.root / f"pilot-{look}.json")
+                if record != seal(record) or record["previous"] != previous or record["observation"]["target"] != look:
+                    raise ValueError("pilot observation chain differs")
+                previous = record["identity"]
+            result = seal(dict(previous=previous, observation=observation))
+            path = self.root / f"pilot-{target}.json"
+            if path.exists():
+                if load(path) != result:
+                    raise ValueError("conflicting pilot observation")
+            else:
+                atomic_write(path, result)
+            return result["identity"]
+
     @contextmanager
     def lock(self):
         import fcntl
@@ -270,3 +293,72 @@ class TrialJournal:
             and s["tokens"] >= target
             and eligible(s["result"], root=self.provenance_root) is not None
         ]
+
+
+def historical_trials(root, folder, study):
+    """Read-only snapshot of a closed original study, without creating a binding or a lock."""
+    from oeis_learn.pipeline_validation.identity import confined
+    binding = load(confined(root, Path(folder) / "binding.json"))
+    if (seal(binding) != binding or binding["version"] != "progressive-trial-journal/v1"
+            or binding["study"] != study):
+        raise ValueError("original study binding differs")
+    journal = TrialJournal.__new__(TrialJournal)
+    journal.root = confined(root, folder)
+    journal.provenance_root = root
+    journal.binding = binding
+    journal.read()
+    return journal.trials, journal.tip
+
+
+def paired_generator_exposure(ordinary, treatment):
+    """A descriptive or funded comparison uses equal useful and charged trajectories."""
+    from .training_rows import GENERATOR_LOOKS, pair_seeds
+    from .contracts import seal
+    import re
+    both = ordinary, treatment
+    fields = {"version", "identity", "parent", "registration", "pair", "seeds", "arm", "stream", "initial",
+              "codec", "common_policy", "target", "charged", "discarded", "overshoot", "order_digest", "useful_tokens",
+              "last_update_tokens", "updates", "cursor"}
+    for arm, cut in zip(("ordinary", "first_divergence"), both):
+        if (set(cut) != fields or cut["version"] != "round028-generator-milestone/v1" or seal(cut) != cut
+                or cut["arm"] != arm or cut["seeds"] != pair_seeds(cut["registration"], cut["pair"])
+                or type(cut["target"]) is not int or cut["target"] not in GENERATOR_LOOKS):
+            raise ValueError("registered arm and original matched milestone required")
+        if any(not isinstance(cut[k], str) or not re.fullmatch("sha256:[0-9a-f]{64}", cut[k])
+               for k in ("parent", "stream", "initial", "codec", "common_policy", "order_digest")):
+            raise ValueError("content-bound training exposure required")
+        if (any(type(cut[k]) is not int or cut[k] < 0 for k in ("charged", "discarded", "overshoot", "useful_tokens",
+                                                                "last_update_tokens", "updates", "cursor"))
+                or cut["useful_tokens"] + cut["discarded"] != cut["charged"]
+                or cut["cursor"] != 32 * cut["updates"] or cut["overshoot"] != max(0, cut["charged"]-cut["target"])):
+            raise ValueError("inconsistent matched milestone accounting")
+    if any(ordinary[k] != treatment[k] for k in fields - {"identity", "parent", "arm"}):
+        return "UNEQUAL_EXPOSURE"
+    if ordinary["charged"] < ordinary["target"]:
+        return "INCOMPLETE_LOOK"
+    if ordinary["target"] == 0:
+        return "MATCHED" if ordinary["charged"] == ordinary["updates"] == 0 else "MISSED_LOOK"
+    if not 0 <= ordinary["overshoot"] < ordinary["last_update_tokens"]:
+        return "MISSED_LOOK"
+    return "MATCHED"
+
+def reusable_zero_look(ordinary, treatment, requests, executions):
+    """Credit one prior zero-look execution only on equality of all inference inputs."""
+    from .contracts import digest
+    import re
+    if paired_generator_exposure(ordinary, treatment) != "MATCHED" or ordinary["target"] != 0:
+        return False
+    fields = {"weights", "ordered_prompts", "codec", "inference_seed", "runtime", "source", "profile",
+              "fit_and_choice", "budgets", "support", "comparator", "role"}
+    comparisons = []
+    for arm in ("ordinary", "first_divergence"):
+        request, evidence = requests[arm], executions[arm]
+        if (request["target"] != 0 or request["arm"] != arm or request["registration"] != ordinary["registration"]
+                or request["seed"] != ordinary["seeds"]["initialization"] or set(evidence) != fields
+                or evidence["weights"] != ordinary["initial"] or evidence["codec"] != ordinary["codec"]
+                or type(evidence["inference_seed"]) is not int or evidence["inference_seed"] < 0
+                or any(not isinstance(v, str) or not re.fullmatch("sha256:[0-9a-f]{64}", v)
+                       for k, v in evidence.items() if k != "inference_seed")):
+            return False
+        comparisons.append(digest([{k:v for k,v in request.items() if k not in ("arm","identity")}, evidence]))
+    return comparisons[0] == comparisons[1]

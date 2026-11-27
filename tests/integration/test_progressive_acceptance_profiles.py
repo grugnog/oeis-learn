@@ -48,10 +48,17 @@ def test_profile_storage_deficit_fails_before_learner_publication(tmp_path, monk
 def test_oeis_child_tasks_reserve_selected_profile_and_simultaneous_stores(
     tmp_path, monkeypatch, shape
 ):
+    import shutil
     from oeis_learn.generalization.progressive.campaign import validate_campaign
     from oeis_learn.generalization.progressive.models import resolve_profile
     from oeis_learn.pipeline_validation import progressive_device_acceptance as device
     from tests.helpers.progressive_oeis_fixture import fixture
+
+    # This fixture checks the computed simultaneous-store requirement. Give its
+    # modeled workstation room for every registered task, including the larger profile.
+    usage = shutil.disk_usage(tmp_path)
+    free = 32 << 30
+    monkeypatch.setattr(shutil, "disk_usage", lambda _: usage._replace(total=usage.used + free, free=free))
 
     monkeypatch.setattr(
         device,

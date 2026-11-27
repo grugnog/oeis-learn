@@ -35,7 +35,11 @@ def checked_file(root, ref, *, maximum=32 << 30):
     if (not isinstance(ref, dict) or set(ref) != {'path', 'bytes', 'sha256'}
         or type(ref['bytes']) is not int or not 0 <= ref['bytes'] <= maximum):
         raise ValueError('bounded original artifact reference required')
-    path = confined(root, ref['path'])
+    name = ref['path']
+    if (not isinstance(name, str) or '\\' in name or Path(name).is_absolute()
+            or any(part in ('', '.', '..') for part in name.split('/'))):
+        raise ValueError('canonical relative artifact path required')
+    path = confined(root, name)
     before = path.stat()
     if not stat.S_ISREG(before.st_mode) or before.st_size != ref['bytes']:
         raise ValueError('original artifact identity/size differs: ' + ref['path'])
@@ -135,9 +139,18 @@ class ExposureIndex:
         self.db.executemany('INSERT OR IGNORE INTO keys VALUES (?,?)', self.keys(row))
         self.db.execute('INSERT INTO origins VALUES (?,1) ON CONFLICT(name) DO UPDATE SET rows=rows+1', (origin,))
 
+    def matching_keys(self, keys):
+        """One indexed join per case, including every shifted window."""
+        keys = list(keys)
+        if not keys:
+            return []
+        placeholders = ",".join("(?,?)" for _ in keys)
+        query = ("WITH wanted(kind,value) AS (VALUES "+placeholders+") "
+                 "SELECT DISTINCT k.kind FROM wanted w JOIN keys k ON k.kind=w.kind AND k.value=w.value")
+        return sorted(row[0] for row in self.db.execute(query, [v for pair in keys for v in pair]))
+
     def matches(self, row):
-        return sorted({kind for kind, value in self.keys(row)
-                       if self.db.execute('SELECT 1 FROM keys WHERE kind=? AND value=?', (kind, value)).fetchone()})
+        return self.matching_keys(self.keys(row))
 
     def summary(self):
         origins = dict(self.db.execute('SELECT name,rows FROM origins ORDER BY name'))

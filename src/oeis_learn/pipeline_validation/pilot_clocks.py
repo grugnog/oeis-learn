@@ -6,8 +6,12 @@ POLICY='portfolio-clock60/v1'
 ATTEMPTS=dict(correct=8,shuffled=1,absent=1,template=8)
 MATCHED='portfolio-clock60-matched/v2'
 DRAIN='portfolio-clock60-matched-drain/v2'
+DESCRIPTIVE='round028-one-attempt-correct/v1'
+CORRECT_FULL='round028-eight-attempt-correct/v1'
 
 def attempts(policy):
+    if policy==CORRECT_FULL:return {"correct":8}
+    if policy==DESCRIPTIVE:return {"correct":1}
     if policy==POLICY:return ATTEMPTS
     if policy in (MATCHED,DRAIN):return dict.fromkeys(ATTEMPTS,8)
     raise ValueError('unknown evaluation policy')
@@ -51,7 +55,7 @@ class FullClockEvidence(Evidence):
         self.clocks[key]=row
 
     def finish(self):
-        index=super().finish();expected=len(self.jobs)//sum(attempts(self.policy).values())*4
+        index=super().finish();expected=len(self.jobs)//sum(attempts(self.policy).values())*len(attempts(self.policy))
         self.clock_summary=seal(dict(version='pipeline-portfolio-clocks/v1',policy=self.policy,source=self.source,work=self.work,
             expected_portfolios=expected,missing_portfolios=expected-len(self.clocks),
             cost_complete=len(self.clocks)==expected and all(r['cost_complete'] for r in self.clocks.values()),

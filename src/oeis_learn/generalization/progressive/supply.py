@@ -5,6 +5,13 @@ from .contracts import seal
 
 def plan(package, target, *, arm=None):
     arm = package.get("arm") if arm is None else arm
+    if "matched_generator" in package:
+        stream = package["matched_generator"]
+        if (arm not in {"ordinary", "first_divergence"} or arm != package["update_policy"].get("objective")
+                or type(target) is not int or not 0 <= target <= package["update_policy"]["schedule_horizon_tokens"]
+                or not stream["order"]):
+            raise ValueError("invalid cyclic matched training supply")
+        return seal(dict(version="round028-cyclic-supply/v1", stream=stream["identity"], target_tokens=target))
     if arm == "static" or package.get("task_profile") == "combinatorial-short/v1":
         return None
     if arm not in {"refreshed", "replay", "continued_synthetic", "library", "no_library", "with_source", "without_source"}:

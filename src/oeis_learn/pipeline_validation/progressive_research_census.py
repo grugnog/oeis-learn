@@ -30,10 +30,10 @@ class Union:
             self.parent[max(a,b)] = min(a,b)
 
 
-def features(source):
+def features(source, *, allow_parameters=False):
     """Exact normalized subtree combinations, not a mathematical family claim."""
     from oeis_learn.synthesis.reference_parser import parse
-    p = parse(source)
+    p = parse(source, allow_parameters=allow_parameters)
     roots = [*p.statements, p.result]
     nodes, proper, operators = set(), set(), set()
     def normalized(node):

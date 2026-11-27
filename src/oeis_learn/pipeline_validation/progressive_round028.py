@@ -1,0 +1,533 @@
+"""Foundation host actions for the registered CPU diagnosis."""
+import fcntl
+import os
+from pathlib import Path
+import re
+import runpy
+import subprocess
+import time
+import zipfile
+
+from oeis_learn.generalization.progressive.budgets import BudgetJournal, KEYS
+from oeis_learn.generalization.progressive.campaign import diagnostic_registration, learned_search_policy
+from oeis_learn.generalization.progressive.cohorts import STRATA
+from oeis_learn.generalization.progressive.contracts import load, read_bound_record, reference, seal
+from oeis_learn.generalization.progressive.lifecycle import RunStore
+from oeis_learn.generalization.progressive.graph import round028_branches
+from oeis_learn.generalization.progressive.program_search_report import public_audit, publish_archive, verify_archive
+from .identity import confined
+from .preparation_recovery import retain
+from .progressive_outputs import round028_batch
+from .progressive_round028_audit import Donor, FOLLOWUP, ORIGINAL, SESSION, audit, summarize
+from .progressive_research_inputs import checked_file
+
+ARCHIVE = "share/round028.zip"
+SAVED_AUDIT = "share/round028-audit.zip"
+REPLAY_ARCHIVE = "share/round028-diagnostic-replay.zip"
+TERMINAL_CLOSURE = "private/terminal/closure.json"
+
+
+def audit_archive(folder):
+    historical = confined(folder,SAVED_AUDIT,exists=False)
+    return historical if historical.exists() else confined(folder,ARCHIVE,exists=False)
+
+
+
+def git(root, *args):
+    result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True)
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def candidate_revision(source, root):
+    parent = root / "run-state/discovery-tools/round028-source"
+    if source.parent == parent and re.fullmatch("[0-9a-f]{40}", source.name):
+        helper = source / "specs/015-learned-program-search/validation/candidate_source.py"
+        runpy.run_path(str(helper))["verify_tree"](root, source, source.name)
+        return source.name
+    if git(source, "rev-parse", "--show-toplevel") != str(source):
+        raise ValueError("candidate source must be the checked cache or a clean Git checkout")
+    if git(source, "status", "--porcelain", "--untracked-files=all") != "":
+        raise ValueError("candidate checkout has uncommitted files")
+    return git(source, "rev-parse", "HEAD")
+
+
+def metadata(root, policy):
+    refs = [ORIGINAL + "/prepare-research/frozen/campaign.json", FOLLOWUP + "/share/trial-00-2M.json",
+            FOLLOWUP + "/share/1M-replay.json",
+            f"run-state/discovery-control/{policy['campaign'][7:]}/transition-0096.json"]
+    st = os.statvfs(root)
+    head = git(root, "rev-parse", "HEAD")
+    return dict(donor=head, expected_donor=policy["donor_revision"],
+                qualified_checkout=head == policy["donor_revision"] and git(root, "symbolic-ref", "-q", "HEAD") is None
+                and git(root, "rev-parse", "--show-toplevel") == str(root),
+                files={p: confined(root, p, exists=False).is_file() for p in refs},
+                filesystem=dict(device=root.stat().st_dev, free_bytes=st.f_bavail * st.f_frsize, free_inodes=st.f_favail),
+                gpu_demand="unmeasured_pending_audit", gpu_dispatches=0)
+
+
+def status(folder):
+    path = folder / "run.lock"
+    busy = False
+    if path.is_file():
+        with confined(folder, "run.lock").open("r") as stream:
+            try:
+                fcntl.flock(stream, fcntl.LOCK_SH | fcntl.LOCK_NB)
+            except BlockingIOError:
+                busy = True
+    if not (folder / "campaign.json").exists():
+        return dict(mechanical_status="UNREGISTERED", scientific_status="UNMEASURED", owner_active=busy)
+    binding = load(confined(folder, "campaign.json"))
+    store = RunStore(folder, binding, diagnostic=True)
+    scientific = "HISTORICAL_AUDIT" if store.state.get("publication") else "UNMEASURED"
+    extra = {}
+    for path in sorted(folder.glob("private/generator-rehearsal/*/progress.json"),
+                       key=lambda p: p.stat().st_mtime_ns, reverse=True)[:1]:
+        progress = load(confined(folder, path.relative_to(folder)))
+        if seal(progress) != progress:
+            raise ValueError("generator rehearsal progress changed")
+        extra["rehearsal"] = {k: progress[k] for k in ("candidate", "phase", "reason", "next_action") if k in progress}
+    for panel_path in sorted(folder.glob("private/panel-supply/*/progress.json"),
+                             key=lambda p:p.stat().st_mtime_ns, reverse=True)[:1]:
+        panel_progress = load(confined(folder,panel_path.relative_to(folder)))
+        if seal(panel_progress) != panel_progress:
+            raise ValueError("panel supply progress changed")
+        extra["panel_supply"] = dict(candidate=panel_path.parent.name,phase=panel_progress["phase"])
+    timing_progress = folder / "private/evaluation-timing/progress.json"
+    if timing_progress.is_file():
+        measured = load(confined(folder,timing_progress))
+        if (seal(measured) != measured or type(measured["completed_blocks"]) is not int
+                or not 0 <= measured["completed_blocks"] <= 5
+                or measured["portfolios"] != 8 * measured["completed_blocks"]):
+            raise ValueError("candidate timing progress differs")
+        extra["evaluation_timing"] = {k:measured[k] for k in ("completed_blocks","portfolios")}
+    mechanical = store.state["status"]
+    if store.state.get("terminal"):
+        terminal = store.state["terminal"]
+        scientific = "PILOT_UNMEASURED"
+        extra.update({k: terminal[k] for k in ("evidence_verdict","reason","next_action","remaining_authorized_gpu_us","pilot_us","shift_us","deficit_us")})
+        extra["archive"] = ARCHIVE
+    elif (folder / TERMINAL_CLOSURE).is_file():
+        mechanical = "PUBLICATION_PENDING"
+        scientific = "PILOT_UNMEASURED"
+        extra.update(reason="TERMINAL_PUBLICATION_PENDING", next_action="FINALIZE", remaining_authorized_gpu_us=0)
+    branches = round028_branches(store.state.get("route"))
+    from .progressive_round028_pilot import AREA as PILOT_AREA, SHARE as PILOT_SHARE, cost_status
+    child = confined(folder, PILOT_AREA + "/progress.json", exists=False)
+    if child.is_file():
+        progress = load(child)
+        if progress != seal(progress):
+            raise ValueError("pilot status receipt changed")
+        extra["pilot"] = dict(progress=progress, costs=cost_status(child.parent))
+        archive = confined(folder, PILOT_SHARE, exists=False)
+        if archive.is_file():
+            from oeis_learn.generalization.progressive.program_search_pilot import verify_pilot
+            receipt = verify_pilot(archive)
+            extra["pilot"].update(action=receipt["next_action"], assessment=receipt["assessment"],
+                                  remaining_authorized_gpu_us=0, archive=PILOT_SHARE)
+    for p in sorted(folder.glob("private/release-acceptance/*/progress.json"),
+                    key=lambda path:path.stat().st_mtime_ns, reverse=True)[:1]:
+        latest = load(confined(folder,p))
+        if latest != seal(latest):
+            raise ValueError("release progress changed")
+        extra["release_acceptance"] = latest
+    if store.state.get("branches", branches) != branches:
+        raise ValueError("branch dispositions differ from the committed route")
+    return dict(**extra, mechanical_status=mechanical, scientific_status=scientific, branches=branches,
+                owner_active=busy, boundary=store.tip, decision=store.state.get("route"), active=store.state.get("active"))
+
+
+def seal_audit(folder, registration, data, ordinal):
+    batches = []
+    for index, stratum in enumerate(STRATA):
+        rows = sorted((r for r in data["cases"] if r["stratum"] == stratum), key=lambda r: r["task"])
+        batch = seal(dict(version="round028-cases/v1", registration=registration["identity"], ordinal=index, cases=rows))
+        path = confined(folder, "private/batches/" + batch["identity"][7:] + ".json", exists=False)
+        retain(path, batch)
+        batches.append(dict(authority="session", role="historical_audit", ordinal=index, registration=registration["identity"],
+                            artifact=reference(folder, path), identity=batch["identity"]))
+    item = seal(dict(version="round028-private-audit/v1", registration=registration["identity"],
+                     batches=batches, **{k: v for k, v in data.items() if k != "cases"}))
+    path = confined(folder, f"private/attempt-{ordinal}.json", exists=False)
+    retain(path, item)
+    return reference(folder, path)
+
+
+def reopen(root, folder, registration, cut, *, recheck_inputs=True):
+    value = read_bound_record(folder, cut, version="round028-private-audit/v1")
+    if value["registration"] != registration["identity"] or len(value["batches"]) != 4:
+        raise ValueError("private audit registration or batch roster differs")
+    cases = []
+    for i, binding in enumerate(value["batches"]):
+        rows = round028_batch(folder, binding, registration=registration["identity"], ordinal=i)["cases"]
+        if len(rows) != 32 or any(r["stratum"] != STRATA[i] for r in rows):
+            raise ValueError("ordered audit stratum differs")
+        cases.extend(rows)
+    if len({r["task"] for r in cases}) != 128:
+        raise ValueError("duplicate historical case in committed matrix")
+    from oeis_learn.generalization.progressive.program_search_routing import project, route
+    methods, pairs = summarize(cases, list(value["methods"]))
+    votes = [dict(r["diagnosis"], task=r["task"], stratum=r["stratum"]) for r in cases
+             if r["stratum"] in registration["policy"]["roster"]["primary"]]
+    projected = project(votes, training_support=value["support"]["eligible_rows"] > 0, replay_budget_us=None)
+    if (methods != value["methods"] or pairs != value["pairs"] or projected != value["projection"]
+            or route(projected) != value["decision"]):
+        raise ValueError("private case reduction differs from the sealed report")
+    if recheck_inputs:
+        for ref in value["inputs"]:
+            checked_file(root, ref)
+    return dict(value, cases=cases)
+
+
+def elapsed_clock():
+    return time.monotonic_ns() // 1000
+
+
+def charge(journal, ordinal, start, boot, end):
+    # CPU diagnostic reads use no scientific draws, model tokens or device budget.
+    # Charge their observed elapsed interval once against the journal's integer counter.
+    costs = dict.fromkeys(KEYS, 0)
+    costs["elapsed_us"] = end - start
+    debit = journal.reserve("historical-audit", "elapsed", ordinal, costs, boot=boot, monotonic_us=start)
+    journal.commit(debit["key"], boot=boot, monotonic_us=end, termination_proven=True)
+
+
+def audit_command(root, folder, store, registration):
+    counter = dict.fromkeys(KEYS, 0)
+    counter["elapsed_us"] = 2**63 - 1
+    journal = BudgetJournal(folder / "accounting", registration["identity"], counter)
+    boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    if store.state.get("registration") is None:
+        store.append(dict(store.state, registration=registration["identity"], status="REGISTERED"))
+    private = confined(folder, "private", exists=False)
+    private.mkdir(mode=0o700, exist_ok=True)
+    if private.stat().st_mode & 0o077:
+        raise ValueError("private audit directory must be owner-only")
+
+    active = store.state.get("active")
+    if active:
+        # An immutable end receipt is written before the debit. Replaying that gap
+        # uses the original interval, including after a crash following the debit.
+        finish = private / f"finish-{active['ordinal']}.json"
+        if not finish.exists():
+            retain(finish, seal(dict(ordinal=active["ordinal"], started=active["start"], boot=active["boot"],
+                                     end=elapsed_clock() if active["boot"] == boot else None,
+                                     basis="interruption_upper_bound" if active["boot"] == boot else "unavailable_cross_boot")))
+        settle(store, journal, root, folder, registration, active, finish)
+
+    cut = store.state.get("audit")
+    reused = cut is not None
+    if cut is None:
+        ordinal = store.state.get("attempts", 0)
+        active = dict(ordinal=ordinal, start=elapsed_clock(), boot=boot)
+        store.append(dict(store.state, status="AUDITING", active=active, attempts=ordinal + 1))
+        finish = private / f"finish-{ordinal}.json"
+        try:
+            data = audit(Donor(root, folder, registration))
+            seal_audit(folder, registration, data, ordinal)
+        finally:
+            retain(finish, seal(dict(ordinal=ordinal, started=active["start"], boot=boot, end=elapsed_clock(),
+                                     basis="observed_elapsed")))
+            settle(store, journal, root, folder, registration, active, finish)
+        cut = store.state["audit"]
+    data = reopen(root, folder, registration, cut, recheck_inputs=reused)
+    public = public_audit(registration, data, elapsed_us=journal.snapshot()["consumed"]["elapsed_us"],
+                          private_identity=data["identity"])
+    publication = audit_archive(folder)
+    receipt = publish_archive(publication, public)
+    if not store.state.get("publication"):
+        store.append(dict(store.state, status="AUDIT_PUBLISHED", publication=receipt["report"],
+                          route=data["decision"]["action"], branches=round028_branches(data["decision"]["action"]),
+                          pending=data["decision"].get("blocker")))
+    if receipt["report"] != store.state["publication"]:
+        raise ValueError("published report differs from committed audit")
+    return dict(mechanical_status="BLOCKED" if data["decision"].get("blocker") else "COMPLETE",
+                scientific_status="HISTORICAL_AUDIT", archive=str(publication.relative_to(folder)),
+                decision=data["decision"], methods=data["methods"], pairs=data["pairs"]["trial-05-1M vs retained_D"],
+                checkpoints=[c["disposition"] for c in data["checkpoints"]],
+                missing_inputs=data["missing_inputs"], denominators=dict(historical=128, routing=64),
+                unfinished_trial05_composition=public["trial05_unfinished_composition"],
+                costs=journal.snapshot()["consumed"], receipt=receipt)
+
+
+def settle(store, journal, root, folder, registration, active, finish):
+    record = load(confined(folder, finish))
+    if (seal(record) != record or (record["ordinal"], record["started"], record["boot"])
+            != (active["ordinal"], active["start"], active["boot"])):
+        raise ValueError("audit accounting boundary differs")
+    if record["end"] is not None:
+        charge(journal, active["ordinal"], active["start"], active["boot"], record["end"])
+    path = confined(folder, f"private/attempt-{active['ordinal']}.json", exists=False)
+    cut = None
+    if path.exists():
+        cut = reference(folder, path)
+        reopen(root, folder, registration, cut, recheck_inputs=False)
+    store.append(dict(store.state, active=None, audit=cut, status="AUDITED" if cut else "INTERRUPTED",
+                      last_timing=reference(folder, finish)))
+
+
+def audit_store(folder, revision):
+    """Resume an unfinished audit on its owning revision or reuse its published result."""
+    binding = confined(folder, "campaign.json", exists=False)
+    registered = load(binding) if binding.exists() else diagnostic_registration(revision)
+    store = RunStore(folder, registered, diagnostic=True)
+    if registered["candidate"] != revision:
+        if store.state.get("active") or not store.state.get("audit") or not store.state.get("publication"):
+            raise ValueError("resume the unfinished audit with its registered implementation")
+        published = verify_archive(audit_archive(folder))
+        if published["report"] != store.state["publication"]:
+            raise ValueError("published diagnostic parent differs from its registered boundary")
+    return store
+
+
+def terminal_failure(source, folder, exc, *, spending_reason=None, record=True):
+    import traceback
+    from oeis_learn.generalization.progressive.storage import JournalStorageDeficit
+    from .progressive_round028_rehearsal import failure_locations
+    area = confined(folder,"private/terminal",exists=False)
+    failed = dict(mechanical_status="BLOCKED", scientific_status="PILOT_UNMEASURED",
+                  reason="TERMINAL_VERIFICATION_FAILED", error_type=type(exc).__name__,
+                  failure_locations=failure_locations(source, area), gpu_dispatches=0)
+    if isinstance(exc, JournalStorageDeficit):
+        failed.update(reason="TERMINAL_JOURNAL_STORAGE_DEFICIT", journal_storage=exc.details)
+    if isinstance(exc, OSError) and type(exc.errno) is int:
+        failed["errno"] = exc.errno
+    if spending_reason == "REPORT_PILOT_COST_DEFICIT":
+        failed["spending_reason"] = spending_reason
+    if record:
+        try:
+            area.mkdir(parents=True, mode=0o700, exist_ok=True)
+            (area / "exception.txt").write_text(traceback.format_exc())
+        except OSError as secondary:
+            failed["diagnostic_write_errno"] = secondary.errno
+    return failed, 2
+
+
+def execute(args, source, *, host_factory=None):
+    producer_revision = getattr(args, "producer_revision", None)
+    if producer_revision is not None and args.action != "recover-rehearsal":
+        raise ValueError("producer revision is restricted to original rehearsal recovery")
+    qualification = getattr(args, "qualification_archive", None)
+    if qualification:
+        if args.action != "verify" or not args.archive:
+            raise ValueError("qualification comparison requires a copied pilot")
+        from oeis_learn.generalization.progressive.program_search_pilot import verify_pilot
+        return verify_pilot(Path(args.archive), qualification=Path(qualification)), 0
+    if args.archive:
+        if args.action != "verify":
+            raise ValueError("archive authority is restricted to verification")
+        from oeis_learn.generalization.progressive.program_search_rehearsal_report import verify_transport
+        return verify_transport(Path(args.archive)), 0
+    root = Path(args.workspace)
+    if not root.is_absolute() or root != root.resolve(strict=True):
+        raise ValueError("absolute physical donor workspace required")
+    folder = confined(root, SESSION, exists=False)
+    if args.action == "pilot-status":
+        from .progressive_round028_pilot import AREA, cost_status
+        progress = confined(folder, AREA + "/progress.json", exists=False) if folder.exists() else None
+        return {"mechanical_status": "INSPECTED", "pilot": load(progress) if progress and progress.is_file() else None,
+                "costs": cost_status(progress.parent) if progress and progress.is_file() else None}, 0
+    if args.action == "status":
+        return status(folder), 0
+    policy = learned_search_policy()
+    info = metadata(root, policy)
+    if args.action == "recover-rehearsal":
+        from .progressive_round028_receipts import recover_command
+        if not info["qualified_checkout"]:
+            return dict(mechanical_status="BLOCKED", reason="ORIGINAL_DONOR_REQUIRED", gpu_dispatches=0), 2
+        candidate_revision(source, root)
+        return recover_command(root, folder, source, producer_revision)
+    if args.action == "preflight":
+        if (folder / TERMINAL_CLOSURE).is_file():
+            binding = load(confined(folder,"campaign.json"))
+            latest = RunStore(folder,binding,diagnostic=True).state.get("terminal")
+            if not latest:
+                return dict(info, mechanical_status="INSPECTED", scope="terminal_publication",
+                            gpu_demand="CLOSED", admission="TERMINAL_PUBLICATION_PENDING", next_action="FINALIZE"), 0
+            extra = {}
+            from .progressive_round028_pilot import SHARE as pilot_share
+            if (folder / pilot_share).is_file():
+                from .progressive_round028_release import release_admission
+                from .progressive_release_checks import HISTORICAL
+                revision = candidate_revision(source, root)
+                area = confined(folder, "private/release-acceptance/" + revision, exists=False)
+                registration = None
+                if (area / "registration.json").is_file():
+                    registration = load(confined(area, "registration.json"))
+                    if registration != seal(registration) or registration["candidate"] != revision:
+                        raise ValueError("release registration differs")
+                targets = registration["targets"] if registration else HISTORICAL
+                extra["release_acceptance"] = dict(candidate=revision,
+                    basis="registered" if registration else "historical_minimum",
+                    capacity=release_admission(area if area.is_dir() else folder,targets,
+                        args.free_disk_gib << 30, registration=registration),
+                    action="collect-release")
+            return dict(info,mechanical_status="INSPECTED",scope="terminal_resource_decision",**extra,
+                        gpu_demand="CLOSED",admission=latest["reason"],next_action=latest["next_action"],
+                        pilot_us=latest["pilot_us"],shift_us=latest["shift_us"],deficit_us=latest["deficit_us"]), 0
+        return dict(info, mechanical_status="INSPECTED", scope="historical_audit",
+                    admission="AVAILABLE" if info["qualified_checkout"] and all(info["files"].values()) else "BLOCKED"), 0
+    if not info["qualified_checkout"] or not info["files"][ORIGINAL + "/prepare-research/frozen/campaign.json"]:
+        return dict(info, mechanical_status="BLOCKED", scientific_status="UNMEASURED",
+                    missing="qualified round027 donor and original frozen campaign required",
+                    authenticated_cases=0, expected_cases=128), 2
+    revision = candidate_revision(source, root)
+    if args.action == "verify" and not (folder / ARCHIVE).is_file():
+        return dict(mechanical_status="BLOCKED", missing="audit publication"), 2
+    folder.mkdir(parents=True, exist_ok=True)
+    try:
+        with RunStore.owner(folder):
+            store = audit_store(folder, revision)
+            registration = store.campaign
+            if args.action == "release-acceptance":
+                from .progressive_round028_release import release_command
+                return release_command(args, source, root, folder, revision, store, host_factory)
+            selector_share = confined(folder, "share/round028-selector.zip", exists=False)
+            if args.action == "verify" and selector_share.is_file():
+                from .progressive_round028_selector import verify_private_selector
+                return verify_private_selector(confined(folder, "private/cpu-selector-v2"), selector_share), 0
+            if args.action in {"pilot", "qualify-pilot"}:
+                from .progressive_round028_pilot import AREA as PILOT_AREA, PilotDeficit, cost_status, run_pilot
+                try:
+                    return run_pilot(args, source, root, folder, revision, store, host_factory)
+                except (ValueError, OSError, KeyError, TypeError, RuntimeError, TimeoutError, subprocess.SubprocessError, zipfile.BadZipFile) as exc:
+                    import traceback
+                    from .progressive_round028_rehearsal import failure_locations
+                    area = confined(folder, PILOT_AREA, exists=False)
+                    area.mkdir(parents=True, exist_ok=True, mode=0o700)
+                    (area / "exception.txt").write_text(traceback.format_exc())
+                    try:
+                        costs = cost_status(area)
+                    except (OSError, ValueError, KeyError, TypeError):
+                        costs = None
+                    return dict(mechanical_status="BLOCKED", costs=costs, reason=exc.code if isinstance(exc,PilotDeficit) else "PILOT_INTERRUPTED",
+                                deficit=exc.counts if isinstance(exc,PilotDeficit) else None, error_type=type(exc).__name__,
+                                progress=load(area/"progress.json") if (area/"progress.json").is_file() else None,
+                                failure_locations=failure_locations(source,area,role_folder="roles")), 2
+            from .progressive_round028_timing import AREA, PANEL_ARCHIVE, SHARE, timing_command
+            from .progressive_round028_terminal import close_timing
+            terminal = store.state.get("terminal")
+            pending = not terminal and (folder / TERMINAL_CLOSURE).is_file()
+            if (terminal or pending) and args.action == "rehearse":
+                return dict(mechanical_status="SKIPPED", scientific_status="PILOT_UNMEASURED",
+                            reason=terminal["reason"] if terminal else "TERMINAL_PUBLICATION_PENDING",
+                            next_action=terminal["next_action"] if terminal else "FINALIZE", gpu_dispatches=0), 0
+            if args.action == "verify" and pending:
+                return dict(mechanical_status="BLOCKED",reason="TERMINAL_PUBLICATION_PENDING",gpu_dispatches=0), 2
+            check_terminal = args.action == "verify" and terminal is not None
+            if args.action == "finalize" or check_terminal or ((terminal or pending) and args.action in {"run","timing"}):
+                if not (folder/AREA/"boundary.json").is_file() or (
+                        check_terminal and not (folder/SHARE/"round028-timing.zip").is_file()):
+                    return dict(mechanical_status="BLOCKED",scientific_status="PILOT_UNMEASURED",
+                                reason="SAVED_TIMING_BOUNDARY_REQUIRED",gpu_dispatches=0), 2
+                spending_reason = terminal["reason"] if terminal else None
+                try:
+                    # A completed private boundary takes the read/recover path and never opens an engine.
+                    observed, code = timing_command(args,source,root,folder,revision,store,None)
+                    if code or args.action=="timing":
+                        return observed,code
+                    spending_reason = observed["reason"]
+                    result, code = close_timing(root,folder,source,store,observed,verify_only=check_terminal)
+                    if check_terminal and not code:
+                        from .progressive_round028_pilot import AREA as PILOT_AREA, parent_evidence, verify_saved_pilot
+                        area = confined(folder, PILOT_AREA, exists=False)
+                        if (area / "publication.json").is_file():
+                            _, parent = parent_evidence(folder,store)
+                            child = verify_saved_pilot(root,folder,area,load(confined(area,"registration.json")),parent)
+                            result = dict(result,pilot=dict(private_replay="VERIFIED",public_recomputation=child))
+                    return result,code
+                except (OSError,KeyError,TypeError,ValueError,RuntimeError,subprocess.SubprocessError,zipfile.BadZipFile) as exc:
+                    return terminal_failure(source, folder, exc, spending_reason=spending_reason,
+                                            record=not check_terminal)
+            if args.action == "verify":
+                if not store.state.get("publication"):
+                    raise ValueError("uncommitted public audit")
+                private = reopen(root, folder, registration, store.state["audit"])
+                donor = Donor(root, folder, registration)
+                old_support = private["support"]["status"] == "measured" and "eligibility" not in private["support"]
+                repeated = audit(donor, legacy_support=old_support, legacy_inventory="reuse" not in private)
+                original = {r["task"]: r for r in private["cases"]}
+                if (original != {r["task"]: r for r in repeated["cases"]}
+                        or any(private[k] != v for k, v in repeated.items() if k != "cases")):
+                    raise ValueError("private donor replay differs")
+                receipt = verify_archive(audit_archive(folder))
+                journal = BudgetJournal(folder / "accounting", registration["identity"],
+                                        dict(dict.fromkeys(KEYS, 0), elapsed_us=2**63 - 1))
+                rebuilt = public_audit(registration, repeated, elapsed_us=journal.snapshot()["consumed"]["elapsed_us"],
+                                       private_identity=private["identity"])
+                if receipt["report"] != store.state["publication"] or rebuilt["identity"] != receipt["report"]:
+                    raise ValueError("private/public audit mismatch")
+                if ((folder / "private/diagnostic-replay/replay-publication.json").is_file()
+                        or (folder / REPLAY_ARCHIVE).is_file()):
+                    from .progressive_round028_replay import diagnostic_replay
+                    child = diagnostic_replay(args, source, root, folder, revision, store, None,
+                                              dict(receipt=receipt), verify_only=True)
+                    receipt = child["receipt"]
+                return dict(private_replay="VERIFIED", public_recomputation=receipt), 0
+            from .progressive_round028_panels import PRODUCER, panels_command
+            if args.action == "timing" or (args.action == "run" and (folder / PANEL_ARCHIVE).is_file()):
+                try:
+                    observed, code = timing_command(args,source,root,folder,revision,store,host_factory)
+                except (ValueError, OSError, KeyError, TypeError, RuntimeError, subprocess.SubprocessError) as exc:
+                    import traceback
+                    from .progressive_round028_rehearsal import failure_locations
+                    area = confined(folder,AREA,exists=False)
+                    area.mkdir(parents=True,mode=0o700,exist_ok=True)
+                    (area/"exception.txt").write_text(traceback.format_exc())
+                    return dict(mechanical_status="BLOCKED", scientific_status="PILOT_UNMEASURED",
+                                reason="CANDIDATE_TIMING_COLLECTION_FAILED", error_type=type(exc).__name__,
+                                failure_locations=failure_locations(source,area,role_folder="roles")), 2
+                if args.action == "run" and not code and observed["reason"]=="REPORT_PILOT_COST_DEFICIT":
+                    try:
+                        return close_timing(root,folder,source,store,observed)
+                    except (OSError,KeyError,TypeError,ValueError,RuntimeError,subprocess.SubprocessError,zipfile.BadZipFile) as exc:
+                        return terminal_failure(source, folder, exc, spending_reason=observed["reason"])
+                if args.action == "run":
+                    return dict(observed,mechanical_status="BLOCKED",next_action=observed["reason"]), 2
+                return observed,code
+            prior_training = folder / "private/generator-rehearsal" / PRODUCER / "progress.json"
+            if args.action == "panels" or (args.action == "run" and prior_training.is_file()
+                                          and store.state.get("route") == "MATCHED_GENERATOR"):
+                if not store.state.get("publication") or store.state.get("route") != "MATCHED_GENERATOR":
+                    return dict(mechanical_status="BLOCKED", reason="MATCHED_GENERATOR_AUDIT_REQUIRED",
+                                gpu_dispatches=0), 2
+                try:
+                    observed, code = panels_command(args, source, root, folder, revision, store, host_factory)
+                except (ValueError, OSError, KeyError, TypeError, RuntimeError, subprocess.SubprocessError) as exc:
+                    import traceback
+                    from .progressive_round028_rehearsal import failure_locations
+                    area = confined(folder,"private/panel-supply/"+revision,exists=False)
+                    area.mkdir(parents=True,mode=0o700,exist_ok=True)
+                    (area/"exception.txt").write_text(traceback.format_exc())
+                    return dict(mechanical_status="BLOCKED", scientific_status="PILOT_UNMEASURED",
+                                reason="PANEL_SUPPLY_COLLECTION_FAILED", error_type=type(exc).__name__,
+                                failure_locations=failure_locations(source,area,role_folder="roles"), gpu_dispatches=0), 2
+                if args.action == "run":
+                    return dict(observed,mechanical_status="BLOCKED",next_action=observed["reason"]), 2
+                return observed, code
+            result = audit_command(root, folder, store, registration)
+            if result["decision"].get("blocker") == "REPLAY_RESERVATION_UNMEASURED":
+                from .progressive_round028_replay import diagnostic_replay
+                result = diagnostic_replay(args, source, root, folder, revision, store, host_factory, result)
+            if result["decision"].get("blocker"):
+                return result, 2
+            branches = round028_branches(result["decision"]["action"])
+            if args.action == "run" and branches["selector"] == "selected":
+                from .progressive_round028_selector import selector_command
+                return selector_command(args, source, root, folder, revision, store, host_factory, result)
+            if args.action in {"run", "rehearse"} and branches["generator"] == "selected":
+                from .progressive_round028_rehearsal import rehearse
+                observed, code = rehearse(args, root, source, folder, store, revision, result,
+                                         host_factory=host_factory)
+                if args.action == "rehearse" or code:
+                    return observed, code
+                return dict(observed, mechanical_status="BLOCKED", reason="PROSPECTIVE_ADMISSION_PENDING",
+                            missing="fresh panel freeze, evaluation timing and campaign acceptance"), 2
+            if args.action == "rehearse":
+                return dict(result, mechanical_status="SKIPPED", reason="GENERATOR_NOT_SELECTED"), 0
+            if args.action == "run" and result["decision"]["action"] != "RETAIN_REFERENCE":
+                return dict(result, mechanical_status="BLOCKED", missing="registered next-stage execution"), 2
+            return result, 0
+    except ValueError as exc:
+        if str(exc) != "another invocation owns this campaign":
+            raise
+        return dict(status(folder), mechanical_status="OWNED"), 2

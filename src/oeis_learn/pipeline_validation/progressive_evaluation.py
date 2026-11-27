@@ -5,6 +5,7 @@ be referenced and verified before the scorer can inspect continuation truth.
 """
 
 import time
+from pathlib import Path
 
 from oeis_learn.generalization.progressive.baselines import (
     Portfolio,
@@ -20,6 +21,7 @@ from oeis_learn.generalization.progressive.contracts import (
     verify_refs,
 )
 from oeis_learn.pipeline_validation.identity import confined, seal
+from .pilot_clocks import CORRECT_FULL, DESCRIPTIVE, DRAIN, FullClockEvidence, attempts
 
 
 def generate(
@@ -40,6 +42,11 @@ def generate(
     methods=("correct", "shuffled", "absent", "template", "polynomial", "linear_recurrence"),
     forced=None,
     component_library=None,
+    evaluation_policy=DRAIN,
+    case_elapsed_us=None,
+    case_boundary_dir=None,
+    inference_seed=None,
+    measurements=None,
 ):
     import torch
 
@@ -49,7 +56,10 @@ def generate(
     from oeis_learn.generalization.progressive.baselines import conditioning
     from oeis_learn.synthesis.admission import VisiblePrompt
 
-    from .pilot_clocks import DRAIN, FullClockEvidence
+    if evaluation_policy not in (DRAIN, DESCRIPTIVE, CORRECT_FULL) or (
+        evaluation_policy in (DESCRIPTIVE, CORRECT_FULL) and (methods != ("correct",) or forced is not None or component_library is not None)
+    ):
+        raise ValueError("timed candidate generation requires the registered visible-only arm")
 
     if type(seconds) not in (int, float) or not 0 < seconds <= _maximum_seconds(budget):
         raise ValueError("bounded installed generation required")
@@ -85,6 +95,8 @@ def generate(
     if output.exists():
         raise ValueError("fresh generation output required")
     output.mkdir(parents=True)
+    if measurements is not None:
+        load_started = time.monotonic_ns()
     encoder, decoder, counts = load_baseline(
         model_control,
         recipe,
@@ -95,7 +107,14 @@ def generate(
         device=device,
     )
     snapshot = model_snapshot(encoder, decoder)
+    if measurements is not None:
+        measurements["load_and_identify_checkpoint_us"] = (time.monotonic_ns() - load_started) // 1000
     runtime_recipe = recipe.get("base_recipe", recipe)
+    if inference_seed is not None:
+        if type(inference_seed) is not int or inference_seed < 0:
+            raise ValueError("invalid registered inference seed")
+        runtime_recipe = dict(runtime_recipe, model=dict(runtime_recipe["model"], seed=inference_seed))
+    draw_identity = {} if inference_seed is None else {"inference_seed": inference_seed}
     if forced is not None and (
         set(forced) != {p["id"] for p in prompts}
         or any(
@@ -111,10 +130,17 @@ def generate(
     )
     rows = {}
     evidence = FullClockEvidence(
-        output / "attempts", prompts, source=digest(recipe), work=snapshot, policy=DRAIN
+        output / "attempts", prompts, source=digest(recipe), work=snapshot, policy=evaluation_policy
     )
     try:
         for ordinal, p in enumerate(prompts):
+            if inference_seed is not None and time.monotonic() >= deadline:
+                raise TimeoutError("resident search stopped before opening the next portfolio")
+            case_start = time.monotonic_ns() if case_elapsed_us is not None else None
+            if case_boundary_dir is not None:
+                boundary = Path(case_boundary_dir) / digest(p["id"])[7:]
+                boundary.mkdir(parents=True, exist_ok=False)
+                atomic_write(boundary / "start.json", seal(dict(prompt=digest(p), model=snapshot, policy=evaluation_policy, **draw_identity)))
             memories = {}
             with torch.no_grad():
                 for mode, values in [
@@ -180,8 +206,9 @@ def generate(
                     continue
                 # The canonical synchronous driver drains native work before
                 # asking the model for another draw. No second scheduler.
+                count = attempts(evaluation_policy)[mode]
                 if budget:
-                    budget.consume(draws=8, attempts=8, rejections=8)
+                    budget.consume(draws=count, attempts=count, rejections=count)
                 proposals = None
                 if component_library is not None:
                     from oeis_learn.generalization.progressive.component_search import Proposals
@@ -199,13 +226,14 @@ def generate(
                     runtime_recipe,
                     client,
                     deadline=deadline,
-                    attempt_count=8,
+                    attempt_count=count,
                     template=mode == "template",
                     mode=mode,
                     snapshot=snapshot,
                     evidence=evidence,
-                    evaluation_policy=DRAIN,
+                    evaluation_policy=evaluation_policy,
                     component_proposals=proposals,
+                    **({"independent_case_clock": True} if inference_seed is not None and budget is None else {}),
                 )
                 for name in ("raw", "rescue", "equal_budget") if mode == "correct" else (mode,):
                     key = name if mode == "correct" else "equal_budget"
@@ -266,10 +294,19 @@ def generate(
                 }
                 record["costs"][method] = portfolio_budget.report()
             rows[p["id"]] = record
+            if case_boundary_dir is not None:
+                atomic_write(boundary / "choice.json", seal(dict(prompt=digest(p), model=snapshot, policy=evaluation_policy,
+                                                           clock=evidence.clocks[(p["id"], "correct")], record=record, **draw_identity)))
+            if case_elapsed_us is not None:
+                case_elapsed_us[p["id"]] = (time.monotonic_ns() - case_start + 999) // 1000
     finally:
         evidence.finish()
     if model_snapshot(encoder, decoder) != snapshot:
         raise RuntimeError("generator mutated frozen weights")
+    if draw_identity:
+        evidence.clock_summary = seal(dict(evidence.clock_summary, **draw_identity))
+    if measurements is not None:
+        publish_started = time.monotonic_ns()
     result = seal(
         {
             "version": "discovery-candidates/v1",
@@ -286,10 +323,14 @@ def generate(
         }
     )
     atomic_write(output / "candidates.json", result)
-    return reference(output_root, output / "candidates.json")
+    ref = reference(output_root, output / "candidates.json")
+    if measurements is not None:
+        measurements["publish_candidates_us"] = (time.monotonic_ns() - publish_started) // 1000
+    return ref
 
 
-def score(root, candidates, truth, *, client, output, seconds=3600, budget=None):
+def score(root, candidates, truth, *, client, output, seconds=3600, budget=None, selected_only=False,
+          measurements=None, independent_case_clock=False):
     from oeis_learn.fresh.bigint_diagnostics import score as canonical_score
     from oeis_learn.synthesis.contracts import canonical_integer
 
@@ -317,6 +358,8 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None)
         raise ValueError("sealed generator candidate artifact required")
     if type(seconds) not in (int, float) or not 0 < seconds <= _maximum_seconds(budget):
         raise ValueError("bounded scorer required")
+    if independent_case_clock and (budget is not None or not selected_only):
+        raise ValueError("independent scoring clocks require a supervised single-choice roster")
     truth = list(truth)
     by_id = {}
     for row in truth:
@@ -342,6 +385,8 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None)
     ]
     if digest(prompts) != value["prompts"]:
         raise ValueError("visible truth differs from generation")
+    if measurements is not None:
+        scoring_started = time.monotonic_ns()
     deadline = (
         min(time.monotonic() + seconds, budget.deadline) if budget else time.monotonic() + seconds
     )
@@ -355,6 +400,8 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None)
         "polynomial",
         "linear_recurrence",
     )
+    if selected_only:
+        methods = ("equal_budget",)
     outcomes = {r["id"]: {} for r in truth}
     for method in methods:
         if budget:
@@ -366,7 +413,8 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None)
             }
             for k, v in value["records"].items()
         }
-        scored = canonical_score(projected, by_id, client, deadline=deadline)
+        scored = canonical_score(projected, by_id, client, deadline=deadline,
+                                 independent_case_clock=independent_case_clock)
         for key, row in scored["outcomes"].items():
             v = row["equal_budget"]
             upstream = value["records"][key]["arm_evidence"][method]
@@ -375,6 +423,9 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None)
                 "success" if v["success"] else "failure" if v["complete"] else "unresolved"
             )
             outcomes[key][method] = v
+    if measurements is not None:
+        publish_started = time.monotonic_ns()
+        measurements["score_choices_us"] = (publish_started - scoring_started) // 1000
     result = seal(
         {
             "version": "discovery-scoring/v1",
@@ -387,6 +438,8 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None)
     )
     output = confined(root, output, exists=False)
     atomic_write(output / "scores.json", result)
+    if measurements is not None:
+        measurements["publish_scores_us"] = (time.monotonic_ns() - publish_started) // 1000
     return result
 
 

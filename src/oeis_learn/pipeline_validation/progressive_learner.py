@@ -41,6 +41,8 @@ def compatibility(package):
         "refresh_updates": package["refresh_updates"],
         "scope": package["scope"],
     }
+    if "matched_generator" in package:
+        value["matched_stream"] = package["matched_generator"]["identity"]
     if "checkpoint_policy" in package:value["checkpoint_policy"]=package["checkpoint_policy"]
     if "refresh_by_batch" in package:value["refresh_by_batch"]=package["refresh_by_batch"]
     if "oeis_replay" in package or "oeis_rules" in package:
@@ -66,7 +68,7 @@ def validate_input(package, task, *, allow_pending=False):
     if (
         set(package)
         - {
-            "weights", "refresh_by_batch", "checkpoint_policy",
+            "weights", "refresh_by_batch", "checkpoint_policy", "matched_generator",
             "full_state",
             "origin",
             "oeis_replay",
@@ -214,6 +216,32 @@ def validate_input(package, task, *, allow_pending=False):
     probe_ids = {v["id"] for v in package["layout"]["probes"].values()}
     if not probe_ids <= set(seen):
         raise ValueError("complete frozen training probes required")
+    objective = package["update_policy"].get("objective")
+    if objective is not None or "matched_generator" in package:
+        from oeis_learn.generalization.progressive.training_rows import matched_stream
+        if (task["track"] != "synthetic_strict" or package["scope"] != "NATIVE_VERIFIED"
+                or initializer["mode"] not in {"random", "full_state"}
+                or objective not in {"ordinary", "first_divergence"} or objective != task["payload"]["arm"]
+                or {"weights", "short_rows", "task_profile", "component_rules", "component_distillation",
+                    "oeis_replay", "oeis_rules"} & package.keys()):
+            raise ValueError("separate strict matched generator task required")
+        requested = package.get("matched_generator")
+        if not isinstance(requested, dict):
+            raise ValueError("registered matched stream required")
+        stream = matched_stream(package["shards"], package["layout"], requested.get("registration"),
+                                requested.get("pair"), law=requested.get("law"))
+        if stream["seeds"]["initialization"] != task["payload"]["seed"]:
+            raise ValueError("generator pair initialization differs")
+        if task["purpose"] == "research":
+            from oeis_learn.generalization.progressive.generator import default_policy, draw
+            # Order alone cannot make an independent stream. Check provenance of every mechanical draw.
+            law = stream.get("law") or default_policy(seed=stream["seeds"]["training_families"])
+            for row in seen.values():
+                generated = draw(law, row["ordinal"])
+                if any(row[k] != generated[k] for k in ("draw_identity", "source_policy", "source", "structure")):
+                    raise ValueError("research requires independently generated strict training families")
+        if not stream["eligible_rows"] or package.get("matched_generator") != stream:
+            raise ValueError("matched training rows, order or preference evidence differ")
     Controller(package["layout"], seed=task["payload"]["seed"])
     if "token_target" in task["payload"]:
         from oeis_learn.generalization.progressive.supply import plan
@@ -275,11 +303,18 @@ def _run(
     lookup = {r['draw_identity']:r for shard in package['shards'] + ([package['short_rows']] if package.get('short_rows') else []) for r in shard}
     probe_ids = {p["id"] for p in package["layout"]["probes"].values()}
 
+    matched = package.get("matched_generator")
+    preferences = {p["positive_row"]: p["label"] for p in matched["pairs"]} if matched else {}
+
     def row_bin(r):
         return "frontier" if {"loop", "select"} & set(r["operations"]) else "familiar"
 
     def batch_for(controller):
         b = controller.select()["bin"]
+        if matched:
+            from oeis_learn.generalization.progressive.training_rows import matched_batch
+            keys = matched_batch(matched, controller.cursor, package["update_policy"]["effective_batch"])
+            return [lookup[key] for key in keys], 0
         from oeis_learn.generalization.progressive.supply import shard_index
         index=shard_index('static' if package.get('task_profile')=='combinatorial-short/v1' else t['payload']['arm'],b,controller.updates,package['refresh_updates'],len(package['shards']))
         rows = [
@@ -425,6 +460,11 @@ def _run(
                     "consumed",
                 )
             }
+            if matched:
+                from oeis_learn.fresh.bigint_diagnostics import model_snapshot
+                context["selection"]["matched_stream"] = matched["identity"]
+                context["selection"]["initial_weights"] = model_snapshot(worker.runner.encoder, worker.runner.decoder)
+                cuts["selection"] = digest(context["selection"])
             if "oeis_replay" in package:
                 cuts["archive"] = context["replay"]["archive"]
             if "component_distillation" in package:
@@ -434,6 +474,10 @@ def _run(
             worker.initialize(context, cuts)
         restored = recovery.restore()
         context = copy.deepcopy(worker.context)
+        if matched and (context["selection"].get("matched_stream") != matched["identity"]
+                or not context["selection"].get("initial_weights")
+                or digest(context["selection"]) != restored["cuts"]["selection"]):
+            raise ValueError("full matched generator continuation and original initialization required")
         if "component_distillation" in package:
             from .progressive_training import check_component_cut
 
@@ -501,20 +545,24 @@ def _run(
                     )
                     if controller.block_position == 8:
                         key = package["layout"]["probes"][controller.pending["bin"]]["id"]
-                        probe = lookup[key]
-                        measured = observe_targets(
-                            worker.runner.encoder,
-                            worker.runner.decoder,
-                            [dict(probe, values=probe['values'][:4 if package.get('task_profile')=='combinatorial-short/v1' else 20])],
-                            device=device,
-                        )
-                        before = context["scheduler"]["pre_loss"]
-                        after = measured["loss_sum"] / measured["tokens"]
-                        controller.feedback(
-                            role="training",
-                            probe=key,
-                            gain=max(-1, min(1, (before - after) / max(abs(before), 1))),
-                        )
+                        if matched:
+                            # Advance the existing full-state controller clock independently of arm outcomes.
+                            controller.feedback(role="training", probe=key, gain=0)
+                        else:
+                            probe = lookup[key]
+                            measured = observe_targets(
+                                worker.runner.encoder,
+                                worker.runner.decoder,
+                                [dict(probe, values=probe['values'][:4 if package.get('task_profile')=='combinatorial-short/v1' else 20])],
+                                device=device,
+                            )
+                            before = context["scheduler"]["pre_loss"]
+                            after = measured["loss_sum"] / measured["tokens"]
+                            controller.feedback(
+                                role="training",
+                                probe=key,
+                                gain=max(-1, min(1, (before - after) / max(abs(before), 1))),
+                            )
                         context["scheduler"]["pre_loss"] = None
                     rows, index = batch_for(controller)
                     replay_debit = None
@@ -526,7 +574,7 @@ def _run(
                             rows,
                             context["replay"],
                         )
-                    if controller.block_position == 0 and context["scheduler"]["pre_loss"] is None:
+                    if not matched and controller.block_position == 0 and context["scheduler"]["pre_loss"] is None:
                         probe = lookup[package["layout"]["probes"][controller.pending["bin"]]["id"]]
                         observed = observe_targets(
                             worker.runner.encoder,
@@ -553,7 +601,7 @@ def _run(
                         cursor=controller.cursor + len(rows),
                         rejection_watermark=max(
                             controller.rejection_watermark,
-                            max(r["ordinal"] for r in package["shards"][index]) + 1,
+                            max(r["ordinal"] for r in (rows if matched else package["shards"][index])) + 1,
                         ),
                     )
                     next_context["scheduler"]["controller"] = controller_cut.snapshot()
@@ -582,6 +630,8 @@ def _run(
                         boot=authority["clock"]["boot"],
                         monotonic_us=time.monotonic_ns() // 1000,
                         allocation=controller_cut,
+                        preference_labels=([preferences.get(row["draw_identity"]) for row in rows]
+                                           if package["update_policy"].get("objective") == "first_divergence" else None),
                         progress=heartbeat,
                         replay=replay_debit,
                         replay_package=package.get(
@@ -682,6 +732,15 @@ def _run(
         atomic_write(output/'diversity.json',seal(dict(version='progressive-consumed-diversity/v1',task=t['identity'],checkpoint=recovery.state['checkpoint']['identity'],counts=diversity,excluded_nonmechanical_entries=sum(v for k,v in consumed_all.items() if k not in lookup))))
         atomic_write(output / "checkpoint.json", recovery.state["checkpoint"])
         atomic_write(output / "milestone.json", m)
+        matched_metrics = {}
+        if matched:
+            from oeis_learn.generalization.progressive.training_rows import matched_milestone
+            from oeis_learn.generalization.progressive.contracts import reference
+            observation = matched_milestone(package, lookup, recovery.state["checkpoint"], current,
+                                            recovery.state["useful_tokens"], t["payload"]["token_target"])
+            path = output / "matched-milestone.json"
+            atomic_write(path, observation)
+            matched_metrics["matched_milestone"] = reference(output, path)
         return publish(
             output,
             operation="train",
@@ -696,6 +755,7 @@ def _run(
             task=t["identity"],
             stage=t["payload"]["stage"],
             metrics={
+                **matched_metrics,
                 "task_status": status,
                 "checkpoint": recovery.state["checkpoint"]["identity"],
                 "checkpoint_record":__import__("oeis_learn.generalization.progressive.contracts",fromlist=["reference"]).reference(output,output/"checkpoint.json"),

@@ -57,3 +57,61 @@ def test_diagnostic_templates_ship_identically_and_all_feature_tests_are_registe
     actual = {str(p.relative_to(root)) for p in (root/'tests').rglob('test_progressive*.py')}
     assert actual == set(CPU_TESTS).intersection(actual) | excluded
     assert not set(CPU_TESTS).intersection(excluded)
+
+
+def test_round028_sdist_and_installed_wheel_keep_both_experiment_contracts(tmp_path):
+    import json
+    import os
+    import tarfile
+    import zipfile
+    from oeis_learn.experiments.source_snapshot import collect_snapshot, file_digest
+
+    root = Path(__file__).resolve().parents[2]
+    snapshot = collect_snapshot(root)
+    resources = {
+        "contracts/experiment.md": "specs/013-progressive-mathematical-discovery/contracts/experiment.md",
+        **{"contracts/015-learned-program-search/" + name:
+           "specs/015-learned-program-search/contracts/" + name for name in ("experiment.md", "operations.md")},
+        "contracts/015-learned-program-search/learned-program-search.json":
+            "configs/foundation/progressive/learned-program-search.json",
+    }
+    # The checkout in the installed acceptance role is read-only. Ask setuptools
+    # for its source manifest, then let sdist create its staging tree in scratch.
+    import shutil
+    metadata = tmp_path / "metadata"
+    metadata.mkdir()
+    subprocess.run([sys.executable, "setup.py", "--quiet", "egg_info", "--egg-base", str(metadata)],
+                   cwd=root, check=True)
+    stage = tmp_path / "source"
+    stage.mkdir()
+    manifest = next(metadata.glob("*.egg-info/SOURCES.txt"))
+    for name in manifest.read_text().splitlines():
+        path = (root / name).resolve()
+        if path.is_relative_to(metadata):
+            continue
+        relative = path.relative_to(root)
+        destination = stage / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+    # Exercise the real sdist and its build hook on the files setuptools selected.
+    subprocess.run([sys.executable, "setup.py", "--quiet", "sdist", "--dist-dir", str(tmp_path)],
+                   cwd=stage, check=True)
+    extracted = tmp_path / "extracted"
+    extracted.mkdir()
+    with tarfile.open(next(tmp_path.glob("*.tar.gz"))) as archive:
+        archive.extractall(extracted, filter="data")
+    sdist = next(extracted.glob("*/setup.py")).parent
+    subprocess.run([sys.executable, "setup.py", "--quiet", "bdist_wheel", "--dist-dir", str(tmp_path)],
+                   cwd=sdist, check=True, capture_output=True)
+    installed = tmp_path / "installed"
+    with zipfile.ZipFile(next(tmp_path.glob("*.whl"))) as wheel:
+        wheel.extractall(installed)
+    for packaged, source in resources.items():
+        asset = "oeis_learn/generalization/progressive/" + packaged
+        assert (sdist / source).read_bytes() == (root / source).read_bytes()
+        assert file_digest((installed / asset).read_bytes()) == snapshot[source] == snapshot["src/" + asset]
+    code = "from oeis_learn.experiments.source_snapshot import source_snapshot; import json; print(json.dumps(source_snapshot()))"
+    installed_snapshot = json.loads(subprocess.check_output(
+        [sys.executable, "-c", code], cwd=tmp_path, env={**os.environ, "PYTHONPATH": str(installed)}))
+    for source in resources.values():
+        assert installed_snapshot[source] == snapshot[source]

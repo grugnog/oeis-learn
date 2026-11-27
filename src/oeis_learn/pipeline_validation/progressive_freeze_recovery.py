@@ -148,12 +148,14 @@ def proof(root, receipt, session, journal):
 
 
 # Exact reviewed changes from the qualified producer to the panel-isolation
-# repair. They alter grouping/early validation, not native generation; reuse
-# therefore requires the already successful, unscored panel correction.
+# repair. Reuse requires the successful, unscored panel correction. The last
+# census revision adds opt-in parameter parsing for panel descriptors. Census
+# generation still calls features(source) with the original parser default.
 PANEL_PRODUCER_REVISIONS = {
     'src/oeis_learn/pipeline_validation/progressive_research_census.py': (
         'sha256:7be162c87d512b66dfe44fd01966bf2744fec51984332aed40ac234a02e26daa',
-        'sha256:37b97c90067043e6e80b859e1ec365f714f4ab700ad54b5235d62af90ff0087f'),
+        'sha256:37b97c90067043e6e80b859e1ec365f714f4ab700ad54b5235d62af90ff0087f',
+        'sha256:b3c216d44a6a8022ca1fe175bcdfef0fc78dc7377fb66089b3be17da4e1a96a7'),
     'src/oeis_learn/pipeline_validation/progressive_research_materials.py': (
         'sha256:7c0169e08f06422cf7b3cffe22eba8ff004209560f791184e7dbd631b1c9dc94',
         'sha256:ff4959beca474ad689abd350ef339f75e1a51d7f03725bfc6901f247569c3bf9'),

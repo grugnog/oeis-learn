@@ -156,7 +156,6 @@ def selector_candidates(items, prompt, **kwargs):
     groups = {}
     for item in items:
         groups.setdefault(item['source_sha256'], []).append(item)
-    if len(groups)>64:raise ValueError('eight-attempt admitted source cap exceeded')
     return [_seal(groups[key], prompt, **kwargs) for key in sorted(groups)]
 
 
@@ -179,6 +178,8 @@ def _portfolio(
     evaluation_policy=None,
     retain_selector_candidates=False,
     component_proposals=None,
+    independent_case_clock=False,
+    alternate_templates=False,
 ):
     if component_proposals is not None and (attempt_count != 8 or portfolio_seconds != 60 or template or mode != "correct"):
         raise ValueError("component search requires the matched eight-attempt/60s portfolio")
@@ -195,8 +196,8 @@ def _portfolio(
         seed=recipe["model"]["seed"] + int(identity(row["id"])[7:14], 16),
         beam=recipe["search"]["beam"],seconds=portfolio_seconds,
     )
-    scope_deadline = deadline
-    deadline = min(deadline, policy.deadline)
+    scope_deadline = policy.deadline if independent_case_clock else deadline
+    deadline = min(scope_deadline, policy.deadline)
     pipeline = recipe.get('pipeline')
     selection = 'visible-only/v2' if pipeline else 'visible-only/v1'
     if pipeline and snapshot is None:
@@ -222,8 +223,8 @@ def _portfolio(
             result = component_proposals(position, deadline)
             source, complete, tokens = result["source"], result["complete"], result["tokens"]
             generated = result["generation_seconds"]
-        elif template:
-            source, tokens = _template_candidate(position)
+        elif template or (alternate_templates and position % 2 == 1):
+            source, tokens = _template_candidate(position // 2 if alternate_templates else position)
             complete = True
         else:
             from oeis_learn.decoder.bigint_generation import GenerationRequest
@@ -302,8 +303,8 @@ def _portfolio(
         job = logical_job(contract=contract_identity,snapshot=snapshot,
             mode=mode,arm='portfolio',prompt_id=row['id'],attempt_ordinal=position,
             method=attempt['method'],seed=attempt['seed'])
-        from oeis_learn.pipeline_validation.pilot_clocks import MATCHED,DRAIN
-        isolated=evaluation_policy in (MATCHED,DRAIN) and position==0 and not template
+        from oeis_learn.pipeline_validation.pilot_clocks import CORRECT_FULL,DESCRIPTIVE,MATCHED,DRAIN
+        isolated=evaluation_policy in (CORRECT_FULL,DESCRIPTIVE,MATCHED,DRAIN) and position==0 and not template
         isolated_found,isolated_status=None,detail['raw']
         if isolated:
             raw_job=logical_job(contract=contract_identity,snapshot=snapshot,mode=mode,arm='raw',
@@ -435,7 +436,10 @@ def _portfolio(
     return dict(
         **(dict(selector_candidates={key:selector_candidates(items, prompt, cost=cost,
             selection=selection, snapshot=snapshot, policies=pipeline)
-            for key,items in [('raw',raw),('rescue',rescued),('equal_budget',fitted)]})
+            for key,items in [('equal_budget',fitted)]},
+            proposal_sources={str(position):sorted({r['source_sha256'] for r in fitted
+                                                    if r['_attempt_ordinal'] == position})
+                              for position in range(len(details))})
             if retain_selector_candidates else {}),
         raw=_seal(raw, prompt, cost=cost, selection=selection, snapshot=snapshot, policies=pipeline),
         rescue=_seal(rescued, prompt, cost=cost, selection=selection, snapshot=snapshot, policies=pipeline),
@@ -664,7 +668,7 @@ def generate(
     )
 
 
-def score(selections, truth, client, *, deadline):
+def score(selections, truth, client, *, deadline, independent_case_clock=False):
     # Each arm carries precisely one previously sealed visible-only selection.
     counts = defaultdict(lambda: Counter(denominator=len(truth), complete=0, success=0))
     outcomes = {}
@@ -680,6 +684,9 @@ def score(selections, truth, client, *, deadline):
             scoring = _status(False, "not_attempted")
             reason = "selection_record_missing" if record is None else "legacy_arm_evidence_missing"
             if chosen is not None and time.monotonic() < deadline:
+                # A resident scorer may drain both bounded executions for an admitted
+                # choice. Its host supervisor also bounds cleanup and publication.
+                case_deadline = scoring_start + 60 if independent_case_clock else deadline
                 from .synthesis_policy import validate_selection_envelope
                 validate_selection_envelope(chosen)
                 expected_prompt = identity(
@@ -693,13 +700,13 @@ def score(selections, truth, client, *, deadline):
                 source = chosen["selected"]["source"]
                 source_hash = source_identity(source)
                 production = client.execute(
-                    source, target["indices"], deadline=min(deadline, time.monotonic() + 30)
+                    source, target["indices"], deadline=min(case_deadline, time.monotonic() + 30)
                 )
                 reference = reference_evaluate(
                     source,
                     target["indices"],
                     client.limits,
-                    deadline=min(deadline, time.monotonic() + 30),
+                    deadline=min(case_deadline, time.monotonic() + 30),
                 )
                 p = dict(
                     source_sha256=source_hash,
@@ -743,6 +750,8 @@ def score(selections, truth, client, *, deadline):
                     ),
                 )
             elif chosen is not None:
+                if independent_case_clock:
+                    raise TimeoutError("resident scorer stopped before opening the next choice")
                 reason = "scoring_deadline"
                 scoring = _status(False, "not_attempted", "deadline")
             elif evidence is not None:

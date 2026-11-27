@@ -182,11 +182,7 @@ def record(kind, payload, *, created_at, parents=(), purpose, track):
     )
 
 
-def load(path, *, maximum=1 << 20):
-    path = Path(path)
-    if path.is_symlink() or not path.is_file() or path.stat().st_size > maximum:
-        raise ValueError("bounded regular JSON required")
-
+def _decode_record(raw):
     def pairs(items):
         result = {}
         for k, v in items:
@@ -196,10 +192,17 @@ def load(path, *, maximum=1 << 20):
         return result
 
     return json.loads(
-        path.read_text(),
+        raw,
         object_pairs_hook=pairs,
         parse_constant=lambda _: (_ for _ in ()).throw(ValueError("nonfinite JSON")),
     )
+
+
+def load(path, *, maximum=1 << 20):
+    path = Path(path)
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > maximum:
+        raise ValueError("bounded regular JSON required")
+    return _decode_record(path.read_bytes())
 
 
 def reference(root, path):
@@ -275,3 +278,18 @@ def atomic_write(path, value, *, compact=False):
     raw = (json.dumps(value, sort_keys=True, allow_nan=False, **formatting) + "\n").encode()
     with writing(path, len(raw)):
         return _atomic_write(path, raw)
+
+
+def read_bound_record(root, artifact, *, version=None, identity=None):
+    """Authenticate the exact bytes used by the caller against their parent's commitment."""
+    # Check existence separately. An absent original and a present, altered original
+    # are different dispositions. The historical verifier wraps OS errors in ValueError.
+    confined(root, artifact["path"])
+    data = _decode_record(verify_artifact(root, artifact, max_bytes=artifact["bytes"]))
+    if not isinstance(data, dict) or seal(data) != data:
+        raise ValueError("producer identity differs from its bytes")
+    if version is not None and data.get("version") != version:
+        raise ValueError("producer version differs")
+    if identity is not None and data["identity"] != identity:
+        raise ValueError("producer differs from its committed parent reference")
+    return data

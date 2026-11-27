@@ -10,7 +10,7 @@ from .progressive_workstation_state import write
 from oeis_learn.generalization.progressive.contracts import reference
 
 
-def project(root, snapshot, output, *, limit=4096, seconds=600, maximum_bytes=1 << 30):
+def project(root, snapshot, output, *, limit=4096, start=0, seconds=600, maximum_bytes=1 << 30):
     from oeis_learn.fresh.bulk import indexed_terms
     root, output = Path(root), Path(output)
     path = confined(root, snapshot)
@@ -22,7 +22,7 @@ def project(root, snapshot, output, *, limit=4096, seconds=600, maximum_bytes=1 
         or not isinstance(data['release'], str) or not data['release']
         or not isinstance(data['records'], list) or len(data['records']) > 1_000_000):
         raise ValueError('original immutable indexed-source/v1 snapshot required')
-    if type(limit) is not int or not 1 <= limit <= 8192:
+    if type(start) is not int or not 0 <= start <= len(data['records']) or type(limit) is not int or not 1 <= limit <= 8192:
         raise ValueError('finite outcome-blind source reservoir required')
     if any(not isinstance(r, dict) or not isinstance(r.get('record_id'), str)
            or not r['record_id'] or len(r['record_id']) > 1024 for r in data['records']):
@@ -33,7 +33,7 @@ def project(root, snapshot, output, *, limit=4096, seconds=600, maximum_bytes=1 
         raise ValueError('finite source projection allowance required')
     deadline = time.monotonic() + seconds
     consumed = candidate_bytes = 0
-    selected = sorted(data['records'], key=lambda r: digest([20261110, r['record_id']]))[:limit]
+    selected = sorted(data['records'], key=lambda r: digest([20261110, r['record_id']]))[start:start+limit]
     rows, rejected, failures, originals, outcomes = [], Counter(), [], [], []
     for ordinal, item in enumerate(selected):
         try:
@@ -92,7 +92,7 @@ def project(root, snapshot, output, *, limit=4096, seconds=600, maximum_bytes=1 
     write(output / 'private/oeis-candidates.json', rows)
     result = seal(dict(version='progressive-research-source-projection/v1',
         status='BLOCKED' if failures else 'COMPLETE', snapshot=original, release=data['release'],
-        selection=dict(seed=20261110, limit=limit, selected=len(selected), ordering='sha256(seed,record_id)'),
+        selection=dict(seed=20261110, limit=limit, selected=len(selected), ordering='sha256(seed,record_id)', **({'start':start} if start else {})),
         eligible=len(rows), rejected=dict(rejected), failures=failures, originals=originals, outcomes=outcomes,
         limits=dict(seconds=seconds, source_bytes=maximum_bytes, candidate_bytes=128 << 20),
         consumed_source_bytes=consumed,

@@ -33,7 +33,7 @@ def named_plan(root, document, name, version, fields, optional=()):
     return value
 
 
-def stage(host, root, image, output, argv, *, gpu, seconds, readonly_inputs=()):
+def stage(host, root, image, output, argv, *, gpu, seconds, readonly_inputs=(), record_lease=False, tmp_bytes=None):
     # This is the existing socket-free engine launcher, with its GPU lease and
     # inspected confinement/cleanup. No host Torch or proposer dependencies.
     if gpu:
@@ -41,7 +41,9 @@ def stage(host, root, image, output, argv, *, gpu, seconds, readonly_inputs=()):
         argv=['env',*(k+'='+v for k,v in startup_environment().items()),*argv]
     runner=runpy.run_path(str(Path(root)/'scripts/qualify_bigint_phase5.py'))
     return runner['container_stage'](host,image,output,argv,gpu=gpu,seconds=seconds,
-                                     **({'readonly_inputs':readonly_inputs} if readonly_inputs else {}))
+                                     **({'readonly_inputs':readonly_inputs} if readonly_inputs else {}),
+                                     **({'record_lease':True} if record_lease else {}),
+                                     **({'tmp_bytes':tmp_bytes} if tmp_bytes is not None else {}))
 
 
 def original_authority(root, ref):

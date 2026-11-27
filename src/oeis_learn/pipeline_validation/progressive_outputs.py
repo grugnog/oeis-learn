@@ -290,3 +290,22 @@ def validate_requests(root, plans, refs, graph, *, purpose="acceptance", track="
                     if envelope.get('data',{}).get('version')=='progressive-verified-proposal/v1':raise ValueError('verified feedback must come from owned study journal')
                 elif not isinstance(value, str):
                     raise ValueError("literal artifact path or typed predecessor slot required")
+
+
+def round028_batch(root, binding, *, registration, ordinal):
+    """Only the named, ordered private audit batch may satisfy this reference."""
+    from oeis_learn.generalization.progressive.contracts import read_bound_record
+    if (set(binding) != {"authority", "role", "ordinal", "registration", "artifact", "identity"}
+            or binding["authority"] != "session" or binding["role"] != "historical_audit"
+            or binding["registration"] != registration or type(binding["ordinal"]) is not int
+            or binding["ordinal"] != ordinal):
+        raise ValueError("audit batch role, parent or order differs")
+    path = binding["artifact"]["path"]
+    if path != "private/batches/" + binding["identity"][7:] + ".json":
+        raise ValueError("private audit batch outside authority")
+    if confined(root, path).stat().st_nlink != 1:
+        raise ValueError("private audit batch has a mutable alias")
+    item = read_bound_record(root, binding["artifact"], identity=binding["identity"], version="round028-cases/v1")
+    if item["registration"] != registration or item["ordinal"] != ordinal:
+        raise ValueError("audit batch producer differs")
+    return item

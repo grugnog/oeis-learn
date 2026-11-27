@@ -8,7 +8,7 @@ No Phase 6 screen or final-cohort evaluation is scheduled.
 """
 
 import argparse
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 import hashlib
 import json
 from pathlib import Path
@@ -197,7 +197,17 @@ def launch(command, output, *, seconds, cleanup_state=None):
                       cleanup_state=cleanup_state)
 
 
-def container_stage(host, image, output, argv, *, gpu=False, seconds=3600, readonly_inputs=()):
+@contextmanager
+def measured_lease(host, output):
+    with host.gpu_lock():
+        began = time.monotonic_ns()
+        try:
+            yield
+        finally:
+            write(output / "gpu-lease.json", {"elapsed_us": (time.monotonic_ns() - began) // 1000})
+
+
+def container_stage(host, image, output, argv, *, gpu=False, seconds=3600, readonly_inputs=(), record_lease=False, tmp_bytes=2 << 30):
     from oeis_learn.container_runtime import private_runtime_environment
 
     output = Path(output)
@@ -232,7 +242,7 @@ def container_stage(host, image, output, argv, *, gpu=False, seconds=3600, reado
         render_node=host.policy.get("render_node") if gpu else None,
         memory_bytes=host.policy["memory_bytes"],
         cpus=host.policy["cpus"],
-        tmp_bytes=2 << 30,
+        tmp_bytes=tmp_bytes,
         workdir="/opt/oeis-build",
         auto_remove=False,
         environment={
@@ -249,7 +259,7 @@ def container_stage(host, image, output, argv, *, gpu=False, seconds=3600, reado
     failure = None
     cleanup_state = {'allowance_seconds': 120}
     # The lease includes inspection and engine reclamation, even on failure.
-    with host.gpu_lock() if gpu else nullcontext():
+    with (measured_lease(host, output) if record_lease else host.gpu_lock()) if gpu else nullcontext():
         pending = pending_gpu(host, name) if gpu else None
         try:
             launch(command, output, seconds=seconds, cleanup_state=cleanup_state)

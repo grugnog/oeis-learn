@@ -231,3 +231,26 @@ def test_public_cli_freezes_decoder_experiment_before_engine(tmp_path):
             assert local.main(["learnability", "--inputs", "inputs", "--run", "runs/new", "--encoder", "hybrid", *args]) == 1
     with patch.object(local, "Host", side_effect=AssertionError("engine used")):
         assert local.main(["learnability", "--inputs", "inputs", "--run", "runs/new", "--dropout", "0"]) == 1
+
+
+def test_two_candidate_sources_contend_for_donor_gpu_lease(host, tmp_path):
+    sources = []
+    for name in ("first", "second"):
+        source = tmp_path / name
+        for file in ("scripts/foundation_host.py", "src/oeis_learn/container_runtime.py"):
+            (source / file).parent.mkdir(parents=True)
+            (source / file).write_text(name)
+        args = local.parser().parse_args(["image", "ensure"])
+        sources.append(local.Host(args, source_root=source, workspace=tmp_path,
+                                  revision=("a" if name == "first" else "b") * 40))
+    first, second = sources
+    with patch("oeis_learn.pipeline_validation.supervision.reconcile_gpu") as cleanup:
+        with first.gpu_lock(), pytest.raises(RuntimeError, match="another foundation GPU"):
+            with second.gpu_lock():
+                pytest.fail("second source acquired the donor lease")
+        with second.gpu_lock():
+            second.ensure()
+        assert cleanup.call_count == 2
+        assert all(call.args[0] == tmp_path / "run-state" for call in cleanup.call_args_list)
+    assert host.engine.build.call_args.args == (tmp_path / "second",)
+    assert host.engine.build.call_args.kwargs["tag"] == "oeis-learn:round028-" + "b" * 40
