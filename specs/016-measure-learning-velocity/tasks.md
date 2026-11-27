@@ -12,9 +12,9 @@ All file paths in tasks are relative to the repository root. An *After* note lis
 
 Package the round029 design alongside the installed campaign. The checkpoint is a distribution whose feature lookup distinguishes the historical and current contracts.
 
-- [ ] T001 [P] Add a failing packaging regression in `tests/contract/test_progressive_packaging.py` that opens 016’s profile and three contracts by their installed feature namespace and reopens the 013 and 015 versions independently. Check source, extracted sdist and wheel identities.
-- [ ] T002 [P] Create `configs/foundation/progressive/learning-velocity.json` with the seven recipe rows. Start 00 at ordinary/off/batch 32/decay 0. Rows 01/02/03 enable broader composition, matching or both. Rows 04/05/06 enable batch 16, decay 0.01 or both. Fix the LR multiplier at 1, dropout at zero and all remaining learner settings at ordinary. Register cheap/full profiles, D, looks, branches and claims. Keep prospective hours, donor receipts and measured guard values in run records.
-- [ ] T003 Package that profile and the 016 contracts in `setup.py` and `MANIFEST.in`. Extend `src/oeis_learn/experiments/source_snapshot.py` to bind runtime code, profile, contracts and schemas under 016’s namespace. Authenticate host-only launcher bytes by Git identity and prospective grants separately. Pass T001. *After T001, T002.*
+- [X] T001 [P] Add a failing packaging regression in `tests/contract/test_progressive_packaging.py` that opens 016’s profile and three contracts by their installed feature namespace and reopens the 013 and 015 versions independently. Check source, extracted sdist and wheel identities.
+- [X] T002 [P] Create `configs/foundation/progressive/learning-velocity.json` with the seven recipe rows. Start 00 at ordinary/off/batch 32/decay 0. Rows 01/02/03 enable broader composition, matching or both. Rows 04/05/06 enable batch 16, decay 0.01 or both. Fix the LR multiplier at 1, dropout at zero and all remaining learner settings at ordinary. Register cheap/full profiles, D, looks, branches and claims. Keep prospective hours, donor receipts and measured guard values in run records.
+- [X] T003 Package that profile and the 016 contracts in `setup.py` and `MANIFEST.in`. Extend `src/oeis_learn/experiments/source_snapshot.py` to bind runtime code, profile, contracts and schemas under 016’s namespace. Authenticate host-only launcher bytes by Git identity and prospective grants separately. Pass T001. *After T001, T002.*
 
 ## Phase 2 — Shared foundations
 

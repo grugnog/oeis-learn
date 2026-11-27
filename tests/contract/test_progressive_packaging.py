@@ -59,7 +59,7 @@ def test_diagnostic_templates_ship_identically_and_all_feature_tests_are_registe
     assert not set(CPU_TESTS).intersection(excluded)
 
 
-def test_round028_sdist_and_installed_wheel_keep_both_experiment_contracts(tmp_path):
+def test_feature_contracts_in_source_sdist_and_installed_wheel(tmp_path):
     import json
     import os
     import tarfile
@@ -75,6 +75,16 @@ def test_round028_sdist_and_installed_wheel_keep_both_experiment_contracts(tmp_p
         "contracts/015-learned-program-search/learned-program-search.json":
             "configs/foundation/progressive/learned-program-search.json",
     }
+    velocity = "016-measure-learning-velocity"
+    resources.update({
+        f"contracts/{velocity}/{name}": f"specs/{velocity}/contracts/{name}"
+        for name in ("experiment.md", "operations.md", "search.md")
+    })
+    resources[f"contracts/{velocity}/learning-velocity.json"] = (
+        "configs/foundation/progressive/learning-velocity.json"
+    )
+    for packaged, source in resources.items():
+        assert snapshot["src/oeis_learn/generalization/progressive/" + packaged] == snapshot[source]
     # The checkout in the installed acceptance role is read-only. Ask setuptools
     # for its source manifest, then let sdist create its staging tree in scratch.
     import shutil

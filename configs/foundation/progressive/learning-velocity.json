@@ -1,0 +1,30 @@
+{
+  "version": "round029-learning-velocity/v1",
+  "session_id": "016-research-round-029",
+  "donor_revision": "77667e67176ae32fa16457d52565bae1dbe41afc",
+  "pilot_reader": "04e0fd9c30ce64d835c91fb06e5014799bceccee",
+  "release_reader": "3ecac2fdca8613dc1601864d51f610254308a58a",
+  "recipes": [
+    {"id": "00", "stream": "ordinary", "matching": false, "batch": 32, "decay": 0},
+    {"id": "01", "stream": "broad",    "matching": false, "batch": 32, "decay": 0},
+    {"id": "02", "stream": "ordinary", "matching": true,  "batch": 32, "decay": 0},
+    {"id": "03", "stream": "broad",    "matching": true,  "batch": 32, "decay": 0},
+    {"id": "04", "stream": "ordinary", "matching": false, "batch": 16, "decay": 0},
+    {"id": "05", "stream": "ordinary", "matching": false, "batch": 32, "decay": 0.01},
+    {"id": "06", "stream": "ordinary", "matching": false, "batch": 16, "decay": 0.01}
+  ],
+  "learner": {"inherit": "round028-ordinary", "optimizer": "AdamW", "lr_multiplier": 1, "schedule": "constant", "dropout": 0},
+  "profiles": {
+    "common": {"attempts": 1, "looks": [0, 1000000, 4000000], "cases": "first_per_development_family_stratum"},
+    "full": {"attempts": 8, "looks": [4000000], "cases": "registered_panel_and_retention"}
+  },
+  "opportunity": {"visible": 20, "total": 100, "issue_us": 60000000, "fit_us": 4000000, "token_cap": 1024, "drain": true},
+  "reference": "D",
+  "controls": ["template", "polynomial", "linear_recurrence"],
+  "cpu_methods": ["fixed", "guide", "shuffled_guide", "D"],
+  "conditional_look": 8000000,
+  "branches": ["repair", "resolve_missing", "oeis_measurement", "paired_extension", "structure_search", "same_bank_selection", "conditioning", "confirmation", "retain_D"],
+  "claims": {"comparators": ["00", "D"], "endpoints": ["oeis", "structural"], "minimum_groups": 16, "minimum_mean_gain_pp": 2, "positive_both_seeds": true, "minimum_completion": 0.95, "maximum_retention_loss_pp": 2, "joint_draws": 10000, "familywise_alpha": 0.05},
+  "spending": {"ranking": ["direct_oeis_gain_desc", "marginal_hours_asc", "frozen_id_asc"], "followup": "reserve_before_screen", "confirmation": "independent_grant"},
+  "assessment": "sealed"
+}

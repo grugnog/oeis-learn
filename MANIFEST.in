@@ -41,3 +41,4 @@ recursive-include src/oeis_learn/generalization/policies *.json
 recursive-include src/oeis_learn/generalization/schemas progressive-*.schema.json
 recursive-include specs/013-progressive-mathematical-discovery/contracts *.md
 recursive-include specs/015-learned-program-search/contracts *.md
+recursive-include specs/016-measure-learning-velocity/contracts *.md

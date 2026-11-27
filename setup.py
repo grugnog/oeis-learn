@@ -32,12 +32,15 @@ class QualificationBuild(build_py):
         discovery.mkdir(parents=True, exist_ok=True)
         for source in (root / "specs/013-progressive-mathematical-discovery/contracts").glob("*.md"):
             shutil.copyfile(source, discovery / source.name)
-        learned = discovery / "015-learned-program-search"
-        learned.mkdir(exist_ok=True)
-        for source in (root / "specs/015-learned-program-search/contracts").glob("*.md"):
-            shutil.copyfile(source, learned / source.name)
-        profile = "learned-program-search.json"
-        shutil.copyfile(root / "configs/foundation/progressive" / profile, learned / profile)
+        for feature, profile in (
+            ("015-learned-program-search", "learned-program-search.json"),
+            ("016-measure-learning-velocity", "learning-velocity.json"),
+        ):
+            destination = discovery / feature
+            destination.mkdir(exist_ok=True)
+            for source in (root / "specs" / feature / "contracts").glob("*.md"):
+                shutil.copyfile(source, destination / source.name)
+            shutil.copyfile(root / "configs/foundation/progressive" / profile, destination / profile)
 
 
 setup(cmdclass={"build_py": QualificationBuild})
