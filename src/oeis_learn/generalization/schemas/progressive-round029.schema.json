@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-round029.schema.json",
+  "$defs": {
+    "grant": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "round029-grant/v1"
+        },
+        "study_id": {
+          "const": "016-research-round-029"
+        },
+        "registration_or_parent_ref": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "scope": {
+          "enum": [
+            "qualification",
+            "cpu",
+            "exploration",
+            "confirmation"
+          ]
+        },
+        "state_root_id": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "allowed_operations": {
+          "type": "array",
+          "items": {
+            "$ref": "progressive-common.schema.json#/$defs/text"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "total_us": {
+          "$ref": "progressive-common.schema.json#/$defs/integer"
+        },
+        "holdback_us": {
+          "$ref": "progressive-common.schema.json#/$defs/integer"
+        },
+        "resources": {
+          "$ref": "progressive-common.schema.json#/$defs/caps"
+        },
+        "authorizing_record_ref": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "identity": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        }
+      },
+      "required": [
+        "version",
+        "study_id",
+        "registration_or_parent_ref",
+        "scope",
+        "state_root_id",
+        "allowed_operations",
+        "total_us",
+        "holdback_us",
+        "resources",
+        "authorizing_record_ref",
+        "identity"
+      ],
+      "additionalProperties": false
+    },
+    "operation": {
+      "type": "object",
+      "properties": {
+        "study": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "stage": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "method": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "seed": {
+          "$ref": "progressive-common.schema.json#/$defs/integer"
+        },
+        "look": {
+          "$ref": "progressive-common.schema.json#/$defs/integer"
+        },
+        "panel": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "profile": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "input_mode": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "role": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "ordinal": {
+          "$ref": "progressive-common.schema.json#/$defs/integer"
+        }
+      },
+      "required": [
+        "study",
+        "stage",
+        "method",
+        "seed",
+        "look",
+        "panel",
+        "profile",
+        "input_mode",
+        "role",
+        "ordinal"
+      ],
+      "additionalProperties": false
+    },
+    "result": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "round029-result/v1"
+        },
+        "action": {
+          "enum": [
+            "preflight",
+            "status",
+            "qualify",
+            "cpu",
+            "run",
+            "verify"
+          ]
+        },
+        "session_id": {
+          "const": "016-research-round-029"
+        },
+        "mechanical_status": {
+          "enum": [
+            "INSPECTED",
+            "BLOCKED",
+            "COMPLETE",
+            "FAILED",
+            "VERIFIED",
+            "PARTIAL"
+          ]
+        },
+        "scientific_verdict": {
+          "oneOf": [
+            {
+              "$ref": "progressive-common.schema.json#/$defs/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_committed_ref": {
+          "oneOf": [
+            {
+              "$ref": "progressive-common.schema.json#/$defs/hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "remaining_authority": {
+          "oneOf": [
+            {
+              "$ref": "progressive-common.schema.json#/$defs/integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "next_action": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "reason": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "report_ref": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "verification_scope": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "first_error": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "deficit_bytes": {
+          "$ref": "progressive-common.schema.json#/$defs/integer"
+        },
+        "deficit_inodes": {
+          "$ref": "progressive-common.schema.json#/$defs/integer"
+        }
+      },
+      "required": [
+        "version",
+        "action",
+        "session_id",
+        "mechanical_status",
+        "scientific_verdict",
+        "last_committed_ref",
+        "remaining_authority",
+        "next_action",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "stored_reference": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "owner": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "artifact": {
+          "$ref": "progressive-common.schema.json#/$defs/artifact"
+        }
+      },
+      "required": [
+        "format",
+        "owner",
+        "artifact"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/grant"
+    },
+    {
+      "$ref": "#/$defs/operation"
+    },
+    {
+      "$ref": "#/$defs/result"
+    },
+    {
+      "$ref": "#/$defs/stored_reference"
+    }
+  ]
+}

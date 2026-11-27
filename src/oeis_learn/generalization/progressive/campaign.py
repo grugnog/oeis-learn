@@ -444,14 +444,21 @@ def initializer_origin(root, initializer, *, track, purpose):
     return read(initializer["origin"]), list(refs.values())
 
 
-def learned_search_policy():
+def _feature_policy(feature, filename):
     from importlib.resources import files
     from pathlib import Path
 
-    filename = "learned-program-search.json"
     source = Path(__file__).resolve().parents[4] / "configs/foundation/progressive" / filename
-    resource = files(__package__).joinpath("contracts", "015-learned-program-search", filename)
+    resource = files(__package__).joinpath("contracts", feature, filename)
     return json.loads((source if source.is_file() else resource).read_text())
+
+
+def learned_search_policy():
+    return _feature_policy("015-learned-program-search", "learned-program-search.json")
+
+
+def velocity_policy():
+    return _feature_policy("016-measure-learning-velocity", "learning-velocity.json")
 
 
 def diagnostic_registration(revision):
