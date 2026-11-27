@@ -18,6 +18,7 @@ from oeis_learn.generalization.progressive.velocity_records import (
 from .identity import confined
 from .progressive_round028 import candidate_revision
 from .progressive_velocity_donor import inventory
+from .progressive_velocity_supply import supply_inventory
 
 
 def result(action, status, reason, next_action, *, last=None, remaining=None, **data):
@@ -64,10 +65,7 @@ def preflight(root):
         {},
     )
     info["new_positive_tokens_before_overshoot_if_control_reusable"] = 24_000_000
-    info["families"] = dict(
-        count=None, reason="requires a reconciled census of donor and subsequent exposure"
-    )
-    info["matching_pairs"] = dict(count=None, reason="requires a training-only pair rehearsal")
+    info.update(supply_inventory(root))
     info["assessment"] = policy["assessment"]
     return result(
         "preflight",

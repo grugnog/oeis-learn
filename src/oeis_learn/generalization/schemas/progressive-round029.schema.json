@@ -142,6 +142,92 @@
       "required": ["error", "stage", "reason"],
       "additionalProperties": false
     },
+    "unmeasured_supply": {
+      "type": "object",
+      "properties": {"count": {"type": "null"}, "reason": {"type": "string", "minLength": 1}},
+      "required": ["count", "reason"],
+      "additionalProperties": false
+    },
+    "family_supply": {
+      "type": "object",
+      "properties": {
+        "count": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "by_role": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "cases": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+                "families": {"$ref": "progressive-common.schema.json#/$defs/integer"}
+              },
+              "required": ["cases", "families"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "eligible_cases": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "eligible_components": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "excluded_cases": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "deficits": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {"$ref": "progressive-common.schema.json#/$defs/integer"}
+          }
+        },
+        "provenance_unavailable": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "registration": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "measurement": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "reason": {"type": "null"}
+      },
+      "required": [
+        "count",
+        "by_role",
+        "eligible_cases",
+        "eligible_components",
+        "excluded_cases",
+        "deficits",
+        "provenance_unavailable",
+        "registration",
+        "measurement",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "pair_supply": {
+      "type": "object",
+      "properties": {
+        "count": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "eligible_families": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "positive_rows": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "excluded_rows": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "dispositions": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {"$ref": "progressive-common.schema.json#/$defs/integer"}
+        },
+        "registration": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "measurement": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "reason": {"type": "null"}
+      },
+      "required": [
+        "count",
+        "eligible_families",
+        "positive_rows",
+        "excluded_rows",
+        "dispositions",
+        "registration",
+        "measurement",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
     "inventory": {
       "type": "object",
       "properties": {
@@ -152,8 +238,8 @@
         "original_clocks": {},
         "gpu_dispatches": {"const": 0},
         "stream": {"oneOf": [{"type": "object", "properties": {}, "additionalProperties": {}}, {"type": "null"}]},
-        "families": {"type": "object", "properties": {}, "additionalProperties": {}},
-        "matching_pairs": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "families": {"oneOf": [{"$ref": "#/$defs/unmeasured_supply"}, {"$ref": "#/$defs/family_supply"}]},
+        "matching_pairs": {"oneOf": [{"$ref": "#/$defs/unmeasured_supply"}, {"$ref": "#/$defs/pair_supply"}]},
         "prices": {"type": "object", "properties": {}, "additionalProperties": {}},
         "new_positive_tokens_before_overshoot_if_control_reusable": {"$ref": "progressive-common.schema.json#/$defs/integer"},
         "mount": {

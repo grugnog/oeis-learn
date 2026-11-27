@@ -120,3 +120,16 @@ def test_legacy_exposure_stays_readable_and_unknown_provenance_is_reported(tmp_p
     assert result["eligible"] == 0 and result["provenance_unavailable"] == 1
     assert "provenance" in result["provenance_reason"]
     assert path.read_bytes() == before
+
+
+def test_verified_pair_rows_families_and_exclusions(velocity_supply_rows):
+    from oeis_learn.generalization.progressive.training_rows import matching_pairs
+
+    rows = velocity_supply_rows
+    receipt = matching_pairs([rows], [r["draw_identity"] for r in rows], seed=29)
+    assert (receipt["positive_rows"], receipt["eligible_rows"], receipt["eligible_families"]) == (3, 2, 2)
+    assert receipt["dispositions"] == {"eligible": 2, "no_differing_donor": 1}
+    assert {p["family"] for p in receipt["pairs"].values()} == {rows[0]["structure"], rows[2]["structure"]}
+    zero = matching_pairs([rows], [r["draw_identity"] for r in rows[:2]], seed=29)
+    assert zero["eligible_rows"] == zero["eligible_families"] == 0
+    assert zero["positive_rows"] == zero["dispositions"]["no_differing_donor"] == 2

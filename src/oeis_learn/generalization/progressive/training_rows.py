@@ -285,7 +285,7 @@ def matching_pairs(shards, order, *, seed, client=None):
                                    client=client)
             statuses[proof["status"]] += 1
             if proof["status"] == "eligible":
-                pairs[key] = dict(donor=donor, proof=proof)
+                pairs[key] = dict(donor=donor, family=row["structure"], proof=proof)
     return seal(dict(version="round029-training-pairs/v1", seed=seed, order=digest(order),
                      positive_rows=len(order), eligible_rows=len(pairs), dispositions=dict(statuses),
                      eligible_families=len({rows[k]["structure"] for k in pairs}), pairs=pairs))
