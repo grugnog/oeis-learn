@@ -6,6 +6,19 @@ Preflight now reopens the exposed timing report inside the verified round028 pil
 
 The new screen still needs prices for its six treatments, matching passes, conventional CPU controls, conditioning sample, full-bank sample and publication. A matched OEIS follow-up can be priced independently on existing weights. The physical donor's family census and original receipts determine the coverage of the estimate. [File-based preflight command](../quickstart.md#inspect-prices-on-the-donor)
 
+### Returned donor inventory
+
+The donor ran the read-only preflight at `1ddeac1924c5ba62bcc839c8fb706f24eba2adad`. The 28,919-byte return has SHA-256 `db52b2168832c98516a3ccc3583f69d6865816af9efc3e2f843e123d87ae852b`. The candidate's result validator accepted it. Recomputing the prices from its exposed timing cells and the training costs from its original role clocks reproduced every subtotal and reserve.
+
+| Matched full-profile OEIS follow-up on one eligible family | Expected | Tail |
+| --- | ---: | ---: |
+| Cached images | 59.160816 s | 101.545884 s |
+| Including acquisition of both images | 123.248419 s | 165.633487 s |
+
+The three ordinary and three first-divergence cuts retained their weights and full state. D retained its inference weights. Ordinary's historical production cost through 4M was 1,554.376919 s. The return counted zero prospective score credits and zero additional ordinary training tokens for the proposed screen. Current-revision continuation parity remains a separate check.
+
+The donor had 14,768,439,296 available bytes and 118,165,244 available inodes. Required space, the physical reserve, fresh family supply and training-pair supply were unmeasured. The 32 OEIS families in round028 development are already reserved. Fresh panel prices require an outcome-blind round029 census. The preflight issued zero GPU or research dispatches and carried no spending authority.
+
 The detached donor completed the learner update and restore rehearsal on candidate `73009e595e589a1f6780cec06d5d16989ee8dcd5`. The first attempt interrupted one backward pass at each batch size. Both resumed runs reproduced the uninterrupted final weights, AdamW state and next rows. Each scheduler recorded two useful updates and retained the discarded token charge.
 
 | Logical batch | Useful tokens | Discarded tokens | Tokens charged on recovery trajectory | Matching on the final update |
