@@ -276,7 +276,8 @@ def donor_timings(action, root, revision, minutes):
     if first["mechanical_status"] != "COMPLETE":
         from oeis_learn.pipeline_validation.progressive_velocity_image import failure_details
 
-        return dict(summary, diagnostics=failure_details(root, summary["grant"], summary["first_error"]))
+        current = first.get("diagnostics") or summary["first_error"]
+        return dict(summary, diagnostics=failure_details(root, summary["grant"], current))
     verification = action("verify")
     record = first["receipt"]
     if (
@@ -291,6 +292,10 @@ def donor_timings(action, root, revision, minutes):
         raise ValueError("preflight did not reopen the original update matrix")
     return dict(
         summary,
+        preparation_storage=record.get("storage"),
+        image_acquisition=(
+            "qualified_runtime_and_candidate_wheel" if record.get("runtime") else "candidate_image"
+        ),
         units=record["units"],
         measurement=record["measurement"],
         worker_cpu_us=record["worker_cpu_us"],

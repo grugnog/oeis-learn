@@ -173,7 +173,8 @@ def test_explicit_readonly_files_preserve_mount_and_network_boundary(tmp_path, n
         engine.command(**dict(args, mounts=[(pipe, '/work/inputs/original.json', False)]))
 
 
-def test_recorded_local_build_keeps_both_log_tails_and_termination(tmp_path):
+@pytest.mark.parametrize("remote", [False, True])
+def test_recorded_build_keeps_log_tails_and_requires_local_termination(tmp_path, remote):
     engine_cli = tmp_path / "podman"
     engine_cli.write_text(
         "#!/bin/sh\n"
@@ -183,7 +184,9 @@ def test_recorded_local_build_keeps_both_log_tails_and_termination(tmp_path):
         "exit 125\n"
     )
     engine_cli.chmod(0o700)
-    engine = Engine("podman", executable=str(engine_cli), details={"host": {"serviceIsRemote": False}})
+    engine = Engine(
+        "podman", executable=str(engine_cli), details={"host": {"serviceIsRemote": remote}}
+    )
     evidence = tmp_path / "build-logs"
     with pytest.raises(RuntimeError, match="fixture layer could not be committed"):
         engine.build(tmp_path, seconds=10, evidence=evidence)
@@ -191,4 +194,4 @@ def test_recorded_local_build_keeps_both_log_tails_and_termination(tmp_path):
     assert process["returncode"] == 125 and process["cleanup_failure"] is None
     assert "fixture final build step" in (evidence / "stdout.log").read_text()
     assert (evidence / "stdout.log").stat().st_size <= 65536
-    assert json.loads((evidence / "cleanup.json").read_bytes())["acknowledged"] is True
+    assert json.loads((evidence / "cleanup.json").read_bytes())["acknowledged"] == (not remote)

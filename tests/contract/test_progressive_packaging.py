@@ -137,3 +137,31 @@ def test_feature_contracts_in_source_sdist_and_installed_wheel(tmp_path):
         [sys.executable, "-c", code], cwd=tmp_path, env={**os.environ, "PYTHONPATH": str(installed)}))
     for source in resources.values():
         assert installed_snapshot[source] == snapshot[source]
+    from oeis_learn.generalization.progressive.contracts import digest
+    from oeis_learn.pipeline_validation.progressive_velocity_runtime import BOOTSTRAP, wheel_sources
+    import pytest
+
+    (original,) = tmp_path.glob("*.whl")
+    fingerprint = digest(installed_snapshot)
+    assert wheel_sources(original, fingerprint) == installed_snapshot
+    subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-B",
+            str(root / BOOTSTRAP),
+            "check",
+            str(original),
+            file_digest(original.read_bytes()),
+            fingerprint,
+        ],
+        check=True,
+        cwd=tmp_path,
+    )
+    changed = tmp_path / "tampered" / original.name
+    changed.parent.mkdir()
+    with zipfile.ZipFile(original) as old, zipfile.ZipFile(changed, "w") as new:
+        for name in old.namelist():
+            new.writestr(name, b"# replaced" if name == BOOTSTRAP[4:] else old.read(name))
+    with pytest.raises(ValueError, match="wheel member differs"):
+        wheel_sources(changed, fingerprint)

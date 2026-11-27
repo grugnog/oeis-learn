@@ -112,13 +112,14 @@ def bind(revision, source_hash, grant, pointer):
     )
 
 
-def request_at(area, binding, inputs):
+def request_at(root, area, binding, inputs):
     projection, design = inputs
     path = confined(area, "projection.json")
     req = load(confined(area, "request.json"))
     if (
         req != seal(req)
-        or req["version"] != "round029-timing-request/v1"
+        or req["version"]
+        != ("round029-timing-request/v2" if "runtime" in req else "round029-timing-request/v1")
         or req["binding"] != binding["identity"]
         or req["source"] != binding["source"]
         or req["role_policy"] != ROUND029_ROLE_POLICY
@@ -129,14 +130,34 @@ def request_at(area, binding, inputs):
         raise ValueError(
             "timing request, positive streams or source differ from original preparation"
         )
+    if "runtime" in req:
+        from .progressive_velocity_runtime import package_evidence
+
+        if req["runtime"]["parent"]["image"] != req["image"]:
+            raise ValueError("wheel belongs to a different runtime image")
+        package_evidence(root, area, req["runtime"], binding)
     return req
 
 
 def prepared(out, req):
-    expected = seal(dict(request=req["identity"]))
-    if load(confined(out, "producer.json")) != expected:
-        raise ValueError("missing original timing preparation")
-    return expected
+    producer = load(confined(out, "producer.json"))
+    fields = dict(request=req["identity"])
+    if "storage" in producer:
+        mounts = {k: load(confined(out, "storage-" + k + ".json")) for k in ("before", "after")}
+        fields["storage"] = dict(mounts, transport=producer["storage"]["transport"])
+        transport = fields["storage"]["transport"]
+        if "runtime" in req:
+            if (
+                not isinstance(transport, dict)
+                or set(transport) != {"bytes", "inodes"}
+                or any(type(v) is not int or v <= 0 for v in transport.values())
+            ):
+                raise ValueError("measured candidate transport allocations required")
+        elif transport is not None:
+            raise ValueError("standalone image has no candidate wheel transport")
+    if producer != seal(fields):
+        raise ValueError("original timing preparation or storage observations differ")
+    return producer
 
 
 def device_evidence(area, out, req, projection):
@@ -152,6 +173,10 @@ def device_evidence(area, out, req, projection):
         "/work/inputs/projection.json": (area / "projection.json", False),
         "/work/output": (out, True),
     }
+    if "runtime" in req:
+        from .progressive_velocity_runtime import wheel_mounts
+
+        mounts.update({dest: (p, False) for p, dest in wheel_mounts(area, req["runtime"])})
     verify_role_mounts(load(confined(out, "container-inspect.json")), req["image"], mounts)
     proc, cleanup, lease = [
         load(confined(out, p)) for p in ("process.json", "cleanup.json", "gpu-lease.json")
@@ -192,6 +217,7 @@ def device_evidence(area, out, req, projection):
     return seal(
         dict(
             producer=produced["identity"],
+            **({"runtime": req["runtime"]["identity"]} if "runtime" in req else {}),
             units=units,
             worker_cpu_us=cpu_us,
             telemetry=telemetry,
@@ -219,6 +245,12 @@ def combined(binding, prepared_receipt, measurement):
             version=VERSION,
             binding=binding["identity"],
             preparation=prepared_receipt["identity"],
+            **(
+                {"storage": prepared_receipt["evidence"]["storage"]}
+                if "storage" in prepared_receipt["evidence"]
+                else {}
+            ),
+            **({"runtime": evidence["runtime"]} if "runtime" in evidence else {}),
             measurement=measurement["identity"],
             units=evidence["units"],
             worker_cpu_us=evidence["worker_cpu_us"],
@@ -234,7 +266,7 @@ def replay(root, area, binding, grant, snapshot):
     if binding != bind(binding["candidate"], binding["source"], grant, pointer):
         raise ValueError("timing binding changed")
     data = donor_inputs(root, pointer)
-    req = request_at(area, binding, data)
+    req = request_at(root, area, binding, data)
     pre = replay_operation(
         area,
         coordinates(grant, "prepare"),
@@ -393,24 +425,50 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
         physical = worker()
         retain(out / "storage-before.json", storage(root, physical.engine))
         path = area / "request.json"
+        runtime = None
         if path.exists():
-            image = physical.engine.image(load(confined(area, path))["image"])
+            saved = load(confined(area, path))
+            image = physical.engine.image(saved["image"])
+            runtime = saved.get("runtime")
         elif args.image:
             image = physical.engine.image(args.image)
         else:
-            logs = out / "image-build"
-            logs.mkdir()
-            image = physical.engine.build(
-                source,
-                target="gpu",
-                tag="oeis-learn:round029-" + revision,
-                base_image=args.gpu_base_image,
-                seconds=seconds(deadline),
-                evidence=logs,
+            from .progressive_velocity_runtime import cached_runtime, package_worker
+
+            parent = (
+                None
+                if args.gpu_base_image
+                else cached_runtime(root, folder, revision, physical.engine)
             )
+            if parent is not None:
+                image = parent["image"]
+                runtime = package_worker(
+                    root,
+                    source,
+                    area,
+                    out,
+                    revision,
+                    parent,
+                    binding["source"],
+                    physical,
+                    stage,
+                    lambda: seconds(deadline),
+                )
+            else:
+                logs = out / "image-build"
+                logs.mkdir()
+                image = physical.engine.build(
+                    source,
+                    target="gpu",
+                    tag="oeis-learn:round029-" + revision,
+                    base_image=args.gpu_base_image,
+                    seconds=seconds(deadline),
+                    evidence=logs,
+                )
         req = seal(
             dict(
-                version="round029-timing-request/v1",
+                version="round029-timing-request/v2" if runtime else "round029-timing-request/v1",
+                **({"runtime": runtime} if runtime else {}),
                 binding=binding["identity"],
                 source=binding["source"],
                 image=image,
@@ -421,7 +479,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
             )
         )
         retain(path, req)
-        retain(out / "producer.json", seal(dict(request=req["identity"])))
+        return req
 
     attempt_out = None
 
@@ -431,10 +489,26 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
         deadline = time.monotonic_ns() + reserve * 1000
         with preparation_boundary(out, deadline):
             try:
-                acquire(out, deadline)
+                req = acquire(out, deadline)
             finally:
                 if host is not None:
                     retain(out / "storage-after.json", storage(root, host.engine))
+            from .progressive_pilot_capacity import owned_allocations
+            from .progressive_research_inputs import checked_file
+
+            transport = None
+            if "runtime" in req:
+                transport = owned_allocations(
+                    [
+                        checked_file(area, req["runtime"][k])
+                        for k in ("archive", "bootstrap", "wheel")
+                    ]
+                )
+            mounts = {k: load(confined(out, "storage-" + k + ".json")) for k in ("before", "after")}
+            retain(
+                out / "producer.json",
+                seal(dict(request=req["identity"], storage=dict(mounts, transport=transport))),
+            )
 
     def measure(out, reserve):
         nonlocal attempt_out
@@ -446,19 +520,40 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
             or physical_scope(physical, "hip", machine=True) != req["physical"]
         ):
             raise ValueError("registered HIP worker changed before timing")
+        worker_args = [
+            "python",
+            "-I",
+            "-m",
+            "oeis_learn.pipeline_validation.progressive_velocity_timing",
+        ]
+        mounts = [
+            (area / name, "/work/inputs/" + name) for name in ("request.json", "projection.json")
+        ]
+        if "runtime" in req:
+            from .progressive_velocity_runtime import wheel_mounts
+
+            extras = wheel_mounts(area, req["runtime"])
+            mounts.extend(extras)
+            worker_args = [
+                "python",
+                "-I",
+                "-B",
+                extras[0][1],
+                "run",
+                extras[1][1],
+                req["runtime"]["wheel"]["sha256"],
+                req["source"],
+            ]
         stage(
             physical,
             source,
             req["image"],
             out,
-            ["python", "-I", "-m", "oeis_learn.pipeline_validation.progressive_velocity_timing"],
+            worker_args,
             gpu=True,
             record_lease=True,
             seconds=seconds(deadline),
-            readonly_inputs=[
-                (area / name, "/work/inputs/" + name)
-                for name in ("request.json", "projection.json")
-            ],
+            readonly_inputs=mounts,
         )
 
     phase = "prepare"
@@ -470,9 +565,9 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
             request=binding,
             cost={},
             execute=prepare,
-            verify=lambda out: prepared(out, request_at(area, binding, inputs())),
+            verify=lambda out: prepared(out, request_at(root, area, binding, inputs())),
         )
-        req = request_at(area, binding, inputs())
+        req = request_at(root, area, binding, inputs())
         phase = "measure"
         paid = run_operation(
             **base,
@@ -501,10 +596,11 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
     except (Exception, KeyboardInterrupt) as exc:
         reason = str(exc) or type(exc).__name__
         path = area / "first-error.json"
+        problem = dict(stage=phase, error=type(exc).__name__, reason=reason)
+        if attempt_out is not None:
+            problem["attempt_path"] = str(attempt_out.relative_to(root))
+            extra["diagnostics"] = problem
         if not path.exists():
-            problem = dict(stage=phase, error=type(exc).__name__, reason=reason)
-            if attempt_out is not None:
-                problem["attempt_path"] = str(attempt_out.relative_to(root))
             retain(path, seal(problem))
         blocked = isinstance(exc, InsufficientAuthority)
         state, code, next_action = (

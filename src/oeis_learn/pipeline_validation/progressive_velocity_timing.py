@@ -342,7 +342,8 @@ def main():
     request = load(inputs / "request.json")
     if (
         request != seal(request)
-        or request["version"] != "round029-timing-request/v1"
+        or request["version"]
+        != ("round029-timing-request/v2" if "runtime" in request else "round029-timing-request/v1")
         or request["source"] != digest(source_snapshot())
         or request["role_policy"] != ROUND029_ROLE_POLICY
         or request["image"] != os.environ["OEIS_QUALIFICATION_IMAGE"]

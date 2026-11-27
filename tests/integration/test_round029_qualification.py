@@ -299,10 +299,17 @@ def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(
             review["saved_children"](root, root, revision, 10)
         assert before == {p: p.stat().st_mtime_ns for p in root.rglob("*")}
         assert len(issued) == 1
+    from oeis_learn.pipeline_validation.progressive_velocity_runtime import learner_runtime
+
+    base = learner_runtime(root, grant["identity"][7:])
+    assert base["image"] == image and base["receipt"] == accepted["receipt"]["identity"]
+    assert base["candidate"] == revision
     mounts = load(issued[0] / "container-inspect.json")
     mounts[0]["Mounts"][0]["RW"] = True
     (issued[0] / "container-inspect.json").unlink()
     atomic_write(issued[0] / "container-inspect.json", mounts)
+    with pytest.raises(ValueError, match="MOUNTS"):
+        learner_runtime(root, grant["identity"][7:])
     if children:
         with pytest.raises(ValueError, match="MOUNTS"):
             review["saved_children"](root, root, revision, 10)
@@ -331,9 +338,9 @@ def test_matrix_requires_prior_paid_supply_before_creating_a_grant(tmp_path):
     assert not (tmp_path / "run-state").exists()
 
 
-@pytest.mark.parametrize("cold_retry", [False, True])
+@pytest.mark.parametrize("route", ["supplied", "cold_retry", "cached_wheel"])
 def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
-    tmp_path, monkeypatch, velocity_supply_rows, cold_retry
+    tmp_path, monkeypatch, velocity_supply_rows, route
 ):
     from types import SimpleNamespace
     from oeis_learn.fresh.bigint_config import resolve
@@ -348,8 +355,74 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
         timing_design,
     )
 
+    from oeis_learn.pipeline_validation import progressive_velocity_runtime as runtime
+    from oeis_learn.experiments.source_snapshot import file_digest
+    import json
+    import subprocess
+    import tarfile
+    import zipfile
+
+    cold_retry = route == "cold_retry"
+    warm = route == "cached_wheel"
     revision = "4" * 40
     image = digest("image")
+    snapshot = ["source bytes"]
+    if warm:
+
+        def git(*args):
+            return (
+                subprocess.check_output(
+                    [
+                        "git",
+                        "-c",
+                        "user.name=Fixture",
+                        "-c",
+                        "user.email=fixture@example.invalid",
+                        *args,
+                    ],
+                    cwd=tmp_path,
+                )
+                .decode()
+                .strip()
+            )
+
+        git("init", "-q")
+        (tmp_path / "uv.lock").write_text("fixture locked runtime")
+        git("add", "uv.lock")
+        git("commit", "-qm", "fixture runtime")
+        base_revision = git("rev-parse", "HEAD")
+        bootstrap = tmp_path / runtime.BOOTSTRAP
+        bootstrap.parent.mkdir(parents=True)
+        bootstrap.write_bytes(b"# fixture bootstrap")
+        snapshot = {runtime.BOOTSTRAP: file_digest(bootstrap.read_bytes())}
+        git("add", runtime.BOOTSTRAP)
+        git("commit", "-qm", "fixture application")
+        revision = git("rev-parse", "HEAD")
+        base_grant = digest("paid learner")
+        base = seal(
+            dict(
+                grant=base_grant,
+                receipt=digest("paid receipt"),
+                candidate=base_revision,
+                image=image,
+                source=digest("base source"),
+            )
+        )
+        original = (
+            tmp_path / "run-state/discovery/016-research-round-029/qualification" / base_grant[7:]
+        )
+        original.mkdir(parents=True)
+        atomic_write(
+            original / "binding.json",
+            seal(dict(version="round029-learner-rehearsal/v1", candidate=base_revision)),
+        )
+        atomic_write(original / "receipt.json", seal(dict(fixture=True)))
+
+        def verified_base(root, previous):
+            assert root == tmp_path and previous == base_grant[7:]
+            return base
+
+        monkeypatch.setattr(runtime, "learner_runtime", verified_base)
     model = resolve_profile(
         resolve({"version": "bigint-bootstrap/v1"}), seed=29, shape="smaller_width"
     )
@@ -373,7 +446,7 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
         pytest.fail("funding opened the private training archive before a time reservation")
 
     monkeypatch.setattr(host, "donor_inputs", unopened)
-    monkeypatch.setattr(host, "collect_snapshot", lambda _: ["source bytes"])
+    monkeypatch.setattr(host, "collect_snapshot", lambda _: snapshot)
     monkeypatch.setattr(host, "physical_scope", lambda *_a, **_k: digest("test card"))
     monkeypatch.setattr(progressive_round029, "candidate_revision", lambda *_: revision)
     monkeypatch.setattr(
@@ -389,24 +462,62 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
         action="qualify",
         authority=grant,
         workspace=str(tmp_path),
-        image=None if cold_retry else image,
+        image=image if route == "supplied" else None,
         gpu_base_image=None,
         archive=None,
         qualification_archive=None,
     )
     launches = []
 
-    def stage(_host, _source, img, out, argv, *, seconds, readonly_inputs, gpu, record_lease):
-        assert (
-            gpu
-            and record_lease
-            and seconds > 0
-            and argv[-1].endswith("progressive_velocity_timing")
+    packs = []
+
+    def settle(out, img, readonly_inputs):
+        atomic_write(
+            out / "process.json", dict(outcome="COMPLETE", returncode=0, cleanup_failure=None)
         )
+        atomic_write(out / "cleanup.json", dict(acknowledged=True, within_bound=True))
+        binds = [
+            dict(Type="bind", Destination=dest, Source=str(path), RW=False)
+            for path, dest in readonly_inputs
+        ]
+        binds.append(dict(Type="bind", Destination="/work/output", Source=str(out), RW=True))
+        atomic_write(
+            out / "container-inspect.json",
+            [
+                dict(
+                    Image=img,
+                    HostConfig=dict(NetworkMode="none", ReadonlyRootfs=True, Privileged=False),
+                    Mounts=binds,
+                )
+            ],
+        )
+
+    def stage(_host, _source, img, out, argv, *, seconds, readonly_inputs, gpu, record_lease=False):
+        assert img == image and seconds > 0
+        mounts = {dest: path for path, dest in readonly_inputs}
+        settle(out, img, readonly_inputs)
+        if not gpu:
+            assert warm and not record_lease and argv[4] == "package"
+            assert set(mounts) == {
+                "/work/inputs/candidate.tar.gz",
+                "/work/inputs/candidate-wheel.py",
+            }
+            with tarfile.open(mounts["/work/inputs/candidate.tar.gz"]) as archive:
+                assert all(not name.startswith("run-state/") for name in archive.getnames())
+            wheel = out / "oeis_learn-0.1.0-py3-none-any.whl"
+            with zipfile.ZipFile(wheel, "w") as body:
+                body.writestr(runtime.INSTALLED, json.dumps(snapshot))
+                body.writestr(runtime.BOOTSTRAP[4:], bootstrap.read_bytes())
+            packs.append(wheel)
+            return
+        assert record_lease and "/work/inputs/candidate.tar.gz" not in mounts
+        req = load(mounts["/work/inputs/request.json"])
+        if warm:
+            assert argv[4] == "run" and argv[-1] == digest(snapshot)
+            assert mounts[argv[5]] == packs[0] and req["runtime"]["parent"] == base
+        else:
+            assert argv[-1].endswith("progressive_velocity_timing")
         launches.append(out)
-        req = load(
-            dict((dest, path) for path, dest in readonly_inputs)["/work/inputs/request.json"]
-        )
         eligible = sum(k in projection["donors"] for k in projection["order"])
         calibration = seal(
             dict(
@@ -469,25 +580,6 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
             ),
         )
         atomic_write(out / "gpu-lease.json", {"elapsed_us": 1200})
-        atomic_write(
-            out / "process.json", dict(outcome="COMPLETE", returncode=0, cleanup_failure=None)
-        )
-        atomic_write(out / "cleanup.json", dict(acknowledged=True, within_bound=True))
-        binds = [
-            dict(Type="bind", Destination=dest, Source=str(path), RW=False)
-            for path, dest in readonly_inputs
-        ]
-        binds.append(dict(Type="bind", Destination="/work/output", Source=str(out), RW=True))
-        atomic_write(
-            out / "container-inspect.json",
-            [
-                dict(
-                    Image=img,
-                    HostConfig=dict(NetworkMode="none", ReadonlyRootfs=True, Privileged=False),
-                    Mounts=binds,
-                )
-            ],
-        )
 
     monkeypatch.setattr(host, "stage", stage)
 
@@ -525,6 +617,9 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
         cli.write_text(f"#!/bin/sh\necho '{image}'\n")
     completed, code = run()
     assert code == 0, completed
+    allocation = completed["receipt"]["storage"]
+    assert allocation["after"]["workspace"]["free_bytes"] > 0
+    assert allocation["transport"]["inodes"] == 3 if warm else allocation["transport"] is None
     assert run() == (completed, 0) and len(launches) == 1
     assert (
         completed["charged_tokens"] == design["cost"]["tokens"]
@@ -564,6 +659,17 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     assert code == 0 and "timed_updates" not in changed["inventory"]["prices"]
     assert "sampled activity" in changed["inventory"]["prices"]["timing_reason"]
     samples.write_bytes(original)
+    if warm:
+        assert len(packs) == len(launches) == 1
+        data = packs[0].read_bytes()
+        packs[0].write_bytes(data + b"modified")
+        changed, code = run()
+        assert code == 0 and "timed_updates" not in changed["inventory"]["prices"]
+        assert len(packs) == len(launches) == 1
+        packs[0].write_bytes(data)
+        (tmp_path / "uv.lock").write_text("different dependencies")
+        git("commit", "-qam", "change a dependency")
+        assert not runtime.compatible(tmp_path, base_revision, git("rev-parse", "HEAD"))
     path = launches[0] / "gpu-lease.json"
     path.write_text('{"elapsed_us":1}')
     new, code = run()
