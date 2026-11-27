@@ -492,13 +492,13 @@ def velocity_registration(*, source, design, development, retention, initializat
     import re
     from .contracts import _check, digest, schema, seal
     from .graph import velocity_look
-    from .trials import integer
+    from .metrics import _seed
 
     policy = velocity_policy()
     for ref in (design, ordinary, *([broad] if broad is not None else [])):
         _check(schema("common")["$defs"]["hash"], ref, {})
-    integer(initialization)
-    integer(stream_seed)
+    _seed(initialization)
+    _seed(stream_seed)
     if not isinstance(source, str) or not re.fullmatch(r"[0-9a-f]{40}", source):
         raise ValueError("immutable candidate Git revision required")
     row_ids = [r["id"] for r in policy["recipes"]]

@@ -40,3 +40,24 @@ def test_guard_projects_same_scope_and_serial_recovery_peaks():
     assert need["required_bytes"] == 2 * 3 * 1_257_820_683
     assert need["deficit_bytes"] == 0 and need["deficit_inodes"] > 0
     assert all(g["basis"] == "provisional" and g["rehearsal"] for g in need["guards"])
+
+
+def test_paid_initialization_open_drain_and_atomic_smaller_prefix():
+    from oeis_learn.generalization.progressive.program_search_costing import affordable_prefix
+
+    prices = {"cold": (12_000_000, 18_000_000), "search": (50_000_000, 60_133_643), "score": (1_000_000, 2_000_000)}
+    prices = {k: dict(expected_us=a, tail_us=b) for k,(a,b) in prices.items()}
+    batches = [
+        {"id": "a", "operations": {"init": "cold", "a-search": "search", "a-score": "score"}},
+        {"id": "b", "operations": {"init": "cold", "b-search": "search", "b-score": "score"}},
+        {"id": "c", "operations": {"init": "cold", "c-search": "search", "c-score": "score"}},
+    ]
+    found = affordable_prefix(batches, prices, remaining_us=75_000_000, holdback_us=10_000_000,
+                              paid={"init"}, opened={"a-search"})
+    assert found["batches"] == ["a", "b"] and found["expected_us"] == 52_000_000
+    assert found["tail_us"] == 64_133_643 and found["unsettled"] == ["a-search"]
+    assert found["next"] == "c" and found["deficit_us"] == 61_267_286
+    prices.pop("score")
+    missing = affordable_prefix(batches, prices, remaining_us=75_000_000, holdback_us=10_000_000,
+                                paid={"init"}, opened={"a-search"})
+    assert missing["batches"] == [] and missing["missing"] == ["score"] and missing["deficit_us"] is None

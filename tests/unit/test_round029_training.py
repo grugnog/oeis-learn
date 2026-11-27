@@ -129,3 +129,22 @@ def test_frozen_study_registers_and_reopens_looks_without_sampler_feedback(tmp_p
         open_velocity_study(tmp_path / "foreign", child)
     with pytest.raises(ValueError):
         velocity_registration(**args, scope="confirmation", parent=dict(boundary, state="running"), finalist="03")
+
+
+def test_whole_update_crossing_after_discard_and_seed_provenance():
+    from oeis_learn.generalization.progressive.velocity_trials import crossed
+
+    stream = {"order": ["a", "b"]}
+    rows = {"a": {"tokens": [1, 2, 3]}, "b": {"tokens": [4]}}
+    first = exposure(stream, rows, updates=1, batch=16, discarded=64)
+    second = exposure(stream, rows, updates=2, batch=16, discarded=64)
+    assert (first["useful_tokens"], first["charged_tokens"]) == (32, 96)
+    assert not crossed(first, 48) and crossed(second, 48) and not crossed(second, 32)
+    args = dict(initialization=9, stream_seed=21, ordinary=digest("ordinary"), broad=digest("broad"))
+    before = recipe_bindings(digest("study"), **args)
+    for changed in (dict(initialization=10), dict(stream_seed=22), dict(ordinary=digest("other ordinary"))):
+        other = recipe_bindings(digest("study"), **dict(args, **changed))
+        assert before["00"]["identity"] != other["00"]["identity"]
+    for invalid in (-1, 2**32, True):
+        with pytest.raises(ValueError):
+            recipe_bindings(digest("study"), **dict(args, initialization=invalid))

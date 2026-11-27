@@ -39,7 +39,7 @@ Give each trial, operation, grant, worker and retry an identity understood by th
 
 - [ ] T012 [P] [US1] Add preflight acceptance fixtures in `tests/integration/test_round029_preflight.py` for a matching 00 score, changed scorer, changed search profile, weights-only cut, changed seed provenance, and missing 1M clock with an intact 4M cut. Verify single credit, exact reason per layer and zero research/device dispatch. *After T011.*
 - [X] T013 [P] [US1] Add supply tests in `tests/unit/test_round029_supply.py` for a shifted duplicate, a composition link bridging two panels, an old unused reservation, unknown OEIS difficulty, regroundable literal, partial-scope UNSAT and a real full-scope negative. Assert the family and pair counts that preflight may publish. *After T011.*
-- [ ] T014 [P] [US1] Add cost and capacity tests in `tests/unit/test_round029_capacity.py` for shared checkpoint trees, temporary and published files coexisting, inode-only shortage, a slow drained portfolio, reused initialization and a protected follow-up. Check numerical shortfall, priced smaller batch and an explicitly missing measurement. *After T011.*
+- [X] T014 [P] [US1] Add cost and capacity tests in `tests/unit/test_round029_capacity.py` for shared checkpoint trees, temporary and published files coexisting, inode-only shortage, a slow drained portfolio, reused initialization and a protected follow-up. Check numerical shortfall, priced smaller batch and an explicitly missing measurement. *After T011.*
 
 ### Implementation
 
@@ -60,8 +60,8 @@ Give each trial, operation, grant, worker and retry an identity understood by th
 
 ### Acceptance tests
 
-- [ ] T021 [P] [US2] Add `tests/unit/test_round029_training.py` for the seven factor rows, inherited seed-one initialization, stream-order equality within each block, matching-positive normalization, batch 16/32 cursors and a useful-token crossing after a discarded update. Include a zero-eligible-pair batch and a changed seed or checkpoint. *After T011.*
-- [ ] T022 [P] [US2] Add `tests/integration/test_round029_probes.py` with identical cases at 0/1M/4M, distinct cheap/full 4M receipts, differing shuffle donors and the true recipient in the fitter/scorer. Cover a selected solve alongside unfinished fitting, a complete empty bank, an interrupted empty bank and attempted eight-to-one-attempt score reuse. *After T011.*
+- [X] T021 [P] [US2] Add `tests/unit/test_round029_training.py` for the seven factor rows, inherited seed-one initialization, stream-order equality within each block, matching-positive normalization, batch 16/32 cursors and a useful-token crossing after a discarded update. Include a zero-eligible-pair batch and a changed seed or checkpoint. *After T011.*
+- [X] T022 [P] [US2] Add `tests/integration/test_round029_probes.py` with identical cases at 0/1M/4M, distinct cheap/full 4M receipts, differing shuffle donors and the true recipient in the fitter/scorer. Cover a selected solve alongside unfinished fitting, a complete empty bank, an interrupted empty bank and attempted eight-to-one-attempt score reuse. *After T011.*
 - [X] T023 [P] [US2] Add `tests/unit/test_round029_velocity.py` with four gains and four losses, +6 points over 3M useful tokens and 1.5 charged hours, bounds that reverse a ranking, a shared unresolved zero look, family imbalance, crossing clocks/reboot and a rate outside ±100. Supply expected paired values independently of the production reducer. *After T011.*
 
 ### Implementation

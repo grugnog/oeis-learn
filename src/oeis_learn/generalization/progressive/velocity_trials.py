@@ -2,6 +2,7 @@
 
 from .campaign import velocity_policy
 from .contracts import _check, digest, schema, seal
+from .metrics import _seed
 from .training_rows import matched_batch
 from .trials import integer
 
@@ -9,8 +10,8 @@ from .trials import integer
 def recipe_bindings(registration, *, initialization, stream_seed, ordinary, broad):
     for identity in (registration, ordinary, *([broad] if broad is not None else [])):
         _check(schema("common")["$defs"]["hash"], identity, schema("common"))
-    integer(initialization)
-    integer(stream_seed)
+    _seed(initialization)
+    _seed(stream_seed)
     return {
         row["id"]: seal(
             dict(

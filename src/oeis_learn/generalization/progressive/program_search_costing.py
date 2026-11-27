@@ -183,6 +183,49 @@ def price_wave(plan, prices, *, remaining_us=None, credited=None):
     return result
 
 
+def affordable_prefix(batches, prices, *, remaining_us, holdback_us, paid=(), opened=()):
+    """Price whole registered batches against *unreserved* time. Open work still needs settlement."""
+    from oeis_learn.generalization.budgets import integer
+
+    remaining = integer(remaining_us)
+    holdback = integer(holdback_us)
+    paid, opened = set(paid), set(opened)
+    known, ids = {}, set()
+    for batch in batches:
+        if batch["id"] in ids or not batch["operations"]:
+            raise ValueError("unique registered nonempty batches required")
+        ids.add(batch["id"])
+        for key, kind in batch["operations"].items():
+            if known.setdefault(key, kind) != kind:
+                raise ValueError("shared operation work differs")
+    if paid & opened or not (paid | opened) <= known.keys():
+        raise ValueError("invalid paid or open work")
+    spent = paid | opened
+    result = dict(batches=[], expected_us=0, tail_us=0, holdback_us=holdback, next=None,
+                  deficit_us=0, missing=[], unsettled=sorted(opened))
+    for batch in batches:
+        work = {k:v for k,v in batch["operations"].items() if k not in spent}
+        missing = sorted({kind for kind in work.values() if kind not in prices})
+        if missing:
+            result.update(next=batch["id"], missing=missing, deficit_us=None)
+            break
+        expected = tail = 0
+        for kind in work.values():
+            typical = integer(prices[kind]["expected_us"])
+            maximum = integer(prices[kind]["tail_us"], typical)
+            expected += typical
+            tail += maximum
+        deficit = max(0, result["tail_us"] + tail + holdback - remaining)
+        if deficit:
+            result.update(next=batch["id"], deficit_us=deficit)
+            break
+        result["batches"].append(batch["id"])
+        result["expected_us"] += expected
+        result["tail_us"] += tail
+        spent.update(work)
+    return result
+
+
 def occupied_time(intervals):
     """Union comparable intervals, dividing a shared span among its active beneficiaries."""
     from collections import Counter, defaultdict
