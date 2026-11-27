@@ -6,6 +6,7 @@ import json
 import re
 import zipfile
 
+from oeis_learn.pipeline_validation.progressive_research_resources import guard_inventory
 from .contracts import digest, seal
 from .program_search_outcome import read_canonical
 from .program_search_rehearsal_report import encode
@@ -14,215 +15,91 @@ MEMBERS = ("release.json", "rehearsal.zip", "pilot.zip")
 PHASES = ("source", "wheel", "recovery", "storage", "scale", "hardware")
 
 
-def guard_inventory(scale, hip):
-    from dataclasses import asdict
-    from oeis_learn.synthesis.contracts import MAX_FRAME_BYTES, ResourceProfile
-    from oeis_learn.synthesis.service_policy import ServiceLimits
-    from oeis_learn.tracking.pipeline_profile import Recorder
-    from .contracts import CAMPAIGN_DOCUMENT_BYTES
-    from .report import MAX_BYTES, MAX_MANIFEST, MAX_PART, MAX_ROWS
-    from .storage import JOURNAL_BYTES
-    from oeis_learn.pipeline_validation import research_limits as limits
-    from oeis_learn.pipeline_validation.progressive_workstation_state import LIMIT, LOG_LIMIT
+def release_forecast(training, pilot):
+    """Project both pairs from the new HIP updates and original measured end-to-end role times."""
+    from .program_search_pilot import ARMS, LOOKS
 
-    def guard(owner, scope, units, limit, observed, harm, exhaustion, source):
-        return dict(
-            owner=owner,
-            scope=scope,
-            units=units,
-            limit=limit,
-            observed=observed,
-            margin=limit - observed if observed is not None else None,
-            basis=(
-                "measured_workstation_release"
-                if observed is not None
-                else "registered_owner_profile"
-            ),
-            source=source,
-            protects=harm,
-            exhaustion=exhaustion,
-        )
+    forecast = training["forecast"]
+    observed = {(row["block"], row["role"]): row["charged_us"] for row in pilot["costs"]}
+    estimates = {(block, role): cost for block, role, cost in pilot["design"]["prices"]}
+    rows = []
 
-    largest_batch = max(
-        (v["expanded_bytes"] + v["files"] - 1) // v["files"] for v in scale["corpora"].values()
-    )
-    rows = {
-        "campaign": guard(
-            "contracts",
-            "one campaign",
-            "bytes",
-            CAMPAIGN_DOCUMENT_BYTES,
-            scale["campaign_bytes"],
-            "reader memory",
-            "reject oversized campaign",
-            "contracts.CAMPAIGN_DOCUMENT_BYTES",
-        ),
-        "producer_reader": guard(
-            "workstation collector",
-            "one producer",
-            "bytes",
-            LIMIT,
-            largest_batch,
-            "reader memory",
-            "bound the individual read",
-            "progressive_workstation_state.LIMIT",
-        ),
-        "journal": guard(
-            "budget journal",
-            "campaign",
-            "bytes",
-            JOURNAL_BYTES,
-            scale["journal"]["bytes"],
-            "durable accounting",
-            "preserve completed charges",
-            "storage.JOURNAL_BYTES",
-        ),
-        "zip": guard(
-            "archive verifier",
-            "expanded aggregate",
-            "bytes",
-            MAX_BYTES,
-            None,
-            "reader memory",
-            "reject oversized archive",
-            "report.MAX_BYTES",
-        ),
-        "projection_part": guard(
-            "report transport",
-            "one part",
-            "bytes",
-            MAX_PART,
-            None,
-            "transport memory",
-            "split verified parts",
-            "report.MAX_PART",
-        ),
-        "manifest": guard(
-            "report transport",
-            "one manifest",
-            "bytes",
-            MAX_MANIFEST,
-            None,
-            "reader memory",
-            "reject oversized manifest",
-            "report.MAX_MANIFEST",
-        ),
-        "table": guard(
-            "report transport",
-            "one public table",
-            "rows",
-            MAX_ROWS,
-            None,
-            "reader memory",
-            "reject oversized table",
-            "report.MAX_ROWS",
-        ),
-        "fit": guard(
-            "native fitter",
-            "one fit",
-            "microseconds",
-            4_000_000,
-            None,
-            "equal service",
-            "mark unfinished fit",
-            "FR-006",
-        ),
-        "portfolio": guard(
-            "portfolio",
-            "one prompt",
-            "microseconds",
-            60_000_000,
-            None,
-            "equal search",
-            "preserve partial portfolio",
-            "FR-006",
-        ),
-        "learner": guard(
-            "acceptance supervisor",
-            "one disposable learner role",
-            "seconds",
-            limits.ACCEPTANCE_SECONDS,
-            hip["elapsed_us"] / 1e6,
-            "workstation lease",
-            "stop and preserve checkpoint",
-            "research_limits.ACCEPTANCE_SECONDS",
-        ),
-        "cleanup": guard(
-            "supervisor",
-            "one termination",
-            "seconds",
-            limits.CLEANUP_SECONDS,
-            None,
-            "stuck worker",
-            "verify termination",
-            "research_limits.CLEANUP_SECONDS",
-        ),
-        "samples": guard(
-            "telemetry",
-            "one role",
-            "samples",
-            Recorder.MAX_SAMPLES,
-            hip["telemetry"]["samples"],
-            "log storage",
-            "mark coverage gap",
-            "Recorder.MAX_SAMPLES",
-        ),
-        "telemetry_events": guard(
-            "telemetry",
-            "one role",
-            "events",
-            Recorder.MAX_EVENTS,
-            None,
-            "log storage",
-            "retain aggregate coverage",
-            "Recorder.MAX_EVENTS",
-        ),
-        "diagnostic_log": guard(
-            "workstation collector",
-            "one diagnostic log",
-            "bytes",
-            LOG_LIMIT,
-            None,
-            "report storage",
-            "truncate diagnostic copy",
-            "progressive_workstation_state.LOG_LIMIT",
-        ),
-        "frame": guard(
-            "native protocol",
-            "one request",
-            "bytes",
-            MAX_FRAME_BYTES,
-            None,
-            "decoder memory",
-            "reject oversized frame",
-            "synthesis.contracts.MAX_FRAME_BYTES",
-        ),
-    }
-    for key, value in asdict(ResourceProfile()).items():
-        if type(value) in (float, int):
-            rows["native_" + key] = guard(
-                "native runtime",
-                "one registered execution",
-                key,
-                value,
-                None,
-                "bounded exact execution",
-                "record native disposition",
-                "ResourceProfile." + key,
+    def evaluation(split, pair, arm, target):
+        block = f"{arm}-{target}"
+        for role in ("search", "score"):
+            key = (block, role)
+            if (
+                split == "development"
+                and arm == ARMS[1]
+                and target == 0
+                and pilot["looks"][0]["zero_reused"]
+            ):
+                cost, basis = 0, "verified shared zero-look"
+            elif key in observed:
+                cost, basis = observed[key], "original full pilot role elapsed"
+            else:
+                cost, basis = estimates[key], "original registered cold role forecast"
+            rows.append(
+                dict(
+                    split=split, pair=pair, arm=arm, target=target, role=role, us=cost, basis=basis
+                )
             )
-    for key, value in asdict(ServiceLimits()).items():
-        units = "bytes" if key.endswith("bytes") else "entries" if "cache" in key else "batches"
-        rows["service_" + key] = guard(
-            "native service",
-            "one owning role",
-            units,
-            value,
-            None,
-            "bounded queue and cache",
-            "expire queued work or evict cache entries",
-            "ServiceLimits." + key,
-        )
-    return rows
+
+    for arm in ARMS:
+        previous = 0
+        for target in LOOKS:
+            key = (f"{arm}-{target}", "train")
+            increment = (
+                forecast["pilot_training_us"][arm] * (target - previous) + LOOKS[-1] - 1
+            ) // LOOKS[-1]
+            rows.append(
+                dict(
+                    split="development",
+                    pair=0,
+                    arm=arm,
+                    target=target,
+                    role="train",
+                    us=max(increment, observed.get(key, estimates[key])),
+                    basis="larger of candidate update projection and historical whole role",
+                )
+            )
+            evaluation("development", 0, arm, target)
+            previous = target
+    evaluation("development", 0, "incumbent", LOOKS[-1])
+    for pair in (0, 1):
+        for arm in ARMS:
+            if pair:
+                reference = sum(
+                    r["us"]
+                    for r in rows
+                    if r["split"] == "development" and r["arm"] == arm and r["role"] == "train"
+                )
+                rows.append(
+                    dict(
+                        split="replication",
+                        pair=pair,
+                        arm=arm,
+                        target=LOOKS[-1],
+                        role="train",
+                        us=reference,
+                        basis="independent seed at candidate and historical whole-role rate",
+                    )
+                )
+            evaluation("replication", pair, arm, LOOKS[-1])
+        evaluation("replication", pair, "incumbent", LOOKS[-1])
+    shift = forecast["shift_us"]
+    development = sum(r["us"] for r in rows if r["split"] == "development")
+    repeat = sum(r["us"] for r in rows if r["split"] == "replication")
+    return dict(
+        scope="conditional planning only",
+        roles=rows,
+        shift_us=shift,
+        development_us=development,
+        replication_us=repeat,
+        half_shift_us=shift // 2,
+        deficit_us=max(0, development + repeat - shift),
+        accrued_pilot_lease_us=pilot["research_gpu_us"],
+    )
 
 
 def verify_release(path):
@@ -245,7 +122,7 @@ def verify_release(path):
 
     shape(
         doc,
-        "version identity candidate source registration pilot rehearsal stages hardware targets guards",
+        "version identity candidate source registration pilot rehearsal stages hardware targets guards forecast admission",
     )
     need(
         doc == seal(doc)
@@ -255,9 +132,17 @@ def verify_release(path):
         and re.fullmatch(r"sha256:[0-9a-f]{64}", doc["source"])
     )
     rehearsal = verify_transport(io.BytesIO(rows["rehearsal.zip"]))
-    with zipfile.ZipFile(io.BytesIO(rows["rehearsal.zip"])) as nested:
-        qualification = json.loads(nested.read("rehearsal.json"))
+    nested = read_canonical(io.BytesIO(rows["rehearsal.zip"]), ("rehearsal.json", "round028.zip"))
+    qualification = json.loads(nested["rehearsal.json"])
+    audit = read_canonical(io.BytesIO(nested["round028.zip"]), ("audit.json",))["audit.json"]
     pilot = verify_pilot(io.BytesIO(rows["pilot.zip"]))
+    with zipfile.ZipFile(io.BytesIO(rows["pilot.zip"])) as child:
+        need(
+            doc["forecast"] == release_forecast(qualification, json.loads(child.read("pilot.json")))
+        )
+        with zipfile.ZipFile(io.BytesIO(child.read("round028-parent.zip"))) as parent:
+            with zipfile.ZipFile(io.BytesIO(parent.read("round028.zip"))) as original:
+                need(audit == original.read("audit.json"))
     need(
         pilot["report"] == doc["pilot"]
         and pilot["assessment"] == "SEALED"
@@ -365,6 +250,21 @@ def verify_release(path):
         numeric(journal[key], 1)
     numeric(scale["peak_allocated_bytes"], 1)
     numeric(scale["peak_inodes"], scale["targets"]["tasks"])
+    admission = doc["admission"]
+    shape(
+        admission,
+        "free_bytes free_inodes required_bytes required_inodes deficit_bytes deficit_inodes credited_scale floor_bytes identity",
+    )
+    for k in ("free_bytes", "free_inodes", "required_bytes", "required_inodes", "floor_bytes"):
+        numeric(admission[k])
+    need(
+        admission == seal(admission)
+        and admission["credited_scale"] is False
+        and admission["deficit_bytes"] == admission["deficit_inodes"] == 0
+        and admission["free_bytes"] >= admission["floor_bytes"] + admission["required_bytes"]
+        and admission["required_bytes"] >= scale["peak_allocated_bytes"]
+        and admission["free_inodes"] >= admission["required_inodes"] >= scale["peak_inodes"]
+    )
     need(
         doc["hardware"] == qualification["hip"]["image"]
         and doc["guards"] == guard_inventory(scale, qualification["hip"])

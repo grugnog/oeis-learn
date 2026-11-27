@@ -1,9 +1,10 @@
 """One resumable workstation acceptance, isolated from the completed scientific run."""
 
 import io
-from pathlib import Path
+import json
 import subprocess
 import traceback
+import zipfile
 
 from oeis_learn.experiments.source_snapshot import collect_snapshot
 from oeis_learn.generalization.progressive.contracts import (
@@ -17,12 +18,12 @@ from oeis_learn.generalization.progressive.program_search_outcome import archive
 from oeis_learn.generalization.progressive.program_search_pilot import verify_pilot
 from oeis_learn.generalization.progressive.program_search_rehearsal_report import (
     encode,
-    publish,
     verify_transport,
 )
 from oeis_learn.generalization.progressive.program_search_release import (
     PHASES,
     guard_inventory,
+    release_forecast,
     verify_release,
 )
 from .identity import confined
@@ -31,7 +32,7 @@ from .progressive_panel_sources import require
 from .progressive_research_inputs import checked_file
 from .progressive_release_checks import scale_targets, release_cases
 from .progressive_round028_pilot import PilotRole, SHARE as PILOT_SHARE
-from .progressive_round028_rehearsal import original_scale, rehearse, space
+from .progressive_round028_rehearsal import failure_locations, original_scale, rehearse, space
 from .research_limits import ACCEPTANCE_SECONDS
 
 
@@ -117,8 +118,13 @@ def release_command(args, source, root, folder, revision, store, host_factory):
     from .progressive_round028_audit import ORIGINAL
 
     measurements = original_scale(cut)
-    original = next(
+    originals = [
         r for r in cut["inputs"] if r["path"] == ORIGINAL + "/prepare-research/frozen/campaign.json"
+    ]
+    require(len(originals) == 1, "original campaign is absent or duplicated in the audit")
+    original = originals[0]
+    measurements["calibration_bytes"] = max(
+        (r["bytes"] for r in cut["inputs"] if "calibrat" in r["path"]), default=0
     )
     campaign = read_bound_record(root, original, identity=store.campaign["policy"]["campaign"])
     targets = scale_targets(measurements, len(campaign["payload"]["tasks"]))
@@ -136,6 +142,7 @@ def release_command(args, source, root, folder, revision, store, host_factory):
     cpu = ReleaseRole(args, source, root, revision, area, qualification, host_factory)
     host = host_factory(args, source_root=source, workspace=root, revision=revision)
     running, failures, evidence = [], {}, {}
+    locations = {}
     capacity = None
 
     def progress(phase):
@@ -170,6 +177,7 @@ def release_command(args, source, root, folder, revision, store, host_factory):
                 )
                 if code:
                     failures[phase] = observed["reason"]
+                    locations[phase] = observed.get("failure_locations", [])
                     continue
                 training = recover(root, folder, source, revision, store, output_area=probe_dir)
                 require(
@@ -183,7 +191,16 @@ def release_command(args, source, root, folder, revision, store, host_factory):
                         "hardware receipt changed",
                     )
                 else:
-                    publish(hardware, training, audit_archive(folder))
+                    with zipfile.ZipFile(audit_archive(folder)) as archived:
+                        audit_bytes = archive_bytes({"audit.json": archived.read("audit.json")})
+                    packed = archive_bytes(
+                        {"rehearsal.json": encode(training), "round028.zip": audit_bytes}
+                    )
+                    require(
+                        verify_transport(io.BytesIO(packed))["evidence"] == training["identity"],
+                        "release rehearsal parent differs",
+                    )
+                    _atomic_write(hardware, packed)
                 hip_cut = observed["qualification_receipts"]["hip"]
                 stage = confined(folder, probe_dir + "/stages/" + hip_cut["request"][7:])
                 bound = load(confined(stage, "receipt.json"))
@@ -228,6 +245,18 @@ def release_command(args, source, root, folder, revision, store, host_factory):
                     if capacity["deficit_bytes"] or capacity["deficit_inodes"]:
                         failures[phase] = "RELEASE_SCALE_RESOURCE_DEFICIT"
                         continue
+                    admission_path = area / "scale-original-admission.json"
+                    if not admission_path.exists():
+                        require(
+                            not capacity["credited_scale"],
+                            "completed scale lacks its original admission",
+                        )
+                        retain(
+                            admission_path,
+                            seal(
+                                dict(**capacity, floor_bytes=host.policy["free_disk_floor_bytes"])
+                            ),
+                        )
                 role, parameters = {
                     "source": ("release_suite", {"mode": "source"}),
                     "wheel": ("release_suite", {"mode": "wheel"}),
@@ -259,6 +288,7 @@ def release_command(args, source, root, folder, revision, store, host_factory):
         except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError) as exc:
             (area / (phase + "-error.txt")).write_text(traceback.format_exc())
             failures[phase] = type(exc).__name__
+            locations[phase] = failure_locations(source, area, role_folder="roles")
     progress("blocked" if failures else "verified")
     if failures:
         return (
@@ -267,10 +297,13 @@ def release_command(args, source, root, folder, revision, store, host_factory):
                 reason="RELEASE_ACCEPTANCE_INCOMPLETE",
                 completed=running,
                 failures=failures,
+                failure_locations=locations,
                 **({"capacity": capacity} if capacity is not None else {}),
             ),
             2,
         )
+    with zipfile.ZipFile(pilot_path) as child:
+        forecast = release_forecast(training, json.loads(child.read("pilot.json")))
     report = seal(
         dict(
             version="round028-release/v1",
@@ -281,6 +314,8 @@ def release_command(args, source, root, folder, revision, store, host_factory):
             pilot=pilot["report"],
             rehearsal=training["identity"],
             stages=evidence,
+            forecast=forecast,
+            admission=load(confined(area, "scale-original-admission.json")),
             hardware=training["hip"]["image"],
             guards=guard_inventory(evidence["scale"]["result"], training["hip"]),
         )

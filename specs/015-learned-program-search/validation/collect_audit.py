@@ -175,6 +175,9 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
             step["completed"] = [p for p in raw.get("completed", []) if p in PHASES]
             step["failures"] = {p:reason for p,reason in raw.get("failures", {}).items()
                                 if p in PHASES and re.fullmatch("[A-Za-z0-9_]{1,96}", reason)}
+            step["failure_locations"] = {p:[[filename, line] for filename, line in coords
+                if re.fullmatch(r"(src/oeis_learn|scripts)/[a-zA-Z0-9_/]+\.py", filename) and type(line) is int and line > 0]
+                for p,coords in raw.get("failure_locations",{}).items() if p in PHASES}
             step["capacity"] = {k:v for k,v in raw.get("capacity", {}).items()
                                 if k in {"required_bytes","required_inodes","free_bytes","free_inodes",
                                          "deficit_bytes","deficit_inodes"} and type(v) is int}
@@ -185,6 +188,13 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
                 step["reason"] = "REPEATED_RELEASE_RECEIPT_CHANGED"
                 break
             receipt = raw["receipt"]
+        if not code:
+            code, private = run("private_replay", "verify", *root)
+            pilot = private.get("pilot", {})
+            if not code and (pilot.get("private_replay") != "VERIFIED" or
+                             pilot.get("public_recomputation", {}).get("report") != receipt["pilot"]):
+                code = 2
+                summary["steps"]["private_replay"]["reason"] = "WORKSPACE_PILOT_PARENT_DIFFERS"
         if not code:
             copy = folder / "round028-release.zip"
             shutil.copyfile(confined(session, f"share/release-acceptance/{candidate}/round028-release.zip"), copy)

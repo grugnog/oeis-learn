@@ -117,7 +117,16 @@ def learner_fault(output, sample_path, expected, *, device="cuda"):
         start = time.monotonic_ns()
         # Use a fresh interpreter, including a fresh HIP runtime.
         proc = subprocess.run(
-            [sys.executable, "-m", __name__, str(sample_path), stage, device], check=False
+            [
+                sys.executable,
+                *(["-I"] if device == "cuda" else []),
+                "-m",
+                __name__,
+                str(sample_path),
+                stage,
+                device,
+            ],
+            check=False,
         )
         failed_us = (time.monotonic_ns() - start) // 1000
         require(

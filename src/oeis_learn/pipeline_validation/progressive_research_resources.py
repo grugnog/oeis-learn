@@ -159,3 +159,215 @@ def estimate_training(package, measurements, *, delta, target, available):
     elapsed=padded_us(updates*m['update_us']+snapshots*m['checkpoint_us']+2*((updates+7)//8)*m['probe_us'])
     return dict(maximum_updates=updates,checkpoint_policy=checkpoint_policy(package),
         maximum_snapshots=snapshots,estimated_work_us=elapsed,available_work_us=available)
+
+
+def guard_inventory(scale, hip):
+    from dataclasses import asdict
+    from oeis_learn.synthesis.contracts import MAX_FRAME_BYTES, ResourceProfile
+    from oeis_learn.synthesis.service_policy import ServiceLimits
+    from oeis_learn.tracking.pipeline_profile import Recorder
+    from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES
+    from oeis_learn.generalization.progressive.report import MAX_BYTES, MAX_MANIFEST, MAX_PART, MAX_ROWS
+    from oeis_learn.generalization.progressive.storage import JOURNAL_BYTES
+    from oeis_learn.pipeline_validation import research_limits as limits
+    from oeis_learn.pipeline_validation.progressive_workstation_state import LIMIT, LOG_LIMIT
+
+    def guard(owner, scope, units, limit, observed, harm, exhaustion, source):
+        return dict(
+            owner=owner,
+            scope=scope,
+            units=units,
+            limit=limit,
+            observed=observed,
+            margin=limit - observed if observed is not None else None,
+            production_check="collect-release on the candidate images",
+            basis=(
+                "measured_workstation_release"
+                if observed is not None
+                else "registered_owner_profile"
+            ),
+            source=source,
+            protects=harm,
+            exhaustion=exhaustion,
+        )
+
+    largest_batch = max(
+        (v["expanded_bytes"] + v["files"] - 1) // v["files"] for v in scale["corpora"].values()
+    )
+    rows = {
+        "campaign": guard(
+            "contracts",
+            "one campaign",
+            "bytes",
+            CAMPAIGN_DOCUMENT_BYTES,
+            scale["campaign_bytes"],
+            "reader memory",
+            "reject oversized campaign",
+            "contracts.CAMPAIGN_DOCUMENT_BYTES",
+        ),
+        "producer_reader": guard(
+            "workstation collector",
+            "one producer",
+            "bytes",
+            LIMIT,
+            largest_batch,
+            "reader memory",
+            "bound the individual read",
+            "progressive_workstation_state.LIMIT",
+        ),
+        "journal": guard(
+            "budget journal",
+            "campaign",
+            "bytes",
+            JOURNAL_BYTES,
+            scale["journal"]["bytes"],
+            "durable accounting",
+            "preserve completed charges",
+            "storage.JOURNAL_BYTES",
+        ),
+        "zip": guard(
+            "archive verifier",
+            "expanded aggregate",
+            "bytes",
+            MAX_BYTES,
+            None,
+            "reader memory",
+            "reject oversized archive",
+            "report.MAX_BYTES",
+        ),
+        "projection_part": guard(
+            "report transport",
+            "one part",
+            "bytes",
+            MAX_PART,
+            None,
+            "transport memory",
+            "split verified parts",
+            "report.MAX_PART",
+        ),
+        "manifest": guard(
+            "report transport",
+            "one manifest",
+            "bytes",
+            MAX_MANIFEST,
+            None,
+            "reader memory",
+            "reject oversized manifest",
+            "report.MAX_MANIFEST",
+        ),
+        "table": guard(
+            "report transport",
+            "one public table",
+            "rows",
+            MAX_ROWS,
+            None,
+            "reader memory",
+            "reject oversized table",
+            "report.MAX_ROWS",
+        ),
+        "fit": guard(
+            "native fitter",
+            "one fit",
+            "microseconds",
+            4_000_000,
+            None,
+            "equal service",
+            "mark unfinished fit",
+            "FR-006",
+        ),
+        "portfolio": guard(
+            "portfolio",
+            "one prompt",
+            "microseconds",
+            60_000_000,
+            None,
+            "equal search",
+            "preserve partial portfolio",
+            "FR-006",
+        ),
+        "learner": guard(
+            "acceptance supervisor",
+            "one disposable learner role",
+            "seconds",
+            limits.ACCEPTANCE_SECONDS,
+            hip["elapsed_us"] / 1e6,
+            "workstation lease",
+            "stop and preserve checkpoint",
+            "research_limits.ACCEPTANCE_SECONDS",
+        ),
+        "cleanup": guard(
+            "supervisor",
+            "one termination",
+            "seconds",
+            limits.CLEANUP_SECONDS,
+            None,
+            "stuck worker",
+            "verify termination",
+            "research_limits.CLEANUP_SECONDS",
+        ),
+        "samples": guard(
+            "telemetry",
+            "one role",
+            "samples",
+            Recorder.MAX_SAMPLES,
+            hip["telemetry"]["samples"],
+            "log storage",
+            "mark coverage gap",
+            "Recorder.MAX_SAMPLES",
+        ),
+        "telemetry_events": guard(
+            "telemetry",
+            "one role",
+            "events",
+            Recorder.MAX_EVENTS,
+            None,
+            "log storage",
+            "retain aggregate coverage",
+            "Recorder.MAX_EVENTS",
+        ),
+        "diagnostic_log": guard(
+            "workstation collector",
+            "one diagnostic log",
+            "bytes",
+            LOG_LIMIT,
+            None,
+            "report storage",
+            "truncate diagnostic copy",
+            "progressive_workstation_state.LOG_LIMIT",
+        ),
+        "frame": guard(
+            "native protocol",
+            "one request",
+            "bytes",
+            MAX_FRAME_BYTES,
+            None,
+            "decoder memory",
+            "reject oversized frame",
+            "synthesis.contracts.MAX_FRAME_BYTES",
+        ),
+    }
+    for key, value in asdict(ResourceProfile()).items():
+        if type(value) in (float, int):
+            rows["native_" + key] = guard(
+                "native runtime",
+                "one registered execution",
+                key,
+                value,
+                None,
+                "bounded exact execution",
+                "record native disposition",
+                "ResourceProfile." + key,
+            )
+    for key, value in asdict(ServiceLimits()).items():
+        units = "bytes" if key.endswith("bytes") else "entries" if "cache" in key else "batches"
+        rows["service_" + key] = guard(
+            "native service",
+            "one owning role",
+            units,
+            value,
+            None,
+            "bounded queue and cache",
+            "expire queued work or evict cache entries",
+            "ServiceLimits." + key,
+        )
+    return rows
