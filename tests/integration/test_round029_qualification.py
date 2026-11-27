@@ -1,5 +1,7 @@
 """Controller-only fixtures. Hardware measurements come exclusively from the installed worker."""
 
+import runpy
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -9,6 +11,48 @@ from oeis_learn.pipeline_validation import progressive_handoff, progressive_roun
 from oeis_learn.pipeline_validation import progressive_velocity_qualification as controller
 from oeis_learn.pipeline_validation.progressive_round029 import inspect_status
 from oeis_learn.generalization.progressive.velocity_records import validate_result
+
+
+@pytest.mark.parametrize(
+    "fault,expected_calls",
+    [("none", 2), ("missing_receipt", 0), ("other_grant", 0), ("other_status", 0), ("extra_charge", 2)],
+)
+def test_saved_learner_review_uses_the_original_grant(tmp_path, fault, expected_calls):
+    validation = Path(__file__).resolve().parents[2] / "specs/016-measure-learning-velocity/validation"
+    helper = runpy.run_path(str(validation / "replay_learner.py"))
+    grant_id = helper["GRANT"]
+    authority = tmp_path / "run-state/discovery-authorizations" / f"grant-{grant_id}.json"
+    retained_grant = digest("other") if fault == "other_grant" else "sha256:" + grant_id
+    atomic_write(authority, {"identity": retained_grant})
+    receipt = {"identity": helper["RECEIPT_ID"]}
+    saved = dict(
+        receipt_path="retained/receipt.json", receipt=receipt, elapsed_us=100,
+        charged_tokens=20, research_dispatches=0,
+    )
+    if fault != "missing_receipt":
+        atomic_write(tmp_path / saved["receipt_path"], receipt)
+    calls = []
+
+    def invoke(action, *args):
+        if action == "status":
+            status_id = digest("other") if fault == "other_status" else helper["STATUS_ID"]
+            return dict(
+                owner_active=False, last_committed_ref=receipt["identity"],
+                progress=dict(saved, identity=status_id),
+            )
+        assert action == "qualify" and args == (str(authority),)
+        calls.append(action)
+        if fault == "extra_charge" and len(calls) == 2:
+            return dict(saved, elapsed_us=101)
+        return saved.copy()
+
+    if fault == "none":
+        result = helper["replay"](tmp_path, invoke)
+        assert result["verified_replays"] == 2 and result["receipt"] == receipt["identity"]
+    else:
+        with pytest.raises(SystemExit):
+            helper["replay"](tmp_path, invoke)
+    assert len(calls) == expected_calls
 
 
 def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(tmp_path, monkeypatch):
