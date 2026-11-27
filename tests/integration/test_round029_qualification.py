@@ -738,6 +738,8 @@ def test_broader_disjointness_failure_reopens_both_treatments_without_device_or_
         ),
     )
     source = Path(__file__).resolve().parents[2]
+    plan = dict(stream=digest("stream"), start=25, draws=2, slots=8, input_bytes=8192)
+    monkeypatch.setattr(broad, "preparation_plan", lambda root: plan)
     args = SimpleNamespace(
         workspace=tmp_path,
         action="qualify",
@@ -758,7 +760,7 @@ def test_broader_disjointness_failure_reopens_both_treatments_without_device_or_
             seal(
                 dict(
                     origins=binding["origins"],
-                    ordinary_slots=8,
+                    ordinary_slots=8, stream=plan["stream"],
                     sources=[],
                     physical=digest("device"),
                     calibration=dict(
@@ -780,6 +782,23 @@ def test_broader_disjointness_failure_reopens_both_treatments_without_device_or_
     def run():
         return progressive_round029.execute(args, source, host_factory=no_device)
 
+    import os
+    from oeis_learn.generalization.progressive.contracts import reference
+    from oeis_learn.pipeline_validation.progressive_research_resources import register_velocity_capacity
+
+    def reserve_inodes(n):
+        path = tmp_path / f"mount-{n}.json"
+        atomic_write(path, seal(dict(version="round029-mount-plan/v1", owners=[],
+                                     floors=[dict(path=".", bytes=0, inodes=n)])))
+        register_velocity_capacity(tmp_path, dict(owner="custodian", format="round029-mount-plan/v1",
+                                                  artifact=reference(tmp_path, path)))
+
+    reserve_inodes(os.statvfs(tmp_path).f_favail + 1000)
+    blocked, code = run()
+    assert code == 2 and blocked["next_action"] == "inspect_capacity", blocked
+    assert blocked["deficit_inodes"] >= 1000 and blocked["deficit_bytes"] == 0
+    assert not calls and blocked["elapsed_us"] == 0
+    reserve_inodes(0)
     first, code = run()
     assert code == 0, first
     assert first["receipt"]["disposition"] == "requires_fresh_disjoint_start"

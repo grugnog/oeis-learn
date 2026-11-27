@@ -133,6 +133,7 @@
         "stage": {"type": "string", "minLength": 1},
         "reason": {"type": "string", "minLength": 1},
         "attempt": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "capacity": {"type": "object", "properties": {}, "additionalProperties": {}},
         "attempt_path": {"$ref": "progressive-common.schema.json#/$defs/path"},
         "exit": {"oneOf": [{"type": "integer"}, {"type": "null"}]},
         "deficit_bytes": {"$ref": "progressive-common.schema.json#/$defs/integer"},

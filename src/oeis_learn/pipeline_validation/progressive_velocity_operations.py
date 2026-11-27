@@ -94,6 +94,12 @@ def operation_receipt(coordinates, request, grant, attempt, item):
     )
 
 
+def check_reserved_work(snapshot, prefix, work):
+    for key, debit in snapshot.get("reserved_work", {}).items():
+        if key.startswith(prefix) and any(debit[k] != v for k, v in work.items() if k != "elapsed_us"):
+            raise ValueError("original dispatch debit differs from the registered work")
+
+
 def replay_operation(area, coordinates, request, grant, cost, snapshot, verify):
     """Read and rederive a completed original operation, without opening a writable journal."""
     logical = operation_key(coordinates, 0)["logical"]
@@ -101,6 +107,7 @@ def replay_operation(area, coordinates, request, grant, cost, snapshot, verify):
     work = vector(dict(dict.fromkeys(KEYS, 0), **cost))
     if load(confined(block, "input.json")) != input_record(coordinates, request, work, grant):
         raise ValueError("original registered operation input differs")
+    check_reserved_work(snapshot, logical + "/dispatch/", work)
     prior = load(confined(block, "receipt.json"))
     attempt = prior["attempt"]
     if f"{logical}/dispatch/{attempt}" not in snapshot["committed"]:
@@ -126,6 +133,7 @@ def run_operation(
     minimum_us=1,
     max_attempts=None,
     installed=None,
+    before_dispatch=None,
 ):
     """Only a verified supervisor boundary may release unused time. Issued work stays charged."""
     if (
@@ -147,7 +155,8 @@ def run_operation(
         return operation_receipt(coordinates, request, grant, attempt, verify(out))
 
     receipt = block / "receipt.json"
-    state = journal.reconcile()
+    state = journal.snapshot(include_work=True)
+    check_reserved_work(state, prefix, work)
     keys = [k for k in state["pending"] + state["committed"] if k.startswith(prefix)]
     # A crash may separate the checked result, the irreversible debit and the published pointer.
     # The durable host boundary carries the original monotonic end for that same reservation.
@@ -213,6 +222,8 @@ def run_operation(
         raise InsufficientAuthority(
             "the authorized dispatch attempts for this operation are exhausted"
         )
+    if before_dispatch is not None:
+        before_dispatch()
     boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
     start = time.monotonic_ns() // 1000
     reservation = journal.reserve(
@@ -257,7 +268,7 @@ def run_operation(
             reservation["key"],
             boot=boot,
             monotonic_us=end,
-termination_proven=acknowledged and not expired and end - start <= reserve,
+            termination_proven=acknowledged and not expired and end - start <= reserve,
         )
         path = block / "first-error.json"
         if not path.exists():

@@ -430,7 +430,7 @@ def register_velocity_capacity(root, source):
     return binding
 
 
-def velocity_capacity(root):
+def velocity_capacity(root, *, owners=(), floors=()):
     from oeis_learn.generalization.progressive.contracts import load
     from oeis_learn.generalization.progressive.velocity_records import SESSION
     from .identity import confined
@@ -438,6 +438,8 @@ def velocity_capacity(root):
 
     folder = confined(root, f"run-state/discovery/{SESSION}/preparation/capacity", exists=False)
     if not (folder / "registration.json").is_file():
+        if owners or floors:
+            return dict(registration=None, mounts=velocity_mounts(root, owners, floors), reason=None)
         return dict(
             registration=None,
             mounts=None,
@@ -449,6 +451,6 @@ def velocity_capacity(root):
         raise ValueError("registered physical capacity inputs differ")
     return dict(
         registration=binding["identity"],
-        mounts=velocity_mounts(root, plan["owners"], plan["floors"]),
+        mounts=velocity_mounts(root, [*plan["owners"], *owners], [*plan["floors"], *floors]),
         reason=None,
     )

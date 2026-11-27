@@ -142,3 +142,22 @@ def test_original_prices_count_retries_but_keep_profiles_and_missing_clocks_sepa
         result[0]["roles"]["score"]["charged_us"] is None
         and result[2]["roles"]["search"]["charged_us"] == 20
     )
+
+
+def test_broader_shortfall_prices_the_largest_fitting_draw_prefix(tmp_path, monkeypatch):
+    from oeis_learn.pipeline_validation import progressive_research_resources as resources
+    from oeis_learn.pipeline_validation.progressive_velocity_broad_host import CapacityShortfall, check_capacity
+    from oeis_learn.pipeline_validation.progressive_pilot_capacity import velocity_mounts
+    import pytest
+
+    block = tmp_path.stat().st_blksize
+    # 12 fixed staging entries and room for three more, including the two-peak margin.
+    def measured(root, *, owners, floors):
+        mounts = velocity_mounts(root, owners, floors, measure=lambda _: (1, 1000 * block, 30))
+        return dict(mounts=mounts)
+    monkeypatch.setattr(resources, "velocity_capacity", measured)
+    binding = dict(candidate="a" * 40, work_plan=dict(slots=4, draws=8, input_bytes=4 * block))
+    with pytest.raises(CapacityShortfall) as exc:
+        check_capacity(tmp_path, tmp_path, binding, "custodian", None)
+    assert exc.value.deficits == dict(deficit_bytes=0, deficit_inodes=10)
+    assert exc.value.capacity["next_affordable_batch"] == dict(stage="custodian", draws=3)

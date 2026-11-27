@@ -832,6 +832,10 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
         seal(dict(kind="families", grant=digest("families-grant"), receipt=digest("families"))),
     )
     revision = "a" * 40
+    monkeypatch.setattr(host, "archive_size", lambda *_: 8192)
+    stream = seal(dict(x["stream"], law=x["law"]))
+    plan = dict(stream=stream["identity"], start=25, draws=2, slots=4, input_bytes=8192)
+    monkeypatch.setattr(host, "preparation_plan", lambda root: plan)
     grant = load(host.authorize(tmp_path, 5, revision))
     model = resolve_profile(
         resolve({"version": "bigint-bootstrap/v1"}),
@@ -854,7 +858,7 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
                 ordinary_rows=x["shards"][0],
                 familiar=x["familiar"],
                 difficulty=x["calibration"],
-                eligible_ordinals=x["ordinals"] if prospects else [],
+                eligible_ordinals=[25, 26] if prospects else [],
                 pair_seed=29,
                 microbatch=8,
                 calibration=cal,
@@ -866,7 +870,7 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
             seal(
                 dict(
                     origins=load(Path(argv[-1]))["origins"],
-                    ordinary_slots=4,
+                    ordinary_slots=4, stream=stream["identity"],
                     drawn=2,
                     physical=machine,
                     calibration=cal,
@@ -968,6 +972,25 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
             lambda *a, **kw: SimpleNamespace(engine=engine),
         )
 
+    # A grant one draw short must leave the custodian and native service untouched.
+    small = seal(dict(grant, resources=dict(grant["resources"], draws=1)))
+    refused, code = host.qualify(None, tmp_path, folder, source, revision, small,
+                                 lambda *a, **kw: pytest.fail("unfunded worker"))
+    assert code == 2 and not calls and refused["elapsed_us"] == 0
+
+    from oeis_learn.pipeline_validation import progressive_research_resources as resources
+    check = resources.velocity_capacity
+    paused = True
+    def native_pressure(root, *, owners, floors):
+        value = check(root, owners=owners, floors=floors)
+        if paused and owners[0]["owner"] == "broader prepare":
+            value["mounts"][0]["deficit_bytes"] = 1024
+        return value
+    monkeypatch.setattr(resources, "velocity_capacity", native_pressure)
+    stopped, code = qualify()
+    assert code == 2 and stopped["stage"] == "prepare" and stopped["deficit_bytes"] == 1024
+    assert calls == ["custodian"]
+    paused = False
     first, code = qualify()
     assert code == 0, first
     assert first["receipt"]["disposition"] == (
@@ -976,6 +999,10 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
     assert (first["charged_tokens"] > 0) is prospects
     assert qualify() == (first, 0) and host.inventory(tmp_path, source) == first["receipt"]
     assert calls == ["custodian", "prepare-broad"] + (["time-broad"] if prospects else [])
+    debits = first["receipt"]["preparation_work"]
+    assert debits["draws"] == 2
+    assert debits["native_work"] >= 4 + len(x["ordinals"] if prospects else [])
+    assert first["receipt"]["drawn"] == 2
     # Interrupt after nested producer installation, before the host publishes its boundary.
     from oeis_learn.generalization.progressive.budgets import BudgetJournal
     from oeis_learn.pipeline_validation.progressive_velocity_operations import run_operation
@@ -983,7 +1010,7 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
     ledger = BudgetJournal(recovery / "ledger", grant["identity"], grant["resources"])
     from oeis_learn.generalization.progressive.velocity_records import operation_key
     from oeis_learn.generalization.progressive.budgets import KEYS
-    original_area = next(folder.glob("qualification/*/binding.json")).parent
+    original_area = folder / "qualification" / grant["identity"][7:]
     binding = load(original_area / "binding.json")
     coords = host.coordinates(grant, "prepare")
     logical = operation_key(coords, 0)["logical"]
@@ -993,8 +1020,8 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
     work = load(block / "input.json")["work"]
     ledger.reserve(logical, "dispatch", 0, dict(work, elapsed_us=grant["total_us"]), boot="lost", monotonic_us=0)
     args = dict(area=original_area, journal=ledger, grant=grant, coordinates=coords,
-                request=binding, cost={k: work[k] for k in KEYS if work[k]}, execute=lambda *_: pytest.fail("redispatch"),
-                installed=host.preparation_installed, verify=lambda out: host.cpu_evidence(tmp_path, original_area, binding, out))
+                request=load(block / "input.json")["request"], cost={k: work[k] for k in KEYS if work[k]}, execute=lambda *_: pytest.fail("redispatch"),
+                installed=lambda out: (out / "native/producer.json").is_file(), verify=lambda out: host.cpu_evidence(tmp_path, original_area, binding, out))
     restored = run_operation(**args)
     assert run_operation(**args) == restored and restored["evidence"]["disposition"] == first["receipt"]["disposition"]
     assert ledger.snapshot()["remaining"]["elapsed_us"] == 0

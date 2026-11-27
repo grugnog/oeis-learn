@@ -304,7 +304,7 @@ class BudgetJournal:
                 )
             )
 
-    def _snapshot(self):
+    def _snapshot(self, *, include_work=False):
         _, pending, finished, totals, previous = self._read()
         return dict(
             consumed=dict(totals),
@@ -312,14 +312,15 @@ class BudgetJournal:
             pending=sorted(pending),
             committed=sorted(finished),
             watermark=previous,
+            **({"reserved_work": {k: v["cost"] for k, v in self._reservations.items()}} if include_work else {}),
         )
 
-    def snapshot(self):
+    def snapshot(self, *, include_work=False):
         with self.lock():
-            return self._snapshot()
+            return self._snapshot(include_work=include_work)
 
     @classmethod
-    def inspect_existing(cls, root, campaign, caps, *, include_windows=False):
+    def inspect_existing(cls, root, campaign, caps, *, include_windows=False, include_work=False):
         """Verify an existing journal under a shared lock, even on a read-only mount."""
         from oeis_learn.pipeline_validation.identity import confined
 
@@ -331,7 +332,7 @@ class BudgetJournal:
             view.path = confined(root, "budget.jsonl")
             if load(confined(root, "budget-binding.json")) != seal(view.binding):
                 raise ValueError("campaign budget binding changed")
-            snapshot = view._snapshot()
+            snapshot = view._snapshot(include_work=include_work)
             if include_windows:
                 # _consume verified each settlement against its original reservation.
                 windows = {}
