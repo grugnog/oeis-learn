@@ -2,7 +2,9 @@
 
 ## Collect release acceptance
 
-Run this block once on the Podman/HIP workstation that holds the completed round028 pilot. Start from its detached round027 donor checkout. The command creates an isolated acceptance directory for commit `3ecac2fd` and reopens the existing scientific result. The pilot retained D and the final assessment stays sealed.
+**Workstation release acceptance is complete for T044, T046 and T047.** The copied archive verified at commit `3ecac2fd` and reproduced the pilot decision to retain D with the final assessment sealed. [Measured results and archive verification command](validation/round028-release.md)
+
+To reproduce the collection, run this block from the detached round027 donor checkout on the Podman/HIP workstation that holds the completed pilot. The command reopens the isolated acceptance directory for this candidate.
 
 ```bash
 (
@@ -16,7 +18,7 @@ Run this block once on the Podman/HIP workstation that holds the completed round
 )
 ```
 
-| Open task | What the command collects |
+| Task | What the command collects |
 | --- | --- |
 | T044 | The same regressions against the candidate source and installed wheel, including its native fitter, 013 CLI and Optuna checks, both research branches and archive-only verification. |
 | T046 | Original admission, cold and warm measurements for both producer encodings and the full journal, native execution, observed HIP updates, complete checkpoint restore and a revised forecast for both seed pairs. |
@@ -24,7 +26,7 @@ Run this block once on the Podman/HIP workstation that holds the completed round
 
 The saved rehearsal recorded 461,574,003 producer bytes. Each of the two test encodings covers at least that volume across 352 files. The journal fixture reopens 290,000 events and checks that both reads credit the same 145,000 completed operations.
 
-The last line gives the path to the file to return. **`round028-release.zip`** contains the verified evidence and both public parents. If a check fails, **`round028-release-diagnostics.zip`** contains the completed stages, failed checks and any measured capacity deficit. Detailed logs stay on the workstation. Running the same block after a recoverable failure reopens completed stages under the same candidate.
+The last line gives the path to the collected file. **`round028-release.zip`** contains the verified evidence and both public parents. If a check fails, **`round028-release-diagnostics.zip`** contains the completed stages, failed checks and any measured capacity deficit. Detailed logs stay on the workstation. Running the same block after a recoverable failure reopens completed stages under the same candidate.
 
 ## Run the eleven-hour generator pilot
 
