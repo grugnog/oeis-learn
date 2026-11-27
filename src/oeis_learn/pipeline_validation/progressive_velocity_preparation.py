@@ -164,7 +164,7 @@ def combined(binding, receipts):
     )
 
 
-def funded_inventory(root, kind, pointer):
+def funded_inventory(root, kind, pointer, *, with_original=False):
     if pointer != seal(pointer) or pointer["kind"] != kind:
         raise ValueError("incorrect funded supply pointer")
     area = confined(root, f"run-state/discovery/{SESSION}/qualification/" + pointer["grant"][7:])
@@ -191,12 +191,20 @@ def funded_inventory(root, kind, pointer):
     paid = reopen(root, area, binding, grant, snapshot, kind)
     if pointer["receipt"] != paid["identity"]:
         raise ValueError("supply debit or evidence differs")
-    return dict(
+    public = dict(
         **paid["evidence"]["counts"],
         registration=binding["identity"],
         measurement=paid["identity"],
         reason=None,
     )
+    if not with_original:
+        return public
+    logical = paid["operation"]["logical"][7:]
+    path = confined(area, f"operations/{logical}/attempt-{paid['attempt']:04d}/measurement.json")
+    original = load(path, maximum=path.stat().st_size)
+    if original != seal(original) or original["identity"] != paid["evidence"]["measurement"]:
+        raise ValueError("paid custodian measurement differs on reopening")
+    return public, original
 
 
 def qualify(args, root, folder, source, revision, grant, host_factory):

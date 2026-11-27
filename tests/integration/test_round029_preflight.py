@@ -475,6 +475,10 @@ def test_combined_cpu_census_keeps_paid_pairs_across_family_failure(tmp_path, mo
     verified, code = private_result(tmp_path, folder)
     assert code == 0 and verified["last_committed_ref"] == completed["last_committed_ref"]
     assert supply_inventory(tmp_path)["families"]["count"] == 0
+    from oeis_learn.pipeline_validation.progressive_velocity_supply import _area
+    pointer = load(_area(tmp_path, "matching_pairs") / "funded.json")
+    counts, original_pairs = prep.funded_inventory(tmp_path, "matching_pairs", pointer, with_original=True)
+    assert original_pairs == pair and counts == supply_inventory(tmp_path)["matching_pairs"]
     original.write_text("changed")
     assert all(r["count"] is None for r in supply_inventory(tmp_path).values())
 

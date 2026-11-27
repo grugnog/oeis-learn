@@ -321,3 +321,181 @@ def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(
     assert failed["remaining_authority"] == 0 and failed["remaining_tokens"] == 0
     stopped, code = run()
     assert code == 2 and stopped["first_error"] == failed["first_error"]
+
+
+def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
+    tmp_path, monkeypatch, velocity_supply_rows
+):
+    from types import SimpleNamespace
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.generalization.progressive.campaign import velocity_policy
+    from oeis_learn.generalization.progressive.models import resolve_profile
+    from oeis_learn.generalization.progressive.training_rows import matching_pairs
+    from oeis_learn.generalization.progressive.velocity_trials import update_policy
+    from oeis_learn.pipeline_validation import progressive_velocity_timing_host as host
+    from oeis_learn.pipeline_validation import progressive_round029, progressive_round028
+    from oeis_learn.pipeline_validation.progressive_velocity_timing import (
+        timing_projection,
+        timing_design,
+    )
+
+    revision = "4" * 40
+    image = digest("image")
+    model = resolve_profile(
+        resolve({"version": "bigint-bootstrap/v1"}), seed=29, shape="smaller_width"
+    )
+    rows = velocity_supply_rows
+    ids = [r["draw_identity"] for r in rows]
+    stream = seal(dict(order=ids, row_identities=digest([r["identity"] for r in rows])))
+    pairs = matching_pairs([rows], ids, seed=29)
+    payment = seal(
+        dict(kind="matching_pairs", grant=digest("prior grant"), receipt=digest("prior payment"))
+    )
+    projection = timing_projection(
+        seal(dict(profile=model, microbatch=8, stream=stream, rows=rows)),
+        pairs,
+        digest("initial weights"),
+        payment["receipt"],
+    )
+    design = timing_design(projection, len(ids), 8)
+    monkeypatch.setattr(host, "pair_pointer", lambda _: payment)
+    monkeypatch.setattr(host, "donor_inputs", lambda *_: (projection, design))
+    monkeypatch.setattr(host, "collect_snapshot", lambda _: ["source bytes"])
+    monkeypatch.setattr(host, "physical_scope", lambda *_a, **_k: digest("test card"))
+    monkeypatch.setattr(progressive_round029, "candidate_revision", lambda *_: revision)
+    monkeypatch.setattr(
+        progressive_round028,
+        "git",
+        lambda _, op, *a: velocity_policy()["donor_revision"] if op == "rev-parse" else None,
+    )
+    grant = host.authorize_timing(tmp_path, 10, revision)
+    args = SimpleNamespace(
+        action="qualify",
+        authority=grant,
+        workspace=str(tmp_path),
+        image=image,
+        archive=None,
+        qualification_archive=None,
+    )
+    launches = []
+
+    def stage(_host, _source, img, out, argv, *, seconds, readonly_inputs, gpu, record_lease):
+        assert (
+            gpu
+            and record_lease
+            and seconds > 0
+            and argv[-1].endswith("progressive_velocity_timing")
+        )
+        launches.append(out)
+        req = load(
+            dict((dest, path) for path, dest in readonly_inputs)["/work/inputs/request.json"]
+        )
+        eligible = sum(k in projection["donors"] for k in projection["order"])
+        calibration = seal(
+            dict(
+                version="round029-matching-observation/v1",
+                request=projection["identity"],
+                initial_weights=projection["initial_weights"],
+                positive_rows=32,
+                eligible_rows=eligible,
+                wins=0,
+                extra_passes=1,
+                median_positive=1.0,
+                median_auxiliary=1.0,
+                weight=0.25,
+                reason=None,
+                elapsed_us=20,
+                device="cuda",
+            )
+        )
+        methods = {}
+        for method, terms in design["methods"].items():
+            policy = update_policy(
+                model, method, microbatch=8, matching_weight=0.25 if terms["matching"] else None
+            )
+            methods[method] = dict(
+                startup_us=5,
+                policy=policy["identity"],
+                samples={
+                    k: dict(w, elapsed_us=17, auxiliary_forward_us=int(w["passes"] > 0))
+                    for k, w in terms["samples"].items()
+                },
+            )
+        matrix = seal(
+            dict(
+                version="round029-update-timings/v1",
+                design=design["identity"],
+                calibration=calibration,
+                methods=methods,
+            )
+        )
+        atomic_write(
+            out / "producer.json",
+            seal(
+                dict(
+                    request=req["identity"],
+                    matrix=matrix,
+                    device="hip",
+                    elapsed_us=1000,
+                    peak_device_bytes=1024,
+                )
+            ),
+        )
+        atomic_write(out / "gpu-lease.json", {"elapsed_us": 1200})
+        atomic_write(
+            out / "process.json", dict(outcome="COMPLETE", returncode=0, cleanup_failure=None)
+        )
+        atomic_write(out / "cleanup.json", dict(acknowledged=True, within_bound=True))
+        binds = [
+            dict(Type="bind", Destination=dest, Source=str(path), RW=False)
+            for path, dest in readonly_inputs
+        ]
+        binds.append(dict(Type="bind", Destination="/work/output", Source=str(out), RW=True))
+        atomic_write(
+            out / "container-inspect.json",
+            [
+                dict(
+                    Image=img,
+                    HostConfig=dict(NetworkMode="none", ReadonlyRootfs=True, Privileged=False),
+                    Mounts=binds,
+                )
+            ],
+        )
+
+    monkeypatch.setattr(host, "stage", stage)
+
+    def run():
+        return progressive_round029.execute(
+            args,
+            tmp_path,
+            host_factory=lambda *_a, **_k: SimpleNamespace(
+                engine=SimpleNamespace(image=lambda img: img)
+            ),
+        )
+
+    completed, code = run()
+    assert code == 0, completed
+    assert run() == (completed, 0) and len(launches) == 1
+    assert (
+        completed["charged_tokens"] == design["cost"]["tokens"]
+        and completed["research_dispatches"] == 0
+    )
+    args.action = "verify"
+    args.authority = None
+    verified, code = run()
+    assert (
+        code == 0 and verified["last_committed_ref"] == completed["last_committed_ref"]
+    ), verified["reason"]
+    args.action = "preflight"
+    info, code = run()
+    assert code == 0 and info["inventory"]["gpu_dispatches"] == 0
+    prices = info["inventory"]["prices"]
+    assert prices["timed_updates"]["update_count"] == design["cost"]["attempts"]
+    assert "optimizer_to_4M_recipe_03" in prices["wave"]["missing"]
+    assert "optimizer_to_4M_recipe_02" not in prices["wave"]["missing"]
+    assert prices["wave"]["operations"]["ordinary_matching_calibration"] == 1
+    assert prices["wave_with_reserve_us"] is None
+    path = launches[0] / "gpu-lease.json"
+    path.write_text('{"elapsed_us":1}')
+    new, code = run()
+    assert code == 0 and "timed_updates" not in new["inventory"]["prices"] and len(launches) == 1

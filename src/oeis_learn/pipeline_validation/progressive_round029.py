@@ -107,6 +107,14 @@ def preflight(root, source=None):
             ] = "registered simultaneous owner peaks and physical mount reserve"
     info["new_positive_tokens_before_overshoot_if_control_reusable"] = 24_000_000
     info.update(supply_inventory(root))
+    from .progressive_velocity_timing_host import timing_inventory
+
+    try:
+        measured = timing_inventory(root, source)
+        if measured is not None:
+            info["prices"]["timed_updates"] = measured
+    except (OSError, ValueError, KeyError) as exc:
+        info["prices"]["timing_reason"] = str(exc)
     info["prices"] = velocity_forecast(info, policy)
     info["assessment"] = policy["assessment"]
     ordinary = next(r for r in info["cuts"] if (r["method"], r["look"]) == ("00", 4_000_000))
@@ -145,6 +153,11 @@ def preflight(root, source=None):
     ):
         reason, next_action = (
             "Qualify native replay on the unresolved matching-pair rows before funding the matching arms",
+            "qualify",
+        )
+    elif not info["prices"].get("timed_updates"):
+        reason, next_action = (
+            "Measure the exposed ordinary-stream matching calibration and optimizer batches together",
             "qualify",
         )
     else:
@@ -248,16 +261,33 @@ def execute(args, source, *, host_factory=None):
 
         from .progressive_velocity_donation import donation_parent
         from .progressive_velocity_preparation import preparation_parent
+        from .progressive_velocity_timing_host import pair_pointer, timing_parent
 
         claimed = grant["registration_or_parent_ref"]
         donation = action == "qualify" and claimed == donation_parent(revision)
         preparation = action == "qualify" and claimed == preparation_parent(revision)
+        timing = False
+        if (
+            action == "qualify"
+            and not donation
+            and not preparation
+            and claimed
+            not in {
+                qualification_parent(revision),
+                qualification_parent(revision, children=True),
+            }
+        ):
+            try:
+                timing = claimed == timing_parent(revision, pair_pointer(root)["receipt"])
+            except FileNotFoundError:
+                pass
         parent = None
         if action == "qualify":
             parent = (
                 claimed
                 if donation
                 or preparation
+                or timing
                 or claimed == qualification_parent(revision, children=True)
                 else qualification_parent(revision)
             )
@@ -277,7 +307,9 @@ def execute(args, source, *, host_factory=None):
         folder.mkdir(parents=True, exist_ok=True)
         with RunStore.owner(folder):
             if action == "qualify":
-                if preparation:
+                if timing:
+                    from .progressive_velocity_timing_host import qualify
+                elif preparation:
                     from .progressive_velocity_preparation import qualify
                 elif donation:
                     from .progressive_velocity_donation import qualify

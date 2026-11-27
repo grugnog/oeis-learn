@@ -403,13 +403,31 @@ def velocity_forecast(info, policy):
             )
         }
     )
+    timed = info["prices"].get("timed_updates")
+    if timed is not None:
+        # Each update sample includes positive work and its actual auxiliary pass.
+        # A broad stream has its own shapes and eligible donors. It needs its own price.
+        del plan["wave"]["six_treatment_trajectories"]
+        del plan["wave"]["matching_calibration_and_auxiliary_passes"]
+        for row in policy["recipes"]:
+            if row["id"] == "00":
+                continue
+            key = "optimizer_to_4M_recipe_" + row["id"]
+            plan["wave"][key] = 1
+            if row["stream"] == "ordinary" and row["id"] in timed["methods"]:
+                prices[key] = timed["methods"][row["id"]]
+        clock = timed["calibration_us"]
+        plan["wave"]["ordinary_matching_calibration"] = 1
+        prices["ordinary_matching_calibration"] = dict(expected_us=clock, tail_us=clock)
+        plan["wave"]["trajectory_startup_checkpoint_io_and_drain"] = 1
     result = price_wave(plan, prices)
     for scope, row in result.items():
         row["operations"] = dict(plan[scope])
         for estimate in ("expected_us", "tail_us"):
             row["uncached_" + estimate] = (
                 row[estimate] + sum(history["image_acquisition_us"].values())
-                if history is not None and row[estimate] is not None else None
+                if history is not None and row[estimate] is not None
+                else None
             )
     reserve = result["followup"]["tail_us"]
     resident = info["prices"].get("resident_028")
@@ -445,7 +463,17 @@ def velocity_forecast(info, policy):
                 )
     return dict(
         **result,
-        basis="round028_exposed_proxy",
+        basis=(
+            "round028_exposed_proxy_and_round029_timed_updates"
+            if timed
+            else "round028_exposed_proxy"
+        ),
+        **({"timed_updates": timed} if timed else {}),
+        **(
+            {"timing_reason": info["prices"]["timing_reason"]}
+            if info["prices"].get("timing_reason")
+            else {}
+        ),
         common_cases_per_arm=common,
         full_cases_per_arm=full,
         image_acquisition_us=history["image_acquisition_us"] if history else None,

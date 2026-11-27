@@ -252,8 +252,54 @@ def donor_supply(action, root, revision, minutes):
     )
 
 
+def donor_timings(action, root, revision, minutes):
+    from oeis_learn.pipeline_validation.progressive_velocity_timing_host import authorize_timing
+
+    authority = authorize_timing(root, int(minutes), revision)
+    try:
+        first = action("qualify", authority)
+    except SystemExit as exc:
+        first = json.loads(str(exc))
+    summary = dict(
+        candidate=revision,
+        scope="ordinary_update_timings",
+        status=first["mechanical_status"],
+        reason=first["reason"],
+        grant=json.loads(authority.read_bytes())["identity"],
+        first_error=first.get("first_error"),
+        receipt=first["last_committed_ref"],
+        elapsed_us=first.get("elapsed_us"),
+        remaining_us=first["remaining_authority"],
+        charged_tokens=first.get("charged_tokens"),
+        research_dispatches=first.get("research_dispatches"),
+    )
+    if first["mechanical_status"] != "COMPLETE":
+        return summary
+    verification = action("verify")
+    record = first["receipt"]
+    if (
+        verification["verification_scope"] != "private_update_timings"
+        or verification["last_committed_ref"] != record["identity"]
+        or first["research_dispatches"] != 0
+    ):
+        raise ValueError("original timing debit or private replay differs")
+    inspected = action("preflight")
+    prices = inspected["inventory"]["prices"]
+    if prices.get("timed_updates", {}).get("measurement") != record["measurement"]:
+        raise ValueError("preflight did not reopen the original update matrix")
+    return dict(
+        summary,
+        units=record["units"],
+        measurement=record["measurement"],
+        lease_us=record["lease_us"],
+        peak_device_bytes=record["peak_device_bytes"],
+        prices=prices,
+        next_action=inspected["reason"],
+    )
+
+
 def main(revision, minutes, mode="donation"):
-    if mode not in {"donation", "children", "review-children", "supply"}:
+    if mode not in {"donation", "children", "review-children", "supply", "timings"}:
         raise SystemExit("Unknown continuation qualification mode.")
     root = Path.cwd().resolve()
     if not re.fullmatch(r"[a-f0-9]{40}", revision) or not re.fullmatch(r"[1-9][0-9]*", minutes):
@@ -290,6 +336,8 @@ def main(revision, minutes, mode="donation"):
     def action(name, *args):
         return checked_json([*launcher, name, *map(str, args)], root, name)
 
+    if mode == "timings":
+        return donor_timings(action, root, revision, minutes)
     if mode == "supply":
         return donor_supply(action, root, revision, minutes)
     inventory = action("preflight")["inventory"]
@@ -377,7 +425,7 @@ def cli(argv):
         "mode",
         nargs="?",
         default="donation",
-        choices=("donation", "children", "review-children", "supply"),
+        choices=("donation", "children", "review-children", "supply", "timings"),
     )
     parser.add_argument(
         "--output",
@@ -385,8 +433,8 @@ def cli(argv):
         help="save the verified summary or failure diagnostic to a new JSON file",
     )
     args = parser.parse_args(argv)
-    if args.mode == "supply" and args.output is None:
-        parser.error("Supply preparation requires an output file (--output PATH)")
+    if args.mode in {"supply", "timings"} and args.output is None:
+        parser.error("Donor preparation requires an output file (--output PATH)")
     request = (args.revision, args.minutes, args.mode)
     if args.output is None:
         print(json.dumps(main(*request), indent=2))

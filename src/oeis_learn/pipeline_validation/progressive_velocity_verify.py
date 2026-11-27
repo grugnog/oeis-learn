@@ -167,19 +167,22 @@ def private_result(root, folder):
             raise ValueError("original worker binding differs")
         learner = binding["version"] == "round029-learner-rehearsal/v1"
         from . import progressive_velocity_preparation as preparation
+        from . import progressive_velocity_timing_host as timing
 
         supply = binding["version"] == preparation.VERSION
-        if not learner and not supply and binding["version"] != "round029-donation/v1":
-            raise ValueError("unknown diagnostic publication")
-        parent = (
-            qualification_parent(binding["candidate"], children=binding.get("child_restore", False))
-            if learner
-            else (
-                preparation.preparation_parent(binding["candidate"])
-                if supply
-                else donation.donation_parent(binding["candidate"])
+        matrix = binding["version"] == timing.VERSION
+        if learner:
+            parent = qualification_parent(
+                binding["candidate"], children=binding.get("child_restore", False)
             )
-        )
+        elif supply:
+            parent = preparation.preparation_parent(binding["candidate"])
+        elif matrix:
+            parent = timing.timing_parent(binding["candidate"], binding["pair_pointer"]["receipt"])
+        elif binding["version"] == "round029-donation/v1":
+            parent = donation.donation_parent(binding["candidate"])
+        else:
+            raise ValueError("unknown diagnostic publication")
         approval = load(
             confined(
                 root,
@@ -211,8 +214,14 @@ def private_result(root, folder):
             if any(key not in snapshot["committed"] for key in record["debits"]):
                 raise ValueError("original learner debit missing")
             report, scope = record["identity"], "private_learner_rehearsal"
+        elif matrix:
+            record = timing.replay(root, area, binding, grant, snapshot)
+            report, scope = record["identity"], "private_update_timings"
         elif supply:
-            paid = {k: preparation.reopen(root, area, binding, grant, snapshot, k) for k in preparation.KINDS}
+            paid = {
+                k: preparation.reopen(root, area, binding, grant, snapshot, k)
+                for k in preparation.KINDS
+            }
             record = preparation.combined(binding, paid)
             report, scope = record["identity"], "private_donor_supply"
         else:

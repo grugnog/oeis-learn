@@ -531,3 +531,104 @@ def test_matching_weight_frozen_from_ordinary_rows_for_both_treatments(
     assert registered_update_policy(j0, model, "00", microbatch=8)["matching_weight"] is None
     with pytest.raises(ValueError, match="eligible"):
         registered_update_policy(j0, model, "02", microbatch=8)
+
+
+def test_donor_timing_covers_cyclic_positions_and_weights_each_batch_once():
+    import math
+    from oeis_learn.pipeline_validation.progressive_velocity_timing import batch_plan, unit_price
+
+    keys = [str(i) for i in range(37)]
+    rows = {k: {"tokens": [0] * (1 + int(k) % 7)} for k in keys}
+    plan = batch_plan(keys, rows, {keys[0]: ["7"]}, 16, target=8000)
+    assert sum(cell["batches"] for cell in plan) == len(keys) // math.gcd(len(keys), 16)
+    assert {cell["has_pair"] for cell in plan} == {False, True}
+    seen = {cursor for c in plan for cursor in (c["typical"], c["slow"])}
+    clocks = {
+        i: 11 + sum(len(rows[keys[(i + j) % len(keys)]]["tokens"]) for j in range(16)) for i in seen
+    }
+    expect = unit_price(plan, clocks)
+    total = sum(cell["positive_tokens"] for cell in plan)
+    assert total == 16 * sum(len(r["tokens"]) for r in rows.values())
+    tokens = updates = 0
+    while tokens < 8000:
+        tokens += sum(len(rows[keys[(16 * updates + j) % len(keys)]]["tokens"]) for j in range(16))
+        updates += 1
+    assert sum(c["tokens_at_look"] for c in plan) == tokens
+    assert sum(c["updates_at_look"] for c in plan) == updates
+    assert expect["expected_us"] == sum(
+        cell["updates_at_look"] * clocks[cell["typical"]] for cell in plan
+    )
+    assert expect["tail_us"] >= expect["expected_us"] > 0
+    with pytest.raises(ValueError):
+        unit_price(plan, dict(clocks, unused=4))
+
+
+def test_timing_projection_charges_all_updates_and_omits_hidden_terms(velocity_supply_rows):
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.training_rows import matching_pairs
+    from oeis_learn.pipeline_validation.progressive_velocity_timing import (
+        timing_projection,
+        timing_design,
+    )
+
+    rows = velocity_supply_rows
+    order = [r["draw_identity"] for r in rows]
+    pairs = matching_pairs([rows], order, seed=29)
+    stream = seal(dict(order=order, row_identities=digest([r["identity"] for r in rows])))
+    package = seal(dict(profile={}, microbatch=1, stream=stream, rows=rows))
+    p = timing_projection(package, pairs, digest("weights"), digest("receipt"))
+    assert all(
+        set(r) == {"values", "tokens"} and len(r["values"]) == 20 for r in p["rows"].values()
+    )
+    assert len(p["order"]) == 32 and len(p["donors"]) == pairs["eligible_rows"]
+    design = timing_design(p, 3, 1)
+    assert set(design["methods"]) == {"00", "02", "04", "05", "06"}
+    assert design["cost"]["tokens"] > 0 and design["cost"]["attempts"] >= 5
+    with pytest.raises(ValueError, match="ordinary"):
+        timing_projection(
+            package,
+            seal(dict(pairs, order=digest(list(reversed(order))))),
+            digest("weights"),
+            digest("receipt"),
+        )
+
+
+def test_cpu_replays_the_measured_optimizer_cells_and_rejects_changed_charges(velocity_supply_rows):
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.fresh.bigint_diagnostics import model_snapshot
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.models import construct, resolve_profile
+    from oeis_learn.generalization.progressive.training_rows import matching_pairs
+    from oeis_learn.pipeline_validation.progressive_velocity_timing import (
+        timing_projection,
+        timing_design,
+        run_matrix,
+        matrix_prices,
+    )
+
+    model = resolve_profile(
+        resolve({"version": "bigint-bootstrap/v1"}), seed=29, shape="smaller_width"
+    )
+    encoder, decoder, _ = construct(model, device="cpu")
+    initial = model_snapshot(encoder, decoder)
+    del encoder, decoder
+    rows = velocity_supply_rows
+    keys = [r["draw_identity"] for r in rows]
+    stream = seal(dict(order=keys, row_identities=digest([r["identity"] for r in rows])))
+    pairs = matching_pairs([rows], keys, seed=29)
+    p = timing_projection(
+        seal(dict(profile=model, microbatch=8, stream=stream, rows=rows)),
+        pairs,
+        initial,
+        digest("paid"),
+    )
+    d = timing_design(p, len(rows), 8)
+    observed = run_matrix(p, d, device="cpu")
+    prices = matrix_prices(observed, p, d, device="cpu")
+    assert prices["calibration_eligible"] > 0 and prices["update_count"] == d["cost"]["attempts"]
+    assert all(r["tail_us"] >= r["expected_us"] > 0 for r in prices["methods"].values())
+    with pytest.raises(ValueError, match="device"):
+        matrix_prices(observed, p, d, device="cuda")
+    observed["methods"]["02"]["samples"]["0"]["eligible"] += 1
+    with pytest.raises(ValueError, match="charge"):
+        matrix_prices(seal(observed), p, d, device="cpu")
