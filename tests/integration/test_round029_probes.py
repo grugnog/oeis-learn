@@ -45,9 +45,38 @@ def test_shuffled_probe_changes_encoder_values_and_keeps_true_fitting_and_scorin
     coords = dict(registration=digest("study"), method="00", seed=29, development=cells, retention=[])
     common = velocity_look(**coords, look=4_000_000, profile="common")
     full = velocity_look(**coords, look=4_000_000, profile="full")
-    probe = evaluation.velocity_probe(common, prompts, mode="shuffled", inference_seed=57)
+    import torch
+    from oeis_learn.generalization.progressive.contracts import reference, seal
+    recipe = resolve({"version": "bigint-bootstrap/v1"})
+    encoder, decoder, _ = evaluation.load_baseline("random", recipe, seed=29)
+    initial = bigint_diagnostics.model_snapshot(encoder, decoder)
+    parameter = next(encoder.parameters())
+    optimizer = torch.optim.SGD([parameter], lr=0.1)
+    parameter.sum().backward()
+    optimizer.step()
+    trained = bigint_diagnostics.model_snapshot(encoder, decoder)
+    assert trained != initial
+    def save_weights(name):
+        path = tmp_path / name
+        torch.save(dict(encoder=encoder.state_dict(), decoder=decoder.state_dict()), path)
+        return reference(tmp_path, path)
+    weights = save_weights("trained.pt")
+    model = evaluation.model_receipt(common, profile=digest(recipe), weights=trained,
+                                     checkpoint=weights["sha256"], origin=digest("qualified cut"))
+    def view(look, mode="shuffled", model=model):
+        return evaluation.velocity_probe(look, prompts, mode=mode, inference_seed=57, model=model)
+    probe = view(common)
     assert probe["donors"] == {"a": "b", "b": "a"}
-    assert probe != evaluation.velocity_probe(full, prompts, mode="shuffled", inference_seed=57)
+    assert probe != view(full)
+    with pytest.raises(ValueError, match="checkpoint|model"):
+        evaluation.generate(tmp_path, "missing", prompts, recipe, client=None, model_control="random",
+                            seed=29, methods=("correct",), registered_probe=probe)
+    with torch.no_grad():
+        parameter.add_(1)
+    wrong = save_weights("other.pt")
+    with pytest.raises(ValueError, match="checkpoint|model"):
+        evaluation.generate(tmp_path, "wrong", prompts, recipe, client=None,
+                            checkpoint=wrong, methods=("correct",), registered_probe=probe)
     captured = []
     encoder_values = []
     baseline = evaluation.load_baseline
@@ -68,32 +97,61 @@ def test_shuffled_probe_changes_encoder_values_and_keeps_true_fitting_and_scorin
         return dict(raw=None, rescue=None, equal_budget=None,
                     arm_evidence={k: {"complete": True, "reason": "EMPTY_PORTFOLIO"} for k in ("raw", "rescue", "equal_budget")})
     monkeypatch.setattr(bigint_diagnostics, "portfolio", portfolio)
-    recipe = resolve({"version":"bigint-bootstrap/v1"})
-    artifact = evaluation.generate(tmp_path, "generated", prompts, recipe, client=None, model_control="random",
-                                   seed=29, methods=("correct",), registered_probe=probe)
+    artifact = evaluation.generate(tmp_path, "generated", prompts, recipe, client=None, model_control="earlier_checkpoint",
+                                   checkpoint=weights, reference_recipe=recipe, methods=("correct",), registered_probe=probe)
     body = load(tmp_path / artifact["path"])
     assert body["clock"]["velocity_probe"] == probe["identity"] and captured == prompts
     with pytest.raises(ValueError, match="another probe"):
         evaluation.score_velocity(tmp_path, artifact, truth, client=None, output="wrong-profile",
-                                  probe=evaluation.velocity_probe(full, prompts, mode="shuffled", inference_seed=57))
+                                  probe=view(full))
     scored = evaluation.score_velocity(tmp_path, artifact, truth, client=None, output="scored", probe=probe)
     assert set(scored["outcomes"]) == {"a", "b"}
     assert encoder_values == [[list(map(int, prompts[1]["values"]))], [list(map(int, prompts[0]["values"]))]]
     assert replay_source("(program (return $index))", captured[0], truth[0]) == "solve"
     assert replay_source("(program (return $index))", captured[1], truth[1]) == "prefix_mismatch"
     expected_attempts = 8
-    endpoint = evaluation.velocity_probe(full, prompts, mode="shuffled", inference_seed=57)
-    eight = evaluation.generate(tmp_path, "endpoint", prompts, recipe, client=None, model_control="random",
-                                seed=29, methods=("correct",), registered_probe=endpoint)
+    endpoint = view(full)
+    eight = evaluation.generate(tmp_path, "endpoint", prompts, recipe, client=None, model_control="earlier_checkpoint",
+                                checkpoint=weights, reference_recipe=recipe, methods=("correct",), registered_probe=endpoint)
     with pytest.raises(ValueError, match="another probe"):
         evaluation.score_velocity(tmp_path, eight, truth, client=None, output="eight-as-one", probe=probe)
     with pytest.raises(ValueError):
         evaluation.velocity_probe(common, [prompts[0], dict(prompts[1], values=prompts[0]["values"])],
-                                  mode="shuffled", inference_seed=57)
+                                  mode="shuffled", inference_seed=57, model=model)
+
+    from oeis_learn.generalization.progressive.contracts import atomic_write
+    path = tmp_path / "substituted-candidates.json"
+    atomic_write(path, seal(dict(body, model=initial)))
+    with pytest.raises(ValueError, match="model"):
+        evaluation.score_velocity(tmp_path, reference(tmp_path, path), truth, client=None, output="substituted", probe=probe)
+
+    zero = velocity_look(**coords, look=0, profile="common")
+    zero_model = evaluation.model_receipt(zero, profile=digest(recipe), weights=initial,
+                                          checkpoint=None, origin=digest("prepared random start"))
+    expected_attempts = 1
+    start = evaluation.generate(tmp_path, "start", prompts, recipe, client=None, model_control="random",
+                                seed=29, methods=("correct",), registered_probe=view(zero, model=zero_model))
+    assert load(tmp_path / start["path"])["model"] == initial
+    incumbent = velocity_look(**dict(coords, method="D"), look=4_000_000, profile="full")
+    from oeis_learn.pipeline_validation import progressive_velocity_donor
+    donor = dict(method="D", look=None, inference=True, weights=weights["sha256"], recipe=digest(recipe),
+                 registration=digest("donor"), lineage=digest("D"))
+    monkeypatch.setattr(progressive_velocity_donor, "inventory", lambda _: dict(cuts=[donor]))
+    incumbent_model = evaluation.donor_probe_model(tmp_path, incumbent, recipe, weights)
+    with pytest.raises(ValueError, match="donor weights"):
+        evaluation.donor_probe_model(tmp_path, incumbent, recipe, wrong)
+    expected_attempts = 8
+    d_probe = view(incumbent, mode="true", model=incumbent_model)
+    d = evaluation.generate(tmp_path, "incumbent", prompts, recipe, client=None, model_control="retained_D",
+                            checkpoint=weights, methods=("correct",), registered_probe=d_probe)
+    assert evaluation.score_velocity(tmp_path, d, truth, client=None, output="d-score", probe=d_probe)
+    with pytest.raises(ValueError, match="checkpoint|model"):
+        evaluation.generate(tmp_path, "other-d", prompts, recipe, client=None, checkpoint=wrong,
+                            methods=("correct",), registered_probe=d_probe)
 
 
 def test_registered_derangement_uses_each_donor_once_within_its_own_stratum():
-    from oeis_learn.pipeline_validation.progressive_evaluation import velocity_probe
+    from oeis_learn.pipeline_validation.progressive_evaluation import model_receipt, velocity_probe
 
     cells = [
         dict(task=str(i), group=str(i), stratum=s)
@@ -103,11 +161,13 @@ def test_registered_derangement_uses_each_donor_once_within_its_own_stratum():
                          profile="common", development=cells, retention=[])
     prompts = [dict(id=r["task"], indices=list(map(str, range(20))), values=[r["task"]] * 20)
                for r in cells]
-    probe = velocity_probe(look, prompts, mode="shuffled", inference_seed=57)
+    origin = model_receipt(look, profile=digest("recipe"), weights=digest("initial"),
+                           checkpoint=None, origin=digest("prepared start"))
+    probe = velocity_probe(look, prompts, mode="shuffled", inference_seed=57, model=origin)
     assert probe["donors"] == {"0": "2", "2": "0", "1": "3", "3": "1"}
     prompts[2]["values"] = prompts[0]["values"]
     with pytest.raises(ValueError, match="stratum oeis"):
-        velocity_probe(look, prompts, mode="shuffled", inference_seed=57)
+        velocity_probe(look, prompts, mode="shuffled", inference_seed=57, model=origin)
 
 
 @pytest.mark.parametrize("method,expected_calls", [("template", 8), ("polynomial", 1), ("linear_recurrence", 1)])
@@ -182,6 +242,19 @@ def test_registered_conventional_opportunity_and_selected_scoring(tmp_path, meth
     assert set(body["records"]["p"]["selections"]) == {"equal_budget"}
     scored = ev.score_velocity(tmp_path, ref, [truth], client=client, output="scored", probe=probe)
     assert scored["outcomes"]["p"]["equal_budget"]["success"] == (method == "polynomial")
+    from oeis_learn.generalization.progressive.contracts import atomic_write, reference, seal
+    # A selected answer remains independently testable when another fit is unfinished.
+    record = body["records"]["p"]
+    record["arm_evidence"]["equal_budget"].update(complete=False, reason="unfinished")
+    path = tmp_path / "partial-candidates.json"
+    atomic_write(path, seal(body))
+    partial = reference(tmp_path, path)
+    for name, target in (("match", truth), ("mismatch", dict(truth, values=truth["values"][:-1] + ["-1"]))):
+        score = ev.score_velocity(tmp_path, partial, [target], client=client, output=name, probe=probe)
+        outcome = score["outcomes"]["p"]["equal_budget"]
+        expected = ("solve" if name == "match" else "miss") if method == "polynomial" else "unresolved"
+        assert outcome["status"] == expected and not outcome["complete"] and not outcome["closed"]
+        assert outcome["receipt"]["truth_ref"] == digest(target)
     with pytest.raises(ValueError):
         ev.velocity_probe(look, [prompt], mode="shuffled", inference_seed=57)
     with pytest.raises(ValueError):

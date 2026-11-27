@@ -315,9 +315,18 @@ def train_to(directory, package, *, target, cap, device, interrupt=False, parent
     )
     if (replay["order_digest"], replay["useful_tokens"]) != (chain, useful):
         raise ValueError("independent positive-stream replay differs")
+    from .progressive_evaluation import model_receipt
+    weights = model_snapshot(runner.encoder, runner.decoder)
+    manifest = load(store.root / pointer["path"])
+    model = model_receipt(dict(registration=package["registration"], method=policy["velocity_recipe"],
+                              seed=profile["model"]["seed"], look=target),
+                          profile=digest(profile), weights=weights,
+                          checkpoint=manifest["states"]["weights"]["sha256"] if target else None,
+                          origin=digest([package["identity"], pointer["sha256"]]))
     return dict(
         checkpoint=pointer,
-        weights=model_snapshot(runner.encoder, runner.decoder),
+        model=model,
+        weights=weights,
         optimizer=optimizer_digest(runner),
         scheduler=runner.scheduler.state_dict(),
         next_rows=digest(matched_batch(package, cursor, size)),
