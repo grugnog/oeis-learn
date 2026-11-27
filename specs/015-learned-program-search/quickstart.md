@@ -2,7 +2,7 @@
 
 ## Run the eleven-hour generator pilot
 
-**The original workstation is qualified for the one-seed pilot.** The copied pre-score receipt verified controller and worker `04e0fd9c30ce64d835c91fb06e5014799bceccee` on a cold 160-slot search and independent scoring. The forecast is 10 h 24 min 12 s, leaving 35 min 48 s of the eleven-hour research allocation. The saved registration has zero research charges and zero open reservations. [Workstation measurements and receipt](validation/round028-pilot.md#verified-workstation-qualification)
+**The one-seed pilot completed all three checkpoints and retained D.** The copied report verified against the original pre-score qualification. Both arms trained on 4,000,210 useful tokens and the endpoint covered all 160 reserved cases. Research roles charged 1 h 56 min 56 s against the 10 h 24 min 12 s forecast. The final assessment stayed sealed. [Verified endpoint and measured costs](validation/round028-pilot.md#verified-one-seed-result)
 
 ### Collect qualification only
 
@@ -24,7 +24,7 @@ Return the printed `round028-pilot-qualification.zip` or `round028-pilot-qualifi
 
 ### Start or resume after qualification
 
-Run this block on the same workstation from its original detached round027 checkout. The pilot reopens the saved qualification and registration before spending research time. Keep the returned pre-score qualification ZIP for comparison with the final pilot.
+On the original detached round027 checkout this command now verifies and re-exports the completed pilot. The first invocation used the saved qualification and registration. Keep the pre-score qualification ZIP with the returned pilot for independent verification.
 
 ```bash
 (
@@ -42,7 +42,7 @@ The pilot prints the path to `round028-pilot.zip` or `round028-pilot-diagnostics
 
 ## Original eight-hour workstation run
 
-**Retain D.** The projected 4M pilot exceeds the eight-hour shift by 2 h 21 min 37 s. The original workstation committed the decision and returned a verified receipt covering all 40 timed portfolios. The enclosed public report matches the earlier verified copy byte for byte. The scientific comparison is unmeasured. [Measured costs and receipt](validation/round028-timing-results.md)
+**Retain D.** The projected 4M pilot exceeds the eight-hour shift by 2 h 21 min 37 s. The original workstation committed the decision and returned a verified receipt covering all 40 timed portfolios. The enclosed public report matches the earlier verified copy byte for byte. The scientific comparison ran later under the eleven-hour child registration. [Measured costs and receipt](validation/round028-timing-results.md)
 
 ### Verify the final public report on any computer
 

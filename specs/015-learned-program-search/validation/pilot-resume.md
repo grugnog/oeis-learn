@@ -47,7 +47,7 @@ PY
 )
 ```
 
-The verified physical return closes T056 and T060. T046 and T047 track broader workstation acceptance. T048 tracks the scientific pilot result.
+The verified physical return closes T056 and T060. T046 and T047 track broader workstation acceptance. The [verified 4M endpoint](round028-pilot.md#verified-one-seed-result) closed T048. Repeating the pilot command on this registration re-exports the completed result.
 
 ## Compare a copied pilot with its pre-score qualification
 

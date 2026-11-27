@@ -1,6 +1,31 @@
 # Eleven-hour matched generator pilot
 
-**The workstation has qualified the one-seed pilot. Its scientific result is still unmeasured.** The pilot tests whether training on the first token that distinguishes a correct program from a misleading one improves exact continuation. Its main comparison is against ordinary training from the same random start, on the same rows and positive tokens. The retained D model is the incumbent reference.
+**The one-seed pilot completed its 4M-token endpoint and retained D.** First-divergence training, which targets the first token that separates a correct program from a misleading one, produced fewer exact continuations than ordinary training at matched exposure. The registered decision was `RETAIN_REFERENCE`. The final assessment stayed sealed.
+
+## Verified one-seed result
+
+Both training arms reached the 0, 1M and 4M checkpoints. Each arm completed 2,126 optimizer updates on 4,000,210 useful tokens, with 210 tokens of final-update overshoot and zero discarded tokens. All three methods were evaluated on the same 128 development cases and 32 retention cases at the endpoint. A solve required an exact continuation of all 80 withheld terms.
+
+| Method | Confirmed solves | Confirmed failures | Unresolved | Total |
+| --- | ---: | ---: | ---: | ---: |
+| Ordinary training | 26 | 106 | 28 | 160 |
+| First-divergence training | 17 | 128 | 15 | 160 |
+| Retained D | 27 | 101 | 32 | 160 |
+
+The registered primary comparison weights families equally within composition and unseen structure, then weights the two strata equally. First divergence trailed ordinary training by **14.17 percentage points**. Assigning the unresolved outcomes against or in favor of first divergence gives bounds from **−22.83 to −6.50 points**. Against D the first-divergence result was −11.33 points (bounds −28.67 to −3.67). Ordinary training gained 2.83 points against D (bounds −14.50 to +11.50). Both learners solved 4 of the 32 retention cases, and D solved 6. The negative upper bound on the primary comparison settled the decision at one seed.
+
+### Forecast and charged time
+
+| Research work | Pre-run forecast | Charged time |
+| --- | ---: | ---: |
+| Search | 8 h 30 min 04 s | 1 h 04 min 49 s |
+| Training | 1 h 51 min 58 s | 52 min 01 s |
+| Independent scoring | 2 min 09 s | 6 s |
+| **Total** | **10 h 24 min 12 s** | **1 h 56 min 56 s** |
+
+The search forecast applied the slower of two previously timed cases in each stratum to the reserved cases. It also priced separate searches for the two zero-token checkpoints. The verified run shared their search and score because the inference inputs matched. That credit lowered the forecast to 8 h 40 min 34 s. The measured search and training roles then finished well within their remaining estimates. Times in the table are rounded independently. The archive reports cumulative charges across 18 roles and a GPU lease of 1 h 56 min 50 s. Re-exporting a completed run reuses its published work. [Original timing sample](round028-timing-results.md)
+
+Controller `04e0fd9c30ce64d835c91fb06e5014799bceccee` verified the copied pilot against the pre-score qualification archived before research. Both the saved registration and pre-score commitment matched. The returned pilot ZIP has SHA-256 `4ad17a6f9e252de72025603a2e5ae7322f77c51b98260196eaec557ab22314fd`, and the verified report identity is `sha256:71c8c2f807cbc9101983a1c74194e04629f535666d878b06664274464b0198ab`. [Pre-score receipt](#verified-workstation-qualification)
 
 ## What the allocation covers
 
