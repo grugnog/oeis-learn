@@ -607,6 +607,13 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None,
     if selected_only:
         methods = ("equal_budget",)
     outcomes = {r["id"]: {} for r in truth}
+    if registered_probe is not None:
+        from oeis_learn.synthesis.admission import reference_identity
+        from oeis_learn.generalization.progressive.velocity_metrics import case_outcome_receipt
+        scorer_ref = digest(["round029-selected-20-80/v1", reference_identity(),
+                             getattr(getattr(client, "limits", None), "identity", None),
+                             client.runtime_identity("bigint-body/v1") if hasattr(client, "runtime_identity") else None])
+        inference = probe_inference(registered_probe)
     for method in methods:
         if budget:
             budget.consume(attempts=len(truth), rejections=len(truth))
@@ -627,26 +634,18 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None,
                 "success" if v["success"] else "failure" if v["complete"] else "unresolved"
             )
             if registered_probe is not None:
-                from oeis_learn.synthesis.admission import reference_identity
-
                 choice = value["records"][key]["selections"][method]
                 selected_exact = v["success"] if choice is not None and v["scoring"]["complete"] else None
                 choice_ref = digest(choice) if choice is not None else None
-                scorer_ref = digest(["round029-selected-20-80/v1", reference_identity(),
-                                     getattr(getattr(client, "limits", None), "identity", None),
-                                     client.runtime_identity("bigint-body/v1") if hasattr(client, "runtime_identity") else None])
                 truth_ref = digest(by_id[key])
                 observation = velocity_outcome(selected_exact=selected_exact, closed=upstream["complete"],
                                               complete=v["complete"])
                 # Identical sealed choices at a genuinely shared inference opportunity can be reused.
-                inference = probe_inference(registered_probe)
                 evidence = dict(outcome_ref=digest([key, inference, choice_ref, scorer_ref, truth_ref,
                                                     observation]), choice_ref=choice_ref,
                                 scorer_ref=scorer_ref, truth_ref=truth_ref)
-                from oeis_learn.generalization.progressive.velocity_metrics import case_outcome_receipt
-
                 v.update(observation, probe_ref=registered_probe["identity"],
-                         receipt=case_outcome_receipt(key, status=observation["status"], **evidence))
+                         receipt=case_outcome_receipt(key, status=observation["status"], inference_ref=inference, **evidence))
                 v["outcome"] = {"solve": "success", "miss": "failure", "unresolved": "unresolved"}[v["status"]]
             outcomes[key][method] = v
     if measurements is not None:

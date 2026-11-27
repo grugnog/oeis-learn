@@ -5,13 +5,50 @@ import pytest
 from oeis_learn.generalization.progressive.contracts import digest, seal
 from oeis_learn.generalization.progressive.graph import velocity_look
 from oeis_learn.generalization.progressive.velocity_metrics import (
-    sampling_interval,
-    contrast,
+    sampling_interval as measured_interval,
+    contrast as measured_contrast,
     rates,
     factorial,
     affordable_look,
 )
 from oeis_learn.generalization.progressive.program_search_costing import occupied_time
+
+
+def registered_view(look, *, mode="true"):
+    from oeis_learn.pipeline_validation.progressive_evaluation import model_receipt, velocity_probe
+    members = look["members"]
+    prompts = [dict(id=r["task"], indices=list(map(str, range(20))), values=[str(i)] * 20)
+               for i, r in enumerate(members)]
+    which = "initial" if look["look"] == 0 else look["method"]
+    model = model_receipt(look, profile=digest("fixture profile"), weights=digest(which),
+                          checkpoint=digest([which, "file"]) if which != "initial" else None,
+                          origin=digest("registered model cut"))
+    return velocity_probe(look, prompts, model=model, mode=mode, inference_seed=7)
+
+
+def issued(rows, looks):
+    from oeis_learn.pipeline_validation.progressive_evaluation import probe_inference
+    probes = {k: registered_view(look) for k, look in looks.items()}
+    projected = []
+    for row in rows:
+        observations = {}
+        for name, value in row["observations"].items():
+            probe = probes[name]
+            receipt = seal(dict(value["receipt"], version="round029-case-outcome/v2",
+                                inference_ref=probe_inference(probe)))
+            observations[name] = dict(value, probe_ref=probe["identity"], receipt=receipt)
+        projected.append(dict(row, observations=observations))
+    return projected, probes
+
+
+def contrast(rows, coefficients, *, looks, **kwargs):
+    projected, probes = issued(rows, looks)
+    return measured_contrast(projected, coefficients, looks=probes, **kwargs)
+
+
+def sampling_interval(rows, coefficients, *, looks, **kwargs):
+    projected, probes = issued(rows, looks)
+    return measured_interval(projected, coefficients, looks=probes, **kwargs)
 
 
 def obs(case, status, label):
@@ -27,10 +64,10 @@ def cell(i, a, b):
                 observations={"a": obs(i, a, f"a{i}"), "b": obs(i, b, f"b{i}")})
 
 
-def frozen(families):
+def frozen(families, *, shared_zero=False):
     members = [dict(task=str(i), group=str(f), stratum="oeis") for i, f in enumerate(families)]
-    return {k: velocity_look(registration=digest("study"), method=m, seed=1, look=4_000_000,
-                             profile="full", development=members, retention=[])
+    return {k: velocity_look(registration=digest("study"), method=m, seed=1, look=0 if shared_zero else 4_000_000,
+                             profile="common" if shared_zero else "full", development=members, retention=[])
             for k, m in (("a", "00"), ("b", "01"))}
 
 
@@ -50,7 +87,7 @@ def test_turnover_bounds_and_cost_rates():
     r = contrast(rows, {"a": 1, "b": -1}, stratum="oeis", looks=frozen(range(10)))
     assert (r["observed_pp"], r["lower_pp"], r["upper_pp"]) == (10, -10, 10)
     rows[0]["observations"] = dict.fromkeys(("a", "b"), obs(0, "unresolved", "shared"))
-    assert contrast(rows[:1], {"a": 1, "b": -1}, stratum="oeis", looks=frozen([0]))["upper_pp"] == 0
+    assert contrast(rows[:1], {"a": 1, "b": -1}, stratum="oeis", looks=frozen([0], shared_zero=True))["upper_pp"] == 0
 
 
 def test_family_weights_interactions_and_overlap():
@@ -111,7 +148,7 @@ def test_unresolved_identity_binds_case_choice_truth_and_scorer():
         with pytest.raises(ValueError, match="receipt"):
             contrast(rows, coeff, stratum="oeis", looks=frozen([0]))
     rows[0]["observations"]["b"] = left
-    result = contrast(rows, coeff, stratum="oeis", looks=frozen([0]))
+    result = contrast(rows, coeff, stratum="oeis", looks=frozen([0], shared_zero=True))
     assert result["lower_pp"] == result["upper_pp"] == 0
 
 
@@ -147,7 +184,7 @@ def test_joint_family_cells_and_opaque_projection():
     assert public != public_family_cells(original, key=b"other-study-secret")
     shared = obs(0, "unresolved", "common-zero")
     rows[0]["observations"] = {"a": shared, "b": shared}
-    result = contrast(rows, coeff, stratum="oeis", looks=panels)
+    result = contrast(rows[:1], coeff, stratum="oeis", looks=frozen(["private-family-A"], shared_zero=True))
     assert [o["equality"] for o in result["families"][0]["patterns"][0]["outcomes"]] == [0, 0]
 
 
@@ -237,3 +274,47 @@ def test_original_and_incremental_work_keep_failed_debits_reuse_and_unknown_cloc
         workstation_accounting([old, dict(old, origin="incremental")])
     with pytest.raises(ValueError, match="no new charge"):
         workstation_accounting([dict(reused, charged_us=1)])
+
+
+def test_contradictory_coordinate_and_unrelated_registrations_cannot_gain():
+    rows = [cell(0, "miss", "solve")]
+    views = frozen([0])
+    coeff = {"b": 1, "a": -1}
+    with pytest.raises(ValueError, match="coordinate|opportunity"):
+        contrast(rows, coeff, stratum="oeis", looks=dict(views, b=views["a"]))
+    other = velocity_look(registration=digest("unrelated"), method="01", seed=1,
+                          look=4_000_000, profile="full", development=views["a"]["members"], retention=[])
+    with pytest.raises(ValueError, match="registration|study"):
+        sampling_interval(rows, coeff, stratum="oeis", seed=17, draws=3, looks=dict(views, b=other))
+
+
+def test_distinct_conditioning_and_paired_extension_require_the_original_probe_and_parent():
+    from oeis_learn.generalization.progressive.campaign import velocity_registration
+    from oeis_learn.generalization.progressive.graph import velocity_study_looks
+    from oeis_learn.pipeline_validation.progressive_evaluation import probe_inference
+
+    panels = frozen([0, 1])["a"]["members"]
+    terms = dict(source="a" * 40, design=digest("design"), development=panels, retention=[],
+                 initialization=1, stream_seed=42, ordinary=digest("ordinary"), broad=digest("broader"))
+    parent = velocity_registration(**terms)
+    child = velocity_registration(**terms, scope="paired_extension", finalist="01",
+                                  parent=seal(dict(version="round029-study-boundary/v1", registration=parent["identity"],
+                                                   state="resumable", evidence=digest("parent boundary"))))
+    looks = {"a": velocity_study_looks(parent)["01"]["full"][0],
+             "b": velocity_study_looks(child)["01"]["full"][0]}
+    rows, probes = issued([cell(i, "miss", "solve") for i in range(2)], looks)
+    coeff = {"a": -1, "b": 1}
+    with pytest.raises(ValueError, match="registered child"):
+        measured_contrast(rows, coeff, stratum="oeis", looks=probes)
+    got = measured_contrast(rows, coeff, stratum="oeis", looks=probes, registrations=[parent, child])
+    assert got["observed_pp"] == 100
+    # A shuffled look has a different input opportunity at the very same method, seed and cut.
+    probes["b"] = registered_view(looks["a"], mode="shuffled")
+    for row in rows:
+        obs = row["observations"]["b"]
+        obs["probe_ref"] = probes["b"]["identity"]
+        obs["receipt"] = seal(dict(obs["receipt"], inference_ref=probe_inference(probes["b"])))
+    assert measured_interval(rows, coeff, stratum="oeis", seed=5, draws=2, looks=probes)["lower"] == 100
+    rows[0]["observations"]["b"]["probe_ref"] = probes["a"]["identity"]
+    with pytest.raises(ValueError, match="probe"):
+        measured_contrast(rows, coeff, stratum="oeis", looks=probes)

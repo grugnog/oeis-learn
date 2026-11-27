@@ -7,7 +7,7 @@ def public_family_cells(result, *, key):
     """Use the same private study key to link families across looks, seeds and strata."""
     if not isinstance(key, bytes) or not key:
         raise ValueError("private study key required for opaque family labels")
-    coordinates = [{k: c[k] for k in ("method", "seed", "look", "profile")}
+    coordinates = [{k: c[k] for k in ("registration", "method", "seed", "look", "profile", "input_mode")}
                    for c in result["coordinates"]]
     families = []
     for family in result["families"]:

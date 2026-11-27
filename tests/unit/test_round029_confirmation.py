@@ -9,7 +9,8 @@ from oeis_learn.generalization.progressive.contracts import digest
 from oeis_learn.generalization.progressive.graph import velocity_look
 from oeis_learn.generalization.progressive.program_search_costing import occupied_time
 from oeis_learn.generalization.progressive.training_rows import pair_seeds
-from oeis_learn.generalization.progressive.velocity_metrics import case_outcome_receipt, contrast
+from oeis_learn.generalization.progressive.velocity_metrics import case_outcome_receipt
+from tests.unit.test_round029_velocity import contrast
 
 
 @pytest.fixture

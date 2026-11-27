@@ -7,7 +7,7 @@ from math import isfinite
 from .contracts import _check, schema, seal
 
 
-def case_outcome_receipt(case, *, outcome_ref, choice_ref, scorer_ref, truth_ref, status):
+def case_outcome_receipt(case, *, outcome_ref, choice_ref, scorer_ref, truth_ref, status, inference_ref=None):
     """Bind a private score (or unresolved opportunity) independently of its use at a look."""
     hashes = schema("common")["$defs"]["hash"]
     for ref in (outcome_ref, scorer_ref, truth_ref):
@@ -18,19 +18,58 @@ def case_outcome_receipt(case, *, outcome_ref, choice_ref, scorer_ref, truth_ref
         raise ValueError("invalid case outcome receipt")
     if status == "solve" and choice_ref is None:
         raise ValueError("a verified solve requires a sealed choice")
-    return seal(dict(version="round029-case-outcome/v1", case=case, outcome_ref=outcome_ref,
+    scope = {}
+    if inference_ref is not None:
+        _check(hashes, inference_ref, {})
+        scope["inference_ref"] = inference_ref
+    return seal(dict(version="round029-case-outcome/v2" if scope else "round029-case-outcome/v1", **scope, case=case, outcome_ref=outcome_ref,
                      choice_ref=choice_ref, scorer_ref=scorer_ref, truth_ref=truth_ref, status=status))
 
 
-def _frozen_rows(rows, looks, names):
+def _comparison_studies(views, registrations):
+    from .campaign import validate_velocity_registration
+    from .graph import velocity_study_looks
+
+    requested = {p["look"]["registration"] for p in views}
+    if not registrations and len(requested) == 1:
+        return
+    studies = {r["identity"]: validate_velocity_registration(r) for r in registrations}
+    if set(studies) != requested or (len(studies) > 1 and
+            (len(studies) != 2 or not any(r["parent_ref"] in studies for r in studies.values()))):
+        raise ValueError("comparison requires one study or its explicitly registered child")
+    graphs = {k: velocity_study_looks(r) for k, r in studies.items()}
+    for probe in views:
+        look = probe["look"]
+        graph = graphs[look["registration"]]
+        if look not in graph.get(look["method"], {}).get(look["profile"], []):
+            raise ValueError("look outside the linked pre-score registrations")
+
+
+def _frozen_rows(rows, looks, names, registrations):
+    from oeis_learn.pipeline_validation.progressive_evaluation import checked_probe_model, probe_inference
     from .graph import velocity_look
 
     if not names or not all(name in looks for name in names):
         raise ValueError("registered look required for every contrast coordinate")
+    if any(looks[n].get("version") != "round029-probe/v2" for n in names):
+        raise ValueError("registered probe required on the frozen roster")
+    _comparison_studies([looks[n] for n in names], registrations)
     members = None
     coordinates = []
+    inferences, by_coordinate = {}, {}
     for name in names:
-        look = looks[name]
+        probe = looks[name]
+        look = probe["look"]
+        if (probe != seal(probe) or probe["mode"] not in ("true", "shuffled")
+                or set(probe["donors"]) != {r["task"] for r in look["members"]}
+                or set(probe["donors"].values()) != set(probe["donors"])):
+            raise ValueError("invalid registered probe or roster")
+        _check(schema("common")["$defs"]["hash"], probe["recipients"], {})
+        checked_probe_model(look, probe["model"])
+        coordinate = (look["registration"], look["method"], look["seed"], look["look"], look["profile"], probe["mode"])
+        if by_coordinate.setdefault(coordinate, probe["identity"]) != probe["identity"]:
+            raise ValueError("conflicting probes at one registered coordinate")
+        inferences[name] = probe_inference(probe)
         # Reopen the actual registered graph record, including its order and profile.
         development = [r for r in look["members"] if r["stratum"] != "retention"]
         retention = [r for r in look["members"] if r["stratum"] == "retention"]
@@ -45,7 +84,7 @@ def _frozen_rows(rows, looks, names):
         if members is not None and members != look["members"]:
             raise ValueError("compared looks have different frozen rosters")
         members = look["members"]
-        coordinates.append(coord)
+        coordinates.append(dict(coord, registration=look["registration"], input_mode=probe["mode"]))
     roster = {r["task"]: (r["stratum"], r["group"]) for r in members}
     remaining = set(roster)
     families = defaultdict(list)
@@ -55,29 +94,40 @@ def _frozen_rows(rows, looks, names):
         if case not in remaining or roster[case] != (row["stratum"], row["family"]):
             raise ValueError("case does not match the unique frozen roster")
         remaining.remove(case)
+        same_inference = {}
+        scoring_scope = None
         for name in names:
             obs = row["observations"].get(name)
             if not isinstance(obs, dict) or type(obs.get("closed")) is not bool or type(obs.get("complete")) is not bool:
                 raise ValueError("explicit case observation and completion required on frozen roster")
             receipt = obs.get("receipt")
-            evidence_fields = ("outcome_ref", "choice_ref", "truth_ref", "scorer_ref")
+            evidence_fields = ("outcome_ref", "choice_ref", "truth_ref", "scorer_ref", "inference_ref")
+            if obs.get("probe_ref") != looks[name]["identity"] or (receipt or {}).get("inference_ref") != inferences[name]:
+                raise ValueError("outcome receipt belongs to another probe or coordinate")
             if not isinstance(receipt, dict) or not all(k in receipt for k in evidence_fields):
                 raise ValueError("sealed per-case outcome receipt required")
             evidence = {k: receipt[k] for k in evidence_fields}
             binding = case_outcome_receipt(case, status=obs["status"], **evidence)
             if receipt != binding or known.setdefault(receipt["outcome_ref"], binding["identity"]) != binding["identity"]:
                 raise ValueError("inconsistent case, choice, scorer or truth on outcome receipt")
+            scope = receipt["truth_ref"], receipt["scorer_ref"]
+            if scoring_scope is not None and scope != scoring_scope:
+                raise ValueError("compared outcome receipts use different scorer or truth")
+            scoring_scope = scope
+            observed = receipt["identity"], obs["complete"], obs["closed"]
+            if same_inference.setdefault(inferences[name], observed) != observed:
+                raise ValueError("conflicting case evidence at the same inference opportunity")
         families[roster[case]].append(row)
     if remaining:
         raise ValueError("missing case on frozen roster")
     return families, coordinates
 
 
-def contrast(rows, coefficients, *, stratum, looks):
+def contrast(rows, coefficients, *, stratum, looks, registrations=()):
     """Compare only the complete authenticated rosters of the registered looks."""
     strata = ("composition", "unseen_structure") if stratum == "structural" else (stratum,)
     names = sorted(coefficients)
-    all_families, coordinates = _frozen_rows(rows, looks, names)
+    all_families, coordinates = _frozen_rows(rows, looks, names, registrations)
     families = {k: v for k, v in sorted(all_families.items()) if k[0] in strata}
     support = Counter(s for s, _ in families)
     denominator = sum(len(members) for members in families.values())
@@ -204,13 +254,13 @@ def factorial(levels):
     )
 
 
-def sampling_interval(rows, coefficients, *, stratum, seed, looks, scale=1, draws=10000):
+def sampling_interval(rows, coefficients, *, stratum, seed, looks, scale=1, draws=10000, registrations=()):
     """Resample each linked family once per draw across all arms, looks and strata."""
     import random
 
     rng = random.Random(seed)
     strata = ("composition", "unseen_structure") if stratum == "structural" else (stratum,)
-    result = contrast(rows, coefficients, stratum=stratum, looks=looks)
+    result = contrast(rows, coefficients, stratum=stratum, looks=looks, registrations=registrations)
     coefficients_in_order = [coefficients[name] for name in sorted(coefficients)]
     by_group = defaultdict(dict)
     for family in result["families"]:

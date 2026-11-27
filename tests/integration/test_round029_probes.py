@@ -255,6 +255,12 @@ def test_registered_conventional_opportunity_and_selected_scoring(tmp_path, meth
         expected = ("solve" if name == "match" else "miss") if method == "polynomial" else "unresolved"
         assert outcome["status"] == expected and not outcome["complete"] and not outcome["closed"]
         assert outcome["receipt"]["truth_ref"] == digest(target)
+        from oeis_learn.generalization.progressive.velocity_metrics import contrast
+        row = dict(case="p", family="f", stratum="oeis", observations={"selected": outcome})
+        bound = contrast([row], {"selected": 1}, stratum="oeis", looks={"selected": probe})
+        assert bound["lower_pp"] == (100 if expected == "solve" else 0)
+        assert bound["upper_pp"] == (0 if expected == "miss" else 100)
+
     with pytest.raises(ValueError):
         ev.velocity_probe(look, [prompt], mode="shuffled", inference_seed=57)
     with pytest.raises(ValueError):
