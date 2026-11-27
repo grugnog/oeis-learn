@@ -50,3 +50,5 @@ include specs/016-measure-learning-velocity/validation/qualify-learner.sh
 include specs/016-measure-learning-velocity/validation/replay_learner.py
 include specs/016-measure-learning-velocity/validation/qualify_continuation.py
 include specs/016-measure-learning-velocity/validation/round029-release.md
+include specs/016-measure-learning-velocity/validation/round029-child-qualification.json
+include specs/016-measure-learning-velocity/quickstart.md

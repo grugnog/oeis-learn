@@ -319,6 +319,8 @@ def velocity_forecast(info, policy):
     def portfolios(scope, profile, method, counts, repeats):
         # One cold search and scorer per resident block. Treatments use ordinary for the
         # typical cost and include the slower learned checkpoint in the observed tail.
+        if not any(counts.values()):
+            return
         names = ["incumbent-full"] if method == "D" else ["ordinary-" + profile]
         if method == "learner":
             names.append("first_divergence-" + profile)
@@ -365,25 +367,29 @@ def velocity_forecast(info, policy):
 
     # A protected, incremental measurement with two existing full-profile models,
     # on one distinct OEIS family. No new optimizer or full-bank pass is involved.
-    for method in ("ordinary", "learner"):
-        portfolios("followup", "full", method, {"oeis": 1}, 1)
     if "oeis" in development and not development["oeis"]["families"]:
         plan["followup"]["eligible_oeis_family"] = 1
+    else:
+        for method in ("ordinary", "learner"):
+            portfolios("followup", "full", method, {"oeis": 1}, 1)
 
     work = original_probe_costs(info["cuts"], info["historical_scores"], info["original_clocks"])
     control = [c for c in info["cuts"] if c["method"] == "00"]
-    ordinary_ready = all(c.get("weights") and c.get("lineage") for c in control)
-    control_needed = not ordinary_ready or any(
-        r["method"] == "00" and r["action"] == "rerun_control"
+    missing_cuts = {c["look"] for c in control if not (c.get("weights") and c.get("lineage"))}
+    missing_cuts.update(
+        r["look"]
         for r in info["reuse"]["measurements"]
+        if r["method"] == "00" and r["action"] == "rerun_control"
     )
     # The historical ordinary base trajectory is a proxy for ordinary positive updates
     # only. New optimizer batches, broader streams and auxiliary passes need their own prices.
-    train = [c for c in control if c["look"] == 4_000_000]
-    if train and train[0].get("training_to_look_us") is not None:
-        observed = train[0]["training_to_look_us"]
-        prices["ordinary_4M_trajectory"] = dict(expected_us=observed, tail_us=observed)
-    plan["wave"]["ordinary_4M_trajectory"] = int(control_needed)
+    if missing_cuts:
+        target = max(missing_cuts)
+        key = f"ordinary_to_{target}_tokens"
+        plan["wave"][key] = 1
+        observed = next(c["training_to_look_us"] for c in control if c["look"] == target)
+        if observed is not None:
+            prices[key] = dict(expected_us=observed, tail_us=observed)
     plan["wave"].update(
         {
             k: 1
@@ -400,6 +406,11 @@ def velocity_forecast(info, policy):
     result = price_wave(plan, prices)
     for scope, row in result.items():
         row["operations"] = dict(plan[scope])
+        for estimate in ("expected_us", "tail_us"):
+            row["uncached_" + estimate] = (
+                row[estimate] + sum(history["image_acquisition_us"].values())
+                if history is not None and row[estimate] is not None else None
+            )
     reserve = result["followup"]["tail_us"]
     resident = info["prices"].get("resident_028")
     guards = []
@@ -449,9 +460,10 @@ def velocity_forecast(info, policy):
             if reserve is not None and result["wave"]["tail_us"] is not None
             else None
         ),
-        additional_control_tokens=4_000_000 if control_needed else 0,
+        missing_control_looks=sorted(missing_cuts),
+        additional_control_tokens=max(missing_cuts, default=0),
         exposed_028_timing=history,
-        original_028_balance=info["prices"].get("original_028_balance"),
+        prescore_028_balance=info["prices"].get("prescore_028_balance"),
         resident_028=resident,
         provisional_guards=guards,
         prior_score_credits=info["reuse"]["distinct_score_credits"],

@@ -117,7 +117,7 @@ def preflight(root, source=None):
         )
     elif not ordinary["weights"]:
         reason, next_action = (
-            "Original ordinary weights and training provenance are unavailable for the proposed reuse",
+            "Open the original ordinary 4M weight slice and stream bound to the verified round028 pilot",
             "inspect_inputs",
         )
     elif info["families"]["count"] is None:
@@ -125,10 +125,20 @@ def preflight(root, source=None):
             "Open the registered development family census to determine the matched probe size",
             "inspect_inputs",
         )
+    elif info["prices"]["followup_family_available"] is not True:
+        reason, next_action = (
+            "Register one eligible OEIS development family before reserving the matched follow-up",
+            "inspect_inputs",
+        )
     elif info["prices"]["followup_reserve_us"] is None:
         reason, next_action = (
             "Price one ordinary and one challenger OEIS portfolio with selected scoring on exposed inputs",
             "qualify",
+        )
+    elif info["matching_pairs"]["count"] is None:
+        reason, next_action = (
+            "Open the training-pair measurement to determine whether the matching arms can enter the wave",
+            "inspect_inputs",
         )
     else:
         reason, next_action = (

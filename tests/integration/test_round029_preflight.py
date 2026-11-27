@@ -162,6 +162,20 @@ def test_registered_preflight_reuse_is_once_per_verified_score_and_local_to_look
     assert times == {p: p.stat().st_mtime_ns for p in tmp_path.rglob("*")}
 
 
+def test_missing_ordinary_1m_does_not_reprice_the_intact_4m_cut(tmp_path, monkeypatch):
+    from oeis_learn.pipeline_validation import progressive_round029 as host
+
+    inventory = host.inventory(tmp_path)
+    for row in inventory["cuts"]:
+        if row["method"] == "00" and row["look"] != 1_000_000:
+            row.update(weights=digest(row["look"]), lineage=digest("matched training"))
+    monkeypatch.setattr(host, "inventory", lambda _: inventory)
+    prices = host.preflight(tmp_path)["inventory"]["prices"]
+    assert prices["missing_control_looks"] == [1_000_000]
+    assert prices["additional_control_tokens"] == 1_000_000
+    assert prices["wave"]["operations"]["ordinary_to_1000000_tokens"] == 1
+
+
 def test_preflight_prices_verified_exposed_clocks_even_without_private_freeze(
     tmp_path, monkeypatch
 ):
@@ -195,7 +209,9 @@ def test_preflight_prices_verified_exposed_clocks_even_without_private_freeze(
     )
     nested = archive({"round028.zip": archive({"timing.json": timing, "panels.json": panels})})
     pilot = tmp_path / "pilot.zip"
-    pilot.write_bytes(archive({"pilot.json": {"costs": []}, "round028-parent.zip": nested}))
+    original = dict(costs=[seal(dict(block="ordinary-0", role="search", charged_us=36, lease_us=30))],
+                    looks=[dict(target=0)], design=dict(sizes={"0": [dict(size=1), dict(size=3)]}))
+    pilot.write_bytes(archive({"pilot.json": original, "round028-parent.zip": nested}))
     scale = seal(
         dict(
             cases=160,
@@ -220,8 +236,11 @@ def test_preflight_prices_verified_exposed_clocks_even_without_private_freeze(
     before = {p: p.stat().st_mtime_ns for p in tmp_path.iterdir()}
     prices = host.preflight(tmp_path)["inventory"]["prices"]
     assert prices["exposed_028_timing"]["receipt"] == timing["identity"]
+    workload = prices["original_028_workloads"][0]
+    assert workload["cases"] == 4 and workload["roles"]["search"]["average_per_case_us"] == 9
     assert prices["followup"]["expected_us"] == 132 and prices["followup_reserve_us"] == 148
     assert prices["image_acquisition_us"] == {"cpu": 200, "hip": 300}
+    assert prices["followup"]["uncached_tail_us"] == 648
     assert prices["common_probe"]["expected_us"] is None
     assert "development_family_census" in prices["common_probe"]["missing"]
     assert prices["provisional_guards"][0]["value"] == 2 * 6_142_074_000
@@ -260,6 +279,7 @@ def test_preflight_prices_verified_exposed_clocks_even_without_private_freeze(
     by_role["development"]["oeis"] = dict(cases=0, families=0)
     zero = host.preflight(tmp_path)["inventory"]["prices"]
     assert zero["followup_family_available"] is False and zero["followup_reserve_us"] is None
+    assert zero["followup"]["known_tail_us"] == 0
     verified["report"] = digest("unrelated report")
     rejected = host.preflight(tmp_path)["inventory"]["prices"]
     assert rejected["exposed_028_timing"] is rejected["followup_reserve_us"] is None

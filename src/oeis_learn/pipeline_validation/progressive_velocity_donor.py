@@ -262,11 +262,18 @@ def inventory(root):
                     json.loads(evidence.read("timing.json")), json.loads(evidence.read("panels.json"))
                 )
         out["original_clocks"] = pilot["costs"]
+        for look in pilot["looks"]:
+            target = look["target"]
+            out["historical_scores"].append(dict(
+                look=target, attempts=8 if target == 4_000_000 else 1,
+                denominator=sum(row["size"] for row in pilot["design"]["sizes"][str(target)]),
+                disposition="historical_only_until_ordered_inference_and_score_match",
+            ))
         with zipfile.ZipFile(files["qualification"]) as archive:
             qualification = json.loads(archive.read("qualification.json"))
         balance = qualification.get("balance")
         if balance is not None:
-            out["prices"]["original_028_balance"] = dict(
+            out["prices"]["prescore_028_balance"] = dict(
                 receipt=balance["identity"],
                 settled_us=sum(row[2] for row in balance["charges"]),
                 outstanding_us={
@@ -289,17 +296,6 @@ def inventory(root):
     except (ValueError, FileNotFoundError) as exc:
         out["reason"] = str(exc)
         return out
-    for look in pilot["looks"]:
-        out["historical_scores"].append(
-            dict(
-                look=look["target"],
-                attempts=8 if look["target"] == 4000000 else 1,
-                denominator=len(
-                    next(iter(freeze["graph"][str(look["target"])].values()))["members"]
-                ),
-                disposition="historical_only_until_ordered_inference_and_score_match",
-            )
-        )
     try:
         path = checked_file(area, freeze["training"])
         out["stream"] = dict(
