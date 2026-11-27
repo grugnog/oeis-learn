@@ -48,6 +48,25 @@ To verify historical copies, set `OEIS_ARCHIVES` to the absolute directory conta
 
 The historical pilot should reproduce its one-seed 4M result retaining D. The release reader checks its independently verified package. These receipts establish historical identity. Current probe costs, untouched family supply and continuation eligibility require the round029 preflight. [Historical operator guide](../015-learned-program-search/quickstart.md)
 
+## Qualify the learner on the detached donor
+
+The current implementation supports read-only inventory and status, plus a disposable learner qualification. Run the following from the physical root of the detached round027 donor at `77667e67176ae32fa16457d52565bae1dbe41afc`. Set `ROUND029_REV` to the full implementation SHA in the PR handoff. The prompt records the maximum workstation minutes you authorize for this qualification, including an image build if needed. The existing stage supervisor reserves 120 seconds for cleanup.
+
+```bash
+(
+  set -euo pipefail
+  : "${ROUND029_REV:?full implementation commit from the handoff}"
+  git fetch --no-tags origin "$ROUND029_REV"
+  read -r -p 'Maximum workstation minutes approved for learner qualification? ' minutes
+  git show "${ROUND029_REV}:specs/016-measure-learning-velocity/validation/qualify-learner.sh" |
+    bash -s -- "$ROUND029_REV" "$minutes"
+)
+```
+
+The helper verifies the candidate source and prints preflight. It opens an operator grant for the two registered batch sizes and starts the installed worker under the donor's GPU lock. It uses the original campaign's reference architecture with seed 29, zero dropout and exposed generated prefixes. Batch 16 exercises recipe 04 and batch 32 exercises recipe 02, including matching and its training-only calibration. For each, it computes an uninterrupted reference, kills a process during backward, resumes from the complete cut and reopens the final cut. The worker compares model weights, AdamW moments, the scheduler and the next rows. Two additional native checks report the disposition of a refittable literal and a constant program on varying terms.
+
+The command prints the qualification and final status. The qualification receipt records the device peak alongside the historical 4,852,388,352-byte peak, checkpoint bytes/inodes, discarded token charges, GPU lease time and sampled activity coverage. `receipt_path` identifies the private receipt. On failure, `first_error` retains the first reason and attempt path. A capacity block reports the byte/inode deficit before issuing tokens. Repeating the command with the same revision and minutes reopens the original allowance and verifies any completed receipt. The grant covers this rehearsal only. Historical continuation parity, full study qualification, comparative runs and report verification remain open.
+
 ## Start or resume after the round029 release
 
 Use the original private workstation, a local Podman engine with resource controls and a qualified HIP device for learner work. Start in the **physical root of the detached round027 donor**. Set `ROUND029_REV` from the implementation release, and `ROUND029_GRANT` to the absolute path of the operator-authorized grant. If all you need is inventory, run through the preflight line. The same `run` line starts or resumes an authorized campaign.

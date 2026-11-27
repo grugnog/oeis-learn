@@ -265,7 +265,10 @@ def _main(args, root, host_factory, stack):
     token = _INVOCATION.set(invocation)
     caught = None
     try:
-        if args.operation == "round028":
+        if args.operation == "round029":
+            from .progressive_round029 import execute
+            result, code = execute(args, root, host_factory=host_factory)
+        elif args.operation == "round028":
             from .progressive_round028 import execute
             result, code = execute(args, root, host_factory=host_factory)
         elif args.operation == "init":

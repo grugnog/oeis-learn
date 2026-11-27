@@ -18,6 +18,16 @@ COMMANDS = {
 # Explicit inventory avoids the unrelated legacy rl/progressive harness whose
 # tests also begin with test_progressive_. New cases remain in source closure.
 CPU_TESTS = (
+    "tests/contract/test_round029_records.py",
+    "tests/contract/test_round029_roles.py",
+    "tests/integration/test_round029_preflight.py",
+    "tests/integration/test_round029_probes.py",
+    "tests/integration/test_round029_qualification.py",
+    "tests/integration/test_round029_resume.py",
+    "tests/unit/test_round029_capacity.py",
+    "tests/unit/test_round029_supply.py",
+    "tests/unit/test_round029_training.py",
+    "tests/unit/test_round029_velocity.py",
     "tests/contract/test_round028_routing.py",
     "tests/integration/test_round028_audit.py",
     "tests/integration/test_round028_rehearsal.py",
@@ -152,6 +162,14 @@ CPU_TESTS = (
 def register(commands):
     group = commands.add_parser("discovery", help="bounded spec 013 discovery operations")
     operations = group.add_subparsers(dest="operation", required=True)
+    velocity = operations.add_parser("round029", help="learning velocity on new OEIS families")
+    velocity.add_argument("--action", required=True,
+                          choices=("preflight", "status", "qualify", "cpu", "run", "verify"))
+    location = velocity.add_mutually_exclusive_group(required=True)
+    location.add_argument("--workspace", help="absolute physical donor workspace")
+    location.add_argument("--archive", help="copied round029 report for independent verification")
+    velocity.add_argument("--qualification-archive", help="independently retained pre-score archive")
+    velocity.add_argument("--authority", help="operator grant for qualify, cpu or run")
     round028 = operations.add_parser("round028", help="registered learned program search")
     round028.add_argument("--action", choices=("preflight", "audit", "rehearse", "recover-rehearsal", "panels", "timing", "finalize", "pilot", "qualify-pilot", "pilot-status", "release-acceptance", "run", "status", "verify"), required=True)
     round028.add_argument("--replay-budget-seconds", type=int, help="CPU allowance for the single discriminating audit replay")

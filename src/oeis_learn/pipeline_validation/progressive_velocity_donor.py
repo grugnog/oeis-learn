@@ -1,0 +1,294 @@
+"""Read immutable 028 outputs in place. A public score alone cannot authorize a new probe."""
+
+import json
+from pathlib import Path
+import subprocess
+import sys
+from tempfile import TemporaryDirectory
+import zipfile
+
+from oeis_learn.generalization.progressive.campaign import velocity_policy
+from oeis_learn.generalization.progressive.contracts import (
+    CAMPAIGN_DOCUMENT_BYTES,
+    load,
+    read_bound_record,
+    seal,
+)
+from .identity import confined, file_hash
+from .progressive_research_inputs import checked_file
+from .progressive_round028_audit import SESSION as PARENT
+from .progressive_round028_pilot import AREA, SHARE, checkpoint_inputs
+
+# Published, independently verified bytes in the 015 pilot and release handoffs.
+ARCHIVES = {
+    "pilot": ("pilot", "4ad17a6f9e252de72025603a2e5ae7322f77c51b98260196eaec557ab22314fd"),
+    "qualification": (
+        "pilot-qualification",
+        "ef61b2e243c2bb95035baaa230b71093ef7ecb36433f577063c39a3d65350812",
+    ),
+    "release": ("release", "45cab7c100e914a70ef5253b43c85ddf1ec80212f66326b090def75555fd5967"),
+}
+PILOT_REPORT = "sha256:71c8c2f807cbc9101983a1c74194e04629f535666d878b06664274464b0198ab"
+
+
+def reuse_layers(cut, receipt, request):
+    """Compare authenticated operands from the donor and frozen requested measurement."""
+    continuation = bool(cut.get("full_state") and cut.get("lineage") == request.get("lineage"))
+    action, reason = "rerun_control", "weights or training lineage unavailable"
+    if (
+        cut.get("weights")
+        and cut.get("lineage")
+        and all(cut[k] == request.get(k) for k in ("weights", "lineage"))
+    ):
+        action, reason = "new_inference", "search, selection or sealed choice differs"
+        if (
+            receipt
+            and receipt.get("choice")
+            and all(
+                receipt.get(k) and receipt[k] == request.get(k)
+                for k in ("weights", "lineage", "inference", "selection")
+            )
+        ):
+            action, reason = "rescore", "private truth or scorer differs"
+            if receipt.get("score") and all(
+                receipt.get(k) and receipt[k] == request.get(k) for k in ("scorer", "truth")
+            ):
+                action, reason = "reuse_score", "choice, scorer and truth match"
+    return dict(action=action, continuation=continuation, reason=reason)
+
+
+def _archives(root, policy):
+    paths = {}
+    result = {}
+    tools = confined(root, "run-state/discovery-tools", exists=False)
+    originals = {
+        "pilot": f"{PARENT}/{SHARE}",
+        "release": f"{PARENT}/share/release-acceptance/{policy['release_reader']}/round028-release.zip",
+    }
+    for kind, (suffix, sha) in ARCHIVES.items():
+        name = "round028-" + suffix + ".zip"
+        candidates = [root / name, *sorted(tools.glob("round028-*/" + name))]
+        if kind in originals:
+            candidates.insert(0, root / originals[kind])
+        available = []
+        for candidate in candidates:
+            path = confined(root, candidate, exists=False)
+            if path.is_file():
+                actual = file_hash(path)
+                available.append(dict(bytes=path.stat().st_size, sha256=actual))
+                if actual == "sha256:" + sha:
+                    paths[kind] = path
+                    break
+        result[kind] = dict(available=available, matched=kind in paths, reader=None)
+    return paths, result
+
+
+def _verify_with_pin(root, revision, archive, qualification=None):
+    """Disjoint temporary reader. No ref checkout, cache writes or imports from the donor."""
+    with TemporaryDirectory(prefix="oeis-028-reader-") as temp:
+        with subprocess.Popen(
+            ["git", "-C", str(root), "archive", revision],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        ) as git:
+            extraction = subprocess.run(
+                ["tar", "-xf", "-", "-C", temp], stdin=git.stdout, capture_output=True
+            )
+            if git.wait() or extraction.returncode:
+                raise ValueError("reader commit unavailable: " + revision)
+        cmd = [
+            sys.executable,
+            "-I",
+            "-B",
+            "-S",
+            "-c",
+            "import sys,runpy;sys.path.insert(0,sys.argv[1]);sys.argv=sys.argv[2:];"
+            "runpy.run_path(sys.argv[0],run_name='__main__')",
+            str(Path(temp) / "scripts"),
+            str(Path(temp) / "scripts/foundation_run.py"),
+            "--engine",
+            "podman",
+            "discovery",
+            "round028",
+            "--action",
+            "verify",
+            "--archive",
+            str(archive),
+        ]
+        if qualification:
+            cmd.extend(["--qualification-archive", str(qualification)])
+        proc = subprocess.run(cmd, cwd=temp, capture_output=True, text=True)
+        if proc.returncode:
+            raise ValueError("pinned historical verifier rejected " + archive.name)
+        return json.loads(proc.stdout)
+
+
+def _checkpoint(cut, row, roles):
+    """The public milestone fixes the manifest hash even when optimizer blobs are missing."""
+    for role, bound, producer, result in roles:
+        if result.get("milestone") != cut:
+            continue
+        if result["checkpoint"]["sha256"] != cut["parent"]:
+            continue
+        output = confined(role, Path(bound["producer"]["path"]).parent)
+        base = confined(output, "checkpoint")
+        manifest = read_bound_record(base, result["checkpoint"])
+        weights = manifest["states"]["weights"]
+        checked_file(base, weights)
+        row.update(
+            weights=weights["sha256"],
+            weight_bytes=weights["bytes"],
+            inference=True,
+            reason="verified weights; new measurement requires a frozen inference key",
+        )
+        try:
+            checkpoint_inputs(output, result)
+        except (ValueError, FileNotFoundError):
+            row["reason"] += "; full restore data missing or inconsistent"
+        else:
+            row.update(full_state=cut["parent"], continuation="requires_next_update_parity")
+        return
+
+
+def inventory(root):
+    policy = velocity_policy()
+    files, archives = _archives(root, policy)
+    cuts = [
+        dict(
+            method=m,
+            look=k,
+            weights=None,
+            full_state=None,
+            continuation=False,
+            inference=False,
+            reason="original matched weights and provenance unavailable",
+        )
+        for m in ("00", "first_divergence")
+        for k in (0, 1000000, 4000000)
+    ]
+    cuts.append(
+        dict(
+            method="D",
+            look=None,
+            weights=None,
+            full_state=None,
+            continuation=False,
+            inference=False,
+            reason="original qualified D weights unavailable",
+        )
+    )
+    out = dict(
+        archives=archives,
+        cuts=cuts,
+        original_clocks=[],
+        stream=None,
+        historical_scores=[],
+        gpu_dispatches=0,
+    )
+    if "release" in files:
+        try:
+            _verify_with_pin(root, policy["release_reader"], files["release"])
+            archives["release"]["reader"] = policy["release_reader"]
+        except ValueError as exc:
+            archives["release"]["reason"] = str(exc)
+    if not {"pilot", "qualification"} <= files.keys():
+        return out
+    try:
+        verified = _verify_with_pin(
+            root, policy["pilot_reader"], files["pilot"], files["qualification"]
+        )
+        if verified.get("report") != PILOT_REPORT:
+            raise ValueError("original pilot report identity differs")
+        archives["pilot"]["reader"] = archives["qualification"]["reader"] = policy["pilot_reader"]
+        with zipfile.ZipFile(files["pilot"]) as archive:
+            pilot = json.loads(archive.read("pilot.json"))
+        area = confined(root, f"{PARENT}/{AREA}")
+        freeze = load(confined(area, "freeze.json"), maximum=CAMPAIGN_DOCUMENT_BYTES)
+        if seal(freeze) != freeze or freeze["identity"] != pilot["design"]["private_freeze"]:
+            raise ValueError("original private freeze differs")
+    except (ValueError, FileNotFoundError) as exc:
+        out["reason"] = str(exc)
+        return out
+    out["original_clocks"] = pilot["costs"]
+    for look in pilot["looks"]:
+        out["historical_scores"].append(
+            dict(
+                look=look["target"],
+                attempts=8 if look["target"] == 4000000 else 1,
+                denominator=len(
+                    next(iter(freeze["graph"][str(look["target"])].values()))["members"]
+                ),
+                disposition="historical_only_until_ordered_inference_and_score_match",
+            )
+        )
+    try:
+        path = checked_file(area, freeze["training"])
+        out["stream"] = dict(
+            bytes=path.stat().st_size,
+            artifact=freeze["training"]["sha256"],
+            identity=freeze["stream"],
+            seeds=freeze["seeds"],
+        )
+    except (ValueError, FileNotFoundError) as exc:
+        out["stream_reason"] = str(exc)
+    try:
+        from collections import Counter
+
+        prior = load(
+            checked_file(root, freeze["roster_source"]), maximum=freeze["roster_source"]["bytes"]
+        )
+        if prior != seal(prior):
+            raise ValueError("original reserved panel supply differs")
+        counts = {}
+        for role, members in prior["allocations"]["panels"].items():
+            by_stratum = Counter(r["stratum"] for r in members)
+            counts[role] = {
+                s: dict(cases=n, families=len({r["group"] for r in members if r["stratum"] == s}))
+                for s, n in by_stratum.items()
+            }
+        out["historical_reservations"] = dict(
+            source=freeze["roster_source"]["sha256"], counts=counts
+        )
+    except (ValueError, FileNotFoundError, KeyError) as exc:
+        out["historical_reservations"] = dict(counts=None, reason=str(exc))
+    try:
+        checked_file(root, freeze["reference"])
+        cuts[-1].update(
+            weights=freeze["reference"]["sha256"],
+            weight_bytes=freeze["reference"]["bytes"],
+            inference=True,
+            reason="normal D recipe and authenticated weights",
+            recipe=freeze["recipe"],
+        )
+    except (ValueError, FileNotFoundError) as exc:
+        cuts[-1]["reason"] = str(exc)
+    roles = []
+    for path in sorted(area.glob("roles/*/boundary.json")):
+        try:
+            bound = load(confined(area, path))
+            producer = read_bound_record(path.parent, bound["producer"])
+            if bound == seal(bound) and producer["request"] == bound["request"]:
+                if "milestone" in producer["result"]:
+                    roles.append((path.parent, bound, producer, producer["result"]))
+        except (ValueError, KeyError, FileNotFoundError):
+            continue
+    for row in cuts[:-1]:
+        look = next((v for v in pilot["looks"] if v["target"] == row["look"]), None)
+        if look is None:
+            continue
+        arm = "ordinary" if row["method"] == "00" else row["method"]
+        cut = look["cuts"][arm]
+        row.update(
+            lineage=cut["stream"],
+            initial=cut["initial"],
+            useful_tokens=cut["useful_tokens"],
+            charged_tokens=cut["charged"],
+            source=pilot["registration"]["source"],
+            image=freeze["images"]["hip"],
+            policy=cut["common_policy"],
+        )
+        try:
+            _checkpoint(cut, row, roles)
+        except (ValueError, FileNotFoundError) as exc:
+            row["reason"] = str(exc)
+    return out

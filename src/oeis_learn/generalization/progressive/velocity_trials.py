@@ -1,4 +1,5 @@
 """Explicit seed/stream lineage and useful positive exposure for round029 only."""
+
 from .campaign import velocity_policy
 from .contracts import _check, digest, schema, seal
 from .training_rows import matched_batch
@@ -10,10 +11,19 @@ def recipe_bindings(registration, *, initialization, stream_seed, ordinary, broa
         _check(schema("common")["$defs"]["hash"], identity, schema("common"))
     integer(initialization)
     integer(stream_seed)
-    return {row["id"]: seal(dict(version="round029-trial/v1", registration=registration,
-                                 recipe=row, initialization=initialization, stream_seed=stream_seed,
-                                 stream_ref=ordinary if row["stream"] == "ordinary" else broad))
-            for row in velocity_policy()["recipes"]}
+    return {
+        row["id"]: seal(
+            dict(
+                version="round029-trial/v1",
+                registration=registration,
+                recipe=row,
+                initialization=initialization,
+                stream_seed=stream_seed,
+                stream_ref=ordinary if row["stream"] == "ordinary" else broad,
+            )
+        )
+        for row in velocity_policy()["recipes"]
+    }
 
 
 def exposure(stream, rows, *, updates, batch, discarded=0):
@@ -30,15 +40,23 @@ def exposure(stream, rows, *, updates, batch, discarded=0):
             raise ValueError("empty positive targets")
         useful += last
         chain = digest([chain, ids])
-    return dict(cursor=updates*batch, updates=updates, useful_tokens=useful,
-                charged_tokens=useful + discarded, discarded_tokens=discarded,
-                last_update_tokens=last, order_digest=chain)
+    return dict(
+        cursor=updates * batch,
+        updates=updates,
+        useful_tokens=useful,
+        charged_tokens=useful + discarded,
+        discarded_tokens=discarded,
+        last_update_tokens=last,
+        order_digest=chain,
+    )
 
 
 def crossed(cut, target):
     integer(target)
-    return cut["updates"] == 0 if target == 0 else (
-        cut["useful_tokens"] - cut["last_update_tokens"] < target <= cut["useful_tokens"]
+    return (
+        cut["updates"] == 0
+        if target == 0
+        else (cut["useful_tokens"] - cut["last_update_tokens"] < target <= cut["useful_tokens"])
     )
 
 
@@ -48,6 +66,12 @@ def update_policy(profile, recipe_id, *, microbatch, matching_weight=None, horiz
     row = next((r for r in velocity_policy()["recipes"] if r["id"] == recipe_id), None)
     if row is None:
         raise ValueError("unregistered training recipe")
-    return resolve_update_policy(profile, velocity_recipe=recipe_id, effective_batch=row["batch"],
-                                 weight_decay=row["decay"], schedule_horizon_tokens=horizon,
-                                 microbatch_size=microbatch, matching_weight=matching_weight)
+    return resolve_update_policy(
+        profile,
+        velocity_recipe=recipe_id,
+        effective_batch=row["batch"],
+        weight_decay=row["decay"],
+        schedule_horizon_tokens=horizon,
+        microbatch_size=microbatch,
+        matching_weight=matching_weight,
+    )

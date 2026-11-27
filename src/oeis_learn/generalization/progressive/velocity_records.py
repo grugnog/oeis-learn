@@ -1,4 +1,5 @@
 """Round029 wire records. Authorization requires a separately retained operator decision."""
+
 from pathlib import Path
 
 from .contracts import _check, digest, schema, seal
@@ -18,6 +19,15 @@ def checked(kind, value):
     return value
 
 
+def open_stored(root, value, *, owner, format):
+    from oeis_learn.pipeline_validation.progressive_research_inputs import checked_file
+
+    checked("stored_reference", value)
+    if (value["owner"], value["format"]) != (owner, format):
+        raise ValueError("stored artifact owner or format differs")
+    return checked_file(root, value["artifact"])
+
+
 def grant_terms(grant):
     return {k: v for k, v in grant.items() if k not in {"identity", "authorizing_record_ref"}}
 
@@ -28,12 +38,16 @@ def validate_grant(grant, authorization, *, root, parent, action):
     checked("grant", grant)
     allowed = set(grant["allowed_operations"])
     routes = set(velocity_policy()["branches"])
-    if (seal(grant) != grant or root != grant["state_root_id"]
-            or parent != grant["registration_or_parent_ref"]
-            or action not in ACTIONS[grant["scope"]] or action not in allowed
-            or not allowed <= ACTIONS[grant["scope"]] | routes
-            or grant["holdback_us"] > grant["total_us"]
-            or grant["resources"]["elapsed_us"] != grant["total_us"]):
+    if (
+        seal(grant) != grant
+        or root != grant["state_root_id"]
+        or parent != grant["registration_or_parent_ref"]
+        or action not in ACTIONS[grant["scope"]]
+        or action not in allowed
+        or not allowed <= ACTIONS[grant["scope"]] | routes
+        or grant["holdback_us"] > grant["total_us"]
+        or grant["resources"]["elapsed_us"] != grant["total_us"]
+    ):
         raise ValueError("grant phase, physical owner, parent or allowance differs")
     expected = seal(dict(version="round029-authorization/v1", terms=digest(grant_terms(grant))))
     if authorization != expected or grant["authorizing_record_ref"] != expected["identity"]:
@@ -59,24 +73,23 @@ def validate_result(result):
 
 
 def visible_prompt(prompt):
+    from .cohorts import validate_prompt
+
     if set(prompt) != {"indices", "values"}:
         raise ValueError("closed visible-only prompt required")
-    indices, values = prompt["indices"], prompt["values"]
-    if (not isinstance(indices, list) or len(indices) != 20 or any(type(i) is not int for i in indices)
-            or indices != list(range(indices[0], indices[0] + 20))
-            or not isinstance(values, list) or len(values) != 20):
-        raise ValueError("twenty consecutive original indices and exact values required")
-    for v in values:
-        _check(schema("common")["$defs"]["decimal"], v, schema("common"))
+    validate_prompt(dict(prompt, id="round029"))
     return prompt
 
 
 def registered_worker(expected, current):
     import re
 
-    if (expected != current or set(current) != {"source", "image", "device", "role_policy"}
-            or not re.fullmatch("[0-9a-f]{40}", current["source"])
-            or not current["device"]):
+    if (
+        expected != current
+        or set(current) != {"source", "image", "device", "role_policy"}
+        or not re.fullmatch("[0-9a-f]{40}", current["source"])
+        or not current["device"]
+    ):
         raise ValueError("registered worker identity differs")
     for k in ("image", "role_policy"):
         _check(schema("common")["$defs"]["hash"], current[k], schema("common"))

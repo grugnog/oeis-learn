@@ -371,3 +371,15 @@ def guard_inventory(scale, hip):
             "ServiceLimits." + key,
         )
     return rows
+
+
+def velocity_guard(*, owner, scope, units, observed, projected, revision, harm, rehearsal, exhaustion):
+    """A provisional envelope is comparable only at the owner's units and scope."""
+    from oeis_learn.generalization.budgets import integer
+
+    peak = max(integer(observed), integer(projected))
+    if not all((owner, scope, units, revision, harm, rehearsal, exhaustion)) or not peak:
+        raise ValueError("numeric peak, production reference and named physical rehearsal required")
+    return dict(owner=owner,scope=scope,units=units,source=revision,observed=observed,
+                projected=projected,value=2*peak,headroom=peak,basis="provisional",
+                harm=harm,rehearsal=rehearsal,exhaustion=exhaustion)

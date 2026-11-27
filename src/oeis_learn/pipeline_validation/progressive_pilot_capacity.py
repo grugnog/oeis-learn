@@ -167,11 +167,12 @@ def capacity(area, host, checkpoint_bytes, *, scale, share, cached, measure, out
 def owned_allocations(paths):
     """Physical allocations for one owner, counting overlapping paths and hard links once."""
     import stat
+    from itertools import chain
 
     seen = set()
     total = 0
     for root in paths:
-        for path in (root, *root.rglob("*")) if root.is_dir() else (root,):
+        for path in chain((root,), root.rglob("*")) if root.is_dir() else (root,):
             info = path.lstat()
             if stat.S_ISLNK(info.st_mode):
                 raise ValueError("physical allocation alias")
