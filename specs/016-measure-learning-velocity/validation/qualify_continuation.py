@@ -291,6 +291,8 @@ def donor_timings(action, root, revision, minutes):
         summary,
         units=record["units"],
         measurement=record["measurement"],
+        worker_cpu_us=record["worker_cpu_us"],
+        telemetry=record["telemetry"],
         lease_us=record["lease_us"],
         peak_device_bytes=record["peak_device_bytes"],
         prices=prices,

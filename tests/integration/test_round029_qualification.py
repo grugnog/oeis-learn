@@ -444,6 +444,14 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
                 methods=methods,
             )
         )
+        from oeis_learn.pipeline_validation.progressive_generator_probe import usage_summary
+
+        samples = out / "telemetry/samples.jsonl"
+        samples.parent.mkdir()
+        samples.write_text(
+            '{"time":0,"gpu":{"gpu_busy_percent":20}}\n'
+            '{"time":0.0005,"gpu":{"gpu_busy_percent":60}}\n'
+        )
         atomic_write(
             out / "producer.json",
             seal(
@@ -452,6 +460,8 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
                     matrix=matrix,
                     device="hip",
                     elapsed_us=1000,
+                    worker_cpu_us=1500,
+                    telemetry=usage_summary(samples.parent, 1000),
                     peak_device_bytes=1024,
                 )
             ),
@@ -506,10 +516,29 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     assert code == 0 and info["inventory"]["gpu_dispatches"] == 0
     prices = info["inventory"]["prices"]
     assert prices["timed_updates"]["update_count"] == design["cost"]["attempts"]
+    scope = prices["timed_updates"]["preparation_cost"]
+    assert scope["launch_to_decision_us"] >= scope["incremental"]["occupied"]["union_us"] > 0
+    assert scope["incremental"]["ledger_us"] == completed["elapsed_us"]
+    assert scope["incremental"]["resources"]["worker_cpu_us"] == {
+        "observed": 1500,
+        "missing_operations": 1,
+    }
+    assert scope["incremental"]["resources"]["busy_us"] == {
+        "observed": 200,
+        "missing_operations": 0,
+    }
+    assert scope["incremental"]["resources"]["covered_us"]["observed"] == 500
     assert "optimizer_to_4M_recipe_03" in prices["wave"]["missing"]
     assert "optimizer_to_4M_recipe_02" not in prices["wave"]["missing"]
     assert prices["wave"]["operations"]["ordinary_matching_calibration"] == 1
     assert prices["wave_with_reserve_us"] is None
+    samples = launches[0] / "telemetry/samples.jsonl"
+    original = samples.read_bytes()
+    samples.write_text('{"time":0,"gpu":null}\n')
+    changed, code = run()
+    assert code == 0 and "timed_updates" not in changed["inventory"]["prices"]
+    assert "sampled activity" in changed["inventory"]["prices"]["timing_reason"]
+    samples.write_bytes(original)
     path = launches[0] / "gpu-lease.json"
     path.write_text('{"elapsed_us":1}')
     new, code = run()

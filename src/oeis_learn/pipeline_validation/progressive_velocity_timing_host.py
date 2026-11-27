@@ -10,6 +10,7 @@ from oeis_learn.generalization.progressive.campaign import velocity_policy
 from oeis_learn.generalization.progressive.contracts import digest, load, reference, seal
 from oeis_learn.generalization.progressive.velocity_records import (
     SESSION,
+    operation_key,
     physical_root_id,
     validate_grant,
 )
@@ -73,9 +74,9 @@ def donor_inputs(root, pointer):
 
 def authorize_timing(root, minutes, revision):
     from .progressive_velocity_qualification import authorize_qualification
+    from .progressive_velocity_timing import timing_limits
 
     pointer = pair_pointer(root)
-    from .progressive_velocity_timing import timing_limits
 
     # The paid preparation opens and verifies the training archive and selects the
     # actual samples. Funding needs only the prior payment and public recipe limits.
@@ -168,6 +169,16 @@ def device_evidence(area, out, req, projection):
         or peak <= 0
     ):
         raise ValueError("original HIP timing, termination, or memory evidence differs")
+    from .progressive_generator_probe import usage_summary
+    from oeis_learn.generalization.progressive.trials import integer
+
+    sample_path = confined(out, "telemetry/samples.jsonl")
+    telemetry = usage_summary(sample_path.parent, elapsed)
+    if telemetry != produced["telemetry"] or telemetry["covered_us"] > elapsed:
+        raise ValueError(
+            "sampled activity or coverage differs from the original device observations"
+        )
+    cpu_us = integer(produced["worker_cpu_us"])
     units = matrix_prices(produced["matrix"], projection, req["design"], device="cuda")
     methods = produced["matrix"]["methods"]
     accounted = units["calibration_us"] + sum(
@@ -181,6 +192,8 @@ def device_evidence(area, out, req, projection):
         dict(
             producer=produced["identity"],
             units=units,
+            worker_cpu_us=cpu_us,
+            telemetry=telemetry,
             lease_us=lease["elapsed_us"],
             peak_device_bytes=peak,
             artifacts=[
@@ -191,6 +204,7 @@ def device_evidence(area, out, req, projection):
                     "process.json",
                     "cleanup.json",
                     "gpu-lease.json",
+                    "telemetry/samples.jsonl",
                 )
             ],
         )
@@ -206,6 +220,8 @@ def combined(binding, prepared_receipt, measurement):
             preparation=prepared_receipt["identity"],
             measurement=measurement["identity"],
             units=evidence["units"],
+            worker_cpu_us=evidence["worker_cpu_us"],
+            telemetry=evidence["telemetry"],
             lease_us=evidence["lease_us"],
             peak_device_bytes=evidence["peak_device_bytes"],
         )
@@ -239,6 +255,54 @@ def replay(root, area, binding, grant, snapshot):
     return combined(binding, pre, paid)
 
 
+def preparation_cost(area, grant, snapshot, record):
+    from oeis_learn.generalization.progressive.program_search_costing import workstation_accounting
+
+    methods = sorted(record["units"]["methods"].keys() | record["units"]["unavailable"].keys())
+    host = grant["state_root_id"]
+    operations = {}
+    for phase, expected in (("prepare", record["preparation"]), ("measure", record["measurement"])):
+        logical = operation_key(coordinates(grant, phase), 0)["logical"]
+        receipt = load(confined(area, "operations/" + logical[7:] + "/receipt.json"))
+        if receipt["identity"] != expected or receipt != seal(receipt):
+            raise ValueError("workstation cost differs from the verified role receipt")
+        operations[logical] = (phase, receipt["attempt"])
+    records = []
+    boundaries = {}
+    for key, window in snapshot["windows"].items():
+        logical, number = key.split("/dispatch/")
+        phase, completed = operations[logical]
+        success = int(number) == completed
+        state = "complete" if success else "open" if window["event"] == "RESERVE" else "failed"
+        resources = {}
+        if phase == "prepare":
+            resources = dict(lease_us=0, covered_us=0, busy_us=0)
+        elif success:
+            resources = dict(
+                lease_us=record["lease_us"],
+                worker_cpu_us=record["worker_cpu_us"],
+                covered_us=record["telemetry"]["covered_us"],
+                busy_us=record["telemetry"]["busy_us"],
+            )
+        records.append(
+            dict(
+                window,
+                origin="incremental",
+                state=state,
+                role=phase,
+                receipt=key,
+                host=host,
+                beneficiaries=methods,
+                **resources,
+            )
+        )
+        if phase == "prepare" and int(number) == 0:
+            boundaries["launch"] = dict(host=host, boot=window["boot"], at_us=window["start_us"])
+        if phase == "measure" and success:
+            boundaries["decision"] = dict(host=host, boot=window["boot"], at_us=window["end_us"])
+    return workstation_accounting(records, **boundaries)
+
+
 def timing_inventory(root, source):
     folder = confined(root, "run-state/discovery/" + SESSION, exists=False)
     if not folder.is_dir() or not (folder / "preparation/update-prices.json").exists():
@@ -269,7 +333,7 @@ def timing_inventory(root, source):
         parent=timing_parent(binding["candidate"], binding["pair_pointer"]["receipt"]),
     )
     snapshot = BudgetJournal.inspect_existing(
-        confined(area, "accounting"), grant["identity"], grant["resources"]
+        confined(area, "accounting"), grant["identity"], grant["resources"], include_windows=True
     )
     record = replay(root, area, binding, grant, snapshot)
     if (
@@ -279,7 +343,10 @@ def timing_inventory(root, source):
     ):
         raise ValueError("original timing receipt differs from the physical journal")
     return dict(
-        candidate=binding["candidate"], measurement=record["measurement"], **record["units"]
+        candidate=binding["candidate"],
+        measurement=record["measurement"],
+        preparation_cost=preparation_cost(area, grant, snapshot, record),
+        **record["units"],
     )
 
 

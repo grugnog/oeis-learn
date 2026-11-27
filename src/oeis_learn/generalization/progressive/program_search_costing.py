@@ -601,3 +601,81 @@ def occupied_time(intervals):
                 attributed_us={k:float(v) for k,v in attributed.items()} if comparable else None,
                 lower_us=max(spans, default=0), upper_us=None if unknown else sum(spans),
                 unknown=unknown, receipt_count=len(receipts))
+
+
+def workstation_accounting(records, *, launch=None, decision=None):
+    """Report original debits separately from occupied wall and measured worker resources."""
+    from collections import Counter
+    from .trials import integer
+
+    phases = {"historical": [], "incremental": []}
+    seen = {}
+    paid = set()
+    for row in records:
+        key = row["origin"], row["receipt"]
+        if key in seen:
+            if seen[key] != row:
+                raise ValueError("one operation has conflicting accounting evidence")
+            continue
+        seen[key] = row
+        phase, state = row["origin"], row["state"]
+        if phase not in phases or state not in {
+            "complete",
+            "failed",
+            "open",
+            "reused",
+            "unstarted",
+        }:
+            raise ValueError("registered work origin and disposition required")
+        debit = integer(row["charged_us"])
+        if state in {"reused", "unstarted"}:
+            if debit or any(
+                row.get(k) not in (None, 0)
+                for k in ("worker_cpu_us", "lease_us", "covered_us", "busy_us")
+            ):
+                raise ValueError("a reused or unstarted operation has no new charge")
+        else:
+            if row["receipt"] in paid:
+                raise ValueError("a paid operation cannot be charged in both cost scopes")
+            paid.add(row["receipt"])
+            start, end = row["start_us"], row["end_us"]
+            if start is not None and end is not None and integer(end) - integer(start) != debit:
+                raise ValueError("settled debit differs from its proven workstation interval")
+            lease, covered, busy = (row.get(k) for k in ("lease_us", "covered_us", "busy_us"))
+            if (covered is not None and lease is not None and covered > lease) or (
+                busy is not None and (covered is None or busy > covered)
+            ):
+                raise ValueError("sampled activity must fit within coverage and the device lease")
+        phases[phase].append(row)
+
+    def summarize(rows):
+        active = [r for r in rows if r["state"] not in {"unstarted", "reused"}]
+        roles = Counter()
+        resources = {}
+        for r in active:
+            roles[r["role"]] += r["charged_us"]
+        for key in ("worker_cpu_us", "lease_us", "covered_us", "busy_us"):
+            known = [integer(r[key]) for r in active if r.get(key) is not None]
+            resources[key] = dict(observed=sum(known), missing_operations=len(active) - len(known))
+        return dict(
+            ledger_us=sum(roles.values()),
+            roles=dict(roles),
+            dispositions=dict(Counter(r["state"] for r in rows)),
+            occupied=occupied_time(active),
+            resources=resources,
+        )
+
+    elapsed = None
+    if launch is not None and decision is not None:
+        clocks = [(p.get("host"), p.get("boot")) for p in (launch, decision)]
+        if (
+            clocks[0] == clocks[1]
+            and all(clocks[0])
+            and all(p.get("at_us") is not None for p in (launch, decision))
+        ):
+            elapsed = integer(integer(decision["at_us"]) - integer(launch["at_us"]))
+    return dict(
+        historical=summarize(phases["historical"]),
+        incremental=summarize(phases["incremental"]),
+        launch_to_decision_us=elapsed,
+    )

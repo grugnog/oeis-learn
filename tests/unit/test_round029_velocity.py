@@ -183,3 +183,57 @@ def test_missing_structural_stratum_preserves_cells_and_profiles_cannot_be_subst
     assert sampled["supported_draws"] == 0 and sampled["lower"] is None
     with pytest.raises(ValueError, match="profile"):
         contrast(rows, coeff, stratum="composition", looks=dict(views, a=look("00", "common")))
+
+
+def test_original_and_incremental_work_keep_failed_debits_reuse_and_unknown_clocks():
+    from oeis_learn.generalization.progressive.program_search_costing import workstation_accounting
+
+    def work(receipt, role, start, end, **changes):
+        return dict(
+            dict(
+                receipt=receipt,
+                origin="incremental",
+                state="complete",
+                role=role,
+                host="host",
+                boot="boot",
+                start_us=start,
+                end_us=end,
+                beneficiaries=["00", "02"],
+                charged_us=end - start,
+                lease_us=0,
+                covered_us=0,
+                busy_us=0,
+            ),
+            **changes,
+        )
+
+    old = work("old", "training", 1, 21, origin="historical")
+    reused = dict(old, origin="incremental", state="reused", charged_us=0)
+    failed = work("retry", "prepare", 3, 7, state="failed", beneficiaries=["00"])
+    fresh = work("device", "measure", 5, 11, lease_us=5, covered_us=3, busy_us=2, worker_cpu_us=8)
+    records = [old, reused, failed, fresh, fresh]
+    launch = dict(host="host", boot="boot", at_us=2)
+    decision = dict(launch, at_us=15)
+    account = workstation_accounting(records, launch=launch, decision=decision)
+    assert account["historical"]["ledger_us"] == 20
+    marginal = account["incremental"]
+    assert marginal["ledger_us"] == 10 and marginal["occupied"]["union_us"] == 8
+    assert marginal["occupied"]["attributed_us"] == {"00": 5, "02": 3}
+    assert marginal["dispositions"] == {"reused": 1, "failed": 1, "complete": 1}
+    assert marginal["roles"] == {"prepare": 4, "measure": 6}
+    assert marginal["resources"]["worker_cpu_us"] == {"observed": 8, "missing_operations": 1}
+    assert marginal["resources"]["busy_us"] == {"observed": 2, "missing_operations": 0}
+    assert account["launch_to_decision_us"] == 13
+    open_work = dict(failed, receipt="open", state="open", end_us=None, charged_us=15)
+    unknown = workstation_accounting(
+        [*records, open_work], launch=launch, decision=dict(decision, boot="other")
+    )
+    marginal = unknown["incremental"]
+    assert marginal["ledger_us"] == 25 and marginal["occupied"]["lower_us"] == 8
+    assert marginal["occupied"]["upper_us"] is None and marginal["occupied"]["union_us"] is None
+    assert unknown["launch_to_decision_us"] is None
+    with pytest.raises(ValueError, match="both cost scopes"):
+        workstation_accounting([old, dict(old, origin="incremental")])
+    with pytest.raises(ValueError, match="no new charge"):
+        workstation_accounting([dict(reused, charged_us=1)])

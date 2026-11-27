@@ -332,6 +332,8 @@ def matrix_prices(observed, projection, design, *, device):
 
 def main():
     from oeis_learn.experiments.source_snapshot import source_snapshot
+    from oeis_learn.tracking.pipeline_profile import Recorder
+    from .progressive_generator_probe import usage_summary
     from .progressive_qualification import require_hip
     from .progressive_research_inputs import checked_file
     from .progressive_roles import ROUND029_ROLE_POLICY
@@ -350,17 +352,31 @@ def main():
     projection = load(checked_file(inputs, ref), maximum=ref["bytes"])
     torch = require_hip()
     torch.cuda.reset_peak_memory_stats()
+    out = Path("/work/output")
+    nodes = sorted(Path("/dev/dri").glob("renderD*"))
     start = time.monotonic_ns()
-    observed = run_matrix(projection, request["design"], device="cuda")
-    torch.cuda.synchronize()
+    cpu_start = time.process_time_ns()
+    with Recorder(
+        out / "telemetry",
+        instrumented=True,
+        render_node=nodes[0] if len(nodes) == 1 else None,
+        host_counters=False,
+    ) as recorder:
+        with recorder.phase("ordinary-update-matrix"):
+            observed = run_matrix(projection, request["design"], device="cuda")
+            torch.cuda.synchronize()
+    elapsed = (time.monotonic_ns() - start) // 1000
+    cpu_us = (time.process_time_ns() - cpu_start) // 1000
     atomic_write(
-        Path("/work/output/producer.json"),
+        out / "producer.json",
         seal(
             dict(
                 request=request["identity"],
                 matrix=observed,
                 device="hip",
-                elapsed_us=(time.monotonic_ns() - start) // 1000,
+                elapsed_us=elapsed,
+                worker_cpu_us=cpu_us,
+                telemetry=usage_summary(out / "telemetry", elapsed),
                 peak_device_bytes=torch.cuda.max_memory_allocated(),
             )
         ),
