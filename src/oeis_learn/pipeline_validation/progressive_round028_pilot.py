@@ -617,6 +617,18 @@ def published_pilot(receipt):
     ), 0
 
 
+def verify_saved_pilot(root, folder, area, registration, parent):
+    archive = confined(folder, SHARE)
+    boundary = load(confined(area, "publication.json"))
+    require(boundary == seal(boundary) and boundary["registration"] == registration["identity"]
+            and boundary["original_receipt"] == parent["workstation"]["identity"]
+            and boundary["evidence"] == publication_inputs(area,root)
+            and boundary["archive"] == reference(folder,archive), "changed pilot publication boundary")
+    receipt = verify_pilot(archive)
+    require(receipt["report"] == boundary["report"], "published pilot receipt differs")
+    return receipt
+
+
 def retain_resident_scale(area, registration, scale):
     path = confined(area, "qualification-scale.json", exists=False)
     if not path.is_file():
@@ -771,17 +783,7 @@ def run_pilot(args, source, root, folder, revision, store, host_factory):
     archive = confined(folder, SHARE, exists=False)
     publication = confined(area, "publication.json", exists=False)
     if publication.is_file():
-        boundary = load(publication)
-        require(
-            boundary == seal(boundary)
-            and boundary["registration"] == registration["identity"]
-            and boundary["original_receipt"] == parent["workstation"]["identity"]
-            and boundary["evidence"] == publication_inputs(area, root)
-            and boundary["archive"] == reference(folder, archive),
-            "changed pilot publication boundary",
-        )
-        receipt = verify_pilot(archive)
-        require(receipt["report"] == boundary["report"], "published pilot receipt differs")
+        receipt = verify_saved_pilot(root,folder,area,registration,parent)
         progress("complete", report=receipt["report"], action=receipt["next_action"])
         if getattr(args, "action", None) == "qualify-pilot":
             freeze = load(confined(area, "freeze.json"))

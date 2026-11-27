@@ -192,7 +192,7 @@ def verify_sample_origin(base, training, registration):
             raise ReceiptGap("SAMPLED_PREFERENCE_LABEL_DIFFERS")
 
 
-def recover(root, folder, prior_source, revision, store, *, weight_slices=None):
+def recover(root, folder, prior_source, revision, store, *, weight_slices=None, output_area=None):
     from oeis_learn.experiments.source_snapshot import collect_snapshot
     from .progressive_round028 import audit_archive, reopen
 
@@ -203,7 +203,7 @@ def recover(root, folder, prior_source, revision, store, *, weight_slices=None):
     cut = reopen(root, folder, store.campaign, store.state["audit"], recheck_inputs=False)
     if historical["private_cut"] != cut["identity"]:
         raise ReceiptGap("PRIVATE_DIAGNOSTIC_PARENT_DIFFERS")
-    area = confined(folder, "private/generator-rehearsal/" + revision)
+    area = confined(folder, output_area or ("private/generator-rehearsal/" + revision))
     progress = sealed(confined(area, "progress.json")) if (area / "progress.json").is_file() else {}
     if progress and (progress.get("candidate") != revision or progress.get("audit") != historical["report"]):
         raise ReceiptGap("REHEARSAL_OR_AUDIT_IDENTITY_DIFFERS")

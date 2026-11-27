@@ -103,7 +103,7 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
 
     destination = confined(workspace, "run-state/discovery-tools")
     rehearsal = action == "collect-rehearsal"
-    prefix = {"collect-pilot-qualification":"round028-qualification-", "collect-pilot":"round028-pilot-", "collect-audit":"round028-cpu-", "collect-rehearsal":"round028-rehearsal-",
+    prefix = {"collect-release":"round028-release-", "collect-pilot-qualification":"round028-qualification-", "collect-pilot":"round028-pilot-", "collect-audit":"round028-cpu-", "collect-rehearsal":"round028-rehearsal-",
               "collect-panels":"round028-panels-", "collect-timing":"round028-timing-", "collect-final":"round028-final-", "collect-receipts":"round028-receipts-"}[action]
     folder = Path(tempfile.mkdtemp(prefix=prefix, dir=destination))
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONNOUSERSITE="1")
@@ -165,6 +165,52 @@ def collect(workspace, candidate, action="collect-audit", producer_revision=None
         return process.returncode, raw
 
     root = ["--workspace", str(workspace)]
+    if action == "collect-release":
+        from oeis_learn.generalization.progressive.program_search_release import PHASES
+        session = confined(workspace, SESSION)
+        receipt = None
+        for name in ("acceptance","resume_1","resume_2"):
+            code, raw = run(name, "release-acceptance", *root)
+            step = summary["steps"][name]
+            step["completed"] = [p for p in raw.get("completed", []) if p in PHASES]
+            step["failures"] = {p:reason for p,reason in raw.get("failures", {}).items()
+                                if p in PHASES and re.fullmatch("[A-Za-z0-9_]{1,96}", reason)}
+            step["capacity"] = {k:v for k,v in raw.get("capacity", {}).items()
+                                if k in {"required_bytes","required_inodes","free_bytes","free_inodes",
+                                         "deficit_bytes","deficit_inodes"} and type(v) is int}
+            if code:
+                break
+            if raw.get("receipt", {}).get("candidate") != candidate or (receipt and receipt != raw["receipt"]):
+                code = 2
+                step["reason"] = "REPEATED_RELEASE_RECEIPT_CHANGED"
+                break
+            receipt = raw["receipt"]
+        if not code:
+            copy = folder / "round028-release.zip"
+            shutil.copyfile(confined(session, f"share/release-acceptance/{candidate}/round028-release.zip"), copy)
+            code, public = run("archive_only", "verify", "--archive", str(copy))
+            if not code and public == receipt:
+                print(copy, flush=True)
+                return 0
+            code = code or 2
+        import xml.etree.ElementTree as ET
+        release_area = confined(session, "private/release-acceptance/" + candidate, exists=False)
+        failures = set()
+        for path in release_area.glob("roles/*/attempt-*/output/*.xml"):
+            try:
+                for case in ET.parse(confined(release_area, path)).findall(".//testcase"):
+                    if any(case.find(k) is not None for k in ("error","failure","skipped")):
+                        test = case.get("name","").split("[")[0]
+                        if re.fullmatch("test_[a-zA-Z0-9_]+", test):
+                            failures.add(test)
+            except (OSError, ET.ParseError):
+                continue
+        summary["failed_tests"] = sorted(failures)
+        diagnostics = folder / "round028-release-diagnostics.zip"
+        with zipfile.ZipFile(diagnostics,"x",zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("summary.json", json.dumps(summary,sort_keys=True,indent=2))
+        print(diagnostics, flush=True)
+        return code
     if action == "collect-pilot-qualification":
         code, raw = run("qualification", "qualify-pilot", *root)
         from oeis_learn.generalization.progressive.contracts import load, seal

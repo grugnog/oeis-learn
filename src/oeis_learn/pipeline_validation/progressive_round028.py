@@ -111,6 +111,25 @@ def status(folder):
         scientific = "PILOT_UNMEASURED"
         extra.update(reason="TERMINAL_PUBLICATION_PENDING", next_action="FINALIZE", remaining_authorized_gpu_us=0)
     branches = round028_branches(store.state.get("route"))
+    from .progressive_round028_pilot import AREA as PILOT_AREA, SHARE as PILOT_SHARE, cost_status
+    child = confined(folder, PILOT_AREA + "/progress.json", exists=False)
+    if child.is_file():
+        progress = load(child)
+        if progress != seal(progress):
+            raise ValueError("pilot status receipt changed")
+        extra["pilot"] = dict(progress=progress, costs=cost_status(child.parent))
+        archive = confined(folder, PILOT_SHARE, exists=False)
+        if archive.is_file():
+            from oeis_learn.generalization.progressive.program_search_pilot import verify_pilot
+            receipt = verify_pilot(archive)
+            extra["pilot"].update(action=receipt["next_action"], assessment=receipt["assessment"],
+                                  remaining_authorized_gpu_us=0, archive=PILOT_SHARE)
+    for p in sorted(folder.glob("private/release-acceptance/*/progress.json"),
+                    key=lambda path:path.stat().st_mtime_ns, reverse=True)[:1]:
+        latest = load(confined(folder,p))
+        if latest != seal(latest):
+            raise ValueError("release progress changed")
+        extra["release_acceptance"] = latest
     if store.state.get("branches", branches) != branches:
         raise ValueError("branch dispositions differ from the committed route")
     return dict(**extra, mechanical_status=mechanical, scientific_status=scientific, branches=branches,
@@ -324,7 +343,25 @@ def execute(args, source, *, host_factory=None):
             if not latest:
                 return dict(info, mechanical_status="INSPECTED", scope="terminal_publication",
                             gpu_demand="CLOSED", admission="TERMINAL_PUBLICATION_PENDING", next_action="FINALIZE"), 0
-            return dict(info,mechanical_status="INSPECTED",scope="terminal_resource_decision",
+            extra = {}
+            from .progressive_round028_pilot import SHARE as pilot_share
+            if (folder / pilot_share).is_file():
+                from .progressive_round028_release import release_admission
+                from .progressive_release_checks import HISTORICAL
+                revision = candidate_revision(source, root)
+                area = confined(folder, "private/release-acceptance/" + revision, exists=False)
+                registration = None
+                if (area / "registration.json").is_file():
+                    registration = load(confined(area, "registration.json"))
+                    if registration != seal(registration) or registration["candidate"] != revision:
+                        raise ValueError("release registration differs")
+                targets = registration["targets"] if registration else HISTORICAL
+                extra["release_acceptance"] = dict(candidate=revision,
+                    basis="registered" if registration else "historical_minimum",
+                    capacity=release_admission(area if area.is_dir() else folder,targets,
+                        args.free_disk_gib << 30, registration=registration),
+                    action="collect-release")
+            return dict(info,mechanical_status="INSPECTED",scope="terminal_resource_decision",**extra,
                         gpu_demand="CLOSED",admission=latest["reason"],next_action=latest["next_action"],
                         pilot_us=latest["pilot_us"],shift_us=latest["shift_us"],deficit_us=latest["deficit_us"]), 0
         return dict(info, mechanical_status="INSPECTED", scope="historical_audit",
@@ -341,6 +378,9 @@ def execute(args, source, *, host_factory=None):
         with RunStore.owner(folder):
             store = audit_store(folder, revision)
             registration = store.campaign
+            if args.action == "release-acceptance":
+                from .progressive_round028_release import release_command
+                return release_command(args, source, root, folder, revision, store, host_factory)
             selector_share = confined(folder, "share/round028-selector.zip", exists=False)
             if args.action == "verify" and selector_share.is_file():
                 from .progressive_round028_selector import verify_private_selector
@@ -386,7 +426,15 @@ def execute(args, source, *, host_factory=None):
                     if code or args.action=="timing":
                         return observed,code
                     spending_reason = observed["reason"]
-                    return close_timing(root,folder,source,store,observed,verify_only=check_terminal)
+                    result, code = close_timing(root,folder,source,store,observed,verify_only=check_terminal)
+                    if check_terminal and not code:
+                        from .progressive_round028_pilot import AREA as PILOT_AREA, parent_evidence, verify_saved_pilot
+                        area = confined(folder, PILOT_AREA, exists=False)
+                        if (area / "publication.json").is_file():
+                            _, parent = parent_evidence(folder,store)
+                            child = verify_saved_pilot(root,folder,area,load(confined(area,"registration.json")),parent)
+                            result = dict(result,pilot=dict(private_replay="VERIFIED",public_recomputation=child))
+                    return result,code
                 except (OSError,KeyError,TypeError,ValueError,RuntimeError,subprocess.SubprocessError,zipfile.BadZipFile) as exc:
                     return terminal_failure(source, folder, exc, spending_reason=spending_reason,
                                             record=not check_terminal)

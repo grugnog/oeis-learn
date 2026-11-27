@@ -61,7 +61,7 @@ def gradient(profile, samples, *, client=None):
                 native_verified_terms=200 if client is not None else 0)
 
 
-def measured_updates(profile, batches, arm, output, *, device, microbatch):
+def measured_updates(profile, batches, arm, output, *, device, microbatch, after_checkpoint=None):
     """Compare the next real AdamW update before and after a cold full-state restore."""
     import random
     import numpy as np
@@ -115,6 +115,8 @@ def measured_updates(profile, batches, arm, output, *, device, microbatch):
     checkpoint = store.save(context, ledger)
     save_us = (time.monotonic_ns() - started) // 1000
     del context
+    if after_checkpoint is not None:
+        after_checkpoint(runner, checkpoint, store.contract, cap, cut_hash)
     _, final_ledger, warm = update(runner, ledger, 1)
     expected = model_snapshot(runner.encoder, runner.decoder)
     expected_opt = runner.state_dict()

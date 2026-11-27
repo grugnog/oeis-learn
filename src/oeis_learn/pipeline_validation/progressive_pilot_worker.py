@@ -385,6 +385,9 @@ def main():
         "gradient": {"profile", "sample"},
         "storage": set(),
         "recovery": set(),
+        "release_suite": {"mode"},
+        "release_scale": {"targets"},
+        "release_interrupt": {"sample","expected"},
         "prepare": {"seed", "start", "count"},
         "train": {
             "arm",
@@ -440,6 +443,20 @@ def main():
             result = disposable_storage()
         elif role == "recovery":
             result = recovery_suite(output)
+        elif role == "release_suite":
+            from .progressive_release_checks import installed_suite
+            result = installed_suite(output, data["mode"])
+        elif role == "release_scale":
+            from .progressive_release_checks import exercise_scale, HISTORICAL
+            targets = data["targets"]
+            require(set(targets) == set(HISTORICAL) and
+                    all(type(targets[k]) is int and targets[k] >= v for k,v in HISTORICAL.items()),
+                    "release workload below registered scale")
+            result = exercise_scale(output, targets)
+        elif role == "release_interrupt":
+            from .progressive_release_faults import learner_fault
+            from .progressive_research_inputs import checked_file
+            result = learner_fault(output, checked_file(work,data["sample"]), data["expected"])
         elif role == "gradient":
             from .progressive_generator_probe import gradient
 
