@@ -455,6 +455,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
                     lambda: seconds(deadline),
                 )
             else:
+                allowance = seconds(deadline)
                 logs = out / "image-build"
                 logs.mkdir()
                 image = physical.engine.build(
@@ -462,7 +463,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
                     target="gpu",
                     tag="oeis-learn:round029-" + revision,
                     base_image=args.gpu_base_image,
-                    seconds=seconds(deadline),
+                    seconds=allowance,
                     evidence=logs,
                 )
         req = seal(
@@ -514,36 +515,47 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
         nonlocal attempt_out
         attempt_out = out
         deadline = time.monotonic_ns() + reserve * 1000
-        physical = worker()
-        if (
-            physical.engine.image(req["image"]) != req["image"]
-            or physical_scope(physical, "hip", machine=True) != req["physical"]
-        ):
-            raise ValueError("registered HIP worker changed before timing")
-        worker_args = [
-            "python",
-            "-I",
-            "-m",
-            "oeis_learn.pipeline_validation.progressive_velocity_timing",
-        ]
-        mounts = [
-            (area / name, "/work/inputs/" + name) for name in ("request.json", "projection.json")
-        ]
-        if "runtime" in req:
-            from .progressive_velocity_runtime import wheel_mounts
-
-            extras = wheel_mounts(area, req["runtime"])
-            mounts.extend(extras)
+        try:
+            physical = worker()
+            if (
+                physical.engine.image(req["image"]) != req["image"]
+                or physical_scope(physical, "hip", machine=True) != req["physical"]
+            ):
+                raise ValueError("registered HIP worker changed before timing")
             worker_args = [
                 "python",
                 "-I",
-                "-B",
-                extras[0][1],
-                "run",
-                extras[1][1],
-                req["runtime"]["wheel"]["sha256"],
-                req["source"],
+                "-m",
+                "oeis_learn.pipeline_validation.progressive_velocity_timing",
             ]
+            mounts = [
+                (area / name, "/work/inputs/" + name)
+                for name in ("request.json", "projection.json")
+            ]
+            if "runtime" in req:
+                from .progressive_velocity_runtime import wheel_mounts
+
+                extras = wheel_mounts(area, req["runtime"])
+                mounts.extend(extras)
+                worker_args = [
+                    "python",
+                    "-I",
+                    "-B",
+                    extras[0][1],
+                    "run",
+                    extras[1][1],
+                    req["runtime"]["wheel"]["sha256"],
+                    req["source"],
+                ]
+            allowance = seconds(deadline)
+        except (Exception, KeyboardInterrupt):
+            # Only synchronous metadata and file checks ran; stage owns cleanup
+            # as soon as the physical command is handed to it.
+            retain(
+                out / "cleanup.json",
+                dict(acknowledged=True, within_bound=time.monotonic_ns() <= deadline),
+            )
+            raise
         stage(
             physical,
             source,
@@ -552,7 +564,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
             worker_args,
             gpu=True,
             record_lease=True,
-            seconds=seconds(deadline),
+            seconds=allowance,
             readonly_inputs=mounts,
         )
 

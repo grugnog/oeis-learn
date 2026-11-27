@@ -338,7 +338,7 @@ def test_matrix_requires_prior_paid_supply_before_creating_a_grant(tmp_path):
     assert not (tmp_path / "run-state").exists()
 
 
-@pytest.mark.parametrize("route", ["supplied", "cold_retry", "cached_wheel"])
+@pytest.mark.parametrize("route", ["supplied", "cold_retry", "cached_wheel", "prelaunch"])
 def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     tmp_path, monkeypatch, velocity_supply_rows, route
 ):
@@ -462,7 +462,7 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
         action="qualify",
         authority=grant,
         workspace=str(tmp_path),
-        image=image if route == "supplied" else None,
+        image=image if route in {"supplied", "prelaunch"} else None,
         gpu_base_image=None,
         archive=None,
         qualification_archive=None,
@@ -584,6 +584,16 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     monkeypatch.setattr(host, "stage", stage)
 
     engine = SimpleNamespace(image=lambda img: img)
+    if route == "prelaunch":
+        inspected = []
+
+        def missing_once(ref):
+            inspected.append(ref)
+            if len(inspected) == 2:
+                raise RuntimeError("image unavailable before device dispatch")
+            return ref
+
+        engine = SimpleNamespace(image=missing_once)
     if cold_retry:
         from oeis_learn.container_runtime import Engine
 
@@ -599,6 +609,11 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
             host_factory=lambda *_a, **_k: SimpleNamespace(engine=engine),
         )
 
+    if route == "prelaunch":
+        failed, code = run()
+        assert code and "before device dispatch" in failed["reason"] and not launches
+        assert 0 < failed["elapsed_us"] < load(grant)["total_us"]
+        assert failed["research_dispatches"] == 0
     if cold_retry:
         from oeis_learn.pipeline_validation.progressive_velocity_image import failure_details
 
@@ -622,7 +637,7 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     assert allocation["transport"]["inodes"] == 3 if warm else allocation["transport"] is None
     assert run() == (completed, 0) and len(launches) == 1
     assert (
-        completed["charged_tokens"] == design["cost"]["tokens"]
+        completed["charged_tokens"] == design["cost"]["tokens"] * (1 + int(route == "prelaunch"))
         and completed["research_dispatches"] == 0
     )
     args.action = "verify"
@@ -641,11 +656,11 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     assert scope["incremental"]["ledger_us"] == completed["elapsed_us"]
     assert scope["incremental"]["resources"]["worker_cpu_us"] == {
         "observed": 1500,
-        "missing_operations": 1 + int(cold_retry),
+        "missing_operations": 1 + int(cold_retry or route == "prelaunch"),
     }
     assert scope["incremental"]["resources"]["busy_us"] == {
         "observed": 200,
-        "missing_operations": 0,
+        "missing_operations": int(route == "prelaunch"),
     }
     assert scope["incremental"]["resources"]["covered_us"]["observed"] == 500
     assert "optimizer_to_4M_recipe_03" in prices["wave"]["missing"]

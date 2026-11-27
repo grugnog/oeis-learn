@@ -15,4 +15,8 @@ Run from the qualified detached checkout after completing the supply step. Set `
 )
 ```
 
-The command calibrates the matching loss, measures the ordinary-stream optimizer recipes in one device lease, verifies the receipt and updates the forecast. It prints the path to a new JSON file on success or failure. Run the same revision and allowance again to reopen completed work. An interrupted operation uses its remaining time and dispatch allowance.
+The command searches completed learner qualifications for a compatible local ROCm image. It checks the original image receipt, settled grant and locked build inputs. A CPU-only container in that image builds and checks the candidate wheel offline. The timed learner receives the wheel and its exposed training projection. When the local runtime is unavailable or incompatible, preparation uses the root Dockerfile and retains the build logs.
+
+One GPU lease covers matching calibration and five ordinary-stream optimizer configurations. The command then privately verifies the measurements and updates the forecast. On success, the file includes acquisition mode, available bytes and inodes around preparation, and the retained wheel transport allocation when applicable.
+
+The minutes are a cumulative ceiling for funded work, including cleanup. Repeating a completed revision and allowance reopens its measurements. A failed attempt with proven termination keeps the elapsed debit. A lost or unconfirmed build keeps its reservation. Use a new output directory on each invocation. If preparation fails, return its JSON file. It includes bounded log tails, termination evidence and available storage observations.

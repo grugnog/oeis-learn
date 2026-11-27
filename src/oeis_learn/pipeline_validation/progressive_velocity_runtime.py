@@ -129,6 +129,7 @@ def package_worker(root, source, area, out, revision, parent, source_hash, host,
     bootstrap = out / "candidate-wheel.py"
     shutil.copyfile(confined(source, BOOTSTRAP), bootstrap)
     source_ref = reference(area, archive)
+    allowance = seconds()
     target = out / "package"
     target.mkdir()
     stage(
@@ -148,7 +149,7 @@ def package_worker(root, source, area, out, revision, parent, source_hash, host,
             source_hash,
         ],
         gpu=False,
-        seconds=seconds(),
+        seconds=allowance,
         readonly_inputs=[
             (bootstrap, "/work/inputs/candidate-wheel.py"),
             (archive, "/work/inputs/candidate.tar.gz"),
