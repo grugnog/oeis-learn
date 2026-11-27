@@ -61,8 +61,31 @@ def test_shuffled_probe_changes_encoder_values_and_keeps_true_fitting_and_scorin
         torch.save(dict(encoder=encoder.state_dict(), decoder=decoder.state_dict()), path)
         return reference(tmp_path, path)
     weights = save_weights("trained.pt")
-    model = evaluation.model_receipt(common, profile=digest(recipe), weights=trained,
-                                     checkpoint=weights["sha256"], origin=digest("qualified cut"))
+    from oeis_learn.pipeline_validation import (
+        progressive_velocity_census,
+        progressive_velocity_donor,
+    )
+
+    lineage = digest("ordinary stream")
+    donor = dict(
+        method="00",
+        look=4_000_000,
+        weights=weights["sha256"],
+        inference=True,
+        seeds={"initialization": 29},
+        registration=digest("pilot"),
+        lineage=lineage,
+    )
+    monkeypatch.setattr(progressive_velocity_donor, "inventory", lambda _: dict(cuts=[donor]))
+    monkeypatch.setattr(
+        progressive_velocity_census,
+        "training_source",
+        lambda _: ({}, dict(profile=recipe, stream={"identity": lineage}), []),
+    )
+    model = evaluation.donor_probe_model(tmp_path, common, recipe, weights)
+    with pytest.raises(ValueError, match="model profile"):
+        evaluation.donor_probe_model(tmp_path, common, dict(recipe, changed=True), weights)
+
     def view(look, mode="shuffled", model=model):
         return evaluation.velocity_probe(look, prompts, mode=mode, inference_seed=57, model=model)
     probe = view(common)

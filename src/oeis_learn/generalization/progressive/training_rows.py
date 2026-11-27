@@ -313,7 +313,7 @@ def _recorded_label(tokens, prompt, label, runtime, reference):
     return label
 
 
-def matching_pairs(shards, order, *, seed, client=None, recorded=None):
+def matching_pairs(shards, order, *, seed, client=None, recorded=None, native_limit=None):
     """Freeze a within-band derangement. All positives retain their original stream slots."""
     from collections import Counter, defaultdict
     from .contracts import digest
@@ -322,7 +322,14 @@ def matching_pairs(shards, order, *, seed, client=None, recorded=None):
     from oeis_learn.synthesis.contracts import canonical_integer
 
     from .metrics import _seed
+    from oeis_learn.decoder.bigint_codec import TOKEN_TO_ID
+    from oeis_learn.generalization.budgets import integer
+
     _seed(seed)
+    if native_limit is not None:
+        integer(native_limit)
+    adjustable_tokens = {TOKEN_TO_ID["int"], TOKEN_TO_ID["param.get"]}
+    native_attempts = 0
     rows = validated_rows(shards, native_verified=True)
     if len(set(order)) != len(order) or not set(order) <= rows.keys():
         raise ValueError("verified unique training support required")
@@ -367,12 +374,18 @@ def matching_pairs(shards, order, *, seed, client=None, recorded=None):
                 statuses["no_differing_donor"] += 1
                 continue
             prompt = VisiblePrompt(tuple(row["indices"][:20]), tuple(values))
+            adjustable = not adjustable_tokens.isdisjoint(row["tokens"])
+            funded = native_limit is None or native_attempts < native_limit
             if recorded is None:
-                proof = matching_proof(row["tokens"], prompt, client=client)
+                proof = matching_proof(row["tokens"], prompt, client=client if funded else None)
             else:
                 proof = _recorded_label(
                     row["tokens"], prompt, recorded["labels"][key], runtime, reference
                 )
+            if adjustable and proof["status"] != "needs_native_replay":
+                if not funded:
+                    raise ValueError("matching evidence exceeds its funded native scope")
+                native_attempts += 1
             labels[key] = proof
             statuses[proof["status"]] += 1
             if proof["status"] == "eligible":
@@ -388,7 +401,16 @@ def matching_pairs(shards, order, *, seed, client=None, recorded=None):
             donor_map=donor_map,
             runtime=runtime,
             reference=reference,
-            coverage=dict(full=missing == 0, rows=len(order), unmeasured_native=missing),
+            coverage=dict(
+                full=missing == 0,
+                rows=len(order),
+                unmeasured_native=missing,
+                **(
+                    {"native_attempts": native_attempts}
+                    if recorded is None or "native_attempts" in recorded["coverage"]
+                    else {}
+                ),
+            ),
             positive_rows=len(order),
             eligible_rows=len(pairs),
             dispositions=dict(statuses),

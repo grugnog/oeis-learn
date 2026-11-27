@@ -1148,12 +1148,14 @@ def test_broader_custodian_checks_reserved_shift_before_native_projection(
         assert "reserved" not in str(training) and "protected" not in training
         from oeis_learn.pipeline_validation.progressive_velocity_broad import checked_request
 
-        request = host.role_request(
+        request = host.native_request(
             dict(identity=digest("grant"), source=digest("source")),
+            dict(resources={"native_work": 3}),
             dict(parent={"image": digest("image")}),
-            "prepare-broad",
             training,
         )
+        witnesses = len(training["stream"]["order"]) + len(training["eligible_ordinals"])
+        assert request["native_pair_limit"] == max(0, 3 - witnesses) // 2
         with pytest.raises(ValueError, match="closed training-only"):
             checked_request(seal(dict(request, hidden_suffix=reserved["values"])), "prepare-broad")
 

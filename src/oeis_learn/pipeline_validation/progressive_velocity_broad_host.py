@@ -414,6 +414,19 @@ def custody_evidence(root, binding, out):
     return seal(dict(base, training=custody["training"], native_witnesses=custody["ordinary_slots"] + len(ordinals)))
 
 
+def funded_pairs(grant, slots, witnesses):
+    # One fit and one independent replay per adjustable pair. Ordinary calibration goes first.
+    available = max(0, grant["resources"]["native_work"] - witnesses)
+    return min(2 * slots, available // 2)
+
+
+def native_request(binding, grant, runtime, original):
+    slots = len(original["stream"]["order"])
+    witnesses = slots + len(original["eligible_ordinals"])
+    fields = dict(original, native_pair_limit=funded_pairs(grant, slots, witnesses))
+    return role_request(binding, runtime, "prepare-broad", fields)
+
+
 def cpu_evidence(root, area, binding, out):
     # v1 recoveries kept both workers in one attempt. New grants settle each stage independently.
     custody_out = out
@@ -423,13 +436,12 @@ def cpu_evidence(root, area, binding, out):
     base = custody_evidence(root, binding, custody_out)
     if not base.get("training"):
         return base
+    grant = load(confined(area, "grant.json"))
     original = load(checked_file(custody_out / "custodian", base["training"]), maximum=MAX_INPUT)
     runtime = load(confined(out, "runtime.json"))
     package_evidence(root, area, runtime, binding)
     requested = load(confined(out, "native-request.json"), maximum=MAX_INPUT)
-    if original != seal(original) or requested != role_request(
-        binding, runtime, "prepare-broad", original
-    ):
+    if original != seal(original) or requested != native_request(binding, grant, runtime, original):
         raise ValueError("native preparation received different positive inputs")
     stage_out = confined(out, "native")
     check_stage(area, stage_out, runtime, out / "native-request.json", None, gpu=False)
@@ -680,7 +692,7 @@ def stages(root, area, grant, binding, run):
     witnesses = custody["evidence"].get("native_witnesses", 0)
     if custody["evidence"].get("training"):
         # Each stream can fit and replay one adjustable target per positive slot.
-        witnesses += 4 * plan["slots"]
+        witnesses += 2 * funded_pairs(grant, plan["slots"], witnesses)
         package = run("package", custody, {}, lambda out: runtime_evidence(root, area, binding, out),
                       lambda out: (out / "runtime.json").is_file())
         prep = run("prepare", package, {"native_work": witnesses},
@@ -850,7 +862,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
             runtime = load(confined(built, "runtime.json"))
             retain(out / "runtime.json", runtime)
             req = out / "native-request.json"
-            retain(req, role_request(binding, runtime, "prepare-broad", data))
+            retain(req, native_request(binding, grant, runtime, data))
             target = out / "native"
             target.mkdir()
             run_role(physical(), source, area, target, runtime, req, None, gpu=False,

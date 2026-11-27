@@ -326,6 +326,15 @@ def test_matching_selection_reopens_trial_seed_and_full_scope_native_proof(
     assert subset["support"]["ordinary"]["coverage"]["unmeasured_native"] == 1
     assert set(broad.design(subset, 8, old)["methods"]) == {"01"}
 
+    limited = dict(data, native_pair_limit=1)
+    funded, evidence = broad.matching_views(limited, stream, by_key, client=client)
+    assert funded["support"]["ordinary"]["coverage"]["full"]
+    assert funded["support"]["broader"]["coverage"]["unmeasured_native"] == 1
+    assert broad.matching_views(limited, stream, by_key, recorded=evidence) == (funded, evidence)
+    assert set(broad.design(funded, 8, old)["methods"]) == {"01", "02"}
+    with pytest.raises(ValueError, match="funded native scope"):
+        broad.matching_views(limited, stream, by_key, recorded=manifests)
+
 
 def test_native_adjustable_selection_reopens_its_learner_manifest(
     adjustable_matching_rows, fitting_client

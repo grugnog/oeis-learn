@@ -58,11 +58,25 @@ def donor_probe_model(root, look, profile, checkpoint):
     cuts = inventory(root)["cuts"]
     cut = next((r for r in cuts if r["method"] == method and
                 r["look"] == (None if method == "D" else look["look"])), None)
-    if (cut is None or not cut["inference"] or cut["weights"] != checkpoint["sha256"]
-            or method == "D" and cut["recipe"] != digest(profile)
-            or method != "D" and (method != "00" or cut["seeds"]["initialization"] != look["seed"]
-                                   or cut["codec"] != profile["codec"])):
+    if cut is None or not cut["inference"] or cut["weights"] != checkpoint["sha256"]:
         raise ValueError("registered donor weights or model profile differs")
+    if method == "D":
+        if cut["recipe"] != digest(profile):
+            raise ValueError("incumbent model profile differs from its private freeze")
+    else:
+        from .progressive_velocity_census import training_source
+
+        _, package, _ = training_source(root)
+        if (
+            method != "00"
+            or look["look"] == 0
+            or cut["seeds"]["initialization"] != look["seed"]
+            or package["profile"] != profile
+            or cut["lineage"] != package["stream"]["identity"]
+        ):
+            raise ValueError(
+                "ordinary model profile or training cut differs from its private freeze"
+            )
     control = model_control_for(look)
     enc, dec, _ = load_baseline(control, profile, root=root, ref=checkpoint,
                                 reference_recipe=profile if method != "D" else None)

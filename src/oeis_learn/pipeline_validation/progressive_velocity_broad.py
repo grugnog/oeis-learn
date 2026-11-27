@@ -60,6 +60,7 @@ def matching_views(data, stream, selected, *, client=None, recorded=None):
         raise ValueError("matching selection must use the registered trial stream seed")
     ordinary = {r["draw_identity"]: r for r in data["ordinary_rows"]}
     views, manifests, summary = {}, {}, {}
+    remaining = data.get("native_pair_limit")
     for name, positives, rows in (
         ("ordinary", data["stream"], ordinary),
         ("broader", stream, selected),
@@ -71,7 +72,10 @@ def matching_views(data, stream, selected, *, client=None, recorded=None):
             seed=seed,
             client=client,
             recorded=recorded[name] if recorded is not None else None,
+            native_limit=remaining,
         )
+        if remaining is not None:
+            remaining -= pairs["coverage"]["native_attempts"]
         manifests[name] = pairs
         views[name] = projection(positives, rows, pairs, data)
         summary[name] = dict(
@@ -345,6 +349,7 @@ def checked_request(data, action):
             "difficulty",
             "eligible_ordinals",
             "pair_seed",
+            "native_pair_limit",
             "profile",
             "microbatch",
             "initial_weights",
@@ -367,6 +372,7 @@ def checked_request(data, action):
         keys = stream["order"]
         if (
             stream != seal(stream)
+            or integer(data["native_pair_limit"]) > 2 * len(keys)
             or data["pair_seed"] != stream["seeds"]["training_families"]
             or set(keys) != rows.keys()
             or len(keys) != len(rows)
