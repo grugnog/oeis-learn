@@ -114,14 +114,28 @@ def test_original_grant_retries_after_capacity_block_and_credits_one_receipt(tmp
     assert accepted["first_error"] == blocked["first_error"]
     receipt = root / accepted["receipt_path"]
     assert receipt.exists() and accepted["receipt"]["lease_us"] == 10
+    summaries = set((folder / "recovery-records").iterdir())
     receipt.unlink()  # clean supervisor termination preceded final host publication
     for _ in range(2):
         repeated, code = run()
         assert code == 0 and repeated == accepted and len(issued) == 1
     assert inspect_status(folder)["last_committed_ref"] == accepted["receipt"]["identity"]
+    assert set((folder / "recovery-records").iterdir()) == summaries
     mounts = load(issued[0] / "container-inspect.json")
     mounts[0]["Mounts"][0]["RW"] = True
     (issued[0] / "container-inspect.json").unlink()
     atomic_write(issued[0] / "container-inspect.json", mounts)
     with pytest.raises(ValueError, match="MOUNTS"):
         run()
+
+    # An operator interrupt with no cleanup proof cannot create time for a second launch.
+    def interrupted(*args, **kw):
+        raise KeyboardInterrupt()
+
+    monkeypatch.setattr(progressive_handoff, "stage", interrupted)
+    grant = load(controller.authorize_learner_check(root, 11, revision))
+    failed, code = run()
+    assert code == 130 and failed["first_error"]["exit"] == 130
+    assert failed["remaining_authority"] == 0 and failed["remaining_tokens"] == 0
+    stopped, code = run()
+    assert code == 2 and stopped["first_error"] == failed["first_error"]

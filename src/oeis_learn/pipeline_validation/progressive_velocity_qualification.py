@@ -59,6 +59,13 @@ def learner_mount(space, *, floor):
     )
 
 
+def _supervisor_fact(out, filename, field):
+    try:
+        return load(confined(out, filename)).get(field)
+    except (OSError, ValueError):
+        return None
+
+
 def _receipt(area, out, binding):
     from .progressive_round028_receipts import verify_role_mounts
     from .progressive_velocity_worker import verify_rehearsal
@@ -167,7 +174,10 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
         )
         if first_error.exists():
             answer["first_error"] = load(confined(area, "first-error.json"))
-        revise(folder / "status.json", seal(answer))
+        summary = folder / "status.json"
+        sealed = seal(answer)
+        if not summary.exists() or load(confined(folder, "status.json")) != sealed:
+            revise(summary, sealed)
         return answer
 
     def complete(out):
@@ -255,7 +265,6 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
     )
     out = area / f"attempt-{attempt:04d}"
     work = None
-    acknowledged = True
     stage_started = False
 
     def seconds_left():
@@ -340,21 +349,19 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
         # Verify the whole installed boundary before claiming completion.
         record = _receipt(area, out, binding)
         retain(receipt, record)
-    except Exception as exc:
-        cleanup = out / "cleanup.json"
-        if stage_started:
-            acknowledged = cleanup.is_file() and load(cleanup).get("acknowledged") is True
+    except (Exception, KeyboardInterrupt) as exc:
         capacity_fault = isinstance(exc, ArithmeticError) and "capacity" in locals()
         diagnostics = {
-            "reason": str(exc),
+            "reason": str(exc) or type(exc).__name__,
             "error": type(exc).__name__,
             "attempt": attempt,
             "stage": "qualification",
             "attempt_path": str(out.relative_to(root)),
-            "exit": getattr(exc, "returncode", None),
+            "exit": 130 if isinstance(exc, KeyboardInterrupt) else getattr(exc, "returncode", None),
         }
-        if (out / "process.json").is_file():
-            diagnostics["exit"] = load(out / "process.json").get("returncode")
+        process_exit = _supervisor_fact(out, "process.json", "returncode")
+        if process_exit is not None and diagnostics["exit"] is None:
+            diagnostics["exit"] = process_exit
         if capacity_fault:
             diagnostics.update(
                 deficit_bytes=capacity["deficit_bytes"], deficit_inodes=capacity["deficit_inodes"]
@@ -373,6 +380,9 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
     finally:
         if work is not None:
             journal.commit(work["key"])
+        acknowledged = (
+            not stage_started or _supervisor_fact(out, "cleanup.json", "acknowledged") is True
+        )
         end = now()
         journal.commit(
             clock["key"],
@@ -382,9 +392,14 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
         )
     if failure:
         state_name, reason, action, diagnostics = failure
-        return status(
-            state_name, reason, action, diagnostics=diagnostics
-        ), 2 if state_name == "BLOCKED" else 1
+        code = (
+            130
+            if diagnostics["error"] == "KeyboardInterrupt"
+            else 2
+            if state_name == "BLOCKED"
+            else 1
+        )
+        return status(state_name, reason, action, diagnostics=diagnostics), code
     return complete(out)
 
 

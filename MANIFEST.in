@@ -42,3 +42,8 @@ recursive-include src/oeis_learn/generalization/schemas progressive-*.schema.jso
 recursive-include specs/013-progressive-mathematical-discovery/contracts *.md
 recursive-include specs/015-learned-program-search/contracts *.md
 recursive-include specs/016-measure-learning-velocity/contracts *.md
+
+# Source-based host authentication tests use the same Git helpers as the workstation.
+include specs/015-learned-program-search/validation/candidate_source.py
+include specs/016-measure-learning-velocity/validation/launch-round029.sh
+include specs/016-measure-learning-velocity/validation/qualify-learner.sh

@@ -113,6 +113,12 @@ def test_feature_contracts_in_source_sdist_and_installed_wheel(tmp_path):
     sdist = next(extracted.glob("*/setup.py")).parent
     subprocess.run([sys.executable, "setup.py", "--quiet", "bdist_wheel", "--dist-dir", str(tmp_path)],
                    cwd=sdist, check=True, capture_output=True)
+    for helper in (
+        "specs/015-learned-program-search/validation/candidate_source.py",
+        f"specs/{velocity}/validation/launch-round029.sh",
+        f"specs/{velocity}/validation/qualify-learner.sh",
+    ):
+        assert (sdist / helper).read_bytes() == (root / helper).read_bytes()
     installed = tmp_path / "installed"
     with zipfile.ZipFile(next(tmp_path.glob("*.whl"))) as wheel:
         wheel.extractall(installed)
