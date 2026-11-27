@@ -112,11 +112,11 @@ Use this after losing the console output or seeing a JSON decoding error during 
 ```bash
 (
   set -euo pipefail
-  : "${ROUND029_REVIEW_REV:?full review helper commit from the handoff}"
+  reader=1d31e0a80d8c159b5ccf4d22a6c8a8da6a4dea7d
   candidate=a89af7fe820138a925090e340bbfeef45094adb7
-  git fetch --no-tags origin "$ROUND029_REVIEW_REV" "$candidate"
+  git fetch --no-tags origin "$reader" "$candidate"
   out=$(mktemp -d "$HOME/round029-child.XXXXXX")
-  git show "${ROUND029_REVIEW_REV}:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+  git show "${reader}:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
     python3 -I -S -B - "$candidate" 20 review-children --output "$out/qualification.json"
 )
 ```
