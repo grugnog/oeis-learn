@@ -272,7 +272,7 @@ def journal_peak(terms, block_size):
     return 2 * n * (len(json.dumps(event)) + 1) + 16 * block_size
 
 
-def operate(root, folder, plan, order, lengths, grant, *, journal=None, floor=0):
+def operate(root, folder, plan, order, lengths, grant, *, journal=None, floor=0, registered=()):
     area = confined(
         folder, "preparation/update-accounting/" + grant["identity"][7:], exists=journal is None
     )
@@ -311,7 +311,9 @@ def operate(root, folder, plan, order, lengths, grant, *, journal=None, floor=0)
                 rehearsal="T060",
                 exhaustion="preserve the preceding batch receipt",
             )
-            mounts = velocity_mounts(root, [owner], [dict(path=path, bytes=floor, inodes=0)])
+            from .progressive_velocity_launch import owner_floors
+
+            mounts = velocity_mounts(root, [owner], owner_floors(root, [owner], floor, registered))
             if any(m["deficit_bytes"] or m["deficit_inodes"] for m in mounts):
                 errors[batch] = dict(stage="capacity", mounts=mounts)
                 raise ValueError("insufficient mount capacity for one accounting batch")
@@ -369,7 +371,7 @@ def operate(root, folder, plan, order, lengths, grant, *, journal=None, floor=0)
     )
 
 
-def run(root, folder, plan, order, lengths, *, minutes, floor):
+def run(root, folder, plan, order, lengths, *, minutes, floor, registered=()):
     parent = confined(folder, "preparation/update-accounting", exists=False)
     parent.mkdir(parents=True, exist_ok=True)
     block = os.statvfs(parent).f_frsize
@@ -382,7 +384,17 @@ def run(root, folder, plan, order, lengths, *, minutes, floor):
     retain(area / "plan.json", plan)
     retain(area / "grant.json", grant)
     journal = BudgetJournal(area / "accounting", grant["identity"], grant["resources"])
-    result = operate(root, folder, plan, order, lengths, grant, journal=journal, floor=floor)
+    result = operate(
+        root,
+        folder,
+        plan,
+        order,
+        lengths,
+        grant,
+        journal=journal,
+        floor=floor,
+        registered=registered,
+    )
     if not result["errors"]:
         retain(area / "receipt.json", result)
     return result

@@ -1,8 +1,10 @@
 """Run a pinned donor preparation or qualification and save its verified result."""
 
 import argparse
+import base64
 import fcntl
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -18,9 +20,10 @@ CACHE_HELPER = "specs/015-learned-program-search/validation/candidate_source.py"
 LAUNCHER = "specs/016-measure-learning-velocity/validation/launch-round029.sh"
 CONDITIONING = "round029-paired-conditioning-prices/v1"
 BANK_PRICES = "round029-matched-bank-prices/v1"
+LAUNCH_PRICES = "round029-launch-preparation/v1"
 ZIP_SCOPES = {"readiness": "round029-readiness/v1", "checkpoints": "checkpoint_matrix",
               "control-history": "round029-control-history/v1", "isolated-controls": "round029-isolated-control-prices/v1",
-              "bank-prices": BANK_PRICES, "conditioning": CONDITIONING}
+              "bank-prices": BANK_PRICES, "conditioning": CONDITIONING, "launch-prices": LAUNCH_PRICES}
 MODES = ("donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", *ZIP_SCOPES)
 
 
@@ -2302,6 +2305,16 @@ def run_control_stage(
     return result, attempt(area, coords, grant)
 
 
+def settled_control_balance(area, journal, grant):
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+
+    if journal.path.is_file():
+        return BudgetJournal.inspect_existing(area / "accounting", grant["identity"], grant["resources"])
+    if any(area.glob("operations/*/attempt-*")):
+        raise ValueError("an issued preparation operation has no original budget journal")
+    return journal.snapshot()
+
+
 def isolated_control_matrix(
     root, source, folder, revision, minutes, runtime, panel, wave, host, stage
 ):
@@ -2521,9 +2534,7 @@ def isolated_control_matrix(
             print(f"{method} {phase}: {exc}", file=sys.stderr)
             if isinstance(exc, KeyboardInterrupt):
                 break
-    balance = BudgetJournal.inspect_existing(
-        area / "accounting", grant["identity"], grant["resources"]
-    )
+    balance = settled_control_balance(area, journal, grant)
     if (
         balance["pending"]
         or balance["consumed"]["elapsed_us"] + balance["remaining"]["elapsed_us"]
@@ -2916,9 +2927,7 @@ def bank_price_matrix(
             print(f"{name} bank scorer: {exc}", file=sys.stderr)
             if isinstance(exc, KeyboardInterrupt):
                 break
-    balance = BudgetJournal.inspect_existing(
-        area / "accounting", grant["identity"], grant["resources"]
-    )
+    balance = settled_control_balance(area, journal, grant)
     if (
         balance["pending"]
         or balance["consumed"]["elapsed_us"] + balance["remaining"]["elapsed_us"]
@@ -3496,12 +3505,7 @@ def conditioning_matrix(
     except (KeyError, TypeError, ValueError, OSError, RuntimeError, KeyboardInterrupt) as exc:
         errors["matrix"] = type(exc).__name__
         print(f"conditioning matrix: {exc}", file=sys.stderr)
-    if journal.path.is_file():
-        balance = BudgetJournal.inspect_existing(area / "accounting", grant["identity"], grant["resources"])
-    elif any(area.glob("operations/*/attempt-*")):
-        raise ValueError("issued conditioning work has no original budget journal")
-    else:
-        balance = journal.snapshot()
+    balance = settled_control_balance(area, journal, grant)
     if (
         balance["pending"]
         or balance["consumed"]["elapsed_us"] + balance["remaining"]["elapsed_us"]
@@ -3810,6 +3814,276 @@ def donor_control_history(action, root, revision):
     return report
 
 
+def bound_conditioning(root, summary, parts, wave):
+    from oeis_learn.generalization.progressive.contracts import load, seal
+    from oeis_learn.generalization.progressive.velocity_records import SESSION, operation_key
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_velocity_launch import settled_area
+
+    if (
+        summary["status"] not in {"COMPLETE", "PARTIAL"}
+        or parts["preflight.json"]["supported_wave"] != wave
+    ):
+        raise ValueError("same paid supported wave and issued conditioning grant required")
+    parent = confined(root, "run-state/discovery/" + SESSION + "/preparation")
+    area, plan, grant, state = settled_area(
+        root,
+        parent / "paired-conditioning",
+        "plan",
+        parts["verification.json"]["plan"],
+        grant_ref=summary["grant"],
+    )
+    previous = parts["previous-prices.json"]
+    if (
+        grant["identity"] != summary["grant"]
+        or summary["candidate"] != plan["candidate"]
+        or state["consumed"] != summary["charged_work"]
+        or plan["version"] != CONDITIONING
+        or plan["checkpoint"] != wave["checkpoint_receipt"]
+        or plan["previous"] != previous["receipt"]
+    ):
+        raise ValueError("conditioning diagnostic differs from the settled original")
+    bank, bplan, _, _ = settled_area(
+        root, parent / "matched-bank-prices", "receipt", plan["previous"]
+    )
+    controls, cplan, _, _ = settled_area(
+        root, parent / "isolated-control-prices", "receipt", bplan["controls"]
+    )
+    if (
+        previous["controls"] != bplan["controls"]
+        or bplan["checkpoint"] != plan["checkpoint"]
+        or cplan["checkpoint"] != plan["checkpoint"]
+    ):
+        raise ValueError("different bank or control price source")
+
+    def records(directory, field):
+        refs = load(confined(directory, "receipt.json"))[field]
+        rows = {k: load(confined(directory, k + ".json")) for k in refs}
+        if any(r != seal(r) or r["identity"] != refs[k] for k, r in rows.items()):
+            raise ValueError("original price row differs")
+        return rows
+
+    projection = bank_sample_forecast(
+        records(bank, "blocks"), control_cost_forecast(records(controls, "controls"), wave)
+    )
+    if previous["projection"] != projection:
+        raise ValueError("original bank forecast differs")
+    if (
+        summary["status"] == "COMPLETE"
+        and summary["receipt"] != load(confined(area, "receipt.json"))["identity"]
+    ):
+        raise ValueError("original paired conditioning receipt differs")
+
+    def operation(coordinates):
+        logical = operation_key(coordinates, 0)["logical"]
+        row = load(confined(area, "operations/" + logical[7:] + "/receipt.json"))
+        if (
+            row != seal(row)
+            or row["coordinates"] != coordinates
+            or row["grant"] != grant["identity"]
+            or (f"{logical}/dispatch/{row['attempt']}" not in state["committed"])
+        ):
+            raise ValueError("original conditioning debit differs")
+        return row
+
+    if "models.json" in parts:
+        model = operation(conditioning_coordinates(grant, "paired-models", "models", plan["seed"]))
+        if parts["models.json"] != dict(
+            receipt=model["identity"], elapsed_us=model["evidence"]["elapsed_us"]
+        ):
+            raise ValueError("original model inspection price differs")
+    for group in CONDITIONING_GROUPS:
+        if "paired-" + group + ".json" in parts and parts["paired-" + group + ".json"] != load(
+            confined(area, group + ".json")
+        ):
+            raise ValueError("original scored conditioning group differs")
+        public = parts.get("search-" + group + ".json")
+        if public is None:
+            continue
+        coords = conditioning_coordinates(grant, group, "search", plan["seed"])
+        try:
+            original = operation(coords)
+        except FileNotFoundError:
+            original = operation(dict(coords, role="verify-paid-search"))["evidence"]["original"]
+        expected = dict(
+            receipt=original["identity"],
+            **select_fields(
+                original["evidence"],
+                "elapsed_us",
+                "worker_us",
+                "lease_us",
+                "peak_device_bytes",
+                "telemetry",
+                "native",
+                "bank_programs",
+            ),
+        )
+        expected["modes"] = {
+            k: select_fields(v, "elapsed_us", "components")
+            for k, v in original["evidence"]["modes"].items()
+        }
+        if original != seal(original) or expected != public:
+            raise ValueError("paid search evidence differs from the diagnostic")
+
+
+def conditioning_copy(member):
+    raw = base64.b64decode(member["base64"], validate=True)
+    if len(raw) > 1 << 20 or hashlib.sha256(raw).hexdigest() != member["sha256"]:
+        raise ValueError("conditioning ZIP copy differs")
+    verify_conditioning_zip(io.BytesIO(raw))
+    return diagnostic_zip_members(io.BytesIO(raw), CONDITIONING)
+
+
+def donor_launch_prices(action, root, revision, minutes, supplied):
+    from oeis_learn.generalization.progressive.lifecycle import RunStore
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from oeis_learn.pipeline_validation import progressive_velocity_ledger_prices as accounting
+    from oeis_learn.pipeline_validation.identity import confined
+
+    files, errors = {}, {}
+    report = dict(
+        scope=LAUNCH_PRICES,
+        candidate=revision,
+        grant_minutes=int(minutes),
+        grant=None,
+        research_run_requested=False,
+        scientific_verdict=None,
+        gpu_dispatches=0,
+        files=files,
+        errors=errors,
+    )
+    bound = False
+    try:
+        with Path(supplied).open("rb") as f:
+            raw = f.read((1 << 20) + 1)
+        member = dict(
+            sha256=hashlib.sha256(raw).hexdigest(), base64=base64.b64encode(raw).decode("ascii")
+        )
+        summary, parts = conditioning_copy(member)
+        files["conditioning.json"] = member
+        report["conditioning_status"] = summary["status"]
+    except (OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile) as exc:
+        errors["conditioning"] = type(exc).__name__
+    step = "paid-checkpoint-inventory"
+    try:
+        initial = action("preflight")["inventory"]
+        prices = initial["prices"]
+        fresh, cycles = prices["fresh_start"], prices["checkpoint_cycles"]
+        wave = prices["supported_wave"]
+        if initial["gpu_dispatches"] != 0 or wave["checkpoint_receipt"] != cycles["receipt"]:
+            raise ValueError("verified current four-treatment checkpoint required")
+        files["preparation.json"] = prices["launch_preparation"]
+        if "conditioning.json" in files:
+            try:
+                bound_conditioning(root, summary, parts, wave)
+                if parts["preflight.json"]["followup_reserve_us"] != prices["followup_reserve_us"]:
+                    raise ValueError("original follow-up reserve differs")
+                bound = True
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                errors["conditioning"] = type(exc).__name__
+        step = "update-accounting"
+        folder = confined(root, "run-state/discovery/" + SESSION)
+        with RunStore.owner(folder):
+            plan, order, lengths = accounting.source_inputs(root, fresh, cycles, revision)
+            result = accounting.run(
+                root,
+                folder,
+                plan,
+                order,
+                lengths,
+                minutes=int(minutes),
+                floor=5 << 30,
+                registered=initial["capacity"]["mounts"],
+            )
+            files["accounting.json"] = result
+            report["grant"] = result["grant"]
+            if result["errors"]:
+                errors[step] = "incomplete CPU batches"
+            else:
+                accounting.record(root, folder, plan, order, lengths, result)
+        step = "launch-preflight"
+        # Reopen through the normal operator entry point after releasing the session lock.
+        current = action("preflight")["inventory"]
+        prep = current["prices"]["launch_preparation"]
+        if (
+            current["gpu_dispatches"] != 0
+            or current["prices"]["supported_wave"] != wave
+            or (not result["errors"] and prep.get("accounting_receipt") != result["identity"])
+        ):
+            raise ValueError("normal preflight did not reproduce the paid update accounting")
+        files["preparation.json"] = prep
+    except (OSError, ValueError, KeyError, TypeError, RuntimeError, SystemExit) as exc:
+        print(f"{step}: {exc}", file=sys.stderr)
+        errors[step] = type(exc).__name__
+    if bound:
+        merged = dict(
+            parts,
+            **{
+                "preflight.json": dict(
+                    parts["preflight.json"], launch_preparation=files["preparation.json"]
+                )
+            },
+        )
+        files["estimate.json"] = launch_estimate(merged)
+    complete = bound and summary["status"] == "COMPLETE" and not errors
+    return dict(report, status="COMPLETE" if complete else "PARTIAL")
+
+
+def verify_launch_zip(path):
+    summary, files = diagnostic_zip_members(path, LAUNCH_PRICES)
+    if summary["status"] not in {"PARTIAL", "COMPLETE"}:
+        return dict(status=summary["status"], verified_members=len(files))
+    if summary["gpu_dispatches"] != 0:
+        raise ValueError("CPU launch preparation issued a device dispatch")
+    result = files.get("accounting.json")
+    if result is not None:
+        original = {k: v for k, v in result.items() if k != "identity"}
+        canonical = json.dumps(
+            original, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode()
+        work = result["charged_work"]
+        if (
+            result["identity"] != "sha256:" + hashlib.sha256(canonical).hexdigest()
+            or result["grant"] != summary["grant"]
+            or work["tokens"] != 0
+            or work["elapsed_us"] + result["remaining_us"] != summary["grant_minutes"] * 60_000_000
+            or set(result["batches"]) | set(result["errors"]) != {"16", "32"}
+        ):
+            raise ValueError("original CPU accounting scope or charge differs")
+    conditioning = None
+    if "conditioning.json" in files:
+        conditioning, parts = conditioning_copy(files["conditioning.json"])
+        if summary["conditioning_status"] != conditioning["status"]:
+            raise ValueError("conditioning status differs from original ZIP")
+        if "estimate.json" in files:
+            prep = files["preparation.json"]
+            merged = dict(
+                parts, **{"preflight.json": dict(parts["preflight.json"], launch_preparation=prep)}
+            )
+            if launch_estimate(merged) != files["estimate.json"]:
+                raise ValueError("returned launch estimate differs")
+    if "estimate.json" in files and (not conditioning or "conditioning" in summary["errors"]):
+        raise ValueError("a launch estimate requires privately linked conditioning evidence")
+    if result and not result["errors"] and "launch-preflight" not in summary["errors"]:
+        if files["preparation.json"].get("accounting_receipt") != result["identity"]:
+            raise ValueError("published trajectory has different CPU prices")
+    if summary["status"] == "COMPLETE" and (
+        not result
+        or result["errors"]
+        or summary["errors"]
+        or not conditioning
+        or conditioning["status"] != "COMPLETE"
+        or "estimate.json" not in files
+        or files["preparation.json"].get("accounting_receipt") != result["identity"]
+    ):
+        raise ValueError(
+            "complete preparation requires the original recovered matrix and CPU prices"
+        )
+    return dict(
+        status=summary["status"], verified_members=len(files), estimate=files.get("estimate.json")
+    )
+
+
 def main(revision, minutes, mode="donation", supplied=None, recover_grant=None):
     if mode not in MODES:
         raise SystemExit("Unknown continuation qualification mode.")
@@ -3874,6 +4148,8 @@ def main(revision, minutes, mode="donation", supplied=None, recover_grant=None):
     def action(name, *args, at=revision):
         return checked_json(["bash", str(source / LAUNCHER), at, name, *map(str, args)], root, name)
 
+    if mode == "launch-prices":
+        return donor_launch_prices(action, root, revision, minutes, supplied)
     if mode == "isolated-controls":
         return donor_isolated_controls(action, root, source, revision, minutes)
     if mode == "conditioning":
@@ -4092,7 +4368,11 @@ def launch_estimate(files):
                 ["trajectory_startup_extra_checkpoints_and_drain"])
             missing.update(trajectory["missing"])
         publication = preparation["publication_proxy"]
-        if publication:
+        verified = preparation.get("verification_and_publication")
+        if verified:
+            add("projected_private_replay_and_publication", verified["expected_us"], verified["tail_us"],
+                ["verification_and_publication"])
+        elif publication:
             add("historical_scale_publication_and_read", publication["expected_us"], publication["tail_us"],
                 ["verification_and_publication"])
             missing.add("round029_private_verification_and_report_scale")
@@ -4106,6 +4386,7 @@ def launch_estimate(files):
                 tail_with_reserve_us=None if missing or reserve is None else tail + reserve,
                 basis="Cached workstation. Each dedicated conditioning block includes selected and full-bank scoring. "
                       "The observed tail repeats the slower case in each exposed pair at its measured role overhead.",
+                provisional_publication=(preparation or {}).get("verification_and_publication"),
                 research_authority=None)
 
 
@@ -4332,20 +4613,20 @@ def cli(argv):
         type=Path,
         help="save the result to a new file (ZIP for readiness, checkpoints and control reports; JSON for other modes)",
     )
-    parser.add_argument("--from-result", type=Path, help="completed fresh-start JSON for read-only readiness")
+    parser.add_argument("--from-result", type=Path, help="fresh-start JSON for readiness or the original conditioning ZIP for launch-prices")
     parser.add_argument("--bank-receipt", help="completed matched bank qualification receipt for conditioning")
     parser.add_argument("--recover-grant", nargs=2, metavar=("ORIGINAL_COMMIT","GRANT"),
                         help="recheck paid conditioning searches and finish CPU scoring under their original grant")
     parser.add_argument("--controls-receipt", help="original isolated control receipt identity for bank pricing")
     args = parser.parse_args(argv)
-    readiness = args.mode == "readiness"
+    from_file = args.mode in {"readiness", "launch-prices"}
     zipped = args.mode in ZIP_SCOPES
     if zipped and (not args.output or args.output.suffix.lower() != ".zip"):
         parser.error(f"{args.mode} requires --output NEW.zip")
-    if readiness and (args.from_result is None or not args.output or args.output.suffix.lower() != ".zip"):
-        parser.error("Readiness requires --from-result QUALIFICATION.json and --output NEW.zip")
-    if args.from_result is not None and not readiness:
-        parser.error("--from-result is only valid with readiness")
+    if from_file and args.from_result is None:
+        parser.error(f"{args.mode} requires --from-result INPUT")
+    if args.from_result is not None and not from_file:
+        parser.error("--from-result is only valid with readiness or launch-prices")
     if args.mode == "conditioning":
         if not re.fullmatch("sha256:[a-f0-9]{64}", args.bank_receipt or ""):
             parser.error("conditioning requires --bank-receipt sha256:ORIGINAL_RECEIPT")
@@ -4363,7 +4644,7 @@ def cli(argv):
     if args.mode in {"supply", "timings", "broader", "fresh-start"} and args.output is None:
         parser.error("Donor preparation requires an output file (--output PATH)")
     request = (args.revision, args.minutes, args.mode)
-    if readiness:
+    if from_file:
         request += (args.from_result,)
     elif args.mode == "conditioning":
         request += (args.bank_receipt,)
@@ -4417,13 +4698,95 @@ def cli(argv):
                 code = 1
         elif args.mode == "bank-prices":
             verify_bank_zip(out.name)
+        elif args.mode == "launch-prices":
+            verify_launch_zip(out.name)
         os.link(out.name, args.output)
     print(f"Saved {args.output.resolve()}", file=sys.stderr)
     return code
 
 
+def review_launch(revision, minutes):
+    """Resume the original paid recovery and collect the independent CPU prices in one ZIP."""
+    if not re.fullmatch("[0-9a-f]{40}", revision) or not re.fullmatch("[1-9][0-9]*", minutes):
+        raise SystemExit(
+            "Supply the full reader commit and a positive maximum CPU grant in minutes."
+        )
+    root = Path.cwd().resolve()
+
+    def git(*args):
+        return subprocess.check_output(["git", *args], cwd=root)
+
+    if (
+        Path(git("rev-parse", "--show-toplevel").decode().strip()) != root
+        or git("rev-parse", "HEAD").decode().strip() != DONOR
+        or subprocess.run(
+            ["git", "symbolic-ref", "-q", "HEAD"], cwd=root, stdout=subprocess.DEVNULL
+        ).returncode
+        != 1
+    ):
+        raise SystemExit("Run at the physical root of the detached round027 donor.")
+    worker = "c561004224f380d3c3b246d9b57f013a6559b2ff"
+    # The paid search recheck request includes the repair reader identity.
+    # Keep its original published identity on every retry, including after pricing changes.
+    repair = "404a652c936eb7cfb4ab3303301edc4c9b5ee33c"
+    grant = "sha256:ee51d1909fe93ce8928d1b930edb209d0e8582be7a20b776eab712bad539f34c"
+    bank = "sha256:fca44fe0dc257caa17f4ea7c9e559891530794fcfba19574397684a79c9c658a"
+    operator = "specs/016-measure-learning-velocity/validation/qualify_continuation.py"
+    old, current = (git("show", rev + ":" + operator) for rev in (repair, revision))
+    os.umask(0o077)
+    out = Path(tempfile.mkdtemp(prefix="round029-launch-", dir=Path.home()))
+    print(f"Saving this review in {out}", file=sys.stderr, flush=True)
+    previous, latest = out / "recover.py", out / "review.py"
+    previous.write_bytes(old)
+    latest.write_bytes(current)
+    recovered, result = out / "conditioning.zip", out / "launch-prices.zip"
+    python = [sys.executable, "-I", "-S", "-B"]
+    subprocess.run(
+        [
+            *python,
+            str(previous),
+            repair,
+            "75",
+            "conditioning",
+            "--bank-receipt",
+            bank,
+            "--recover-grant",
+            worker,
+            grant,
+            "--output",
+            str(recovered),
+        ],
+        cwd=root,
+    )
+    # Independent work proceeds even when the original GPU evidence still fails verification.
+    priced = subprocess.run(
+        [
+            *python,
+            str(latest),
+            revision,
+            minutes,
+            "launch-prices",
+            "--from-result",
+            str(recovered),
+            "--output",
+            str(result),
+        ],
+        cwd=root,
+    )
+    if result.is_file():
+        subprocess.run(
+            [*python, str(latest), "--verify-launch-zip", str(result)], cwd=root, check=True
+        )
+        print(f"Return {result}", file=sys.stderr, flush=True)
+    return priced.returncode
+
+
 if __name__ == "__main__":
-    if len(sys.argv) == 3 and sys.argv[1] == "--verify-conditioning-zip":
+    if len(sys.argv) == 4 and sys.argv[1] == "--review-launch":
+        sys.exit(review_launch(*sys.argv[2:]))
+    elif len(sys.argv) == 3 and sys.argv[1] == "--verify-launch-zip":
+        print(json.dumps(verify_launch_zip(sys.argv[2]), indent=2))
+    elif len(sys.argv) == 3 and sys.argv[1] == "--verify-conditioning-zip":
         print(json.dumps(verify_conditioning_zip(sys.argv[2])))
     elif len(sys.argv) == 3 and sys.argv[1] == "--estimate-conditioning-zip":
         status = verify_conditioning_zip(sys.argv[2])["status"]

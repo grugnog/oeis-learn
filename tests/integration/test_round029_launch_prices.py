@@ -54,3 +54,139 @@ def test_denied_cpu_footprint_keeps_the_full_grant_available(tmp_path):
     assert not (folder / prices.MARKER).exists()
     completed = prices.run(root, folder, plan, order, lengths, minutes=2, floor=0)
     assert completed["grant"] == denied["grant"] and not completed["errors"]
+
+
+def test_pinned_training_projection_and_whole_update_frames(tmp_path, monkeypatch):
+    from oeis_learn.generalization.progressive.contracts import atomic_write, reference, seal
+    from oeis_learn.pipeline_validation import progressive_velocity_broad_host as broad
+    from oeis_learn.pipeline_validation import progressive_velocity_checkpoint_host as checkpoints
+
+    root = tmp_path
+    folder = root / "run-state/discovery" / prices.SESSION
+    grant_id = digest("paid")
+    area = folder / "qualification" / grant_id[7:]
+    cpu, gpu = area / "prepare", area / "measure"
+    start = seal(dict(stream="exposed"))
+    rows = {"a": dict(tokens=[0, 0]), "b": dict(tokens=[0, 0, 0])}
+    positive = dict(rows=rows, order=["a", "b"] * 16)
+    path = cpu / "native/projection.json"
+    atomic_write(path, seal(dict(fresh_start=start["identity"], streams={"ordinary": positive})))
+    methods = {"00": dict(batch=32), "06": dict(batch=16)}
+    cells = {m: prices.batch_plan(["a", "b"], rows, {}, r["batch"]) for m, r in methods.items()}
+    req = seal(dict(projection=reference(path.parent, path), design=dict(cells=cells)))
+    producer = seal(dict(request=req["identity"]))
+    atomic_write(area / "device-request.json", req)
+    atomic_write(area / "grant.json", dict(identity=grant_id))
+    atomic_write(gpu / "producer.json", producer)
+    fresh = seal(dict(start=start, device=dict(producer=producer["identity"])))
+    pointer = dict(grant=grant_id, receipt=fresh["identity"])
+    monkeypatch.setattr(checkpoints, "origin", lambda _: pointer)
+    monkeypatch.setattr(broad, "coordinates", lambda grant, phase: phase)
+    monkeypatch.setattr(broad, "attempt", lambda area, phase, grant: area / phase)
+    cycles = dict(methods=methods, origin=fresh["identity"], receipt=digest("cuts"))
+    plan, order, lengths = prices.source_inputs(root, fresh, cycles, "a" * 40)
+    assert order == ["a", "b"] and lengths == {"a": 2, "b": 3}
+    assert plan["batches"]["16"]["cuts"][-1]["updates"] == 100000
+    assert plan["batches"]["32"]["cuts"][-1]["updates"] == 50000
+    path.write_bytes(path.read_bytes() + b" ")
+    with pytest.raises(ValueError):
+        prices.source_inputs(root, fresh, cycles, "a" * 40)
+
+
+def test_combined_command_keeps_pricing_and_returns_original_zip_when_conditioning_is_blocked(
+    tmp_path, monkeypatch
+):
+    from tests.integration.test_round029_conditioning_prices import api
+    from oeis_learn.generalization.progressive.contracts import seal
+
+    read, publish = api["donor_launch_prices"], api["write_readiness_zip"]
+    nested = tmp_path / "conditioning.zip"
+    publish(
+        nested,
+        dict(
+            scope=api["CONDITIONING"],
+            status="BLOCKED",
+            research_run_requested=False,
+            scientific_verdict=None,
+            files={},
+        ),
+    )
+    folder = tmp_path / "run-state/discovery" / prices.SESSION
+    folder.mkdir(parents=True)
+    lengths, order = {"a": 3}, ["a"]
+    frames = {str(b): prices.frame(order, lengths, b, looks=(50, 120)) for b in (16, 32)}
+    plan = prices.plan_for("a" * 40, digest("fresh"), digest("cuts"), frames)
+    monkeypatch.setattr(prices, "source_inputs", lambda *args: (plan, order, lengths))
+    original = prices.run
+    monkeypatch.setattr(
+        prices,
+        "run",
+        lambda *args, minutes, floor, registered: original(*args, minutes=minutes, floor=0),
+    )
+
+    def action(_):
+        prep = dict(checkpoint_receipt=digest("cuts"), fresh_receipt=digest("fresh"))
+        marker = folder / prices.MARKER
+        if marker.is_file():
+            prep.update(accounting_receipt=prices.load(marker)["receipt"])
+        return dict(
+            inventory=dict(
+                gpu_dispatches=0,
+                capacity=dict(mounts=[]),
+                prices=dict(
+                    fresh_start={},
+                    checkpoint_cycles=dict(receipt=digest("cuts")),
+                    supported_wave=dict(checkpoint_receipt=digest("cuts")),
+                    launch_preparation=prep,
+                ),
+            )
+        )
+
+    result = read(action, tmp_path, "a" * 40, "2", nested)
+    assert result["status"] == "PARTIAL" and result["conditioning_status"] == "BLOCKED"
+    assert result["files"]["accounting.json"]["charged_work"]["attempts"] == 2
+    destination = tmp_path / "combined.zip"
+    publish(destination, result)
+    assert api["verify_launch_zip"](destination)["status"] == "PARTIAL"
+    publish(destination, dict(result, status="COMPLETE"))
+    with pytest.raises(ValueError):
+        api["verify_launch_zip"](destination)
+    altered = dict(result["files"])
+    cpu = dict(altered["accounting.json"])
+    cpu["remaining_us"] += 1
+    altered["accounting.json"] = seal(cpu)
+    publish(destination, dict(result, files=altered))
+    with pytest.raises(ValueError):
+        api["verify_launch_zip"](destination)
+
+
+def test_private_replay_clock_uses_the_successful_verifier_boundary(tmp_path):
+    from oeis_learn.generalization.progressive.contracts import atomic_write, seal
+    from oeis_learn.generalization.progressive.velocity_records import operation_key
+    from oeis_learn.pipeline_validation.progressive_velocity_launch import role_storage
+    from oeis_learn.pipeline_validation.progressive_velocity_operations import operation_receipt
+    from tests.integration.test_round029_conditioning_prices import api
+
+    grant = dict(identity=digest("grant"), registration_or_parent_ref=digest("plan"))
+    coords = api["conditioning_coordinates"](grant, "D-full", "search", 29)
+    req = seal(dict(plan=digest("plan")))
+    atomic_write(tmp_path / "inputs/D-full/search/request.json", req)
+    logical = operation_key(coords, 0)["logical"]
+    block = tmp_path / "operations" / logical[7:]
+    out = block / "attempt-0000"
+    out.mkdir(parents=True)
+    original = operation_receipt(coords, req, grant, 0, seal(dict(elapsed_us=11)))
+    atomic_write(block / "receipt.json", original)
+    key = logical + "/dispatch/0"
+    state = dict(committed=[key], windows={key: dict(event="COMMIT", end_us=30, charged_us=18)})
+    elapsed, paths = role_storage(tmp_path, grant, state, coords)
+    assert elapsed == 7 and paths[0] == out
+    reader = dict(coords, role="verify-paid-search")
+    repair = operation_receipt(reader, req, grant, 0, seal(dict(original=original)))
+    repair_key = operation_key(reader, 0)["logical"]
+    atomic_write(tmp_path / "operations" / repair_key[7:] / "receipt.json", repair)
+    state["committed"].append(repair_key + "/dispatch/0")
+    state["windows"][repair_key + "/dispatch/0"] = dict(event="COMMIT", end_us=52, charged_us=5)
+    assert role_storage(tmp_path, grant, state, coords, recovered=original["identity"])[0] == 5
+    with pytest.raises(ValueError):
+        role_storage(tmp_path, grant, state, coords, recovered=digest("other search"))

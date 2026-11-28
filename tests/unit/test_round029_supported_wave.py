@@ -184,3 +184,28 @@ def test_wave_storage_prices_resident_blocks_by_profile_and_keeps_gaps_visible(t
     )
     assert result["missing"] == ["D-full"] and result["fits_with_reserve"] is None
     assert not list(tmp_path.iterdir())
+
+
+def test_private_replay_and_public_scale_use_measured_resident_work_and_separate_units():
+    from oeis_learn.pipeline_validation.progressive_velocity_launch import verification_forecast
+
+    wave = dict(
+        missing=[], chunks={"common": 3, "full": 2}, projected_private=dict(bytes=210, inodes=30)
+    )
+    sample = dict(
+        private_read_us={"common": dict(search=3, score=7), "full": dict(search=8, score=4)}
+    )
+    release = dict(
+        receipt=digest("historical"),
+        corpora=dict(
+            varied=dict(expanded_bytes=100, files=5, cold_us=13, warm_us=7),
+            compressible=dict(cold_us=6, warm_us=4),
+        ),
+        journal=dict(events=10, cold_us=5),
+    )
+    result = verification_forecast(wave, sample, release, 31, {"00": 3, "04": 2})
+    assert result["historical_corpus_passes"] == 6
+    assert result["historical_journal_passes"] == 3
+    assert result["expected_us"] == 31 + 15 + 3 * 10 + 2 * 12 + 6 * 15
+    assert result["tail_us"] == 31 + 15 + 5 * (8 + 7) + 6 * 20
+    assert verification_forecast(dict(wave, missing=["D-full"]), sample, release, 31, {}) is None

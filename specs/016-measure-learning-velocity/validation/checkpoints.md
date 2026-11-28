@@ -159,3 +159,48 @@ expected and 98,054.130824 s at the observed tail. The separate follow-up reserv
 101.545884 s. Paired conditioning, trajectory overhead and verification/publication
 still have open price entries. The mount snapshot in this ZIP covers one conditioning
 role. A full-wave estimate needs the simultaneous owners on the actual mounts.
+
+
+## Recover conditioning and price the supported trial
+
+From the detached round027 donor, set `ROUND029_REV` to the full commit supplied with the
+launch-pricing reader. The following command uses the original 75-minute conditioning grant
+and authorizes a separate, cumulative 15-minute CPU accounting rehearsal.
+
+```bash
+(
+  set -euo pipefail
+  reader=${ROUND029_REV:?supply the full launch-pricing commit}
+  git fetch --no-tags origin "$reader"
+  git show "$reader:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - --review-launch "$reader" 15
+)
+```
+
+The pinned repair reader reopens the three paid HIP searches and can finish their three CPU
+scorers against the original barrier. Each retry uses the same worker, reader and grant.
+The CPU rehearsal uses the exposed stream’s batch-16 and batch-32 row order and lengths.
+It times durable update debits, cold journal reopening and stream replay at the whole updates
+crossing 1M and 4M useful tokens. Its disposable ledger simulates token charges. The actual
+qualification grant charges elapsed time, dispatch attempts and reserved disk with zero
+optimizer tokens. Keep the same pricing commit and minute cap to resume the CPU work.
+
+Return the printed `launch-prices.zip` even if the command exits with a partial result.
+It contains the original conditioning ZIP, the independent CPU grant balance, the capacity
+projection and the available launch estimate. A missing or rejected price stays open.
+To verify the copy offline, run
+
+```bash
+python3 -I -S -B specs/016-measure-learning-velocity/validation/qualify_continuation.py \
+  --verify-launch-zip /path/to/launch-prices.zip
+```
+
+The full projection assumes a cached image, serial roles, a dedicated eight-family paired
+sample for each eligible profile and retained outputs through publication. It prices separate
+destination mounts, their byte and inode reserves, four checkpoint trees, hourly saves,
+a pending checkpoint, worker staging, portfolios, journals and staged and published output.
+The smaller ordinary prefix has a separate mount check. The publication estimate projects
+the authenticated private verification times and the historical release encodings onto the
+observed output sizes and member counts. All-in time remains unavailable while any price
+is missing. A completed preparation ZIP supports a funding decision. The pre-score freeze
+and trial runner have separate acceptance conditions.

@@ -143,7 +143,7 @@ def checkpoint_space(root, cycles, trajectory, floor, registered=()):
     )
 
 
-def settled_area(root, parent, name, identity, *, field="identity"):
+def settled_area(root, parent, name, identity, *, field="identity", grant_ref=None):
     """Locate the unique matching receipt, then check its plan, authorization and debit."""
     from oeis_learn.generalization.progressive.budgets import BudgetJournal
     from oeis_learn.generalization.progressive.velocity_records import (
@@ -153,6 +153,8 @@ def settled_area(root, parent, name, identity, *, field="identity"):
 
     matches = []
     for path in parent.glob("*/" + name + ".json"):
+        if grant_ref is not None and grant_ref != "sha256:" + path.parent.name:
+            continue
         row = load(confined(root, path))
         if row.get(field) == identity:
             if row != seal(row):
@@ -174,7 +176,7 @@ def settled_area(root, parent, name, identity, *, field="identity"):
         grant, auth, root=physical_root_id(root), parent=plan["identity"], action="qualify"
     )
     state = BudgetJournal.inspect_existing(
-        area / "accounting", grant["identity"], grant["resources"]
+        area / "accounting", grant["identity"], grant["resources"], include_windows=True
     )
     original_grant = confined(
         root, "run-state/discovery-authorizations/grant-" + area.name + ".json"
@@ -224,9 +226,20 @@ def role_storage(area, grant, state, coords, *, recovered=None):
         raise ValueError("role sizing receipt differs from the original request")
     attempt = proof["attempt"]
     logical = operation_key(coords, attempt)["logical"]
-    if f"{logical}/dispatch/{attempt}" not in state["committed"]:
+    issued = f"{logical}/dispatch/{attempt}"
+    if issued not in state["committed"]:
         raise ValueError("role sizing requires a settled operation")
-    return [
+    window = state["windows"][issued if recovered is None else reader_key]
+    private_us = None
+    if window["event"] == "COMMIT" and window["end_us"] is not None:
+        # For a normally verified role, the funded host interval encloses the
+        # worker plus the private verifier. A recovery reader has its own interval.
+        private_us = window["charged_us"] - (
+            proof["evidence"]["elapsed_us"] if recovered is None else 0
+        )
+        if private_us < 0:
+            raise ValueError("role clock exceeds the original settled wall interval")
+    return private_us, [
         confined(block, f"attempt-{attempt:04d}"),
         confined(area, f"inputs/{coords['method']}/{coords['role']}"),
     ]
@@ -249,7 +262,7 @@ def sample_storage(root, wave):
     )
     if any(p["checkpoint"] != wave["checkpoint_receipt"] for p in (bank_plan, cpu_plan)):
         raise ValueError("control sizing belongs to another checkpoint matrix")
-    roles = {}
+    roles, verifier = {}, {}
     for method in (
         "template",
         "polynomial",
@@ -273,17 +286,21 @@ def sample_storage(root, wave):
         )
         try:
             search = dict(coords, role="search")
-            paths = role_storage(area, terms, ledger, dict(coords, role="score"))
+            score_us, score_paths = role_storage(area, terms, ledger, dict(coords, role="score"))
             try:
-                paths += role_storage(area, terms, ledger, search)
+                search_us, search_paths = role_storage(area, terms, ledger, search)
             except FileNotFoundError:
                 # Successful CPU scoring binds the recovered search to its barrier.
                 path = confined(area, method + ".json")
                 group = load(path)
                 if control or group != seal(group) or group["group"] != method:
                     raise ValueError("original recovered group required")
-                paths += role_storage(area, terms, ledger, search, recovered=group["search"])
-            roles[method] = owned_allocations(paths)
+                search_us, search_paths = role_storage(
+                    area, terms, ledger, search, recovered=group["search"]
+                )
+            roles[method] = owned_allocations(search_paths + score_paths)
+            if search_us is not None and score_us is not None:
+                verifier[method] = dict(search=search_us, score=score_us)
         except FileNotFoundError:
             continue
     # Runtime staging on the cached-image scenario. Use the verified wheel that
@@ -300,7 +317,8 @@ def sample_storage(root, wave):
         role="models",
         ordinal=0,
     )
-    out = role_storage(paired, grant, state, model)[0]
+    _, model_paths = role_storage(paired, grant, state, model)
+    out = model_paths[0]
     inspection = load(confined(out, "container-inspect.json"))[0]
     (wheel,) = [
         confined(root, m["Source"])
@@ -322,6 +340,7 @@ def sample_storage(root, wave):
         grant=grant["identity"],
         runtime=dict(bytes=2 * block * allocated, inodes=2 * (len(dirs) + len(members))),
         roles=roles,
+        private_read_us=verifier,
     )
 
 
@@ -454,6 +473,7 @@ def wave_space(
         wave=mounts,
         first_ordinary_cut=first,
         chunks=chunks,
+        projected_private=private,
         missing=missing,
         fits_with_reserve=False if not fits else None if missing else True,
         basis="Cached image, existing data and serial roles. A full paid paired block bounds one "
@@ -462,7 +482,57 @@ def wave_space(
     )
 
 
-def launch_preflight(root, policy, info, *, floor):
+def verification_forecast(space, sample, release, checkpoint_us, updates):
+    """Planning proxy for a private replay and public write/read at the projected wave size."""
+    if release is None or space["missing"] or checkpoint_us is None:
+        return None
+    from oeis_learn.generalization.budgets import integer
+
+    private_us = sample["private_read_us"]
+    chunks = space["chunks"]
+    if chunks.keys() != private_us.keys():
+        return None
+    checkpoint_us = integer(checkpoint_us, 1)
+    read = sum(n * sum(integer(v) for v in private_us[k].values()) for k, n in chunks.items())
+    slow_read = sum(chunks.values()) * sum(
+        max(row[k] for row in private_us.values()) for k in ("search", "score")
+    )
+    shape = release["corpora"]["varied"]
+    private = space["projected_private"]
+
+    def blocks(count, unit):
+        return max(1, (count + unit - 1) // unit)
+
+    # Size the shareable output against the actual private resident-block footprint.
+    # Either throughput bottleneck can require additional historical-scale passes.
+    volumes = max(
+        blocks(private["bytes"], shape["expanded_bytes"]), blocks(private["inodes"], shape["files"])
+    )
+    times = [c["cold_us"] + c["warm_us"] for c in release["corpora"].values()]
+    events = 2 * sum(updates.values()) + 4 * sum(chunks.values())
+    journal = release["journal"]
+    replays = blocks(events, journal["events"])
+    base = checkpoint_us + replays * journal["cold_us"]
+    return dict(
+        checkpoint_read_us=checkpoint_us,
+        private_role_replay_us=read,
+        tail_private_role_replay_us=slow_read,
+        observed_role_us=private_us,
+        release=release["receipt"],
+        historical_corpus_passes=volumes,
+        projected_ledger_events=events,
+        historical_journal_passes=replays,
+        expected_us=base + read + volumes * ((sum(times) + len(times) - 1) // len(times)),
+        tail_us=base + slow_read + volumes * max(times),
+        basis="One authenticated private checkpoint-matrix read. Repeat the observed private "
+        "role verification envelope per eight-case chunk; repeat the slowest search and "
+        "scorer envelopes for the tail. Scale historical public writes and reads by the "
+        "larger byte or member count and cold journal reads by event count. The eventual "
+        "redacted report layout and end-to-end verifier are provisional.",
+    )
+
+
+def launch_preflight(root, policy, info, *, floor, checkpoint_read_us=None):
     prices = info["prices"]
     cycles, fresh = prices["checkpoint_cycles"], prices["fresh_start"]
     result = dict(
@@ -522,6 +592,9 @@ def launch_preflight(root, policy, info, *, floor):
                 floor=floor,
                 updates=counts,
                 registered=info["capacity"]["mounts"],
+            )
+            result["verification_and_publication"] = verification_forecast(
+                result["wave_space"], sample, release, checkpoint_read_us, counts
             )
         except (OSError, ValueError, KeyError, zipfile.BadZipFile) as exc:
             result["missing"]["wave_space"] = type(exc).__name__

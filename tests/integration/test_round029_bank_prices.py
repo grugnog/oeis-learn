@@ -123,6 +123,9 @@ def test_five_banks_share_one_grant_and_resume_only_the_failed_role(tmp_path, mo
 
     fn = api["bank_price_matrix"]
     state = fn.__globals__
+    # This test exercises role failure/retry with a tiny fixture wheel.
+    monkeypatch.setitem(state, "control_capacity", lambda *args, **kwargs: [
+        dict(deficit_bytes=0, deficit_inodes=0)])
     source = tmp_path / "tree"
     operator = source / Path(state["LAUNCHER"]).with_name("qualify_continuation.py")
     operator.parent.mkdir(parents=True)

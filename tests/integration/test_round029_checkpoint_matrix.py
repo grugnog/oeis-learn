@@ -445,6 +445,16 @@ def test_one_grant_preserves_other_methods_and_replays_six_cpu_roles(tmp_path, m
         host,
         supervise,
     )
+    globals_ = api["isolated_control_matrix"].__globals__
+
+    def space(deficit):
+        return [dict(deficit_bytes=deficit, deficit_inodes=0)]
+
+    monkeypatch.setitem(globals_, "control_capacity", lambda *args, **kwargs: space(1))
+    denied = api["isolated_control_matrix"](*args)
+    assert denied["status"] == "PARTIAL" and denied["elapsed_us"] == 0 and not calls
+    assert denied["files"]["capacity.json"]["mounts"] == space(1)
+    monkeypatch.setitem(globals_, "control_capacity", lambda *args, **kwargs: space(0))
     partial = api["isolated_control_matrix"](*args)
     assert partial["status"] == "PARTIAL" and partial["errors"] == {
         "polynomial": dict(phase="score", error="ValueError")

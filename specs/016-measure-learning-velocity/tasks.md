@@ -50,6 +50,13 @@ Give each trial, operation, grant, worker and retry an identity understood by th
 - [ ] T019 [US1] Price the common probe, initial wave and one reserved follow-up in `src/oeis_learn/generalization/progressive/program_search_costing.py`. Reconcile paid, open and unstarted work, cold/warm/slow/empty cases, control reuse and marginal CPU, auxiliary and full-bank costs. For an essential unmeasured guard, record a provisional value twice the larger of the same-scope valid load and projected peak, and name its T058–T061 production check. Preflight consumes existing receipts. Collect new timings only with a preparation grant on exposed inputs. Record unknowns and expected/tail cost. *After T015–T018.*
 - [ ] T020 [US1] Wire the inventory to `preflight` in `src/oeis_learn/pipeline_validation/progressive_round029.py`. Return reusable cuts/scores, authenticated pair and family counts, exclusions, measured or provisional prices, reserve, physical shortfall and the smallest decision-changing private input or funded measurement. “A metadata read acquires no device.” Pass T012–T014 through the normal launcher, including a donor with missing private evidence. Leave durable study state untouched. *After T019.*
 
+The returned conditioning preparation had three paid HIP searches and zero verified pairs.
+The four supported recipes have a partial expected price of 29,026.014955 s and an observed-tail
+price of 98,054.130824 s. T019/T020 now have a combined donor recovery and launch-pricing
+command for trajectory accounting, verification, publication and peak capacity. The returned
+donor measurements and mount margins are pending. T051 and T056 remain open pending funded
+pre-score acceptance and an exercised trial path. See [the donor command](validation/checkpoints.md#recover-conditioning-and-price-the-supported-trial).
+
 **Checkpoint at T020.** The operator can run read-only preflight on the donor and decide whether to fund preparation using the inventory alone. Prices without a valid timing receipt are labeled unmeasured or provisional.
 
 ## Phase 4 — US2 · Compare how fast recipes learn · P1

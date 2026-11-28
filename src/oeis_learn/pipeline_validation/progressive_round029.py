@@ -2,6 +2,7 @@
 
 import fcntl
 import os
+import time
 from pathlib import Path
 
 from oeis_learn.generalization.progressive.campaign import velocity_policy
@@ -143,7 +144,9 @@ def preflight(root, source=None, *, free_disk_gib=5):
         from .progressive_velocity_checkpoint_host import inventory as checkpoint_inventory
 
         try:
+            began = time.monotonic_ns()
             cycles = checkpoint_inventory(root, source)
+            read_us = (time.monotonic_ns() - began) // 1000
             if cycles is not None:
                 if cycles["origin"] != info["prices"]["fresh_start"]["identity"]:
                     raise ValueError("checkpoint cycles belong to a different fresh stream")
@@ -154,7 +157,7 @@ def preflight(root, source=None, *, free_disk_gib=5):
                     from .progressive_velocity_launch import launch_preflight
 
                     info["prices"]["launch_preparation"] = launch_preflight(
-                        root, policy, info, floor=free_disk_gib << 30
+                        root, policy, info, floor=free_disk_gib << 30, checkpoint_read_us=read_us
                     )
         except (OSError, ValueError, KeyError) as exc:
             info["prices"]["checkpoint_reason"] = str(exc)
