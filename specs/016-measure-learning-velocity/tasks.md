@@ -249,12 +249,14 @@ the original cut and paid costs, rechecks whole-wave capacity, binds four learne
 requests at three targets each, freezes the evaluation rosters and installs the
 independent pre-score archive. A fixture covers a numeric capacity stop, two
 resumes, private replay and a substituted public schedule. The donor completed
-wave qualification. Independent return of its paired archives and corrected
-private readback remain open. T032 and T056 still require the funded comparative trial
-and its runner.
+wave qualification and private readback. The independent verifier accepted the
+returned report and pre-score pair for all 12 training targets and 20 evaluation
+looks. T032 and T056 still require the funded comparative trial and its runner.
 
 T052–T053 now support a [grant-specific verification command](quickstart.md#reopen-the-returned-trial-preparation)
 against the exact returned ZIP. It can recover the published wave across reader
 revisions and later session status changes. A CPU fixture checks two reads against
 byte-identical journals and a partial return with both public archives after a
-private input changes. Donor readback supplies the remaining physical evidence.
+private input changes. The [verified supported-wave preparation](validation/checkpoints.md#verified-supported-wave-preparation)
+records the donor receipt, the frozen launch estimate and the post-build capacity
+observation. The accepted preparation used zero research dispatches.

@@ -211,6 +211,11 @@ python3 -I -S -B specs/016-measure-learning-velocity/validation/qualify_continua
   --verify-trial-preparation-zip /path/to/trial-preparation.zip
 ```
 
+The offline result includes the training target count, evaluation look count,
+expected time, tail time, follow-up reserve and the byte and inode margins at
+wave admission. The donor's [verified preparation](validation/checkpoints.md#verified-supported-wave-preparation)
+completed this step for recipes 00, 04, 05 and 06.
+
 ### Reopen the returned trial preparation
 
 The donor run at `7096a078` completed initialization and wave qualification.

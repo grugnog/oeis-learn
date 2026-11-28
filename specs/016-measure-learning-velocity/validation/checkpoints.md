@@ -378,5 +378,41 @@ contains the identical initialization ZIP. The separate fifteen-minute host gran
 finished qualification, then private verification returned `FAILED`. The partial
 ZIP reports the stopping point. The exception detail and the two published wave
 archives stayed on the donor. Preflight on the original reader reproducibly
-rejects the inventory member added after wave acceptance. Completing the readback
-requires the original funded registration, both journals and the independent archive.
+rejects the inventory member added after wave acceptance.
+
+### Verified supported-wave preparation
+
+The donor returned `trial-preparation.zip` with SHA-256
+`f83dd8bc2b6ccabc84006f100b0e9b15467dbd2abbbfae6fa61abc302c53ed53`.
+Reader `3e8754c6809aaf7fb8d38bff36549fc559a0a882` reopened the original
+15-minute host grant and verified the private receipt. The independent archive
+reader reproduced that receipt, `sha256:0a672adfd6f8b4d9af556ae3961799e3bfc91260497468443bd31120dbbcae94`.
+The embedded initialization ZIP matched the earlier return byte for byte.
+The original terminal log identified the missing schema member as the reason the
+first verification stopped.
+
+The accepted pre-score commitment is
+`sha256:e7512055233ed8547357f01a1a8f0f59337707d0808f0952fbd5a9cedb9964ed`.
+Recipes 00, 04, 05 and 06 each have training targets at 0, 1M and 4M useful
+tokens. The 20 evaluation looks comprise four per supported recipe and one
+full-profile endpoint each for D, template, polynomial and linear recurrence.
+Recipes 01–03 retain their registered exclusions. Preparation charged
+104.759173 workstation seconds, left 795.240827 seconds on the host grant and
+issued zero comparative tokens or research dispatches.
+
+| Frozen launch estimate | Workstation seconds |
+| --- | ---: |
+| Expected wave | 30,051.218941 |
+| Wave at the observed tail | 99,420.767048 |
+| Follow-up reserve | 101.545884 |
+| Tail including the reserve | 99,522.312932 |
+
+| Post-build wave admission | Bytes | Inodes |
+| --- | ---: | ---: |
+| Available | 495,032,811,520 | 121,734,579 |
+| Required by the wave | 369,573,318,126 | 127,904 |
+| Reserved | 5,368,709,120 | 0 |
+| Remaining above reserve | 120,090,784,274 | 121,606,675 |
+
+The returned preparation is `COMPLETE`. Comparative dispatch belongs to T032
+and T056 and requires a separate exploration grant.

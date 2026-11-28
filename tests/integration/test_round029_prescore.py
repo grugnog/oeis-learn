@@ -701,7 +701,18 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
         )
         packed = tmp_path / "trial-preparation.zip"
         api["write_readiness_zip"](packed, trial_bundle)
-        assert api["verify_trial_preparation_zip"](packed)["accepted"] == accepted["identity"]
+        reviewed = api["verify_trial_preparation_zip"](packed)
+        assert reviewed["accepted"] == accepted["identity"]
+        assert (reviewed["training_targets"], reviewed["looks"]) == (12, 20)
+        assert (
+            reviewed["expected_us"],
+            reviewed["tail_us"],
+            reviewed["followup_reserve_us"],
+            reviewed["proposed_total_us"],
+        ) == (9000, 10000, 900, 10900)
+        assert reviewed["capacity"] == [
+            dict(launch_fixture()["scopes"]["wave"]["mounts"][0], margin_bytes=200, margin_inodes=27)
+        ]
         substituted = tmp_path / "substituted-trials.zip"
         bad = seal(dict(accepted, training=accepted["training"][:-1]))
         public.install(substituted, trial.MEMBER, bad)

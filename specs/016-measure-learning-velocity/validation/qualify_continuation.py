@@ -4549,6 +4549,28 @@ def measurement(value):
     return value
 
 
+def mount_margins(mounts):
+    rows = []
+    devices = set()
+    for mount in mounts:
+        device = measurement(mount["device"])
+        if device in devices:
+            raise ValueError("duplicate destination mount")
+        devices.add(device)
+        row = dict(device=device)
+        for unit in ("bytes", "inodes"):
+            free, need, floor, deficit = (
+                measurement(mount[k + "_" + unit])
+                for k in ("available", "required", "reserved", "deficit")
+            )
+            margin = free - need - floor
+            if deficit != max(0, -margin):
+                raise ValueError("launch capacity deficit differs from mount totals")
+            row["margin_" + unit] = margin
+        rows.append(row)
+    return rows
+
+
 def initialization_margins(options):
     names = ("wave", "first_ordinary_cut", "ordinary_initialization")
     scopes = options["scopes"]
@@ -4561,24 +4583,7 @@ def initialization_margins(options):
         measurement(reserve)
     for name in names:
         scope = scopes[name]
-        rows = []
-        devices = set()
-        for mount in scope["mounts"]:
-            device = measurement(mount["device"])
-            if device in devices:
-                raise ValueError("duplicate destination mount")
-            devices.add(device)
-            row = dict(device=device)
-            for unit in ("bytes", "inodes"):
-                free, need, floor, deficit = (
-                    measurement(mount[k + "_" + unit])
-                    for k in ("available", "required", "reserved", "deficit")
-                )
-                margin = free - need - floor
-                if deficit != max(0, -margin):
-                    raise ValueError("launch capacity deficit differs from mount totals")
-                row["margin_" + unit] = margin
-            rows.append(row)
+        rows = mount_margins(scope["mounts"])
         margins[name] = rows
         shortage = any(min(row["margin_bytes"], row["margin_inodes"]) < 0 for row in rows)
         fits = scope["fits"]
@@ -5921,28 +5926,26 @@ def checked_trial_preparation(summary, files):
         for p in ("available", "required", "reserved", "deficit")
         for u in ("bytes", "inodes")
     }
-    if (
-        not q["capacity"]
-        or any(set(m) != mount_fields for m in q["capacity"])
-        or len({measurement(m["device"]) for m in q["capacity"]}) != len(q["capacity"])
-        or any(
-            measurement(m["deficit_" + u])
-            or measurement(m["available_" + u])
-            < measurement(m["reserved_" + u]) + measurement(m["required_" + u])
-            for m in q["capacity"]
-            for u in ("bytes", "inodes")
-        )
-    ):
+    mounts = q["capacity"]
+    if not mounts or any(set(m) != mount_fields for m in mounts):
+        raise ValueError("full wave requires its recorded mount observations")
+    margins = mount_margins(mounts)
+    if any(m["margin_bytes"] < 0 or m["margin_inodes"] < 0 for m in margins):
         raise ValueError("full wave exceeded its observed capacity")
     publication = dict(
         supported=methods,
         omitted=sorted(q["omitted"]),
+        training_targets=len(targets),
         looks=len(schedule),
         initialization=checked["receipt"],
         accepted=q["identity"],
         elapsed_us=r["elapsed_us"],
         remaining_us=r["remaining_us"],
+        expected_us=q["expected_us"],
+        tail_us=q["tail_us"],
+        followup_reserve_us=q["followup_us"],
         proposed_total_us=q["proposed_total_us"],
+        capacity=[dict(mount, **margin) for mount, margin in zip(mounts, margins, strict=True)],
         research_authority=None,
     )
     if partial:
