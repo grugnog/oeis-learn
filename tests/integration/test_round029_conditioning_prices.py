@@ -653,3 +653,36 @@ def test_differing_donor_replacement_uses_only_originally_exposed_families(tmp_p
         visible[1]["values"] == full[1]["values"][:20]
         and visible[1]["values"] != visible[0]["values"]
     )
+
+
+def test_partial_zip_keeps_paid_searches_out_of_verified_results(tmp_path):
+    files = {
+        "models.json": dict(receipt=digest("model"), elapsed_us=3),
+        "verification.json": dict(plan=digest("plan"), research_dispatches=0,
+                                  sealed_searches=None, verified={}),
+    }
+    files["forecast.json"] = api["conditioning_prices"](files)
+    charged = dict(tokens=0, draws=272, attempts=272, rejections=272, native_work=3072,
+                   elapsed_us=180_000_000, disk_bytes=0, archive_bytes=0)
+    report = dict(scope=api["CONDITIONING"], status="PARTIAL", candidate="a" * 40,
+                  grant=digest("original"), grant_minutes=75, charged_work=charged,
+                  elapsed_us=charged["elapsed_us"], remaining_us=4_320_000_000,
+                  hip_attempts=3, verified_leases=3, gpu_dispatches=3, recorded_lease_us=175_000_000,
+                  research_run_requested=False, scientific_verdict=None,
+                  errors={"search-" + group: "ValueError" for group in api["CONDITIONING_GROUPS"]},
+                  files=files)
+    archive = tmp_path / "partial.zip"
+    api["write_readiness_zip"](archive, report)
+    assert api["verify_conditioning_zip"](archive)["status"] == "PARTIAL"
+    for key, value in (("remaining_us", 4_500_000_000), ("hip_attempts", 0),
+                       ("elapsed_us", True), ("receipt", digest("invented"))):
+        api["write_readiness_zip"](archive, dict(report, **{key: value}))
+        with pytest.raises(ValueError):
+            api["verify_conditioning_zip"](archive)
+    for name, key, value in (("forecast.json", "proxy_four_treatment_paired_sample_us", 0),
+                             ("verification.json", "verified", {"D-full": {}}),
+                             ("verification.json", "sealed_searches", digest("unearned"))):
+        altered = dict(files, **{name: dict(files[name], **{key: value})})
+        api["write_readiness_zip"](archive, dict(report, files=altered))
+        with pytest.raises(ValueError):
+            api["verify_conditioning_zip"](archive)

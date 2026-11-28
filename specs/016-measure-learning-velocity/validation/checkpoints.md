@@ -108,3 +108,40 @@ Set `ROUND029_REV` to the published conditioning commit and `ROUND029_BANK` to t
 The CPU custodian authenticates the donated ordinary 4M checkpoint and retained D, then freezes the two conditioning maps for every group. One HIP lease per group covers both input modes. Ordinary runs at one and eight attempts, and D runs at eight. Each probe uses the same inference seed, family order and true recipient for fitting. If an exposed timing pair has identical visible values, the custodian selects a previously exposed differing family in the same stratum using only its visible prompt. The ZIP reports the number of substitutions.
 
 All six sets of choices must seal before the CPU roles score any suffix. Each scorer checks the selected choice and independently executes every recoverable admission with both implementations. The ZIP includes paired selected outcomes, unresolved cases, bank coverage, search and scoring clocks, GPU leases, sampled activity, peak device memory and charged resources. The proxy for other learner recipes uses the historical ordinary checkpoint. The 75-minute grant covers the combined qualification. Retries at the same candidate and duration reopen completed groups and charge interrupted attempts to the original balance. Attach the printed `conditioning.zip`, including a partial result.
+
+### Recover the partial conditioning run
+
+The returned ZIP for worker `c561004224f380d3c3b246d9b57f013a6559b2ff` has SHA-256
+`b774f1b56b9a4916dfed6410dee3d7dc5c6abe9d1f9347d9cd7679006d91b29d`.
+All eight member hashes match. Each of the three paired searches ended in a verifier
+`ValueError`. The ZIP records the exception class. The original errors and candidate
+banks are on the donor. Zero groups reached scoring.
+
+| Original 75-minute qualification | Measured |
+| --- | ---: |
+| Charged time | 178.773252 s |
+| Remaining time | 4,321.226748 s |
+| Three recorded GPU leases combined | 175.041633 s |
+| Charged attempt units | 272 |
+| Optimizer tokens | 0 |
+
+Use the recovery reader on the original detached donor. It checks the device and timing
+evidence from each paid search against its original request and debit. Once all six sets of
+choices verify, the three CPU scorers can run on the remaining grant. A failed check returns
+a partial ZIP with the observed discrepancy. The command uses the same grant on each resume.
+
+```bash
+(
+  set -euo pipefail
+  umask 077
+  reader=404a652c936eb7cfb4ab3303301edc4c9b5ee33c
+  worker=c561004224f380d3c3b246d9b57f013a6559b2ff
+  grant=sha256:ee51d1909fe93ce8928d1b930edb209d0e8582be7a20b776eab712bad539f34c
+  bank=sha256:fca44fe0dc257caa17f4ea7c9e559891530794fcfba19574397684a79c9c658a
+  out=$(mktemp -d "$HOME/round029-conditioning-recovery.XXXXXX")
+  git fetch --no-tags origin "$reader" "$worker"
+  git show "$reader:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - "$reader" 75 conditioning --bank-receipt "$bank" \
+      --recover-grant "$worker" "$grant" --output "$out/conditioning.zip"
+)
+```

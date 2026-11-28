@@ -4013,58 +4013,77 @@ def verify_conditioning_zip(path):
         return "sha256:" + hashlib.sha256(raw).hexdigest()
 
     summary, files = diagnostic_zip_members(path, CONDITIONING)
-    if summary["status"] == "COMPLETE":
-        proofs = files["verification.json"]
+    if summary["status"] not in {"COMPLETE", "PARTIAL"}:
+        return dict(status=summary["status"], verified_members=len(files))
+    receipt_scope = set(CONDITIONING_GROUPS)
+    proofs = files["verification.json"]
+    searches = {g: files["search-" + g + ".json"] for g in receipt_scope
+                if "search-" + g + ".json" in files}
+    scores = {g: files["paired-" + g + ".json"] for g in receipt_scope
+              if "paired-" + g + ".json" in files}
+    complete = summary["status"] == "COMPLETE"
+    work = summary["charged_work"]
+    clocks = ("grant_minutes", "elapsed_us", "remaining_us", "verified_leases", "hip_attempts",
+              "recorded_lease_us")
+    if (
+        any(type(summary[k]) is not int or summary[k] < 0 for k in clocks)
+        or set(work) != {"tokens", "draws", "rejections", "attempts", "native_work",
+                         "elapsed_us", "disk_bytes", "archive_bytes"}
+        or any(type(n) is not int or n < 0 for n in work.values())
+        or not re.fullmatch(r"sha256:[0-9a-f]{64}", summary["grant"])
+        or summary["grant_minutes"] < 1
+        or work["tokens"] != 0
+        or work["elapsed_us"] != summary["elapsed_us"]
+        or summary["elapsed_us"] + summary["remaining_us"] != summary["grant_minutes"] * 60_000_000
+        or not len(searches) <= summary["verified_leases"] <= summary["hip_attempts"]
+        or bool(summary["verified_leases"]) != bool(summary["recorded_lease_us"])
+        or summary["recorded_lease_us"] > summary["elapsed_us"]
+        or summary["gpu_dispatches"] != (summary["verified_leases"]
+                if summary["verified_leases"] == summary["hip_attempts"] else None)
+    ):
+        raise ValueError("conditioning leases or cumulative grant balance differ")
+    search_refs = {g: row["receipt"] for g, row in searches.items()}
+    barrier = identity(dict(plan=proofs["plan"], searches=search_refs)) if scores else None
+    if (
+        proofs["research_dispatches"] != 0
+        or proofs["verified"].keys() != scores.keys()
+        or (scores and searches.keys() != receipt_scope)
+        or proofs["sealed_searches"] != barrier
+        or complete != (scores.keys() == receipt_scope and not summary["errors"])
+        or (not complete and (summary.get("receipt") or summary.get("recovery_receipt")))
+    ):
+        raise ValueError("conditioning status, paired scoring barrier or coverage differs")
+    if (any(type(s["lease_us"]) is not int or not 0 < s["lease_us"] <= s["elapsed_us"]
+            for s in searches.values())
+            or sum(s["lease_us"] for s in searches.values()) > summary["recorded_lease_us"]):
+        raise ValueError("verified search clocks exceed the recorded leases")
+    prices = conditioning_prices(files)
+    if prices != files["forecast.json"] or prices["successful_role_us"] > summary["elapsed_us"]:
+        raise ValueError("paired cost projection or supervision differs")
+    groups = {}
+    refs = set(search_refs.values())
+    for group, score in scores.items():
+        search = searches[group]
         if (
-            proofs["research_dispatches"] != 0
-            or set(proofs["verified"]) != set(CONDITIONING_GROUPS)
-            or summary["errors"]
-            or summary["charged_work"]["tokens"] != 0
-            or summary["elapsed_us"] != summary["charged_work"]["elapsed_us"]
-            or summary["elapsed_us"] + summary["remaining_us"]
-            != summary["grant_minutes"] * 60_000_000
-            or summary["verified_leases"] < len(CONDITIONING_GROUPS)
-            or summary["verified_leases"] > summary["hip_attempts"]
-            or summary["recorded_lease_us"] > summary["elapsed_us"]
-            or summary["recorded_lease_us"] <= 0
-            or summary["gpu_dispatches"]
-            != (
-                summary["verified_leases"]
-                if summary["verified_leases"] == summary["hip_attempts"]
-                else None
-            )
+            score["group"] != group
+            or search["receipt"] != score["search"]
+            or search["native"] != score["native"]
+            or score["barrier"] != barrier
+            or proofs["verified"][group] != {"search": score["search"], "score": score["score"]}
+            or sum(score["paired_selected"].values()) != files["panel.json"]["cases"]
         ):
-            raise ValueError("conditioning role receipts, leases, or cumulative balance differ")
-        refs = set()
-        groups = {}
-        searches = {}
-        paid_lease = 0
-        for group in CONDITIONING_GROUPS:
-            search, score = files["search-" + group + ".json"], files["paired-" + group + ".json"]
-            if (
-                score["group"] != group
-                or search["receipt"] != score["search"]
-                or search["native"] != score["native"]
-                or score["barrier"] != proofs["sealed_searches"]
-                or proofs["verified"][group] != {"search": score["search"], "score": score["score"]}
-                or sum(score["paired_selected"].values()) != files["panel.json"]["cases"]
-                or search["lease_us"] <= 0
-                or search["lease_us"] > search["elapsed_us"]
-            ):
-                raise ValueError("returned conditioning coverage or original role links differ")
-            refs.update((score["search"], score["score"]))
-            groups[group] = identity({k: v for k, v in score.items() if k != "identity"})
-            if groups[group] != score["identity"]:
-                raise ValueError("paired group seal differs")
-            searches[group] = search["receipt"]
-            paid_lease += search["lease_us"]
-            for mode in CONDITIONING_MODES:
-                cells = score["modes"][mode]["bank_cells"]
-                if len(cells) != 4 or any(v["cases"] != 2 for v in cells.values()):
-                    raise ValueError("eight matched cases required in both input modes")
-        prices = conditioning_prices(files)
-        if proofs["sealed_searches"] != identity(dict(plan=proofs["plan"], searches=searches)):
-            raise ValueError("paired scoring barrier differs from the original three searches")
+            raise ValueError("returned conditioning coverage or original role links differ")
+        refs.add(score["score"])
+        groups[group] = identity({k: v for k, v in score.items() if k != "identity"})
+        if groups[group] != score["identity"]:
+            raise ValueError("paired group seal differs")
+        for mode in CONDITIONING_MODES:
+            cells = score["modes"][mode]["bank_cells"]
+            if len(cells) != 4 or any(v["cases"] != 2 for v in cells.values()):
+                raise ValueError("eight matched cases required in both input modes")
+    if len(refs) != len(searches) + len(scores):
+        raise ValueError("distinct original role receipts required")
+    if complete:
         receipt = identity(
             dict(
                 plan=proofs["plan"],
@@ -4087,7 +4106,7 @@ def verify_conditioning_zip(path):
                 or repair["original_hip_attempts"] != summary["hip_attempts"]
                 or repair["failure_checks"]
                 or repair["observations"]
-                or {g: v["search"] for g, v in repair["groups"].items()} != searches
+                or {g: v["search"] for g, v in repair["groups"].items()} != search_refs
                 or summary["recovery_receipt"]
                 != identity(dict(result=receipt, recovery=identity(repair)))
             ):
@@ -4108,13 +4127,6 @@ def verify_conditioning_zip(path):
                     raise ValueError("unknown recovered search evidence")
             if len(set(reviewed)) != len(reviewed):
                 raise ValueError("distinct original search readers required")
-        if (
-            len(refs) != 6
-            or paid_lease > summary["recorded_lease_us"]
-            or prices != files["forecast.json"]
-            or prices["successful_role_us"] > summary["elapsed_us"]
-        ):
-            raise ValueError("paired cost projection or independent supervision differs")
     return dict(status=summary["status"], verified_members=len(files))
 
 
