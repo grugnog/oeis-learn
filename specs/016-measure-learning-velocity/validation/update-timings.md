@@ -68,6 +68,12 @@ The rejection receipt fixes a new initialization and generator seed before new d
 
 The native worker independently executes the eligible ordinary rows and prepares the matched broader stream. The timing stage uses one HIP lease to measure the ordinary calibration and eligible recipes. Recipes 02 and 03 require verified matching support. Recipes 01 and 03 require increased composition diversity at matched exposure. A breadth shortage still permits ordinary recipes 00, 04, 05 and 06. The attachment reports the new supply, shared start, measured methods, charged work and remaining forecast gaps. This qualification requests zero research updates.
 
+### Interpret treatment availability
+
+Compare `fresh_start.supply.ordinary` (distinct ordinary compositions) with `fresh_start.supply.slots`. Each matched slot can supply one composition. When these counts are equal, replacing any subset of the slots can at most tie the ordinary count. A larger pool of replacement candidates alone cannot meet the registered strict-increase rule on that ordinary stream. For matching, inspect `supply.matching.ordinary.coverage.full` together with `eligible_slots`. Full coverage and zero eligible slots establish a lack of support for ordinary matching on that stream. Partial coverage leaves the question open.
+
+To estimate a screen limited to supported recipes, use the registered per-recipe counts for the common looks and full endpoints. Scale the `learner.*` search and score operations to the included challengers, keep the control and D comparator counts, and remove optimizer entries for omitted recipes. Apply `prices.unit_prices` to the resulting counts. Report the expected and tail subtotals, every operation that still lacks a price, and the separate follow-up reserve. This calculation supplies a planning estimate. Research requires its own registration and grant.
+
 ## Collect the completed qualification and readiness checks
 
 After the 37-minute fresh-start command prints `Saved`, run this block from the same detached round027 checkout. Paste the path to its `fresh-start.json` at the prompt.
