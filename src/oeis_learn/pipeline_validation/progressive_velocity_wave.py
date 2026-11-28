@@ -12,7 +12,7 @@ from oeis_learn.generalization.progressive.trials import integer
 from oeis_learn.generalization.progressive.velocity_records import SESSION, physical_root_id
 from . import progressive_velocity_checkpoint as checkpoint
 from . import progressive_velocity_trial_preparation as preparation
-from .identity import confined
+from .identity import confined, file_hash
 from .preparation_recovery import retain
 from .progressive_research_inputs import checked_file
 from .progressive_velocity_broad_host import MAX_INPUT
@@ -20,6 +20,11 @@ from .progressive_velocity_broad_host import MAX_INPUT
 VERSION = "round029-comparative-wave/v1"
 MARKER = "comparative/authorization.json"
 DRIVER = "src/oeis_learn/pipeline_validation/progressive_velocity_wave_role.py"
+EVALUATOR = "src/oeis_learn/pipeline_validation/progressive_evaluation.py"
+
+
+def driver_identity(source):
+    return digest([file_hash(confined(source, path)) for path in (DRIVER, EVALUATOR)])
 
 
 def targets(learner, requested):
@@ -214,7 +219,6 @@ def authority(root, revision, minutes, accepted, operations, driver, key_ref):
 
 def authorize(root, source, minutes, expected):
     from .progressive_round028 import candidate_revision
-    from .identity import file_hash
 
     folder = confined(root, "run-state/discovery/" + SESSION)
     revision = candidate_revision(Path(source), root)
@@ -235,7 +239,7 @@ def authorize(root, source, minutes, expected):
             minutes,
             accepted,
             ops,
-            file_hash(confined(source, DRIVER)),
+            driver_identity(source),
             key["identity"],
         )
         # One owner per accepted wave, including concurrent or repeated start requests.

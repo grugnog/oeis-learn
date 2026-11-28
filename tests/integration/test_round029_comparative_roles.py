@@ -106,6 +106,8 @@ def test_selected_control_role_cannot_read_truth_until_choices_are_sealed(tmp_pa
     from oeis_learn.generalization.progressive.graph import velocity_look
     from oeis_learn.generalization.progressive.velocity_metrics import measured_look
     from oeis_learn.pipeline_validation.progressive_velocity_wave_role import perform
+    from oeis_learn.pipeline_validation import progressive_velocity_wave_host as host
+    from oeis_learn.pipeline_validation.progressive_evaluation import velocity_probe
     from tests.integration.test_round029_isolated_control_prices import SelectedClient, panel
 
     members, prompts, truth = panel()
@@ -120,11 +122,14 @@ def test_selected_control_role_cannot_read_truth_until_choices_are_sealed(tmp_pa
     )
     search = tmp_path / "visible"
     (search / "output").mkdir(parents=True)
-    req = dict(role="search", model=None, weight=None, look=look, seed=29, seconds=120)
-    data = dict(prompts=prompts, recipe=resolve({"version": "bigint-bootstrap/v1"}))
+    view, visible, handles = host.visible_inputs(look, prompts, b"case-secret", "true")
+    req = dict(role="search", model=None, weight=None, look=view, seed=29, seconds=120)
+    data = dict(prompts=visible, recipe=resolve({"version": "bigint-bootstrap/v1"}))
     client = SelectedClient()
     with pytest.raises(ValueError, match="projection"):
         perform(search, req, dict(data, truth=truth), device="cpu", client=client)
+    with pytest.raises(ValueError, match="projection"):
+        perform(search, dict(req, look=look), data, device="cpu", client=client)
     generated = perform(search, req, data, device="cpu", client=client)
     score = tmp_path / "scorer"
     dest = score / "inputs/candidates.json"
@@ -133,9 +138,11 @@ def test_selected_control_role_cannot_read_truth_until_choices_are_sealed(tmp_pa
     score_req = dict(
         role="score", probe=generated["probe"], candidates=reference(score, dest), seconds=120
     )
-    scored = perform(score, score_req, dict(truth=truth), device="cpu", client=client)
+    opaque_truth = [dict(row, id=handles[row["id"]]) for row in truth]
+    scored = perform(score, score_req, dict(truth=opaque_truth), device="cpu", client=client)
     result = read_bound_record(score / "output", scored["artifact"], version="discovery-scoring/v1")
-    measured = measured_look(generated["probe"], result)
+    private = velocity_probe(look, prompts, mode="true", inference_seed=29)
+    measured = measured_look(private, host.joined_scores(result, generated["probe"], private, handles))
     assert result["candidates"] == generated["artifact"]["sha256"]
     assert len(measured["scores"]["outcomes"]) == len(members)
 
@@ -165,3 +172,57 @@ def test_comparative_capacity_credits_only_registered_checkpoint_files(tmp_path,
     stable.unlink()
     with pytest.raises(host.InsufficientAuthority, match="bytes"):
         host.capacity(tmp_path, accepted, 4096, limits, retained)
+
+
+@pytest.mark.parametrize("method,target", [("00", 0), ("D", 4_000_000), ("polynomial", 4_000_000)])
+def test_search_mounts_before_inference(tmp_path, monkeypatch, method, target):
+    from pathlib import Path
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.generalization.progressive.graph import velocity_look
+    from oeis_learn.pipeline_validation import progressive_velocity_wave as wave
+    from oeis_learn.pipeline_validation import progressive_velocity_wave_host as host
+
+    family = "scoring-family-canary"
+    case = "private-case-with-oeis-metadata"
+    look = velocity_look(
+        registration=digest("study"), method=method, seed=29, look=target,
+        profile="full" if target else "common",
+        development=[dict(task=case, group=family, stratum="oeis")],
+        retention=[dict(task="retention-canary", group=family + "-2", stratum="retention")],
+    )
+    prompts = [dict(id=r["task"], indices=list(map(str, range(20))), values=["3"] * 20)
+               for r in look["members"]]
+    view, visible, _ = host.visible_inputs(look, prompts, b"secret", "true")
+    source = Path(__file__).resolve().parents[2]
+    donor = object.__new__(host.Donor)
+    donor.area, donor.source, donor.readonly, donor.host = tmp_path, source, False, None
+    donor.role, donor.evaluator = source / wave.DRIVER, source / wave.EVALUATOR
+    donor.wheel = tmp_path / "worker.whl"
+    donor.wheel.write_bytes(b"frozen wheel")
+    donor.accepted = dict(image=digest("image"))
+    data = dict(prompts=visible, recipe={})
+    request = seal(dict(role="search", look=view, method=method, gpu=method != "polynomial",
+                        data=digest(data), wheel=digest("wheel"), source=digest("source")))
+    extra = []
+    if method == "D":
+        weight = tmp_path / "weights.pt"
+        weight.write_bytes(b"registered tensors")
+        extra.append((weight, "/work/inputs/model.pt"))
+
+    def inspect(*args, readonly_inputs, **kwargs):
+        mounts = {dst: src for src, dst in readonly_inputs}
+        assert set(mounts) == {"/work/inputs/" + name for name in
+                               ("role.py", "evaluation.py", "worker.whl", "data.json", "request.json")} | {
+                                   dst for _, dst in extra}
+        for path in mounts.values():
+            raw = path.read_bytes()
+            assert all(token.encode() not in raw for token in (family, case, "retention-canary"))
+        live = load(mounts["/work/inputs/request.json"])["look"]
+        assert set(live["members"]) == {p["id"] for p in visible}
+        assert not any(k in str(live) for k in ("stratum", "retention", "group"))
+        raise RuntimeError("mount inspection complete")
+
+    monkeypatch.setattr(host, "stage", inspect)
+    execute, _, _ = donor.supervise(request, data, extra, None)
+    with pytest.raises(RuntimeError, match="mount inspection complete"):
+        execute(tmp_path / "attempt-0000", 122_000_000)

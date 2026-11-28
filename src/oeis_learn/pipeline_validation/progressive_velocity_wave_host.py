@@ -1,5 +1,6 @@
 """Custodian projections, isolated donor roles and private comparative evidence replay."""
 
+import hmac
 import os
 from pathlib import Path
 import runpy
@@ -23,7 +24,7 @@ from . import progressive_velocity_trial_preparation as preparation
 from . import progressive_velocity_wave as wave
 from .identity import confined
 from .preparation_recovery import retain
-from .progressive_evaluation import model_receipt
+from .progressive_evaluation import conditioning_donors, model_receipt, probe_inference
 from .progressive_handoff import stage
 from .progressive_panel_sources import read_inputs
 from .progressive_research_inputs import checked_file
@@ -80,6 +81,48 @@ def panel(root, folder, registration):
     if set(selected) != wanted:
         raise ValueError("original development witnesses missing")
     return selected
+
+
+def visible_inputs(look, prompts, secret, mode):
+    """Keep the case crosswalk in custody. Stable handles also mask panel ordering."""
+    if [r["task"] for r in look["members"]] != [p["id"] for p in prompts]:
+        raise ValueError("visible recipients differ from the registered case order")
+    handles = {p["id"]: hmac.digest(secret, b"case\0" + p["id"].encode(), "sha256").hex()
+               for p in prompts}
+    donors = conditioning_donors(look, prompts, mode, look["seed"])
+    visible = sorted((dict(p, id=handles[p["id"]]) for p in prompts), key=lambda p: p["id"])
+    view = seal(dict(
+        version="round029-visible-look/v1",
+        **{k: look[k] for k in ("registration", "method", "seed", "look", "profile",
+                                "attempts", "opportunity")},
+        members=[p["id"] for p in visible], mode=mode,
+        donors={handles[k]: handles[d] for k, d in donors.items()},
+    ))
+    return view, visible, handles
+
+
+def joined_scores(scores, live, private, handles):
+    """Authenticate the worker's score before attaching its recipient to the private roster."""
+    from oeis_learn.generalization.progressive.velocity_metrics import case_outcome_receipt
+
+    if (scores != seal(scores) or set(scores["outcomes"]) != set(handles.values())
+            or scores["denominator"] != len(handles)):
+        raise ValueError("selected scores differ from the visible case roster")
+    inference, original = probe_inference(live), probe_inference(private)
+    outcomes = {}
+    for case, handle in handles.items():
+        row = scores["outcomes"][handle]
+        obs = row["equal_budget"]
+        receipt = obs["receipt"]
+        evidence = {k: receipt[k] for k in ("choice_ref", "truth_ref", "scorer_ref")}
+        if (obs["probe_ref"] != live["identity"] or receipt != case_outcome_receipt(
+                handle, status=obs["status"], inference_ref=inference,
+                outcome_ref=receipt["outcome_ref"], **evidence)):
+            raise ValueError("selected choice belongs to another visible probe or case")
+        bound = case_outcome_receipt(case, status=obs["status"], inference_ref=original,
+                                     outcome_ref=receipt["identity"], **evidence)
+        outcomes[case] = dict(row, equal_budget=dict(obs, probe_ref=private["identity"], receipt=bound))
+    return seal(dict(scores, visible_scores=scores["identity"], outcomes=outcomes))
 
 
 def capacity(area, accepted, floor, limits=None, retained=None, owner="comparative wave"):
@@ -322,6 +365,7 @@ class Donor:
         self.incumbent = basis["incumbent"]
         self.incumbent_path = checked_file(root, self.incumbent["weight"])
         self.role = confined(source, wave.DRIVER)
+        self.evaluator = confined(source, wave.EVALUATOR)
         operator = confined(
             source, "specs/016-measure-learning-velocity/validation/qualify_continuation.py"
         )
@@ -362,6 +406,7 @@ class Donor:
         wheel_dest = "/work/inputs/" + self.wheel.name
         inputs = [
             (self.role, "/work/inputs/role.py"),
+            (self.evaluator, "/work/inputs/evaluation.py"),
             (self.wheel, wheel_dest),
             (rp, "/work/inputs/request.json"),
             (dp, "/work/inputs/data.json"),

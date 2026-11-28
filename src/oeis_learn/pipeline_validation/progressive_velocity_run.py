@@ -12,7 +12,7 @@ from oeis_learn.generalization.progressive.velocity_records import operation_key
 from . import progressive_velocity_trial_preparation as preparation
 from . import progressive_velocity_wave as wave
 from . import progressive_velocity_wave_host as physical
-from .identity import confined, file_hash
+from .identity import confined
 from .preparation_recovery import retain, revise
 from .progressive_evaluation import probe_inference, velocity_probe
 from .progressive_research_inputs import checked_file
@@ -101,7 +101,7 @@ def alias(original, look, prompts, cut):
     return measured_look(probe, seal(scores), cut=cut, work=original["work"])
 
 
-def screen(area, grant, marker, accepted, packages, design, donor, invoke, progress, observe):
+def screen(area, grant, marker, accepted, packages, design, donor, invoke, progress, observe, secret):
     _, looks, crossings, ops = design
     cuts, generated, observed, train_work, common_work = {}, {}, {}, {}, {}
     shared = None
@@ -189,6 +189,10 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
                     observe(look, observed[look["identity"]])
                     common_work.setdefault(method, []).extend(shared_roles)
                 continue
+            mode = coords["input_mode"]
+            visible_look, visible, handles = physical.visible_inputs(look, prompts, secret, mode)
+            # The physical supervisor also enforces the smaller per-dispatch deadline.
+            seconds = min(21_600, grant["total_us"] // 1_000_000)
             if role == "search":
                 recipe = learner["profile"] if learner else donor.incumbent["recipe"]
                 weight, model, origin = None, None, None
@@ -208,7 +212,7 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
                     origin = donor.incumbent["origin"]
                     weight = dict(donor.incumbent["weight"], path="inputs/model.pt")
                     extra = [(donor.incumbent_path, "/work/inputs/model.pt")]
-                data = dict(prompts=prompts, recipe=recipe)
+                data = dict(prompts=visible, recipe=recipe)
                 request = seal(
                     dict(
                         common,
@@ -217,8 +221,8 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
                         model=model,
                         weight=weight,
                         origin=origin,
-                        look=look,
-                        seconds=grant["total_us"] // 1_000_000,
+                        look=visible_look,
+                        seconds=seconds,
                     )
                 )
 
@@ -232,9 +236,9 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
                     ):
                         raise ValueError("incumbent differs from its frozen weight slice")
                     if probe != velocity_probe(
-                        look,
-                        prompts,
-                        mode="true",
+                        visible_look,
+                        visible,
+                        mode=mode,
                         inference_seed=request["seed"],
                         model=actual_model,
                     ):
@@ -251,18 +255,20 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
 
             else:
                 search, search_out, _ = generated[look["identity"]]
-                probe, f = search["probe"], search["artifact"]
+                live, f = search["probe"], search["artifact"]
+                probe = velocity_probe(look, prompts, mode=mode, inference_seed=look["seed"],
+                                       model=live["model"])
                 reference = dict(f, path="inputs/candidates.json")
                 extra = [(checked_file(search_out, f), "/work/inputs/candidates.json")]
-                data = dict(truth=truth)
+                data = dict(truth=[dict(t, id=handles[t["id"]]) for t in truth])
                 request = seal(
                     dict(
                         common,
                         data=digest(data),
                         gpu=False,
-                        probe=probe,
+                        probe=live,
                         candidates=reference,
-                        seconds=grant["total_us"] // 1_000_000,
+                        seconds=seconds,
                     )
                 )
 
@@ -273,7 +279,8 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
                     scores = read_bound_record(out, ref, version="discovery-scoring/v1")
                     if scores["candidates"] != reference["sha256"]:
                         raise ValueError("scorer used different sealed choices")
-                    measured_look(probe, scores, cut=cut[0]["cut"] if cut else None)
+                    joined = physical.joined_scores(scores, live, probe, handles)
+                    measured_look(probe, joined, cut=cut[0]["cut"] if cut else None)
                     return dict(artifact=ref)
 
         execute, verify, guard = donor.supervise(request, data, extra, proof)
@@ -289,6 +296,7 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
             generated[look["identity"]] = evidence, out, work
         else:
             scores = read_bound_record(out, evidence["artifact"], version="discovery-scoring/v1")
+            scores = physical.joined_scores(scores, live, probe, handles)
             probe_work = generated[look["identity"]][2] + work
             cumulative = train_work.get(method, []) + common_work.get(method, []) + probe_work
             m = measured_look(probe, scores, cut=cut[0]["cut"] if cut else None, work=cumulative)
@@ -321,7 +329,7 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
         minutes,
         accepted,
         design[-1],
-        file_hash(confined(source, wave.DRIVER)),
+        wave.driver_identity(source),
         secret["identity"],
     )
     if rest or grant != expected or load(confined(folder, wave.MARKER)) != marker:
@@ -441,7 +449,8 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
                     trials.observe_velocity(reg, look, reason=reason)
         def observe(look, measurement):
             trials.observe_velocity(reg, look, evidence=measurement)
-        observed = screen(area, grant, marker, accepted, packages, design, donor, invoke, progress, observe)
+        observed = screen(area, grant, marker, accepted, packages, design, donor, invoke, progress,
+                          observe, bytes.fromhex(secret["key"]))
         status.update(stage="publication", recipe=None, look=None)
         qualification = retained_qualification(root, grant)
         request = seal(

@@ -101,35 +101,9 @@ def model_control_for(look):
     return "retained_D" if look["method"] == "D" else "random" if look["look"] == 0 else "earlier_checkpoint"
 
 
-def velocity_probe(look, prompts, *, mode, inference_seed, model=None):
-    """Freeze encoder conditioning separately from the recipient used by the fitter and scorer."""
+def conditioning_donors(look, prompts, mode, inference_seed):
     from collections import defaultdict
-    from oeis_learn.generalization.progressive.campaign import velocity_policy
-    from oeis_learn.generalization.progressive.graph import velocity_look
-    from oeis_learn.generalization.progressive.metrics import _seed
 
-    cfg = velocity_policy()
-    _seed(inference_seed)
-    rebuilt = velocity_look(
-        registration=look["registration"],
-        method=look["method"],
-        seed=look["seed"],
-        look=look["look"],
-        profile=look["profile"],
-        extension=look["look"] == cfg["conditional_look"],
-        development=[row for row in look["members"] if row["stratum"] != "retention"],
-        retention=[row for row in look["members"] if row["stratum"] == "retention"],
-    )
-    if (
-        look != rebuilt
-        or mode not in {"true", "shuffled"}
-        or look["method"] in cfg["controls"]
-        and (look["profile"] != "full" or mode != "true")
-        or [r["task"] for r in look["members"]] != [validate_prompt(p)["id"] for p in prompts]
-        or not prompts
-        or len({p["id"] for p in prompts}) != len(prompts)
-    ):
-        raise ValueError("registered ordered recipient roster and probe opportunity required")
     donors = {p["id"]: p["id"] for p in prompts}
     if mode == "shuffled":
         strata = defaultdict(list)
@@ -148,6 +122,48 @@ def velocity_probe(look, prompts, *, mode, inference_seed, model=None):
                 for key in sorted(groups[group], key=lambda v: digest([inference_seed, v]))
             ]
             donors.update({key: order[(i + shift) % len(order)] for i, key in enumerate(order)})
+    return donors
+
+
+def velocity_probe(look, prompts, *, mode, inference_seed, model=None):
+    """Freeze encoder conditioning separately from the recipient used by the fitter and scorer."""
+    import re
+    from oeis_learn.generalization.progressive.campaign import velocity_policy
+    from oeis_learn.generalization.progressive.graph import velocity_look
+    from oeis_learn.generalization.progressive.metrics import _seed
+
+    cfg = velocity_policy()
+    _seed(inference_seed)
+    ids = [validate_prompt(p)["id"] for p in prompts]
+    if (not ids or len(set(ids)) != len(ids) or mode not in {"true", "shuffled"}
+            or look["method"] in cfg["controls"] and (look["profile"] != "full" or mode != "true")):
+        raise ValueError("registered ordered recipient roster and probe opportunity required")
+    if look["version"] == "round029-visible-look/v1":
+        # The custodian has already selected donors. No scoring roster crosses this boundary.
+        fields = {"version", "registration", "method", "seed", "look", "profile", "attempts",
+                  "opportunity", "members", "mode", "donors", "identity"}
+        donors = look["donors"]
+        values = {p["id"]: p["values"] for p in prompts}
+        profile = cfg["profiles"][look["profile"]]
+        if (set(look) != fields or look != seal(look) or ids != look["members"]
+                or not all(re.fullmatch("[0-9a-f]{64}", k) for k in ids)
+                or mode != look["mode"] or inference_seed != look["seed"]
+                or look["look"] not in profile["looks"] or look["attempts"] != profile["attempts"]
+                or look["opportunity"] != cfg["opportunity"] or set(donors) != set(ids)
+                or set(donors.values()) != set(ids) or any(
+                    k != d if mode == "true" else values[k] == values[d] for k, d in donors.items()
+                )):
+            raise ValueError("invalid visible probe projection")
+    else:
+        rebuilt = velocity_look(
+            registration=look["registration"], method=look["method"], seed=look["seed"],
+            look=look["look"], profile=look["profile"], extension=look["look"] == cfg["conditional_look"],
+            development=[row for row in look["members"] if row["stratum"] != "retention"],
+            retention=[row for row in look["members"] if row["stratum"] == "retention"],
+        )
+        if look != rebuilt or ids != [r["task"] for r in look["members"]]:
+            raise ValueError("registered ordered recipient roster and probe opportunity required")
+        donors = conditioning_donors(look, prompts, mode, inference_seed)
     return seal(
         dict(
             version="round029-probe/v2",
@@ -740,14 +756,12 @@ def score_velocity(root, candidates, truth, *, client, output, probe, seconds=36
     by_id = {row["id"]: row for row in truth}
     if len(by_id) != len(truth) or set(by_id) != set(probe["donors"]):
         raise ValueError("original recipient truth roster required")
-    prompts = [
-        dict(
-            id=m["task"],
-            indices=by_id[m["task"]]["indices"][:20],
-            values=by_id[m["task"]]["values"][:20],
-        )
-        for m in probe["look"]["members"]
+    look = probe["look"]
+    ids = look["members"] if look["version"] == "round029-visible-look/v1" else [
+        m["task"] for m in look["members"]
     ]
+    prompts = [dict(id=k, indices=by_id[k]["indices"][:20], values=by_id[k]["values"][:20])
+               for k in ids]
     if (
         velocity_probe(
             probe["look"], prompts, mode=probe["mode"], inference_seed=probe["inference_seed"], model=probe.get("model")

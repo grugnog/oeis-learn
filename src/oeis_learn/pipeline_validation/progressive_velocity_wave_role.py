@@ -38,17 +38,13 @@ def training(work, request, package, device):
     return dict(cut=cut, weight=manifest["states"]["weights"])
 
 
-def search(work, request, data, client, device):
+def search(work, request, data, client, device, evaluation):
     from oeis_learn.generalization.progressive.baselines import load_baseline
     from oeis_learn.generalization.progressive.contracts import digest
-    from oeis_learn.pipeline_validation.progressive_evaluation import (
-        generate,
-        model_control_for,
-        model_receipt,
-        velocity_probe,
-    )
 
     look = request["look"]
+    if look.get("version") != "round029-visible-look/v1":
+        raise ValueError("search requires the custodian's visible projection")
     method, recipe = look["method"], data["recipe"]
     model, weight = request["model"], request["weight"]
     if method == "D":
@@ -57,7 +53,7 @@ def search(work, request, data, client, device):
         encoder, decoder, _ = load_baseline(
             "retained_D", recipe, root=work, ref=weight, device=device
         )
-        model = model_receipt(
+        model = evaluation.model_receipt(
             look,
             profile=digest(recipe),
             weights=model_snapshot(encoder, decoder),
@@ -65,17 +61,17 @@ def search(work, request, data, client, device):
             origin=request["origin"],
         )
         del encoder, decoder
-    probe = velocity_probe(
-        look, data["prompts"], mode="true", inference_seed=request["seed"], model=model
+    probe = evaluation.velocity_probe(
+        look, data["prompts"], mode=look["mode"], inference_seed=request["seed"], model=model
     )
     neural = model is not None
-    ref = generate(
+    ref = evaluation.generate(
         work,
         "generated",
         data["prompts"],
         recipe,
         checkpoint=weight,
-        model_control=model_control_for(look) if neural else "random",
+        model_control=evaluation.model_control_for(look) if neural else "random",
         seed=look["seed"] if neural and not weight else None,
         reference_recipe=recipe if neural and weight and method != "D" else None,
         device=device,
@@ -88,17 +84,18 @@ def search(work, request, data, client, device):
     return dict(probe=probe, artifact=ref)
 
 
-def perform(work, request, data, *, device, client=None):
+def perform(work, request, data, *, device, client=None, evaluation=None):
     from oeis_learn.generalization.progressive.contracts import reference
-    from oeis_learn.pipeline_validation.progressive_evaluation import score_velocity
+    if evaluation is None:
+        from oeis_learn.pipeline_validation import progressive_evaluation as evaluation
 
     role = request["role"]
     if role == "train" and set(data) == {"package"}:
         return training(work, request, data["package"], device)
     if role == "search" and set(data) == {"prompts", "recipe"}:
-        return search(work, request, data, client, device)
+        return search(work, request, data, client, device, evaluation)
     if role == "score" and set(data) == {"truth"} and device == "cpu":
-        score_velocity(
+        evaluation.score_velocity(
             work,
             request["candidates"],
             data["truth"],
@@ -113,6 +110,7 @@ def perform(work, request, data, *, device, client=None):
 
 def installed(work, wheel, wheel_hash, source, prefix):
     from contextlib import nullcontext
+    from importlib.util import module_from_spec, spec_from_file_location
     from oeis_learn.experiments import source_snapshot as provenance
     from oeis_learn.generalization.progressive.contracts import atomic_write, digest, load, seal
     from oeis_learn.pipeline_validation.identity import file_hash
@@ -126,10 +124,11 @@ def installed(work, wheel, wheel_hash, source, prefix):
         raise ValueError("installed science source differs")
     request = load(work / "inputs/request.json")
     data = load(work / "inputs/data.json", maximum=MAX_INPUT)
+    adapter = work / "inputs/evaluation.py"
     if (
         request != seal(request)
         or request["version"] != "round029-comparative-wave/v1"
-        or request["driver"] != file_hash(Path(__file__))
+        or request["driver"] != digest([file_hash(Path(__file__)), file_hash(adapter)])
         or request["data"] != digest(data)
         or request["source"] != source
         or request["wheel"] != wheel_hash
@@ -137,6 +136,11 @@ def installed(work, wheel, wheel_hash, source, prefix):
         or os.environ["OEIS_QUALIFICATION_ENGINE"] != "podman"
     ):
         raise ValueError("comparative role differs from the registered runtime")
+    # The accepted wheel supplies the model, fitter and scorer dependencies. The
+    # controller binds this visible-probe adapter along with the standalone driver.
+    spec = spec_from_file_location("oeis_learn.pipeline_validation._wave_evaluation", adapter)
+    evaluation = module_from_spec(spec)
+    spec.loader.exec_module(evaluation)
     gpu = request["gpu"]
     client_context = (
         nullcontext(None) if request["role"] == "train" else SynthesisClient(request["identity"])
@@ -162,7 +166,7 @@ def installed(work, wheel, wheel_hash, source, prefix):
                 ) as recorder,
                 recorder.phase(request["role"]),
             ):
-                result = perform(work, request, data, device="cuda", client=client)
+                result = perform(work, request, data, device="cuda", client=client, evaluation=evaluation)
                 torch.cuda.synchronize()
             elapsed = (time.monotonic_ns() - start) // 1000
             result.update(
@@ -173,7 +177,7 @@ def installed(work, wheel, wheel_hash, source, prefix):
                 telemetry=usage_summary(work / "output/telemetry", elapsed),
             )
         else:
-            result = perform(work, request, data, device="cpu", client=client)
+            result = perform(work, request, data, device="cpu", client=client, evaluation=evaluation)
     atomic_write(
         work / "output/producer.json",
         seal(

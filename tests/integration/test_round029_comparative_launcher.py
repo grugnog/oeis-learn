@@ -33,7 +33,6 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     from oeis_learn.pipeline_validation import progressive_round028 as historical
     from oeis_learn.pipeline_validation import progressive_velocity_trial_preparation as preparation
     from oeis_learn.pipeline_validation import progressive_velocity_wave_host as host
-    from oeis_learn.pipeline_validation.identity import file_hash
     from oeis_learn.generalization.progressive.velocity_records import physical_root_id
 
     source = Path(__file__).resolve().parents[2]
@@ -80,7 +79,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         1680,
         accepted,
         design[-1],
-        file_hash(source / wave.DRIVER),
+        wave.driver_identity(source),
         wave.family_key(folder, create=True)["identity"],
     )
     monkeypatch.setattr(command, "candidate_revision", lambda *_: revision)
@@ -126,6 +125,13 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
             return prompts, []
 
         def supervise(self, request, data, extra, proof):
+            if request["role"] == "search":
+                import json
+                mounted = json.dumps([request, data])
+                for member in [*reg["development"], *reg["retention"]]:
+                    assert all(json.dumps(member[k]) not in mounted for k in ("task", "group", "stratum"))
+                assert all(dst == "/work/inputs/model.pt" for _, dst in extra)
+
             def execute(out, allowance):
                 role, method, target = (request[k] for k in ("role", "method", "target"))
                 calls.append((role, method, target))
