@@ -5626,12 +5626,7 @@ def cli(argv):
     return code
 
 
-def resume_initialization(revision, *, directory=None):
-    """One donor handoff for the returned 30-minute grant, including a private terminal log."""
-    if not re.fullmatch("[a-f0-9]{40}", revision):
-        raise SystemExit("Supply the full recovery reader commit.")
-    root = Path.cwd().resolve()
-    operator = "specs/016-measure-learning-velocity/validation/qualify_continuation.py"
+def require_donor_root(root):
     if (
         subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()
         != str(root)
@@ -5642,6 +5637,15 @@ def resume_initialization(revision, *, directory=None):
         != 1
     ):
         raise SystemExit("Run at the physical root of the detached round027 donor.")
+
+
+def resume_initialization(revision, *, directory=None):
+    """One donor handoff for the returned 30-minute grant, including a private terminal log."""
+    if not re.fullmatch("[a-f0-9]{40}", revision):
+        raise SystemExit("Supply the full recovery reader commit.")
+    root = Path.cwd().resolve()
+    require_donor_root(root)
+    operator = "specs/016-measure-learning-velocity/validation/qualify_continuation.py"
     script = subprocess.check_output(["git", "show", revision + ":" + operator], cwd=root)
     os.umask(0o077)
     combined = directory is not None
@@ -5690,8 +5694,40 @@ def copied_zip(path):
     return dict(sha256=hashlib.sha256(raw).hexdigest(), base64=base64.b64encode(raw).decode())
 
 
+TRIAL_DIAGNOSES = {
+    "unknown object member": "schema_unknown_member",
+    "registered trial inputs or checkpoint targets differ": "trial_inputs_changed",
+    "original launch quote no longer reconciles": "quote_changed",
+    "No such file or directory": "missing_file",
+    "updating the original workspace": "owner_active",
+    "original dispatch debit missing": "missing_debit",
+}
+
+
 def verify_trial_preparation_zip(path):
-    summary, files = diagnostic_zip_members(path, TRIAL_PREPARATION)
+    return checked_trial_preparation(*diagnostic_zip_members(path, TRIAL_PREPARATION))
+
+
+def checked_trial_preparation(summary, files):
+    provenance = {}
+    if "readback" in summary:
+        readback = summary["readback"]
+        if (
+            not isinstance(readback, dict)
+            or set(readback) - {"reader", "input_sha256", "prior_failure"}
+            or not re.fullmatch("[0-9a-f]{40}", readback.get("reader", ""))
+            or not re.fullmatch("[0-9a-f]{64}", readback.get("input_sha256", ""))
+        ):
+            raise ValueError("invalid trial readback provenance")
+        prior = readback.get("prior_failure")
+        if prior is not None and (
+            not isinstance(prior, dict)
+            or set(prior) != {"category", "reason_sha256"}
+            or prior["category"] not in {*TRIAL_DIAGNOSES.values(), "unclassified"}
+            or not re.fullmatch("[0-9a-f]{64}", prior["reason_sha256"])
+        ):
+            raise ValueError("invalid historical trial diagnosis")
+        provenance["readback"] = readback
 
     def unpack(name):
         item = files[name]
@@ -5738,24 +5774,32 @@ def verify_trial_preparation_zip(path):
 
     start = unpack("initialization.json")
     checked = verify_initialization_zip(start)
-    if summary["status"] != "COMPLETE":
+    partial = summary["status"] == "PARTIAL"
+    pair = {"qualification.json", "report.json"}
+    if partial:
         if (
-            summary["status"] != "PARTIAL"
-            or not summary["errors"]
-            or set(files) - {"initialization.json", "failure.json"}
+            not summary["errors"]
+            or set(files) - {"initialization.json", "failure.json"} - pair
+            or (set(files) & pair) not in (set(), pair)
         ):
             raise ValueError("incomplete trial preparation requires its stopping point")
-        return dict(
+        progress = dict(
             status="PARTIAL",
             initialization=checked,
             errors=summary["errors"],
             failure=files.get("failure.json"),
+            **provenance,
         )
-    if (
-        checked["status"] != "COMPLETE"
-        or summary["errors"]
-        or set(files)
-        != {"initialization.json", "qualification.json", "report.json", "verification.json"}
+        if not pair <= set(files):
+            return progress
+    if checked["status"] != "COMPLETE" or (
+        not partial
+        and (
+            summary["status"] != "COMPLETE"
+            or summary["errors"]
+            or set(files)
+            != {"initialization.json", "qualification.json", "report.json", "verification.json"}
+        )
     ):
         raise ValueError("missing original zero cut, trial commitment, report or verification")
     init_summary, init_files = diagnostic_zip_members(start, INITIALIZATION)
@@ -5814,7 +5858,6 @@ def verify_trial_preparation_zip(path):
         for row in rows
     ]
     order = lambda row: (row["method"], row["profile"], row["look"])
-    replay = files["verification.json"]
     if (
         q["version"] != TRIAL_PREPARATION
         or r["version"] != q["version"]
@@ -5864,7 +5907,11 @@ def verify_trial_preparation_zip(path):
         or r["accepted"] != q["identity"]
         or r["total_us"] != measurement(summary["prep_minutes"]) * 60_000_000
         or measurement(r["elapsed_us"]) + measurement(r["remaining_us"]) != r["total_us"]
-        or replay != dict(private_receipt=r["receipt"], public_report=r["identity"])
+        or (
+            not partial
+            and files["verification.json"]
+            != dict(private_receipt=r["receipt"], public_report=r["identity"])
+        )
     ):
         raise ValueError(
             "supported wave differs from its independent initialization, prices or grants"
@@ -5887,8 +5934,7 @@ def verify_trial_preparation_zip(path):
         )
     ):
         raise ValueError("full wave exceeded its observed capacity")
-    return dict(
-        status="COMPLETE",
+    publication = dict(
         supported=methods,
         omitted=sorted(q["omitted"]),
         looks=len(schedule),
@@ -5899,6 +5945,116 @@ def verify_trial_preparation_zip(path):
         proposed_total_us=q["proposed_total_us"],
         research_authority=None,
     )
+    if partial:
+        return dict(progress, published=publication)
+    return dict(status="COMPLETE", **publication, **provenance)
+
+
+TRIAL_ERRORS = (
+    OSError,
+    ValueError,
+    KeyError,
+    RuntimeError,
+    TypeError,
+    SystemExit,
+    subprocess.SubprocessError,
+    zipfile.BadZipFile,
+)
+
+
+def trial_diagnosis(reason):
+    # Only opaque fingerprints and fixed categories travel with the public archives.
+    category = next((v for k, v in TRIAL_DIAGNOSES.items() if k in reason), "unclassified")
+    return dict(category=category, reason_sha256=hashlib.sha256(reason.encode()).hexdigest())
+
+
+def trial_failure(result, step, exc, log):
+    result["errors"][step] = type(exc).__name__
+    with log.open("a") as stream:
+        print(f"{step}: {exc}", file=stream)
+    failure = dict(stage=step, mechanical_status="FAILED")
+    reason = str(exc) or type(exc).__name__
+    if isinstance(exc, SystemExit):
+        try:
+            value = json.loads(reason)
+        except ValueError:
+            value = None
+        if isinstance(value, dict):
+            reason = str(value.get("reason", reason))
+            failure.update(
+                {
+                    k: value[k]
+                    for k in (
+                        "stage",
+                        "mechanical_status",
+                        "elapsed_us",
+                        "remaining_authority",
+                        "deficit_bytes",
+                        "deficit_inodes",
+                    )
+                    if k in value
+                }
+            )
+    result["files"]["failure.json"] = dict(failure, **trial_diagnosis(reason))
+
+
+def collect_trial_publication(root, result, verify, *, expected=None):
+    from oeis_learn.generalization.progressive import velocity_donation_report as public
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_velocity_donation import retained_qualification
+    from oeis_learn.pipeline_validation.progressive_velocity_verify import archive_result
+
+    public.hashes(result["grant"])
+    area = confined(
+        root, "run-state/discovery/" + SESSION + "/qualification/" + result["grant"][7:]
+    )
+    grant = load(confined(area, "grant.json"))
+    if grant["identity"] != result["grant"]:
+        raise ValueError("original supported-wave grant required")
+    retained = retained_qualification(root, grant)
+    report = confined(area, "share/" + public.REPORT)
+    exported, code = archive_result(report, retained)
+    receipt = exported["last_committed_ref"]
+    if (
+        code
+        or exported["verification_scope"] != "paired_archives_trial_preparation"
+        or (expected is not None and receipt != expected)
+    ):
+        raise ValueError("independently retained trial commitment differs")
+    pair = {"qualification.json": copied_zip(retained), "report.json": copied_zip(report)}
+    # Bind the actual bytes to the returned zero cut and paid schedule before exporting them,
+    # including when the subsequent private replay stops.
+    checked_trial_preparation(
+        dict(result, status="PARTIAL", errors={"verification": "pending"}),
+        {**result["files"], **pair},
+    )
+    result["files"].update(pair)
+    private = verify()
+    if (
+        private["verification_scope"] != "private_trial_preparation"
+        or private["report_ref"] != receipt
+    ):
+        raise ValueError("private trial replay differs")
+    result["files"]["verification.json"] = dict(
+        private_receipt=receipt, public_report=exported["report_ref"]
+    )
+    result["status"] = "COMPLETE"
+
+
+def finish_trial_preparation(out, result):
+    dest = out / "trial-preparation.zip"
+    write_readiness_zip(dest, result)
+    checked = verify_trial_preparation_zip(dest)
+    if checked["status"] == "PARTIAL" and checked.get("failure"):
+        failure = checked["failure"]
+        print(
+            f"{failure.get('stage', 'preparation')}: {failure.get('category', 'unclassified')}",
+            file=sys.stderr,
+        )
+    print(f"{checked['status']}. Return {dest}", file=sys.stderr, flush=True)
+    return 0 if checked["status"] == "COMPLETE" else 1
 
 
 def prepare_trials(revision, minutes):
@@ -5930,13 +6086,7 @@ def prepare_trials(revision, minutes):
         source = pinned_source(root, revision)
         sys.path.insert(0, str(source / "src"))
         from oeis_learn.generalization.progressive.contracts import load
-        from oeis_learn.generalization.progressive.velocity_records import SESSION
-        from oeis_learn.generalization.progressive import velocity_donation_report as public
         from oeis_learn.pipeline_validation import progressive_velocity_trial_preparation as trials
-        from oeis_learn.pipeline_validation.progressive_velocity_donation import (
-            retained_qualification,
-        )
-        from oeis_learn.pipeline_validation.progressive_velocity_verify import archive_result
 
         grant_path = trials.authorize(root, revision, int(minutes))
         grant = load(grant_path)
@@ -5959,69 +6109,115 @@ def prepare_trials(revision, minutes):
         ):
             raise ValueError("expected funded host-only trial preparation")
         step = "verification"
-        private = action("verify")
+        collect_trial_publication(
+            root, result, lambda: action("verify"), expected=paid["last_committed_ref"]
+        )
+    except TRIAL_ERRORS as exc:
+        trial_failure(result, step, exc, out / "operator.log")
+    return finish_trial_preparation(out, result)
+
+
+def prior_trial_failure(log):
+    """Consult the last private terminal result only for a redacted historical diagnosis."""
+    try:
+        with log.open("rb") as stream:
+            stream.seek(0, os.SEEK_END)
+            stream.seek(max(0, stream.tell() - (64 << 10)))
+            lines = stream.read().splitlines()
+    except OSError:
+        return None
+    for line in reversed(lines):
+        try:
+            value = json.loads(line.removeprefix(b"verification: "))
+        except (ValueError, UnicodeDecodeError):
+            continue
         if (
-            private["verification_scope"] != "private_trial_preparation"
-            or private["report_ref"] != paid["last_committed_ref"]
+            isinstance(value, dict)
+            and value.get("action") == "verify"
+            and value.get("mechanical_status") == "FAILED"
+            and isinstance(value.get("reason"), str)
         ):
-            raise ValueError("private trial replay differs")
-        report = (
-            root
-            / "run-state/discovery"
-            / SESSION
-            / "qualification"
-            / grant["identity"][7:]
-            / "share"
-            / public.REPORT
+            return trial_diagnosis(value["reason"])
+    return None
+
+
+def recover_trial_preparation(revision, checksum, previous=None):
+    """Reopen one already published host grant using the exact returned combined ZIP."""
+    if not re.fullmatch("[a-f0-9]{40}", revision) or not re.fullmatch("[a-f0-9]{64}", checksum):
+        raise SystemExit(
+            "Supply the full reader commit and SHA-256 of the returned trial-preparation ZIP."
         )
-        retained = retained_qualification(root, grant)
-        exported, code = archive_result(report, retained)
-        if code or exported["last_committed_ref"] != private["report_ref"]:
-            raise ValueError("independently retained trial commitment differs")
-        files.update(
-            {
-                "qualification.json": copied_zip(retained),
-                "report.json": copied_zip(report),
-                "verification.json": dict(
-                    private_receipt=private["report_ref"], public_report=exported["report_ref"]
-                ),
-            }
+    root = Path.cwd().resolve()
+    require_donor_root(root)
+    candidates = (
+        [Path(previous)]
+        if previous is not None
+        else sorted(Path.home().glob("round029-trial-prep-*/trial-preparation.zip"))
+    )
+    for path in candidates:
+        if path.is_file():
+            with path.open("rb") as stream:
+                if hashlib.file_digest(stream, "sha256").hexdigest() == checksum:
+                    stream.seek(0)
+                    summary, files = diagnostic_zip_members(stream, TRIAL_PREPARATION)
+                    returned = checked_trial_preparation(summary, files)
+                    break
+    else:
+        raise SystemExit(
+            "The original combined ZIP was not found. Supply its path after its SHA-256."
         )
-        result["status"] = "COMPLETE"
-    except (
-        OSError,
-        ValueError,
-        KeyError,
-        RuntimeError,
-        TypeError,
-        SystemExit,
-        subprocess.SubprocessError,
-    ) as exc:
-        result["errors"][step] = type(exc).__name__
-        with (out / "operator.log").open("a") as stream:
-            print(f"{step}: {exc}", file=stream)
-        if isinstance(exc, SystemExit):
-            try:
-                failed = json.loads(str(exc))
-                files["failure.json"] = {
-                    k: failed[k]
-                    for k in (
-                        "stage",
-                        "mechanical_status",
-                        "elapsed_us",
-                        "remaining_authority",
-                        "deficit_bytes",
-                        "deficit_inodes",
-                    )
-                    if k in failed
-                }
-            except (ValueError, TypeError):
-                pass
-    dest = out / "trial-preparation.zip"
-    write_readiness_zip(dest, result)
-    checked = verify_trial_preparation_zip(dest)
-    print(f"{checked['status']}. Return {dest}", file=sys.stderr, flush=True)
-    return 0 if checked["status"] == "COMPLETE" else 1
+    if (
+        returned["status"] == "PARTIAL"
+        and returned["initialization"]["status"] != "COMPLETE"
+        or not re.fullmatch("sha256:[0-9a-f]{64}", summary.get("grant", ""))
+        or not re.fullmatch("[0-9a-f]{40}", summary["reader"])
+        or measurement(summary["prep_minutes"]) == 0
+    ):
+        raise SystemExit(
+            "The returned ZIP must identify a completed initialization and its funded trial preparation."
+        )
+    os.umask(0o077)
+    out = Path(tempfile.mkdtemp(prefix="round029-trial-readback-", dir=Path.home()))
+    log = out / "operator.log"
+    log.touch(mode=0o600)
+    print(f"Private terminal output: {log}", file=sys.stderr, flush=True)
+    readback = dict(reader=revision, input_sha256=checksum)
+    if "verification" in summary["errors"]:
+        readback["prior_failure"] = prior_trial_failure(path.with_name("operator.log"))
+    result = dict(
+        scope=TRIAL_PREPARATION,
+        reader=summary["reader"],
+        prep_minutes=summary["prep_minutes"],
+        grant=summary["grant"],
+        readback=readback,
+        status="PARTIAL",
+        errors={},
+        files={"initialization.json": files["initialization.json"]},
+        research_run_requested=False,
+        scientific_verdict=None,
+    )
+    try:
+        source = pinned_source(root, revision)
+        sys.path.insert(0, str(source / "src"))
+        from oeis_learn.generalization.progressive.velocity_records import SESSION
+        from oeis_learn.pipeline_validation.identity import confined
+        from oeis_learn.pipeline_validation.progressive_velocity_verify import private_result
+
+        def verify():
+            value, code = private_result(
+                root,
+                confined(root, "run-state/discovery/" + SESSION),
+                source=source,
+                trial_grant=result["grant"],
+            )
+            if code:
+                raise SystemExit(json.dumps(value))
+            return value
+
+        collect_trial_publication(root, result, verify)
+    except TRIAL_ERRORS as exc:
+        trial_failure(result, "verification", exc, log)
+    return finish_trial_preparation(out, result)
 
 
 def review_launch(revision, minutes):
@@ -6103,6 +6299,8 @@ def review_launch(revision, minutes):
 if __name__ == "__main__":
     if len(sys.argv) == 4 and sys.argv[1] == "--prepare-trials":
         sys.exit(prepare_trials(*sys.argv[2:]))
+    elif len(sys.argv) in (4, 5) and sys.argv[1] == "--recover-trial-preparation":
+        sys.exit(recover_trial_preparation(*sys.argv[2:]))
     elif len(sys.argv) == 3 and sys.argv[1] == "--verify-trial-preparation-zip":
         print(json.dumps(verify_trial_preparation_zip(sys.argv[2]), indent=2))
     elif len(sys.argv) == 3 and sys.argv[1] == "--resume-initialization":

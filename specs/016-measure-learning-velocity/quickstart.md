@@ -200,7 +200,9 @@ The donor stores the verified inputs privately. It installs the supported-wave
 qualification and its independent copy before accepting the schedule. The public
 `trial-preparation.zip` contains the original initialization ZIP and, on completion,
 the pre-score qualification, its verification report and the private replay
-reference. Return the printed file on either `COMPLETE` or `PARTIAL`. Rerunning
+reference. A private replay failure preserves both independently checked public
+archives and returns a redacted diagnosis. Return the printed file on either
+`COMPLETE` or `PARTIAL`. Rerunning
 the same command uses the same grants and resumes at the first unfinished step.
 Verify a copied result offline with
 
@@ -208,6 +210,34 @@ Verify a copied result offline with
 python3 -I -S -B specs/016-measure-learning-velocity/validation/qualify_continuation.py \
   --verify-trial-preparation-zip /path/to/trial-preparation.zip
 ```
+
+### Reopen the returned trial preparation
+
+The donor run at `7096a078` completed initialization and wave qualification.
+Run the following from the detached donor root with the repaired reader from the
+handoff. The checksum selects the exact returned ZIP in the original
+`~/round029-trial-prep-*` directory. If it was moved, append its current path to
+the Python command.
+
+```bash
+(
+  set -euo pipefail
+  rev=${ROUND029_REV:?full readback commit}
+  zip_sha=1358bb7a9b33f2f1bc3953ac34cff8837e3463271b72dfc5fbaa0afc5a09de66
+  git fetch --no-tags origin "$rev"
+  git show "$rev:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - --recover-trial-preparation "$rev" "$zip_sha"
+)
+```
+
+Readback authenticates the originally funded reader, grant, acceptance, checkpoint
+and both publication archives under the original session lock. It uses the grant
+named in the returned ZIP even when a later action owns the latest status. The
+only new outputs are the reader cache and a return directory. Both grant journals
+stay read-only. The printed `trial-preparation.zip` carries the unchanged
+initialization archive, the checked public pair and the private replay result.
+On a partial result, the archive retains the verified evidence and the local
+`operator.log` records the failing check.
 
 ## Start or resume after the round029 release
 

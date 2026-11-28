@@ -1,5 +1,6 @@
 """A registered Tiny CPU worker stands in for the physical device in the host lifecycle."""
 
+import hashlib
 import json
 from pathlib import Path
 import runpy
@@ -167,6 +168,11 @@ if __name__ == "__main__":""",
     assert (
         returned["status"] == "PARTIAL" and returned["initialization"]["failure"]["elapsed_us"] == 1
     )
+    with pytest.raises(SystemExit, match="not found"):
+        api["recover_trial_preparation"](current, "0" * 64, combined)
+    with pytest.raises(SystemExit, match="completed initialization"):
+        api["recover_trial_preparation"](current, hashlib.sha256(combined.read_bytes()).hexdigest())
+    assert not list(home.glob("round029-trial-readback-*"))
     assert not (root / "run-state/discovery-authorizations").exists()
 
 
@@ -735,6 +741,103 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
                 os.umask(mask)
         (delivered,) = home.glob("round029-trial-prep-*/trial-preparation.zip")
         assert api["verify_trial_preparation_zip"](delivered)["accepted"] == accepted["identity"]
+        # Reproduce the original transport loss after a successful qualification.
+        previous = dict(
+            trial_bundle,
+            status="PARTIAL",
+            errors={"verification": "SystemExit"},
+            files={
+                "initialization.json": api["copied_zip"](dest),
+                "failure.json": {"mechanical_status": "FAILED", "remaining_authority": None},
+            },
+        )
+        api["write_readiness_zip"](delivered, previous)
+        stopped = controller.result(
+            "verify",
+            "FAILED",
+            "unknown object member",
+            "inspect_inputs",
+            verification_scope="unverified_inputs",
+            first_error=dict(error="ValueError", stage="verify", reason="unknown object member"),
+        )
+        delivered.with_name("operator.log").write_text(
+            "private-canary\nverification: " + json.dumps(stopped)
+        )
+        prior_hash = hashlib.sha256(delivered.read_bytes()).hexdigest()
+        new_reader, new_source = "d" * 40, tmp_path / "repaired-reader"
+        init_journal = (area / "accounting/budget.jsonl").read_bytes()
+        prep_journal = (prep_area / "accounting/budget.jsonl").read_bytes()
+        authorities = sorted((tmp_path / "run-state/discovery-authorizations").iterdir())
+        for reader, minutes in ((new_reader, 15), (reader_rev, 30)):
+            with pytest.raises(ValueError, match="original trial preparation"):
+                trial.authorize(tmp_path, reader, minutes)
+        # The session's latest status is unrelated. The receipt and journal still name this grant.
+        from oeis_learn.pipeline_validation.preparation_recovery import revise
+
+        revise(folder / "status.json", seal(paid_result))
+
+        def pinned_worker(root, reader, worker):
+            if (reader, worker) == (new_source, reader_rev):
+                return reader_source
+            return worker_source(root, reader, worker)
+
+        with monkeypatch.context() as replay:
+            replay.chdir(tmp_path)
+            replay.setenv("HOME", str(home))
+            replay.setitem(namespace, "require_donor_root", lambda *_: None)
+            replay.setitem(namespace, "pinned_source", lambda *_: new_source)
+            replay.setattr(recovery, "worker_source", pinned_worker)
+            for key in ("checked_json", "resume_initialization"):
+                replay.setitem(namespace, key, lambda *_a, **_k: pytest.fail("reissued paid work"))
+            replay.setattr(trial, "authorize", lambda *_: pytest.fail("created a new grant"))
+            mask = os.umask(0o077)
+            try:
+                from oeis_learn.pipeline_validation.progressive_velocity_verify import private_result
+
+                with RunStore.owner(folder):
+                    blocked, code = private_result(
+                        tmp_path, folder, source=new_source, trial_grant=prep_grant["identity"]
+                    )
+                    assert code == 2 and blocked["mechanical_status"] == "BLOCKED"
+                for prior_path in (None, delivered):
+                    assert api["recover_trial_preparation"](new_reader, prior_hash, prior_path) == 0
+                assert len(list(home.glob("round029-trial-readback-*/trial-preparation.zip"))) == 2
+                for archive in home.glob("round029-trial-readback-*/trial-preparation.zip"):
+                    assert (
+                        api["verify_trial_preparation_zip"](archive)["accepted"]
+                        == accepted["identity"]
+                    )
+                    summary, parts = api["diagnostic_zip_members"](archive, trial.VERSION)
+                    assert (
+                        summary["reader"] == reader_rev
+                        and summary["readback"]["reader"] == new_reader
+                    )
+                    assert (
+                        summary["readback"]["prior_failure"]["category"] == "schema_unknown_member"
+                    )
+                    assert parts["initialization.json"] == previous["files"]["initialization.json"]
+                    assert "private-canary" not in json.dumps([summary, parts])
+                inputs = prep_area / "trial-inputs.json"
+                with inputs.open("rb") as stream:
+                    saved_inputs = stream.read()
+                try:
+                    inputs.write_text("{}")
+                    assert api["recover_trial_preparation"](new_reader, prior_hash) == 1
+                    partials = [
+                        api["verify_trial_preparation_zip"](p)
+                        for p in home.glob("round029-trial-readback-*/trial-preparation.zip")
+                    ]
+                    (partial,) = [p for p in partials if p["status"] == "PARTIAL"]
+                    assert partial["published"]["accepted"] == accepted["identity"]
+                    assert partial["failure"]["category"] == "trial_inputs_changed"
+                finally:
+                    inputs.write_bytes(saved_inputs)
+            finally:
+                os.umask(mask)
+        assert (area / "accounting/budget.jsonl").read_bytes() == init_journal
+        assert (prep_area / "accounting/budget.jsonl").read_bytes() == prep_journal
+        assert sorted((tmp_path / "run-state/discovery-authorizations").iterdir()) == authorities
+        assert load(folder / "status.json") == seal(paid_result)
         assert not list((folder / "registrations").glob("*/look-*.json"))
         assert protected.encode() not in transport.read_bytes()
         action("qualify", grant_path)

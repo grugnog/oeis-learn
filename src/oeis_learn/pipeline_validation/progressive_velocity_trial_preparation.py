@@ -35,11 +35,36 @@ def parent(reader, marker):
     return digest([VERSION, reader, marker])
 
 
+def accepted_preparation(folder):
+    path = confined(folder, "accepted.json", exists=False)
+    if path.exists():
+        accepted = load(path)
+        if accepted.get("version") == VERSION:
+            if accepted != seal(accepted):
+                raise ValueError("original trial preparation acceptance differs")
+            public.hashes(accepted["preparation_grant"])
+            return accepted
+    return None
+
+
 def authorize(root, reader, minutes):
     folder = confined(root, "run-state/discovery/" + SESSION)
-    return authorize_qualification(
-        root, minutes, parent(reader, load(confined(folder, INITIAL_MARKER))), {}
-    )
+    requested_parent = parent(reader, load(confined(folder, INITIAL_MARKER)))
+    accepted = accepted_preparation(folder)
+    if accepted is not None:
+        original = load(
+            confined(folder, "qualification/" + accepted["preparation_grant"][7:] + "/grant.json")
+        )
+        if (
+            original["identity"] != accepted["preparation_grant"]
+            or accepted["reader"] != reader
+            or original["registration_or_parent_ref"] != requested_parent
+            or original["total_us"] != minutes * 60_000_000
+        ):
+            raise ValueError(
+                "reopen the original trial preparation with --recover-trial-preparation"
+            )
+    return authorize_qualification(root, minutes, requested_parent, {})
 
 
 def schedule(looks, supported):
@@ -285,8 +310,8 @@ def report(record, grant, balance):
 
 
 def published(root, folder):
-    accepted = load(confined(folder, "accepted.json"))
-    if accepted.get("version") != VERSION:
+    accepted = accepted_preparation(folder)
+    if accepted is None:
         return None
     area = confined(folder, "qualification/" + accepted["preparation_grant"][7:])
     grant = load(confined(area, "grant.json"))
@@ -408,6 +433,9 @@ def qualify(args, root, folder, source, revision, grant):
     marker = load(confined(folder, INITIAL_MARKER))
     if grant["registration_or_parent_ref"] != parent(revision, marker):
         raise ValueError("wave qualification requires the original initialization")
+    accepted = accepted_preparation(folder)
+    if accepted is not None and accepted["preparation_grant"] != grant["identity"]:
+        raise ValueError("reopen the original trial preparation with --recover-trial-preparation")
     area = confined(folder, "qualification/" + grant["identity"][7:], exists=False)
     area.mkdir(parents=True, exist_ok=True)
     binding = seal(

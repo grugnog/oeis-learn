@@ -164,26 +164,31 @@ def donor_continuation(root, folder, source, cut):
     return None
 
 
-def private_result(root, folder, *, source=None):
+def private_result(root, folder, *, source=None, trial_grant=None):
     def blocked(reason):
         return (
             result("verify", "BLOCKED", reason, "status", verification_scope="private_workspace"),
             2,
         )
 
-    if not (folder / "status.json").is_file():
+    if trial_grant is None and not (folder / "status.json").is_file():
         return blocked("No completed round029 publication is available")
     with confined(folder, "run.lock").open("rb") as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_SH | fcntl.LOCK_NB)
         except BlockingIOError:
             return blocked("The session owner is updating the original workspace")
-        saved = load(confined(folder, "status.json"))
-        if saved != seal(saved) or saved["session_id"] != SESSION:
-            raise ValueError("saved status differs")
-        if saved["action"] != "qualify" or saved["mechanical_status"] != "COMPLETE":
-            return blocked("The current session has no completed publication at this boundary")
-        path = confined(root, saved["receipt_path"])
+        saved = None
+        if trial_grant is None:
+            saved = load(confined(folder, "status.json"))
+            if saved != seal(saved) or saved["session_id"] != SESSION:
+                raise ValueError("saved status differs")
+            if saved["action"] != "qualify" or saved["mechanical_status"] != "COMPLETE":
+                return blocked("The current session has no completed publication at this boundary")
+            path = confined(root, saved["receipt_path"])
+        else:
+            public.hashes(trial_grant)
+            path = confined(folder, "qualification/" + trial_grant[7:] + "/receipt.json")
         area = path.parent
         grant = load(confined(area, "grant.json"))
         if path != confined(folder, "qualification/" + grant["identity"][7:] + "/receipt.json"):
@@ -202,6 +207,16 @@ def private_result(root, folder, *, source=None):
 
         from . import progressive_velocity_trial_preparation as trials
         trial_prep = binding["version"] == trials.VERSION
+        if trial_grant is not None:
+            from .progressive_velocity_initialization_recovery import worker_source
+
+            authority = confined(
+                root, "run-state/discovery-authorizations/grant-" + trial_grant[7:] + ".json"
+            )
+            if not trial_prep or grant["identity"] != trial_grant or load(authority) != grant:
+                raise ValueError("original supported-wave grant required")
+            # Authenticate the funded reader even when a newer reader performs the replay.
+            source = worker_source(root, source, binding["candidate"])
         initial = binding["version"] == prescore.VERSION
         broader = binding["version"] == broad.VERSION
         checkpoint = binding["version"] == checkpoints.matrix.VERSION
@@ -212,7 +227,10 @@ def private_result(root, folder, *, source=None):
                 binding["candidate"], children=binding.get("child_restore", False)
             )
         elif trial_prep:
-            parent = trials.parent(binding["candidate"], load(confined(folder, trials.INITIAL_MARKER)))
+            marker = load(confined(folder, trials.INITIAL_MARKER))
+            if binding["initial"] != marker:
+                raise ValueError("supported-wave binding differs from the original zero cut")
+            parent = trials.parent(binding["candidate"], marker)
         elif initial:
             parent = prescore.parent(
                 binding["candidate"], load(confined(folder, checkpoints.MARKER))
@@ -250,11 +268,13 @@ def private_result(root, folder, *, source=None):
             grant["resources"],
             include_work=checkpoint or initial or trial_prep,
         )
-        if (
-            snapshot["pending"]
-            or saved["elapsed_us"] != snapshot["consumed"]["elapsed_us"]
-            or saved["charged_tokens"] != snapshot["consumed"]["tokens"]
-            or saved["remaining_authority"] != snapshot["remaining"]["elapsed_us"]
+        if snapshot["pending"] or (
+            saved is not None
+            and (
+                saved["elapsed_us"] != snapshot["consumed"]["elapsed_us"]
+                or saved["charged_tokens"] != snapshot["consumed"]["tokens"]
+                or saved["remaining_authority"] != snapshot["remaining"]["elapsed_us"]
+            )
         ):
             raise ValueError("published spending disagrees with the original journal")
         if learner:
@@ -308,10 +328,9 @@ def private_result(root, folder, *, source=None):
             report, scope = record["identity"], "private_donor_supply"
         else:
             record, report, scope = _donation(root, area, binding, grant, snapshot)
-        if (
-            record != load(path)
-            or saved["receipt"] != record
-            or saved["last_committed_ref"] != record["identity"]
+        if record != load(path) or (
+            saved is not None
+            and (saved["receipt"] != record or saved["last_committed_ref"] != record["identity"])
         ):
             raise ValueError("published receipt differs from original private evidence")
         return (

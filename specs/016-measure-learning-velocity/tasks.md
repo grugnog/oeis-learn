@@ -252,3 +252,9 @@ resumes, private replay and a substituted public schedule. The donor completed
 wave qualification. Independent return of its paired archives and corrected
 private readback remain open. T032 and T056 still require the funded comparative trial
 and its runner.
+
+T052–T053 now support a [grant-specific verification command](quickstart.md#reopen-the-returned-trial-preparation)
+against the exact returned ZIP. It can recover the published wave across reader
+revisions and later session status changes. A CPU fixture checks two reads against
+byte-identical journals and a partial return with both public archives after a
+private input changes. Donor readback supplies the remaining physical evidence.
