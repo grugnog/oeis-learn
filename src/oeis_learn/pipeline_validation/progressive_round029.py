@@ -295,6 +295,18 @@ def preflight(root, source=None, *, free_disk_gib=5):
             "Measure the outstanding treatment and CPU costs under a preparation grant before funding the screen",
             "qualify",
         )
+    session = confined(root, "run-state/discovery/" + SESSION, exists=False)
+    if (session / "accepted.json").is_file():
+        from .progressive_velocity_trial_preparation import published
+
+        try:
+            prepared = published(root, session)
+            if prepared and prepared["sources"] == (info["prices"].get("launch_estimate") or {}).get("sources"):
+                info["trial_preparation"] = prepared
+                if (info["prices"].get("launch_options") or {}).get("next_scope") == "wave":
+                    reason, next_action = "Supported trial preparation and independent pre-score commitment are available", "review_qualification"
+        except (ValueError, KeyError, OSError) as exc:
+            info["trial_preparation_error"] = str(exc)
     return result(
         "preflight",
         "INSPECTED",
@@ -405,12 +417,16 @@ def execute(args, source, *, host_factory=None):
         preparation = action == "qualify" and claimed == preparation_parent(revision)
         from . import progressive_velocity_broad_host as broad
         from . import progressive_velocity_checkpoint_host as checkpoints
+        from . import progressive_velocity_trial_preparation as trials
 
+        trial_prep = (action == "qualify" and (folder / trials.INITIAL_MARKER).is_file()
+                      and claimed == trials.parent(revision, load(confined(folder, trials.INITIAL_MARKER))))
         timing = broader = fresh = checkpoint = initialize = False
         if (
             action == "qualify"
             and not donation
             and not preparation
+            and not trial_prep
             and claimed
             not in {
                 qualification_parent(revision),
@@ -456,6 +472,7 @@ def execute(args, source, *, host_factory=None):
                 or fresh
                 or checkpoint
                 or initialize
+                or trial_prep
                 or claimed == qualification_parent(revision, children=True)
                 else qualification_parent(revision)
             )
@@ -475,6 +492,8 @@ def execute(args, source, *, host_factory=None):
         folder.mkdir(parents=True, exist_ok=True)
         with RunStore.owner(folder):
             if action == "qualify":
+                if trial_prep:
+                    return trials.qualify(args, root, folder, source, revision, grant)
                 if initialize:
                     return checkpoints.qualify(
                         args, root, folder, source, revision, grant, host_factory, initialize=True
@@ -493,6 +512,9 @@ def execute(args, source, *, host_factory=None):
                     from .progressive_velocity_qualification import qualify
 
                 return qualify(args, root, folder, source, revision, grant, host_factory)
+            if registration.is_file() and load(confined(folder, "accepted.json")).get("version") == trials.VERSION:
+                return (result(action, "BLOCKED", "The supported trial schedule is prepared. This launcher has no comparative dispatch for the accepted scope",
+                               "review_qualification", last=parent), 2)
             return (
                 result(
                     action,

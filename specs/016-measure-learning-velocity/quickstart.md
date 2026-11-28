@@ -168,6 +168,47 @@ The 30-minute argument is a cumulative workstation spending cap for the two work
 
 The first step checks the ordered ordinary training stream. It reports proven fixed-target matching pairs and counts rows that still require native coefficient fitting. The second step proposes 32 cases per transfer stratum for development, replication and assessment, 32 for each retention role and one case per synthetic stratum for each of practice, teacher and calibration. These are provisional, outcome-blind reservation requests. The file records the actual cases, independent families and deficits by role. The command acquires no device, trains no learner and opens no comparative scores. Attach the resulting `supply.json`.
 
+## Complete preparation for the supported trial wave
+
+Run this from the detached donor root. Set `ROUND029_REV` to the full commit in the
+handoff. The second argument to `--prepare-trials` authorizes a separate maximum
+of 15 workstation minutes for the host-only trial freeze and publication. The
+initialization step uses its existing 30-minute grant and original worker. On an
+already completed initialization it reopens the paid result. Preparation issues
+zero comparative training tokens. The research tranche has its own authorization.
+
+```bash
+(
+  set -euo pipefail
+  rev=${ROUND029_REV:?full trial preparation commit}
+  git fetch --no-tags origin "$rev"
+  git show "$rev:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - --prepare-trials "$rev" 15
+)
+```
+
+The command finishes the zero-token HIP checkpoint and two restores, reopens the
+paid training, checkpoint, control, bank, conditioning and accounting evidence,
+and checks full-wave capacity after image acquisition. It freezes the actual
+learner inputs and linked targets at 0, 1M and 4M for 00, 04, 05 and 06. The common
+and full 4M evaluations have separate rosters. D and the conventional controls
+keep their full-profile endpoints. Recipes 01–03 keep the exclusions measured on
+the fresh stream. The grant records the preparation spend. The prospective
+exploration price includes a separately named follow-up reserve.
+
+The donor stores the verified inputs privately. It installs the supported-wave
+qualification and its independent copy before accepting the schedule. The public
+`trial-preparation.zip` contains the original initialization ZIP and, on completion,
+the pre-score qualification, its verification report and the private replay
+reference. Return the printed file on either `COMPLETE` or `PARTIAL`. Rerunning
+the same command uses the same grants and resumes at the first unfinished step.
+Verify a copied result offline with
+
+```bash
+python3 -I -S -B specs/016-measure-learning-velocity/validation/qualify_continuation.py \
+  --verify-trial-preparation-zip /path/to/trial-preparation.zip
+```
+
 ## Start or resume after the round029 release
 
 Use the original private workstation, a local Podman engine with resource controls and a qualified HIP device for learner work. Start in the **physical root of the detached round027 donor**. Set `ROUND029_REV` from the implementation release, and `ROUND029_GRANT` to the absolute path of the operator-authorized grant. If all you need is inventory, run through the preflight line. The same `run` line starts or resumes an authorized campaign.

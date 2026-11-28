@@ -503,6 +503,7 @@ def checked_price_source(root, source, binding):
         "progressive_velocity_initialization.py",  # separate zero-look checkpoint qualification
         "progressive_velocity_initialization_recovery.py",  # reads only the initialization grant
         "progressive_velocity_runtime_build.py",  # separate grant-bound image acquisition
+        "progressive_velocity_trial_preparation.py",  # prospective host-only wave acceptance
         "progressive_velocity_prescore.py",  # host-only preparation and publication
         "progressive_velocity_ledger_prices.py",  # separate host-only durable-accounting rehearsal
         "progressive_velocity_launch.py",  # read-only launch sizing outside both optimizer workers

@@ -22,6 +22,7 @@ CONDITIONING = "round029-paired-conditioning-prices/v1"
 BANK_PRICES = "round029-matched-bank-prices/v1"
 LAUNCH_PRICES = "round029-launch-preparation/v1"
 INITIALIZATION = "round029-ordinary-initialization/v1"
+TRIAL_PREPARATION = "round029-supported-trial-preparation/v1"
 INITIAL_WORKER = "3c954c15a93a3ba08264910a038efb926e38bfeb"
 INITIAL_GRANT = "sha256:a38310c4081a609e16f9014f249363653a126ec2896c860d4861eefb65484fa5"
 ZIP_SCOPES = {
@@ -37,15 +38,17 @@ ZIP_SCOPES = {
 MODES = ("donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", *ZIP_SCOPES)
 
 
-def checked_json(argv, cwd, action):
+def checked_json(argv, cwd, action, *, log=None):
     from oeis_learn.generalization.progressive.velocity_records import validate_result
 
     # Older launchers inherit stdout for Podman builds and finish with one JSON line.
     with tempfile.TemporaryFile() as output:
-        proc = subprocess.run(argv, cwd=cwd, stdout=output)
+        proc = subprocess.run(argv, cwd=cwd, stdout=output, stderr=log)
         output.seek(0)
         terminal = b""
         for line in output:
+            if log is not None:
+                log.write(line)
             if line.strip():
                 terminal = line
     try:
@@ -4747,7 +4750,7 @@ def check_initialization_history(summary, member):
             )
 
 
-def initialization_prescore(copy, qualification, summary):
+def initialization_prescore(copy, qualification, summary, recovery=None):
     raw = base64.b64decode(copy["base64"], validate=True)
     member = "ordinary-initialization-qualification.json"
     if len(raw) > 1 << 20 or hashlib.sha256(raw).hexdigest() != copy["sha256"]:
@@ -4792,6 +4795,9 @@ def initialization_prescore(copy, qualification, summary):
         or measurement(q["total_us"]) != measurement(summary["grant_minutes"]) * 60_000_000
     ):
         raise ValueError("pre-score archive differs from the original initialization grant")
+    image = (recovery or {}).get("after", {}).get("operations", {}).get("build_runtime", {}).get("image_build")
+    if image is not None and image["image"] != q["image"]:
+        raise ValueError("pre-score image differs from the paid build")
     return q
 
 
@@ -4834,7 +4840,7 @@ def verify_initialization_zip(path, qualification=None):
                 raise ValueError(
                     "the returned pre-score archive requires the original publication receipt"
                 )
-            prescore = initialization_prescore(files["prescore.json"], qualification, summary)[
+            prescore = initialization_prescore(files["prescore.json"], qualification, summary, recovery)[
                 "identity"
             ]
         elif qualification is not None:
@@ -4856,7 +4862,7 @@ def verify_initialization_zip(path, qualification=None):
         or summary["errors"]
     ):
         raise ValueError("incomplete initialization archive")
-    q = initialization_prescore(files["prescore.json"], qualification, summary)
+    q = initialization_prescore(files["prescore.json"], qualification, summary, recovery)
 
     def identity(value):
         return (
@@ -4953,6 +4959,13 @@ def verify_initialization_zip(path, qualification=None):
     )
 
 
+def pinned_source(root, commit):
+    helper = subprocess.check_output(["git", "show", commit + ":" + CACHE_HELPER], cwd=root)
+    return Path(subprocess.check_output(
+        [sys.executable, "-I", "-S", "-B", "-", str(root), commit], input=helper, cwd=root
+    ).decode().strip())
+
+
 def main(revision, minutes, mode="donation", supplied=None, recover_grant=None):
     if mode not in MODES:
         raise SystemExit("Unknown continuation qualification mode.")
@@ -5003,19 +5016,9 @@ def main(revision, minutes, mode="donation", supplied=None, recover_grant=None):
             "Run from the physical root of the detached round027 donor with the candidate fetched."
         )
 
-    def materialize(commit):
-        helper = subprocess.check_output(["git", "show", commit + ":" + CACHE_HELPER], cwd=root)
-        return Path(
-            subprocess.check_output(
-                [sys.executable, "-I", "-S", "-B", "-", str(root), commit], input=helper, cwd=root
-            )
-            .decode()
-            .strip()
-        )
-
-    source = materialize(revision)
+    source = pinned_source(root, revision)
     resume_init = recovery is not None and mode == "initialization"
-    reader = materialize(recovery["reader"]) if resume_init else source
+    reader = pinned_source(root, recovery["reader"]) if resume_init else source
     sys.path.insert(0, str(reader / "src"))
     if mode == "review-children":
         return saved_children(root, source, revision, int(minutes))
@@ -5623,7 +5626,7 @@ def cli(argv):
     return code
 
 
-def resume_initialization(revision):
+def resume_initialization(revision, *, directory=None):
     """One donor handoff for the returned 30-minute grant, including a private terminal log."""
     if not re.fullmatch("[a-f0-9]{40}", revision):
         raise SystemExit("Supply the full recovery reader commit.")
@@ -5641,7 +5644,9 @@ def resume_initialization(revision):
         raise SystemExit("Run at the physical root of the detached round027 donor.")
     script = subprocess.check_output(["git", "show", revision + ":" + operator], cwd=root)
     os.umask(0o077)
-    directory = Path(tempfile.mkdtemp(prefix="round029-init-recovery-", dir=Path.home()))
+    combined = directory is not None
+    if directory is None:
+        directory = Path(tempfile.mkdtemp(prefix="round029-init-recovery-", dir=Path.home()))
     reader = directory / "reader.py"
     reader.write_bytes(script)
     result, log = directory / "initialization.zip", directory / "operator.log"
@@ -5672,8 +5677,351 @@ def resume_initialization(revision):
             f"Recovery exited {proc.returncode} before publishing the ZIP. Inspect {log}"
         )
     checked = verify_initialization_zip(result)
-    print(f"{checked['status']}. Return {result}", file=sys.stderr, flush=True)
+    if not combined:
+        print(f"{checked['status']}. Return {result}", file=sys.stderr, flush=True)
     return proc.returncode
+
+
+def copied_zip(path):
+    with Path(path).open("rb") as stream:
+        raw = stream.read((1 << 20) + 1)
+    if len(raw) > 1 << 20:
+        raise ValueError("trial preparation public archive exceeds its transport limit")
+    return dict(sha256=hashlib.sha256(raw).hexdigest(), base64=base64.b64encode(raw).decode())
+
+
+def verify_trial_preparation_zip(path):
+    summary, files = diagnostic_zip_members(path, TRIAL_PREPARATION)
+
+    def unpack(name):
+        item = files[name]
+        raw = base64.b64decode(item["base64"], validate=True)
+        if (
+            set(item) != {"base64", "sha256"}
+            or len(raw) > 1 << 20
+            or hashlib.sha256(raw).hexdigest() != item["sha256"]
+        ):
+            raise ValueError("trial preparation archive copy differs")
+        return io.BytesIO(raw)
+
+    def sealed_member(name, member):
+        stream = unpack(name)
+        with zipfile.ZipFile(stream) as archive:
+            if (
+                archive.namelist() != [member]
+                or archive.getinfo(member).file_size > 1 << 20
+                or archive.getinfo(member).compress_type != zipfile.ZIP_STORED
+            ):
+                raise ValueError("unexpected trial preparation member")
+            data = json.loads(archive.read(member))
+
+        def encode(value):
+            return json.dumps(
+                value, sort_keys=True, separators=(",", ":"), allow_nan=False
+            ).encode()
+
+        if (
+            data["identity"]
+            != "sha256:"
+            + hashlib.sha256(encode({k: v for k, v in data.items() if k != "identity"})).hexdigest()
+        ):
+            raise ValueError("trial preparation record identity differs")
+        canonical = io.BytesIO()
+        with zipfile.ZipFile(canonical, "w") as archive:
+            entry = zipfile.ZipInfo(member)
+            entry.create_system = 3
+            entry.external_attr = 0o600 << 16
+            archive.writestr(entry, encode(data))
+        if canonical.getvalue() != stream.getvalue():
+            raise ValueError("noncanonical trial preparation archive")
+        return data
+
+    start = unpack("initialization.json")
+    checked = verify_initialization_zip(start)
+    if summary["status"] != "COMPLETE":
+        if (
+            summary["status"] != "PARTIAL"
+            or not summary["errors"]
+            or set(files) - {"initialization.json", "failure.json"}
+        ):
+            raise ValueError("incomplete trial preparation requires its stopping point")
+        return dict(
+            status="PARTIAL",
+            initialization=checked,
+            errors=summary["errors"],
+            failure=files.get("failure.json"),
+        )
+    if (
+        checked["status"] != "COMPLETE"
+        or summary["errors"]
+        or set(files)
+        != {"initialization.json", "qualification.json", "report.json", "verification.json"}
+    ):
+        raise ValueError("missing original zero cut, trial commitment, report or verification")
+    init_summary, init_files = diagnostic_zip_members(start, INITIALIZATION)
+    original = initialization_prescore(init_files["prescore.json"], None, init_summary)
+    q = sealed_member("qualification.json", "supported-wave-qualification.json")
+    r = sealed_member("report.json", "supported-wave-preparation-report.json")
+    if set(q) != set(
+        (
+            "identity version scope candidate reader owner preparation_grant initialization initialization_prescore "
+            "checkpoint state source image wheel physical role_policy registration trials graph supported omitted seed stream_seed "
+            "learners training inputs schedule policy sources expected_us tail_us followup_us proposed_total_us capacity "
+            "research_authority assessment"
+        ).split()
+    ) or set(r) != set(
+        (
+            "identity version accepted receipt grant total_us "
+            "elapsed_us remaining_us charged_tokens research_dispatches scientific_verdict"
+        ).split()
+    ):
+        raise ValueError("unexpected trial preparation fields")
+    methods = original["supported"]
+
+    def identity(value):
+        return (
+            "sha256:"
+            + hashlib.sha256(
+                json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+            ).hexdigest()
+        )
+
+    targets = []
+    for method in methods:
+        worker = q["learners"][method]
+        if (
+            set(worker) != {"package", "batch", "first", "second"}
+            or not re.fullmatch("sha256:[0-9a-f]{64}", worker["package"])
+            or measurement(worker["batch"]) != (16 if method in {"04", "06"} else 32)
+            or not 0 < measurement(worker["first"]) < measurement(worker["second"])
+        ):
+            raise ValueError("unqualified trial learner")
+        previous = None
+        for target in (0, 1_000_000, 4_000_000):
+            row = dict(
+                registration=original["registration"],
+                method=method,
+                target=target,
+                learner=worker["package"],
+                previous=previous,
+            )
+            previous = identity(row)
+            targets.append(dict(row, identity=previous))
+    schedule = [
+        dict(method=m, profile=p, look=row["look"], roster=row["receipt"], members=row["members"])
+        for m in [*methods, *[k for k in original["looks"] if k not in original["trials"]]]
+        for p, rows in original["looks"][m].items()
+        for row in rows
+    ]
+    order = lambda row: (row["method"], row["profile"], row["look"])
+    replay = files["verification.json"]
+    if (
+        q["version"] != TRIAL_PREPARATION
+        or r["version"] != q["version"]
+        or q["scope"] != "exploration"
+        or q["reader"] != summary["reader"]
+        or q["preparation_grant"] != summary["grant"]
+        or r["grant"] != summary["grant"]
+        or q["research_authority"] is not None
+        or q["assessment"] != "sealed"
+        or r["scientific_verdict"] is not None
+        or measurement(r["charged_tokens"])
+        or measurement(r["research_dispatches"])
+        or q["initialization"] != checked["receipt"]
+        or q["initialization_prescore"] != checked["prescore"]
+        or any(
+            q[k] != original[k]
+            for k in (
+                "candidate",
+                "source",
+                "image",
+                "wheel",
+                "physical",
+                "role_policy",
+                "graph",
+                "registration",
+                "trials",
+                "supported",
+                "seed",
+                "stream_seed",
+            )
+        )
+        or (q["checkpoint"], q["state"])
+        != (init_files["cut.json"]["checkpoint"], init_files["cut.json"]["state"])
+        or q["training"] != targets
+        or q["learners"]["00"]["package"] != original["learner"]
+        or any(
+            not re.fullmatch("sha256:[0-9a-f]{64}", v)
+            for v in (q["inputs"], q["policy"], q["owner"], r["receipt"])
+        )
+        or set(q["learners"]) != set(methods)
+        or q["omitted"] != {m: identity(value) for m, value in original["omitted"].items()}
+        or sorted(q["schedule"], key=order) != sorted(schedule, key=order)
+        or q["sources"] != original["quote"]["sources"]
+        or q["followup_us"] != original["quote"]["followup_reserve_us"]
+        or any(q[k] != original["quote"][k] for k in ("expected_us", "tail_us"))
+        or q["proposed_total_us"] != q["tail_us"] + q["followup_us"]
+        or r["accepted"] != q["identity"]
+        or r["total_us"] != measurement(summary["prep_minutes"]) * 60_000_000
+        or measurement(r["elapsed_us"]) + measurement(r["remaining_us"]) != r["total_us"]
+        or replay != dict(private_receipt=r["receipt"], public_report=r["identity"])
+    ):
+        raise ValueError(
+            "supported wave differs from its independent initialization, prices or grants"
+        )
+    mount_fields = {"device"} | {
+        p + "_" + u
+        for p in ("available", "required", "reserved", "deficit")
+        for u in ("bytes", "inodes")
+    }
+    if (
+        not q["capacity"]
+        or any(set(m) != mount_fields for m in q["capacity"])
+        or len({measurement(m["device"]) for m in q["capacity"]}) != len(q["capacity"])
+        or any(
+            measurement(m["deficit_" + u])
+            or measurement(m["available_" + u])
+            < measurement(m["reserved_" + u]) + measurement(m["required_" + u])
+            for m in q["capacity"]
+            for u in ("bytes", "inodes")
+        )
+    ):
+        raise ValueError("full wave exceeded its observed capacity")
+    return dict(
+        status="COMPLETE",
+        supported=methods,
+        omitted=sorted(q["omitted"]),
+        looks=len(schedule),
+        initialization=checked["receipt"],
+        accepted=q["identity"],
+        elapsed_us=r["elapsed_us"],
+        remaining_us=r["remaining_us"],
+        proposed_total_us=q["proposed_total_us"],
+        research_authority=None,
+    )
+
+
+def prepare_trials(revision, minutes):
+    if not re.fullmatch("[a-f0-9]{40}", revision) or not re.fullmatch("[1-9][0-9]*", minutes):
+        raise SystemExit(
+            "Supply the full reader commit and the cumulative host preparation minutes."
+        )
+    os.umask(0o077)
+    root = Path.cwd().resolve()
+    out = Path(tempfile.mkdtemp(prefix="round029-trial-prep-", dir=Path.home()))
+    code = resume_initialization(revision, directory=out)
+    init = out / "initialization.zip"
+    files = {"initialization.json": copied_zip(init)}
+    result = dict(
+        scope=TRIAL_PREPARATION,
+        reader=revision,
+        prep_minutes=int(minutes),
+        files=files,
+        status="PARTIAL",
+        errors={},
+        research_run_requested=False,
+        scientific_verdict=None,
+    )
+    step = "initialization"
+    try:
+        if code or verify_initialization_zip(init)["status"] != "COMPLETE":
+            raise ValueError("original initialization is partial")
+        step = "trial_qualification"
+        source = pinned_source(root, revision)
+        sys.path.insert(0, str(source / "src"))
+        from oeis_learn.generalization.progressive.contracts import load
+        from oeis_learn.generalization.progressive.velocity_records import SESSION
+        from oeis_learn.generalization.progressive import velocity_donation_report as public
+        from oeis_learn.pipeline_validation import progressive_velocity_trial_preparation as trials
+        from oeis_learn.pipeline_validation.progressive_velocity_donation import (
+            retained_qualification,
+        )
+        from oeis_learn.pipeline_validation.progressive_velocity_verify import archive_result
+
+        grant_path = trials.authorize(root, revision, int(minutes))
+        grant = load(grant_path)
+        result["grant"] = grant["identity"]
+
+        def action(name, *args):
+            with (out / "operator.log").open("ab") as log:
+                return checked_json(
+                    ["bash", str(source / LAUNCHER), revision, name, *map(str, args)],
+                    root,
+                    name,
+                    log=log,
+                )
+
+        paid = action("qualify", grant_path)
+        if (
+            paid["scope"] != "trial_preparation"
+            or paid["charged_tokens"]
+            or paid["research_dispatches"]
+        ):
+            raise ValueError("expected funded host-only trial preparation")
+        step = "verification"
+        private = action("verify")
+        if (
+            private["verification_scope"] != "private_trial_preparation"
+            or private["report_ref"] != paid["last_committed_ref"]
+        ):
+            raise ValueError("private trial replay differs")
+        report = (
+            root
+            / "run-state/discovery"
+            / SESSION
+            / "qualification"
+            / grant["identity"][7:]
+            / "share"
+            / public.REPORT
+        )
+        retained = retained_qualification(root, grant)
+        exported, code = archive_result(report, retained)
+        if code or exported["last_committed_ref"] != private["report_ref"]:
+            raise ValueError("independently retained trial commitment differs")
+        files.update(
+            {
+                "qualification.json": copied_zip(retained),
+                "report.json": copied_zip(report),
+                "verification.json": dict(
+                    private_receipt=private["report_ref"], public_report=exported["report_ref"]
+                ),
+            }
+        )
+        result["status"] = "COMPLETE"
+    except (
+        OSError,
+        ValueError,
+        KeyError,
+        RuntimeError,
+        TypeError,
+        SystemExit,
+        subprocess.SubprocessError,
+    ) as exc:
+        result["errors"][step] = type(exc).__name__
+        with (out / "operator.log").open("a") as stream:
+            print(f"{step}: {exc}", file=stream)
+        if isinstance(exc, SystemExit):
+            try:
+                failed = json.loads(str(exc))
+                files["failure.json"] = {
+                    k: failed[k]
+                    for k in (
+                        "stage",
+                        "mechanical_status",
+                        "elapsed_us",
+                        "remaining_authority",
+                        "deficit_bytes",
+                        "deficit_inodes",
+                    )
+                    if k in failed
+                }
+            except (ValueError, TypeError):
+                pass
+    dest = out / "trial-preparation.zip"
+    write_readiness_zip(dest, result)
+    checked = verify_trial_preparation_zip(dest)
+    print(f"{checked['status']}. Return {dest}", file=sys.stderr, flush=True)
+    return 0 if checked["status"] == "COMPLETE" else 1
 
 
 def review_launch(revision, minutes):
@@ -5753,7 +6101,11 @@ def review_launch(revision, minutes):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 3 and sys.argv[1] == "--resume-initialization":
+    if len(sys.argv) == 4 and sys.argv[1] == "--prepare-trials":
+        sys.exit(prepare_trials(*sys.argv[2:]))
+    elif len(sys.argv) == 3 and sys.argv[1] == "--verify-trial-preparation-zip":
+        print(json.dumps(verify_trial_preparation_zip(sys.argv[2]), indent=2))
+    elif len(sys.argv) == 3 and sys.argv[1] == "--resume-initialization":
         sys.exit(resume_initialization(sys.argv[2]))
     elif len(sys.argv) == 4 and sys.argv[1] == "--review-launch":
         sys.exit(review_launch(*sys.argv[2:]))

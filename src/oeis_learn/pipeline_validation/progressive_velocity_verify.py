@@ -20,9 +20,16 @@ from .progressive_velocity_qualification import _receipt, qualification_parent
 def archive_result(report, qualification):
     import zipfile
     from . import progressive_velocity_prescore as prescore
+    from . import progressive_velocity_trial_preparation as trials
 
     with zipfile.ZipFile(qualification) as archive:
         initialization = archive.namelist() == [prescore.MEMBER]
+        trial_prep = archive.namelist() == [trials.MEMBER]
+    if trial_prep:
+        evidence = trials.verify_archives(report, qualification)
+        return (result("verify", "VERIFIED", "Reopened the supported trial schedule and independent pre-score commitment",
+                       "review_qualification", last=evidence["receipt"], report_ref=evidence["identity"],
+                       verification_scope="paired_archives_trial_preparation"), 0)
     if initialization:
         evidence = prescore.verify_archives(report, qualification)
         return (
@@ -193,6 +200,8 @@ def private_result(root, folder, *, source=None):
 
         from . import progressive_velocity_prescore as prescore
 
+        from . import progressive_velocity_trial_preparation as trials
+        trial_prep = binding["version"] == trials.VERSION
         initial = binding["version"] == prescore.VERSION
         broader = binding["version"] == broad.VERSION
         checkpoint = binding["version"] == checkpoints.matrix.VERSION
@@ -202,6 +211,8 @@ def private_result(root, folder, *, source=None):
             parent = qualification_parent(
                 binding["candidate"], children=binding.get("child_restore", False)
             )
+        elif trial_prep:
+            parent = trials.parent(binding["candidate"], load(confined(folder, trials.INITIAL_MARKER)))
         elif initial:
             parent = prescore.parent(
                 binding["candidate"], load(confined(folder, checkpoints.MARKER))
@@ -237,7 +248,7 @@ def private_result(root, folder, *, source=None):
             confined(area, "accounting"),
             grant["identity"],
             grant["resources"],
-            include_work=checkpoint or initial,
+            include_work=checkpoint or initial or trial_prep,
         )
         if (
             snapshot["pending"]
@@ -252,6 +263,12 @@ def private_result(root, folder, *, source=None):
             if any(key not in snapshot["committed"] for key in record["debits"]):
                 raise ValueError("original learner debit missing")
             report, scope = record["identity"], "private_learner_rehearsal"
+        elif trial_prep:
+            accepted, record = trials.stages(root, folder, area, source, grant, binding, snapshot=snapshot)
+            copy = trials.verify_archives(area / "share" / public.REPORT, donation.retained_qualification(root, grant))
+            if accepted != load(confined(folder, "accepted.json")) or copy != trials.report(record, grant, snapshot):
+                raise ValueError("trial preparation differs from its accepted schedule or independent copy")
+            report, scope = record["identity"], "private_trial_preparation"
         elif checkpoint or initial:
             record = checkpoints.replay(root, folder, area, source, grant, binding, snapshot)
             if initial:

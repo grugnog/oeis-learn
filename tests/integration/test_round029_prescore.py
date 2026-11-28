@@ -158,6 +158,16 @@ if __name__ == "__main__":""",
     )
     with zipfile.ZipFile(directory / "initialization.zip") as archive:
         assert all(b"private-fixture-error" not in archive.read(p) for p in archive.namelist())
+    try:
+        assert api["prepare_trials"](current, "15") == 1
+    finally:
+        os.umask(prior)
+    (combined,) = home.glob("round029-trial-prep-*/trial-preparation.zip")
+    returned = api["verify_trial_preparation_zip"](combined)
+    assert (
+        returned["status"] == "PARTIAL" and returned["initialization"]["failure"]["elapsed_us"] == 1
+    )
+    assert not (root / "run-state/discovery-authorizations").exists()
 
 
 @pytest.mark.parametrize("failure_mode", ("failed_build", "installed", "missing_image"))
@@ -286,7 +296,11 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
             tail_us=10000,
             followup_reserve_us=900,
             provisional_publication=dict(checkpoint_read_us=140),
-            sources=dict(fresh=pointer["receipt"], checkpoint=marker["receipt"]),
+            sources=dict(
+                fresh=pointer["receipt"],
+                checkpoint=marker["receipt"],
+                **{k: digest(k) for k in ("controls", "paired", "bank", "accounting")},
+            ),
         ),
     )
     prices["launch_options"] = launch_fixture()
@@ -598,6 +612,132 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
     public.install(changed, freeze.REPORT_MEMBER, altered)
     with pytest.raises(ValueError, match="zero-cut"):
         freeze.verify_archives(changed, captured)
+    if missing:
+        from oeis_learn.pipeline_validation import progressive_velocity_trial_preparation as trial
+
+        monkeypatch.setattr(
+            controller,
+            "candidate_revision",
+            lambda path, _: reader_rev if path == reader_source else rev,
+        )
+        approval = trial.authorize(tmp_path, reader_rev, 15)
+
+        def trial_action(action, authority=None):
+            return controller.execute(
+                SimpleNamespace(
+                    workspace=tmp_path,
+                    action=action,
+                    authority=authority,
+                    archive=None,
+                    qualification_archive=None,
+                    free_disk_gib=0,
+                ),
+                reader_source,
+            )
+
+        with monkeypatch.context() as short:
+            short.setitem(prices["launch_options"]["scopes"]["wave"], "fits", False)
+            short.setitem(
+                prices["launch_options"]["scopes"]["wave"]["mounts"][0], "available_bytes", 799
+            )
+            short.setitem(
+                prices["launch_options"]["scopes"]["wave"]["mounts"][0], "deficit_bytes", 1
+            )
+            blocked_result, code = trial_action("qualify", approval)
+            assert code and blocked_result["deficit_bytes"] == 1
+            assert not (folder / "accepted.json").exists()
+        prepared, code = trial_action("qualify", approval)
+        assert code == 0 and prepared["scope"] == "trial_preparation", prepared
+        assert prepared["charged_tokens"] == prepared["research_dispatches"] == 0
+        accepted = load(folder / "accepted.json")
+        assert accepted["research_authority"] is None and accepted["supported"] == [
+            "00",
+            "04",
+            "05",
+            "06",
+        ]
+        assert set(accepted["omitted"]) == {"01", "02", "03"} and accepted["followup_us"] == 900
+        assert accepted["initialization"] == paid_result["receipt"]["identity"]
+        assert trial.published(tmp_path, folder)["accepted"] == accepted["identity"]
+        assert len(accepted["learners"]) == 4 and all(
+            v["package"] for v in accepted["learners"].values()
+        )
+        assert (
+            trial_action("qualify", approval)[0] == prepared == trial_action("qualify", approval)[0]
+        )
+        assert trial_action("verify")[0]["verification_scope"] == "private_trial_preparation"
+        prep_grant = load(approval)
+        prep_area = folder / "qualification" / prep_grant["identity"][7:]
+        transport = retained_qualification(tmp_path, prep_grant)
+        assert (
+            trial.verify_archives(prep_area / "share" / public.REPORT, transport)["accepted"]
+            == accepted["identity"]
+        )
+        issued = prep_area / "share" / public.REPORT
+        trial_bundle = dict(
+            scope=trial.VERSION,
+            reader=reader_rev,
+            prep_minutes=15,
+            grant=prep_grant["identity"],
+            status="COMPLETE",
+            research_run_requested=False,
+            scientific_verdict=None,
+            errors={},
+            files={
+                "initialization.json": api["copied_zip"](dest),
+                "qualification.json": api["copied_zip"](transport),
+                "report.json": api["copied_zip"](issued),
+                "verification.json": dict(
+                    private_receipt=prepared["last_committed_ref"],
+                    public_report=public.read_member(issued, trial.REPORT_MEMBER)["identity"],
+                ),
+            },
+        )
+        packed = tmp_path / "trial-preparation.zip"
+        api["write_readiness_zip"](packed, trial_bundle)
+        assert api["verify_trial_preparation_zip"](packed)["accepted"] == accepted["identity"]
+        substituted = tmp_path / "substituted-trials.zip"
+        bad = seal(dict(accepted, training=accepted["training"][:-1]))
+        public.install(substituted, trial.MEMBER, bad)
+        trial_bundle["files"]["qualification.json"] = api["copied_zip"](substituted)
+        api["write_readiness_zip"](packed, trial_bundle)
+        with pytest.raises(ValueError, match="wave differs"):
+            api["verify_trial_preparation_zip"](packed)
+        # Exercise the full operator command with the actual returned archives and original grant.
+        import os
+        import shutil
+
+        namespace = api["prepare_trials"].__globals__
+        home = tmp_path / "operator"
+        home.mkdir()
+
+        def existing_initialization(revision, *, directory):
+            assert revision == reader_rev
+            shutil.copyfile(dest, directory / "initialization.zip")
+            return 0
+
+        def checked_action(argv, root, name, **kwargs):
+            assert root == tmp_path and argv[2:4] == [reader_rev, name]
+            value, code = trial_action(name, Path(argv[4]) if name == "qualify" else None)
+            assert code == 0, value
+            return value
+
+        with monkeypatch.context() as operator:
+            operator.chdir(tmp_path)
+            operator.setenv("HOME", str(home))
+            operator.setitem(namespace, "resume_initialization", existing_initialization)
+            operator.setitem(namespace, "pinned_source", lambda *_: reader_source)
+            operator.setitem(namespace, "checked_json", checked_action)
+            mask = os.umask(0o077)
+            try:
+                assert api["prepare_trials"](reader_rev, "15") == 0
+            finally:
+                os.umask(mask)
+        (delivered,) = home.glob("round029-trial-prep-*/trial-preparation.zip")
+        assert api["verify_trial_preparation_zip"](delivered)["accepted"] == accepted["identity"]
+        assert not list((folder / "registrations").glob("*/look-*.json"))
+        assert protected.encode() not in transport.read_bytes()
+        action("qualify", grant_path)
     captured.unlink()
     failed, code = invoke("verify")
     assert code == 1 and failed["mechanical_status"] == "FAILED" and not captured.exists()

@@ -242,4 +242,11 @@ failed wheel build, a verifier failure after installation and recovery from two
 settled cache lookups with no local image. It covers the original-worker image
 build, workspace and engine-store capacity, two resumes, and archive replay.
 Actual HIP zero-cut verification remains open.
-T032 and T056 still require the funded comparative trial and its runner.
+The [supported-wave preparation command](quickstart.md#complete-preparation-for-the-supported-trial-wave)
+continues through a separate host qualification in the same invocation. It reopens
+the original cut and paid costs, rechecks whole-wave capacity, binds four learner
+requests at three targets each, freezes the evaluation rosters and installs the
+independent pre-score archive. A fixture covers a numeric capacity stop, two
+resumes, private replay and a substituted public schedule. Physical acceptance
+awaits the returned ZIP. T032 and T056 still require the funded comparative trial
+and its runner.
