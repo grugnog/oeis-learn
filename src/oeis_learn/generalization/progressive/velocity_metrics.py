@@ -125,9 +125,15 @@ def _frozen_rows(rows, looks, names, registrations):
 
 def contrast(rows, coefficients, *, stratum, looks, registrations=()):
     """Compare only the complete authenticated rosters of the registered looks."""
-    strata = ("composition", "unseen_structure") if stratum == "structural" else (stratum,)
     names = sorted(coefficients)
     all_families, coordinates = _frozen_rows(rows, looks, names, registrations)
+    return family_contrast(all_families, coordinates, coefficients, stratum)
+
+
+def family_contrast(all_families, coordinates, coefficients, stratum):
+    """Reduce validated private rows or the same joint patterns from a copied public report."""
+    names = sorted(coefficients)
+    strata = ("composition", "unseen_structure") if stratum == "structural" else (stratum,)
     families = {k: v for k, v in sorted(all_families.items()) if k[0] in strata}
     support = Counter(s for s, _ in families)
     denominator = sum(len(members) for members in families.values())
@@ -366,7 +372,7 @@ def _factor_effects(coordinates, estimate):
     return {name: block(methods) for name, methods in FACTOR_BLOCKS.items()}
 
 
-def study_curve(looks, measurements, *, stratum, seed, draws=10_000, budgets=None):
+def study_curve(looks, measurements, *, stratum, seed, draws=10_000, budgets=None, paired=None):
     """Reduce one registered seed's common series and separate full endpoints."""
     from .cohorts import STRATA
     from .program_search_costing import workstation_accounting
@@ -384,7 +390,8 @@ def study_curve(looks, measurements, *, stratum, seed, draws=10_000, budgets=Non
         if key not in estimates:
             subset = {ref: measured[ref] for ref in terms}
             probes = {ref: m["probe"] for ref, m in subset.items()}
-            observed = contrast(_score_rows(subset), terms, stratum=stratum, looks=probes)
+            observed = (contrast(_score_rows(subset), terms, stratum=stratum, looks=probes)
+                        if paired is None else paired(terms, stratum))
             estimates[key] = dict(
                 observed=observed["observed_pp"], lower=observed["lower_pp"], upper=observed["upper_pp"],
                 denominator=observed["denominator"], family_counts=observed["family_counts"],

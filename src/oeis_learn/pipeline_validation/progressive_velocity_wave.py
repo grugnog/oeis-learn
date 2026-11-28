@@ -37,16 +37,22 @@ def targets(learner, requested):
             cursor += batch
             useful += last
             updates += 1
-        result[target] = dict(useful_tokens=useful, updates=updates, last_update_tokens=last,
-                              cursor=cursor, overshoot=useful - target)
+        result[target] = dict(
+            useful_tokens=useful,
+            updates=updates,
+            last_update_tokens=last,
+            cursor=cursor,
+            overshoot=useful - target,
+        )
     return result
 
 
 def probe_work(look, phase):
     cases = len(look["members"])
     if phase == "search":
-        work = role_work_requirements("generate", [dict(kind="visible_prompt")] * cases
-                                      + [dict(kind="oeis_generation")])
+        work = role_work_requirements(
+            "generate", [dict(kind="visible_prompt")] * cases + [dict(kind="oeis_generation")]
+        )
         if look["profile"] == "common":
             work.update(draws=cases, attempts=cases, rejections=cases)
     else:
@@ -56,9 +62,11 @@ def probe_work(look, phase):
 
 def plan(accepted, registration, packages):
     graph = velocity_study_looks(registration)
-    if (accepted["registration"] != registration["identity"] or
-            set(packages) != set(accepted["supported"]) or
-            set(accepted["trials"]) != set(packages) | set(accepted["omitted"])):
+    if (
+        accepted["registration"] != registration["identity"]
+        or set(packages) != set(accepted["supported"])
+        or set(accepted["trials"]) != set(packages) | set(accepted["omitted"])
+    ):
         raise ValueError("registered recipes or exclusions differ")
     cuts = {}
     for method, learner in packages.items():
@@ -68,23 +76,39 @@ def plan(accepted, registration, packages):
         cuts[method] = targets(learner, [r["target"] for r in rows])
     ops = []
     previous = {}
-    look_index = {look["identity"]: look for profiles in graph.values()
-                  for series in profiles.values() for look in series}
+    look_index = {
+        look["identity"]: look
+        for profiles in graph.values()
+        for series in profiles.values()
+        for look in series
+    }
     # Finish the matched common boundary across recipes before advancing to the next.
     # A 1M diagnostic cannot remove an arm from its registered 4M opportunity.
-    for row in sorted(accepted["schedule"], key=lambda r: (r["look"], r["profile"] != "common",
-                                                           r["method"])):
+    for row in sorted(
+        accepted["schedule"], key=lambda r: (r["look"], r["profile"] != "common", r["method"])
+    ):
         method, target = row["method"], row["look"]
         look = look_index[row["roster"]]
-        if ((look["method"], look["look"], look["profile"], len(look["members"])) !=
-                (method, target, row["profile"], row["members"])):
+        if (look["method"], look["look"], look["profile"], len(look["members"])) != (
+            method,
+            target,
+            row["profile"],
+            row["members"],
+        ):
             raise ValueError("accepted evaluation coordinate differs")
         if method in cuts and row["profile"] == "common":
             cut = cuts[method][target]
             prior = previous.get(method, dict(useful_tokens=0, updates=0))
-            ops.append(dict(role="train", roster=row["roster"], cost=dict(
-                tokens=cut["useful_tokens"] - prior["useful_tokens"],
-                attempts=cut["updates"] - prior["updates"])))
+            ops.append(
+                dict(
+                    role="train",
+                    roster=row["roster"],
+                    cost=dict(
+                        tokens=cut["useful_tokens"] - prior["useful_tokens"],
+                        attempts=cut["updates"] - prior["updates"],
+                    ),
+                )
+            )
             previous[method] = cut
         for role in ("search", "score"):
             ops.append(dict(role=role, roster=row["roster"], cost=probe_work(look, role)))
@@ -94,17 +118,28 @@ def plan(accepted, registration, packages):
 def inputs(root, folder, accepted):
     area = confined(folder, "qualification/" + accepted["preparation_grant"][7:])
     private = load(confined(area, "trial-inputs.json"))
-    if (private != seal(private) or private["identity"] != accepted["inputs"] or
-            private["targets"] != accepted["training"]):
+    if (
+        private != seal(private)
+        or private["identity"] != accepted["inputs"]
+        or private["targets"] != accepted["training"]
+    ):
         raise ValueError("funded trial input commitment differs")
     reg = load(checked_file(root, private["registration"]))
     view = load(checked_file(root, private["projection"]), maximum=MAX_INPUT)
     matrix = private["matrix"]
-    if (view != seal(view) or view["identity"] != matrix["projection"] or
-            matrix["methods"] != accepted["learners"] or matrix["origin"] != accepted["sources"]["fresh"]):
+    if (
+        view != seal(view)
+        or view["identity"] != matrix["projection"]
+        or matrix["methods"] != accepted["learners"]
+        or matrix["origin"] != accepted["sources"]["fresh"]
+    ):
         raise ValueError("funded training projection differs")
-    packages = {m: checkpoint.package(view["streams"]["ordinary"], m, matrix["microbatch"],
-                                      matrix["origin"]) for m in accepted["supported"]}
+    packages = {
+        m: checkpoint.package(
+            view["streams"]["ordinary"], m, matrix["microbatch"], matrix["origin"]
+        )
+        for m in accepted["supported"]
+    }
     return reg, packages
 
 
@@ -115,15 +150,34 @@ def authority(root, revision, minutes, accepted, operations, driver):
     work = Counter(dict.fromkeys(KEYS, 0))
     for op in operations:
         work.update(op["cost"])
+    # Bound recovery to one additional largest dispatch in each resource. All
+    # attempts share the original wall clock and the protected follow-up reserve.
+    for key in KEYS:
+        work[key] += max((op["cost"].get(key, 0) for op in operations), default=0)
     work["elapsed_us"] = total
-    terms = dict(version="round029-grant/v1", study_id=SESSION, scope="exploration",
-                 registration_or_parent_ref=accepted["identity"], state_root_id=physical_root_id(root),
-                 total_us=total, holdback_us=accepted["followup_us"], allowed_operations=["run"],
-                 resources=dict(work))
+    terms = dict(
+        version="round029-grant/v1",
+        study_id=SESSION,
+        scope="exploration",
+        registration_or_parent_ref=accepted["identity"],
+        state_root_id=physical_root_id(root),
+        total_us=total,
+        holdback_us=accepted["followup_us"],
+        allowed_operations=["run"],
+        resources=dict(work),
+    )
     approval = seal(dict(version="round029-authorization/v1", terms=digest(terms)))
     grant = seal(dict(terms, authorizing_record_ref=approval["identity"]))
-    marker = seal(dict(version=VERSION, controller=revision, driver=driver, grant=grant["identity"],
-                       accepted=accepted["identity"], operations=digest(operations)))
+    marker = seal(
+        dict(
+            version=VERSION,
+            controller=revision,
+            driver=driver,
+            grant=grant["identity"],
+            accepted=accepted["identity"],
+            operations=digest(operations),
+        )
+    )
     return grant, approval, marker
 
 
@@ -140,8 +194,9 @@ def authorize(root, source, minutes, expected):
         preparation.published(root, folder)
         reg, packages = inputs(root, folder, accepted)
         ops = plan(accepted, reg, packages)[-1]
-        grant, approval, marker = authority(root, revision, minutes, accepted, ops,
-                                           file_hash(confined(source, DRIVER)))
+        grant, approval, marker = authority(
+            root, revision, minutes, accepted, ops, file_hash(confined(source, DRIVER))
+        )
         # One owner per accepted wave, including concurrent or repeated start requests.
         retain(folder / MARKER, marker)
         directory = confined(root, "run-state/discovery-authorizations")
@@ -149,4 +204,3 @@ def authorize(root, source, minutes, expected):
         path = directory / ("grant-" + grant["identity"][7:] + ".json")
         retain(path, grant)
         return path
-

@@ -513,7 +513,11 @@ def execute(args, source, *, host_factory=None):
 
                 return qualify(args, root, folder, source, revision, grant, host_factory)
             if registration.is_file() and load(confined(folder, "accepted.json")).get("version") == trials.VERSION:
-                return (result(action, "BLOCKED", "The supported trial schedule is prepared. This launcher has no comparative dispatch for the accepted scope",
+                if action == "run":
+                    from .progressive_velocity_run import run
+
+                    return run(args, root, folder, source, revision, grant, host_factory)
+                return (result(action, "BLOCKED", "An independently funded CPU study is required",
                                "review_qualification", last=parent), 2)
             return (
                 result(

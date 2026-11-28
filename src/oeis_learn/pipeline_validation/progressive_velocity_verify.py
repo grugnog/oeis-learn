@@ -26,6 +26,17 @@ def archive_result(report, qualification):
         initialization = archive.namelist() == [prescore.MEMBER]
         trial_prep = archive.namelist() == [trials.MEMBER]
     if trial_prep:
+        from . import progressive_velocity_wave_report as comparative
+
+        with zipfile.ZipFile(report) as archive:
+            research = archive.namelist() == [comparative.MEMBER]
+        if research:
+            value = comparative.verify(report, qualification)
+            verified = result("verify", "VERIFIED", "Recomputed the comparative decision from anonymous paired observations",
+                              "review_exploration", last=value["identity"], report_ref=value["identity"],
+                              verification_scope="paired_archives_comparative_wave")
+            verified["scientific_verdict"] = value["decision"]["verdict"]
+            return verified, 0
         evidence = trials.verify_archives(report, qualification)
         return (result("verify", "VERIFIED", "Reopened the supported trial schedule and independent pre-score commitment",
                        "review_qualification", last=evidence["receipt"], report_ref=evidence["identity"],
@@ -183,6 +194,17 @@ def private_result(root, folder, *, source=None, trial_grant=None):
             saved = load(confined(folder, "status.json"))
             if saved != seal(saved) or saved["session_id"] != SESSION:
                 raise ValueError("saved status differs")
+            if saved["action"] == "run" and saved["mechanical_status"] == "COMPLETE":
+                from . import progressive_velocity_wave as wave
+                from .progressive_round028 import candidate_revision
+                from .progressive_velocity_run import run
+
+                marker = load(confined(folder, wave.MARKER))
+                grant = load(confined(folder, "comparative/" + marker["grant"][7:] + "/grant.json"))
+                approval = load(confined(root, "run-state/discovery-authorizations/" +
+                                         grant["authorizing_record_ref"][7:] + ".json"))
+                validate_grant(grant, approval, root=physical_root_id(root), parent=marker["accepted"], action="run")
+                return run(None, root, folder, source, candidate_revision(source, root), grant, None, readonly=True)
             if saved["action"] != "qualify" or saved["mechanical_status"] != "COMPLETE":
                 return blocked("The current session has no completed publication at this boundary")
             path = confined(root, saved["receipt_path"])

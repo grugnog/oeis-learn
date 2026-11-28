@@ -488,7 +488,7 @@
             "oneOf": [
               {"$ref": "#/$defs/result_field"},
               {
-                "enum": ["stage", "elapsed_us", "diagnostics", "deficit_bytes", "deficit_inodes", "report_ref"]
+                "enum": ["stage", "recipe", "look", "seed", "charged_tokens", "elapsed_us", "diagnostics", "deficit_bytes", "deficit_inodes", "report_ref"]
               }
             ]
           },

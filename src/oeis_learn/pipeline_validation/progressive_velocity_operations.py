@@ -135,6 +135,7 @@ def run_operation(
     installed=None,
     before_dispatch=None,
     protected_us=0,
+    maximum_us=None,
 ):
     """Only a verified supervisor boundary may release unused time. Issued work stays charged."""
     if (
@@ -214,6 +215,10 @@ def run_operation(
 
     left = journal.snapshot()["remaining"]
     reserve = left["elapsed_us"] - grant["holdback_us"] - protected_us
+    if maximum_us is not None:
+        if type(maximum_us) is not int or maximum_us < 1:
+            raise ValueError("positive supervisor window required")
+        reserve = min(maximum_us, reserve)
     if reserve < minimum_us:
         raise InsufficientAuthority(
             "remaining workstation time after holdback cannot fund the minimum launch window"

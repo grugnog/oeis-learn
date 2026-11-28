@@ -23,7 +23,9 @@ def training(work, request, package, device):
         dst = destination / ref["path"]
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, dst)
-    cut = train_to(destination, package, target=request["target"], cap=request["cap"], device=device)
+    cut = train_to(
+        destination, package, target=request["target"], cap=request["cap"], device=device
+    )
     store = destination / "checkpoint"
     manifest = load(checked_file(store, cut["checkpoint"]))
     return dict(cut=cut, weight=manifest["states"]["weights"])
@@ -33,7 +35,10 @@ def search(work, request, data, client, device):
     from oeis_learn.generalization.progressive.baselines import load_baseline
     from oeis_learn.generalization.progressive.contracts import digest
     from oeis_learn.pipeline_validation.progressive_evaluation import (
-        generate, model_control_for, model_receipt, velocity_probe,
+        generate,
+        model_control_for,
+        model_receipt,
+        velocity_probe,
     )
 
     look = request["look"]
@@ -41,20 +46,38 @@ def search(work, request, data, client, device):
     model, weight = request["model"], request["weight"]
     if method == "D":
         from oeis_learn.fresh.bigint_diagnostics import model_snapshot
-        encoder, decoder, _ = load_baseline("retained_D", recipe, root=work, ref=weight, device=device)
-        model = model_receipt(look, profile=digest(recipe), weights=model_snapshot(encoder, decoder),
-                              checkpoint=weight["sha256"], origin=request["origin"])
+
+        encoder, decoder, _ = load_baseline(
+            "retained_D", recipe, root=work, ref=weight, device=device
+        )
+        model = model_receipt(
+            look,
+            profile=digest(recipe),
+            weights=model_snapshot(encoder, decoder),
+            checkpoint=weight["sha256"],
+            origin=request["origin"],
+        )
         del encoder, decoder
-    probe = velocity_probe(look, data["prompts"], mode="true", inference_seed=request["seed"],
-                           model=model)
+    probe = velocity_probe(
+        look, data["prompts"], mode="true", inference_seed=request["seed"], model=model
+    )
     neural = model is not None
-    ref = generate(work, "generated", data["prompts"], recipe, checkpoint=weight,
-                   model_control=model_control_for(look) if neural else "random",
-                   seed=look["seed"] if neural and not weight else None,
-                   reference_recipe=recipe if neural and weight and method != "D" else None,
-                   device=device, client=client, seconds=request["seconds"],
-                   methods=("correct",) if neural else (method,), registered_probe=probe,
-                   output_root=work / "output")
+    ref = generate(
+        work,
+        "generated",
+        data["prompts"],
+        recipe,
+        checkpoint=weight,
+        model_control=model_control_for(look) if neural else "random",
+        seed=look["seed"] if neural and not weight else None,
+        reference_recipe=recipe if neural and weight and method != "D" else None,
+        device=device,
+        client=client,
+        seconds=request["seconds"],
+        methods=("correct",) if neural else (method,),
+        registered_probe=probe,
+        output_root=work / "output",
+    )
     return dict(probe=probe, artifact=ref)
 
 
@@ -68,8 +91,15 @@ def perform(work, request, data, *, device, client=None):
     if role == "search" and set(data) == {"prompts", "recipe"}:
         return search(work, request, data, client, device)
     if role == "score" and set(data) == {"truth"} and device == "cpu":
-        score_velocity(work, request["candidates"], data["truth"], client=client,
-                       output="output/scored", probe=request["probe"], seconds=request["seconds"])
+        score_velocity(
+            work,
+            request["candidates"],
+            data["truth"],
+            client=client,
+            output="output/scored",
+            probe=request["probe"],
+            seconds=request["seconds"],
+        )
         return dict(artifact=reference(work / "output", work / "output/scored/scores.json"))
     raise ValueError("invalid comparative role input projection")
 
@@ -82,19 +112,28 @@ def installed(work, wheel, wheel_hash, source, prefix):
     from oeis_learn.pipeline_validation.progressive_velocity_broad_host import MAX_INPUT
     from oeis_learn.synthesis.client import SynthesisClient
 
-    if (not Path(provenance.__file__).resolve().is_relative_to(prefix) or
-            digest(provenance.source_snapshot()) != source):
+    if (
+        not Path(provenance.__file__).resolve().is_relative_to(prefix)
+        or digest(provenance.source_snapshot()) != source
+    ):
         raise ValueError("installed science source differs")
     request = load(work / "inputs/request.json")
     data = load(work / "inputs/data.json", maximum=MAX_INPUT)
-    if (request != seal(request) or request["version"] != "round029-comparative-wave/v1" or
-            request["driver"] != file_hash(Path(__file__)) or request["data"] != digest(data) or
-            request["source"] != source or request["wheel"] != wheel_hash or
-            request["image"] != os.environ["OEIS_QUALIFICATION_IMAGE"] or
-            os.environ["OEIS_QUALIFICATION_ENGINE"] != "podman"):
+    if (
+        request != seal(request)
+        or request["version"] != "round029-comparative-wave/v1"
+        or request["driver"] != file_hash(Path(__file__))
+        or request["data"] != digest(data)
+        or request["source"] != source
+        or request["wheel"] != wheel_hash
+        or request["image"] != os.environ["OEIS_QUALIFICATION_IMAGE"]
+        or os.environ["OEIS_QUALIFICATION_ENGINE"] != "podman"
+    ):
         raise ValueError("comparative role differs from the registered runtime")
     gpu = request["gpu"]
-    client_context = nullcontext(None) if request["role"] == "train" else SynthesisClient(request["identity"])
+    client_context = (
+        nullcontext(None) if request["role"] == "train" else SynthesisClient(request["identity"])
+    )
     start = time.monotonic_ns()
     cpu = time.process_time_ns()
     with client_context as client:
@@ -107,20 +146,39 @@ def installed(work, wheel, wheel_hash, source, prefix):
             torch = require_hip()
             torch.cuda.reset_peak_memory_stats()
             nodes = sorted(Path("/dev/dri").glob("renderD*"))
-            with Recorder(work / "output/telemetry", instrumented=True,
-                          render_node=nodes[0] if len(nodes) == 1 else None,
-                          host_counters=False) as recorder, recorder.phase(request["role"]):
+            with (
+                Recorder(
+                    work / "output/telemetry",
+                    instrumented=True,
+                    render_node=nodes[0] if len(nodes) == 1 else None,
+                    host_counters=False,
+                ) as recorder,
+                recorder.phase(request["role"]),
+            ):
                 result = perform(work, request, data, device="cuda", client=client)
                 torch.cuda.synchronize()
             elapsed = (time.monotonic_ns() - start) // 1000
-            result.update(device="hip", device_view=device_view(), measured_us=elapsed,
-                          peak_device_bytes=torch.cuda.max_memory_allocated(),
-                          telemetry=usage_summary(work / "output/telemetry", elapsed))
+            result.update(
+                device="hip",
+                device_view=device_view(),
+                measured_us=elapsed,
+                peak_device_bytes=torch.cuda.max_memory_allocated(),
+                telemetry=usage_summary(work / "output/telemetry", elapsed),
+            )
         else:
             result = perform(work, request, data, device="cpu", client=client)
-    atomic_write(work / "output/producer.json", seal(dict(request=request["identity"], native=native,
-                 worker_us=(time.monotonic_ns() - start) // 1000,
-                 worker_cpu_us=(time.process_time_ns() - cpu) // 1000, **result)))
+    atomic_write(
+        work / "output/producer.json",
+        seal(
+            dict(
+                request=request["identity"],
+                native=native,
+                worker_us=(time.monotonic_ns() - start) // 1000,
+                worker_cpu_us=(time.process_time_ns() - cpu) // 1000,
+                **result,
+            )
+        ),
+    )
 
 
 def main(wheel_name, wheel_hash, source):
@@ -128,16 +186,34 @@ def main(wheel_name, wheel_hash, source):
 
     work = Path("/work")
     wheel = Path(wheel_name)
-    if wheel.parent != work / "inputs" or "sha256:" + hashlib.sha256(wheel.read_bytes()).hexdigest() != wheel_hash:
+    if (
+        wheel.parent != work / "inputs"
+        or "sha256:" + hashlib.sha256(wheel.read_bytes()).hexdigest() != wheel_hash
+    ):
         raise ValueError("funded science wheel differs")
     with tempfile.TemporaryDirectory() as tmp:
-        subprocess.run([sys.executable, "-I", "-m", "pip", "--isolated", "--disable-pip-version-check",
-                        "install", "--no-index", "--no-deps", "--no-compile", "--no-cache-dir",
-                        "--target", tmp, str(wheel)], check=True)
+        subprocess.run(
+            [
+                sys.executable,
+                "-I",
+                "-m",
+                "pip",
+                "--isolated",
+                "--disable-pip-version-check",
+                "install",
+                "--no-index",
+                "--no-deps",
+                "--no-compile",
+                "--no-cache-dir",
+                "--target",
+                tmp,
+                str(wheel),
+            ],
+            check=True,
+        )
         sys.path.insert(0, tmp)
         installed(work, wheel, wheel_hash, source, Path(tmp))
 
 
 if __name__ == "__main__":
     main(*sys.argv[1:])
-
