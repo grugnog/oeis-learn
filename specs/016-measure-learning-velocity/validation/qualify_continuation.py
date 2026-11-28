@@ -1194,7 +1194,7 @@ def conditioning_worker(work, request, data, client):
     if request["phase"] != "search":
         return conditioning_role(work, request, data, client, device="cpu")
     import time
-    from oeis_learn.tracking.pipeline_profile import Recorder
+    from oeis_learn.tracking.pipeline_profile import Recorder, device_view
     from oeis_learn.pipeline_validation.progressive_generator_probe import usage_summary
     from oeis_learn.pipeline_validation.progressive_qualification import require_hip
 
@@ -1217,6 +1217,7 @@ def conditioning_worker(work, request, data, client):
     return dict(
         result,
         device="hip",
+        device_view=device_view(),
         measured_us=elapsed,
         peak_device_bytes=torch.cuda.max_memory_allocated(),
         telemetry=usage_summary(work / "output/telemetry", elapsed),
@@ -1868,8 +1869,252 @@ def control_capacity(root, area, revision, floor, installation, *, conditioning=
     ]
 
 
+def conditioning_device_evidence(out, inspection, producer, dispatch_us, render_node):
+    """Corroborate the original selected device, host lease and independent role telemetry."""
+    from oeis_learn.container_runtime import normalized_image
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_generator_probe import usage_summary
+    from oeis_learn.tracking.pipeline_profile import (
+        audit_device_view,
+        character_device,
+        gpu_sensor_path,
+    )
+
+    expected = {"/dev/kfd", render_node}
+    reported = inspection["HostConfig"].get("Devices") or []
+    mapping = (
+        isinstance(reported, list)
+        and len(reported) == len(expected)
+        and all(isinstance(e, dict) for e in reported)
+        and {e.get("PathOnHost") for e in reported} == expected
+    )
+    bad_mapping = bool(reported) and (
+        not mapping
+        or any(e.get("PathInContainer") not in (None, "", e["PathOnHost"]) for e in reported)
+    )
+    explicit = mapping and not bad_mapping and all(e.get("PathInContainer") for e in reported)
+
+    def issued_devices(argv):
+        # The engine builder terminates its option list with --entrypoint ENTRY IMAGE.
+        if not isinstance(argv, list) or not all(isinstance(a, str) for a in argv):
+            return False
+        try:
+            end = argv.index("--entrypoint")
+            if (
+                Path(argv[0]).name != "podman"
+                or argv[1] != "run"
+                or normalized_image(argv[end + 2]) != normalized_image(inspection["Image"])
+            ):
+                return False
+            devices = []
+            for i, arg in enumerate(argv[:end]):
+                if arg == "--device" or arg.startswith("--device="):
+                    spec = argv[i + 1] if arg == "--device" else arg.split("=", 1)[1]
+                    parts = spec.split(":")
+                    if (
+                        len(parts) > 3
+                        or len(parts) > 1
+                        and parts[1] != parts[0]
+                        or len(parts) == 3
+                        and parts[2] != "rwm"
+                    ):
+                        return False
+                    devices.append(parts[0])
+                elif arg.split("=", 1)[0] in {"--privileged", "--gpus", "--device-cgroup-rule"}:
+                    return False
+            return len(devices) == len(expected) and set(devices) == expected
+        except (ValueError, IndexError):
+            return False
+
+    errors = []
+    if bad_mapping:
+        errors.append("device_mapping")
+    command = confined(out, "command.json", exists=False)
+    issued = command.is_file() and issued_devices(load(command).get("argv"))
+    created = (inspection.get("Config") or {}).get("CreateCommand")
+    if ((command.is_file() or not explicit) and not issued) or (
+        created and not issued_devices(created)
+    ):
+        errors.append("device_argv")
+    sensor_matches = None
+    if "device_view" in producer:
+        try:
+            audit_device_view(
+                reported, producer["device_view"], {p: character_device(p) for p in expected}
+            )
+        except (OSError, ValueError):
+            errors.append("device_observation")
+    elif not explicit:
+        # On the original worker this sensor is set only if exactly one render
+        # node was visible inside the role. Match its PCI device to the host.
+        path = confined(out, "telemetry/capability.json", exists=False)
+        sensor = gpu_sensor_path(render_node)
+        sensor_matches = bool(
+            sensor and path.is_file() and load(path).get("gpu_sensor") == str(sensor)
+        )
+        if not sensor_matches:
+            errors.append("device_observation")
+    if producer.get("device") != "hip":
+        errors.append("hip_backend")
+    lease = load(confined(out, "gpu-lease.json"))["elapsed_us"]
+    wall, worker = producer["measured_us"], producer["worker_us"]
+    if (
+        not all(type(n) is int for n in (wall, worker, lease, dispatch_us))
+        or not 0 < wall <= worker <= lease <= dispatch_us
+    ):
+        errors.append("lease_clock")
+    telemetry = usage_summary(confined(out, "telemetry/samples.jsonl").parent, wall)
+    if telemetry != producer["telemetry"]:
+        errors.append("telemetry_replay")
+    if type(wall) is not int or telemetry["covered_us"] > wall:
+        errors.append("telemetry_coverage")
+    peak = producer["peak_device_bytes"]
+    if type(peak) is not int or peak <= 0:
+        errors.append("device_memory")
+    if errors:
+        observations = dict(
+            reported_devices=len(reported) if isinstance(reported, list) else None,
+            explicit_mapping=bool(explicit),
+            launcher_devices_match=bool(issued),
+            engine_argv_present=bool(created),
+            role_view_present="device_view" in producer,
+            sole_render_sensor_matches=sensor_matches,
+            samples=telemetry["samples"],
+            covered_us=telemetry["covered_us"],
+        )
+        for name, value in (
+            ("measured_us", wall),
+            ("worker_us", worker),
+            ("lease_us", lease),
+            ("dispatch_us", dispatch_us),
+            ("peak_device_bytes", peak),
+        ):
+            observations[name] = value if type(value) is int and value >= 0 else None
+        raise ValueError(
+            "conditioning evidence: "
+            + ",".join(errors)
+            + "\nconditioning observations: "
+            + json.dumps(observations, sort_keys=True)
+        )
+    return dict(lease_us=lease, telemetry=telemetry, peak_device_bytes=peak)
+
+
+def recover_conditioning_stage(area, journal, grant, coords, request, cost, verify, recovery):
+    """Reopen an original paid attempt. Only the host reader can run in this path."""
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal, KEYS, vector
+    from oeis_learn.generalization.progressive.contracts import load, seal
+    from oeis_learn.generalization.progressive.velocity_records import operation_key
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.preparation_recovery import retain
+    from oeis_learn.pipeline_validation.progressive_velocity_operations import (
+        check_reserved_work,
+        input_record,
+        operation_receipt,
+        replay_operation,
+        run_operation,
+    )
+
+    state = BudgetJournal.inspect_existing(
+        area / "accounting",
+        grant["identity"],
+        grant["resources"],
+        include_work=True,
+        include_windows=True,
+    )
+    logical = operation_key(coords, 0)["logical"]
+    block = confined(area, "operations/" + logical[7:])
+    group = request["method"]
+    if confined(block, "receipt.json", exists=False).is_file():
+        proof = replay_operation(area, coords, request, grant, cost, state, verify)
+        if request["phase"] == "search":
+            recovery["groups"][group] = dict(
+                search=proof["identity"], source="completed", attempt=proof["attempt"]
+            )
+        return proof, confined(block, f"attempt-{proof['attempt']:04d}")
+    if request["phase"] != "search":
+        raise ValueError("completed original model receipt required")
+    old = load(confined(block, "first-error.json"))
+    work = vector(dict(dict.fromkeys(KEYS, 0), **cost))
+    number = old["attempt"]
+    if (
+        old != seal(old)
+        or old["stage"] != coords["stage"]
+        or old["error"] != "ValueError"
+        or type(number) is not int
+        or number not in (0, 1)
+        or not (
+            old["reason"]
+            == "ValueError: original HIP devices, lease, samples, or measured clocks differ"
+            or old["reason"].startswith("ValueError: conditioning evidence: ")
+        )
+        or load(confined(block, "input.json")) != input_record(coords, request, work, grant)
+    ):
+        raise ValueError("original registered verifier rejection required")
+    key = f"{logical}/dispatch/{number}"
+    check_reserved_work(state, logical + "/dispatch/", work)
+    window = state["windows"].get(key, {})
+    if (
+        key not in state["committed"]
+        or key not in state["reserved_work"]
+        or window.get("event") != "COMMIT"
+        or window["end_us"] is None
+        or window["charged_us"] != window["end_us"] - window["start_us"]
+        or confined(block, f"boundary-{number:04d}.json", exists=False).exists()
+    ):
+        raise ValueError("original settled failed dispatch required")
+    original = confined(block, f"attempt-{number:04d}")
+    check_request = seal(
+        dict(
+            reader=recovery["reader"],
+            original=request["identity"],
+            first_error=old["identity"],
+            key=key,
+            charged_us=window["charged_us"],
+        )
+    )
+    check_coords = dict(coords, role="verify-paid-search")
+
+    def host_reader(out, allowance):
+        # No worker or container owns this host-only operation. run_operation
+        # separately supervises and terminates its verification subprocess.
+        retain(out / "reader.json", check_request)
+        retain(out / "cleanup.json", dict(acknowledged=True, within_bound=True))
+
+    def verify_original(out):
+        if load(confined(out, "reader.json")) != check_request:
+            raise ValueError("paid search reader differs")
+        evidence = verify(original)
+        if evidence["elapsed_us"] > window["charged_us"]:
+            raise ValueError("original dispatch exceeds its committed charge")
+        return seal(dict(original=operation_receipt(coords, request, grant, number, evidence)))
+
+    receipt = run_operation(
+        area=area,
+        journal=journal,
+        grant=grant,
+        coordinates=check_coords,
+        request=check_request,
+        cost={},
+        execute=host_reader,
+        verify=verify_original,
+        installed=lambda out: (out / "reader.json").is_file(),
+        max_attempts=2,
+    )
+    proof = receipt["evidence"]["original"]
+    recovery["groups"][group] = dict(
+        search=proof["identity"],
+        source="rechecked",
+        attempt=number,
+        reader_receipt=receipt["identity"],
+        original_charge_us=window["charged_us"],
+    )
+    return proof, original
+
+
 def run_control_stage(
-    root, source, area, grant, journal, host, runtime, request, data, cost, extra, proof, stage
+    root, source, area, grant, journal, host, runtime, request, data, cost, extra, proof, stage,
+    *, recovery=None
 ):
     import time
     from oeis_learn.generalization.progressive.contracts import (
@@ -1908,8 +2153,14 @@ def run_control_stage(
         coords = conditioning_coordinates(grant, method, phase, request["seed"])
     controls = area / "inputs" / method / phase
     rp, dp = controls / "request.json", controls / "data.json"
-    retain(rp, request)
-    retain(dp, data)
+    reopen = recovery is not None and phase in {"models", "search"}
+    if reopen:
+        if (load(confined(area, rp)) != request or
+                load(confined(area, dp), maximum=CAMPAIGN_DOCUMENT_BYTES) != data):
+            raise ValueError("original conditioning input differs")
+    else:
+        retain(rp, request)
+        retain(dp, data)
     worker = source / Path(LAUNCHER).with_name("qualify_continuation.py")
     wheel_dest = "/work/inputs/" + runtime["path"].name
     inputs = [
@@ -2001,18 +2252,8 @@ def run_control_stage(
             raise ValueError("original role confinement, producer or supervision clock differs")
         device = {}
         if gpu:
-            from oeis_learn.pipeline_validation.progressive_generator_probe import usage_summary
-            lease = load(confined(out, "gpu-lease.json"))["elapsed_us"]
-            wall = producer["measured_us"]
-            telemetry = usage_summary(confined(out, "telemetry/samples.jsonl").parent, wall)
-            nodes = {entry["PathOnHost"]: entry["PathInContainer"] for entry in limits.get("Devices", [])}
-            expected = {n: n for n in ("/dev/kfd", host.policy["render_node"])}
-            if (nodes != expected or producer["device"] != "hip"
-                    or not 0 < wall <= producer["worker_us"] <= lease <= dispatch["elapsed_us"]
-                    or telemetry != producer["telemetry"] or telemetry["covered_us"] > wall
-                    or type(producer["peak_device_bytes"]) is not int or producer["peak_device_bytes"] <= 0):
-                raise ValueError("original HIP devices, lease, samples, or measured clocks differ")
-            device = dict(lease_us=lease, telemetry=telemetry, peak_device_bytes=producer["peak_device_bytes"])
+            device = conditioning_device_evidence(out, inspection[0], producer, dispatch["elapsed_us"],
+                                                  host.policy["render_node"])
         if paired:
             name, version = "conditioning/result.json", CONDITIONING_ROLE
         elif bank:
@@ -2035,6 +2276,9 @@ def run_control_stage(
                 **(proof(value, out) if paired else proof(value)),
             )
         )
+
+    if reopen:
+        return recover_conditioning_stage(area, journal, grant, coords, request, cost, verify, recovery)
 
     result = run_operation(
         area=area,
@@ -2865,9 +3109,10 @@ def conditioning_panel(root, panel):
 
 
 def conditioning_matrix(
-    root, source, folder, revision, minutes, runtime, panel, wave, cuts, host, stage, previous
+    root, source, folder, revision, minutes, runtime, panel, wave, cuts, host, stage, previous,
+    *, recovery=None
 ):
-    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal, KEYS
     from oeis_learn.generalization.progressive.contracts import (
         digest,
         load,
@@ -2941,7 +3186,50 @@ def conditioning_matrix(
             bound = conditioning_work(group, phase, len(rows), 2 * len(rows) * 64)
             for k, v in bound.items():
                 work[k] = work.get(k, 0) + 2 * v
-    grant = load(authorize_qualification(root, int(minutes), plan["identity"], work))
+    if recovery is None:
+        grant = load(authorize_qualification(root, int(minutes), plan["identity"], work))
+    else:
+        try:
+            ref = recovery["grant"]
+            if not re.fullmatch(r"sha256:[0-9a-f]{64}", ref):
+                raise ValueError("original conditioning grant required")
+            area = confined(folder, "preparation/paired-conditioning/" + ref[7:])
+            grant = load(confined(area, "grant.json"))
+            if (
+                grant["identity"] != ref
+                or grant != seal(grant)
+                or load(confined(area, "plan.json")) != plan
+                or load(
+                    confined(root, "run-state/discovery-authorizations/grant-" + ref[7:] + ".json")
+                )
+                != grant
+                or grant["scope"] != "qualification"
+                or grant["total_us"] != int(minutes) * 60_000_000
+                or grant["resources"]
+                != dict(dict.fromkeys(KEYS, 0), elapsed_us=grant["total_us"], **work)
+            ):
+                raise ValueError("original conditioning grant, work or plan differs")
+            initial = BudgetJournal.inspect_existing(area / "accounting", ref, grant["resources"])
+            hip_prefixes = tuple(
+                operation_key(conditioning_coordinates(grant, g, "search", seed), 0)["logical"]
+                + "/dispatch/"
+                for g in CONDITIONING_GROUPS
+            )
+            if any(k.startswith(hip_prefixes) for k in initial["pending"]):
+                raise ValueError("original HIP dispatch has not settled")
+            recovery = files["recovery.json"] = dict(
+                grant=ref,
+                reader=recovery["reader"],
+                worker_candidate=revision,
+                original_hip_attempts=sum(k.startswith(hip_prefixes) for k in initial["committed"]),
+                additional_hip_attempts=0,
+                groups={},
+                failure_checks={},
+                observations={},
+            )
+        except (ValueError, OSError, KeyError, TypeError) as exc:
+            print(f"original grant: {exc}", file=sys.stderr)
+            return dict(report, status="BLOCKED", stage="original-grant", error=type(exc).__name__)
     auth = load(
         confined(
             root,
@@ -3010,6 +3298,7 @@ def conditioning_matrix(
             extra,
             check,
             stage,
+            recovery=recovery,
         )
 
     def capture(key, call):
@@ -3024,6 +3313,47 @@ def conditioning_matrix(
             subprocess.SubprocessError,
         ) as exc:
             errors[key] = type(exc).__name__
+            if recovery is not None:
+                match = re.search(
+                    r"conditioning evidence: ([a-z_,]+)\nconditioning observations: (\{[^\n]*\})$",
+                    str(exc),
+                )
+                if match:
+                    recovery["failure_checks"][key] = match[1].split(",")
+                    values = json.loads(match[2])
+                    fields = (
+                        "reported_devices",
+                        "explicit_mapping",
+                        "launcher_devices_match",
+                        "engine_argv_present",
+                        "role_view_present",
+                        "sole_render_sensor_matches",
+                        "samples",
+                        "covered_us",
+                        "measured_us",
+                        "worker_us",
+                        "lease_us",
+                        "dispatch_us",
+                        "peak_device_bytes",
+                    )
+                    recovery["observations"][key] = {
+                        k: values[k]
+                        for k in fields
+                        if k in values and (values[k] is None or type(values[k]) in (int, bool))
+                    }
+                else:
+                    # Exceptions from private files may contain case names or paths.
+                    known = (
+                        "original registered verifier rejection required",
+                        "original settled failed dispatch required",
+                        "original conditioning input differs",
+                        "original dispatch exceeds its committed charge",
+                        "original role confinement, producer or supervision clock differs",
+                        "registered model, opportunity, conditioning or search clock differs",
+                        "issued attempts differ from the registered opportunity",
+                    )
+                    reason = next((s for s in known if str(exc).endswith(s)), type(exc).__name__)
+                    recovery["failure_checks"][key] = [reason]
             print(f"{key}: {exc}", file=sys.stderr)
             return None
 
@@ -3211,6 +3541,10 @@ def conditioning_matrix(
         verified_leases=leases,
         recorded_lease_us=lease_us,
     )
+    if recovery is not None:
+        recovery["additional_hip_attempts"] = issued - recovery["original_hip_attempts"]
+        if recovery["additional_hip_attempts"] != 0:
+            raise ValueError("conditioning recovery issued another HIP attempt")
     files["verification.json"] = dict(
         scope="paired_conditioning_on_exposed_families",
         research_dispatches=0,
@@ -3232,10 +3566,14 @@ def conditioning_matrix(
         )
         retain(area / "receipt.json", receipt)
         report["receipt"] = receipt["identity"]
+        if recovery is not None:
+            reviewed = seal(dict(result=receipt["identity"], recovery=digest(recovery)))
+            retain(area / "recovery-receipts" / (reviewed["identity"][7:] + ".json"), reviewed)
+            report["recovery_receipt"] = reviewed["identity"]
     return report
 
 
-def donor_isolated_controls(action, root, source, revision, minutes, previous=None, *, bank_receipt=None):
+def donor_isolated_controls(action, root, source, revision, minutes, previous=None, *, bank_receipt=None, recovery=None):
     import runpy
     from oeis_learn.generalization.progressive.lifecycle import RunStore
     from oeis_learn.generalization.progressive.velocity_records import SESSION
@@ -3320,7 +3658,7 @@ def donor_isolated_controls(action, root, source, revision, minutes, previous=No
             if bank_receipt:
                 step = "conditioning-roles"
                 report = conditioning_matrix(root, source, folder, revision, minutes, runtime, panel, wave,
-                                             inventory["cuts"], host, stage, bank_receipt)
+                                             inventory["cuts"], host, stage, bank_receipt, recovery=recovery)
             elif previous:
                 report = bank_price_matrix(root, source, folder, revision, minutes, runtime, panel,
                                            wave, host, stage, previous)
@@ -3472,7 +3810,7 @@ def donor_control_history(action, root, revision):
     return report
 
 
-def main(revision, minutes, mode="donation", supplied=None):
+def main(revision, minutes, mode="donation", supplied=None, recover_grant=None):
     if mode not in MODES:
         raise SystemExit("Unknown continuation qualification mode.")
     if mode == "conditioning" and not re.fullmatch("sha256:[a-f0-9]{64}", supplied or ""):
@@ -3491,6 +3829,25 @@ def main(revision, minutes, mode="donation", supplied=None):
     def git(*args):
         return subprocess.check_output(["git", *args], cwd=root).decode().strip()
 
+    recovery = None
+    if recover_grant is not None:
+        original, grant_ref = recover_grant
+        if (
+            mode != "conditioning"
+            or not re.fullmatch("[a-f0-9]{40}", original)
+            or not re.fullmatch("sha256:[a-f0-9]{64}", grant_ref)
+            or git("rev-parse", "--verify", revision + "^{commit}") != revision
+            or subprocess.run(
+                ["git", "merge-base", "--is-ancestor", original, revision], cwd=root
+            ).returncode
+        ):
+            raise SystemExit(
+                "Recovery requires the original worker commit, grant and its pinned descendant reader."
+            )
+        recovery = dict(reader=revision, grant=grant_ref)
+        # Every subprocess, image and read-only worker mount keeps the original
+        # revision. Only this host receipt reader comes from the repair commit.
+        revision = original
     if (
         git("rev-parse", "--show-toplevel") != str(root)
         or git("rev-parse", "HEAD") != DONOR
@@ -3520,7 +3877,8 @@ def main(revision, minutes, mode="donation", supplied=None):
     if mode == "isolated-controls":
         return donor_isolated_controls(action, root, source, revision, minutes)
     if mode == "conditioning":
-        return donor_isolated_controls(action, root, source, revision, minutes, bank_receipt=supplied)
+        return donor_isolated_controls(action, root, source, revision, minutes, bank_receipt=supplied,
+                                       recovery=recovery)
     if mode == "bank-prices":
         return donor_isolated_controls(action, root, source, revision, minutes, previous=supplied)
     if mode == "control-history":
@@ -3719,6 +4077,37 @@ def verify_conditioning_zip(path):
         )
         if receipt != summary["receipt"]:
             raise ValueError("paired receipt differs from the original grant and group records")
+        if "recovery.json" in files or "recovery_receipt" in summary:
+            repair = files["recovery.json"]
+            if (
+                repair["grant"] != summary["grant"]
+                or repair["worker_candidate"] != summary["candidate"]
+                or not re.fullmatch("[0-9a-f]{40}", repair["reader"])
+                or repair["additional_hip_attempts"] != 0
+                or repair["original_hip_attempts"] != summary["hip_attempts"]
+                or repair["failure_checks"]
+                or repair["observations"]
+                or {g: v["search"] for g, v in repair["groups"].items()} != searches
+                or summary["recovery_receipt"]
+                != identity(dict(result=receipt, recovery=identity(repair)))
+            ):
+                raise ValueError(
+                    "conditioning recovery grant, search count or reader receipt differs"
+                )
+            reviewed = []
+            for group, row in repair["groups"].items():
+                if row["source"] == "rechecked":
+                    reviewed.append(row["reader_receipt"])
+                    if (
+                        not re.fullmatch("sha256:[0-9a-f]{64}", row["reader_receipt"])
+                        or row["original_charge_us"]
+                        < files["search-" + group + ".json"]["elapsed_us"]
+                    ):
+                        raise ValueError("recovery reader or original HIP debit differs")
+                elif row["source"] != "completed":
+                    raise ValueError("unknown recovered search evidence")
+            if len(set(reviewed)) != len(reviewed):
+                raise ValueError("distinct original search readers required")
         if (
             len(refs) != 6
             or paid_lease > summary["recorded_lease_us"]
@@ -3831,6 +4220,8 @@ def cli(argv):
     )
     parser.add_argument("--from-result", type=Path, help="completed fresh-start JSON for read-only readiness")
     parser.add_argument("--bank-receipt", help="completed matched bank qualification receipt for conditioning")
+    parser.add_argument("--recover-grant", nargs=2, metavar=("ORIGINAL_COMMIT","GRANT"),
+                        help="recheck paid conditioning searches and finish CPU scoring under their original grant")
     parser.add_argument("--controls-receipt", help="original isolated control receipt identity for bank pricing")
     args = parser.parse_args(argv)
     readiness = args.mode == "readiness"
@@ -3846,6 +4237,10 @@ def cli(argv):
             parser.error("conditioning requires --bank-receipt sha256:ORIGINAL_RECEIPT")
     elif args.bank_receipt is not None:
         parser.error("--bank-receipt is only valid with conditioning")
+    if args.recover_grant is not None and (args.mode != "conditioning"
+            or not re.fullmatch("[0-9a-f]{40}", args.recover_grant[0])
+            or not re.fullmatch("sha256:[0-9a-f]{64}", args.recover_grant[1])):
+        parser.error("--recover-grant requires conditioning, a full original commit and a grant identity")
     if args.mode == "bank-prices":
         if not re.fullmatch("sha256:[a-f0-9]{64}", args.controls_receipt or ""):
             parser.error("bank-prices requires --controls-receipt sha256:ORIGINAL_RECEIPT")
@@ -3860,6 +4255,8 @@ def cli(argv):
         request += (args.bank_receipt,)
     elif args.mode == "bank-prices":
         request += (args.controls_receipt,)
+    if args.recover_grant is not None:
+        request += (args.recover_grant,)
     if args.output is None:
         print(json.dumps(main(*request), indent=2))
         return 0

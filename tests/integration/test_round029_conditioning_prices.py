@@ -48,6 +48,65 @@ def test_conditioning_cli_requires_exact_bank_receipt_and_fresh_zip(tmp_path):
     assert not list(tmp_path.iterdir())
 
 
+def test_device_evidence_requires_corroboration_and_distinguishes_clocks(tmp_path, monkeypatch):
+    import json
+    from oeis_learn.generalization.progressive.contracts import atomic_write
+    from oeis_learn.pipeline_validation.progressive_generator_probe import usage_summary
+    from oeis_learn.tracking import pipeline_profile
+
+    render = "/dev/dri/renderD129"
+    sensor = tmp_path / "pci-device"
+    monkeypatch.setattr(
+        pipeline_profile, "gpu_sensor_path", lambda node: sensor if node == render else None
+    )
+    exe = api["conditioning_device_evidence"]
+    area = tmp_path / "telemetry"
+    area.mkdir()
+    (area / "samples.jsonl").write_text("")
+    atomic_write(area / "capability.json", dict(gpu_sensor=str(sensor)))
+    atomic_write(tmp_path / "gpu-lease.json", dict(elapsed_us=40))
+    image = digest("image")
+    argv = [
+        "/usr/bin/podman",
+        "run",
+        "--device",
+        "/dev/kfd",
+        "--device",
+        render,
+        "--entrypoint",
+        "env",
+        image,
+    ]
+
+    def command(args):
+        (tmp_path / "command.json").write_text(json.dumps(dict(argv=args)))
+
+    command(argv)
+    record = dict(Image=image, HostConfig=dict(Devices=[]))
+    producer = dict(
+        device="hip",
+        measured_us=20,
+        worker_us=35,
+        peak_device_bytes=10,
+        telemetry=usage_summary(area, 20),
+    )
+    assert exe(tmp_path, record, producer, 50, render)["lease_us"] == 40
+    command(argv[:5] + ["/dev/dri/renderD130"] + argv[6:])
+    with pytest.raises(ValueError, match="device_argv"):
+        exe(tmp_path, record, producer, 50, render)
+    command(argv)
+    (area / "capability.json").write_text(json.dumps(dict(gpu_sensor="/somewhere-else")))
+    with pytest.raises(ValueError, match="device_observation"):
+        exe(tmp_path, record, producer, 50, render)
+    paths = [dict(PathOnHost=p, PathInContainer=p) for p in ("/dev/kfd", render)]
+    record["HostConfig"]["Devices"] = paths
+    with pytest.raises(ValueError, match="lease_clock"):
+        exe(tmp_path, record, dict(producer, worker_us=41), 50, render)
+    record["HostConfig"]["Devices"] = paths + paths[:1]
+    with pytest.raises(ValueError, match="device_mapping"):
+        exe(tmp_path, record, producer, 50, render)
+
+
 def test_conditioning_retains_paid_evidence_if_final_verification_fails(tmp_path, monkeypatch):
     report = dict(
         scope=api["CONDITIONING"],
@@ -167,7 +226,10 @@ def test_paired_installed_paths_bind_all_candidates_scores_and_admissions(tmp_pa
         api["check_paired_scores"](wrong, score_work / "output", closed, payload, generations)
 
 
-def test_one_grant_resumes_one_search_and_seals_all_groups_before_scoring(tmp_path, monkeypatch):
+@pytest.mark.parametrize("recover_paid", [False, True])
+def test_one_grant_resumes_one_search_and_seals_all_groups_before_scoring(
+    tmp_path, monkeypatch, recover_paid
+):
     import os
     import time
     import zipfile
@@ -231,7 +293,11 @@ def test_one_grant_resumes_one_search_and_seals_all_groups_before_scoring(tmp_pa
         ns, "control_capacity", lambda *a, **kw: [dict(deficit_bytes=0, deficit_inodes=0)]
     )
     calls = []
-    fail = {"ordinary-full"}
+    fail = set() if recover_paid else {"ordinary-full"}
+    from oeis_learn.tracking import pipeline_profile
+
+    sensor = tmp_path / "fixture-pci-device"
+    monkeypatch.setattr(pipeline_profile, "gpu_sensor_path", lambda _: sensor)
 
     def stage(_host, tree, image, out, argv, *, gpu, seconds, readonly_inputs, record_lease=False):
         began = time.monotonic_ns()
@@ -275,6 +341,24 @@ def test_one_grant_resumes_one_search_and_seals_all_groups_before_scoring(tmp_pa
         if gpu:
             (out / "telemetry").mkdir()
             (out / "telemetry/samples.jsonl").write_text("")
+            atomic_write(out / "telemetry/capability.json", dict(gpu_sensor=str(sensor)))
+            atomic_write(
+                out / "command.json",
+                dict(
+                    argv=[
+                        "/usr/bin/podman",
+                        "run",
+                        "--device",
+                        "/dev/kfd",
+                        "--device",
+                        host.policy["render_node"],
+                        "--entrypoint",
+                        "env",
+                        image,
+                        "python",
+                    ]
+                ),
+            )
             result.update(
                 device="hip",
                 measured_us=us,
@@ -294,7 +378,7 @@ def test_one_grant_resumes_one_search_and_seals_all_groups_before_scoring(tmp_pa
                 dict(PathOnHost=k, PathInContainer=k)
                 for k in ("/dev/kfd", host.policy["render_node"])
             ]
-            if gpu
+            if gpu and not recover_paid
             else []
         )
         atomic_write(
@@ -331,6 +415,72 @@ def test_one_grant_resumes_one_search_and_seals_all_groups_before_scoring(tmp_pa
         stage,
         digest("bank"),
     )
+    if recover_paid:
+
+        def legacy_check(*args):
+            raise ValueError("original HIP devices, lease, samples, or measured clocks differ")
+
+        with monkeypatch.context() as legacy:
+            legacy.setitem(ns, "conditioning_device_evidence", legacy_check)
+            partial = fn(*args)
+        assert partial["status"] == "PARTIAL" and len(partial["errors"]) == 3
+        assert partial["hip_attempts"] == 3 and all(p != "score" for _, p in calls)
+        recovery = dict(grant=partial["grant"], reader="b" * 40)
+        # Prove a host with no authority for a new grant can finish the original one.
+        from oeis_learn.pipeline_validation import (
+            progressive_velocity_qualification as qualification,
+        )
+
+        monkeypatch.setattr(
+            qualification,
+            "authorize_qualification",
+            lambda *a: pytest.fail("recovery attempted a new grant"),
+        )
+        assert fn(*args, recovery=dict(recovery, grant=digest("other")))["status"] == "BLOCKED"
+        area = folder / "preparation/paired-conditioning" / partial["grant"][7:]
+        old = {p: p.read_bytes() for p in area.glob("operations/*/first-error.json")}
+        assert len(old) == 3
+        sensor_file = next(iter(old)).parent / "attempt-0000/telemetry/capability.json"
+        saved_sensor = sensor_file.read_bytes()
+        sensor_file.write_text('{"gpu_sensor":"another-device"}')
+        refused = fn(*args, recovery=recovery)
+        assert refused["status"] == "PARTIAL" and len(refused["errors"]) == 1
+        (problem,) = refused["errors"]
+        diagnostics = refused["files"]["recovery.json"]
+        assert diagnostics["failure_checks"][problem] == ["device_observation"]
+        assert diagnostics["observations"][problem]["reported_devices"] == 0
+        assert not diagnostics["observations"][problem]["sole_render_sensor_matches"]
+        assert refused["hip_attempts"] == 3 and len(calls) == 4
+        sensor_file.write_bytes(saved_sensor)
+        full = fn(*args, recovery=recovery)
+        assert full["status"] == "COMPLETE", full
+        assert full["grant"] == partial["grant"] and full["elapsed_us"] > partial["elapsed_us"]
+        assert full["hip_attempts"] == full["gpu_dispatches"] == 3
+        assert full["recorded_lease_us"] == partial["recorded_lease_us"]
+        assert all(p.read_bytes() == v for p, v in old.items())
+        assert [p for _, p in calls] == [
+            "models",
+            "search",
+            "search",
+            "search",
+            "score",
+            "score",
+            "score",
+        ]
+        details = full["files"]["recovery.json"]
+        assert details["additional_hip_attempts"] == 0 and len(details["groups"]) == 3
+        dest = tmp_path / "recovered.zip"
+        api["write_readiness_zip"](dest, full)
+        assert api["verify_conditioning_zip"](dest)["status"] == "COMPLETE"
+        wrong = deepcopy(full)
+        wrong["files"]["recovery.json"]["original_hip_attempts"] += 1
+        api["write_readiness_zip"](tmp_path / "wrong-recovery.zip", wrong)
+        with pytest.raises(ValueError, match="recovery grant"):
+            api["verify_conditioning_zip"](tmp_path / "wrong-recovery.zip")
+        again = fn(*args, recovery=recovery)
+        assert again["receipt"] == full["receipt"] and again["charged_work"] == full["charged_work"]
+        assert len(calls) == 7
+        return
     partial = fn(*args)
     assert partial["status"] == "PARTIAL" and partial["errors"] == {
         "search-ordinary-full": "ValueError"
