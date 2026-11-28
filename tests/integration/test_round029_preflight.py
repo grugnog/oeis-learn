@@ -458,7 +458,7 @@ def test_registered_mount_plan_reports_only_affected_physical_deficit(tmp_path):
             dict(
                 version="round029-mount-plan/v1",
                 owners=[owner],
-                floors=[dict(path=".", bytes=0, inodes=fs.f_favail + 1000)],
+                floors=[dict(path=".", bytes=0, inodes=fs.f_files + 1000)],
             )
         ),
     )

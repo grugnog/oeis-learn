@@ -222,4 +222,4 @@ flowchart TD
 ## Donor follow-up after the broader exposure audit
 
 - [X] T086 [US1] Reconcile the paid broader audit with the forecast. When the historical positives overlap protected families, price a fresh shared control through 4M and withhold old-stream optimizer and calibration credit. Preserve historical measurements. Per FR-002, FR-003, T019 and T020.
-- [ ] T087 [US2] Prepare an independently seeded, exposure-audited ordinary stream and matched broader candidates after a paid overlap disposition. Use one bounded qualification for native witnesses, common initialization, registered matching and eligible optimizer timings. Preserve the original debit and close unsupported treatments before research dispatch. Per FR-003–FR-006, T024 and T025.
+- [X] T087 [US2] Prepare an independently seeded, exposure-audited ordinary stream and matched broader candidates after a paid overlap disposition. Use one bounded qualification for native witnesses, common initialization, registered matching and eligible optimizer timings. Preserve the original debit and close unsupported treatments before research dispatch. Per FR-003–FR-006, T024 and T025.

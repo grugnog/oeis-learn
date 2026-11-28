@@ -833,7 +833,7 @@ def test_broader_disjointness_failure_reopens_both_treatments_without_device_or_
         register_velocity_capacity(tmp_path, dict(owner="custodian", format="round029-mount-plan/v1",
                                                   artifact=reference(tmp_path, path)))
 
-    reserve_inodes(os.statvfs(tmp_path).f_favail + 1000)
+    reserve_inodes(os.statvfs(tmp_path).f_files + 1000)
     blocked, code = run()
     assert code == 2 and blocked["next_action"] == "inspect_capacity", blocked
     assert blocked["deficit_inodes"] >= 1000 and blocked["deficit_bytes"] == 0
