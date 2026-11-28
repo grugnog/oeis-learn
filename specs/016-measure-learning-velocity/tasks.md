@@ -54,8 +54,10 @@ The donor completed all three paid conditioning pairs with zero additional GPU s
 The four supported recipes now have a complete planning estimate of 30,051.220002 s expected,
 99,420.768109 s at the observed tail, and 99,522.313993 s including the named follow-up reserve.
 On the returned mount the full wave was short 361,616,039,406 bytes. The first ordinary cut
-was short 3,834,701,534 bytes. T051 and T056 still require funded pre-score acceptance and
-an exercised trial path. [Verified donor results](validation/checkpoints.md#returned-four-recipe-launch-estimate)
+was short 3,834,701,534 bytes. The zero-token ordinary initialization fits that snapshot with
+2,040,600,866 bytes above reserve. T051 now freezes the private trial proposals and publishes a
+prospective qualification for that scope. Its physical HIP acceptance is pending. T056 still
+requires funded learner and evaluation dispatch from the accepted comparative registration.
 
 **Checkpoint at T020.** The operator can run read-only preflight on the donor and decide whether to fund preparation using the inventory alone. Prices without a valid timing receipt are labeled unmeasured or provisional.
 

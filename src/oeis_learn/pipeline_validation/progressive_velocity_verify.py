@@ -172,6 +172,9 @@ def private_result(root, folder, *, source=None):
         from . import progressive_velocity_broad_host as broad
         from . import progressive_velocity_checkpoint_host as checkpoints
 
+        from . import progressive_velocity_prescore as prescore
+
+        initial = binding["version"] == prescore.VERSION
         broader = binding["version"] == broad.VERSION
         checkpoint = binding["version"] == checkpoints.matrix.VERSION
         supply = binding["version"] == preparation.VERSION
@@ -179,6 +182,10 @@ def private_result(root, folder, *, source=None):
         if learner:
             parent = qualification_parent(
                 binding["candidate"], children=binding.get("child_restore", False)
+            )
+        elif initial:
+            parent = prescore.parent(
+                binding["candidate"], load(confined(folder, checkpoints.MARKER))
             )
         elif checkpoint:
             parent = checkpoints.parent(binding["candidate"], binding["origin"])
@@ -208,7 +215,10 @@ def private_result(root, folder, *, source=None):
             action="qualify",
         )
         snapshot = BudgetJournal.inspect_existing(
-            confined(area, "accounting"), grant["identity"], grant["resources"], include_work=checkpoint
+            confined(area, "accounting"),
+            grant["identity"],
+            grant["resources"],
+            include_work=checkpoint or initial,
         )
         if (
             snapshot["pending"]
@@ -223,9 +233,11 @@ def private_result(root, folder, *, source=None):
             if any(key not in snapshot["committed"] for key in record["debits"]):
                 raise ValueError("original learner debit missing")
             report, scope = record["identity"], "private_learner_rehearsal"
-        elif checkpoint:
+        elif checkpoint or initial:
             record = checkpoints.replay(root, folder, area, source, grant, binding, snapshot)
-            report, scope = record["identity"], "private_checkpoint_matrix"
+            report, scope = record["identity"], (
+                "private_ordinary_initialization" if initial else "private_checkpoint_matrix"
+            )
         elif broader:
             fresh = "overlap" in binding["origins"]
             if binding["origins"] != broad.original_pointers(root, folder, fresh=fresh):

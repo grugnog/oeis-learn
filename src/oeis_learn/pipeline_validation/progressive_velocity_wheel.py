@@ -68,10 +68,10 @@ def installed(wheel, expected_wheel, expected_source, *, action):
             from oeis_learn.pipeline_validation.progressive_velocity_broad import worker
 
             worker(action)
-        elif action == "checkpoint-matrix":
+        elif action in {"checkpoint-matrix", "ordinary-initialization"}:
             from oeis_learn.pipeline_validation.progressive_velocity_checkpoint import worker
 
-            worker()
+            worker(initialize=action == "ordinary-initialization")
         elif action == "run":
             runpy.run_module(
                 "oeis_learn.pipeline_validation.progressive_velocity_timing", run_name="__main__"
@@ -136,7 +136,14 @@ def main(argv):
     action, path, *args = argv
     if action == "package":
         package(Path(path), *args)
-    elif action in {"run", "check", "prepare-broad", "time-broad", "checkpoint-matrix"}:
+    elif action in {
+        "run",
+        "check",
+        "prepare-broad",
+        "time-broad",
+        "checkpoint-matrix",
+        "ordinary-initialization",
+    }:
         installed(Path(path), *args, action=action)
     else:
         raise ValueError("unknown candidate packaging action")

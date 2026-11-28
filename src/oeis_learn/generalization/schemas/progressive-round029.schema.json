@@ -245,17 +245,6 @@
         "families": {"oneOf": [{"$ref": "#/$defs/unmeasured_supply"}, {"$ref": "#/$defs/family_supply"}]},
         "matching_pairs": {"oneOf": [{"$ref": "#/$defs/unmeasured_supply"}, {"$ref": "#/$defs/pair_supply"}]},
         "prices": {"type": "object", "properties": {}, "additionalProperties": {}},
-        "launch_options": {
-          "type": "object",
-          "properties": {
-            "next_scope": {"enum": ["wave", "first_ordinary_cut", "ordinary_initialization", null]},
-            "scopes": {"type": "object", "properties": {}, "additionalProperties": {}},
-            "followup_reserve_us": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},
-            "research_authority": {"type": "null"}
-          },
-          "required": ["next_scope", "scopes", "followup_reserve_us", "research_authority"],
-          "additionalProperties": false
-        },
         "new_positive_tokens_before_overshoot_if_control_reusable": {"$ref": "progressive-common.schema.json#/$defs/integer"},
         "capacity": {"type": "object", "properties": {}, "additionalProperties": {}},
         "mount": {

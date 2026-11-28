@@ -52,6 +52,10 @@ The historical pilot should reproduce its one-seed 4M result retaining D. The re
 
 The implementation supports read-only inventory, status and verification, plus separate disposable learner and donor-continuation qualifications. Run the following from the physical root of the detached round027 donor at `77667e67176ae32fa16457d52565bae1dbe41afc`. For a fresh qualification, set `ROUND029_REV` to the full implementation SHA you intend to test. The prompt sets a cumulative wall-clock budget for this qualification. The funded clock starts after preflight and includes image acquisition, the learner and cleanup. The supervisor reserves the last two minutes for cleanup. A verified early finish charges only elapsed time. If termination cannot be verified, the full reservation stays charged. A retry with the same revision and minutes uses the same grant. Changing the minutes creates a separate authorization.
 
+The current four-recipe launch estimate and the command for the smaller funded ordinary
+initialization are in the [workstation record](validation/checkpoints.md#qualify-the-ordinary-zero-token-boundary).
+
+
 The donor completed both batch sizes in **3 min 8 s** under a **30-minute** grant. To review that run, reopen its saved receipt with the command in the [workstation record](validation/round029-release.md#reopen-the-saved-qualification). For a fresh qualification on the same donor with cached image layers, **10–15 minutes** is a planning range based on this one run and the two-minute cleanup reserve. Add the usual image-build time for a cold build.
 
 ```bash

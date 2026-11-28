@@ -212,7 +212,8 @@ def checked_methods(plan, measured):
     return measured["methods"]
 
 
-def worker():
+def worker(*, initialize=False):
+    from . import progressive_velocity_initialization as initial
     import os
     from .progressive_qualification import require_hip
     from .progressive_generator_probe import usage_summary
@@ -236,7 +237,7 @@ def worker():
             "design",
         }
         or req != seal(req)
-        or req["version"] != VERSION
+        or req["version"] != (initial.VERSION if initialize else VERSION)
         or req["source"] != digest(source_snapshot())
         or req["image"] != os.environ["OEIS_QUALIFICATION_IMAGE"]
         or req["role_policy"] != ROUND029_ROLE_POLICY
@@ -254,11 +255,13 @@ def worker():
         render_node=nodes[0] if len(nodes) == 1 else None,
         host_counters=False,
     ) as recorder:
-        with recorder.phase("checkpoint-matrix"):
-            matrix = measure(view, req["design"], out, device="cuda")
+        with recorder.phase("ordinary-initialization" if initialize else "checkpoint-matrix"):
+            measure_role = initial.measure if initialize else measure
+            matrix = measure_role(view, req["design"], out, device="cuda")
             torch.cuda.synchronize()
     elapsed = (time.monotonic_ns() - start) // 1000
-    checked_methods(req["design"], matrix)
+    if not initialize:
+        checked_methods(req["design"], matrix)
     atomic_write(
         out / "producer.json",
         seal(

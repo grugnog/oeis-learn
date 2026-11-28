@@ -252,3 +252,35 @@ The writer installs one generation before any later staged checkpoint can coexis
 the complete observed three-generation tree, its factor-of-two guard, the learner journal
 and the runtime gives 5,916,677,854 bytes on the returned mount. That leaves 2,040,600,866
 bytes above the recorded reserve. A new capacity observation is required at dispatch.
+
+## Qualify the ordinary zero-token boundary
+
+Run this block at the physical root of the same detached donor. Set `ROUND029_REV` to the full
+initialization implementation commit. The 30-minute ceiling covers one scoped qualification,
+including host roster preparation, offline wheel packaging, publication and the device role.
+Retries with the same commit and duration use its original remaining balance.
+
+```bash
+(
+  set -euo pipefail
+  umask 077
+  rev=${ROUND029_REV:?full ordinary-initialization commit}
+  out=$(mktemp -d "$HOME/round029-init.XXXXXX")
+  git fetch --no-tags origin "$rev"
+  git show "$rev:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - "$rev" 30 initialization --output "$out/initialization.zip"
+)
+```
+
+The command reopens the paid launch prices and family census, freezes the seven-recipe look
+graph and its three measured exclusions, and binds the actual wheel, image, device, seeds and
+follow-up reserve. It writes `round029-qualification.zip` and a separate copy under the original
+grant's authorization directory before the exposed worker starts. The worker writes one initial
+ordinary checkpoint and restores it twice in the same lease. A private read rehashes the
+retained state blobs and checks the original debits. The funded scope ends at zero optimizer
+updates. Comparative scoring and the full-wave trial need their own acceptance and authority.
+
+Return the printed `initialization.zip`, including after a capacity stop. Its public copy of the
+pre-score archive contains look digests and counts. Private case IDs and weights stay on the
+workstation. The standalone reader accepts `--verify-initialization-zip RESULT.zip` and an
+optional final path to the separately retained qualification ZIP for byte-for-byte verification.

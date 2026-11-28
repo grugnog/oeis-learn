@@ -21,9 +21,17 @@ LAUNCHER = "specs/016-measure-learning-velocity/validation/launch-round029.sh"
 CONDITIONING = "round029-paired-conditioning-prices/v1"
 BANK_PRICES = "round029-matched-bank-prices/v1"
 LAUNCH_PRICES = "round029-launch-preparation/v1"
-ZIP_SCOPES = {"readiness": "round029-readiness/v1", "checkpoints": "checkpoint_matrix",
-              "control-history": "round029-control-history/v1", "isolated-controls": "round029-isolated-control-prices/v1",
-              "bank-prices": BANK_PRICES, "conditioning": CONDITIONING, "launch-prices": LAUNCH_PRICES}
+INITIALIZATION = "round029-ordinary-initialization/v1"
+ZIP_SCOPES = {
+    "initialization": INITIALIZATION,
+    "readiness": "round029-readiness/v1",
+    "checkpoints": "checkpoint_matrix",
+    "control-history": "round029-control-history/v1",
+    "isolated-controls": "round029-isolated-control-prices/v1",
+    "bank-prices": BANK_PRICES,
+    "conditioning": CONDITIONING,
+    "launch-prices": LAUNCH_PRICES,
+}
 MODES = ("donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", *ZIP_SCOPES)
 
 
@@ -1849,14 +1857,9 @@ def paid_control_runtime(root, source, folder, receipt):
 
 
 def control_installation_peak(wheel, area):
-    block = os.statvfs(area).f_frsize
-    with zipfile.ZipFile(wheel) as archive:
-        info = archive.infolist()
-    dirs = {p for item in info for p in Path(item.filename).parents}
-    size = sum(((item.file_size + block - 1) // block) * block for item in info) + block * len(dirs)
-    # The role installs a checked pure-Python wheel offline, with no compiled bytecode.
-    # Allow a staging tree and its installed copy on the same filesystem.
-    return dict(bytes=2 * size, inodes=2 * (len(info) + len(dirs)))
+    from oeis_learn.pipeline_validation.progressive_velocity_launch import wheel_peak
+
+    return wheel_peak(wheel, area)
 
 
 def control_capacity(root, area, revision, floor, installation, *, conditioning=False):
@@ -4370,6 +4373,242 @@ def verify_launch_zip(path):
     )
 
 
+def donor_initialization(action, root, revision, minutes):
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.pipeline_validation import progressive_velocity_prescore as prescore
+    from oeis_learn.pipeline_validation.progressive_velocity_donation import retained_qualification
+
+    files = {}
+    report = dict(
+        scope=INITIALIZATION,
+        candidate=revision,
+        grant_minutes=int(minutes),
+        files=files,
+        research_run_requested=False,
+        scientific_verdict=None,
+        status="PARTIAL",
+        errors={},
+    )
+    stage = "preflight"
+    try:
+        flight = action("preflight")["inventory"]
+        if flight["gpu_dispatches"] or flight["assessment"] != "sealed":
+            raise ValueError("invalid read-only launch inventory")
+        options = flight["prices"]["launch_options"]
+        files["launch.json"] = options
+        if options["scopes"]["ordinary_initialization"]["tail_with_reserve_us"] is None:
+            raise ValueError("paid initialization and follow-up prices required")
+        stage = "qualification"
+        authority = prescore.authorize(root, revision, minutes)
+        grant = load(authority)
+        report["grant"] = grant["identity"]
+        paid = action("qualify", authority)
+        rec = paid["receipt"]
+        if (
+            paid["scope"] != "ordinary_initialization"
+            or paid["research_dispatches"]
+            or paid["charged_tokens"]
+        ):
+            raise ValueError("ordinary zero-token qualification required")
+        stage = "private-replay"
+        status, checked = action("status"), action("verify")
+        if not (
+            status["last_committed_ref"] == checked["report_ref"] == rec["identity"]
+            and checked["verification_scope"] == "private_ordinary_initialization"
+        ):
+            raise ValueError("private closure differs from issued initialization")
+        raw = retained_qualification(root, grant).read_bytes()
+        if len(raw) > 1 << 20:
+            raise ValueError("bounded pre-score archive required")
+        files["prescore.json"] = dict(
+            sha256=hashlib.sha256(raw).hexdigest(), base64=base64.b64encode(raw).decode("ascii")
+        )
+        cut = rec["initialization"]
+        files["cut.json"] = dict(
+            receipt=rec["identity"],
+            prescore=rec["prescore"],
+            plan=cut["plan"],
+            checkpoint=cut["checkpoint"]["sha256"],
+            **select_fields(
+                cut, "weights", "tokens", "updates", "state", "restores", "clocks", "allocation"
+            ),
+            lease_us=rec["lease_us"],
+            peak_device_bytes=rec["peak_device_bytes"],
+            capacity=rec["capacity"],
+        )
+        files["verification.json"] = select_fields(
+            checked, "report_ref", "verification_scope", "mechanical_status"
+        )
+        report.update(
+            status="COMPLETE",
+            elapsed_us=paid["elapsed_us"],
+            remaining_us=paid["remaining_authority"],
+        )
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError, SystemExit) as exc:
+        print(f"{stage}: {exc}", file=sys.stderr)
+        report["errors"][stage] = type(exc).__name__
+        if isinstance(exc, SystemExit):
+            try:
+                failed = json.loads(str(exc))
+                files["failure.json"] = select_fields(
+                    failed,
+                    *[
+                        k
+                        for k in (
+                            "mechanical_status",
+                            "stage",
+                            "elapsed_us",
+                            "remaining_authority",
+                            "deficit_bytes",
+                            "deficit_inodes",
+                        )
+                        if k in failed
+                    ],
+                )
+            except (ValueError, TypeError):
+                pass
+    return report
+
+
+def verify_initialization_zip(path, qualification=None):
+    summary, files = diagnostic_zip_members(path, INITIALIZATION)
+    if (
+        summary.get("research_run_requested") is not False
+        or summary.get("scientific_verdict") is not None
+    ):
+        raise ValueError("expected an initialization-only diagnostic")
+    if summary["status"] != "COMPLETE":
+        if summary["status"] not in {"PARTIAL", "UNVERIFIED"} or not summary.get(
+            "errors", summary.get("checks")
+        ):
+            raise ValueError("missing initialization failure disposition")
+        return dict(
+            status=summary["status"],
+            errors=summary.get("errors", summary.get("checks")),
+            failure=files.get("failure.json"),
+        )
+    if (
+        set(files) != {"prescore.json", "cut.json", "verification.json", "launch.json"}
+        or summary["errors"]
+    ):
+        raise ValueError("incomplete initialization archive")
+    copy = files["prescore.json"]
+    raw = base64.b64decode(copy["base64"], validate=True)
+    member = "ordinary-initialization-qualification.json"
+    if len(raw) > 1 << 20 or hashlib.sha256(raw).hexdigest() != copy["sha256"]:
+        raise ValueError("external pre-score copy differs")
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        if (
+            archive.namelist() != [member]
+            or archive.getinfo(member).compress_type != zipfile.ZIP_STORED
+        ):
+            raise ValueError("unexpected pre-score archive membership")
+        q = json.loads(archive.read(member))
+
+    if qualification is not None:
+        with Path(qualification).open("rb") as original:
+            if original.read(len(raw) + 1) != raw:
+                raise ValueError("independently retained pre-score archive differs")
+    canonical = io.BytesIO()
+    with zipfile.ZipFile(canonical, "w") as archive:
+        entry = zipfile.ZipInfo(member)
+        entry.create_system = 3
+        entry.external_attr = 0o600 << 16
+        archive.writestr(
+            entry, json.dumps(q, sort_keys=True, allow_nan=False, separators=(",", ":")).encode()
+        )
+    if raw != canonical.getvalue():
+        raise ValueError("alternate pre-score archive encoding")
+
+    def identity(value):
+        return (
+            "sha256:"
+            + hashlib.sha256(
+                json.dumps(
+                    value, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False
+                ).encode()
+            ).hexdigest()
+        )
+
+    def sealed(row):
+        return row["identity"] == identity({k: v for k, v in row.items() if k != "identity"})
+
+    cut, checked, options = (files[k + ".json"] for k in ("cut", "verification", "launch"))
+    quote = q["quote"]
+    if (
+        not sealed(q)
+        or not sealed(quote)
+        or q["version"] != INITIALIZATION
+        or q["scope"] != "ordinary_initialization"
+        or q["candidate"] != summary["candidate"]
+        or q["grant"] != summary["grant"]
+        or q["target"] != 0
+        or q["score_authority"] is not None
+        or q["graph"] != identity(q["looks"])
+        or q["supported"] != ["00", "04", "05", "06"]
+        or set(q["trials"]) != {f"{n:02}" for n in range(7)}
+        or set(q["omitted"]) != {"01", "02", "03"}
+        or cut["weights"] != q["initial_weights"]
+        or any(
+            not re.fullmatch("sha256:[0-9a-f]{64}", v)
+            for v in (
+                cut["checkpoint"],
+                cut["receipt"],
+                cut["state"],
+                q["wheel"],
+                q["source"],
+                q["image"],
+                q["physical"],
+            )
+        )
+        or any(
+            type(v) is not int or v <= 0
+            for v in [
+                cut["allocation"]["bytes"],
+                cut["allocation"]["inodes"],
+                cut["peak_device_bytes"],
+                *cut["clocks"]["save"],
+                *cut["clocks"]["load"],
+            ]
+        )
+        or sum(cut["clocks"]["save"] + cut["clocks"]["load"]) > cut["lease_us"]
+        or not 0 < quote["expected_us"] <= quote["tail_us"]
+        or min(summary["remaining_us"], summary["elapsed_us"]) < 0
+        or cut["plan"] != q["plan"]
+        or checked["report_ref"] != cut["receipt"]
+        or checked["mechanical_status"] != "VERIFIED"
+        or checked["verification_scope"] != "private_ordinary_initialization"
+        or cut["prescore"] != q["identity"]
+        or (cut["tokens"], cut["updates"]) != (0, 0)
+        or cut["restores"] != [cut["state"]] * 2
+        or len(cut["clocks"]["save"]) != 1
+        or len(cut["clocks"]["load"]) != 2
+        or not 0 < cut["lease_us"] <= summary["elapsed_us"]
+        or not q["total_us"]
+        == summary["grant_minutes"] * 60_000_000
+        == summary["elapsed_us"] + summary["remaining_us"]
+        or quote["followup_reserve_us"] != options["followup_reserve_us"]
+        or options["research_authority"] is not None
+        or not cut["capacity"]
+        or any(
+            m["deficit_" + u] or m["available_" + u] < m["required_" + u] + m["reserved_" + u]
+            for m in cut["capacity"]
+            for u in ("bytes", "inodes")
+        )
+    ):
+        raise ValueError("pre-score inputs, paid zero cut or independent verification differ")
+    return dict(
+        status="COMPLETE",
+        prescore=q["identity"],
+        registration=q["registration"],
+        receipt=cut["receipt"],
+        allocation=cut["allocation"],
+        restores=len(cut["restores"]),
+        lease_us=cut["lease_us"],
+        research_dispatches=0,
+    )
+
+
 def main(revision, minutes, mode="donation", supplied=None, recover_grant=None):
     if mode not in MODES:
         raise SystemExit("Unknown continuation qualification mode.")
@@ -4434,6 +4673,8 @@ def main(revision, minutes, mode="donation", supplied=None, recover_grant=None):
     def action(name, *args, at=revision):
         return checked_json(["bash", str(source / LAUNCHER), at, name, *map(str, args)], root, name)
 
+    if mode == "initialization":
+        return donor_initialization(action, root, revision, minutes)
     if mode == "launch-prices":
         return donor_launch_prices(action, root, revision, minutes, supplied)
     if mode == "isolated-controls":
@@ -4984,6 +5225,8 @@ def cli(argv):
                 code = 1
         elif args.mode == "bank-prices":
             verify_bank_zip(out.name)
+        elif args.mode == "initialization":
+            verify_initialization_zip(out.name)
         elif args.mode == "launch-prices":
             verify_launch_zip(out.name)
         os.link(out.name, args.output)
@@ -5070,6 +5313,8 @@ def review_launch(revision, minutes):
 if __name__ == "__main__":
     if len(sys.argv) == 4 and sys.argv[1] == "--review-launch":
         sys.exit(review_launch(*sys.argv[2:]))
+    elif len(sys.argv) in (3, 4) and sys.argv[1] == "--verify-initialization-zip":
+        print(json.dumps(verify_initialization_zip(*sys.argv[2:]), indent=2))
     elif len(sys.argv) == 3 and sys.argv[1] == "--verify-launch-zip":
         print(json.dumps(verify_launch_zip(sys.argv[2]), indent=2))
     elif len(sys.argv) == 3 and sys.argv[1] == "--verify-conditioning-zip":

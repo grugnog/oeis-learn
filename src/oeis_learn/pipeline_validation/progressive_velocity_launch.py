@@ -249,6 +249,15 @@ def role_storage(area, grant, state, coords, *, recovered=None):
     ]
 
 
+def wheel_peak(wheel, area):
+    block = os.statvfs(area).f_frsize
+    with zipfile.ZipFile(wheel) as archive:
+        members = archive.infolist()
+    directories = {parent for m in members for parent in Path(m.filename).parents}
+    blocks = sum((m.file_size + block - 1) // block for m in members) + len(directories)
+    return dict(bytes=2 * blocks * block, inodes=2 * (len(members) + len(directories)))
+
+
 def sample_storage(root, wave):
     from .progressive_research_inputs import checked_file
 
@@ -333,16 +342,11 @@ def sample_storage(root, wave):
         root,
         dict(path=str(wheel.relative_to(root)), bytes=wheel.stat().st_size, sha256=plan["wheel"]),
     )
-    block = os.statvfs(paired).f_frsize
-    with zipfile.ZipFile(wheel) as z:
-        members = z.infolist()
-    dirs = {p for m in members for p in Path(m.filename).parents}
-    allocated = sum((m.file_size + block - 1) // block for m in members) + len(dirs)
     return dict(
         cases=8,
         checkpoint=wave["checkpoint_receipt"],
         grant=grant["identity"],
-        runtime=dict(bytes=2 * block * allocated, inodes=2 * (len(dirs) + len(members))),
+        runtime=wheel_peak(wheel, paired),
         roles=roles,
         private_read_us=verifier,
     )

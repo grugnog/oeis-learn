@@ -477,6 +477,8 @@ def checked_price_source(root, source, binding):
         "progressive_velocity_timing_host.py",
         "progressive_velocity_checkpoint.py",
         "progressive_velocity_checkpoint_host.py",
+        "progressive_velocity_initialization.py",  # separate zero-look checkpoint qualification
+        "progressive_velocity_prescore.py",  # host-only preparation and publication
         "progressive_velocity_ledger_prices.py",  # separate host-only durable-accounting rehearsal
         "progressive_velocity_launch.py",  # read-only launch sizing outside both optimizer workers
         "progressive_velocity_verify.py",

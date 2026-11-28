@@ -12,6 +12,7 @@ from . import progressive_velocity_checkpoint as matrix
 from .identity import confined
 from .preparation_recovery import retain, revise
 from .progressive_handoff import stage
+
 from .progressive_research_resources import velocity_capacity
 from .progressive_roles import ROUND029_ROLE_POLICY
 from .progressive_round028_rehearsal import physical_scope
@@ -162,7 +163,7 @@ def incomplete(root, source, authority):
     return partial_treatments(area, grant, plan)
 
 
-def stages(root, area, grant, binding, projection, plan, run):
+def stages(root, area, grant, binding, projection, plan, run, *, freeze=None):
     def verify_package(out):
         runtime = load(confined(out, "runtime.json"))
         package_evidence(root, area, runtime, binding)
@@ -175,7 +176,7 @@ def stages(root, area, grant, binding, projection, plan, run):
     runtime = load(confined(package_out, "runtime.json"))
     request = seal(
         dict(
-            version=matrix.VERSION,
+            version=binding["version"],
             physical=binding["physical"],
             image=runtime["parent"]["image"],
             source=binding["source"],
@@ -184,6 +185,8 @@ def stages(root, area, grant, binding, projection, plan, run):
             projection=reference(projection.parent, projection),
         )
     )
+
+    commitment = freeze(binding, request, plan, runtime) if freeze else None
 
     def verify_device(out):
         from .progressive_generator_probe import usage_summary
@@ -204,25 +207,36 @@ def stages(root, area, grant, binding, projection, plan, run):
             or telemetry["covered_us"] > elapsed
         ):
             raise ValueError("invalid checkpoint matrix producer or physical clocks")
-        rows = matrix.checked_methods(plan, data["matrix"])
-        for method, row in rows.items():
-            if load(confined(out, f"recipe-{method}.json")) != matrix.treatment(plan, method, row):
-                raise ValueError(
-                    "individually published treatment differs from its completed matrix"
+        if commitment:
+            from .progressive_velocity_initialization import verify_cut
+
+            cut = verify_cut(plan, data["matrix"], out)
+            if sum(sum(v) for v in cut["clocks"].values()) > elapsed:
+                raise ValueError("ordinary save and restore clocks exceed the device role")
+            verified = dict(initialization=cut, prescore=commitment)
+        else:
+            rows = matrix.checked_methods(plan, data["matrix"])
+            for method, row in rows.items():
+                if load(confined(out, f"recipe-{method}.json")) != matrix.treatment(
+                    plan, method, row
+                ):
+                    raise ValueError(
+                        "individually published treatment differs from its completed matrix"
+                    )
+            if (
+                sum(
+                    r[k]
+                    for r in rows.values()
+                    for k in ("first_cut_us", "resumed_cut_us", "restore_us")
                 )
-        if (
-            sum(
-                r[k]
-                for r in rows.values()
-                for k in ("first_cut_us", "resumed_cut_us", "restore_us")
-            )
-            > data["elapsed_us"]
-        ):
-            raise ValueError("treatment clocks exceed the measured device stage")
+                > data["elapsed_us"]
+            ):
+                raise ValueError("treatment clocks exceed the measured device stage")
+            verified = dict(methods=rows)
         return seal(
             dict(
                 producer=data["identity"],
-                methods=rows,
+                **verified,
                 capacity=dispatch_capacity(out, request),
                 elapsed_us=elapsed,
                 lease_us=lease,
@@ -241,7 +255,7 @@ def stages(root, area, grant, binding, projection, plan, run):
     )
     return seal(
         dict(
-            version=matrix.VERSION,
+            version=binding["version"],
             binding=binding["identity"],
             origin=plan["origin"],
             package_capacity=installed["evidence"]["capacity"],
@@ -254,6 +268,28 @@ def stages(root, area, grant, binding, projection, plan, run):
 
 def replay(root, folder, area, source, grant, binding, snapshot):
     pointer, projection, physical, plan = inputs(root, folder, source)
+    freeze = None
+    from . import progressive_velocity_prescore as prescore
+
+    if binding["version"] == prescore.VERSION:
+        plan, quote, _ = prescore.funded_inputs(
+            root,
+            folder,
+            area,
+            binding["candidate"],
+            source,
+            physical,
+            plan,
+            binding["floor_gib"],
+            grant,
+            snapshot=snapshot,
+        )
+
+        def freeze(binding, request, terms, runtime):
+            return prescore.funded_publication(
+                root, area, grant, binding, request, quote, terms, runtime, snapshot=snapshot
+            )
+
     if (
         binding != seal(binding)
         or binding["origin"] != pointer
@@ -268,7 +304,7 @@ def replay(root, folder, area, source, grant, binding, snapshot):
             area, coordinates(grant, phase), request, grant, work, snapshot, verify
         )
 
-    return stages(root, area, grant, binding, projection, plan, reopen)
+    return stages(root, area, grant, binding, projection, plan, reopen, freeze=freeze)
 
 
 def inventory(root, source):
@@ -331,30 +367,24 @@ def inventory(root, source):
     )
 
 
-def qualify(args, root, folder, source, revision, grant, host_factory):
+def qualify(args, root, folder, source, revision, grant, host_factory, *, initialize=False):
+    from . import progressive_velocity_prescore as prescore
     from .progressive_round029 import result
 
     pointer, projection, physical, plan = inputs(root, folder, source)
-    if parent(revision, pointer) != grant["registration_or_parent_ref"]:
+    expected_parent = (
+        prescore.parent(revision, load(confined(folder, MARKER)))
+        if initialize
+        else parent(revision, pointer)
+    )
+    if expected_parent != grant["registration_or_parent_ref"]:
         raise ValueError("checkpoint qualification authority differs")
     area = confined(folder, "qualification/" + grant["identity"][7:], exists=False)
     area.mkdir(parents=True, exist_ok=True)
-    binding = seal(
-        dict(
-            version=matrix.VERSION,
-            candidate=revision,
-            source=digest(collect_snapshot(source)),
-            grant=grant["identity"],
-            origin=pointer,
-            physical=physical,
-            plan=plan["identity"],
-        )
-    )
-    retain(area / "binding.json", binding)
     retain(area / "grant.json", grant)
     journal = BudgetJournal(area / "accounting", grant["identity"], grant["resources"])
     host = None
-    phase = "package"
+    phase = "freeze_trials" if initialize else "package"
 
     def machine():
         nonlocal host
@@ -371,7 +401,17 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
             floor = max(
                 machine().policy["free_disk_floor_bytes"], getattr(args, "free_disk_gib", 0) << 30
             )
-            space.extend(capacity(root, area, revision, phase, floor))
+            if initialize and phase == "measure":
+                original = broad.attempt(area, coordinates(grant, "package"), grant)
+                runtime = load(confined(original, "runtime.json"))
+                wheel = wheel_mounts(area, runtime)[1][0]
+                from .progressive_velocity_launch import wheel_peak
+
+                space.extend(
+                    prescore.dispatch_space(area, prefix, floor, installed=wheel_peak(wheel, area))
+                )
+            else:
+                space.extend(capacity(root, area, revision, phase, floor))
 
         def execute(out, allowance):
             deadline = time.monotonic_ns() + allowance * 1000
@@ -437,7 +477,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
                     "-I",
                     "-B",
                     extras[0][1],
-                    "checkpoint-matrix",
+                    "ordinary-initialization" if initialize else "checkpoint-matrix",
                     extras[1][1],
                     runtime["wheel"]["sha256"],
                     binding["source"],
@@ -465,15 +505,52 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
 
     extra = {}
     try:
-        rec = stages(root, area, grant, binding, projection, plan, run)
+        freeze = None
+        if initialize:
+            plan, quote, prefix = prescore.funded_inputs(
+                root,
+                folder,
+                area,
+                revision,
+                source,
+                physical,
+                plan,
+                getattr(args, "free_disk_gib", 5),
+                grant,
+            )
+
+            def freeze(binding, request, terms, runtime):
+                return prescore.funded_publication(
+                    root, area, grant, binding, request, quote, terms, runtime
+                )
+
+        binding = seal(
+            dict(
+                version=prescore.VERSION if initialize else matrix.VERSION,
+                candidate=revision,
+                source=digest(collect_snapshot(source)),
+                grant=grant["identity"],
+                origin=pointer,
+                **(dict(floor_gib=getattr(args, "free_disk_gib", 5)) if initialize else {}),
+                physical=physical,
+                plan=plan["identity"],
+            )
+        )
+        retain(area / "binding.json", binding)
+        rec = stages(root, area, grant, binding, projection, plan, run, freeze=freeze)
         retain(area / "receipt.json", rec)
         marker = seal(dict(grant=grant["identity"], receipt=rec["identity"]))
-        if not (folder / MARKER).is_file() or load(confined(folder, MARKER)) != marker:
-            revise(folder / MARKER, marker)
+        marker_path = "preparation/ordinary-initialization.json" if initialize else MARKER
+        if not (folder / marker_path).is_file() or load(confined(folder, marker_path)) != marker:
+            revise(folder / marker_path, marker)
         status, code, reason, nxt = (
             "COMPLETE",
             0,
-            "Four disposable checkpoint cycles verified",
+            (
+                "Ordinary initialization and two zero-token restores verified"
+                if initialize
+                else "Four disposable checkpoint cycles verified"
+            ),
             "verify",
         )
         extra = dict(
@@ -507,7 +584,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
         elapsed_us=balance["consumed"]["elapsed_us"],
         charged_tokens=balance["consumed"]["tokens"],
         research_dispatches=0,
-        scope="checkpoint_matrix",
+        scope="ordinary_initialization" if initialize else "checkpoint_matrix",
         stage=phase,
         **extra,
     )

@@ -160,6 +160,7 @@ CPU_TESTS = (
     "tests/unit/test_progressive_models.py",
     "tests/unit/test_discovery_readiness.py",
     "tests/integration/test_round029_checkpoint_matrix.py",
+    "tests/integration/test_round029_prescore.py",
     "tests/unit/test_round029_supported_wave.py",
 )
 

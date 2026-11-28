@@ -59,6 +59,31 @@ def test_four_recipe_checkpoint_matrix_saves_restores_and_prices_each_worker(tmp
             design, seal(dict(measured, methods=dict(rows, **{"04": changed})))
         )
 
+    from oeis_learn.pipeline_validation import progressive_velocity_initialization as init
+
+    terms = seal(
+        dict(
+            projection=view["identity"],
+            start=view["fresh_start"],
+            origin=design["origin"],
+            initial_weights=ordinary["initial_weights"],
+            microbatch=design["microbatch"],
+            learner=design["methods"]["00"]["package"],
+        )
+    )
+    zero = tmp_path / "initialization"
+    zero.mkdir()
+    measured = init.measure(view, terms, zero, device="cpu")
+    assert measured["tokens"] == measured["updates"] == 0
+    assert measured["restores"] == [measured["state"]] * 2
+    assert init.verify_cut(terms, measured, zero) == measured
+    state = load(zero / "learner/checkpoint" / measured["checkpoint"]["path"])
+    artifact = zero / "learner/checkpoint" / state["states"]["weights"]["path"]
+    with artifact.open("r+b") as f:
+        f.write(b"changed")
+    with pytest.raises(ValueError):
+        init.verify_cut(terms, measured, zero)
+
 
 @pytest.mark.parametrize("interrupt", [False, True])
 def test_checkpoint_matrix_grant_routes_checks_capacity_and_replays_one_device_lease(
@@ -333,7 +358,9 @@ def test_preflight_reports_only_cycles_from_the_qualified_stream(tmp_path, monke
     monkeypatch.setattr(runpy, "run_path", lambda _: dict(settled_launch_estimate=quote))
     scoped = host.preflight(tmp_path, source)
     assert scoped["next_action"] == "qualify"
-    assert scoped["inventory"]["launch_options"]["next_scope"] == "ordinary_initialization"
+    assert (
+        scoped["inventory"]["prices"]["launch_options"]["next_scope"] == "ordinary_initialization"
+    )
     assert scoped["inventory"]["prices"]["launch_estimate"]["tail_us"] == 80
     assert not list(tmp_path.iterdir())
     monkeypatch.setattr(
