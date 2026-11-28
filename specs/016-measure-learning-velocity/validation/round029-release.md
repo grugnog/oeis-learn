@@ -116,3 +116,11 @@ This command reproduces the receipt check from the same detached donor root usin
     python3 -I -B -
 )
 ```
+
+### Broader exposure qualification
+
+The returned summary for candidate `0ba8cef5d80727ccea8d906735aca636fda4f43f` binds broader receipt `sha256:d3b0165973d96500b33af4a70ad32af3728459e82bf27199ae72d91015f031ad` to ordinary measurement `sha256:c1f759dfe8abeebd5096155b942fe158450270ecba612cd789b49f0d1d863076`. The custodian checked 440,083 historical rows and excluded 3,941 of 4,212 original positive slots. The remaining 271 slots spanned 259 eligible components. The disposition was `requires_fresh_disjoint_start`.
+
+The grant charged 448.345937 seconds and reserved 512 draw units. The audit stopped before drawing candidates, invoking the native verifier or acquiring HIP. It charged zero optimizer tokens and recorded zero research dispatches. The original grant retained 2,251.654063 seconds. The returned JSON had SHA-256 `16130a4645794f4a23056e38279f483c45d92416b842c42850cafc726054c32e`. Its receipt seal, ordinary measurement link and elapsed-time accounting can be checked from the summary. The underlying exposure records and paid operations reopen on the physical donor.
+
+The shared comparison now requires a fresh ordinary control at initialization, 1M and 4M useful tokens. The ordinary timings remain historical measurements of their original stream. The fresh workload needs its own matched rates before T019 and T020 can close.

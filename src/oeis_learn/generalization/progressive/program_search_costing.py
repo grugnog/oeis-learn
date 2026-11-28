@@ -376,6 +376,10 @@ def velocity_forecast(info, policy):
     work = original_probe_costs(info["cuts"], info["historical_scores"], info["original_clocks"])
     control = [c for c in info["cuts"] if c["method"] == "00"]
     missing_cuts = {c["look"] for c in control if not (c.get("weights") and c.get("lineage"))}
+    broad = info["prices"].get("broader_updates")
+    fresh_required = (broad or {}).get("disposition") == "requires_fresh_disjoint_start"
+    if fresh_required:
+        missing_cuts.update(c["look"] for c in control)
     missing_cuts.update(
         r["look"]
         for r in info["reuse"]["measurements"]
@@ -388,7 +392,7 @@ def velocity_forecast(info, policy):
         key = f"ordinary_to_{target}_tokens"
         plan["wave"][key] = 1
         observed = next(c["training_to_look_us"] for c in control if c["look"] == target)
-        if observed is not None:
+        if observed is not None and not fresh_required:
             prices[key] = dict(expected_us=observed, tail_us=observed)
     plan["wave"].update(
         {
@@ -403,7 +407,6 @@ def velocity_forecast(info, policy):
             )
         }
     )
-    broad = info["prices"].get("broader_updates")
     timed = info["prices"].get("timed_updates")
     if timed is not None:
         # Each update sample includes positive work and its actual auxiliary pass.
@@ -418,10 +421,10 @@ def velocity_forecast(info, policy):
             plan["wave"][key] = 1
             if row["id"] in device.get("methods", {}):
                 prices[key] = device["methods"][row["id"]]
-            elif row["stream"] == "ordinary" and row["id"] in timed["methods"]:
+            elif not fresh_required and row["stream"] == "ordinary" and row["id"] in timed["methods"]:
                 prices[key] = timed["methods"][row["id"]]
         clock = device.get("calibration", {}).get("elapsed_us")
-        if clock is None and timed.get("matching_scope", {}).get("full"):
+        if clock is None and not fresh_required and timed.get("matching_scope", {}).get("full"):
             clock = timed["calibration_us"]
         plan["wave"]["ordinary_matching_calibration"] = 1
         if clock is not None:
@@ -503,7 +506,7 @@ def velocity_forecast(info, policy):
         prescore_028_balance=info["prices"].get("prescore_028_balance"),
         resident_028=resident,
         provisional_guards=guards,
-        prior_score_credits=info["reuse"]["distinct_score_credits"],
+        prior_score_credits=0 if fresh_required else info["reuse"]["distinct_score_credits"],
         inference_reuse_basis="aggregate screen assumes fresh requests until the ordered graph matches",
         original_028_workloads=work,
         unit_prices=prices,

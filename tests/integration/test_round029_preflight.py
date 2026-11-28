@@ -176,6 +176,29 @@ def test_missing_ordinary_1m_does_not_reprice_the_intact_4m_cut(tmp_path, monkey
     assert prices["wave"]["operations"]["ordinary_to_1000000_tokens"] == 1
 
 
+def test_rejected_positive_stream_requires_a_new_control_and_matched_timings(tmp_path):
+    from oeis_learn.generalization.progressive.campaign import velocity_policy
+    from oeis_learn.generalization.progressive.program_search_costing import velocity_forecast
+    from oeis_learn.pipeline_validation.progressive_round029 import preflight
+
+    info = preflight(tmp_path)["inventory"]
+    for cut in info["cuts"]:
+        if cut["method"] == "00":
+            cut.update(weights=digest(cut["look"]), lineage=digest("old stream"), training_to_look_us=75)
+    info["reuse"].update(distinct_score_credits=3)
+    info["prices"].update(
+        timed_updates=dict(methods={"04": dict(expected_us=12, tail_us=13)},
+                           matching_scope={"full": True}, calibration_us=7),
+        broader_updates=dict(disposition="requires_fresh_disjoint_start", device=None),
+    )
+    prices = velocity_forecast(info, velocity_policy())
+    assert prices["missing_control_looks"] == [0, 1_000_000, 4_000_000]
+    assert prices["additional_control_tokens"] == 4_000_000 and prices["prior_score_credits"] == 0
+    assert {"ordinary_to_4000000_tokens", "optimizer_to_4M_recipe_04",
+            "ordinary_matching_calibration"} <= set(prices["wave"]["missing"])
+    assert prices["timed_updates"]["methods"]["04"]["expected_us"] == 12
+
+
 def test_preflight_prices_verified_exposed_clocks_even_without_private_freeze(
     tmp_path, monkeypatch
 ):
