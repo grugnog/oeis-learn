@@ -7,6 +7,7 @@ from oeis_learn.generalization.progressive import velocity_donation_report as pu
 from oeis_learn.generalization.progressive.contracts import digest, seal
 from oeis_learn.generalization.progressive.velocity_records import operation_key, validate_grant
 from .progressive_velocity_donation import retained_qualification
+from . import progressive_velocity_conditioning as conditioning
 
 MEMBER = "comparative-prescore.json"
 
@@ -21,7 +22,7 @@ def coordinate(grant, look=None, *, role, ordinal=0, mode="true", stage="explora
     )
 
 
-def prescore(accepted, design, grant, approval, marker, secret):
+def prescore(accepted, design, grant, approval, marker, secret, sample=None):
     graph, looks, crossings, ops = design
     expected = {}
     def add(coords, work):
@@ -40,7 +41,22 @@ def prescore(accepted, design, grant, approval, marker, secret):
         counts = Counter((row["stratum"], hmac.digest(secret, row["group"].encode(), "sha256").hex())
                          for row in series[0]["members"])
         families[profile] = [dict(stratum=s, family=f, frozen_size=n) for (s, f), n in sorted(counts.items())]
-    return seal(dict(version="round029-comparative-prescore/v1", preparation=accepted,
+    paired = {}
+    if sample is not None:
+        groups = {}
+        for op in ops:
+            if op.get("stage") == conditioning.STAGE and op["role"] == "search":
+                ref = op["roster"]
+                look = looks[ref]
+                groups.setdefault(look["method"] + "-" + look["profile"], {})[op["mode"]] = ref
+        paired["conditioning"] = dict(
+            sample=sample["identity"], prefixes=sample["prefixes"], donor_map=digest(sample["donors"]),
+            missing=sample["missing"], price=sample["price"], groups=groups,
+            families=sorted((dict(stratum=r["stratum"], frozen_size=1,
+                                  family=hmac.digest(secret, r["group"].encode(), "sha256").hex())
+                             for r in sample["members"]), key=lambda r: (r["stratum"], r["family"])),
+        )
+    return seal(dict(version="round029-comparative-prescore/v1", preparation=accepted, **paired,
                      authorization=approval, grant=grant, controller=marker, operations=expected,
                      families=families, crossings={m: {str(k): v for k,v in cuts.items()}
                                                   for m,cuts in crossings.items()}))
@@ -52,7 +68,8 @@ def install(root, grant, record):
 
 def read(path):
     record = public.read_member(path, MEMBER)
-    public.closed(record, "version preparation authorization grant controller operations families crossings", sealed=True)
+    fields = "version preparation authorization grant controller operations families crossings"
+    public.closed(record, fields + (" conditioning" if "conditioning" in record else ""), sealed=True)
     q, g = record["preparation"], record["grant"]
     validate_grant(g, record["authorization"], root=q["owner"], parent=q["identity"], action="run")
     if (record["version"] != "round029-comparative-prescore/v1" or q != seal(q)

@@ -269,7 +269,13 @@ packages, incumbent and development inputs. Recipes 00, 04, 05 and 06 train to
 their whole-update crossings. One verified common zero-look probe serves the four
 initializations. Common 1M and 4M probes and the full 4M endpoints have distinct
 operation receipts. D, template, polynomial and linear recurrence each receive
-their registered full opportunity. The grant protects 101.546 s for the named
+their registered full opportunity. At authorization the custodian freezes up to
+two development families with differing visible values per stratum. Each supported
+4M learner runs both conditioning modes at the common and full profiles on that
+sample. D runs both at full. All matched choices seal before selected scoring.
+The report gives the true-minus-shuffled effects, missing strata, actual debits
+and the bank component of the original quote. Full-bank inspection has its own
+T040 scope. The grant protects 101.546 s for the named
 follow-up and includes one shared retry allowance equal to the largest dispatch
 in each resource. A stopped learner resumes from its saved optimizer state and
 issued-update journal when available.

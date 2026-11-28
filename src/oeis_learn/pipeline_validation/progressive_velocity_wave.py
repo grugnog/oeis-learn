@@ -12,6 +12,7 @@ from oeis_learn.generalization.progressive.trials import integer
 from oeis_learn.generalization.progressive.velocity_records import SESSION, physical_root_id
 from . import progressive_velocity_checkpoint as checkpoint
 from . import progressive_velocity_trial_preparation as preparation
+from . import progressive_velocity_conditioning as conditioning
 from .identity import confined, file_hash
 from .preparation_recovery import retain
 from .progressive_research_inputs import checked_file
@@ -65,7 +66,7 @@ def probe_work(look, phase):
     return {k: v for k, v in work.items() if k != "elapsed_us" and v}
 
 
-def plan(accepted, registration, packages):
+def plan(accepted, registration, packages, sample=None):
     graph = velocity_study_looks(registration)
     if (
         accepted["registration"] != registration["identity"]
@@ -130,6 +131,15 @@ def plan(accepted, registration, packages):
         for role in ("search", "score"):
             work = {} if shared_zero else probe_work(look, role)
             ops.append(dict(role=role, roster=row["roster"], cost=work))
+    if sample is not None:
+        # Even an empty sample commits its price and measured supply disposition.
+        ops[0]["conditioning_plan"] = sample["identity"]
+        paired = list(conditioning.opportunities(sample, registration, accepted["supported"]))
+        for role in ("search", "score"):
+            for ref, look, mode in paired:
+                look_index[ref] = look
+                ops.append(dict(stage=conditioning.STAGE, role=role, mode=mode, roster=ref,
+                                cost=probe_work(look, role)))
     return graph, look_index, cuts, ops
 
 
@@ -230,7 +240,8 @@ def authorize(root, source, minutes, expected):
         reg, packages = inputs(root, folder, accepted)
         from . import progressive_velocity_wave_commitment as commitment
 
-        design = plan(accepted, reg, packages)
+        sample = conditioning.original(root, folder, source, accepted, reg, install=True)
+        design = plan(accepted, reg, packages, sample)
         ops = design[-1]
         key = family_key(folder, create=True)
         grant, approval, marker = authority(
@@ -249,5 +260,5 @@ def authorize(root, source, minutes, expected):
         path = directory / ("grant-" + grant["identity"][7:] + ".json")
         retain(path, grant)
         commitment.install(root, grant, commitment.prescore(accepted, design, grant, approval, marker,
-                                                           bytes.fromhex(key["key"])))
+                                                           bytes.fromhex(key["key"]), sample))
         return path

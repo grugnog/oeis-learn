@@ -4143,6 +4143,15 @@ def settled_launch_estimate(root, wave, preparation, reserve):
         report_ref=preparation["checkpoint_receipt"], mechanical_status="VERIFIED"
     )
     estimate = estimate_with_preparation(parts, preparation)
+    paired = conditioning_prices(parts)
+    # The original paid proxy priced each learner profile four times and D once.
+    components = {
+        k: sum((1 if name == "D-full" else 4) * sum(mode[k] for mode in group["modes"].values())
+               for name, group in paired["groups"].items())
+        for k in ("search_us", "selected_us", "bank_us")
+    }
+    expected = paired["proxy_four_treatment_paired_sample_us"]
+    estimate["conditioning_components"] = dict(components, overhead_us=expected - sum(components.values()))
     estimate["sources"] = dict(
         paired=receipt["identity"],
         bank=plan["previous"],

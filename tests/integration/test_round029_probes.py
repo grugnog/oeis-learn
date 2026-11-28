@@ -132,6 +132,34 @@ def test_shuffled_probe_changes_encoder_values_and_keeps_true_fitting_and_scorin
     assert encoder_values == [[list(map(int, prompts[1]["values"]))], [list(map(int, prompts[0]["values"]))]]
     assert replay_source("(program (return $index))", captured[0], truth[0]) == "solve"
     assert replay_source("(program (return $index))", captured[1], truth[1]) == "prefix_mismatch"
+    from shutil import copyfile
+    from oeis_learn.pipeline_validation.progressive_velocity_wave_host import visible_inputs
+    from oeis_learn.pipeline_validation.progressive_velocity_wave_role import perform
+
+    frozen = {}
+    for mode in ("true", "shuffled"):
+        work = tmp_path / ("live-" + mode)
+        (work / "inputs").mkdir(parents=True)
+        (work / "output").mkdir()
+        copyfile(tmp_path / weights["path"], work / "inputs/model.pt")
+        visible_look, visible, handles = visible_inputs(common, prompts, b"study-secret", mode)
+        req = dict(role="search", look=visible_look, model=model, seed=29, seconds=120,
+                   weight=reference(work, work / "inputs/model.pt"))
+        captured.clear()
+        encoder_values.clear()
+        child = perform(work, req, dict(prompts=visible, recipe=recipe), device="cpu")
+        assert captured == visible
+        by_handle = {p["id"]: p["values"] for p in visible}
+        assert encoder_values == [[list(map(int, by_handle[visible_look["donors"][p["id"]]]))]
+                                  for p in visible]
+        frozen[mode] = work, child
+    for mode, (work, child) in frozen.items():
+        ref = child["artifact"]
+        score_req = dict(role="score", candidates=reference(work, work / "output" / ref["path"]),
+                         probe=child["probe"], seconds=120)
+        scored = perform(work, score_req, dict(truth=[dict(r, id=handles[r["id"]]) for r in truth]),
+                         device="cpu")
+        assert load(work / "output" / scored["artifact"]["path"])["denominator"] == 2
     expected_attempts = 8
     endpoint = view(full)
     eight = evaluation.generate(tmp_path, "endpoint", prompts, recipe, client=None, model_control="earlier_checkpoint",

@@ -18,6 +18,7 @@ from oeis_learn.generalization.progressive.velocity_metrics import case_outcome_
 from oeis_learn.generalization.progressive.velocity_records import SESSION
 from oeis_learn.pipeline_validation import progressive_round029 as command
 from oeis_learn.pipeline_validation import progressive_velocity_run as runner
+from oeis_learn.pipeline_validation import progressive_velocity_conditioning as conditioning
 from oeis_learn.pipeline_validation import progressive_velocity_wave as wave
 from oeis_learn.pipeline_validation import progressive_velocity_wave_report as report
 from oeis_learn.pipeline_validation.progressive_evaluation import (
@@ -37,7 +38,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
 
     source = Path(__file__).resolve().parents[2]
     revision = "b" * 40
-    accepted, reg, packages = fixture_wave(methods)
+    accepted, reg, packages = fixture_wave(methods, paired=True)
     # Role calls, outcomes and hardware identities are synthetic in this fixture.
     for m in methods:
         packages[m] = seal(dict(packages[m], profile={"model": {"seed": 9}}))
@@ -50,6 +51,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
             seed=9,
             owner=physical_root_id(tmp_path),
             source=digest("source"),
+            sources=dict(paired=digest("paired-price"), bank=digest("bank-price")),
             wheel=digest("wheel"),
             image=digest("image"),
             assessment="sealed",
@@ -72,7 +74,16 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         {"original": 1},
     )
     (tmp_path / "run-state/discovery-authorizations").mkdir()
-    design = wave.plan(accepted, reg, packages)
+    def prompt(row):
+        offset = -3 if row["task"].endswith("0") else 7
+        return dict(id=row["task"], indices=list(map(str, range(offset, offset + 20))),
+                    values=[str(offset)] * 20)
+    prompts = {r["task"]: prompt(r) for r in reg["development"]}
+    price = dict(**accepted["sources"], methods=methods, expected_us=250, tail_us=310,
+                 search_us=120, selected_us=50, bank_us=60, overhead_us=20)
+    monkeypatch.setattr(conditioning, "paid_inputs", lambda *_: (price, prompts))
+    sample = conditioning.freeze(accepted, reg, price, prompts)
+    design = wave.plan(accepted, reg, packages, sample)
     grant, approval, marker = wave.authority(
         tmp_path,
         revision,
@@ -118,19 +129,21 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
             pass
 
         def channels(self, look):
-            prompts = [
-                dict(id=r["task"], indices=list(map(str, range(20))), values=["0"] * 20)
-                for r in look["members"]
-            ]
-            return prompts, []
+            visible = [prompt(r) for r in look["members"]]
+            return visible, [dict(p, values=p["values"] + ["123456789"] * 80) for p in visible]
 
         def supervise(self, request, data, extra, proof):
+            if "barrier" in request:
+                original = load(folder / "comparative" / grant["identity"][7:] / "sealed-conditioning-choices.json")
+                assert request["barrier"] == original["identity"]
+                assert len(original["choices"]) == 2 * (2 * len(methods) + 1)
             if request["role"] == "search":
                 import json
                 mounted = json.dumps([request, data])
                 for member in [*reg["development"], *reg["retention"]]:
                     assert all(json.dumps(member[k]) not in mounted for k in ("task", "group", "stratum"))
                 assert all(dst == "/work/inputs/model.pt" for _, dst in extra)
+                assert "123456789" not in mounted
 
             def execute(out, allowance):
                 role, method, target = (request[k] for k in ("role", "method", "target"))
@@ -175,7 +188,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
                             origin=request["origin"],
                         )
                     probe = velocity_probe(
-                        look, data["prompts"], mode="true", inference_seed=9, model=model
+                        look, data["prompts"], mode=look["mode"], inference_seed=9, model=model
                     )
                     f = out / "generated/candidates.json"
                     atomic_write(
@@ -194,7 +207,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
                     observations = {}
                     for k in probe["donors"]:
                         inference = probe_inference(probe)
-                        status = "solve" if method == "D" else "miss"
+                        status = "solve" if method == "D" or "barrier" in request and probe["mode"] == "true" else "miss"
                         evidence = case_outcome_receipt(
                             k,
                             status=status,
@@ -319,11 +332,18 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         point = value["curves"]["oeis"]["curves"]["00"]["looks"][1]
         assert point["issued_tokens"] == 2 * point["useful_tokens"]
         assert point["unknown_execution_tokens"] == point["useful_tokens"] and point["discarded_tokens"] == 0
-    assert value["direct"]["04"]["D"]["oeis"]["losses"] == 1
+    assert value["direct"]["04"]["D"]["oeis"]["losses"] == 2
+    diagnostic = value["conditioning"]
+    assert diagnostic["selected"]["00-common"]["oeis"]["observed_pp"] == 100
+    assert diagnostic["selected"]["00-common"]["oeis"]["gains"] == 2
+    assert diagnostic["choices_barrier"] == load(renamed / "comparative" / grant["identity"][7:] /
+                                                "sealed-conditioning-choices.json")["identity"]
+    assert diagnostic["bank_dispatches"] == 0 and diagnostic["quote"] == price
+    assert diagnostic["charged_search_and_selected_us"] > 0
     assert value["curves"]["retention"]["endpoints"]["D"]["yield"]["denominator"] == 1
     assert (
         value["curves"]["oeis"]["effects"]["4000000"]["batch_decay"]["interaction"]["denominator"]
-        == 1
+        == 2
     )
     assert b'"task"' not in copy.read_bytes() and b'"truth"' not in copy.read_bytes()
     import json
@@ -373,7 +393,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         assert report.verify(alt, qcopy)["decision"] == alternative
 
     for i, tamper in enumerate(("decision", "count", "reserve", "parent", "family", "cut",
-                                "larger_grant", "below_wave", "dispatch")):
+                                "larger_grant", "below_wave", "dispatch", "conditioning_scope")):
         changed, ledger = deepcopy(value), deepcopy(account)
         if tamper == "decision":
             changed["decision"]["verdict"] = "gain"
@@ -394,6 +414,9 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
                 cut[k] += 123456
         elif tamper == "dispatch":
             ledger["dispatches"][0]["attempt"] += 3
+        elif tamper == "conditioning_scope":
+            changed["statistics"]["conditioning"]["scope"]["donor_map"] = digest("different map")
+            changed.update(report.reduce(accepted, changed["statistics"]))
         else:
             from oeis_learn.generalization.progressive.velocity_records import grant_terms
             total = 60_000_000 if tamper == "below_wave" else grant["total_us"] + 60_000_000

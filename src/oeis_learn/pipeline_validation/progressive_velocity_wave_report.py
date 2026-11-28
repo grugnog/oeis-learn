@@ -21,6 +21,7 @@ from oeis_learn.generalization.progressive.trials import integer
 from oeis_learn.generalization.progressive.velocity_report import public_family_cells
 from . import progressive_velocity_trial_preparation as preparation
 from . import progressive_velocity_wave_commitment as commitment
+from . import progressive_velocity_conditioning as conditioning
 
 ARCHIVE = public.REPORT
 MEMBER = "comparative-exploration.json"
@@ -33,9 +34,10 @@ EXPOSURE = (
 WORK = "origin receipt role beneficiaries state host boot start_us end_us charged_us issued_tokens worker_cpu_us lease_us covered_us busy_us"
 
 
-def sufficient(accepted, measured, key):
+def sufficient(accepted, measured, key, scope=None):
     expected = {r["roster"] for r in accepted["schedule"]}
-    if set(measured) != expected:
+    paired = {r for modes in (scope or {}).get("groups", {}).values() for r in modes.values()}
+    if set(measured) != expected | paired:
         raise ValueError("every supported opportunity needs its verified score")
     costs, points, panels = {}, {}, {}
     for row in accepted["schedule"]:
@@ -51,13 +53,14 @@ def sufficient(accepted, measured, key):
             work.append(span["receipt"])
         points[ref] = dict(
             score=m["scores"]["identity"],
+            **({"model": digest(m["probe"]["model"])} if scope else {}),
             measurement=m["identity"],
             work=work,
             cut=(dict({k: m["cut"][k] for k in EXPOSURE}, checkpoint=digest(m["cut"]["model"]))
                  if m["cut"] is not None else None),
         )
     for profile in ("common", "full"):
-        subset = {ref: m for ref, m in measured.items() if m["probe"]["look"]["profile"] == profile}
+        subset = {ref: measured[ref] for ref in expected if measured[ref]["probe"]["look"]["profile"] == profile}
         names = sorted(subset)
         probes = {ref: subset[ref]["probe"] for ref in names}
         rows = metrics._score_rows(subset)
@@ -67,7 +70,10 @@ def sufficient(accepted, measured, key):
             result = metrics.family_contrast(families, coordinates, dict.fromkeys(names, 1), s)
             cells.extend(public_family_cells(result, key=key)["families"])
         panels[profile] = dict(rosters=names, families=cells)
-    return dict(points=points, costs=costs, panels=panels)
+    data = dict(points=points, costs=costs, panels=panels)
+    if scope is not None:
+        data["conditioning"] = conditioning.statistics(scope, measured, key, costs)
+    return data
 
 
 def expand(panel, refs, size):
@@ -121,7 +127,8 @@ def expand(panel, refs, size):
 
 
 def reduce(accepted, data, *, draws=10_000):
-    public.closed(data, "points costs panels")
+    has_sample = "conditioning" in data
+    public.closed(data, "points costs panels" + (" conditioning" if has_sample else ""))
     points, costs = data["points"], data["costs"]
     graph, measurements, indexes, coords = {}, {}, {}, {}
     scheduled = {r["roster"]: r for r in accepted["schedule"]}
@@ -144,7 +151,9 @@ def reduce(accepted, data, *, draws=10_000):
     workstation_accounting(costs.values())
     for ref, row in scheduled.items():
         m = points[ref]
-        public.closed(m, "score measurement work cut")
+        public.closed(m, "score measurement work cut" + (" model" if has_sample else ""))
+        if has_sample:
+            public.hashes(m["model"])
         public.hashes(m["score"], m["measurement"])
         if len(set(m["work"])) != len(m["work"]) or not set(m["work"]) <= costs.keys():
             raise ValueError("missing or duplicate workstation receipt")
@@ -154,7 +163,8 @@ def reduce(accepted, data, *, draws=10_000):
         if method in accepted["supported"]:
             public.closed(cut, "checkpoint " + " ".join(EXPOSURE))
             public.hashes(cut["checkpoint"])
-            if shared_cuts.setdefault((method, target), cut) != cut:
+            if (shared_cuts.setdefault((method, target), cut) != cut
+                    or has_sample and cut["checkpoint"] != m["model"]):
                 raise ValueError("evaluation profiles refer to different training cuts")
             for k in EXPOSURE:
                 integer(cut[k])
@@ -181,6 +191,13 @@ def reduce(accepted, data, *, draws=10_000):
         measurements[ref] = dict(
             probe=dict(look=look, mode="true"), cut=cut, work=[costs[k] for k in m["work"]]
         )
+    extra = {}
+    if has_sample:
+        extra["conditioning"], diagnostic_work = conditioning.reduce_selected(
+            data["conditioning"], costs, points, accepted["schedule"])
+        if used.intersection(diagnostic_work):
+            raise ValueError("paired diagnostic work was also credited to a primary curve")
+        used.update(diagnostic_work)
     if used != costs.keys():
         raise ValueError("orphan public workstation operation")
     for method in accepted["omitted"]:
@@ -353,11 +370,11 @@ def reduce(accepted, data, *, draws=10_000):
         for m, reason in accepted["omitted"].items()
     }
     decision["missing_looks"] = missing
-    return dict(curves=curves, direct=direct, decision=decision)
+    return dict(curves=curves, direct=direct, decision=decision, **extra)
 
 
-def publication(area, grant, accepted, observed, *, marker, key, readonly):
-    data = sufficient(accepted, observed, bytes.fromhex(key))
+def publication(area, grant, accepted, observed, *, marker, key, readonly, scope=None):
+    data = sufficient(accepted, observed, bytes.fromhex(key), scope)
     value = seal(
         dict(
             version=VERSION,
@@ -380,6 +397,8 @@ def publication(area, grant, accepted, observed, *, marker, key, readonly):
 def checked_science(value, qualification):
     frozen = commitment.read(qualification)
     q = frozen["preparation"]
+    if value["statistics"].get("conditioning", {}).get("scope") != frozen.get("conditioning"):
+        raise ValueError("conditioning sample or quoted costs differ from the pre-score scope")
     if value["controller"] != frozen["controller"] or value["grant"] != frozen["grant"]["identity"]:
         raise ValueError("report differs from the independently retained operator authorization")
     for profile, panel in value["statistics"]["panels"].items():
@@ -402,7 +421,8 @@ def checked_science(value, qualification):
         raise ValueError("independent supported-wave commitment required")
     public.closed(
         value,
-        "version accepted grant registration controller statistics curves direct decision",
+        "version accepted grant registration controller statistics curves direct decision"
+        + (" conditioning" if "conditioning" in frozen else ""),
         sealed=True,
     )
     public.hashes(value["grant"])
@@ -540,6 +560,14 @@ def check_account(account, science, frozen):
     ):
         raise ValueError("private and public cumulative debits differ")
     coordinates = {d["receipt"]: frozen["operations"][d["logical"]]["coordinates"] for d in account["dispatches"]}
+    scope = frozen.get("conditioning", {})
+    for group, modes in scope.get("groups", {}).items():
+        method, profile = group.split("-")
+        for mode, ref in modes.items():
+            actual = {k for k, c in coordinates.items() if c["stage"] == conditioning.STAGE
+                      and (c["method"], c["profile"], c["input_mode"]) == (method, profile, mode)}
+            if set(science["statistics"]["conditioning"]["points"][ref]["work"]) != actual:
+                raise ValueError("conditioning sample omits or substitutes a settled mode debit")
     for row in accepted["schedule"]:
         if row["method"] in accepted["supported"]:
             refs = science["statistics"]["points"][row["roster"]]["work"]

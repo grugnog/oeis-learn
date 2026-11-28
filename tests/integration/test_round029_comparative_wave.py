@@ -7,7 +7,7 @@ from oeis_learn.generalization.progressive.velocity_records import validate_gran
 from oeis_learn.pipeline_validation import progressive_velocity_wave as wave
 
 
-def fixture_wave(methods):
+def fixture_wave(methods, *, paired=False):
     from oeis_learn.generalization.progressive.cohorts import STRATA
 
     strata = STRATA if len(methods) == 7 else ("oeis",)
@@ -16,7 +16,8 @@ def fixture_wave(methods):
         design=digest("design"),
         initialization=9,
         stream_seed=42,
-        development=[dict(task="case-" + s, group="group-" + s, stratum=s) for s in strata],
+        development=[dict(task=f"case-{s}-{i}", group=f"group-{s}-{i}", stratum=s)
+                     for s in strata for i in range(2 if paired else 1)],
         retention=[dict(task="other", group="family", stratum="retention")],
         ordinary=digest("stream"),
         broad=digest("broader"),

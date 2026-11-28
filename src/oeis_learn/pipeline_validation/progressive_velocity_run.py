@@ -10,11 +10,12 @@ from oeis_learn.generalization.progressive.contracts import digest, load, read_b
 from oeis_learn.generalization.progressive.velocity_metrics import measured_look
 from oeis_learn.generalization.progressive.velocity_records import operation_key
 from . import progressive_velocity_trial_preparation as preparation
+from . import progressive_velocity_conditioning as conditioning
 from . import progressive_velocity_wave as wave
 from . import progressive_velocity_wave_host as physical
 from .identity import confined
 from .preparation_recovery import retain, revise
-from .progressive_evaluation import probe_inference, velocity_probe
+from .progressive_evaluation import conditioning_donors, probe_inference, velocity_probe
 from .progressive_research_inputs import checked_file
 from .progressive_velocity_broad_host import attempt
 from .progressive_velocity_donation import retained_qualification
@@ -37,7 +38,7 @@ def original_balance(area, grant):
 
 
 def window(grant, accepted, coords, request, donor, cost):
-    if coords["stage"] != "exploration":
+    if coords["stage"] not in {"exploration", conditioning.STAGE}:
         return grant["total_us"] - grant["holdback_us"]
     method = coords["method"]
     if coords["role"] == "train":
@@ -101,24 +102,29 @@ def alias(original, look, prompts, cut):
     return measured_look(probe, seal(scores), cut=cut, work=original["work"])
 
 
-def screen(area, grant, marker, accepted, packages, design, donor, invoke, progress, observe, secret):
+def screen(area, grant, marker, accepted, packages, design, donor, invoke, progress, observe,
+           secret, sample, *, readonly):
     _, looks, crossings, ops = design
     cuts, generated, observed, train_work, common_work = {}, {}, {}, {}, {}
     shared = None
+    barrier = None
     for ordinal, op in enumerate(ops):
-        look = looks[op["roster"]]
+        ref = op["roster"]
+        look = looks[ref]
+        stage = op.get("stage", "exploration")
+        paired = stage == conditioning.STAGE
         method, target, profile, role = look["method"], look["look"], look["profile"], op["role"]
         progress(method, target, role)
         learner = packages.get(method)
         coords = dict(
             study=grant["identity"],
-            stage="exploration",
+            stage=stage,
             method=method,
             seed=look["seed"],
             look=target,
             panel="development",
             profile=profile,
-            input_mode="true",
+            input_mode=op.get("mode", "true"),
             role=role,
             ordinal=ordinal,
         )
@@ -190,6 +196,9 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
                     common_work.setdefault(method, []).extend(shared_roles)
                 continue
             mode = coords["input_mode"]
+            if paired:
+                conditioning.check_prompts(sample, look, prompts,
+                    conditioning_donors(look, prompts, "shuffled", look["seed"]))
             visible_look, visible, handles = physical.visible_inputs(look, prompts, secret, mode)
             # The physical supervisor also enforces the smaller per-dispatch deadline.
             seconds = min(21_600, grant["total_us"] // 1_000_000)
@@ -254,19 +263,29 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
                     return dict(artifact=ref, probe=probe)
 
             else:
-                search, search_out, _ = generated[look["identity"]]
+                search, search_out, _ = generated[ref]
                 live, f = search["probe"], search["artifact"]
                 probe = velocity_probe(look, prompts, mode=mode, inference_seed=look["seed"],
                                        model=live["model"])
                 reference = dict(f, path="inputs/candidates.json")
                 extra = [(checked_file(search_out, f), "/work/inputs/candidates.json")]
                 data = dict(truth=[dict(t, id=handles[t["id"]]) for t in truth])
+                if paired and barrier is None:
+                    choices = {o["roster"]: generated[o["roster"]][0]["artifact"]["sha256"]
+                               for o in ops if o.get("stage") == conditioning.STAGE and o["role"] == "search"}
+                    barrier = seal(dict(plan=sample["identity"], choices=choices))
+                    path = area / "sealed-conditioning-choices.json"
+                    if not readonly:
+                        retain(path, barrier)
+                    if load(path) != barrier:
+                        raise ValueError("matched choices differ from the original scoring barrier")
                 request = seal(
                     dict(
                         common,
                         data=digest(data),
                         gpu=False,
                         probe=live,
+                        **({"barrier": barrier["identity"]} if paired else {}),
                         candidates=reference,
                         seconds=seconds,
                     )
@@ -293,14 +312,16 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
             donor.credit_cut(method, out, evidence["cut"])
             train_work.setdefault(method, []).extend(work)
         elif role == "search":
-            generated[look["identity"]] = evidence, out, work
+            generated[ref] = evidence, out, work
         else:
             scores = read_bound_record(out, evidence["artifact"], version="discovery-scoring/v1")
             scores = physical.joined_scores(scores, live, probe, handles)
-            probe_work = generated[look["identity"]][2] + work
-            cumulative = train_work.get(method, []) + common_work.get(method, []) + probe_work
+            probe_work = generated[ref][2] + work
+            cumulative = probe_work if paired else train_work.get(method, []) + common_work.get(method, []) + probe_work
             m = measured_look(probe, scores, cut=cut[0]["cut"] if cut else None, work=cumulative)
-            observed[look["identity"]] = m
+            observed[ref] = m
+            if paired:
+                continue
             observe(look, m)
             if profile == "common":
                 common_work.setdefault(method, []).extend(probe_work)
@@ -320,7 +341,8 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
         )
     preparation.published(root, folder)
     reg, packages = wave.inputs(root, folder, accepted)
-    design = wave.plan(accepted, reg, packages)
+    sample = conditioning.original(root, folder, source, accepted, reg)
+    design = wave.plan(accepted, reg, packages, sample)
     minutes, rest = divmod(grant["total_us"], 60_000_000)
     secret = wave.family_key(folder)
     expected, _, marker = wave.authority(
@@ -378,7 +400,7 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
                 verify=verify,
                 before_dispatch=guard,
                 max_attempts=2,
-                minimum_us=121_000_000 if coords["stage"] == "exploration" else 1,
+                minimum_us=121_000_000 if coords["stage"] in {"exploration", conditioning.STAGE} else 1,
                 maximum_us=window(grant, accepted, coords, request, donor, cost),
             )
             snapshot = original_balance(area, grant)
@@ -450,9 +472,11 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
         def observe(look, measurement):
             trials.observe_velocity(reg, look, evidence=measurement)
         observed = screen(area, grant, marker, accepted, packages, design, donor, invoke, progress,
-                          observe, bytes.fromhex(secret["key"]))
+                          observe, bytes.fromhex(secret["key"]), sample, readonly=readonly)
         status.update(stage="publication", recipe=None, look=None)
         qualification = retained_qualification(root, grant)
+        from . import progressive_velocity_wave_commitment as commitment
+        scope = commitment.read(qualification)["conditioning"]
         request = seal(
             dict(
                 accepted=accepted["identity"],
@@ -475,7 +499,7 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
 
         def public_proof(out):
             record = report.publication(
-                area, grant, accepted, observed, marker=marker, key=secret["key"], readonly=True
+                area, grant, accepted, observed, marker=marker, key=secret["key"], readonly=True, scope=scope
             )
             if record != report.checked_science(record, qualification):
                 raise ValueError("copied comparative report differs from private observations")
@@ -494,6 +518,7 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
                         marker=marker,
                         key=secret["key"],
                         readonly=False,
+                        scope=scope,
                     )
                     return seal(
                         dict(report=record["identity"], verdict=record["decision"]["verdict"])
