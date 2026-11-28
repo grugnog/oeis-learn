@@ -4029,6 +4029,66 @@ def donor_launch_prices(action, root, revision, minutes, supplied):
     return dict(report, status="COMPLETE" if complete else "PARTIAL")
 
 
+def review_mounts(capacity):
+    """Recalculate public owner guards, mount demand, reserves and the reported fit."""
+    def count(value):
+        if type(value) is not int or value < 0:
+            raise ValueError("nonnegative physical measurement required")
+        return value
+
+    def review(rows):
+        if not rows:
+            raise ValueError("at least one destination mount required")
+        devices, owners, margins = set(), set(), []
+        for mount in rows:
+            device = count(mount["device"])
+            if device in devices:
+                raise ValueError("duplicate destination mount")
+            devices.add(device)
+            total = dict(bytes=0, inodes=0)
+            for owner in mount["owners"]:
+                key = owner["owner"]
+                if key in owners or not key:
+                    raise ValueError("duplicate storage owner")
+                owners.add(key)
+                guards = {g["units"]:g for g in owner["guards"]}
+                if guards.keys() != total.keys() or len(owner["guards"]) != len(guards):
+                    raise ValueError("storage owner requires byte and inode guards")
+                for unit, guard in guards.items():
+                    peak = max(count(guard["observed"]),count(guard["projected"]))
+                    if (not peak or guard["owner"] != key or guard["basis"] != "provisional"
+                            or count(guard["value"]) != 2*peak or count(guard["headroom"]) != peak):
+                        raise ValueError("storage guard differs from its scoped measurement")
+                    need = max(0, guard["value"] - count(owner["retained"][unit]))
+                    if count(owner["incremental"][unit]) != need:
+                        raise ValueError("incremental storage differs from the retained credit")
+                    total[unit] += need
+            result = dict(device=device)
+            for unit, need in total.items():
+                for label in ("available","reserved","required","deficit"):
+                    k = label + "_" + unit
+                    result[k] = count(mount[k])
+                short = max(0, need + result["reserved_"+unit] - result["available_"+unit])
+                if result["required_"+unit] != need or result["deficit_"+unit] != short:
+                    raise ValueError("mount requirement or physical deficit differs")
+            margins.append(result)
+        return margins
+
+    missing = capacity["missing"]
+    if not isinstance(missing, list) or not all(isinstance(k,str) and k for k in missing):
+        raise ValueError("list of missing storage prices required")
+    wave = review(capacity["wave"])
+    fits = not any(m["deficit_bytes"] or m["deficit_inodes"] for m in wave)
+    expected = False if not fits else None if missing else True
+    if capacity["fits_with_reserve"] is not expected:
+        raise ValueError("reported wave fit differs from its destination mounts")
+    result = dict(wave=wave, first_ordinary_cut=review(capacity["first_ordinary_cut"]),
+                  fits_with_reserve=expected, missing=missing)
+    if capacity.get("ordinary_initialization"):
+        result["ordinary_initialization"] = review(capacity["ordinary_initialization"])
+    return result
+
+
 def verify_launch_zip(path):
     summary, files = diagnostic_zip_members(path, LAUNCH_PRICES)
     if summary["status"] not in {"PARTIAL", "COMPLETE"}:
@@ -4080,25 +4140,7 @@ def verify_launch_zip(path):
         )
     preparation = files.get("preparation.json", {})
     capacity = preparation.get("wave_space")
-    margins = None
-    if capacity:
-        units = (
-            "device",
-            "available_bytes",
-            "available_inodes",
-            "required_bytes",
-            "required_inodes",
-            "reserved_bytes",
-            "reserved_inodes",
-            "deficit_bytes",
-            "deficit_inodes",
-        )
-        margins = dict(
-            fits_with_reserve=capacity["fits_with_reserve"],
-            missing=capacity["missing"],
-            wave=[select_fields(m, *units) for m in capacity["wave"]],
-            first_ordinary_cut=[select_fields(m, *units) for m in capacity["first_ordinary_cut"]],
-        )
+    margins = review_mounts(capacity) if capacity else None
     return dict(
         status=summary["status"],
         verified_members=len(files),

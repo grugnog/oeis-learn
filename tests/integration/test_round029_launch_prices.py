@@ -194,3 +194,33 @@ def test_private_replay_clock_uses_the_successful_verifier_boundary(tmp_path):
     assert role_storage(tmp_path, grant, state, coords, recovered=original["identity"])[0] == 5
     with pytest.raises(ValueError):
         role_storage(tmp_path, grant, state, coords, recovered=digest("other search"))
+
+
+def test_archive_review_recomputes_each_mount_and_checks_the_projected_fit(tmp_path):
+    from copy import deepcopy
+    from tests.integration.test_round029_conditioning_prices import api
+    from oeis_learn.pipeline_validation.progressive_pilot_capacity import velocity_mounts
+
+    owner = dict(owner="ordinary", scope="fixture cut", path="learner", observed=dict(bytes=45,inodes=4),
+                 projected=dict(bytes=55,inodes=5), retained=[], revision="a"*40,
+                 harm="lost cut", exhaustion="pause", rehearsal="T060")
+    mount, = velocity_mounts(tmp_path,[owner],[dict(path="learner",bytes=7,inodes=2)],
+                             measure=lambda path: (11,100,40))
+    assert mount["deficit_bytes"] == 17
+    capacity = dict(wave=[mount], first_ordinary_cut=[mount], missing=[],fits_with_reserve=False)
+    review = api["review_mounts"]
+    assert review(capacity)["first_ordinary_cut"][0]["deficit_bytes"] == 17
+    for key, value in (("fits_with_reserve", True), ("missing", "unknown")):
+        with pytest.raises(ValueError):
+            review(dict(capacity, **{key:value}))
+    for mutate in ("deficit_bytes","required_inodes","guard","owner"):
+        altered=deepcopy(capacity)
+        m=altered["wave"][0]
+        if mutate=="guard":
+            m["owners"][0]["guards"][0]["value"] += 1
+        elif mutate=="owner":
+            m["owners"].append(deepcopy(m["owners"][0]))
+        else:
+            m[mutate] += 1
+        with pytest.raises(ValueError):
+            review(altered)

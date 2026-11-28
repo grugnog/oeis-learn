@@ -204,3 +204,44 @@ the authenticated private verification times and the historical release encoding
 observed output sizes and member counts. All-in time remains unavailable while any price
 is missing. A completed preparation ZIP supports a funding decision. The pre-score freeze
 and trial runner have separate acceptance conditions.
+
+
+## Returned four-recipe launch estimate
+
+The conditioning reader verified all 15 members at worker `c561004224f380d3c3b246d9b57f013a6559b2ff`.
+The repair reused all three original HIP searches and completed their CPU scorers. The original
+grant charged 182.209383 s cumulatively, including 175.041633 s of device leases. The three
+eight-family paired panels yielded zero selected solves in either input condition. Common
+ordinary had eight measured neither-solved pairs. Full ordinary had five such pairs and three
+unresolved. Full D had seven and one unresolved. These exposed results price preparation.
+
+The launch reader at `1f3dbc3059678f4fc92e9db3d9d23688f660bffb` verified all four payloads.
+Its embedded conditioning ZIP matches the returned standalone ZIP byte for byte.
+The batch-16 and batch-32 CPU bookkeeping runs together charged 19.204501 s and zero research
+tokens. Each replay reached 4,000,117 useful fixture tokens, in 2,756 and 1,378 updates respectively.
+
+| Cached four-recipe planning scope | Expected seconds | Observed-tail seconds |
+|---|---:|---:|
+| Screen and conventional controls | 29,020.587401 | 98,048.492302 |
+| Paired search, selected scoring and banks | 438.238775 | 515.190637 |
+| Additional trajectory overhead | 84.756364 | 85.782211 |
+| Projected private verification and publication | 507.637462 | 771.302959 |
+| Total | 30,051.220002 | 99,420.768109 |
+
+The follow-up reserves 101.545884 s for matched ordinary and challenger OEIS scoring. The tail
+including that reserve is 99,522.313993 s. Publication uses a historical scale projection.
+The two preparation grants confer zero research authority.
+
+| Returned mount, bytes | Available | Required | Reserve | Deficit |
+|---|---:|---:|---:|---:|
+| Full wave | 13,325,987,840 | 369,573,318,126 | 5,368,709,120 | 361,616,039,406 |
+| First ordinary cut | 13,325,987,840 | 11,791,980,254 | 5,368,709,120 | 3,834,701,534 |
+
+The mount had 118,135,552 available inodes. The wave required 127,904 and the cut required
+3,082. These observations are dated snapshots. Recheck the destinations before dispatch.
+
+| Evidence | SHA-256 |
+|---|---|
+| Conditioning ZIP | `d1a54ad97d21fd18dd84f362883d3d103b0523a9682a92785cde00909faea0b1` |
+| Launch-pricing ZIP | `63b30739c0bfdaf968652248bd2e2afc545da1db24f057ad7800749d540ccab0` |
+| Conditioning receipt | `f7bd91485c8de8e7b5e3f8576715fa638a8592a979590757e3f544546812690c` |
