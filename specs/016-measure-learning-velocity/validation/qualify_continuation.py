@@ -811,15 +811,422 @@ ISOLATED_CONTROLS = "round029-isolated-control-prices/v1"
 BANK_SCORES = "round029-exposed-bank-scores/v1"
 
 
+CONDITIONING = "round029-paired-conditioning-prices/v1"
+CONDITIONING_ROLE = "round029-conditioning-role/v1"
+CONDITIONING_GROUPS = {"ordinary-common": ("00", "common"), "ordinary-full": ("00", "full"), "D-full": ("D", "full")}
+CONDITIONING_MODES = ("true", "shuffled")
+
+
+def conditioning_coordinates(grant, group, phase, seed):
+    return dict(
+        study=grant["identity"],
+        stage="qualification",
+        method=group,
+        seed=seed,
+        look=4_000_000,
+        panel="exposed_development",
+        profile=CONDITIONING_GROUPS.get(group, (None, "models"))[1],
+        input_mode="paired",
+        role=phase,
+        ordinal=0,
+    )
+
+
+def conditioning_work(group, phase, cases, bank_programs=None):
+    from oeis_learn.generalization.progressive.budgets import role_work_requirements
+
+    if phase == "models":
+        return {}
+    n = cases * len(CONDITIONING_MODES)
+    if phase == "search":
+        work = role_work_requirements(
+            "generate", [dict(kind="visible_prompt")] * n + [dict(kind="oeis_generation")]
+        )
+        if CONDITIONING_GROUPS[group][1] == "common":
+            work.update(draws=n, attempts=n, rejections=n)
+    else:
+        work = role_work_requirements("score", [dict(kind="development_truth")] * n)
+        if type(bank_programs) is not int or not 0 <= bank_programs <= 64 * n:
+            raise ValueError("bank request exceeds the registered number of distinct admissions")
+        work["native_work"] += bank_programs
+    return {k: v for k, v in work.items() if k != "elapsed_us" and v}
+
+
+def check_paired_search(record, out, request, data):
+    from oeis_learn.generalization.progressive.contracts import digest, read_bound_record, seal
+    from oeis_learn.pipeline_validation.pilot_clocks import CORRECT_FULL, DESCRIPTIVE, clock_record
+    from oeis_learn.pipeline_validation.progressive_timing_worker import CLOCK_FIELDS
+
+    if (
+        record["request"] != request["identity"]
+        or record["phase"] != "search"
+        or set(record["modes"]) != set(CONDITIONING_MODES)
+    ):
+        raise ValueError("paired search has a different request or mode roster")
+    total_programs = 0
+    evidence = {}
+    for mode in CONDITIONING_MODES:
+        probe = request["probes"][mode]
+        model, look = probe["model"], probe["look"]
+        item = record["modes"][mode]
+        ref = item["artifact"]
+        if ref["path"] != mode + "/candidates.json":
+            raise ValueError("unexpected paired candidate location")
+        gen = read_bound_record(out, ref, version="discovery-candidates/v1")
+        clock = gen["clock"]
+        policy = DESCRIPTIVE if look["profile"] == "common" else CORRECT_FULL
+        keys = {r["task"] for r in look["members"]}
+        if (
+            gen["model"] != model["weights"]
+            or gen["recipe"] != model["profile"]
+            or gen["checkpoint"] != model["checkpoint"]
+            or gen["methods"] != ["correct"]
+            or gen["model_control"]
+            != ("retained_D" if look["method"] == "D" else "earlier_checkpoint")
+            or gen["prompts"] != digest(sorted(data["prompts"], key=lambda p: p["id"]))
+            or clock != seal(clock)
+            or clock["policy"] != policy
+            or clock["velocity_probe"] != probe["identity"]
+            or clock["inference_seed"] != probe["inference_seed"]
+            or clock["work"] != model["weights"]
+            or clock["source"] != model["profile"]
+            or clock["expected_portfolios"] != len(keys)
+            or clock["missing_portfolios"] != 0
+            or set(gen["records"]) != keys
+            or len(clock["clocks"]) != len(keys)
+            or {c["prompt"] for c in clock["clocks"]} != keys
+            or set(item["case_us"]) != keys
+            or not 0 < gen["elapsed_us"] <= item["elapsed_us"]
+            or any(
+                type(t) is not int or t < 0
+                for t in (*item["components"].values(), *item["case_us"].values())
+            )
+        ):
+            raise ValueError("registered model, opportunity, conditioning or search clock differs")
+        for case in clock["clocks"]:
+            p = gen["records"][case["prompt"]]["costs"]["correct"]
+            if (
+                case != clock_record(**{k: case[k] for k in CLOCK_FIELDS})
+                or case["mode"] != "correct"
+                or case["snapshot"] != model["weights"]
+                or case["policy"] != policy
+                or case["expected"] != look["attempts"]
+                or case["started"] != len(p["details"])
+            ):
+                raise ValueError("issued attempts differ from the registered opportunity")
+            archive = p.get("archive", {})
+            count = sum(len(archive.get(k, [])) for k in ("retained", "omitted"))
+            if count > 64:
+                raise ValueError("bank exceeds original per-case limit")
+            total_programs += count
+        evidence[mode] = item
+    return dict(modes=evidence, bank_programs=total_programs)
+
+
+def check_paired_scores(record, out, request, data, generations):
+    from oeis_learn.generalization.progressive.contracts import digest, read_bound_record, seal
+
+    if (
+        record["request"] != request["identity"]
+        or record["phase"] != "score"
+        or set(record["modes"]) != set(CONDITIONING_MODES)
+    ):
+        raise ValueError("paired scoring has a different request or mode roster")
+    modes, outcomes = {}, {}
+    for mode in CONDITIONING_MODES:
+        probe, search = request["probes"][mode], request["search"][mode]
+        item = record["modes"][mode]
+        if (
+            item["selected"]["path"] != mode + "/selected/scores.json"
+            or item["bank"]["path"] != mode + "/output/bank/scores.json"
+            or any(type(item[k]) is not int or item[k] < 0 for k in ("bank_us", "selected_us"))
+        ):
+            raise ValueError("unexpected paired scoring artifact or clock")
+        selected = read_bound_record(out, item["selected"], version="discovery-scoring/v1")
+        scores = read_bound_record(out, item["bank"], version=BANK_SCORES)
+        bank, cells = paired_bank_projection(
+            probe,
+            data["truth"],
+            generations[mode],
+            selected,
+            search["artifact"]["sha256"],
+            search["case_us"],
+        )
+        bank_req = seal(dict(pair=request["identity"], mode=mode, data=digest(bank)))
+        checked = bank_cost_cells(bank_req, bank, scores)
+        outcomes[mode] = {k: v["equal_budget"]["status"] for k, v in selected["outcomes"].items()}
+        if set(outcomes[mode].values()) - {"solve", "miss", "unresolved"}:
+            raise ValueError("unknown selected disposition")
+        modes[mode] = dict(
+            selected_us=item["selected_us"],
+            bank_us=item["bank_us"],
+            selected_cells=cells,
+            bank_cells=checked,
+        )
+    counts = dict(both=0, true_only=0, shuffled_only=0, neither=0, unresolved=0)
+    for key, a in outcomes["true"].items():
+        b = outcomes["shuffled"][key]
+        category = (
+            "unresolved"
+            if "unresolved" in (a, b)
+            else "both"
+            if a == b == "solve"
+            else "true_only"
+            if a == "solve"
+            else "shuffled_only"
+            if b == "solve"
+            else "neither"
+        )
+        counts[category] += 1
+    return dict(modes=modes, paired_selected=counts)
+
+
+def conditioning_probes(registration, rows, prompts, models, tensors):
+    from oeis_learn.generalization.progressive.contracts import digest
+    from oeis_learn.generalization.progressive.graph import velocity_look
+    from oeis_learn.pipeline_validation.progressive_evaluation import model_receipt, velocity_probe
+
+    pairs = {}
+    for name, (method, profile) in CONDITIONING_GROUPS.items():
+        original = models[method]
+        look = velocity_look(
+            registration=registration,
+            method=method,
+            seed=original["seed"],
+            look=4_000_000,
+            profile=profile,
+            development=rows,
+            retention=[],
+        )
+        model = model_receipt(
+            look,
+            profile=digest(original["recipe"]),
+            weights=tensors[method],
+            checkpoint=original["weight"]["sha256"],
+            origin=original["origin"],
+        )
+        pairs[name] = {
+            mode: velocity_probe(look, prompts, mode=mode, inference_seed=57, model=model)
+            for mode in CONDITIONING_MODES
+        }
+    return pairs
+
+
+def paired_model_inputs(root, cuts):
+    """Project only the two weight files and their authenticated model recipes to the model reader."""
+    from oeis_learn.generalization.progressive.contracts import digest, load
+    from oeis_learn.pipeline_validation.progressive_research_inputs import checked_file
+    from oeis_learn.pipeline_validation.progressive_velocity_census import training_source
+    from oeis_learn.pipeline_validation.progressive_velocity_donor import donated_ordinary
+
+    freeze, training, _ = training_source(root)
+    donated, mounts = donated_ordinary(root)
+    weights = donated["parent"]["weights"]
+    destination = "/work/inputs/previous/" + weights["path"]
+    (ordinary_path,) = [path for path, dest in mounts if dest == destination]
+    _, campaign, _ = frozen_control_study(root)
+    (recipe_ref,) = [r for r in campaign["payload"]["references"] if r["name"] == "recipe"]
+    if (recipe_ref["role"], recipe_ref["kind"]) != ("custodian", "recipe"):
+        raise ValueError("the original D recipe authority differs")
+    base_recipe = load(checked_file(root, recipe_ref["artifact"]))
+    models, paths = {}, {}
+    for method, original, path, recipe, look in (
+        ("00", weights, ordinary_path, training["profile"], 4_000_000),
+        ("D", freeze["reference"], checked_file(root, freeze["reference"]), base_recipe, None),
+    ):
+        (cut,) = [c for c in cuts if c["method"] == method and c["look"] == look]
+        if (
+            cut["inference"] is not True
+            or original["sha256"] != cut["weights"]
+            or method == "00"
+            and (
+                cut["lineage"] != training["stream"]["identity"]
+                or cut["seeds"] != freeze["seeds"]
+                or donated["parent"]["checkpoint"]["sha256"] != cut["full_state"]
+            )
+            or method == "D"
+            and digest(recipe) != cut["recipe"]
+        ):
+            raise ValueError("model differs from the qualified original")
+        models[method] = dict(
+            method=method,
+            seed=freeze["seeds"]["initialization"],
+            recipe=recipe,
+            weight=dict(original, path="inputs/" + method + ".pt"),
+            origin=digest([cut["registration"], cut["lineage"], cut["weights"]]),
+        )
+        paths[method] = path
+    return models, paths
+
+
+def paired_bank_projection(probe, truths, generated, scores, generation_hash, case_us):
+    from oeis_learn.pipeline_validation.pilot_clocks import CORRECT_FULL, DESCRIPTIVE
+    from oeis_learn.pipeline_validation.progressive_timing_worker import observations
+
+    rows = probe["look"]["members"]
+    by_id = {r["id"]: r for r in truths}
+    truth = [by_id[r["task"]] for r in rows]
+    prompts = [dict(id=t["id"], indices=t["indices"][:20], values=t["values"][:20]) for t in truth]
+    common = probe["look"]["profile"] == "common"
+    cells = observations(
+        generated,
+        scores,
+        {r["task"]: r["stratum"] for r in rows},
+        case_us,
+        generation_hash,
+        DESCRIPTIVE if common else CORRECT_FULL,
+    )
+    if any(
+        scores["outcomes"][p["id"]]["equal_budget"]["probe_ref"] != probe["identity"]
+        for p in prompts
+    ):
+        raise ValueError("selected score has a different conditioning parent")
+    return admitted_bank_rows(rows, prompts, truth, generated, scores), cells
+
+
+def conditioning_role(work, request, data, client, *, device):
+    import time
+    from oeis_learn.generalization.progressive.baselines import load_baseline
+    from oeis_learn.generalization.progressive.contracts import (
+        atomic_write,
+        digest,
+        read_bound_record,
+        reference,
+        seal,
+    )
+    from oeis_learn.fresh.bigint_diagnostics import model_snapshot
+    from oeis_learn.pipeline_validation.progressive_evaluation import generate, score_velocity
+    from oeis_learn.pipeline_validation.progressive_research_inputs import checked_file
+
+    out = work / "output"
+    phase = request["phase"]
+    record = dict(version=CONDITIONING_ROLE, request=request["identity"], phase=phase)
+    if phase == "models" and set(data) == {"models"} and device == "cpu":
+        tensors = {}
+        for method, original in data["models"].items():
+            recipe = original["recipe"]
+            checked_file(work, original["weight"])
+            encoder, decoder, _ = load_baseline(
+                "retained_D" if method == "D" else "earlier_checkpoint",
+                recipe,
+                root=work,
+                ref=original["weight"],
+                reference_recipe=recipe if method == "00" else None,
+                device=device,
+            )
+            tensors[method] = model_snapshot(encoder, decoder)
+            del encoder, decoder
+        record["tensors"] = tensors
+    elif phase == "search" and set(data) == {"prompts", "model"}:
+        original = data["model"]
+        recipe = original["recipe"]
+        record["modes"] = {}
+        for mode in request["order"]:
+            probe = request["probes"][mode]
+            case_us, components = {}, {}
+            began = time.monotonic_ns()
+            ref = generate(
+                work,
+                mode,
+                data["prompts"],
+                recipe,
+                checkpoint=original["weight"],
+                model_control="retained_D" if original["method"] == "D" else "earlier_checkpoint",
+                reference_recipe=recipe if original["method"] == "00" else None,
+                device=device,
+                output_root=out,
+                client=client,
+                seconds=21600,
+                methods=("correct",),
+                registered_probe=probe,
+                case_elapsed_us=case_us,
+                measurements=components,
+            )
+            record["modes"][mode] = dict(
+                artifact=ref,
+                case_us=case_us,
+                components=components,
+                elapsed_us=(time.monotonic_ns() - began) // 1000,
+            )
+    elif phase == "score" and set(data) == {"truth"} and device == "cpu":
+        record["modes"] = {}
+        for mode in request["order"]:
+            began = time.monotonic_ns()
+            probe, search = request["probes"][mode], request["search"][mode]
+            ref = search["artifact"]
+            if ref["path"] != "inputs/" + mode + ".json":
+                raise ValueError("unexpected candidate mount")
+            generated = read_bound_record(work, ref, version="discovery-candidates/v1")
+            score_velocity(
+                work,
+                ref,
+                data["truth"],
+                client=client,
+                output=f"output/{mode}/selected",
+                probe=probe,
+                seconds=21600,
+            )
+            selected = reference(out, out / mode / "selected/scores.json")
+            selected_us = (time.monotonic_ns() - began) // 1000
+            began = time.monotonic_ns()
+            scores = read_bound_record(out, selected, version="discovery-scoring/v1")
+            bank, _ = paired_bank_projection(
+                probe, data["truth"], generated, scores, ref["sha256"], search["case_us"]
+            )
+            bank_request = seal(dict(pair=request["identity"], mode=mode, data=digest(bank)))
+            private = out / mode
+            result = score_banks(private, bank_request, bank, client)["artifact"]
+            bank_ref = reference(out, private / "output" / result["path"])
+            record["modes"][mode] = dict(
+                selected=selected,
+                bank=bank_ref,
+                selected_us=selected_us,
+                bank_us=(time.monotonic_ns() - began) // 1000,
+            )
+    else:
+        raise ValueError("unexpected conditioning role inputs")
+    path = out / "conditioning/result.json"
+    atomic_write(path, seal(record))
+    return dict(artifact=reference(out, path))
+
+
+def conditioning_worker(work, request, data, client):
+    if request["phase"] != "search":
+        return conditioning_role(work, request, data, client, device="cpu")
+    import time
+    from oeis_learn.tracking.pipeline_profile import Recorder
+    from oeis_learn.pipeline_validation.progressive_generator_probe import usage_summary
+    from oeis_learn.pipeline_validation.progressive_qualification import require_hip
+
+    torch = require_hip()
+    nodes = sorted(Path("/dev/dri").glob("renderD*"))
+    start = time.monotonic_ns()
+    torch.cuda.reset_peak_memory_stats()
+    with (
+        Recorder(
+            work / "output/telemetry",
+            instrumented=True,
+            render_node=nodes[0] if len(nodes) == 1 else None,
+            host_counters=False,
+        ) as recorder,
+        recorder.phase("conditioning"),
+    ):
+        result = conditioning_role(work, request, data, client, device="cuda")
+        torch.cuda.synchronize()
+    elapsed = (time.monotonic_ns() - start) // 1000
+    return dict(
+        result,
+        device="hip",
+        measured_us=elapsed,
+        peak_device_bytes=torch.cuda.max_memory_allocated(),
+        telemetry=usage_summary(work / "output/telemetry", elapsed),
+    )
+
+
 def original_bank_rows(
     rows, prompts, truths, gen, scores, parent, profile, case_us, released_cells
 ):
     """Freeze the original admitted identities and selections before opening a new scoring role."""
-    from oeis_learn.generalization.progressive.contracts import digest
-    from oeis_learn.generalization.progressive.program_search_bank import (
-        checked_bank,
-        selected_source,
-    )
     from oeis_learn.pipeline_validation.pilot_clocks import CORRECT_FULL, DESCRIPTIVE
     from oeis_learn.pipeline_validation.progressive_timing_worker import observations
 
@@ -827,6 +1234,16 @@ def original_bank_rows(
     policy = DESCRIPTIVE if profile == "one" else CORRECT_FULL
     if observations(gen, scores, members, case_us, parent, policy) != released_cells:
         raise ValueError("private choices and scorer clocks differ from the released timing cells")
+    return admitted_bank_rows(rows, prompts, truths, gen, scores)
+
+
+def admitted_bank_rows(rows, prompts, truths, gen, scores):
+    from oeis_learn.generalization.progressive.contracts import digest
+    from oeis_learn.generalization.progressive.program_search_bank import (
+        checked_bank,
+        selected_source,
+    )
+
     if gen["prompts"] != digest(sorted(prompts, key=lambda p: p["id"])):
         raise ValueError("historical search used a different visible panel")
     clocks = {c["prompt"]: c for c in gen["clock"]["clocks"]}
@@ -1165,7 +1582,7 @@ def isolated_control_worker(wheel_name, expected_hash, expected_source):
         data = load(work / "inputs/data.json", maximum=CAMPAIGN_DOCUMENT_BYTES)
         if (
             request != seal(request)
-            or request["version"] not in (ISOLATED_CONTROLS, BANK_PRICES)
+            or request["version"] not in (ISOLATED_CONTROLS, BANK_PRICES, CONDITIONING)
             or request["data"] != digest(data)
             or request["image"] != os.environ["OEIS_QUALIFICATION_IMAGE"]
             or request["source"] != expected_source
@@ -1176,7 +1593,9 @@ def isolated_control_worker(wheel_name, expected_hash, expected_source):
         began = time.monotonic_ns()
         with SynthesisClient(digest([request["version"], request["identity"]])) as client:
             native = client.runtime_identity("bigint-body/v1")
-            if request["version"] == BANK_PRICES and request["phase"] == "bank_score":
+            if request["version"] == CONDITIONING:
+                result = conditioning_worker(work, request, data, client)
+            elif request["version"] == BANK_PRICES and request["phase"] == "bank_score":
                 result = score_banks(work, request, data, client)
             else:
                 result = control_role(work, request, data, client)
@@ -1393,6 +1812,7 @@ def paid_control_runtime(root, source, folder, receipt):
         wheel=runtime["wheel"]["sha256"],
         source=binding["source"],
         image=runtime["parent"]["image"],
+        physical=binding["physical"],
     )
 
 
@@ -1407,21 +1827,21 @@ def control_installation_peak(wheel, area):
     return dict(bytes=2 * size, inodes=2 * (len(info) + len(dirs)))
 
 
-def control_capacity(root, area, revision, floor, installation):
+def control_capacity(root, area, revision, floor, installation, *, conditioning=False):
     from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES
     from oeis_learn.pipeline_validation.progressive_research_resources import velocity_capacity
 
     # One bounded candidate or scoring document is written at a time; prior results already occupy the mount.
     path = str(area.relative_to(root))
     owner = dict(
-        owner="isolated_controls",
+        owner="paired_conditioning" if conditioning else "isolated_controls",
         path=path,
-        scope="cpu_control_role",
+        scope="paired_diagnostic_role" if conditioning else "cpu_control_role",
         retained=[],
         observed=dict(bytes=0, inodes=0),
         projected=dict(
-            bytes=installation["bytes"] + CAMPAIGN_DOCUMENT_BYTES,
-            inodes=installation["inodes"] + 32,
+            bytes=installation["bytes"] + (6 if conditioning else 1) * CAMPAIGN_DOCUMENT_BYTES,
+            inodes=installation["inodes"] + (2048 if conditioning else 32),
         ),
         revision=revision,
         harm="incomplete exposed control record",
@@ -1470,6 +1890,8 @@ def run_control_stage(
 
     phase, method = request["phase"], request["method"]
     bank = request["version"] == BANK_PRICES
+    paired = request["version"] == CONDITIONING
+    gpu = paired and phase == "search"
     coords = dict(
         study=grant["identity"],
         stage="qualification",
@@ -1482,6 +1904,8 @@ def run_control_stage(
         role=phase,
         ordinal=0,
     )
+    if paired:
+        coords = conditioning_coordinates(grant, method, phase, request["seed"])
     controls = area / "inputs" / method / phase
     rp, dp = controls / "request.json", controls / "data.json"
     retain(rp, request)
@@ -1503,12 +1927,19 @@ def run_control_stage(
             request["candidate"],
             host.policy["free_disk_floor_bytes"],
             runtime["installation"],
+            conditioning=paired,
         )
         if any(m["deficit_bytes"] or m["deficit_inodes"] for m in mounts):
-            raise ValueError("insufficient physical space for an isolated CPU role")
+            raise ValueError("insufficient physical space for the registered role")
+        if gpu:
+            from oeis_learn.pipeline_validation.progressive_round028_rehearsal import physical_scope
+            if physical_scope(host, "hip", machine=True) != runtime["physical"] or request["physical"] != runtime["physical"]:
+                raise ValueError("current HIP device differs from the paid qualification")
 
     def execute(out, allowance):
-        timeout = min(660, allowance // 1_000_000 - 120)
+        timeout = allowance // 1_000_000 - 120
+        if not paired:
+            timeout = min(660, timeout)
         if timeout < 1:
             raise ValueError("insufficient time for a supervised role and cleanup")
         began = time.monotonic_ns()
@@ -1527,9 +1958,10 @@ def run_control_stage(
                 runtime["wheel"],
                 runtime["source"],
             ],
-            gpu=False,
+            gpu=gpu,
             seconds=timeout,
             readonly_inputs=inputs,
+            **({"record_lease": True} if gpu else {}),
         )
         retain(
             out / "dispatch.json",
@@ -1551,7 +1983,7 @@ def run_control_stage(
             for name in ("process", "cleanup", "dispatch", "producer")
         ]
         if (
-            limits.get("Devices")
+            (limits.get("Devices") and not gpu)
             or limits.get("DeviceRequests")
             or proc["outcome"] != "COMPLETE"
             or proc["returncode"] != 0
@@ -1565,8 +1997,24 @@ def run_control_stage(
             or not re.fullmatch(r"sha256:[0-9a-f]{64}", producer["native"])
             or not 0 < producer["worker_us"] <= dispatch["elapsed_us"]
         ):
-            raise ValueError("original CPU confinement, producer or supervision clock differs")
-        if bank:
+            raise ValueError("original role confinement, producer or supervision clock differs")
+        device = {}
+        if gpu:
+            from oeis_learn.pipeline_validation.progressive_generator_probe import usage_summary
+            lease = load(confined(out, "gpu-lease.json"))["elapsed_us"]
+            wall = producer["measured_us"]
+            telemetry = usage_summary(confined(out, "telemetry/samples.jsonl").parent, wall)
+            nodes = {entry["PathOnHost"]: entry["PathInContainer"] for entry in limits.get("Devices", [])}
+            expected = {n: n for n in ("/dev/kfd", host.policy["render_node"])}
+            if (nodes != expected or producer["device"] != "hip"
+                    or not 0 < wall <= producer["worker_us"] <= lease <= dispatch["elapsed_us"]
+                    or telemetry != producer["telemetry"] or telemetry["covered_us"] > wall
+                    or type(producer["peak_device_bytes"]) is not int or producer["peak_device_bytes"] <= 0):
+                raise ValueError("original HIP devices, lease, samples, or measured clocks differ")
+            device = dict(lease_us=lease, telemetry=telemetry, peak_device_bytes=producer["peak_device_bytes"])
+        if paired:
+            name, version = "conditioning/result.json", CONDITIONING_ROLE
+        elif bank:
             name, version = "bank/scores.json", BANK_SCORES
         elif phase == "search":
             name, version = "generated/candidates.json", "discovery-candidates/v1"
@@ -1582,7 +2030,8 @@ def run_control_stage(
                 elapsed_us=dispatch["elapsed_us"],
                 worker_us=producer["worker_us"],
                 native=producer["native"],
-                **proof(value),
+                **device,
+                **(proof(value, out) if paired else proof(value)),
             )
         )
 
@@ -2252,6 +2701,524 @@ def bank_price_matrix(
                 grant=grant["identity"],
                 charged=balance["consumed"],
                 blocks={k: v["identity"] for k, v in results.items()},
+            )
+        )
+        retain(area / "receipt.json", receipt)
+        report["receipt"] = receipt["identity"]
+    return report
+
+
+def previous_bank_prices(root, folder, previous, wave, panel, runtime, host):
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.generalization.progressive.contracts import digest, load, seal
+    from oeis_learn.generalization.progressive.program_search_timing import BLOCKS
+    from oeis_learn.generalization.progressive.velocity_records import (
+        operation_key,
+        physical_root_id,
+        validate_grant,
+    )
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_round028_rehearsal import physical_scope
+
+    parent = confined(folder, "preparation/matched-bank-prices")
+    records = []
+    for candidate in parent.glob("*/receipt.json"):
+        rec = load(confined(parent, candidate))
+        if rec == seal(rec) and rec["identity"] == previous:
+            records.append((candidate.parent, rec))
+    if len(records) != 1:
+        raise ValueError("exact completed bank receipt required on the donor")
+    area, receipt = records[0]
+    grant, plan = [load(confined(area, n + ".json")) for n in ("grant", "plan")]
+    auth = load(
+        confined(
+            root,
+            "run-state/discovery-authorizations/" + grant["authorizing_record_ref"][7:] + ".json",
+        )
+    )
+    validate_grant(
+        grant, auth, root=physical_root_id(root), parent=plan["identity"], action="qualify"
+    )
+    machine = physical_scope(host, "cpu", machine=True)
+    if (
+        grant != seal(grant)
+        or plan != seal(plan)
+        or plan["version"] != BANK_PRICES
+        or receipt["grant"] != grant["identity"]
+        or area.name != grant["identity"][7:]
+        or receipt["plan"] != plan["identity"]
+        or plan["machine"] != machine
+        or set(receipt["blocks"]) != set(BLOCKS)
+        or plan["blocks"] != list(BLOCKS)
+        or plan["visible"] != digest(panel[1])
+        or plan["truth"] != digest(panel[2])
+        or plan["checkpoint"] != wave["checkpoint_receipt"]
+        or any(plan[k] != runtime[k] for k in ("wheel", "source", "image"))
+    ):
+        raise ValueError("bank receipt, registered runtime or historical panel differs")
+    state = BudgetJournal.inspect_existing(
+        area / "accounting", grant["identity"], grant["resources"]
+    )
+    if state["pending"] or state["consumed"] != receipt["charged"]:
+        raise ValueError("original bank charges differ")
+    blocks = {}
+    for group in BLOCKS:
+        row = load(confined(area, group + ".json"))
+        coords = dict(
+            study=grant["identity"],
+            stage="qualification",
+            method=group,
+            seed=29,
+            look=0,
+            panel="exposed_development",
+            profile=group.split("-")[-1],
+            input_mode="true",
+            role="bank_score",
+            ordinal=0,
+        )
+        logical = operation_key(coords, 0)["logical"]
+        op = load(confined(area, "operations/" + logical[7:] + "/receipt.json"))
+        if (
+            row != seal(row)
+            or row["identity"] != receipt["blocks"][group]
+            or row["block"] != group
+            or op != seal(op)
+            or op["identity"] != row["receipt"]
+            or op["coordinates"] != coords
+            or op["evidence"]["cells"] != row["cells"]
+            or op["evidence"]["elapsed_us"] != row["elapsed_us"]
+            or f"{logical}/dispatch/{op['attempt']}" not in state["committed"]
+        ):
+            raise ValueError("paid bank group or original debit differs")
+        blocks[group] = row
+    controls = reopen_control_costs(root, folder, plan["controls"], wave, panel, runtime, machine)
+    return dict(
+        receipt=previous,
+        controls=plan["controls"],
+        projection=bank_sample_forecast(blocks, controls),
+    )
+
+
+def conditioning_panel(root, panel):
+    """Keep the exposed timing families whenever a within-stratum differing donor is available."""
+    from oeis_learn.generalization.progressive.cohorts import STRATA, validate_prompt
+    from oeis_learn.generalization.progressive.contracts import digest, read_bound_record
+    from oeis_learn.pipeline_validation.progressive_round028_timing import original_channels
+
+    rows, visible, truth = panel[:3]
+
+    def differs(a, b):
+        return a["group"] != b["group"] and by_id[a["task"]]["values"] != by_id[b["task"]]["values"]
+
+    by_id = {p["id"]: p for p in visible}
+    pairs = {s: [r for r in rows if r["stratum"] == s] for s in STRATA}
+    if all(len(rr) == 2 and differs(*rr) for rr in pairs.values()):
+        return rows, visible, truth
+    # The capability closure proves every possible replacement was previously exposed.
+    if read_history(root)["status"] != "COMPLETE":
+        raise ValueError("complete original exposure required for a substitute conditioning donor")
+    _, campaign, roster = frozen_control_study(root)
+    refs = {r["name"]: r for r in campaign["payload"]["references"]}
+
+    def channel(row, kind):
+        ref = refs[f"private/channels/{kind}-{digest(row['task'])[7:]}"]
+        role = "generator" if kind == "visible" else "scorer"
+        if (ref["kind"], ref["role"]) != ("prepared", role):
+            raise ValueError("historical channel owner differs")
+        return ref["artifact"]
+
+    used = {r["group"] for r in rows}
+    for s, pair in pairs.items():
+        if len(pair) != 2:
+            raise ValueError("two original exposed families per stratum required")
+        if differs(*pair):
+            continue
+        candidates = [
+            dict(task=k, stratum=s, group=g)
+            for k, (stratum, g) in roster.items()
+            if stratum == s and g not in used
+        ]
+        for alternate in sorted(
+            candidates, key=lambda r: digest([CONDITIONING, s, r["group"], r["task"]])
+        ):
+            p = read_bound_record(
+                root, channel(alternate, "visible"), version="discovery-channel/v1"
+            )
+            if (
+                p["role"] != "generator"
+                or p["kind"] != "visible_prompt"
+                or p["data"]["id"] != alternate["task"]
+            ):
+                raise ValueError("original substitute visible prompt differs")
+            by_id[alternate["task"]] = validate_prompt(p["data"])
+            if differs(pair[0], alternate):
+                used.add(alternate["group"])
+                pair[1] = alternate
+                break
+        else:
+            raise ValueError("no eligible differing donor in exposed stratum " + s)
+    selected = [r for s in STRATA for r in pairs[s]]
+    bound = [dict(r, channels={k: channel(r, k) for k in ("visible", "truth")}) for r in selected]
+    prompts, targets = original_channels(root, bound)
+    return selected, prompts, targets
+
+
+def conditioning_matrix(
+    root, source, folder, revision, minutes, runtime, panel, wave, cuts, host, stage, previous
+):
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.generalization.progressive.contracts import (
+        digest,
+        load,
+        read_bound_record,
+        seal,
+    )
+    from oeis_learn.generalization.progressive.velocity_records import (
+        operation_key,
+        physical_root_id,
+        validate_grant,
+    )
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.preparation_recovery import retain
+    from oeis_learn.pipeline_validation.progressive_round028_rehearsal import physical_scope
+    from oeis_learn.pipeline_validation.progressive_velocity_qualification import (
+        authorize_qualification,
+    )
+
+    files, errors, searched, finished = {}, {}, {}, {}
+    report = dict(
+        candidate=revision,
+        scope=CONDITIONING,
+        grant_minutes=int(minutes),
+        grant=None,
+        elapsed_us=0,
+        gpu_dispatches=0,
+        research_run_requested=False,
+        scientific_verdict=None,
+        files=files,
+        errors=errors,
+    )
+    step = "prior-bank-receipt"
+    try:
+        files["previous-prices.json"] = previous_bank_prices(
+            root, folder, previous, wave, panel, runtime, host
+        )
+        step = "differing-visible-donors"
+        rows, prompts, truth = conditioning_panel(root, panel)
+        step = "donated-models"
+        models, paths = paired_model_inputs(root, cuts)
+        step = "physical-device"
+        if physical_scope(host, "hip", machine=True) != runtime["physical"]:
+            raise ValueError("qualified HIP device differs")
+    except (KeyError, TypeError, OSError, ValueError, RuntimeError) as exc:
+        print(f"{step}: {exc}", file=sys.stderr)
+        return dict(report, status="BLOCKED", stage=step, error=type(exc).__name__)
+    seed = models["00"]["seed"]
+    order = {
+        group: (["shuffled", "true"] if group == "ordinary-full" else ["true", "shuffled"])
+        for group in CONDITIONING_GROUPS
+    }
+    plan = seal(
+        dict(
+            version=CONDITIONING,
+            candidate=revision,
+            previous=previous,
+            checkpoint=wave["checkpoint_receipt"],
+            rows=digest(rows),
+            visible=digest(prompts),
+            truth=digest(truth),
+            models=digest(models),
+            order=order,
+            inference_seed=57,
+            seed=seed,
+            **select_fields(runtime, "source", "image", "wheel", "physical"),
+        )
+    )
+    work = {}
+    for group in CONDITIONING_GROUPS:
+        for phase in ("search", "score"):
+            bound = conditioning_work(group, phase, len(rows), 2 * len(rows) * 64)
+            for k, v in bound.items():
+                work[k] = work.get(k, 0) + 2 * v
+    grant = load(authorize_qualification(root, int(minutes), plan["identity"], work))
+    auth = load(
+        confined(
+            root,
+            "run-state/discovery-authorizations/" + grant["authorizing_record_ref"][7:] + ".json",
+        )
+    )
+    validate_grant(
+        grant, auth, root=physical_root_id(root), parent=plan["identity"], action="qualify"
+    )
+    area = confined(
+        folder, "preparation/paired-conditioning/" + grant["identity"][7:], exists=False
+    )
+    retain(area / "plan.json", plan)
+    retain(area / "grant.json", grant)
+    journal = BudgetJournal(area / "accounting", grant["identity"], grant["resources"])
+    runtime = dict(runtime, installation=control_installation_peak(runtime["path"], area))
+    files["capacity.json"] = dict(
+        mounts=control_capacity(
+            root,
+            area,
+            revision,
+            host.policy["free_disk_floor_bytes"],
+            runtime["installation"],
+            conditioning=True,
+        )
+    )
+    files["panel.json"] = dict(
+        cases=len(rows),
+        substituted=sum(r not in panel[0] for r in rows),
+        strata=4,
+        attempts={"common": 1, "full": 8},
+        order=order,
+    )
+
+    def operate(group, phase, data, extra, proof, additional, bank_count=0):
+        req = seal(
+            dict(
+                version=CONDITIONING,
+                candidate=revision,
+                method=group,
+                phase=phase,
+                seed=seed,
+                plan=plan["identity"],
+                data=digest(data),
+                **select_fields(runtime, "wheel", "source", "image", "physical"),
+                **additional,
+            )
+        )
+
+        def check(value, out):
+            if value["request"] != req["identity"] or value["phase"] != phase:
+                raise ValueError("conditioning artifact belongs to a different role")
+            return proof(value, out, req)
+
+        return run_control_stage(
+            root,
+            source,
+            area,
+            grant,
+            journal,
+            host,
+            runtime,
+            req,
+            data,
+            conditioning_work(group, phase, len(rows), bank_count),
+            extra,
+            check,
+            stage,
+        )
+
+    def capture(key, call):
+        try:
+            return call()
+        except (
+            KeyError,
+            TypeError,
+            ValueError,
+            OSError,
+            RuntimeError,
+            subprocess.SubprocessError,
+        ) as exc:
+            errors[key] = type(exc).__name__
+            print(f"{key}: {exc}", file=sys.stderr)
+            return None
+
+    def identify(value, out, req):
+        tensors = value["tensors"]
+        if set(tensors) != set(models) or any(
+            not re.fullmatch("sha256:[a-f0-9]{64}", h) for h in tensors.values()
+        ):
+            raise ValueError("both model tensor identities are required")
+        return dict(tensors=tensors)
+
+    pairs = {}
+    try:
+        prepared = capture(
+            "models",
+            lambda: operate(
+                "paired-models",
+                "models",
+                dict(models=models),
+                [(paths[k], "/work/" + m["weight"]["path"]) for k, m in models.items()],
+                identify,
+                {},
+            ),
+        )
+        if prepared:
+            model_op = prepared[0]
+            files["models.json"] = dict(
+                receipt=model_op["identity"], elapsed_us=model_op["evidence"]["elapsed_us"]
+            )
+            pairs = conditioning_probes(
+                plan["identity"], rows, prompts, models, model_op["evidence"]["tensors"]
+            )
+            retain(
+                area / "probes.json",
+                seal(dict(plan=plan["identity"], model_receipt=model_op["identity"], pairs=pairs)),
+            )
+        for group, probes in pairs.items():
+            method, _ = CONDITIONING_GROUPS[group]
+            original = models[method]
+            data = dict(prompts=prompts, model=original)
+
+            def check(value, out, req):
+                return check_paired_search(value, out, req, data)
+
+            result = capture(
+                "search-" + group,
+                lambda: operate(
+                    group,
+                    "search",
+                    data,
+                    [(paths[method], "/work/" + original["weight"]["path"])],
+                    check,
+                    dict(order=order[group], probes=probes, model_receipt=model_op["identity"]),
+                ),
+            )
+            if result:
+                operation, output = result
+                evidence = operation["evidence"]
+                searched[group] = result
+                files["search-" + group + ".json"] = dict(
+                    receipt=operation["identity"],
+                    **select_fields(
+                        evidence,
+                        "elapsed_us",
+                        "worker_us",
+                        "lease_us",
+                        "peak_device_bytes",
+                        "telemetry",
+                        "native",
+                        "bank_programs",
+                    ),
+                    modes={
+                        m: select_fields(v, "elapsed_us", "components")
+                        for m, v in evidence["modes"].items()
+                    },
+                )
+        if searched.keys() == CONDITIONING_GROUPS.keys():
+            barrier = seal(
+                dict(
+                    plan=plan["identity"],
+                    searches={g: r[0]["identity"] for g, r in searched.items()},
+                )
+            )
+            retain(area / "sealed-searches.json", barrier)
+            for group, (search_op, output) in searched.items():
+
+                def score_group():
+                    children, extra, generations = {}, {}, {}
+                    for m, v in search_op["evidence"]["modes"].items():
+                        ref = v["artifact"]
+                        generations[m] = read_bound_record(
+                            output, ref, version="discovery-candidates/v1"
+                        )
+                        dest = "inputs/" + m + ".json"
+                        extra["/work/" + dest] = confined(output, ref["path"])
+                        children[m] = dict(artifact=dict(ref, path=dest), case_us=v["case_us"])
+                    data = dict(truth=truth)
+
+                    def check(value, out, req):
+                        return check_paired_scores(value, out, req, data, generations)
+
+                    return operate(
+                        group,
+                        "score",
+                        data,
+                        [(p, k) for k, p in extra.items()],
+                        check,
+                        dict(
+                            search=children,
+                            barrier=barrier["identity"],
+                            order=order[group],
+                            probes=pairs[group],
+                        ),
+                        search_op["evidence"]["bank_programs"],
+                    )
+
+                result = capture("score-" + group, score_group)
+                if result:
+                    op = result[0]
+                    row = seal(
+                        dict(
+                            group=group,
+                            search=search_op["identity"],
+                            score=op["identity"],
+                            barrier=barrier["identity"],
+                            **select_fields(
+                                op["evidence"],
+                                "elapsed_us",
+                                "worker_us",
+                                "native",
+                                "modes",
+                                "paired_selected",
+                            ),
+                        )
+                    )
+                    retain(area / (group + ".json"), row)
+                    finished[group] = files["paired-" + group + ".json"] = row
+    except (KeyError, TypeError, ValueError, OSError, RuntimeError, KeyboardInterrupt) as exc:
+        errors["matrix"] = type(exc).__name__
+        print(f"conditioning matrix: {exc}", file=sys.stderr)
+    balance = BudgetJournal.inspect_existing(
+        area / "accounting", grant["identity"], grant["resources"]
+    )
+    if (
+        balance["pending"]
+        or balance["consumed"]["elapsed_us"] + balance["remaining"]["elapsed_us"]
+        != grant["total_us"]
+    ):
+        raise ValueError("conditioning charges do not reconcile to the original grant")
+    issued = leases = lease_us = 0
+    for group in CONDITIONING_GROUPS:
+        logical = operation_key(conditioning_coordinates(grant, group, "search", seed), 0)[
+            "logical"
+        ]
+        for key in balance["committed"]:
+            if key.startswith(logical + "/dispatch/"):
+                issued += 1
+                attempt = int(key.rsplit("/", 1)[-1])
+                path = confined(
+                    area,
+                    f"operations/{logical[7:]}/attempt-{attempt:04d}/gpu-lease.json",
+                    exists=False,
+                )
+                if path.is_file():
+                    us = load(path)["elapsed_us"]
+                    if type(us) is not int or us <= 0:
+                        raise ValueError("invalid original GPU lease clock")
+                    leases += 1
+                    lease_us += us
+    report.update(
+        status="COMPLETE"
+        if not errors and len(finished) == len(CONDITIONING_GROUPS)
+        else "PARTIAL",
+        grant=grant["identity"],
+        elapsed_us=balance["consumed"]["elapsed_us"],
+        remaining_us=balance["remaining"]["elapsed_us"],
+        charged_work=balance["consumed"],
+        gpu_dispatches=leases if issued == leases else None,
+        hip_attempts=issued,
+        verified_leases=leases,
+        recorded_lease_us=lease_us,
+    )
+    files["verification.json"] = dict(
+        scope="paired_conditioning_on_exposed_families",
+        research_dispatches=0,
+        verified={g: {"search": v["search"], "score": v["score"]} for g, v in finished.items()},
+    )
+    if report["status"] == "COMPLETE":
+        receipt = seal(
+            dict(
+                plan=plan["identity"],
+                grant=grant["identity"],
+                groups={g: v["identity"] for g, v in finished.items()},
+                charged=balance["consumed"],
+                leases=leases,
+                lease_us=lease_us,
             )
         )
         retain(area / "receipt.json", receipt)
