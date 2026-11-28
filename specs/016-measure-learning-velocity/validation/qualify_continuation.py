@@ -4485,6 +4485,11 @@ def donor_initialization(action, root, revision, minutes, *, recovery=None):
                         if k in failed
                     ],
                 )
+                diagnostic = failed.get("diagnostics") or failed.get("first_error")
+                if diagnostic:
+                    from oeis_learn.pipeline_validation.progressive_velocity_initialization_recovery import public_error
+
+                    files["failure.json"]["cause"] = public_error(diagnostic)
             except (ValueError, TypeError):
                 pass
     if "recovery.json" in files:

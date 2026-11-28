@@ -99,8 +99,14 @@ def first_error(parent, *, private_log=False):
             file=sys.stderr,
             flush=True,
         )
+    return public_error(error)
+
+
+def public_error(error):
+    """Identify the exact private exception without exporting its message or arguments."""
+    stage, kind = error["stage"], error["error"]
     return dict(
-        identity=error["identity"],
+        identity=seal(error)["identity"],
         stage=stage if stage in (*PHASES, "qualification", "publication") else "unknown",
         error=(
             kind

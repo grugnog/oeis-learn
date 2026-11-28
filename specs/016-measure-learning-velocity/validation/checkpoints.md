@@ -333,3 +333,14 @@ single zero-token device role. Private replay, archive-pair verification and the
 standalone ZIP check run in the same command. Return the printed `initialization.zip`
 for either a complete or partial result. The sibling `operator.log` keeps the
 original error messages and bounded child stderr on the workstation.
+
+### Returned runtime lookup
+
+Recovery ZIP `ff3ec39a7e249fef9c2ea3a0ef437ee949df53544633b3479b577b7b78197792`
+reopens the same trial-roster receipt, `sha256:9aa1e1119e5c9e9d4a78e9f74365673f08ffd401c47c31873539909414231714`.
+The first package attempt recorded `runtime_unavailable`. The second attempt
+charged 408,405 µs and returned no package receipt. The ZIP classifies that second
+attempt as `unclassified`. Both attempts have committed debits. The pre-score
+publication and HIP measurement have zero issued attempts. The grant has
+1,727,541,342 µs left after 72,458,658 µs charged. On the sampled mount the
+cached-image wave has 162,246,291,986 bytes and 121,871,110 inodes above reserve.

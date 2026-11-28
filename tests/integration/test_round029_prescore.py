@@ -451,6 +451,8 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
     checked = api["verify_initialization_zip"](dest, captured)
     assert checked["prescore"] == freeze.read_member(captured, freeze.MEMBER)["identity"]
     assert checked["failure"]["deficit_inodes"] == 1 and checked["recovery"]["before"] == history
+    assert checked["failure"]["cause"]["error"] == "CapacityShortfall"
+    assert checked["failure"]["cause"]["identity"] != history["first_error"]["identity"]
     assert checked["recovery"]["after"]["operations"]["package"]["receipt"]
     assert (
         bool(checked["recovery"]["after"]["operations"]["verify_paid_package"]["receipt"])
