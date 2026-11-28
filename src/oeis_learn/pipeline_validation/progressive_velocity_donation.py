@@ -11,6 +11,7 @@ from oeis_learn.generalization.progressive.velocity_records import registered_wo
 from .identity import confined
 from .preparation_recovery import retain, revise
 from .progressive_handoff import stage
+from .progressive_research_inputs import checked_file
 from .progressive_roles import ROUND029_ROLE_POLICY
 from .progressive_round028_receipts import verify_role_mounts
 from .progressive_round028_rehearsal import physical_scope
@@ -312,6 +313,9 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
             execute=dispatch,
             verify=lambda out: check_stage(area, out, request, mounts),
         )
+        # A cached supervisor proof can be reused only with its original five JSON records.
+        for ref in receipt["evidence"]["artifacts"]:
+            checked_file(area, ref, maximum=1 << 20)
         record = combined_receipt(binding, setup, receipt)
         report = public.validate_donation(public.donation_report(q, record, journal.snapshot()), q)
         public.install(area / "share" / public.REPORT, "donation-report.json", report)
