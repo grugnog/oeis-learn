@@ -105,3 +105,82 @@ def test_publication_proxy_prices_the_same_write_read_and_one_ledger_replay():
     assert price["expected_us"] == 28 and price["tail_us"] == 35
     assert price["receipt"] == release["receipt"]
     assert publication_proxy(None) is None
+
+
+def test_wave_storage_prices_resident_blocks_by_profile_and_keeps_gaps_visible(tmp_path):
+    from oeis_learn.pipeline_validation.progressive_velocity_launch import wave_space
+
+    wave = dict(methods=["00", "04", "05", "06"], operations={})
+    for family, blocks, cases in (("ordinary.one", 3, 9), ("learner.one", 9, 9),
+                                  ("ordinary.full", 1, 10), ("learner.full", 3, 10),
+                                  ("D.full", 1, 10)):
+        for phase in ("score", "search"):
+            wave["operations"][family + "." + phase + ".startup"] = blocks
+            wave["operations"][family + "." + phase + ".oeis"] = blocks * cases
+    cycles = dict(candidate="a"*40, receipt=digest("cut"),
+                  methods={m: dict(checkpoint_bytes=20, checkpoint_inodes=5) for m in wave["methods"]})
+    trajectory = dict(methods={m: dict(hourly_saves=dict(tail=0)) for m in wave["methods"]})
+    sample = dict(
+        cases=8,
+        checkpoint=cycles["receipt"],
+        runtime=dict(bytes=5, inodes=2),
+        roles={
+            k: dict(bytes=10, inodes=2)
+            for k in (
+                "ordinary-common",
+                "ordinary-full",
+                "D-full",
+                "template",
+                "polynomial",
+                "linear_recurrence",
+            )
+        },
+    )
+    release = dict(
+        candidate="a" * 40,
+        receipt=digest("release"),
+        peak_allocated_bytes=300,
+        peak_inodes=60,
+        floor_bytes=45,
+        corpora={"varied": dict(expanded_bytes=1000, compressed_bytes=900, files=100)},
+        journal=dict(events=290000, bytes=20000),
+    )
+    registered = [dict(device=tmp_path.stat().st_dev, reserved_bytes=70, reserved_inodes=200)]
+    result = wave_space(
+        tmp_path,
+        wave,
+        cycles,
+        trajectory,
+        sample,
+        release,
+        floor=55,
+        updates=dict.fromkeys(wave["methods"], 75),
+        registered=registered,
+    )
+    # 34 neural resident chunks + 6 conventional chunks + 9 paired sample blocks.
+    assert result["chunks"] == {
+        "ordinary-common": 28,
+        "ordinary-full": 12,
+        "D-full": 3,
+        "template": 2,
+        "polynomial": 2,
+        "linear_recurrence": 2,
+    }
+    assert not result["missing"]
+    assert result["wave"][0]["required_bytes"] > result["first_ordinary_cut"][0]["required_bytes"]
+    assert result["wave"][0]["reserved_bytes"] == 70
+    assert result["first_ordinary_cut"][0]["reserved_inodes"] == 200
+    del sample["roles"]["D-full"]
+    result = wave_space(
+        tmp_path,
+        wave,
+        cycles,
+        trajectory,
+        sample,
+        release,
+        floor=55,
+        updates=dict.fromkeys(wave["methods"], 75),
+        registered=registered,
+    )
+    assert result["missing"] == ["D-full"] and result["fits_with_reserve"] is None
+    assert not list(tmp_path.iterdir())
