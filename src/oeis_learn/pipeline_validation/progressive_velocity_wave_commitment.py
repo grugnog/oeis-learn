@@ -51,7 +51,7 @@ def prescore(accepted, design, grant, approval, marker, secret, sample=None):
                 groups.setdefault(look["method"] + "-" + look["profile"], {})[op["mode"]] = ref
         paired["conditioning"] = dict(
             sample=sample["identity"], prefixes=sample["prefixes"], donor_map=digest(sample["donors"]),
-            missing=sample["missing"], price=sample["price"], groups=groups,
+            missing=sample["missing"], price=sample["price"], funding=sample["funding"], groups=groups,
             families=sorted((dict(stratum=r["stratum"], frozen_size=1,
                                   family=hmac.digest(secret, r["group"].encode(), "sha256").hex())
                              for r in sample["members"]), key=lambda r: (r["stratum"], r["family"])),
@@ -77,6 +77,12 @@ def read(path):
             or record["controller"]["grant"] != g["identity"]
             or record["controller"]["accepted"] != q["identity"]):
         raise ValueError("independent pre-score grant differs from the accepted wave")
+    if "conditioning" in record:
+        scope = record["conditioning"]
+        funded = conditioning.funding(q, scope["price"], g["total_us"])
+        if (scope["funding"] != funded
+                or set(scope["groups"]) != (set(funded["funded"]) if scope["families"] else set())):
+            raise ValueError("conditioning schedule differs from the measured prices and original grant")
     for logical, entry in record["operations"].items():
         if entry["coordinates"]["study"] != g["identity"] or operation_key(entry["coordinates"], 0)["logical"] != logical:
             raise ValueError("independent dispatch schedule differs")

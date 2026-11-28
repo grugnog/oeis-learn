@@ -4144,14 +4144,18 @@ def settled_launch_estimate(root, wave, preparation, reserve):
     )
     estimate = estimate_with_preparation(parts, preparation)
     paired = conditioning_prices(parts)
-    # The original paid proxy priced each learner profile four times and D once.
+    # Repeat the exposed ordinary proxy for each funded learner and the D measurement once.
+    learner_count = len(wave["methods"])
     components = {
-        k: sum((1 if name == "D-full" else 4) * sum(mode[k] for mode in group["modes"].values())
+        k: sum((1 if name == "D-full" else learner_count) * sum(mode[k] for mode in group["modes"].values())
                for name, group in paired["groups"].items())
         for k in ("search_us", "selected_us", "bank_us")
     }
-    expected = paired["proxy_four_treatment_paired_sample_us"]
+    expected = paired_expected(parts, paired, learner_count)
     estimate["conditioning_components"] = dict(components, overhead_us=expected - sum(components.values()))
+    estimate["conditioning_extra_role_us"] = {
+        name: group["shared_overhead_us"] for name, group in paired["groups"].items()
+    }
     estimate["sources"] = dict(
         paired=receipt["identity"],
         bank=plan["previous"],
@@ -4903,9 +4907,10 @@ def verify_initialization_zip(path, qualification=None):
         or q["target"] != 0
         or q["score_authority"] is not None
         or q["graph"] != identity(q["looks"])
-        or q["supported"] != ["00", "04", "05", "06"]
+        or q["supported"] != sorted(set(q["trials"]) - set(q["omitted"]))
+        or "00" not in q["supported"]
         or set(q["trials"]) != {f"{n:02}" for n in range(7)}
-        or set(q["omitted"]) != {"01", "02", "03"}
+        or not set(q["omitted"]) <= set(q["trials"])
         or cut["weights"] != q["initial_weights"]
         or any(
             not re.fullmatch("sha256:[0-9a-f]{64}", v)
@@ -5197,25 +5202,30 @@ def conditioning_prices(files):
         result["groups"][group] = dict(
             modes=modes, shared_overhead_us=overhead, supervised_us=total
         )
-    if set(result["groups"]) == set(CONDITIONING_GROUPS):
-        result["proxy_four_treatment_paired_sample_us"] = files["models.json"]["elapsed_us"] + sum(
-            (1 if group == "D-full" else 4) * r["supervised_us"]
-            for group, r in result["groups"].items()
-        )
+    result["proxy_four_treatment_paired_sample_us"] = paired_expected(files, result, 4)
     return result
 
 
+def paired_expected(files, paired, learner_count):
+    if set(paired["groups"]) == set(CONDITIONING_GROUPS):
+        return files["models.json"]["elapsed_us"] + sum(
+            (1 if group == "D-full" else learner_count) * r["supervised_us"]
+            for group, r in paired["groups"].items()
+        )
+
+
 def launch_estimate(files):
-    """Combine independently reopened prices for one four-recipe planning scope."""
+    """Combine independently reopened prices for the funded learner roster."""
     preflight = files["preflight.json"]
     wave = preflight["supported_wave"]
     checkpoint = files["checkpoint-verification.json"]
     bank = files["previous-prices.json"]["projection"]
     controls = bank["known_wave"]
-    if (wave["methods"] != ["00", "04", "05", "06"]
+    methods = wave["methods"]
+    if (methods != sorted(set(methods)) or not {"00", "04", "05", "06"} <= set(methods) <= {f"{n:02}" for n in range(7)}
             or checkpoint["mechanical_status"] != "VERIFIED"
             or checkpoint["report_ref"] != wave["checkpoint_receipt"]):
-        raise ValueError("verified four-recipe checkpoint prices required")
+        raise ValueError("verified checkpoint prices required for the supported recipes")
     if (set(wave["missing"]) != {"conventional_cpu_controls", *controls["missing"]}
             or any(controls["known_" + k] != wave["known_" + k] + controls["control_" + k]
                    for k in ("expected_us", "tail_us"))):
@@ -5233,7 +5243,7 @@ def launch_estimate(files):
         missing.difference_update(covers)
 
     paired = conditioning_prices(files)
-    expected = paired["proxy_four_treatment_paired_sample_us"]
+    expected = paired_expected(files, paired, len(methods))
     if expected is not None:
         # Both modes already include their full-bank pass. Use a dedicated paired
         # block per profile, with no credit for unproven reuse of a main-panel search.

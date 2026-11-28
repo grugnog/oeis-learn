@@ -299,7 +299,8 @@ def authorize(root, source, minutes, expected):
         reg, packages = inputs(root, folder, accepted)
         from . import progressive_velocity_wave_commitment as commitment
 
-        sample = conditioning.original(root, folder, source, accepted, reg, install=True)
+        sample = conditioning.original(root, folder, source, accepted, reg,
+                                       total_us=integer(minutes, 1) * 60_000_000)
         design = plan(accepted, reg, packages, sample)
         ops = design[-1]
         key = family_key(folder, create=True)
@@ -314,6 +315,7 @@ def authorize(root, source, minutes, expected):
         )
         # One owner per accepted wave, including concurrent or repeated start requests.
         retain(folder / MARKER, marker)
+        retain(folder / conditioning.PATH, sample)
         directory = confined(root, "run-state/discovery-authorizations")
         retain(directory / (approval["identity"][7:] + ".json"), approval)
         path = directory / ("grant-" + grant["identity"][7:] + ".json")

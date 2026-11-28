@@ -55,6 +55,34 @@ def test_partial_matching_or_a_different_paid_frame_cannot_identify_an_unsupport
         assert supported_velocity_wave(velocity_policy(), prices, f, c) is None
 
 
+def test_paid_broader_and_matching_streams_price_all_seven_recipes():
+    prices, fresh, cycles = inputs()
+    methods = [f"{n:02}" for n in range(7)]
+    support = dict(coverage=dict(full=True), eligible_slots=2)
+    fresh.update(disposition="prepared", supply=dict(slots=3, ordinary=1, broad=2,
+                 matching={"ordinary": support, "broader": support}),
+                 device=dict(calibration=dict(weight=0.5), methods=dict.fromkeys(methods)))
+    cycles["methods"] = dict.fromkeys(methods, cycles["methods"]["00"])
+    study = supported_velocity_wave(velocity_policy(), prices, fresh, cycles)
+    assert study["methods"] == methods and not study["omitted"]
+    assert study["operations"]["learner.one.search.parameter"] == 18
+    assert set(study["storage"]) == set(methods)
+    fresh["supply"]["matching"]["broader"] = dict(support, coverage=dict(full=False))
+    assert supported_velocity_wave(velocity_policy(), prices, fresh, cycles) is None
+
+
+def test_paired_sample_preserves_tail_and_funds_only_complete_pairs():
+    from oeis_learn.pipeline_validation.progressive_velocity_conditioning import funding
+
+    accepted = dict(supported=["00", "04", "05", "06"], proposed_total_us=1_000)
+    quote = dict(split_overhead_us={"ordinary-common": 3, "ordinary-full": 7, "D-full": 2})
+    result = funding(accepted, quote, 1_005)
+    assert result["funded"] == ["00-common", "D-full"]
+    assert result["omitted"]["00-full"] == dict(required_us=7, available_us=2, deficit_us=5)
+    assert result["headroom_us"] == result["extra_supervision_us"] == 5
+    assert not funding(accepted, quote, 1_000)["funded"]
+
+
 def test_launch_overheads_use_paid_cuts_and_price_each_cold_role_once():
     from oeis_learn.generalization.progressive.program_search_costing import trajectory_overheads
 

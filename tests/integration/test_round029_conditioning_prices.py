@@ -422,7 +422,7 @@ def test_one_grant_resumes_one_search_and_seals_all_groups_before_scoring(
         digest("bank"),
     )
     def verify_settled(full):
-        wave = dict(args[7], fresh_receipt=digest("fresh"))
+        wave = dict(args[7], fresh_receipt=digest("fresh"), methods=["00", "04", "05", "06"])
         parts = {**full["files"], "preflight.json": dict(supported_wave=wave)}
         monkeypatch.setitem(
             ns, "prior_launch_projection", lambda *args: parts["previous-prices.json"]
@@ -765,6 +765,11 @@ def test_launch_projection_prices_the_matched_banks_once_and_requires_verified_p
     # case twice per stratum in each of the two modes (3+2+2 microseconds per cell).
     assert result["known_expected_us"] == 110 + 5 + 9 * 140
     assert result["known_tail_us"] == 215 + 5 + 9 * (140 + 2 * 4 * 7)
+    seven = deepcopy(files)
+    seven["preflight.json"]["supported_wave"]["methods"] = [f"{n:02}" for n in range(7)]
+    extended = project(seven)
+    assert extended["known_expected_us"] == 110 + 5 + 15 * 140
+    assert extended["known_tail_us"] == 215 + 5 + 15 * (140 + 2 * 4 * 7)
     assert result["missing"] == ["trajectory_startup_extra_checkpoints_and_drain", "verification_and_publication"]
     files["preflight.json"]["supported_wave"]["fresh_receipt"] = digest("fresh")
     files["preflight.json"]["launch_preparation"] = dict(

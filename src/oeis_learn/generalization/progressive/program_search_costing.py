@@ -530,28 +530,41 @@ def velocity_forecast(info, policy):
 
 
 def supported_velocity_wave(policy, prices, fresh, cycles):
-    """Separately price the measured ordinary-stream grid when input support settles the other arms."""
+    """Price the methods whose input support, optimizer and checkpoint costs have been measured."""
     if not fresh or not cycles or fresh.get("identity") != cycles.get("origin"):
         return None
     supply = fresh.get("supply") or {}
-    matching = (supply.get("matching") or {}).get("ordinary") or {}
-    if (fresh.get("disposition") != "fresh_ordinary_only"
-            or not supply.get("slots") or supply.get("ordinary") != supply["slots"]
-            or (matching.get("coverage") or {}).get("full") is not True or matching.get("eligible_slots") != 0):
+    streams = supply.get("matching") or {}
+    broader = fresh.get("disposition") == "prepared"
+    if (not supply.get("slots")
+            or (broader and supply.get("broad", 0) <= supply["ordinary"])
+            or (not broader and (fresh.get("disposition") != "fresh_ordinary_only"
+                                 or supply.get("ordinary") != supply["slots"]))):
+        return None
+    for name in (("ordinary", "broader") if broader else ("ordinary",)):
+        support = streams.get(name, {})
+        if (support.get("coverage", {}).get("full") is not True
+                or type(support.get("eligible_slots")) is not int or support["eligible_slots"] < 0):
+            return None
+    device = fresh.get("device") or {}
+    ordinary_pairs = streams["ordinary"]["eligible_slots"]
+    if ordinary_pairs and (device.get("calibration") or {}).get("weight") is None:
         return None
     methods, omitted = [], {}
     for recipe in policy["recipes"]:
         reasons = []
-        if recipe["stream"] == "broad":
+        if recipe["stream"] == "broad" and not broader:
             reasons.append("ordinary already has a distinct composition in every matched slot")
-        if recipe["matching"]:
+        if recipe["matching"] and not ordinary_pairs:
             reasons.append("complete census found zero eligible ordinary matching slots")
+        elif recipe["matching"] and recipe["stream"] == "broad" and broader and not streams["broader"]["eligible_slots"]:
+            reasons.append("complete census found zero eligible broader matching slots")
         if reasons:
             omitted[recipe["id"]] = reasons
         else:
             methods.append(recipe["id"])
     if (set(methods) != set(cycles["methods"])
-            or not set(methods) <= set((fresh.get("device") or {}).get("methods", {}))):
+            or not set(methods) <= set(device.get("methods", {}))):
         return None
 
     operations = dict(prices["wave"]["operations"])

@@ -42,10 +42,17 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         return dict(id=row["task"], indices=list(map(str, range(offset, offset + 20))),
                     values=[str(offset)] * 20)
     prompts = {r["task"]: prompt(r) for r in reg["development"]}
-    price = dict(paired=accepted["sources"]["paired"], bank=accepted["sources"]["bank"], methods=methods, expected_us=250, tail_us=310,
-                 search_us=120, selected_us=50, bank_us=60, overhead_us=20)
-    monkeypatch.setattr(conditioning, "paid_inputs", lambda *_: (price, prompts))
-    sample = conditioning.freeze(accepted, reg, price, prompts)
+    price = dict(paired=accepted["sources"]["paired"], bank=accepted["sources"]["bank"], methods=methods,
+                 expected_us=250, tail_us=310, search_us=120, selected_us=50, bank_us=60, overhead_us=20,
+                 split_overhead_us={"ordinary-common": 1, "ordinary-full": 1, "D-full": 2})
+    estimate = dict(sources=accepted["sources"], methods=methods, followup_reserve_us=accepted["followup_us"],
+                    expected_us=accepted["expected_us"] + 17, tail_us=accepted["tail_us"] + 17,
+                    items=dict(paired_search_selected_and_banks={k: price[k] for k in ("expected_us", "tail_us")}),
+                    conditioning_components={k: price[k] for k in ("search_us", "selected_us", "bank_us", "overhead_us")},
+                    conditioning_extra_role_us=price["split_overhead_us"])
+    monkeypatch.setattr(command, "preflight", lambda *_: dict(inventory=dict(prices=dict(launch_estimate=estimate))))
+    monkeypatch.setattr(host, "panel", lambda *_: prompts)
+    sample = conditioning.freeze(accepted, reg, price, prompts, 1680 * 60_000_000)
     design = wave.plan(accepted, reg, packages, sample)
     grant, approval, marker = wave.authority(
         tmp_path,
@@ -63,6 +70,9 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         "git",
         lambda *a: velocity_policy()["donor_revision"] if a[1] == "rev-parse" else None,
     )
+    with pytest.raises(ValueError, match="tail"):
+        wave.authorize(tmp_path, source, 1, accepted["identity"])
+    assert not (folder / conditioning.PATH).exists()
     path = wave.authorize(tmp_path, source, 1680, accepted["identity"])
     assert load(path) == grant
     qualification = runner.retained_qualification(tmp_path, grant)
@@ -300,6 +310,8 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     assert diagnostic["choices_barrier"] == load(renamed / "comparative" / grant["identity"][7:] /
                                                 "sealed-conditioning-choices.json")["identity"]
     assert diagnostic["bank_dispatches"] == 0 and diagnostic["quote"] == price
+    assert diagnostic["funding"] == sample["funding"]
+    assert diagnostic["funding"]["extra_supervision_us"] == 2 * len(methods) + 2
     assert diagnostic["charged_search_and_selected_us"] > 0
     assert value["curves"]["retention"]["endpoints"]["D"]["yield"]["denominator"] == 1
     assert (

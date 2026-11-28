@@ -271,8 +271,11 @@ initializations. Common 1M and 4M probes and the full 4M endpoints have distinct
 operation receipts. D, template, polynomial and linear recurrence each receive
 their registered full opportunity. At authorization the custodian freezes up to
 two development families with differing visible values per stratum. Each supported
-4M learner runs both conditioning modes at the common and full profiles on that
-sample. D runs both at full. All matched choices seal before selected scoring.
+4M learner is eligible for both conditioning modes at the common and full profiles
+on that sample. D is eligible at full. The original quote supervised the two modes
+together. The grant funds their separate launches from the time above the accepted
+tail and follow-up, in whole pairs, starting with 00 and D. The report records
+the measured overhead and any unfunded pairs. All matched choices seal before selected scoring.
 The report gives the true-minus-shuffled effects, missing strata, actual debits
 and the bank component of the original quote. Full-bank inspection has its own
 T040 scope. The grant protects 101.546 s for the named

@@ -99,14 +99,21 @@ def test_cpu_training_role_copies_only_verified_parent_and_resumes_full_optimize
         host.check_cut(work / "output", request, learner, producer, targets[1000])
 
 
-def test_selected_control_role_cannot_read_truth_until_choices_are_sealed(tmp_path):
+def test_selected_control_role_cannot_read_truth_until_choices_are_sealed(tmp_path, monkeypatch):
+    from contextlib import nullcontext
+    from pathlib import Path
     import shutil
+    from oeis_learn.experiments import source_snapshot as provenance
     from oeis_learn.fresh.bigint_config import resolve
-    from oeis_learn.generalization.progressive.contracts import reference, read_bound_record
+    from oeis_learn.generalization.progressive.contracts import atomic_write, load, reference, read_bound_record
     from oeis_learn.generalization.progressive.graph import velocity_look
     from oeis_learn.generalization.progressive.velocity_metrics import measured_look
     from oeis_learn.pipeline_validation.progressive_velocity_wave_role import perform
     from oeis_learn.pipeline_validation import progressive_velocity_wave_host as host
+    from oeis_learn.pipeline_validation import progressive_evaluation as evaluation
+    from oeis_learn.pipeline_validation import progressive_velocity_wave_role as role
+    from oeis_learn.pipeline_validation.identity import file_hash
+    from oeis_learn.synthesis import client as synthesis
     from oeis_learn.pipeline_validation.progressive_evaluation import velocity_probe
     from tests.integration.test_round029_isolated_control_prices import SelectedClient, panel
 
@@ -130,7 +137,28 @@ def test_selected_control_role_cannot_read_truth_until_choices_are_sealed(tmp_pa
         perform(search, req, dict(data, truth=truth), device="cpu", client=client)
     with pytest.raises(ValueError, match="projection"):
         perform(search, dict(req, look=look), data, device="cpu", client=client)
-    generated = perform(search, req, data, device="cpu", client=client)
+    code = Path(role.__file__).resolve()
+    source = digest(provenance.source_snapshot())
+    image, wheel = digest("fixture image"), digest("fixture wheel")
+    monkeypatch.setenv("OEIS_QUALIFICATION_IMAGE", image)
+    monkeypatch.setenv("OEIS_QUALIFICATION_ENGINE", "podman")
+    monkeypatch.setattr(synthesis, "SynthesisClient", lambda _: nullcontext(client))
+
+    def installed(work, request, data):
+        inputs = work / "inputs"
+        inputs.mkdir(exist_ok=True)
+        adapter = Path(shutil.copyfile(evaluation.__file__, inputs / "evaluation.py"))
+        request = seal(dict(request, version="round029-comparative-wave/v1", gpu=False,
+                            data=digest(data), source=source, image=image, wheel=wheel,
+                            driver=digest([file_hash(code), file_hash(adapter)])))
+        atomic_write(inputs / "data.json", data)
+        atomic_write(inputs / "request.json", request)
+        role.installed(work, inputs / "worker.whl", wheel, source, code.parents[2])
+        result = load(work / "output/producer.json")
+        assert result == seal(result) and result["request"] == request["identity"]
+        return result
+
+    generated = installed(search, req, data)
     score = tmp_path / "scorer"
     dest = score / "inputs/candidates.json"
     dest.parent.mkdir(parents=True)
@@ -139,7 +167,7 @@ def test_selected_control_role_cannot_read_truth_until_choices_are_sealed(tmp_pa
         role="score", probe=generated["probe"], candidates=reference(score, dest), seconds=120
     )
     opaque_truth = [dict(row, id=handles[row["id"]]) for row in truth]
-    scored = perform(score, score_req, dict(truth=opaque_truth), device="cpu", client=client)
+    scored = installed(score, score_req, dict(truth=opaque_truth))
     result = read_bound_record(score / "output", scored["artifact"], version="discovery-scoring/v1")
     private = velocity_probe(look, prompts, mode="true", inference_seed=29)
     measured = measured_look(private, host.joined_scores(result, generated["probe"], private, handles))

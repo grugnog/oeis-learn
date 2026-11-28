@@ -7,7 +7,6 @@ from oeis_learn.generalization.progressive.contracts import digest, load, seal
 from oeis_learn.generalization.progressive.graph import velocity_look
 from oeis_learn.generalization.progressive.trials import integer
 from .identity import confined
-from .preparation_recovery import retain
 
 PATH = "comparative/conditioning-plan.json"
 MODES = ("true", "shuffled")
@@ -22,12 +21,15 @@ def paid_inputs(root, folder, source, accepted, registration):
     if (
         estimate["sources"] != accepted["sources"]
         or estimate["methods"] != accepted["supported"]
+        # A new timed checkpoint read shifts expected and tail by the same amount.
+        or estimate["tail_us"] - estimate["expected_us"] != accepted["tail_us"] - accepted["expected_us"]
         or estimate["followup_reserve_us"] != accepted["followup_us"]
     ):
         raise ValueError("conditioning quote belongs to another wave")
     price = dict(
         estimate["items"]["paired_search_selected_and_banks"],
         **estimate["conditioning_components"],
+        split_overhead_us=estimate["conditioning_extra_role_us"],
         methods=estimate["methods"],
         paired=estimate["sources"]["paired"],
         bank=estimate["sources"]["bank"],
@@ -45,7 +47,31 @@ def paid_inputs(root, folder, source, accepted, registration):
     }
 
 
-def freeze(accepted, registration, price, prompts):
+def funding(accepted, price, total_us):
+    headroom = integer(total_us) - accepted["proposed_total_us"]
+    if headroom < 0:
+        raise ValueError("grant is below the frozen full-wave tail and protected follow-up")
+    overhead = price["split_overhead_us"]
+    if set(overhead) != {"ordinary-common", "ordinary-full", "D-full"}:
+        raise ValueError("paired search and score supervisor prices required for both modes")
+    # The paid proxy supervised both modes together. Protect its full tail and bank
+    # allowance, then price a second search/score startup for each split-mode pair.
+    remaining = headroom
+    funded, omitted = [], {}
+    for method in ["00", "D", *(m for m in accepted["supported"] if m != "00")]:
+        for profile in (("full",) if method == "D" else ("common", "full")):
+            group = method + "-" + profile
+            extra = integer(overhead[("D" if method == "D" else "ordinary") + "-" + profile])
+            if remaining >= extra:
+                funded.append(group)
+                remaining -= extra
+            else:
+                omitted[group] = dict(required_us=extra, available_us=remaining, deficit_us=extra - remaining)
+    return dict(total_us=total_us, headroom_us=headroom, extra_supervision_us=headroom - remaining,
+                funded=funded, omitted=omitted)
+
+
+def freeze(accepted, registration, price, prompts, total_us):
     components = ("search_us", "selected_us", "bank_us", "overhead_us")
     if (
         price["methods"] != accepted["supported"]
@@ -81,18 +107,20 @@ def freeze(accepted, registration, price, prompts):
             donors=donors,
             missing=missing,
             price=price,
+            funding=funding(accepted, price, total_us),
             prefixes=digest([prompts[r["task"]] for r in members]),
         )
     )
 
 
-def original(root, folder, source, accepted, registration, *, install=False):
+def original(root, folder, source, accepted, registration, *, total_us=None):
     path = confined(folder, PATH, exists=False)
-    if install and not path.exists():
+    if total_us is not None and not path.exists():
         price, prompts = paid_inputs(root, folder, source, accepted, registration)
-        retain(path, freeze(accepted, registration, price, prompts))
+        return freeze(accepted, registration, price, prompts, total_us)
     sample = load(path)
-    if sample != seal(sample) or sample["accepted"] != accepted["identity"]:
+    if (sample != seal(sample) or sample["accepted"] != accepted["identity"]
+            or (total_us is not None and sample["funding"]["total_us"] != total_us)):
         raise ValueError("original pre-score conditioning sample required")
     return sample
 
@@ -102,6 +130,8 @@ def opportunities(sample, registration, methods):
         return
     for method in [*methods, "D"]:
         for profile in ("full",) if method == "D" else ("common", "full"):
+            if method + "-" + profile not in sample["funding"]["funded"]:
+                continue
             look = velocity_look(
                 registration=registration["identity"],
                 method=method,
@@ -244,6 +274,7 @@ def reduce_selected(data, costs, primary, schedule):
         selected=contrasts,
         missing=scope["missing"],
         quote=scope["price"],
+        funding=scope["funding"],
         charged_search_and_selected_us=spent,
         bank_status="deferred_to_T040",
         bank_dispatches=0,
