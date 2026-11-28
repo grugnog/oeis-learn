@@ -427,10 +427,7 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
         )
         observed = screen(area, grant, marker, accepted, packages, design, donor, invoke, progress)
         status.update(stage="publication", recipe=None, look=None)
-        original_q = load(
-            confined(folder, "qualification/" + accepted["preparation_grant"][7:] + "/grant.json")
-        )
-        qualification = retained_qualification(root, original_q)
+        qualification = retained_qualification(root, grant)
         request = seal(
             dict(
                 accepted=accepted["identity"],
@@ -487,7 +484,7 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
 
         paid, _, balance = invoke(coords, request, {}, publish, verify_publication, host_space)
         record = paid["evidence"]
-        settled = report.deliver(area, grant, accepted, balance, readonly=readonly)
+        settled = report.deliver(area, grant, accepted, balance, qualification=qualification, readonly=readonly)
         if settled["report"] != record["report"]:
             raise ValueError("installed final accounting belongs to another publication")
         value = result(

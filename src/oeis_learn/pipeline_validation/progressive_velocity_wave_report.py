@@ -14,12 +14,13 @@ from oeis_learn.generalization.progressive.program_search_outcome import (
     read_canonical,
 )
 from oeis_learn.generalization.progressive.program_search_rehearsal_report import encode
-from oeis_learn.generalization.progressive.velocity_records import grant_terms, validate_grant
+from oeis_learn.generalization.progressive.velocity_records import operation_key
 from .identity import confined
 from oeis_learn.generalization.progressive.program_search_costing import workstation_accounting
 from oeis_learn.generalization.progressive.trials import integer
 from oeis_learn.generalization.progressive.velocity_report import public_family_cells
 from . import progressive_velocity_trial_preparation as preparation
+from . import progressive_velocity_wave_commitment as commitment
 
 ARCHIVE = public.REPORT
 MEMBER = "comparative-exploration.json"
@@ -52,7 +53,8 @@ def sufficient(accepted, measured, key):
             score=m["scores"]["identity"],
             measurement=m["identity"],
             work=work,
-            cut={k: m["cut"][k] for k in EXPOSURE} if m["cut"] is not None else None,
+            cut=(dict({k: m["cut"][k] for k in EXPOSURE}, checkpoint=digest(m["cut"]["model"]))
+                 if m["cut"] is not None else None),
         )
     for profile in ("common", "full"):
         subset = {ref: m for ref, m in measured.items() if m["probe"]["look"]["profile"] == profile}
@@ -126,6 +128,7 @@ def reduce(accepted, data, *, draws=10_000):
     if points.keys() != scheduled.keys() or set(data["panels"]) != {"common", "full"}:
         raise ValueError("public report lacks a registered opportunity")
     used = set()
+    shared_cuts = {}
     for k, v in costs.items():
         public.closed(v, WORK)
         public.hashes(k, v["host"])
@@ -149,7 +152,10 @@ def reduce(accepted, data, *, draws=10_000):
         method, profile, target = row["method"], row["profile"], row["look"]
         cut = m["cut"]
         if method in accepted["supported"]:
-            public.closed(cut, " ".join(EXPOSURE))
+            public.closed(cut, "checkpoint " + " ".join(EXPOSURE))
+            public.hashes(cut["checkpoint"])
+            if shared_cuts.setdefault((method, target), cut) != cut:
+                raise ValueError("evaluation profiles refer to different training cuts")
             for k in EXPOSURE:
                 integer(cut[k])
             from oeis_learn.generalization.progressive.velocity_trials import crossed
@@ -356,7 +362,21 @@ def publication(area, grant, accepted, observed, *, marker, key, readonly):
 
 
 def checked_science(value, qualification):
-    q = public.read_member(qualification, preparation.MEMBER)
+    frozen = commitment.read(qualification)
+    q = frozen["preparation"]
+    if value["controller"] != frozen["controller"] or value["grant"] != frozen["grant"]["identity"]:
+        raise ValueError("report differs from the independently retained operator authorization")
+    for profile, panel in value["statistics"]["panels"].items():
+        groups = sorted(({k: row[k] for k in ("stratum", "family", "frozen_size")}
+                         for row in panel["families"]), key=lambda r: (r["stratum"], r["family"]))
+        if groups != frozen["families"][profile]:
+            raise ValueError("public family membership differs from the pre-score commitment")
+    for row in q["schedule"]:
+        if row["method"] in q["supported"]:
+            expected = frozen["crossings"][row["method"]][str(row["look"])]
+            cut = value["statistics"]["points"][row["roster"]]["cut"]
+            if any(cut[k] != expected[k] for k in ("useful_tokens", "updates", "last_update_tokens", "overshoot")):
+                raise ValueError("public exposure differs from the pre-score whole-update crossing")
     if (
         q != seal(q)
         or q["version"] != preparation.VERSION
@@ -408,6 +428,8 @@ def accounting(area, grant, report, balance):
             dict(
                 receipt=digest([grant["identity"], key]),
                 role=registered["coordinates"]["role"],
+                logical=logical,
+                operation=verb,
                 attempt=int(ordinal),
                 work=work,
                 terminated=window["end_us"] is not None,
@@ -425,7 +447,8 @@ def accounting(area, grant, report, balance):
     )
 
 
-def check_account(account, science, accepted):
+def check_account(account, science, frozen):
+    accepted = frozen["preparation"]
     public.closed(account, "version grant report dispatches consumed remaining", sealed=True)
     grant = account["grant"]
     pinned = science["controller"]
@@ -442,12 +465,8 @@ def check_account(account, science, accepted):
         raise ValueError(
             "controller or frozen statistical labels differ from the research authority"
         )
-    authorization = seal(
-        dict(version="round029-authorization/v1", terms=digest(grant_terms(grant)))
-    )
-    validate_grant(
-        grant, authorization, root=accepted["owner"], parent=accepted["identity"], action="run"
-    )
+    if grant != frozen["grant"] or pinned != frozen["controller"]:
+        raise ValueError("accounting differs from the independently authorized grant")
     if (
         account["version"] != "round029-comparative-accounting/v1"
         or account["report"] != science["identity"]
@@ -461,8 +480,9 @@ def check_account(account, science, accepted):
     vector(account["remaining"])
     totals = dict.fromkeys(KEYS, 0)
     seen, stages, expected = set(), set(), science["statistics"]["costs"]
+    issued = set()
     for dispatch in account["dispatches"]:
-        public.closed(dispatch, "receipt role attempt work terminated")
+        public.closed(dispatch, "receipt role logical operation attempt work terminated")
         receipt, role = dispatch["receipt"], dispatch["role"]
         public.hashes(receipt)
         integer(dispatch["attempt"])
@@ -474,7 +494,18 @@ def check_account(account, science, accepted):
             raise ValueError("duplicate or invalid comparative dispatch")
         seen.add(receipt)
         stages.add(role)
+        logical, verb, attempt = (dispatch[k] for k in ("logical", "operation", "attempt"))
+        planned = frozen["operations"].get(logical)
+        if (planned is None or verb not in {"dispatch", "verify"} or planned["coordinates"]["role"] != role
+                or operation_key(planned["coordinates"], attempt)["logical"] != logical
+                or receipt != digest([grant["identity"], f"{logical}/{verb}/{attempt}"])):
+            raise ValueError("dispatch is outside the authorized operation schedule")
+        if verb == "dispatch":
+            issued.add(logical)
         work = vector(dispatch["work"])
+        priced = planned["work"] if verb == "dispatch" else {}
+        if any(work[k] != priced.get(k, 0) for k in KEYS if k != "elapsed_us"):
+            raise ValueError("non-time debit differs from registered dispatch")
         if role in {"train", "search", "score"} and (
             receipt not in expected
             or expected[receipt]["role"] != role
@@ -484,7 +515,8 @@ def check_account(account, science, accepted):
         for k in KEYS:
             totals[k] += work[k]
     if (
-        not expected.keys() <= seen
+        issued != frozen["operations"].keys()
+        or not expected.keys() <= seen
         or stages != {"prepare", "train", "search", "score", "publish"}
         or totals != account["consumed"]
         or any(totals[k] + account["remaining"][k] != grant["resources"][k] for k in KEYS)
@@ -493,10 +525,10 @@ def check_account(account, science, accepted):
     return account
 
 
-def deliver(area, grant, accepted, balance, *, readonly):
+def deliver(area, grant, accepted, balance, *, qualification, readonly):
     science = public.read_member(confined(area, "share/" + SCIENCE), MEMBER)
     account = check_account(
-        accounting(area, grant, science["identity"], balance), science, accepted
+        accounting(area, grant, science["identity"], balance), science, commitment.read(qualification)
     )
     records = {MEMBER: encode(science), ACCOUNT: encode(account)}
     path = confined(area, "share/" + ARCHIVE, exists=readonly)
@@ -515,5 +547,5 @@ def verify(path, qualification):
     if records != {MEMBER: encode(science), ACCOUNT: encode(account)}:
         raise ValueError("noncanonical comparative records")
     checked_science(science, qualification)
-    check_account(account, science, public.read_member(qualification, preparation.MEMBER))
+    check_account(account, science, commitment.read(qualification))
     return science

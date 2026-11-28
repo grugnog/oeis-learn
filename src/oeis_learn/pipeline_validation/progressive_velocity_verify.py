@@ -22,10 +22,12 @@ def archive_result(report, qualification):
     from . import progressive_velocity_prescore as prescore
     from . import progressive_velocity_trial_preparation as trials
 
+    from . import progressive_velocity_wave_commitment as commitment
     with zipfile.ZipFile(qualification) as archive:
+        exploration = archive.namelist() == [commitment.MEMBER]
         initialization = archive.namelist() == [prescore.MEMBER]
         trial_prep = archive.namelist() == [trials.MEMBER]
-    if trial_prep:
+    if exploration or trial_prep:
         from . import progressive_velocity_wave_report as comparative
 
         with zipfile.ZipFile(report) as archive:

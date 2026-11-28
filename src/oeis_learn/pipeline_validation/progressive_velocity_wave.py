@@ -224,7 +224,11 @@ def authorize(root, source, minutes, expected):
             raise ValueError("operator's accepted pre-score commitment differs")
         preparation.published(root, folder)
         reg, packages = inputs(root, folder, accepted)
-        ops = plan(accepted, reg, packages)[-1]
+        from . import progressive_velocity_wave_commitment as commitment
+
+        design = plan(accepted, reg, packages)
+        ops = design[-1]
+        key = family_key(folder, create=True)
         grant, approval, marker = authority(
             root,
             revision,
@@ -232,7 +236,7 @@ def authorize(root, source, minutes, expected):
             accepted,
             ops,
             file_hash(confined(source, DRIVER)),
-            family_key(folder, create=True)["identity"],
+            key["identity"],
         )
         # One owner per accepted wave, including concurrent or repeated start requests.
         retain(folder / MARKER, marker)
@@ -240,4 +244,6 @@ def authorize(root, source, minutes, expected):
         retain(directory / (approval["identity"][7:] + ".json"), approval)
         path = directory / ("grant-" + grant["identity"][7:] + ".json")
         retain(path, grant)
+        commitment.install(root, grant, commitment.prescore(accepted, design, grant, approval, marker,
+                                                           bytes.fromhex(key["key"])))
         return path

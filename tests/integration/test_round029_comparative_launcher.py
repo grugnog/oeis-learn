@@ -88,9 +88,9 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     )
     monkeypatch.setattr(preparation, "published", lambda *_: {"accepted": accepted["identity"]})
     monkeypatch.setattr(wave, "inputs", lambda *_: (reg, packages))
-    monkeypatch.setattr(runner, "retained_qualification", lambda *_: qualification)
     path = wave.authorize(tmp_path, source, 1680, accepted["identity"])
     assert load(path) == grant
+    qualification = runner.retained_qualification(tmp_path, grant)
     with pytest.raises(ValueError, match="original"):
         wave.authorize(tmp_path, source, 1681, accepted["identity"])
     monkeypatch.setattr(host, "next_files", lambda *a: [])
@@ -313,7 +313,8 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         "score",
         "publish",
     }
-    for i, tamper in enumerate(("decision", "count", "reserve", "parent")):
+    for i, tamper in enumerate(("decision", "count", "reserve", "parent", "family", "cut",
+                                "larger_grant", "below_wave", "dispatch")):
         changed, ledger = deepcopy(value), deepcopy(account)
         if tamper == "decision":
             changed["decision"]["verdict"] = "gain"
@@ -321,8 +322,33 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
             changed["statistics"]["panels"]["full"]["families"][0]["patterns"][0]["count"] += 1
         elif tamper == "reserve":
             ledger["remaining"]["elapsed_us"] += 1
-        else:
+        elif tamper == "parent":
             changed["accepted"] = digest("unrelated prescore")
+        elif tamper == "family":
+            cells = changed["statistics"]["panels"]["full"]["families"]
+            a, b = (next(f for f in cells if f["stratum"] == s) for s in ("oeis", "retention"))
+            a["family"], b["family"] = b["family"], a["family"]
+        elif tamper == "cut":
+            r = next(r for r in accepted["schedule"] if r["method"] == "00" and r["profile"] == "full")
+            cut = changed["statistics"]["points"][r["roster"]]["cut"]
+            for k in ("useful_tokens", "charged_tokens", "overshoot", "last_update_tokens"):
+                cut[k] += 123456
+        elif tamper == "dispatch":
+            ledger["dispatches"][0]["attempt"] += 3
+        else:
+            from oeis_learn.generalization.progressive.velocity_records import grant_terms
+            total = 60_000_000 if tamper == "below_wave" else grant["total_us"] + 60_000_000
+            terms = dict(grant_terms(grant), total_us=total,
+                         resources=dict(grant["resources"], elapsed_us=total))
+            approval = seal(dict(version="round029-authorization/v1", terms=digest(terms)))
+            replacement = seal(dict(terms, authorizing_record_ref=approval["identity"]))
+            ledger.update(grant=replacement, remaining=dict(ledger["remaining"],
+                          elapsed_us=total-ledger["consumed"]["elapsed_us"]))
+            changed.update(grant=replacement["identity"], controller=seal(dict(changed["controller"],
+                           grant=replacement["identity"])))
+        if tamper == "family":
+            changed.update(report.reduce(accepted, changed["statistics"]))
+        ledger["report"] = seal(changed)["identity"]
         bad = tmp_path / f"tampered-{i}.zip"
         bad.write_bytes(
             report.archive_bytes(
