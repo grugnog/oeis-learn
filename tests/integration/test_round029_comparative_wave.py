@@ -73,6 +73,9 @@ def test_frozen_wave_has_separate_endpoints_exact_crossings_and_one_allowance(tm
         methods
     )
     assert all(o["roster"] in looks for o in ops)
+    zero = [o for o in ops if o["role"] in {"search", "score"} and looks[o["roster"]]["look"] == 0]
+    assert len([o for o in zero if o["cost"]]) == 2
+    assert all(looks[o["roster"]]["method"] == "00" for o in zero if o["cost"])
     grant, approval, marker = wave.authority(
         tmp_path, "b" * 40, 2, accepted, ops, digest("driver"), digest("labels")
     )

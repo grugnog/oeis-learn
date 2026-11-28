@@ -121,8 +121,10 @@ def plan(accepted, registration, packages):
                 )
             )
             previous[method] = cut
+        shared_zero = target == 0 and method != min(packages)
         for role in ("search", "score"):
-            ops.append(dict(role=role, roster=row["roster"], cost=probe_work(look, role)))
+            work = {} if shared_zero else probe_work(look, role)
+            ops.append(dict(role=role, roster=row["roster"], cost=work))
     return graph, look_index, cuts, ops
 
 
