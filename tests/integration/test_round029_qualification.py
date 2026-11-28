@@ -1026,3 +1026,23 @@ def test_broader_disjointness_failure_reopens_both_treatments_without_device_or_
     c.write_text(json.dumps(seal(dict(load(c), counts=dict(candidates=8, excluded=0)))))
     with pytest.raises(ValueError, match="measured exclusion"):
         broad.inventory(tmp_path, source)
+
+
+def test_broader_prices_survive_curve_reporting_but_still_pin_shared_math(tmp_path, monkeypatch):
+    from oeis_learn.pipeline_validation import progressive_velocity_timing_host as timing
+
+    relative = "src/oeis_learn/generalization/progressive/"
+    metrics, trials = relative + "velocity_metrics.py", relative + "trials.py"
+    binding = {"version": "round029-broader-timing/v2"}
+    original, current = tmp_path / "original", tmp_path / "current"
+    for root, journal in ((original, "pass"), (current, "def velocity_report(self): return {}")):
+        path = root / trials
+        path.parent.mkdir(parents=True)
+        path.write_text("def integer(n): return n\nclass TrialJournal:\n    " + journal + "\n")
+    monkeypatch.setattr(timing, "original_price_source", lambda *_: (
+        original, {metrics: "old", trials: "old"}, {metrics: "reader", trials: "new journal"}))
+    timing.checked_price_source(tmp_path, current, binding)
+    path = current / trials
+    path.write_text(path.read_text().replace("return n", "return 0"))
+    with pytest.raises(ValueError, match="workload changed"):
+        timing.checked_price_source(tmp_path, current, binding)

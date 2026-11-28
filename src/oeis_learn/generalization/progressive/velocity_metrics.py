@@ -256,11 +256,15 @@ def factorial(levels):
 
 def sampling_interval(rows, coefficients, *, stratum, seed, looks, scale=1, draws=10000, registrations=()):
     """Resample each linked family once per draw across all arms, looks and strata."""
+    result = contrast(rows, coefficients, stratum=stratum, looks=looks, registrations=registrations)
+    return _sample_contrast(result, coefficients, stratum, seed, draws, scale)
+
+
+def _sample_contrast(result, coefficients, stratum, seed, draws, scale=1):
     import random
 
     rng = random.Random(seed)
     strata = ("composition", "unseen_structure") if stratum == "structural" else (stratum,)
-    result = contrast(rows, coefficients, stratum=stratum, looks=looks, registrations=registrations)
     coefficients_in_order = [coefficients[name] for name in sorted(coefficients)]
     by_group = defaultdict(dict)
     for family in result["families"]:
@@ -286,3 +290,194 @@ def sampling_interval(rows, coefficients, *, stratum, seed, looks, scale=1, draw
         supported_draws=len(values),
         seed=seed,
     )
+
+
+def _score_rows(measurements):
+    """Align the selected-choice scorer's private outputs on the first frozen roster."""
+    first = next(iter(measurements.values()))["probe"]["look"]
+    return [
+        dict(case=row["task"], stratum=row["stratum"], family=row["group"],
+             observations={name: m["scores"]["outcomes"][row["task"]]["equal_budget"]
+                           for name, m in measurements.items()})
+        for row in first["members"]
+    ]
+
+
+def measured_look(probe, scores, *, cut=None, work=()):
+    """Bind a scored probe to its worker's whole-update cut and cumulative operation receipts."""
+    from .campaign import velocity_policy
+    from .program_search_costing import workstation_accounting
+    from .trials import integer
+    from .velocity_trials import crossed
+
+    look = probe["look"]
+    if (scores != seal(scores) or scores.get("version") != "discovery-scoring/v1"
+            or scores["denominator"] != len(look["members"])
+            or set(scores["outcomes"]) != {row["task"] for row in look["members"]}):
+        raise ValueError("score differs from the registered probe roster")
+    measurement = dict(version="round029-measured-look/v1", probe=probe, scores=scores,
+                       cut=None, work=list(work))
+    learner = look["method"] in {r["id"] for r in velocity_policy()["recipes"]}
+    if learner:
+        if cut is None or cut["target"] != look["look"] or cut["model"] != probe["model"]:
+            raise ValueError("scored learner weights must match the original worker cut")
+        fields = ("useful_tokens", "charged_tokens", "discarded_tokens", "updates", "last_update_tokens", "overshoot")
+        exposure = {k: integer(cut[k]) for k in fields}
+        useful = exposure["useful_tokens"]
+        if (not crossed(exposure, look["look"]) or useful - look["look"] != exposure["overshoot"]
+                or useful + exposure["discarded_tokens"] != exposure["charged_tokens"]
+                or exposure["last_update_tokens"] > useful
+                or (look["look"] == 0 and useful != 0)
+                or (look["look"] > 0 and not exposure["updates"])):
+            raise ValueError("scored look does not cross the registered whole-update boundary")
+        measurement["cut"] = dict(exposure, target=cut["target"], model=cut["model"])
+    elif cut is not None:
+        raise ValueError("a fixed reference has no training cut")
+    _frozen_rows(_score_rows({"look": measurement}), {"look": probe}, ["look"], ())
+    workstation_accounting(measurement["work"])
+    return seal(measurement)
+
+
+FACTOR_BLOCKS = {
+    "composition_matching": ("00", "01", "02", "03"),
+    "batch_decay": ("00", "04", "05", "06"),
+}
+
+
+def _factor_effects(coordinates, estimate):
+    """Each effect is one paired contrast across exactly the coordinates that it uses."""
+    def block(methods):
+        def effect(weights):
+            terms = {}
+            for method, weight in zip(methods, weights, strict=True):
+                if not weight:
+                    continue
+                if not coordinates.get(method):
+                    return None
+                for coordinate, coefficient in coordinates[method].items():
+                    terms[coordinate] = terms.get(coordinate, 0) + coefficient * weight
+            return estimate(terms)
+
+        return dict(first=[effect((-1, 1, 0, 0)), effect((0, 0, -1, 1))],
+                    second=[effect((-1, 0, 1, 0)), effect((0, -1, 0, 1))],
+                    first_mean=effect((-.5, .5, -.5, .5)), second_mean=effect((-.5, -.5, .5, .5)),
+                    interaction=effect((1, -1, -1, 1)))
+
+    return {name: block(methods) for name, methods in FACTOR_BLOCKS.items()}
+
+
+def study_curve(looks, measurements, *, stratum, seed, draws=10_000, budgets=None):
+    """Reduce one registered seed's common series and separate full endpoints."""
+    from .cohorts import STRATA
+    from .program_search_costing import workstation_accounting
+    from .trials import integer
+
+    if stratum not in (*STRATA, "structural", "retention"):
+        raise ValueError("unregistered curve stratum")
+    integer(draws, 1)
+    integer(seed)
+    measured = {ref: item for ref, item in measurements.items() if "probe" in item}
+    estimates = {}
+
+    def estimate(terms):
+        key = tuple(sorted(terms.items()))
+        if key not in estimates:
+            subset = {ref: measured[ref] for ref in terms}
+            probes = {ref: m["probe"] for ref, m in subset.items()}
+            observed = contrast(_score_rows(subset), terms, stratum=stratum, looks=probes)
+            estimates[key] = dict(
+                observed=observed["observed_pp"], lower=observed["lower_pp"], upper=observed["upper_pp"],
+                denominator=observed["denominator"], family_counts=observed["family_counts"],
+                sampling=_sample_contrast(observed, terms, stratum, seed, draws),
+            )
+        return estimates[key]
+
+    def point(look):
+        ref = look["identity"]
+        row = dict(look=look["look"], reference=ref, verified=ref in measured)
+        if ref not in measured:
+            return dict(row, reason=measurements.get(ref, {}).get("reason", "unmeasured"))
+        m = measured[ref]
+        if m["probe"]["look"] != look or m["probe"]["mode"] != "true":
+            raise ValueError("primary curve requires its registered true-conditioning probe")
+        costs = workstation_accounting(m["work"])["by_beneficiary"].get(look["method"], {})
+        row.update(charged_us=costs.get("production_us"), historical_us=costs.get("historical_us"),
+                   incremental_us=costs.get("incremental_us"))
+        if m["cut"] is None:
+            search_work = [record for record in m["work"] if record["role"] == "search"]
+            search_cost = workstation_accounting(search_work)["by_beneficiary"].get(look["method"], {})
+            row["inference_us"] = search_cost.get("production_us")
+        else:
+            row.update({k: m["cut"][k] for k in ("useful_tokens", "charged_tokens", "discarded_tokens",
+                                                "updates", "last_update_tokens", "overshoot")})
+        row["yield"] = estimate({ref: 1})
+        return row
+
+    curves, endpoints, levels, rate_terms = {}, {}, {}, {}
+    for method, profiles in looks.items():
+        if profiles.get("full"):
+            endpoints[method] = point(profiles["full"][0])
+        if not profiles.get("common"):
+            continue
+        points = [point(look) for look in profiles["common"]]
+        intervals = []
+        for row in points:
+            frame = levels.setdefault(row["look"], {})
+            if row["verified"]:
+                frame[method] = {row["reference"]: 1}
+        for a, b in zip(points, points[1:]):
+            interval = dict(start=a["look"], end=b["look"], change=None, rates=rates(None, None, None),
+                            sampling={}, useful_tokens=None, charged_us=None)
+            slopes = rate_terms.setdefault(b["look"], {"pp_per_million": {}, "pp_per_hour": {}})
+            if a["verified"] and b["verified"]:
+                for name in ("useful_tokens", "charged_tokens", "discarded_tokens", "updates", "charged_us"):
+                    if a[name] is not None and b[name] is not None and b[name] < a[name]:
+                        raise ValueError("cumulative curve cost or exposure decreased between cuts")
+                tokens = b["useful_tokens"] - a["useful_tokens"]
+                elapsed = None if a["charged_us"] is None or b["charged_us"] is None else b["charged_us"] - a["charged_us"]
+                terms = {a["reference"]: -1, b["reference"]: 1}
+                change = estimate(terms)
+                interval.update(change=change, rates=rates(change["observed"], tokens, elapsed),
+                                useful_tokens=tokens, charged_us=elapsed)
+                for axis, scale in rates(1, tokens, elapsed).items():
+                    if scale is not None:
+                        slopes[axis][method] = {ref: w * scale for ref, w in terms.items()}
+                        interval["sampling"][axis] = {
+                            k: None if change["sampling"][k] is None else change["sampling"][k] * scale
+                            for k in ("lower", "upper")
+                        }
+            intervals.append(interval)
+        curves[method] = dict(looks=points, intervals=intervals)
+
+    comparisons = {}
+    for axis, requested in (budgets or {}).items():
+        if axis not in {"useful_tokens", "charged_us"}:
+            raise ValueError("budget axis requires useful tokens or charged workstation time")
+        eligible = {}
+        for method, curve in curves.items():
+            known = [r for r in curve["looks"] if r["verified"] and r.get(axis) is not None]
+            if any(r["look"] > 0 for r in known):
+                eligible[method] = known
+        overlap = None
+        if len(eligible) >= 2:
+            lo = max(min(r[axis] for r in group) for group in eligible.values())
+            hi = min(max(r[axis] for r in group) for group in eligible.values())
+            if lo <= hi:
+                overlap = [lo, hi]
+        comparisons[axis] = []
+        for budget in requested:
+            if type(budget) not in (int, float) or not isfinite(budget) or budget < 0:
+                raise ValueError("finite nonnegative comparison budget required")
+            selected = {
+                method: affordable_look(known, axis, budget, overlap=overlap) if overlap else None
+                for method, known in eligible.items()
+            }
+            comparisons[axis].append(dict(
+                budget=budget, overlap=overlap, methods=sorted(eligible),
+                looks={method: row["look"] if row else None for method, row in selected.items()},
+                points={method: row for method, row in selected.items() if row is not None},
+            ))
+    return dict(stratum=stratum, curves=curves, endpoints=endpoints, budgets=comparisons,
+                effects={str(k): _factor_effects(v, estimate) for k, v in levels.items()},
+                rate_effects={str(k): {axis: _factor_effects(v, estimate) for axis, v in axes.items()}
+                              for k, axes in rate_terms.items()})

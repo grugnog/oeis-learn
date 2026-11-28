@@ -139,6 +139,7 @@ class TrialJournal:
         from .contracts import _check, schema
         from .graph import velocity_study_looks
         from oeis_learn.pipeline_validation.preparation_recovery import retain
+        from oeis_learn.pipeline_validation.identity import confined
 
         with self.lock():
             reg = load(self.root / "velocity-registration.json")
@@ -148,6 +149,15 @@ class TrialJournal:
             series = [entry for entry in series if entry["seed"] == look["seed"]]
             if look not in series:
                 raise ValueError("observation outside frozen roster or profile")
+            detail = None
+            if isinstance(evidence, dict):
+                from .velocity_metrics import measured_look
+
+                detail = measured_look(evidence["probe"], evidence["scores"],
+                                       cut=evidence["cut"], work=evidence["work"])
+                if detail != evidence or detail["probe"]["look"] != look or detail["probe"]["mode"] != "true":
+                    raise ValueError("scored measurement differs from the original registered look")
+                evidence = detail["identity"]
             if evidence is None:
                 if not isinstance(reason, str) or not reason.strip():
                     raise ValueError("unavailable look requires its disposition")
@@ -164,11 +174,76 @@ class TrialJournal:
                 if entry != seal(entry) or entry["look"] != earlier["identity"] or entry["previous"] != previous:
                     raise ValueError("previous registered observation differs")
                 previous = entry["identity"]
-            record = seal(dict(version="round029-observation/v1", registration=reg["identity"],
-                               previous=previous, look=look["identity"], denominator=len(look["members"]),
-                               evidence=evidence, reason=reason))
-            retain(self.root / ("look-" + look["identity"][7:] + ".json"), record)
+            path = self.root / ("look-" + look["identity"][7:] + ".json")
+            prior = load(path) if path.is_file() else None
+            record = dict(version="round029-observation/v1", registration=reg["identity"],
+                          previous=previous, look=look["identity"], denominator=len(look["members"]),
+                          evidence=evidence, reason=reason)
+            if (detail is not None and prior is None) or (prior and "measurement_format" in prior):
+                record["measurement_format"] = "round029-measured-look/v1"
+            record = seal(record)
+            if prior is not None and record != prior:
+                raise ValueError("original recovery publication differs: " + str(path))
+            if detail is not None:
+                retain(confined(self.root, "measurements/" + evidence[7:] + ".json", exists=False), detail)
+            retain(path, record)
             return record["identity"]
+
+    def velocity_report(self, registration, *, stratum, seed, draws=10_000, budgets=None, model_seed=None):
+        """Reopen measured looks and explicit dispositions at one frozen study boundary."""
+        from .contracts import CAMPAIGN_DOCUMENT_BYTES, _check, schema
+        from .graph import velocity_study_looks
+        from .velocity_metrics import measured_look, study_curve
+        from oeis_learn.pipeline_validation.identity import confined
+
+        graph = velocity_study_looks(registration)
+        model_seed = registration["initialization"] if model_seed is None else model_seed
+        selected, measurements = {}, {}
+        with self.lock():
+            if (load(confined(self.root, "velocity-registration.json")) != registration
+                    or self.binding["study"] != registration["identity"]):
+                raise ValueError("different frozen study journal")
+            for method, profiles in graph.items():
+                selected[method] = {}
+                for profile, series in profiles.items():
+                    looks = [look for look in series if look["seed"] == model_seed]
+                    selected[method][profile] = looks
+                    previous = self.binding["identity"]
+                    for look in looks:
+                        ref = look["identity"]
+                        path = confined(self.root, "look-" + ref[7:] + ".json", exists=False)
+                        if not path.is_file():
+                            previous = None
+                            continue
+                        observation = load(path)
+                        if (observation != seal(observation) or observation["version"] != "round029-observation/v1"
+                                or observation["registration"] != registration["identity"] or previous is None
+                                or observation["previous"] != previous or observation["look"] != ref
+                                or observation["denominator"] != len(look["members"])):
+                            raise ValueError("registered observation chain differs")
+                        previous = observation["identity"]
+                        evidence = observation["evidence"]
+                        if evidence is None:
+                            if not isinstance(observation["reason"], str) or not observation["reason"].strip():
+                                raise ValueError("unavailable look requires a disposition")
+                            measurements[ref] = {"reason": observation["reason"]}
+                            continue
+                        _check(schema("common")["$defs"]["hash"], evidence, {})
+                        detail = confined(self.root, "measurements/" + evidence[7:] + ".json", exists=False)
+                        if not detail.is_file():
+                            if "measurement_format" in observation:
+                                raise ValueError("committed measurement is missing")
+                            measurements[ref] = {"reason": "historical evidence reference without measurement details"}
+                            continue
+                        value = load(detail, maximum=CAMPAIGN_DOCUMENT_BYTES)
+                        expected = measured_look(value["probe"], value["scores"], cut=value["cut"], work=value["work"])
+                        if (value != expected or value["identity"] != evidence or value["probe"]["look"] != look
+                                or observation["reason"] is not None):
+                            raise ValueError("saved scored measurement differs from its registered observation")
+                        measurements[ref] = value
+        if not any(looks for profiles in selected.values() for looks in profiles.values()):
+            raise ValueError("model seed outside the frozen study")
+        return study_curve(selected, measurements, stratum=stratum, seed=seed, draws=draws, budgets=budgets)
 
     def record_velocity_branch(self, branch, *, decision, reason, grant=None, approval=None, root_id=None,
                                accepted=None):

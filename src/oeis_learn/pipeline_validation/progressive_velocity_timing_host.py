@@ -495,7 +495,13 @@ def checked_price_source(root, source, binding):
             continue
         if name == "src/oeis_learn/generalization/progressive/program_search_costing.py":
             continue
-        if binding.get("version") == VERSION and ordinary_workload_unchanged(
+        # Both matrices share integer validators from trials, but neither runs the
+        # trial journal or the outcome reducers. Keep everything else in trials pinned.
+        reporting = name in {
+            "src/oeis_learn/generalization/progressive/trials.py",
+            "src/oeis_learn/generalization/progressive/velocity_metrics.py",
+        }
+        if (binding.get("version") == VERSION or broader and reporting) and ordinary_workload_unchanged(
             name, original, source
         ):
             continue

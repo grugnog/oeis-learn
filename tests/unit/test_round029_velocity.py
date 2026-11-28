@@ -354,3 +354,108 @@ def test_distinct_conditioning_and_paired_extension_require_the_original_probe_a
     rows[0]["observations"]["b"]["probe_ref"] = probes["a"]["identity"]
     with pytest.raises(ValueError, match="probe"):
         measured_contrast(rows, coeff, stratum="oeis", looks=probes)
+
+
+def test_study_reopens_scored_cuts_cost_rates_and_joint_factor_effects(tmp_path):
+    from oeis_learn.generalization.progressive.campaign import velocity_registration
+    from oeis_learn.generalization.progressive.graph import velocity_study_looks
+    from oeis_learn.generalization.progressive.velocity_metrics import measured_look
+    from oeis_learn.pipeline_validation.progressive_evaluation import model_receipt, probe_inference, velocity_probe
+    from oeis_learn.pipeline_validation.progressive_study import open_velocity_study
+
+    panel = [dict(task=str(i), group=str(i), stratum="oeis") for i in range(4)]
+    reg = velocity_registration(source="a" * 40, design=digest("design"), initialization=9,
+                                stream_seed=42, development=panel, retention=[], ordinary=digest("ordinary"),
+                                broad=digest("broader"))
+    journal = open_velocity_study(tmp_path, reg)
+    graph = velocity_study_looks(reg)
+
+    def capture(look, solves, tokens, elapsed):
+        method, target = look["method"], look["look"]
+        key = "initial" if target == 0 else (method, target, look["profile"])
+        model = model_receipt(look, profile=digest("profile"), weights=digest(key),
+                              checkpoint=digest(["file", key]) if target else None, origin=digest("origin"))
+        prompts = [dict(id=r["task"], indices=list(map(str, range(20))), values=[r["task"]] * 20)
+                   for r in look["members"]]
+        probe = velocity_probe(look, prompts, model=model, mode="true", inference_seed=11)
+        outcomes = {}
+        for i, r in enumerate(look["members"]):
+            status = "solve" if i < solves else "miss"
+            one = obs(r["task"], status, [probe_inference(probe), r["task"]])
+            one["receipt"] = seal(dict(one["receipt"], version="round029-case-outcome/v2",
+                                       inference_ref=probe_inference(probe)))
+            outcomes[r["task"]] = {"equal_budget": dict(one, probe_ref=probe["identity"])}
+        scores = seal(dict(version="discovery-scoring/v1", denominator=len(panel), outcomes=outcomes))
+        cut = None if method == "D" else dict(model=model, target=target, useful_tokens=tokens,
+            charged_tokens=tokens + (5 if target else 0), discarded_tokens=5 if target else 0,
+            last_update_tokens=16 if target else 0, updates=target // 1000, overshoot=tokens - target)
+        work = [dict(origin="incremental", state="complete", receipt=digest([key, method]), role="search",
+                     host="test", boot="one", start_us=0, end_us=elapsed, charged_us=elapsed,
+                     beneficiaries=[method])]
+        if method == "D":
+            work.append(dict(work[0], role="score", receipt=digest("score reference"), start_us=elapsed,
+                             end_us=elapsed+11, charged_us=11))
+        return measured_look(probe, scores, cut=cut, work=work)
+
+    # All seven methods have a registered zero. Four supply both trained cuts.
+    end = {"00": 1, "04": 2, "05": 1, "06": 4}
+    for method in ("00", "01", "02", "03", "04", "05", "06"):
+        looks = graph[method]["common"]
+        evidence = capture(looks[0], 0, 0, 0)
+        journal.observe_velocity(reg, looks[0], evidence=evidence)
+        if method not in end:
+            for look in looks[1:]:
+                journal.observe_velocity(reg, look, reason="unavailable on the fixture stream")
+            continue
+        for i, (look, solved) in enumerate(zip(looks[1:], (1, end[method])), 1):
+            t = look["look"] + 3
+            clock = (i if method == "00" else i * 2) * 3_600_000_000
+            one = capture(look, solved, t, clock)
+            ref = journal.observe_velocity(reg, look, evidence=one)
+            assert journal.observe_velocity(reg, look, evidence=one) == ref
+    dl = graph["D"]["full"][0]
+    journal.observe_velocity(reg, dl, evidence=capture(dl, 3, 0, 19))
+    # A legacy reference remains a recorded look without local score/cost details.
+    journal.observe_velocity(reg, graph["04"]["full"][0], evidence=digest("old score"))
+    report = journal.velocity_report(reg, stratum="oeis", seed=17, draws=25,
+                                     budgets={"useful_tokens": [1_000_003, 4_000_004],
+                                              "charged_us": [3_600_000_000]})
+    assert report["curves"]["06"]["looks"][2]["useful_tokens"] == 4_000_003
+    assert report["curves"]["06"]["looks"][2]["discarded_tokens"] == 5
+    interval = report["curves"]["06"]["intervals"][1]
+    assert interval["change"]["observed"] == 75
+    assert interval["rates"] == {"pp_per_million": 25, "pp_per_hour": 37.5}
+    assert interval["sampling"]["pp_per_million"]["upper"] >= 25
+    assert report["curves"]["02"]["intervals"][1]["rates"]["pp_per_hour"] is None
+    effects = report["effects"]["4000000"]["batch_decay"]
+    assert effects["first"][0]["observed"] == 25 and effects["first"][1]["observed"] == 75
+    assert effects["interaction"]["observed"] == 50
+    assert effects["interaction"]["sampling"]["draws"] == 25
+    assert report["effects"]["4000000"]["composition_matching"]["interaction"] is None
+    assert report["budgets"]["charged_us"][0]["looks"]["00"] == 1_000_000
+    assert report["budgets"]["charged_us"][0]["looks"]["06"] == 0
+    assert report["budgets"]["useful_tokens"][1]["looks"]["06"] is None
+    assert report["endpoints"]["D"]["yield"]["observed"] == 75
+    assert report["endpoints"]["D"]["inference_us"] == 19
+    assert report["endpoints"]["D"]["charged_us"] == 30
+    rate_effect = report["rate_effects"]["4000000"]["pp_per_million"]["batch_decay"]["interaction"]
+    assert rate_effect["observed"] == pytest.approx(50/3)
+    assert rate_effect["sampling"]["draws"] == 25
+    assert "D" not in report["curves"]
+    assert report["endpoints"]["04"]["reason"] and not report["endpoints"]["04"]["verified"]
+    assert open_velocity_study(tmp_path, reg).velocity_report(
+        reg, stratum="oeis", seed=17, draws=25,
+        budgets={"useful_tokens": [1_000_003, 4_000_004], "charged_us": [3_600_000_000]},
+    ) == report
+    bad = dict(one, scores=dict(one["scores"], denominator=999))
+    with pytest.raises(ValueError):
+        journal.observe_velocity(reg, looks[-1], evidence=bad)
+    path = journal.root / "measurements" / (one["identity"][7:] + ".json")
+    data = path.read_bytes()
+    path.unlink()
+    with pytest.raises(ValueError, match="committed measurement is missing"):
+        journal.velocity_report(reg, stratum="oeis", seed=17, draws=2)
+    path.write_bytes(data)
+    path.write_text(json.dumps(dict(one, work=[])))
+    with pytest.raises(ValueError, match="measurement"):
+        journal.velocity_report(reg, stratum="oeis", seed=17, draws=2)
