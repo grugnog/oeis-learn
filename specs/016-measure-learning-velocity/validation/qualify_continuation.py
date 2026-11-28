@@ -17,7 +17,7 @@ DONOR = "77667e67176ae32fa16457d52565bae1dbe41afc"
 CACHE_HELPER = "specs/015-learned-program-search/validation/candidate_source.py"
 LAUNCHER = "specs/016-measure-learning-velocity/validation/launch-round029.sh"
 ZIP_SCOPES = {"readiness": "round029-readiness/v1", "checkpoints": "checkpoint_matrix",
-              "control-history": "round029-control-history/v1"}
+              "control-history": "round029-control-history/v1", "isolated-controls": "round029-isolated-control-prices/v1"}
 MODES = ("donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", *ZIP_SCOPES)
 
 
@@ -742,14 +742,17 @@ def control_prices(root, members, producers):
     )
 
 
-def read_history(root):
+def frozen_control_study(root):
     """Open only the original exposed study roster and its conventional-control producers."""
     from functools import partial
-    from types import SimpleNamespace
     from oeis_learn.generalization.progressive.campaign import learned_search_policy
-    from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES, read_bound_record, reference
+    from oeis_learn.generalization.progressive.contracts import (
+        CAMPAIGN_DOCUMENT_BYTES,
+        read_bound_record,
+        reference,
+    )
     from oeis_learn.pipeline_validation.identity import confined
-    from oeis_learn.pipeline_validation.progressive_round028_audit import ORIGINAL, metric_ref, roster_map
+    from oeis_learn.pipeline_validation.progressive_round028_audit import ORIGINAL, roster_map
 
     policy = learned_search_policy()
     bound = partial(read_bound_record, root)
@@ -768,6 +771,17 @@ def read_history(root):
     ):
         raise ValueError("original trial study differs")
     roster = roster_map(study["evaluations"]["trial-05-1000000-development-score"]["roster"])
+    return policy, campaign, roster
+
+
+def read_history(root):
+    from functools import partial
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive.contracts import read_bound_record
+    from oeis_learn.pipeline_validation.progressive_round028_audit import metric_ref
+
+    policy, _, roster = frozen_control_study(root)
+    bound = partial(read_bound_record, root)
     cut = policy["capability_cut"]
     cut_path = f"run-state/discovery-control/{policy['campaign'][7:]}/{cut['name']}"
     control = bound(dict(path=cut_path, bytes=cut["bytes"], sha256=cut["sha256"]))
@@ -786,6 +800,848 @@ def read_history(root):
                 continue
             producers[tag] = dict(generation=generation, scoring=scoring)
     return control_prices(root, {k: value[0] for k, value in roster.items()}, producers)
+
+
+CONTROL_METHODS = ("template", "polynomial", "linear_recurrence")
+ISOLATED_CONTROLS = "round029-isolated-control-prices/v1"
+
+
+def control_role(work, request, data, client):
+    """Execute one installed role with only its own input projection."""
+    from oeis_learn.generalization.progressive.cohorts import validate_prompt
+    from oeis_learn.generalization.progressive.contracts import reference
+    from oeis_learn.pipeline_validation.progressive_evaluation import generate, score_velocity
+
+    probe, phase, method = request["probe"], request["phase"], request["method"]
+    if (
+        method not in CONTROL_METHODS
+        or probe["look"]["method"] != method
+        or probe["mode"] != "true"
+        or probe["look"]["profile"] != "full"
+    ):
+        raise ValueError("expected the registered conventional full endpoint")
+    if phase == "search" and set(data) == {"rows", "recipe"}:
+        for prompt in data["rows"]:
+            validate_prompt(prompt)
+        ref = generate(
+            work,
+            "generated",
+            data["rows"],
+            data["recipe"],
+            client=client,
+            device="cpu",
+            seconds=540,
+            methods=(method,),
+            registered_probe=probe,
+            output_root=work / "output",
+        )
+    elif (
+        phase == "score"
+        and set(data) == {"rows"}
+        and request["candidates"]["path"] == "inputs/candidates.json"
+    ):
+        score_velocity(
+            work,
+            request["candidates"],
+            data["rows"],
+            client=client,
+            output="output/scored",
+            probe=probe,
+            seconds=540,
+        )
+        ref = reference(work / "output", work / "output/scored/scores.json")
+    else:
+        raise ValueError("unexpected role input projection")
+    return dict(artifact=ref)
+
+
+def isolated_control_worker(wheel_name, expected_hash, expected_source):
+    import time
+
+    work = Path("/work")
+    wheel = Path(wheel_name)
+    if (
+        "sha256:" + hashlib.sha256(wheel.read_bytes()).hexdigest() != expected_hash
+        or wheel.parent != work / "inputs"
+    ):
+        raise ValueError("funded installed wheel differs")
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run(
+            [
+                sys.executable,
+                "-I",
+                "-m",
+                "pip",
+                "--isolated",
+                "--disable-pip-version-check",
+                "install",
+                "--no-index",
+                "--no-deps",
+                "--no-compile",
+                "--no-cache-dir",
+                "--target",
+                tmp,
+                str(wheel),
+            ],
+            check=True,
+        )
+        sys.path.insert(0, tmp)
+        from oeis_learn.experiments import source_snapshot as provenance
+        from oeis_learn.generalization.progressive.contracts import atomic_write, digest, load, seal
+        from oeis_learn.synthesis.client import SynthesisClient
+
+        if (
+            not Path(provenance.__file__).resolve().is_relative_to(Path(tmp))
+            or digest(provenance.source_snapshot()) != expected_source
+        ):
+            raise ValueError("installed application differs from its funded source")
+        request = load(work / "inputs/request.json")
+        data = load(work / "inputs/data.json")
+        if (
+            request != seal(request)
+            or request["version"] != ISOLATED_CONTROLS
+            or request["data"] != digest(data)
+            or request["image"] != os.environ["OEIS_QUALIFICATION_IMAGE"]
+            or request["source"] != expected_source
+            or request["wheel"] != expected_hash
+            or os.environ["OEIS_QUALIFICATION_ENGINE"] != "podman"
+        ):
+            raise ValueError("isolated control request differs from its binding")
+        began = time.monotonic_ns()
+        with SynthesisClient(digest([ISOLATED_CONTROLS, request["identity"]])) as client:
+            native = client.runtime_identity("bigint-body/v1")
+            result = control_role(work, request, data, client)
+        atomic_write(
+            work / "output/producer.json",
+            seal(
+                dict(
+                    request=request["identity"],
+                    native=native,
+                    worker_us=(time.monotonic_ns() - began) // 1000,
+                    **result,
+                )
+            ),
+        )
+
+
+def control_case_costs(probe, prompts, gen, generation_hash, scores):
+    from oeis_learn.generalization.progressive.cohorts import STRATA
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.program_search_bank import selected_source
+
+    look = probe["look"]
+    method = look["method"]
+    clock = gen["clock"]
+    if (
+        gen != seal(gen)
+        or scores != seal(scores)
+        or clock != seal(clock)
+        or gen["methods"] != [method]
+        or gen["model_control"] != method
+        or gen["prompts"] != digest(sorted(prompts, key=lambda p: p["id"]))
+        or clock["velocity_probe"] != probe["identity"]
+        or clock["policy"] != "round029-conventional-full/v1"
+        or clock["inference_seed"] != probe["inference_seed"]
+        or not clock["cost_complete"]
+        or scores["candidates"] != generation_hash
+        or scores["denominator"] != len(prompts)
+        or gen["records"].keys() != scores["outcomes"].keys()
+        or set(gen["records"]) != {p["id"] for p in prompts}
+    ):
+        raise ValueError("original conventional search, scorer or clock differs")
+    cases = {s: [] for s in STRATA}
+    for prompt, member, timer in zip(prompts, look["members"], clock["clocks"], strict=True):
+        key = prompt["id"]
+        search = timer["elapsed_us"]
+        expected = look["attempts"] if method == "template" else 1
+        if (
+            key != member["task"]
+            or timer["prompt"] != key
+            or timer["allowed"] != look["attempts"]
+            or type(search) is not int
+            or search < 0
+            or timer["cost_complete"] is not True
+            or not 0 <= timer["started"] <= expected
+            or timer["unissued"] != look["attempts"] - timer["started"]
+            or timer["started"] < expected
+            and search < look["opportunity"]["issue_us"]
+        ):
+            raise ValueError("incomplete conventional portfolio clock")
+        record, score = gen["records"][key], scores["outcomes"][key]["equal_budget"]
+        choice = selected_source(record["selections"]["equal_budget"], score, prompt)
+        scoring = microseconds(score["scoring"].get("elapsed_seconds"))
+        if (
+            scoring is None
+            or score["probe_ref"] != probe["identity"]
+            or score["upstream"] != record["arm_evidence"]["equal_budget"]
+        ):
+            raise ValueError("selected scorer clock or probe parent differs")
+        cases[member["stratum"]].append((search, scoring, choice is None))
+    result = {}
+    for s, rows in cases.items():
+        if len(rows) != 2:
+            raise ValueError("two exposed cases per stratum required")
+        total = sum(a + b for a, b, _ in rows)
+        result[s] = dict(
+            cases=len(rows),
+            empty=sum(e for _, _, e in rows),
+            search_us=sum(a for a, _, _ in rows),
+            scoring_us=sum(b for _, b, _ in rows),
+            mean_us=(total + len(rows) - 1) // len(rows),
+            max_us=max(a + b for a, b, _ in rows),
+        )
+    return result
+
+
+def control_cost_forecast(results, wave):
+    """Estimate one full endpoint for each comparator, keeping retention and tail proxies explicit."""
+    from oeis_learn.generalization.progressive.cohorts import STRATA
+
+    if set(results) != set(CONTROL_METHODS):
+        return None
+    ops = wave["operations"]
+    if (
+        ops["conventional_cpu_controls"] != 1
+        or ops["D.full.search.startup"] != 1
+        or "conventional_cpu_controls" not in wave["missing"]
+    ):
+        raise ValueError("expected one unpriced full endpoint per conventional comparator")
+    expected = tail = 0
+    cold_tail = sum(
+        max(r["overhead_us"][phase] for r in results.values()) for phase in ("search", "score")
+    )
+    for row in results.values():
+        cells = row["cells"]
+        expected += sum(row["overhead_us"].values())
+        tail += cold_tail
+        for s in (*STRATA, "retention"):
+            rates = cells.values() if s == "retention" else [cells[s]]
+            n = ops.get("D.full.search." + s, 0)
+            expected += n * max(c["mean_us"] for c in rates)
+            tail += n * max(c["max_us"] for c in rates)
+    missing = [k for k in wave["missing"] if k != "conventional_cpu_controls"]
+    return dict(
+        control_expected_us=expected,
+        control_tail_us=tail,
+        known_expected_us=wave["known_expected_us"] + expected,
+        known_tail_us=wave["known_tail_us"] + tail,
+        missing=missing,
+        expected_us=None if missing else wave["known_expected_us"] + expected,
+        tail_us=None if missing else wave["known_tail_us"] + tail,
+        retention_basis="slowest exposed stratum for this method; retention remains sealed",
+        tail_basis="slowest observed paired case per stratum and highest cold overhead per role",
+    )
+
+
+def exposed_control_inputs(root):
+    from oeis_learn.generalization.progressive.contracts import digest, load, seal
+    from oeis_learn.generalization.progressive.program_search_timing import verify_timing
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_round028_audit import SESSION as historical
+    from oeis_learn.pipeline_validation.progressive_round028_timing import (
+        AREA,
+        SHARE,
+        original_channels,
+        timing_cases,
+    )
+    from oeis_learn.pipeline_validation.progressive_velocity_qualification import _original_profile
+
+    _, campaign, roster = frozen_control_study(root)
+    rows = timing_cases(
+        dict(cases=[dict(task=k, stratum=s, group=g) for k, (s, g) in roster.items()])
+    )
+    archive = confined(root, Path(historical) / SHARE / "round028-timing.zip", exists=False)
+    registration = confined(root, Path(historical) / AREA / "registration.json", exists=False)
+    if archive.is_file() and registration.is_file():
+        paid = verify_timing(archive)
+        reg = load(registration)
+        if (
+            reg != seal(reg)
+            or paid["registration"] != reg["identity"]
+            or reg["scope"] != "previously_exposed_timing_only"
+            or reg["roster"] != rows
+        ):
+            raise ValueError("the independently verified historical timing roster differs")
+        exposure = reg["identity"]
+    else:
+        # The original closed capability partitions also prove exposure of this entire roster.
+        history = read_history(root)
+        if history["status"] != "COMPLETE":
+            raise ValueError("exposure of the historical timing sample could not be verified")
+        exposure = digest([ISOLATED_CONTROLS, campaign["identity"], rows, history["coverage"]])
+    refs = {r["name"]: r for r in campaign["payload"]["references"]}
+    bound = []
+    for member in rows:
+        channels = {}
+        for channel, role in (("visible", "generator"), ("truth", "scorer")):
+            ref = refs[f"private/channels/{channel}-{digest(member['task'])[7:]}"]
+            if (ref["kind"], ref["role"]) != ("prepared", role):
+                raise ValueError("original channel ownership differs")
+            channels[channel] = ref["artifact"]
+        bound.append(dict(member, channels=channels))
+    prompts, truths = original_channels(root, bound)
+    return rows, prompts, truths, _original_profile(root), exposure
+
+
+def paid_control_runtime(root, source, folder, receipt):
+    """Reuse the authenticated checkpoint wheel when its installed control workload matches."""
+    from oeis_learn.experiments.source_snapshot import collect_snapshot
+    from oeis_learn.generalization.progressive.contracts import load, seal
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation import progressive_velocity_checkpoint_host as checkpoint
+    from oeis_learn.pipeline_validation.progressive_velocity_broad_host import attempt
+    from oeis_learn.pipeline_validation.progressive_velocity_runtime import (
+        package_evidence,
+        wheel_sources,
+    )
+    from oeis_learn.pipeline_validation.progressive_research_inputs import checked_file
+
+    marker = load(confined(folder, checkpoint.MARKER))
+    if marker != seal(marker) or marker["receipt"] != receipt:
+        raise ValueError("checkpoint producer differs from the reopened receipt")
+    area = confined(folder, "qualification/" + marker["grant"][7:])
+    grant, binding = [load(confined(area, n + ".json")) for n in ("grant", "binding")]
+    out = attempt(area, checkpoint.coordinates(grant, "package"), grant)
+    runtime = load(confined(out, "runtime.json"))
+    package_evidence(root, area, runtime, binding)
+    wheel = checked_file(area, runtime["wheel"])
+    installed = wheel_sources(wheel, binding["source"])
+    current = collect_snapshot(source)
+    # These host modules only enumerate tests, inspect the donor or price the wave.
+    host_only = {
+        "src/oeis_learn/pipeline_validation/progressive_cli.py",
+        "src/oeis_learn/pipeline_validation/progressive_round029.py",
+        "src/oeis_learn/generalization/progressive/program_search_costing.py",
+    }
+    if any(
+        installed.get(n) != current.get(n)
+        for n in installed.keys() | current.keys()
+        if n not in host_only and not n.startswith("tests/")
+    ):
+        raise ValueError("the paid wheel contains a different control workload")
+    return dict(
+        path=wheel,
+        wheel=runtime["wheel"]["sha256"],
+        source=binding["source"],
+        image=runtime["parent"]["image"],
+    )
+
+
+def control_installation_peak(wheel, area):
+    block = os.statvfs(area).f_frsize
+    with zipfile.ZipFile(wheel) as archive:
+        info = archive.infolist()
+    dirs = {p for item in info for p in Path(item.filename).parents}
+    size = sum(((item.file_size + block - 1) // block) * block for item in info) + block * len(dirs)
+    # The role installs a checked pure-Python wheel offline, with no compiled bytecode.
+    # Allow a staging tree and its installed copy on the same filesystem.
+    return dict(bytes=2 * size, inodes=2 * (len(info) + len(dirs)))
+
+
+def control_capacity(root, area, revision, floor, installation):
+    from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES
+    from oeis_learn.pipeline_validation.progressive_research_resources import velocity_capacity
+
+    # One bounded candidate or scoring document is written at a time; prior results already occupy the mount.
+    path = str(area.relative_to(root))
+    owner = dict(
+        owner="isolated_controls",
+        path=path,
+        scope="cpu_control_role",
+        retained=[],
+        observed=dict(bytes=0, inodes=0),
+        projected=dict(
+            bytes=installation["bytes"] + CAMPAIGN_DOCUMENT_BYTES,
+            inodes=installation["inodes"] + 32,
+        ),
+        revision=revision,
+        harm="incomplete exposed control record",
+        exhaustion="preserve completed roles",
+        rehearsal="T060",
+    )
+    mounts = velocity_capacity(
+        root, owners=[owner], floors=[dict(path=path, bytes=floor, inodes=0)]
+    )["mounts"]
+    return [
+        select_fields(
+            row,
+            "device",
+            "available_bytes",
+            "available_inodes",
+            "required_bytes",
+            "required_inodes",
+            "reserved_bytes",
+            "reserved_inodes",
+            "deficit_bytes",
+            "deficit_inodes",
+        )
+        for row in mounts
+    ]
+
+
+def run_control_stage(
+    root, source, area, grant, journal, host, runtime, request, data, cost, extra, proof, stage
+):
+    import time
+    from oeis_learn.generalization.progressive.contracts import (
+        CAMPAIGN_DOCUMENT_BYTES,
+        load,
+        read_bound_record,
+        seal,
+    )
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.preparation_recovery import retain
+    from oeis_learn.pipeline_validation.progressive_round028_receipts import verify_role_mounts
+    from oeis_learn.pipeline_validation.progressive_velocity_broad_host import attempt
+    from oeis_learn.pipeline_validation.progressive_velocity_operations import (
+        replay_operation,
+        run_operation,
+    )
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+
+    phase, method = request["phase"], request["method"]
+    coords = dict(
+        study=grant["identity"],
+        stage="qualification",
+        method=method,
+        seed=29,
+        look=4_000_000,
+        panel="exposed_development",
+        profile="full",
+        input_mode="true",
+        role=phase,
+        ordinal=0,
+    )
+    controls = area / "inputs" / method / phase
+    rp, dp = controls / "request.json", controls / "data.json"
+    retain(rp, request)
+    retain(dp, data)
+    worker = source / Path(LAUNCHER).with_name("qualify_continuation.py")
+    wheel_dest = "/work/inputs/" + runtime["path"].name
+    inputs = [
+        (worker, "/work/inputs/control-worker.py"),
+        (runtime["path"], wheel_dest),
+        (rp, "/work/inputs/request.json"),
+        (dp, "/work/inputs/data.json"),
+        *extra,
+    ]
+
+    def guard():
+        mounts = control_capacity(
+            root,
+            area,
+            request["candidate"],
+            host.policy["free_disk_floor_bytes"],
+            runtime["installation"],
+        )
+        if any(m["deficit_bytes"] or m["deficit_inodes"] for m in mounts):
+            raise ValueError("insufficient physical space for an isolated CPU role")
+
+    def execute(out, allowance):
+        timeout = min(660, allowance // 1_000_000 - 120)
+        if timeout < 1:
+            raise ValueError("insufficient time for a supervised role and cleanup")
+        began = time.monotonic_ns()
+        stage(
+            host,
+            source,
+            runtime["image"],
+            out,
+            [
+                "python",
+                "-I",
+                "-B",
+                "/work/inputs/control-worker.py",
+                "--isolated-control-worker",
+                wheel_dest,
+                runtime["wheel"],
+                runtime["source"],
+            ],
+            gpu=False,
+            seconds=timeout,
+            readonly_inputs=inputs,
+        )
+        retain(
+            out / "dispatch.json",
+            seal(
+                dict(request=request["identity"], elapsed_us=(time.monotonic_ns() - began) // 1000)
+            ),
+        )
+
+    def verify(out):
+        inspection = load(confined(out, "container-inspect.json"))
+        verify_role_mounts(
+            inspection,
+            runtime["image"],
+            {**{k: (p, False) for p, k in inputs}, "/work/output": (out, True)},
+        )
+        limits = inspection[0]["HostConfig"]
+        proc, clean, dispatch, producer = [
+            load(confined(out, name + ".json"))
+            for name in ("process", "cleanup", "dispatch", "producer")
+        ]
+        if (
+            limits.get("Devices")
+            or limits.get("DeviceRequests")
+            or proc["outcome"] != "COMPLETE"
+            or proc["returncode"] != 0
+            or proc["cleanup_failure"]
+            or clean["acknowledged"] is not True
+            or clean["within_bound"] is not True
+            or dispatch != seal(dispatch)
+            or producer != seal(producer)
+            or dispatch["request"] != request["identity"]
+            or producer["request"] != request["identity"]
+            or not re.fullmatch(r"sha256:[0-9a-f]{64}", producer["native"])
+            or not 0 < producer["worker_us"] <= dispatch["elapsed_us"]
+        ):
+            raise ValueError("original CPU confinement, producer or supervision clock differs")
+        name = "generated/candidates.json" if phase == "search" else "scored/scores.json"
+        ref = producer["artifact"]
+        if ref["path"] != name or ref["bytes"] > CAMPAIGN_DOCUMENT_BYTES:
+            raise ValueError("unexpected isolated control artifact")
+        value = read_bound_record(
+            out,
+            ref,
+            version="discovery-candidates/v1" if phase == "search" else "discovery-scoring/v1",
+        )
+        return seal(
+            dict(
+                artifact=ref,
+                elapsed_us=dispatch["elapsed_us"],
+                worker_us=producer["worker_us"],
+                native=producer["native"],
+                **proof(value),
+            )
+        )
+
+    result = run_operation(
+        area=area,
+        grant=grant,
+        journal=journal,
+        coordinates=coords,
+        request=request,
+        cost=cost,
+        execute=execute,
+        verify=verify,
+        before_dispatch=guard,
+        minimum_us=121_000_000,
+        max_attempts=2,
+        installed=lambda out: (out / "dispatch.json").is_file(),
+    )
+    snapshot = BudgetJournal.inspect_existing(
+        area / "accounting", grant["identity"], grant["resources"], include_work=True
+    )
+    if replay_operation(area, coords, request, grant, cost, snapshot, verify) != result:
+        raise ValueError("private replay of the published CPU control stage differs")
+    return result, attempt(area, coords, grant)
+
+
+def isolated_control_matrix(
+    root, source, folder, revision, minutes, runtime, panel, wave, host, stage
+):
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal, role_work_requirements
+    from oeis_learn.generalization.progressive.contracts import (
+        digest,
+        load,
+        read_bound_record,
+        seal,
+    )
+    from oeis_learn.generalization.progressive.graph import velocity_look
+    from oeis_learn.generalization.progressive.velocity_records import (
+        physical_root_id,
+        validate_grant,
+    )
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.preparation_recovery import retain
+    from oeis_learn.pipeline_validation.progressive_evaluation import velocity_probe
+    from oeis_learn.pipeline_validation.progressive_round028_rehearsal import physical_scope
+    from oeis_learn.pipeline_validation.progressive_velocity_qualification import (
+        authorize_qualification,
+    )
+
+    rows, prompts, truth, recipe, timing = panel
+    machine = physical_scope(host, "cpu", machine=True)
+    plan = seal(
+        dict(
+            version=ISOLATED_CONTROLS,
+            candidate=revision,
+            checkpoint=wave["checkpoint_receipt"],
+            timing=timing,
+            roster=digest(rows),
+            visible=digest(prompts),
+            truth=digest(truth),
+            recipe=digest(recipe),
+            machine=machine,
+            wheel=runtime["wheel"],
+            source=runtime["source"],
+            image=runtime["image"],
+            methods=list(CONTROL_METHODS),
+            mode="exposed_costs_only",
+        )
+    )
+    phases = {}
+    for phase, op, kind in (
+        ("search", "generate", "visible_prompt"),
+        ("score", "score", "development_truth"),
+    ):
+        inputs = [dict(kind=kind) for _ in rows]
+        if phase == "search":
+            inputs.append(dict(kind="oeis_generation"))
+        cost = role_work_requirements(op, inputs)
+        phases[phase] = {k: v for k, v in cost.items() if k != "elapsed_us" and v}
+    limits = {
+        k: 2 * len(CONTROL_METHODS) * sum(c.get(k, 0) for c in phases.values())
+        for k in set().union(*phases.values())
+    }
+    grant = load(authorize_qualification(root, int(minutes), plan["identity"], limits))
+    approval = load(
+        confined(
+            root,
+            "run-state/discovery-authorizations/" + grant["authorizing_record_ref"][7:] + ".json",
+        )
+    )
+    validate_grant(
+        grant, approval, root=physical_root_id(root), parent=plan["identity"], action="qualify"
+    )
+    area = confined(
+        folder, "preparation/isolated-control-prices/" + grant["identity"][7:], exists=False
+    )
+    retain(area / "plan.json", plan)
+    retain(area / "grant.json", grant)
+    runtime = dict(runtime, installation=control_installation_peak(runtime["path"], area))
+    journal = BudgetJournal(area / "accounting", grant["identity"], grant["resources"])
+    files, results, errors = {}, {}, {}
+    report = dict(
+        candidate=revision,
+        scope=ISOLATED_CONTROLS,
+        grant=grant["identity"],
+        grant_minutes=int(minutes),
+        gpu_dispatches=0,
+        research_run_requested=False,
+        scientific_verdict=None,
+        files=files,
+        errors=errors,
+    )
+    files["capacity.json"] = dict(
+        mounts=control_capacity(
+            root, area, revision, host.policy["free_disk_floor_bytes"], runtime["installation"]
+        ),
+        projected_installation=runtime["installation"],
+    )
+    files["forecast.json"] = dict(supported_wave=wave, measured_control_projection=None)
+    for method in CONTROL_METHODS:
+        phase = "search"
+        try:
+            look = velocity_look(
+                registration=plan["identity"],
+                method=method,
+                seed=29,
+                look=4_000_000,
+                profile="full",
+                development=rows,
+                retention=[],
+            )
+            probe = velocity_probe(look, prompts, mode="true", inference_seed=57)
+            base = dict(
+                version=ISOLATED_CONTROLS,
+                candidate=revision,
+                method=method,
+                probe=probe,
+                plan=plan["identity"],
+                source=runtime["source"],
+                image=runtime["image"],
+                wheel=runtime["wheel"],
+            )
+            data = dict(rows=prompts, recipe=recipe)
+
+            def search_proof(gen):
+                if (
+                    gen["methods"] != [method]
+                    or gen["recipe"] != digest(recipe)
+                    or gen["model_control"] != method
+                    or gen["clock"]["velocity_probe"] != probe["identity"]
+                    or gen["prompts"] != digest(sorted(prompts, key=lambda p: p["id"]))
+                ):
+                    raise ValueError("original search probe or recipe differs")
+                return {}
+
+            search, search_out = run_control_stage(
+                root,
+                source,
+                area,
+                grant,
+                journal,
+                host,
+                runtime,
+                seal(dict(base, phase=phase, data=digest(data))),
+                data,
+                phases[phase],
+                [],
+                search_proof,
+                stage,
+            )
+            first = search["evidence"]
+            files[method + "-search.json"] = dict(
+                receipt=search["identity"],
+                **select_fields(first, "elapsed_us", "worker_us", "native"),
+            )
+            phase = "score"
+            gen = read_bound_record(
+                search_out, first["artifact"], version="discovery-candidates/v1"
+            )
+            ref = dict(first["artifact"], path="inputs/candidates.json")
+            data = dict(rows=truth)
+
+            def score_proof(scores):
+                return dict(cells=control_case_costs(probe, prompts, gen, ref["sha256"], scores))
+
+            scoring, _ = run_control_stage(
+                root,
+                source,
+                area,
+                grant,
+                journal,
+                host,
+                runtime,
+                seal(
+                    dict(
+                        base,
+                        phase=phase,
+                        data=digest(data),
+                        candidates=ref,
+                        search=search["identity"],
+                    )
+                ),
+                data,
+                phases[phase],
+                [(confined(search_out, first["artifact"]["path"]), "/work/inputs/candidates.json")],
+                score_proof,
+                stage,
+            )
+            last = scoring["evidence"]
+            cells = last["cells"]
+            overhead = {
+                k: elapsed - sum(c[name] for c in cells.values())
+                for k, elapsed, name in (
+                    ("search", first["elapsed_us"], "search_us"),
+                    ("score", last["elapsed_us"], "scoring_us"),
+                )
+            }
+            if any(v < 0 for v in overhead.values()) or first["native"] != last["native"]:
+                raise ValueError("supervised role clocks or native implementation differ")
+            row = seal(
+                dict(
+                    method=method,
+                    search=search["identity"],
+                    score=scoring["identity"],
+                    cells=cells,
+                    overhead_us=overhead,
+                    search_elapsed_us=first["elapsed_us"],
+                    score_elapsed_us=last["elapsed_us"],
+                )
+            )
+            retain(area / (method + ".json"), row)
+            results[method] = files["control-" + method + ".json"] = row
+        except (
+            OSError,
+            ValueError,
+            RuntimeError,
+            KeyError,
+            TypeError,
+            subprocess.SubprocessError,
+            KeyboardInterrupt,
+        ) as exc:
+            errors[method] = dict(phase=phase, error=type(exc).__name__)
+            print(f"{method} {phase}: {exc}", file=sys.stderr)
+            if isinstance(exc, KeyboardInterrupt):
+                break
+    balance = BudgetJournal.inspect_existing(
+        area / "accounting", grant["identity"], grant["resources"]
+    )
+    if (
+        balance["pending"]
+        or balance["consumed"]["elapsed_us"] + balance["remaining"]["elapsed_us"]
+        != grant["total_us"]
+    ):
+        raise ValueError("isolated control debits differ from the original grant")
+    report.update(
+        status="PARTIAL" if errors else "COMPLETE",
+        elapsed_us=balance["consumed"]["elapsed_us"],
+        remaining_us=balance["remaining"]["elapsed_us"],
+        charged_work=balance["consumed"],
+    )
+    files["verification.json"] = dict(
+        scope="private_exposed_cpu_control_costs",
+        research_dispatches=0,
+        verified={m: dict(search=row["search"], score=row["score"]) for m, row in results.items()},
+        settled_elapsed_us=balance["consumed"]["elapsed_us"],
+        remaining_us=balance["remaining"]["elapsed_us"],
+    )
+    files["forecast.json"]["measured_control_projection"] = control_cost_forecast(results, wave)
+    if not errors:
+        retain(
+            area / "receipt.json",
+            seal(
+                dict(
+                    plan=plan["identity"],
+                    grant=grant["identity"],
+                    controls={m: r["identity"] for m, r in results.items()},
+                    charged=balance["consumed"],
+                )
+            ),
+        )
+        report["receipt"] = load(area / "receipt.json")["identity"]
+    return report
+
+
+def donor_isolated_controls(action, root, source, revision, minutes):
+    import runpy
+    from oeis_learn.generalization.progressive.lifecycle import RunStore
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_handoff import stage
+
+    inventory = action("preflight")["inventory"]
+    wave = inventory["prices"].get("supported_wave")
+    cycles = inventory["prices"].get("checkpoint_cycles") or {}
+    if (
+        inventory["gpu_dispatches"] != 0
+        or not wave
+        or cycles.get("receipt") != wave["checkpoint_receipt"]
+    ):
+        raise ValueError(
+            "verified four-treatment preflight required before issuing a preparation grant"
+        )
+    checked = action("verify", at=cycles["candidate"])
+    if (
+        checked["mechanical_status"] != "VERIFIED"
+        or checked["verification_scope"] != "private_checkpoint_matrix"
+        or checked["report_ref"] != cycles["receipt"]
+        or checked["last_committed_ref"] != cycles["receipt"]
+    ):
+        raise ValueError("original checkpoint verification differs")
+    folder = confined(root, "run-state/discovery/" + SESSION)
+    with RunStore.owner(folder):
+        panel = exposed_control_inputs(root)
+        runtime = paid_control_runtime(root, source, folder, cycles["receipt"])
+        host_api = runpy.run_path(str(source / "scripts/foundation_local.py"))
+        args = host_api["parser"]().parse_args(
+            [
+                "--engine",
+                "podman",
+                "discovery",
+                "round029",
+                "--workspace",
+                str(root),
+                "--action",
+                "preflight",
+            ]
+        )
+        host = host_api["Host"](args, source_root=source, workspace=root, revision=revision)
+        if host.engine.image(runtime["image"]) != runtime["image"]:
+            raise ValueError("qualified runtime image differs")
+        return isolated_control_matrix(root,source,folder,revision,minutes,runtime,panel,wave,host,stage)
 
 
 def donor_control_history(action, root, revision):
@@ -952,6 +1808,8 @@ def main(revision, minutes, mode="donation", supplied=None):
     def action(name, *args, at=revision):
         return checked_json(["bash", str(source / LAUNCHER), at, name, *map(str, args)], root, name)
 
+    if mode == "isolated-controls":
+        return donor_isolated_controls(action, root, source, revision, minutes)
     if mode == "control-history":
         return donor_control_history(action, root, revision)
     if mode == "readiness":
@@ -1066,7 +1924,7 @@ def cli(argv):
     parser.add_argument(
         "--output",
         type=Path,
-        help="save the result to a new file (ZIP for readiness, checkpoints and control history; JSON for other modes)",
+        help="save the result to a new file (ZIP for readiness, checkpoints and control reports; JSON for other modes)",
     )
     parser.add_argument("--from-result", type=Path, help="completed fresh-start JSON for read-only readiness")
     args = parser.parse_args(argv)
@@ -1119,4 +1977,7 @@ def cli(argv):
 
 
 if __name__ == "__main__":
-    raise SystemExit(cli(sys.argv[1:]))
+    if sys.argv[1:2] == ["--isolated-control-worker"]:
+        isolated_control_worker(*sys.argv[2:])
+    else:
+        raise SystemExit(cli(sys.argv[1:]))

@@ -316,3 +316,162 @@ def test_control_history_cli_takes_only_zero_minutes_and_requires_a_new_zip(tmp_
         op["main"](rev, "0", "checkpoints")
     with pytest.raises(SystemExit):
         op["cli"]([rev, "0", "control-history", "--output", str(tmp_path / "result.json")])
+
+
+def test_one_grant_preserves_other_methods_and_replays_six_cpu_roles(tmp_path):
+    import shutil
+    import zipfile
+    from copy import deepcopy
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.generalization.progressive.cohorts import STRATA
+    from oeis_learn.generalization.progressive.contracts import reference
+    from tests.integration.test_round029_isolated_control_prices import (
+        api,
+        panel,
+        EmptyClient,
+        OPERATOR,
+    )
+    from oeis_learn.generalization.progressive.contracts import atomic_write
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+
+    folder = tmp_path / "run-state/discovery" / SESSION
+    folder.mkdir(parents=True)
+    wheel = tmp_path / "fixture.whl"
+    with zipfile.ZipFile(wheel, "w") as archive:
+        archive.writestr("synthetic/package.py", "pass")
+    image = digest("fixture qualified image")
+    runtime = dict(
+        path=wheel,
+        wheel=reference(tmp_path, wheel)["sha256"],
+        source=digest("fixture source"),
+        image=image,
+    )
+    members, visible, truth = panel()
+    inputs = (
+        members,
+        visible,
+        truth,
+        resolve({"version": "bigint-bootstrap/v1"}),
+        digest("fixture exposed roster"),
+    )
+    wave = dict(
+        checkpoint_receipt=digest("fixture checkpoint"),
+        operations={
+            **{"D.full.search." + s: 32 for s in (*STRATA, "retention")},
+            "D.full.search.startup": 1,
+            "conventional_cpu_controls": 1,
+        },
+        missing=["conventional_cpu_controls", "paired_conditioning_sample"],
+        known_expected_us=8,
+        known_tail_us=10,
+    )
+    host = SimpleNamespace(policy={"free_disk_floor_bytes": 0, "runtime": {"engine": "fixture"}})
+    calls = []
+    fail = True
+
+    def supervise(_host, source, im, out, argv, *, gpu, seconds, readonly_inputs):
+        assert _host == host and not gpu and 0 < seconds <= 660 and im == image
+        paths = {dest: path for path, dest in readonly_inputs}
+        req = load(paths["/work/inputs/request.json"])
+        data = load(paths["/work/inputs/data.json"])
+        key = req["method"], req["phase"]
+        calls.append(key)
+        assert all(not path.is_dir() for path in paths.values())
+        assert all(len(r["indices"]) == (20 if key[1] == "search" else 100) for r in data["rows"])
+        assert ("/work/inputs/candidates.json" in paths) == (key[1] == "score")
+        atomic_write(out / "cleanup.json", dict(acknowledged=True, within_bound=True))
+        if fail and key == ("polynomial", "score"):
+            raise ValueError("fixture stopped before scoring")
+        work = tmp_path / ("role-" + str(len(calls)))
+        (work / "output").mkdir(parents=True)
+        (work / "inputs").mkdir()
+        if key[1] == "score":
+            shutil.copyfile(paths["/work/inputs/candidates.json"], work / "inputs/candidates.json")
+        artifact = api["control_role"](work, req, data, EmptyClient())
+        rel = artifact["artifact"]["path"]
+        (out / rel).parent.mkdir(parents=True)
+        shutil.copyfile(work / "output" / rel, out / rel)
+        atomic_write(
+            out / "producer.json",
+            seal(
+                dict(
+                    request=req["identity"],
+                    worker_us=1,
+                    native=digest("fixture-native"),
+                    **artifact,
+                )
+            ),
+        )
+        binds = [
+            dict(Type="bind", Source=str(p), Destination=k, RW=False) for k, p in paths.items()
+        ]
+        binds.append(dict(Type="bind", Source=str(out), Destination="/work/output", RW=True))
+        atomic_write(
+            out / "container-inspect.json",
+            [
+                dict(
+                    Image=im,
+                    Mounts=binds,
+                    HostConfig=dict(
+                        ReadonlyRootfs=True,
+                        Privileged=False,
+                        NetworkMode="none",
+                        Devices=[],
+                        DeviceRequests=[],
+                    ),
+                )
+            ],
+        )
+        atomic_write(
+            out / "process.json", dict(outcome="COMPLETE", returncode=0, cleanup_failure=False)
+        )
+
+    args = (
+        tmp_path,
+        OPERATOR.parents[3],
+        folder,
+        "a" * 40,
+        12,
+        runtime,
+        inputs,
+        wave,
+        host,
+        supervise,
+    )
+    partial = api["isolated_control_matrix"](*args)
+    assert partial["status"] == "PARTIAL" and partial["errors"] == {
+        "polynomial": dict(phase="score", error="ValueError")
+    }, partial["errors"]
+    assert (
+        len(calls) == 6 and partial["files"]["forecast.json"]["measured_control_projection"] is None
+    )
+    assert {
+        "control-template.json",
+        "control-linear_recurrence.json",
+        "polynomial-search.json",
+    } <= partial["files"].keys()
+    fail = False
+    full = api["isolated_control_matrix"](*args)
+    assert full["status"] == "COMPLETE" and full["grant"] == partial["grant"] and len(calls) == 7
+    assert (
+        full["charged_work"]["tokens"] == 0
+        and full["elapsed_us"] + full["remaining_us"] == 12 * 60_000_000
+    )
+    assert full["files"]["forecast.json"]["measured_control_projection"]["missing"] == [
+        "paired_conditioning_sample"
+    ]
+    again = api["isolated_control_matrix"](*args)
+    assert (
+        len(calls) == 7
+        and again["charged_work"] == full["charged_work"]
+        and again["receipt"] == full["receipt"]
+    )
+    assert "private/" not in json.dumps(full)
+    target = tmp_path / "isolated-controls.zip"
+    report = deepcopy(again)
+    api["write_readiness_zip"](target, report)
+    import hashlib
+
+    with zipfile.ZipFile(target) as z:
+        summary = json.loads(z.read("summary.json"))
+        assert all(hashlib.sha256(z.read(n)).hexdigest() == h for n, h in summary["sha256"].items())
