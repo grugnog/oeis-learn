@@ -585,6 +585,51 @@ def supported_velocity_wave(policy, prices, fresh, cycles):
                 followup_reserve_us=prices["followup_reserve_us"])
 
 
+
+def trajectory_overheads(timings, startups, cycles, *, bookkeeping=None):
+    """Incremental prices above the existing 4M optimizer and scheduled checkpoint items."""
+    from oeis_learn.generalization.budgets import integer
+    from oeis_learn.pipeline_validation.generalization_persistence import INTERVAL
+
+    rows = cycles["methods"]
+    if set(timings) != set(startups) or set(timings) != set(rows):
+        raise ValueError("same measured treatments required for a trajectory forecast")
+    cut_time = sum(integer(r[k], 1) for r in rows.values()
+                   for k in ("first_cut_us", "resumed_cut_us", "restore_us"))
+    # One cold matrix role enclosed all these calls. A separately launched look
+    # gets the whole outer overhead, including supervision, drain and its verifier.
+    outside = integer(cycles["device_charge_us"], cut_time) - cut_time
+    methods = {}
+    for method, r in rows.items():
+        io = r["storage_us"]
+        init = integer(startups[method], 1)
+        reopen = integer(r["restore_us"], io["final_load"]) - io["final_load"]
+        fixed = 3 * (outside + max(reopen, init)) - init
+        expected = integer(timings[method]["expected_us"], init)
+        tail = integer(timings[method]["tail_us"], expected)
+        extra = (bookkeeping or {}).get(method)
+        book, slow_book = (0, 0) if extra is None else (
+            integer(extra["expected_us"]), integer(extra["tail_us"], extra["expected_us"]))
+        # Pooling the two active training intervals conservatively allows an extra
+        # hourly cut when the 1M milestone resets the actual worker's timer.
+        hourly = {k: (us - init) // (INTERVAL * 1_000_000)
+                  for k, us in (("expected", expected + book), ("tail", tail + slow_book))}
+        typical_write = (io["first_save"] + io["second_save"] + 1) // 2
+        slow_write = max(io["first_save"], io["second_save"])
+        extra_io = dict(expected_us=io["resume_load"] + hourly["expected"] * typical_write,
+                        tail_us=max(io["resume_load"], io["final_load"]) + hourly["tail"] * slow_write)
+        methods[method] = dict(fixed_us=fixed, outside_cut_us_per_role=outside,
+                               hourly_saves=hourly, extra_io_us=extra_io, bookkeeping=extra,
+                               expected_us=fixed + extra_io["expected_us"] + book,
+                               tail_us=fixed + extra_io["tail_us"] + slow_book)
+    return dict(methods=methods, known_expected_us=sum(r["expected_us"] for r in methods.values()),
+                known_tail_us=sum(r["tail_us"] for r in methods.values()),
+                missing=[] if all(r["bookkeeping"] is not None for r in methods.values())
+                else ["update_journal_and_stream_replay"],
+                basis="Three resident calls at zero, 1M and 4M. The paid no-update restore "
+                      "prices fixed work at each look. Credit the initializer already priced with "
+                      "the optimizer. Allow one additional restore and hourly saves during training.")
+
 def affordable_prefix(batches, prices, *, remaining_us, holdback_us, paid=(), opened=()):
     """Price whole registered batches against *unreserved* time. Open work still needs settlement."""
     from oeis_learn.generalization.budgets import integer

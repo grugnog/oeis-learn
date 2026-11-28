@@ -39,7 +39,7 @@ def result(action, status, reason, next_action, *, last=None, remaining=None, **
     )
 
 
-def preflight(root, source=None):
+def preflight(root, source=None, *, free_disk_gib=5):
     policy = velocity_policy()
     info = inventory(root)
     if source is not None:
@@ -151,6 +151,11 @@ def preflight(root, source=None):
                 supported = supported_velocity_wave(policy, info["prices"], info["prices"]["fresh_start"], cycles)
                 if supported is not None:
                     info["prices"]["supported_wave"] = supported
+                    from .progressive_velocity_launch import launch_preflight
+
+                    info["prices"]["launch_preparation"] = launch_preflight(
+                        root, policy, info, floor=free_disk_gib << 30
+                    )
         except (OSError, ValueError, KeyError) as exc:
             info["prices"]["checkpoint_reason"] = str(exc)
     info["assessment"] = policy["assessment"]
@@ -327,7 +332,7 @@ def execute(args, source, *, host_factory=None):
             raise ValueError("absolute physical donor workspace required")
         folder = confined(root, "run-state/discovery/" + SESSION, exists=False)
         if action == "preflight":
-            return preflight(root, source), 0
+            return preflight(root, source, free_disk_gib=getattr(args, "free_disk_gib", 5)), 0
         if action == "status":
             return inspect_status(folder), 0
         if not funded:

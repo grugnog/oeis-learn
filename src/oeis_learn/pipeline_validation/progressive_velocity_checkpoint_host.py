@@ -306,7 +306,8 @@ def inventory(root, source):
     )
     original, _, _ = original_price_source(root, source, binding)
     balance = BudgetJournal.inspect_existing(
-        confined(area, "accounting"), grant["identity"], grant["resources"], include_work=True
+        confined(area, "accounting"), grant["identity"], grant["resources"],
+        include_work=True, include_windows=True,
     )
     record = replay(root, folder, area, original, grant, binding, balance)
     if (
@@ -315,12 +316,17 @@ def inventory(root, source):
         or record["identity"] != marker["receipt"]
     ):
         raise ValueError("original checkpoint receipt or paid boundary differs")
+    logical = operation_key(coordinates(grant, "measure"), 0)["logical"]
+    receipt = load(confined(area, "operations/" + logical[7:] + "/receipt.json"))
+    window = balance["windows"][f"{logical}/dispatch/{receipt['attempt']}"]
+    proven = window["event"] == "COMMIT" and window["end_us"] is not None
     return dict(
         candidate=binding["candidate"],
         receipt=record["identity"],
         origin=record["origin"],
         methods=record["methods"],
         lease_us=record["lease_us"],
+        device_charge_us=window["charged_us"] if proven else None,
         charged_tokens=balance["consumed"]["tokens"],
     )
 

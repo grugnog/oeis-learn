@@ -3877,8 +3877,23 @@ def main(revision, minutes, mode="donation", supplied=None, recover_grant=None):
     if mode == "isolated-controls":
         return donor_isolated_controls(action, root, source, revision, minutes)
     if mode == "conditioning":
-        return donor_isolated_controls(action, root, source, revision, minutes, bank_receipt=supplied,
-                                       recovery=recovery)
+        report = donor_isolated_controls(action, root, source, revision, minutes,
+                                         bank_receipt=supplied, recovery=recovery)
+        if recovery is not None:
+            # Keep the historical runtime, verifier and plan above. This independent
+            # read opens the newer cost reader even if an original search stayed partial.
+            try:
+                info = action("preflight", at=recovery["reader"])["inventory"]
+                prep = info["prices"]["launch_preparation"]
+                original = report["files"]["preflight.json"]
+                if (info["gpu_dispatches"] != 0 or prep["checkpoint_receipt"]
+                        != original["supported_wave"]["checkpoint_receipt"]):
+                    raise ValueError("launch preflight requires the original paid checkpoint")
+                original["launch_preparation"] = prep
+            except (KeyError, OSError, ValueError, SystemExit) as exc:
+                report["launch_preflight_error"] = type(exc).__name__
+                print(f"launch preflight: {exc}", file=sys.stderr)
+        return report
     if mode == "bank-prices":
         return donor_isolated_controls(action, root, source, revision, minutes, previous=supplied)
     if mode == "control-history":
@@ -4065,6 +4080,22 @@ def launch_estimate(files):
     elif bank["matched_sample_expected_us"] is not None and bank["matched_sample_tail_us"] is not None:
         add("standalone_matched_banks", bank["matched_sample_expected_us"],
             bank["matched_sample_tail_us"], ["matched_full_bank_scoring"])
+
+    preparation = preflight.get("launch_preparation")
+    if preparation:
+        if (preparation["checkpoint_receipt"] != wave["checkpoint_receipt"]
+                or preparation["fresh_receipt"] != wave["fresh_receipt"]):
+            raise ValueError("launch preparation and paid wave have different parents")
+        trajectory = preparation["trajectory"]
+        if trajectory:
+            add("extra_trajectory_overhead", trajectory["known_expected_us"], trajectory["known_tail_us"],
+                ["trajectory_startup_extra_checkpoints_and_drain"])
+            missing.update(trajectory["missing"])
+        publication = preparation["publication_proxy"]
+        if publication:
+            add("historical_scale_publication_and_read", publication["expected_us"], publication["tail_us"],
+                ["verification_and_publication"])
+            missing.add("round029_private_verification_and_report_scale")
 
     expected = sum(p["expected_us"] for p in items.values())
     tail = sum(p["tail_us"] for p in items.values())
