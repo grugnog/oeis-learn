@@ -145,3 +145,17 @@ a partial ZIP with the observed discrepancy. The command uses the same grant on 
       --recover-grant "$worker" "$grant" --output "$out/conditioning.zip"
 )
 ```
+
+The archive-only estimate replays the conditioning ZIP and reconciles the checkpoint, controls
+and matched-bank subtotals. From a checkout containing this reader, run
+
+```bash
+python3 -I -S -B specs/016-measure-learning-velocity/validation/qualify_continuation.py \
+  --estimate-conditioning-zip /path/to/conditioning.zip
+```
+
+For the returned partial ZIP, the priced work on 00/04/05/06 totals 29,026.014955 s
+expected and 98,054.130824 s at the observed tail. The separate follow-up reserve is
+101.545884 s. Paired conditioning, trajectory overhead and verification/publication
+still have open price entries. The mount snapshot in this ZIP covers one conditioning
+role. A full-wave estimate needs the simultaneous owners on the actual mounts.

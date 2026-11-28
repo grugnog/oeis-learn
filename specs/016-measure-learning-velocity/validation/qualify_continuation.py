@@ -4007,6 +4007,77 @@ def conditioning_prices(files):
     return result
 
 
+def launch_estimate(files):
+    """Combine independently reopened prices for one four-recipe planning scope."""
+    preflight = files["preflight.json"]
+    wave = preflight["supported_wave"]
+    checkpoint = files["checkpoint-verification.json"]
+    bank = files["previous-prices.json"]["projection"]
+    controls = bank["known_wave"]
+    if (wave["methods"] != ["00", "04", "05", "06"]
+            or checkpoint["mechanical_status"] != "VERIFIED"
+            or checkpoint["report_ref"] != wave["checkpoint_receipt"]):
+        raise ValueError("verified four-recipe checkpoint prices required")
+    if (set(wave["missing"]) != {"conventional_cpu_controls", *controls["missing"]}
+            or any(controls["known_" + k] != wave["known_" + k] + controls["control_" + k]
+                   for k in ("expected_us", "tail_us"))):
+        raise ValueError("paid control subtotal differs from its supported wave")
+    missing = set(controls["missing"])
+    items = {"screen_and_conventional_controls": {
+        k: controls["known_" + k] for k in ("expected_us", "tail_us")}}
+
+    def add(name, expected, tail, covers):
+        if not set(covers) <= missing:
+            raise ValueError("launch cost already included: " + name)
+        if type(expected) is not int or type(tail) is not int or not 0 <= expected <= tail:
+            raise ValueError("invalid launch cost for " + name)
+        items[name] = dict(expected_us=expected, tail_us=tail)
+        missing.difference_update(covers)
+
+    paired = conditioning_prices(files)
+    expected = paired["proxy_four_treatment_paired_sample_us"]
+    if expected is not None:
+        # Both modes already include their full-bank pass. Use a dedicated paired
+        # block per profile, with no credit for unproven reuse of a main-panel search.
+        tail = expected
+        for g in CONDITIONING_GROUPS:
+            repetitions = 1 if g == "D-full" else len(wave["methods"])
+            modes = files["paired-" + g + ".json"]["modes"]
+            for mode, row in modes.items():
+                selected, scored = row["selected_cells"], row["bank_cells"]
+                strata = {"parameter", "composition", "unseen_structure", "oeis"}
+                if selected.keys() != strata or scored.keys() != strata:
+                    raise ValueError("incomplete paired price strata")
+                for cells, total, peak, wall in (
+                    (selected, "search_us", "max_search_us",
+                     files["search-" + g + ".json"]["modes"][mode]["elapsed_us"]),
+                    (selected, "score_us", "max_score_us", row["selected_us"]),
+                    (scored, "scoring_us", "max_us", row["bank_us"]),
+                ):
+                    if (sum(c[total] for c in cells.values()) > wall
+                            or any(c["cases"] != 2 or type(c[peak]) is not int or
+                                   type(c[total]) is not int or not 0 <= c[peak] <= c[total] <= 2*c[peak]
+                                   for c in cells.values())):
+                        raise ValueError("paired case and enclosing role clocks disagree")
+                    tail += repetitions * sum(2*c[peak] - c[total] for c in cells.values())
+        add("paired_search_selected_and_banks", expected, tail,
+            ["matched_full_bank_scoring", "paired_conditioning_sample"])
+    elif bank["matched_sample_expected_us"] is not None and bank["matched_sample_tail_us"] is not None:
+        add("standalone_matched_banks", bank["matched_sample_expected_us"],
+            bank["matched_sample_tail_us"], ["matched_full_bank_scoring"])
+
+    expected = sum(p["expected_us"] for p in items.values())
+    tail = sum(p["tail_us"] for p in items.values())
+    reserve = preflight["followup_reserve_us"]
+    return dict(methods=wave["methods"], items=items, known_expected_us=expected,
+                known_tail_us=tail, missing=sorted(missing), followup_reserve_us=reserve,
+                expected_us=None if missing else expected, tail_us=None if missing else tail,
+                tail_with_reserve_us=None if missing or reserve is None else tail + reserve,
+                basis="Cached workstation. Each dedicated conditioning block includes selected and full-bank scoring. "
+                      "The observed tail repeats the slower case in each exposed pair at its measured role overhead.",
+                research_authority=None)
+
+
 def verify_conditioning_zip(path):
     def identity(record):
         raw = json.dumps(record, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
@@ -4323,6 +4394,12 @@ def cli(argv):
 if __name__ == "__main__":
     if len(sys.argv) == 3 and sys.argv[1] == "--verify-conditioning-zip":
         print(json.dumps(verify_conditioning_zip(sys.argv[2])))
+    elif len(sys.argv) == 3 and sys.argv[1] == "--estimate-conditioning-zip":
+        status = verify_conditioning_zip(sys.argv[2])["status"]
+        if status not in {"COMPLETE", "PARTIAL"}:
+            raise SystemExit("A settled complete or partial conditioning ZIP is required.")
+        _, members = diagnostic_zip_members(sys.argv[2], CONDITIONING)
+        print(json.dumps(launch_estimate(members), indent=2))
     elif len(sys.argv) == 3 and sys.argv[1] == "--verify-bank-zip":
         print(json.dumps(verify_bank_zip(sys.argv[2])))
     elif sys.argv[1:2] == ["--isolated-control-worker"]:

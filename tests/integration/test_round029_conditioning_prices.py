@@ -686,3 +686,44 @@ def test_partial_zip_keeps_paid_searches_out_of_verified_results(tmp_path):
         api["write_readiness_zip"](archive, dict(report, files=altered))
         with pytest.raises(ValueError):
             api["verify_conditioning_zip"](archive)
+
+
+def test_launch_projection_prices_the_matched_banks_once_and_requires_verified_pairs():
+    previous = dict(control_expected_us=10, control_tail_us=15, known_expected_us=110,
+                    known_tail_us=215, missing=["matched_full_bank_scoring",
+                    "paired_conditioning_sample", "trajectory_startup_extra_checkpoints_and_drain",
+                    "verification_and_publication"])
+    files = {
+        "previous-prices.json": dict(projection=dict(known_wave=previous,
+                matched_sample_expected_us=17, matched_sample_tail_us=25)),
+        "preflight.json": dict(supported_wave=dict(
+            methods=["00","04","05","06"], known_expected_us=100, known_tail_us=200,
+            checkpoint_receipt=digest("checkpoint"), missing=["conventional_cpu_controls", *previous["missing"]]),
+            followup_reserve_us=7),
+        "checkpoint-verification.json": dict(report_ref=digest("checkpoint"), mechanical_status="VERIFIED"),
+        "models.json": dict(elapsed_us=5),
+    }
+    project = api["launch_estimate"]
+    partial = project(files)
+    assert (partial["known_expected_us"], partial["known_tail_us"]) == (127, 240)
+    assert partial["expected_us"] is partial["tail_with_reserve_us"] is None
+    assert "paired_conditioning_sample" in partial["missing"]
+    cell = dict(cases=2, search_us=5, max_search_us=4, score_us=4, max_score_us=3)
+    bank = dict(cases=2, scoring_us=4, max_us=3)
+    strata = ("parameter","composition","unseen_structure","oeis")
+    for g in api["CONDITIONING_GROUPS"]:
+        files["search-" + g + ".json"] = dict(elapsed_us=60,
+                modes={m: dict(elapsed_us=25) for m in ("true","shuffled")})
+        files["paired-" + g + ".json"] = dict(elapsed_us=80, modes={m: dict(
+                selected_us=18, bank_us=18, selected_cells=dict.fromkeys(strata, cell),
+                bank_cells=dict.fromkeys(strata, bank)) for m in ("true","shuffled")})
+    result = project(files)
+    # Nine supervised pairs and one model setup. Each pair's tail adds the slowest
+    # case twice per stratum in each of the two modes (3+2+2 microseconds per cell).
+    assert result["known_expected_us"] == 110 + 5 + 9 * 140
+    assert result["known_tail_us"] == 215 + 5 + 9 * (140 + 2 * 4 * 7)
+    assert result["missing"] == ["trajectory_startup_extra_checkpoints_and_drain", "verification_and_publication"]
+    wrong = deepcopy(files)
+    wrong["preflight.json"]["supported_wave"]["known_expected_us"] += 1
+    with pytest.raises(ValueError, match="control"):
+        project(wrong)
