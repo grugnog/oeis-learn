@@ -4423,22 +4423,24 @@ def donor_initialization(action, root, revision, minutes):
         files["prescore.json"] = dict(
             sha256=hashlib.sha256(raw).hexdigest(), base64=base64.b64encode(raw).decode("ascii")
         )
-        cut = rec["initialization"]
-        files["cut.json"] = dict(
-            receipt=rec["identity"],
-            prescore=rec["prescore"],
-            plan=cut["plan"],
-            checkpoint=cut["checkpoint"]["sha256"],
-            **select_fields(
-                cut, "weights", "tokens", "updates", "state", "restores", "clocks", "allocation"
-            ),
-            lease_us=rec["lease_us"],
-            peak_device_bytes=rec["peak_device_bytes"],
-            capacity=rec["capacity"],
-        )
+        from oeis_learn.generalization.progressive.velocity_donation_report import REPORT
+        from oeis_learn.pipeline_validation.identity import confined
+        from oeis_learn.pipeline_validation.progressive_velocity_verify import archive_result
+
+        public_report = confined(root, paid["receipt_path"]).parent / "share" / REPORT
+        archive_check, code = archive_result(public_report, retained_qualification(root, grant))
+        public_cut = prescore.read_member(public_report, prescore.REPORT_MEMBER)
+        if (
+            code
+            or archive_check["report_ref"] != public_cut["identity"]
+            or archive_check["last_committed_ref"] != rec["identity"]
+        ):
+            raise ValueError("standalone public archive verification differs from the private cut")
+        files["cut.json"] = public_cut
         files["verification.json"] = select_fields(
             checked, "report_ref", "verification_scope", "mechanical_status"
         )
+        files["verification.json"]["public_report"] = archive_check["report_ref"]
         report.update(
             status="COMPLETE",
             elapsed_us=paid["elapsed_us"],
@@ -4574,6 +4576,11 @@ def verify_initialization_zip(path, qualification=None):
         or sum(cut["clocks"]["save"] + cut["clocks"]["load"]) > cut["lease_us"]
         or not 0 < quote["expected_us"] <= quote["tail_us"]
         or min(summary["remaining_us"], summary["elapsed_us"]) < 0
+        or not sealed(cut)
+        or cut["identity"] != checked["public_report"]
+        or cut["version"] != "round029-ordinary-initialization-report/v1"
+        or (cut["elapsed_us"], cut["remaining_us"])
+        != (summary["elapsed_us"], summary["remaining_us"])
         or cut["plan"] != q["plan"]
         or checked["report_ref"] != cut["receipt"]
         or checked["mechanical_status"] != "VERIFIED"

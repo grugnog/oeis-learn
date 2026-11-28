@@ -273,6 +273,26 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(tmp_pat
     assert before == captured.read_bytes() and calls == ["package", "initialization"]
     assert len(list((folder / "registrations").glob("*/trial-*.json"))) == 7
     assert not list((folder / "registrations").glob("*/look-*.json"))
+    from oeis_learn.generalization.progressive import velocity_donation_report as public
+
+    canonical = folder / "qualification" / grant["identity"][7:] / "share" / public.REPORT
+    offline = SimpleNamespace(
+        action="verify",
+        workspace=None,
+        authority=None,
+        archive=canonical,
+        qualification_archive=captured,
+    )
+    independent, code = controller.execute(offline, source)
+    assert (
+        code == 0 and independent["verification_scope"] == "paired_archives_ordinary_initialization"
+    )
+    assert independent["last_committed_ref"] == paid_result["receipt"]["identity"]
+    altered = seal(dict(public.read_member(canonical, freeze.REPORT_MEMBER), tokens=1))
+    changed = tmp_path / "changed-report.zip"
+    public.install(changed, freeze.REPORT_MEMBER, altered)
+    with pytest.raises(ValueError, match="zero-cut"):
+        freeze.verify_archives(changed, captured)
     captured.unlink()
     failed, code = invoke("verify")
     assert code == 1 and failed["mechanical_status"] == "FAILED" and not captured.exists()

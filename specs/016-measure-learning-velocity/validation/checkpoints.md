@@ -277,7 +277,9 @@ graph and its three measured exclusions, and binds the actual wheel, image, devi
 follow-up reserve. It writes `round029-qualification.zip` and a separate copy under the original
 grant's authorization directory before the exposed worker starts. The worker writes one initial
 ordinary checkpoint and restores it twice in the same lease. A private read rehashes the
-retained state blobs and checks the original debits. The funded scope ends at zero optimizer
+retained state blobs and checks the original debits. The command also runs the installed
+archive-only verifier on the canonical zero-cut report and the separately retained pre-score
+ZIP. The funded scope ends at zero optimizer
 updates. Comparative scoring and the full-wave trial need their own acceptance and authority.
 
 Return the printed `initialization.zip`, including after a capacity stop. Its public copy of the

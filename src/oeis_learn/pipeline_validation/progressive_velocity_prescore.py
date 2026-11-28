@@ -359,3 +359,134 @@ def funded_publication(root, area, grant, binding, request, quote, plan, runtime
     return host_operation(area, grant, "publish_prescore", request, build, snapshot=snapshot)[
         "prescore"
     ]
+
+
+REPORT_MEMBER = "ordinary-initialization-report.json"
+
+
+def public_result(record, balance):
+    cut = record["initialization"]
+    if balance["pending"] or balance["consumed"]["tokens"]:
+        raise ValueError("unsettled or nonzero initialization token debit")
+    return seal(
+        dict(
+            version="round029-ordinary-initialization-report/v1",
+            receipt=record["identity"],
+            prescore=record["prescore"],
+            plan=cut["plan"],
+            checkpoint=cut["checkpoint"]["sha256"],
+            **{
+                k: cut[k]
+                for k in (
+                    "weights",
+                    "tokens",
+                    "updates",
+                    "state",
+                    "restores",
+                    "clocks",
+                    "allocation",
+                )
+            },
+            **{k: record[k] for k in ("lease_us", "peak_device_bytes", "capacity")},
+            elapsed_us=balance["consumed"]["elapsed_us"],
+            remaining_us=balance["remaining"]["elapsed_us"],
+        )
+    )
+
+
+def verify_archives(report_path, qualification_path):
+    from oeis_learn.generalization.budgets import integer
+    from oeis_learn.generalization.progressive.campaign import velocity_policy
+    from oeis_learn.generalization.progressive.velocity_donation_report import closed, hashes
+
+    q = read_member(qualification_path, MEMBER)
+    record = read_member(report_path, REPORT_MEMBER)
+    closed(
+        q,
+        "version scope candidate source physical image wheel role_policy grant total_us request registration plan design graph looks trials quote supported omitted start initial_weights learner seed stream_seed target score_authority",
+        sealed=True,
+    )
+    closed(
+        record,
+        "version receipt prescore plan checkpoint weights tokens updates state restores clocks allocation lease_us peak_device_bytes capacity elapsed_us remaining_us",
+        sealed=True,
+    )
+    policy = velocity_policy()
+    methods = {row["id"] for row in policy["recipes"]}
+    hashes(
+        *(
+            q[k]
+            for k in (
+                "source",
+                "physical",
+                "image",
+                "wheel",
+                "grant",
+                "request",
+                "registration",
+                "plan",
+                "design",
+                "graph",
+                "start",
+                "initial_weights",
+                "learner",
+            )
+        ),
+        *(record[k] for k in ("receipt", "checkpoint", "state")),
+        *q["trials"].values(),
+    )
+    if (
+        q["version"] != VERSION
+        or q["scope"] != "ordinary_initialization"
+        or q["role_policy"] != ROUND029_ROLE_POLICY
+        or q["graph"] != digest(q["looks"])
+        or set(q["looks"]) != methods | {policy["reference"], *policy["controls"]}
+        or set(q["trials"]) != methods
+        or q["supported"] != ["00", "04", "05", "06"]
+        or set(q["omitted"]) != methods - set(q["supported"])
+        or q["quote"] != seal(q["quote"])
+        or integer(q["quote"]["expected_us"], 1) > integer(q["quote"]["tail_us"], 1)
+        or q["target"] != 0
+        or q["score_authority"] is not None
+        or record["version"] != "round029-ordinary-initialization-report/v1"
+        or record["prescore"] != q["identity"]
+        or record["plan"] != q["plan"]
+        or record["weights"] != q["initial_weights"]
+        or (integer(record["tokens"]), integer(record["updates"])) != (0, 0)
+        or record["restores"] != [record["state"]] * 2
+        or not record["capacity"]
+        or integer(record["elapsed_us"]) < integer(record["lease_us"], 1)
+        or integer(record["remaining_us"]) + record["elapsed_us"] != integer(q["total_us"], 1)
+    ):
+        raise ValueError(
+            "ordinary zero-cut report differs from its independent pre-score commitment"
+        )
+    integer(q["quote"]["followup_reserve_us"], 1)
+    for method, profiles in q["looks"].items():
+        if set(profiles) != ({"common", "full"} if method in methods else {"full"}):
+            raise ValueError("missing registered profile")
+        for profile, looks in profiles.items():
+            if [v["look"] for v in looks] != policy["profiles"][profile]["looks"]:
+                raise ValueError("registered looks differ")
+            for v in looks:
+                closed(v, "members look receipt")
+                hashes(v["receipt"])
+                integer(v["members"], 1)
+    clocks = record["clocks"]
+    closed(clocks, "save load")
+    if (
+        len(clocks["save"]) != 1
+        or len(clocks["load"]) != 2
+        or sum(integer(t, 1) for t in clocks["save"] + clocks["load"]) > record["lease_us"]
+    ):
+        raise ValueError("ordinary checkpoint clock coverage differs")
+    integer(record["peak_device_bytes"], 1)
+    closed(record["allocation"], "bytes inodes")
+    for u in ("bytes", "inodes"):
+        integer(record["allocation"][u], 1)
+        for m in record["capacity"]:
+            if integer(m["deficit_" + u]) or integer(m["available_" + u]) < integer(
+                m["reserved_" + u]
+            ) + integer(m["required_" + u]):
+                raise ValueError("ordinary checkpoint exceeded its physical guard")
+    return record

@@ -18,6 +18,25 @@ from .progressive_velocity_qualification import _receipt, qualification_parent
 
 
 def archive_result(report, qualification):
+    import zipfile
+    from . import progressive_velocity_prescore as prescore
+
+    with zipfile.ZipFile(qualification) as archive:
+        initialization = archive.namelist() == [prescore.MEMBER]
+    if initialization:
+        evidence = prescore.verify_archives(report, qualification)
+        return (
+            result(
+                "verify",
+                "VERIFIED",
+                "Reopened the exposed ordinary zero-cut report against its pre-score commitment",
+                "review_qualification",
+                last=evidence["receipt"],
+                report_ref=evidence["identity"],
+                verification_scope="paired_archives_ordinary_initialization",
+            ),
+            0,
+        )
     evidence = public.verify_archives(report, qualification)
     return (
         result(
@@ -235,6 +254,12 @@ def private_result(root, folder, *, source=None):
             report, scope = record["identity"], "private_learner_rehearsal"
         elif checkpoint or initial:
             record = checkpoints.replay(root, folder, area, source, grant, binding, snapshot)
+            if initial:
+                copied = prescore.verify_archives(
+                    area / "share" / public.REPORT, donation.retained_qualification(root, grant)
+                )
+                if copied != prescore.public_result(record, snapshot):
+                    raise ValueError("ordinary public report differs from the private checkpoint")
             report, scope = record["identity"], (
                 "private_ordinary_initialization" if initial else "private_checkpoint_matrix"
             )

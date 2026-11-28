@@ -539,6 +539,20 @@ def qualify(args, root, folder, source, revision, grant, host_factory, *, initia
         retain(area / "binding.json", binding)
         rec = stages(root, area, grant, binding, projection, plan, run, freeze=freeze)
         retain(area / "receipt.json", rec)
+        if initialize:
+            from oeis_learn.generalization.progressive.velocity_donation_report import (
+                REPORT,
+                install,
+            )
+            from .progressive_velocity_donation import retained_qualification
+
+            public_report = area / "share" / REPORT
+            install(
+                public_report,
+                prescore.REPORT_MEMBER,
+                prescore.public_result(rec, journal.snapshot()),
+            )
+            prescore.verify_archives(public_report, retained_qualification(root, grant))
         marker = seal(dict(grant=grant["identity"], receipt=rec["identity"]))
         marker_path = "preparation/ordinary-initialization.json" if initialize else MARKER
         if not (folder / marker_path).is_file() or load(confined(folder, marker_path)) != marker:
