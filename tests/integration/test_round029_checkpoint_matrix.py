@@ -318,7 +318,7 @@ def test_control_history_cli_takes_only_zero_minutes_and_requires_a_new_zip(tmp_
         op["cli"]([rev, "0", "control-history", "--output", str(tmp_path / "result.json")])
 
 
-def test_one_grant_preserves_other_methods_and_replays_six_cpu_roles(tmp_path):
+def test_one_grant_preserves_other_methods_and_replays_six_cpu_roles(tmp_path, monkeypatch):
     import shutil
     import zipfile
     from copy import deepcopy
@@ -333,6 +333,13 @@ def test_one_grant_preserves_other_methods_and_replays_six_cpu_roles(tmp_path):
     )
     from oeis_learn.generalization.progressive.contracts import atomic_write
     from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from oeis_learn.pipeline_validation import progressive_round028_rehearsal
+
+    def machine_identity(host, phase, *, machine):
+        assert phase == "cpu" and machine is True and host.policy["runtime"]["engine"] == "fixture"
+        return digest("fixture qualification machine")
+
+    monkeypatch.setattr(progressive_round028_rehearsal, "physical_scope", machine_identity)
 
     folder = tmp_path / "run-state/discovery" / SESSION
     folder.mkdir(parents=True)
