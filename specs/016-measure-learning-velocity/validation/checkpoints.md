@@ -87,3 +87,24 @@ Run `bank-prices` from the detached round027 root. Set `ROUND029_REV` to the pub
 The command authenticates the paid control costs, five original generation and scoring groups, and the previously exposed eight-case roster. It runs a separate CPU scorer for each group. The scorer executes each recoverable distinct admission on all 100 indices using the native and reference implementations. The ZIP reader checks the published bytes, case counts, receipt links and settled charges. The command uses one cumulative 20-minute qualification grant. Rerunning the same candidate and grant duration resumes individual groups.
 
 The measured groups are ordinary and first-divergence at one and eight attempts, and retained D at eight attempts. The ZIP reports missing sources, incomplete searches, empty banks, verified outcomes and timings separately. Its cost scenario uses eight cases per group and explicitly identifies the historical learner proxy. The full trial cost still depends on the prospective sample and its observed admissions. Attach the ZIP from the printed path, including a partial result.
+
+## Measure paired conditioning and recheck the resulting banks
+
+Set `ROUND029_REV` to the published conditioning commit and `ROUND029_BANK` to the receipt from the completed bank-prices ZIP. From the detached round027 root run
+
+```bash
+(
+  set -euo pipefail
+  umask 077
+  out=$(mktemp -d "$HOME/round029-conditioning.XXXXXX")
+  git fetch --no-tags origin "${ROUND029_REV:?full conditioning implementation commit}"
+  git show "${ROUND029_REV}:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - "$ROUND029_REV" 75 conditioning \
+      --bank-receipt "${ROUND029_BANK:?completed bank-pricing receipt}" \
+      --output "$out/conditioning.zip"
+)
+```
+
+The CPU custodian authenticates the donated ordinary 4M checkpoint and retained D, then freezes the two conditioning maps for every group. One HIP lease per group covers both input modes. Ordinary runs at one and eight attempts, and D runs at eight. Each probe uses the same inference seed, family order and true recipient for fitting. If an exposed timing pair has identical visible values, the custodian selects a previously exposed differing family in the same stratum using only its visible prompt. The ZIP reports the number of substitutions.
+
+All six sets of choices must seal before the CPU roles score any suffix. Each scorer checks the selected choice and independently executes every recoverable admission with both implementations. The ZIP includes paired selected outcomes, unresolved cases, bank coverage, search and scoring clocks, GPU leases, sampled activity, peak device memory and charged resources. The proxy for other learner recipes uses the historical ordinary checkpoint. The 75-minute grant covers the combined qualification. Retries at the same candidate and duration reopen completed groups and charge interrupted attempts to the original balance. Attach the printed `conditioning.zip`, including a partial result.

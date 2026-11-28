@@ -16,10 +16,11 @@ import zipfile
 DONOR = "77667e67176ae32fa16457d52565bae1dbe41afc"
 CACHE_HELPER = "specs/015-learned-program-search/validation/candidate_source.py"
 LAUNCHER = "specs/016-measure-learning-velocity/validation/launch-round029.sh"
+CONDITIONING = "round029-paired-conditioning-prices/v1"
 BANK_PRICES = "round029-matched-bank-prices/v1"
 ZIP_SCOPES = {"readiness": "round029-readiness/v1", "checkpoints": "checkpoint_matrix",
               "control-history": "round029-control-history/v1", "isolated-controls": "round029-isolated-control-prices/v1",
-              "bank-prices": BANK_PRICES}
+              "bank-prices": BANK_PRICES, "conditioning": CONDITIONING}
 MODES = ("donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", *ZIP_SCOPES)
 
 
@@ -811,7 +812,6 @@ ISOLATED_CONTROLS = "round029-isolated-control-prices/v1"
 BANK_SCORES = "round029-exposed-bank-scores/v1"
 
 
-CONDITIONING = "round029-paired-conditioning-prices/v1"
 CONDITIONING_ROLE = "round029-conditioning-role/v1"
 CONDITIONING_GROUPS = {"ordinary-common": ("00", "common"), "ordinary-full": ("00", "full"), "D-full": ("D", "full")}
 CONDITIONING_MODES = ("true", "shuffled")
@@ -1995,6 +1995,7 @@ def run_control_stage(
             or dispatch["request"] != request["identity"]
             or producer["request"] != request["identity"]
             or not re.fullmatch(r"sha256:[0-9a-f]{64}", producer["native"])
+            or "expected_native" in request and producer["native"] != request["expected_native"]
             or not 0 < producer["worker_us"] <= dispatch["elapsed_us"]
         ):
             raise ValueError("original role confinement, producer or supervision clock differs")
@@ -3075,7 +3076,8 @@ def conditioning_matrix(
                     data,
                     [(paths[method], "/work/" + original["weight"]["path"])],
                     check,
-                    dict(order=order[group], probes=probes, model_receipt=model_op["identity"]),
+                    dict(order=order[group], probes=probes, model_receipt=model_op["identity"],
+                         expected_native=model_op["evidence"]["native"]),
                 ),
             )
             if result:
@@ -3133,6 +3135,7 @@ def conditioning_matrix(
                         dict(
                             search=children,
                             barrier=barrier["identity"],
+                            expected_native=search_op["evidence"]["native"],
                             order=order[group],
                             probes=pairs[group],
                         ),
@@ -3163,9 +3166,12 @@ def conditioning_matrix(
     except (KeyError, TypeError, ValueError, OSError, RuntimeError, KeyboardInterrupt) as exc:
         errors["matrix"] = type(exc).__name__
         print(f"conditioning matrix: {exc}", file=sys.stderr)
-    balance = BudgetJournal.inspect_existing(
-        area / "accounting", grant["identity"], grant["resources"]
-    )
+    if journal.path.is_file():
+        balance = BudgetJournal.inspect_existing(area / "accounting", grant["identity"], grant["resources"])
+    elif any(area.glob("operations/*/attempt-*")):
+        raise ValueError("issued conditioning work has no original budget journal")
+    else:
+        balance = journal.snapshot()
     if (
         balance["pending"]
         or balance["consumed"]["elapsed_us"] + balance["remaining"]["elapsed_us"]
@@ -3208,8 +3214,11 @@ def conditioning_matrix(
     files["verification.json"] = dict(
         scope="paired_conditioning_on_exposed_families",
         research_dispatches=0,
+        plan=plan["identity"],
+        sealed_searches=barrier["identity"] if finished else None,
         verified={g: {"search": v["search"], "score": v["score"]} for g, v in finished.items()},
     )
+    files["forecast.json"] = conditioning_prices(files)
     if report["status"] == "COMPLETE":
         receipt = seal(
             dict(
@@ -3226,7 +3235,7 @@ def conditioning_matrix(
     return report
 
 
-def donor_isolated_controls(action, root, source, revision, minutes, previous=None):
+def donor_isolated_controls(action, root, source, revision, minutes, previous=None, *, bank_receipt=None):
     import runpy
     from oeis_learn.generalization.progressive.lifecycle import RunStore
     from oeis_learn.generalization.progressive.velocity_records import SESSION
@@ -3308,7 +3317,11 @@ def donor_isolated_controls(action, root, source, revision, minutes, previous=No
             if host.engine.image(runtime["image"]) != runtime["image"]:
                 raise ValueError("qualified runtime image differs")
             step = "cpu-roles"
-            if previous:
+            if bank_receipt:
+                step = "conditioning-roles"
+                report = conditioning_matrix(root, source, folder, revision, minutes, runtime, panel, wave,
+                                             inventory["cuts"], host, stage, bank_receipt)
+            elif previous:
                 report = bank_price_matrix(root, source, folder, revision, minutes, runtime, panel,
                                            wave, host, stage, previous)
             else:
@@ -3321,17 +3334,17 @@ def donor_isolated_controls(action, root, source, revision, minutes, previous=No
         print(f"{step}: {exc}", file=sys.stderr)
         result = dict(
             candidate=revision,
-            scope=BANK_PRICES if previous else ISOLATED_CONTROLS,
-            status="UNVERIFIED" if step == "cpu-roles" else "BLOCKED",
+            scope=CONDITIONING if bank_receipt else BANK_PRICES if previous else ISOLATED_CONTROLS,
+            status="UNVERIFIED" if step in {"cpu-roles", "conditioning-roles"} else "BLOCKED",
             stage=step,
             error=type(exc).__name__,
             grant_minutes=int(minutes),
             files=files,
             research_run_requested=False,
             scientific_verdict=None,
-            gpu_dispatches=0,
+            gpu_dispatches=None if step == "conditioning-roles" else 0,
         )
-        if step != "cpu-roles":
+        if step not in {"cpu-roles", "conditioning-roles"}:
             result.update(grant=None, elapsed_us=0)
         return result
 
@@ -3462,6 +3475,8 @@ def donor_control_history(action, root, revision):
 def main(revision, minutes, mode="donation", supplied=None):
     if mode not in MODES:
         raise SystemExit("Unknown continuation qualification mode.")
+    if mode == "conditioning" and not re.fullmatch("sha256:[a-f0-9]{64}", supplied or ""):
+        raise SystemExit("Conditioning requires the original bank receipt.")
     if mode == "bank-prices" and not re.fullmatch("sha256:[a-f0-9]{64}", supplied or ""):
         raise SystemExit("Bank pricing requires the original isolated control receipt.")
     root = Path.cwd().resolve()
@@ -3504,6 +3519,8 @@ def main(revision, minutes, mode="donation", supplied=None):
 
     if mode == "isolated-controls":
         return donor_isolated_controls(action, root, source, revision, minutes)
+    if mode == "conditioning":
+        return donor_isolated_controls(action, root, source, revision, minutes, bank_receipt=supplied)
     if mode == "bank-prices":
         return donor_isolated_controls(action, root, source, revision, minutes, previous=supplied)
     if mode == "control-history":
@@ -3593,7 +3610,126 @@ def main(revision, minutes, mode="donation", supplied=None):
     )
 
 
-def verify_bank_zip(path):
+def conditioning_prices(files):
+    result = dict(
+        successful_role_us=files.get("models.json", {}).get("elapsed_us", 0),
+        groups={},
+        proxy_four_treatment_paired_sample_us=None,
+        full_wave_us=None,
+        basis="Eight exposed families per pair. The historical ordinary 4M common and full costs are proxies for 04/05/06. D is priced once.",
+    )
+    for group in CONDITIONING_GROUPS:
+        search = files.get("search-" + group + ".json")
+        scores = files.get("paired-" + group + ".json")
+        if search:
+            result["successful_role_us"] += search["elapsed_us"]
+        if not scores:
+            continue
+        result["successful_role_us"] += scores["elapsed_us"]
+        modes = {
+            m: dict(
+                search_us=search["modes"][m]["elapsed_us"],
+                selected_us=scores["modes"][m]["selected_us"],
+                bank_us=scores["modes"][m]["bank_us"],
+            )
+            for m in CONDITIONING_MODES
+        }
+        total = scores["elapsed_us"] + search["elapsed_us"]
+        overhead = total - sum(sum(v.values()) for v in modes.values())
+        if overhead < 0:
+            raise ValueError("paired measurements exceed the nonoverlapping supervised roles")
+        result["groups"][group] = dict(
+            modes=modes, shared_overhead_us=overhead, supervised_us=total
+        )
+    if set(result["groups"]) == set(CONDITIONING_GROUPS):
+        result["proxy_four_treatment_paired_sample_us"] = files["models.json"]["elapsed_us"] + sum(
+            (1 if group == "D-full" else 4) * r["supervised_us"]
+            for group, r in result["groups"].items()
+        )
+    return result
+
+
+def verify_conditioning_zip(path):
+    def identity(record):
+        raw = json.dumps(record, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+        return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+    summary, files = diagnostic_zip_members(path, CONDITIONING)
+    if summary["status"] == "COMPLETE":
+        proofs = files["verification.json"]
+        if (
+            proofs["research_dispatches"] != 0
+            or set(proofs["verified"]) != set(CONDITIONING_GROUPS)
+            or summary["errors"]
+            or summary["charged_work"]["tokens"] != 0
+            or summary["elapsed_us"] != summary["charged_work"]["elapsed_us"]
+            or summary["elapsed_us"] + summary["remaining_us"]
+            != summary["grant_minutes"] * 60_000_000
+            or summary["verified_leases"] < len(CONDITIONING_GROUPS)
+            or summary["verified_leases"] > summary["hip_attempts"]
+            or summary["recorded_lease_us"] > summary["elapsed_us"]
+            or summary["recorded_lease_us"] <= 0
+            or summary["gpu_dispatches"]
+            != (
+                summary["verified_leases"]
+                if summary["verified_leases"] == summary["hip_attempts"]
+                else None
+            )
+        ):
+            raise ValueError("conditioning role receipts, leases, or cumulative balance differ")
+        refs = set()
+        groups = {}
+        searches = {}
+        paid_lease = 0
+        for group in CONDITIONING_GROUPS:
+            search, score = files["search-" + group + ".json"], files["paired-" + group + ".json"]
+            if (
+                score["group"] != group
+                or search["receipt"] != score["search"]
+                or search["native"] != score["native"]
+                or score["barrier"] != proofs["sealed_searches"]
+                or proofs["verified"][group] != {"search": score["search"], "score": score["score"]}
+                or sum(score["paired_selected"].values()) != files["panel.json"]["cases"]
+                or search["lease_us"] <= 0
+                or search["lease_us"] > search["elapsed_us"]
+            ):
+                raise ValueError("returned conditioning coverage or original role links differ")
+            refs.update((score["search"], score["score"]))
+            groups[group] = identity({k: v for k, v in score.items() if k != "identity"})
+            if groups[group] != score["identity"]:
+                raise ValueError("paired group seal differs")
+            searches[group] = search["receipt"]
+            paid_lease += search["lease_us"]
+            for mode in CONDITIONING_MODES:
+                cells = score["modes"][mode]["bank_cells"]
+                if len(cells) != 4 or any(v["cases"] != 2 for v in cells.values()):
+                    raise ValueError("eight matched cases required in both input modes")
+        prices = conditioning_prices(files)
+        if proofs["sealed_searches"] != identity(dict(plan=proofs["plan"], searches=searches)):
+            raise ValueError("paired scoring barrier differs from the original three searches")
+        receipt = identity(
+            dict(
+                plan=proofs["plan"],
+                grant=summary["grant"],
+                groups=groups,
+                charged=summary["charged_work"],
+                leases=summary["verified_leases"],
+                lease_us=summary["recorded_lease_us"],
+            )
+        )
+        if receipt != summary["receipt"]:
+            raise ValueError("paired receipt differs from the original grant and group records")
+        if (
+            len(refs) != 6
+            or paid_lease > summary["recorded_lease_us"]
+            or prices != files["forecast.json"]
+            or prices["successful_role_us"] > summary["elapsed_us"]
+        ):
+            raise ValueError("paired cost projection or independent supervision differs")
+    return dict(status=summary["status"], verified_members=len(files))
+
+
+def diagnostic_zip_members(path, scope):
     """Read the diagnostic ZIP without the donor, installed package, or permission to dispatch."""
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
@@ -3601,13 +3737,14 @@ def verify_bank_zip(path):
             len(names) != len(set(names))
             or len(names) > 16
             or any(
-                not re.fullmatch(r"[a-z0-9_-]+\.json", n) or archive.getinfo(n).file_size > 2 << 20
+                not re.fullmatch(r"[A-Za-z0-9_-]+\.json", n)
+                or archive.getinfo(n).file_size > 2 << 20
                 for n in names
             )
         ):
             raise ValueError("unexpected bank ZIP members")
         summary = json.loads(archive.read("summary.json"))
-        if summary["scope"] != BANK_PRICES or set(names) != {"summary.json", *summary["sha256"]}:
+        if summary["scope"] != scope or set(names) != {"summary.json", *summary["sha256"]}:
             raise ValueError("bank ZIP scope or manifest differs")
         parts = {}
         for name, checksum in summary["sha256"].items():
@@ -3615,9 +3752,17 @@ def verify_bank_zip(path):
             if hashlib.sha256(raw).hexdigest() != checksum:
                 raise ValueError("bank ZIP member digest differs")
             parts[name] = json.loads(raw)
-    if (summary["status"] not in {"COMPLETE", "PARTIAL", "BLOCKED", "UNVERIFIED"}
-            or summary["research_run_requested"] is not False or summary["scientific_verdict"] is not None):
+    if (
+        summary["status"] not in {"COMPLETE", "PARTIAL", "BLOCKED", "UNVERIFIED"}
+        or summary["research_run_requested"] is not False
+        or summary["scientific_verdict"] is not None
+    ):
         raise ValueError("unexpected scientific status in a diagnostic ZIP")
+    return summary, parts
+
+
+def verify_bank_zip(path):
+    summary, parts = diagnostic_zip_members(path, BANK_PRICES)
     if summary["status"] == "COMPLETE":
         expected = {
             arm + "-" + look for arm in ("ordinary", "first_divergence") for look in ("one", "full")
@@ -3658,6 +3803,7 @@ def write_readiness_zip(out, report):
     def encoded(value):
         return (json.dumps(value, indent=2, allow_nan=False) + "\n").encode("utf-8")
 
+    report = dict(report)
     members = report.pop("files", {})
     with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         hashes = {}
@@ -3684,6 +3830,7 @@ def cli(argv):
         help="save the result to a new file (ZIP for readiness, checkpoints and control reports; JSON for other modes)",
     )
     parser.add_argument("--from-result", type=Path, help="completed fresh-start JSON for read-only readiness")
+    parser.add_argument("--bank-receipt", help="completed matched bank qualification receipt for conditioning")
     parser.add_argument("--controls-receipt", help="original isolated control receipt identity for bank pricing")
     args = parser.parse_args(argv)
     readiness = args.mode == "readiness"
@@ -3694,6 +3841,11 @@ def cli(argv):
         parser.error("Readiness requires --from-result QUALIFICATION.json and --output NEW.zip")
     if args.from_result is not None and not readiness:
         parser.error("--from-result is only valid with readiness")
+    if args.mode == "conditioning":
+        if not re.fullmatch("sha256:[a-f0-9]{64}", args.bank_receipt or ""):
+            parser.error("conditioning requires --bank-receipt sha256:ORIGINAL_RECEIPT")
+    elif args.bank_receipt is not None:
+        parser.error("--bank-receipt is only valid with conditioning")
     if args.mode == "bank-prices":
         if not re.fullmatch("sha256:[a-f0-9]{64}", args.controls_receipt or ""):
             parser.error("bank-prices requires --controls-receipt sha256:ORIGINAL_RECEIPT")
@@ -3704,6 +3856,8 @@ def cli(argv):
     request = (args.revision, args.minutes, args.mode)
     if readiness:
         request += (args.from_result,)
+    elif args.mode == "conditioning":
+        request += (args.bank_receipt,)
     elif args.mode == "bank-prices":
         request += (args.controls_receipt,)
     if args.output is None:
@@ -3736,7 +3890,21 @@ def cli(argv):
             out.write((json.dumps(report, indent=2, allow_nan=False) + "\n").encode("utf-8"))
         out.flush()
         os.fsync(out.fileno())
-        if args.mode == "bank-prices":
+        if args.mode == "conditioning":
+            try:
+                verify_conditioning_zip(out.name)
+            except (KeyError, TypeError, ValueError, zipfile.BadZipFile) as exc:
+                print(f"conditioning ZIP verification: {exc}", file=sys.stderr)
+                report.update(status="UNVERIFIED", receipt=None,
+                              errors=dict(report.get("errors", {}), publication=type(exc).__name__))
+                out.seek(0)
+                out.truncate()
+                write_readiness_zip(out, report)
+                out.flush()
+                os.fsync(out.fileno())
+                verify_conditioning_zip(out.name)
+                code = 1
+        elif args.mode == "bank-prices":
             verify_bank_zip(out.name)
         os.link(out.name, args.output)
     print(f"Saved {args.output.resolve()}", file=sys.stderr)
@@ -3744,7 +3912,9 @@ def cli(argv):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 3 and sys.argv[1] == "--verify-bank-zip":
+    if len(sys.argv) == 3 and sys.argv[1] == "--verify-conditioning-zip":
+        print(json.dumps(verify_conditioning_zip(sys.argv[2])))
+    elif len(sys.argv) == 3 and sys.argv[1] == "--verify-bank-zip":
         print(json.dumps(verify_bank_zip(sys.argv[2])))
     elif sys.argv[1:2] == ["--isolated-control-worker"]:
         isolated_control_worker(*sys.argv[2:])

@@ -245,6 +245,9 @@ def test_five_banks_share_one_grant_and_resume_only_the_failed_role(tmp_path, mo
         and len(calls) == 6
     )
     assert "private/" not in json.dumps(again) and "return $index" not in json.dumps(again)
+    reopened = api["previous_bank_prices"](tmp_path, folder, again["receipt"], args[7], args[6], runtime, host)
+    assert reopened["projection"] == done["files"]["forecast.json"]
+
 
     import subprocess
     import sys
