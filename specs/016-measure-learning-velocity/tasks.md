@@ -237,7 +237,9 @@ flowchart TD
 The [returned initialization and full-wave capacity](validation/checkpoints.md#returned-initialization-and-full-wave-capacity)
 close the outstanding full-wave storage observation for this donor snapshot. T051–T053
 now cover a qualification-only retry that reopens the funded trial roster, original
-package debits and independent pre-score publication. A CPU fixture exercises both a
-failed build and a verifier failure after installation, a subsequent capacity stop,
-two resumes and archive replay. Actual HIP zero-cut verification remains open.
+package debits and independent pre-score publication. A CPU fixture exercises a
+failed wheel build, a verifier failure after installation and recovery from two
+settled cache lookups with no local image. It covers the original-worker image
+build, workspace and engine-store capacity, two resumes, and archive replay.
+Actual HIP zero-cut verification remains open.
 T032 and T056 still require the funded comparative trial and its runner.

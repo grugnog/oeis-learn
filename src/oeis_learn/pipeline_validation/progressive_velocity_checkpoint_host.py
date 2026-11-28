@@ -9,6 +9,7 @@ from oeis_learn.generalization.progressive.trials import integer
 from oeis_learn.generalization.progressive.velocity_records import SESSION, operation_key
 from . import progressive_velocity_broad_host as broad
 from . import progressive_velocity_checkpoint as matrix
+from . import progressive_velocity_runtime_build as runtime_build
 from .identity import confined
 from .preparation_recovery import retain, revise
 from .progressive_handoff import stage
@@ -163,16 +164,45 @@ def incomplete(root, source, authority):
     return partial_treatments(area, grant, plan)
 
 
-def stages(root, area, grant, binding, projection, plan, run, *, freeze=None):
+def stages(
+    root, area, grant, binding, projection, plan, run, *, freeze=None, build=None, source=None
+):
+    package_phase, package_request, built_parent = "package", binding, None
+    if build is not None:
+        built = run(
+            "build_runtime",
+            build,
+            {},
+            lambda out: runtime_build.verify(source, out, build, dispatch_capacity(out, build)),
+            lambda out: (out / "producer.json").is_file(),
+        )
+        built_parent = seal(
+            dict(
+                candidate=binding["candidate"],
+                source=binding["source"],
+                image=built["evidence"]["image"],
+                build=built["identity"],
+            )
+        )
+        package_phase = "package_runtime"
+        package_request = seal(dict(binding=binding["identity"], parent=built_parent))
+
     def verify_package(out):
         runtime = load(confined(out, "runtime.json"))
-        package_evidence(root, area, runtime, binding)
-        return seal(dict(runtime=runtime["identity"], capacity=dispatch_capacity(out, binding)))
+        parent = {"built_parent": built_parent} if built_parent is not None else {}
+        package_evidence(root, area, runtime, binding, **parent)
+        return seal(
+            dict(runtime=runtime["identity"], capacity=dispatch_capacity(out, package_request))
+        )
 
     installed = run(
-        "package", binding, {}, verify_package, lambda out: (out / "runtime.json").is_file()
+        package_phase,
+        package_request,
+        {},
+        verify_package,
+        lambda out: (out / "runtime.json").is_file(),
     )
-    package_out = broad.attempt(area, coordinates(grant, "package"), grant)
+    package_out = broad.attempt(area, coordinates(grant, package_phase), grant)
     runtime = load(confined(package_out, "runtime.json"))
     request = seal(
         dict(
@@ -260,6 +290,7 @@ def stages(root, area, grant, binding, projection, plan, run, *, freeze=None):
             origin=plan["origin"],
             package_capacity=installed["evidence"]["capacity"],
             acquisition=installed["identity"],
+            **(dict(image_build=built_parent["build"]) if built_parent else {}),
             measurement=paid["identity"],
             **paid["evidence"],
         )
@@ -268,11 +299,11 @@ def stages(root, area, grant, binding, projection, plan, run, *, freeze=None):
 
 def replay(root, folder, area, source, grant, binding, snapshot):
     pointer, projection, physical, plan = inputs(root, folder, source)
-    freeze = None
+    freeze = build = None
     from . import progressive_velocity_prescore as prescore
 
     if binding["version"] == prescore.VERSION:
-        plan, quote, _ = prescore.funded_inputs(
+        plan, quote, prefix = prescore.funded_inputs(
             root,
             folder,
             area,
@@ -301,13 +332,27 @@ def replay(root, folder, area, source, grant, binding, snapshot):
 
     if binding["version"] == prescore.VERSION:
         recover_package(root, area, grant, binding, snapshot=snapshot)
+        build = runtime_build.request(
+            root, area, coordinates(grant, "package"), grant, binding, quote, prefix, snapshot
+        )
 
     def reopen(phase, request, work, verify, _installed):
         return replay_operation(
             area, coordinates(grant, phase), request, grant, work, snapshot, verify
         )
 
-    return stages(root, area, grant, binding, projection, plan, reopen, freeze=freeze)
+    return stages(
+        root,
+        area,
+        grant,
+        binding,
+        projection,
+        plan,
+        reopen,
+        freeze=freeze,
+        build=build,
+        source=source,
+    )
 
 
 def inventory(root, source):
@@ -485,6 +530,8 @@ def qualify(args, root, folder, source, revision, grant, host_factory, *, initia
     retain(area / "grant.json", grant)
     journal = BudgetJournal(area / "accounting", grant["identity"], grant["resources"])
     host = None
+    build = None
+    package_phase = "package"
     phase = "freeze_trials" if initialize else "package"
 
     def machine():
@@ -502,8 +549,10 @@ def qualify(args, root, folder, source, revision, grant, host_factory, *, initia
             floor = max(
                 machine().policy["free_disk_floor_bytes"], getattr(args, "free_disk_gib", 0) << 30
             )
-            if initialize and phase == "measure":
-                original = broad.attempt(area, coordinates(grant, "package"), grant)
+            if name == "build_runtime":
+                space.extend(runtime_build.capacity(area, machine().engine, request, floor))
+            elif initialize and name == "measure":
+                original = broad.attempt(area, coordinates(grant, package_phase), grant)
                 runtime = load(confined(original, "runtime.json"))
                 wheel = wheel_mounts(area, runtime)[1][0]
                 from .progressive_velocity_launch import wheel_peak
@@ -512,7 +561,15 @@ def qualify(args, root, folder, source, revision, grant, host_factory, *, initia
                     prescore.dispatch_space(area, prefix, floor, installed=wheel_peak(wheel, area))
                 )
             else:
-                space.extend(capacity(root, area, revision, phase, floor))
+                space.extend(
+                    capacity(
+                        root,
+                        area,
+                        revision,
+                        "package" if name == "package_runtime" else name,
+                        floor,
+                    )
+                )
 
         def execute(out, allowance):
             deadline = time.monotonic_ns() + allowance * 1000
@@ -527,11 +584,25 @@ def qualify(args, root, folder, source, revision, grant, host_factory, *, initia
                     raise InsufficientAuthority("insufficient funded time for launch and cleanup")
                 return left
 
-            if name == "package":
+            if name == "build_runtime":
                 with preparation_boundary(out, deadline):
-                    prior = cached_runtime(root, folder, revision, machine().engine)
-                    if prior is None:
-                        raise ValueError("settled compatible runtime required")
+                    floor = max(
+                        machine().policy["free_disk_floor_bytes"], binding["floor_gib"] << 30
+                    )
+                    runtime_build.acquire(
+                        area, source, out, machine().engine, request, floor, seconds
+                    )
+                return
+            if name in {"package", "package_runtime"}:
+                with preparation_boundary(out, deadline):
+                    if name == "package_runtime":
+                        prior = request["parent"]
+                        if machine().engine.image(prior["image"]) != prior["image"]:
+                            raise ValueError("acquired initialization image no longer available")
+                    else:
+                        prior = cached_runtime(root, folder, revision, machine().engine)
+                        if prior is None:
+                            raise ValueError("settled compatible runtime required")
                     runtime = package_worker(
                         root,
                         source,
@@ -547,7 +618,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory, *, initia
                     retain(out / "runtime.json", runtime)
                 return
             try:
-                package_out = broad.attempt(area, coordinates(grant, "package"), grant)
+                package_out = broad.attempt(area, coordinates(grant, package_phase), grant)
                 runtime = load(confined(package_out, "runtime.json"))
                 if (
                     machine().engine.image(request["image"]) != request["image"]
@@ -602,6 +673,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory, *, initia
             installed=installed,
             before_dispatch=guard,
             max_attempts=2,
+            protected_us=runtime_build.protected_time(quote, name) if build is not None else 0,
         )
 
     extra = {}
@@ -624,7 +696,8 @@ def qualify(args, root, folder, source, revision, grant, host_factory, *, initia
                 nonlocal phase
                 phase = "publish_prescore"
                 return prescore.funded_publication(
-                    root, area, grant, binding, request, quote, terms, runtime
+                    root, area, grant, binding, request, quote, terms, runtime,
+                    protected_us=runtime_build.protected_time(quote, phase) if build is not None else 0,
                 )
 
         binding = seal(
@@ -640,10 +713,42 @@ def qualify(args, root, folder, source, revision, grant, host_factory, *, initia
             )
         )
         retain(area / "binding.json", binding)
-        if initialize and getattr(args, "resume_initialization", None):
+        resumed = initialize and getattr(args, "resume_initialization", None)
+        if resumed:
             phase = "verify_paid_package"
             recover_package(root, area, grant, binding, journal)
-        rec = stages(root, area, grant, binding, projection, plan, run, freeze=freeze)
+        if initialize:
+            logical = operation_key(coordinates(grant, "build_runtime"), 0)["logical"]
+            registered = (area / "operations" / logical[7:] / "input.json").exists()
+            if resumed or registered:
+                build = runtime_build.request(
+                    root,
+                    area,
+                    coordinates(grant, "package"),
+                    grant,
+                    binding,
+                    quote,
+                    prefix,
+                    journal.snapshot(include_work=True),
+                )
+                if registered and build is None:
+                    raise ValueError(
+                        "registered image acquisition lost its original cache-only failure"
+                    )
+                if build is not None:
+                    package_phase = "package_runtime"
+        rec = stages(
+            root,
+            area,
+            grant,
+            binding,
+            projection,
+            plan,
+            run,
+            freeze=freeze,
+            build=build,
+            source=source,
+        )
         phase = "publication" if initialize else phase
         retain(area / "receipt.json", rec)
         if initialize:

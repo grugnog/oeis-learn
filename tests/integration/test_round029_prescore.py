@@ -160,9 +160,9 @@ if __name__ == "__main__":""",
         assert all(b"private-fixture-error" not in archive.read(p) for p in archive.namelist())
 
 
-@pytest.mark.parametrize("installed_before_failure", (False, True))
+@pytest.mark.parametrize("failure_mode", ("failed_build", "installed", "missing_image"))
 def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
-    tmp_path, monkeypatch, installed_before_failure
+    tmp_path, monkeypatch, failure_mode
 ):
     from oeis_learn.fresh.bigint_config import resolve
     from oeis_learn.fresh.bigint_diagnostics import model_snapshot
@@ -233,9 +233,12 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
     monkeypatch.setattr(host, "inputs", lambda *_: (pointer, projection, physical, paid))
     monkeypatch.setattr(host, "physical_scope", lambda *a, **kw: physical)
     monkeypatch.setattr(host.broad, "archive_size", lambda *_: 1024)
-    monkeypatch.setattr(host, "cached_runtime", lambda *_: dict(image=image))
+    missing = failure_mode == "missing_image"
+    monkeypatch.setattr(host.runtime_build, "context_size", lambda *_: dict(bytes=4096, inodes=2))
+    installed_before_failure = failure_mode == "installed"
+    monkeypatch.setattr(host, "cached_runtime", lambda *_: None if missing else dict(image=image))
 
-    def verify_package(root, area, runtime, binding):
+    def verify_package(root, area, runtime, binding, **kwargs):
         # The verifier runs in a separate process, just as it does on the physical host.
         if installed_before_failure and not (area / "first-error.json").exists():
             raise ValueError("fixture reader stopped after installation")
@@ -296,7 +299,7 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
 
     def pack(root, source, area, out, revision, parent, source_hash, host, stage, seconds):
         calls.append("package")
-        if calls == ["package"] and not installed_before_failure:
+        if calls == ["package"] and failure_mode == "failed_build":
             child = out / "package"
             child.mkdir()
             (child / "stderr.log").write_text(
@@ -394,7 +397,13 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
 
     monkeypatch.setattr(freeze, "dispatch_space", blocked)
     first, code = invoke("qualify", grant_path)
-    assert code == 1 and first["stage"] == "package" and calls == ["package"], first
+    assert (
+        code == 1 and first["stage"] == "package" and calls == ([] if missing else ["package"])
+    ), first
+    if missing:
+        # Reproduce both settled lookups from the returned workstation ZIP.
+        first, code = invoke("qualify", grant_path)
+        assert code == 1 and first["reason"] == "settled compatible runtime required"
     api = runpy.run_path(
         str(source / "specs/016-measure-learning-velocity/validation/qualify_continuation.py")
     )
@@ -414,8 +423,8 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
     assert history["elapsed_us"] == first["elapsed_us"]
     assert history["operations"]["freeze_trials"]["receipt"]
     failed = history["operations"]["package"]["attempts"]
-    assert len(failed) == 1
-    if not installed_before_failure:
+    assert len(failed) == (2 if missing else 1)
+    if failure_mode == "failed_build":
         assert failed[0]["process_exit"] == 1 and failed[0]["diagnosis"] == "storage_full"
     assert "private-canary" not in json.dumps(history) and str(tmp_path) not in json.dumps(history)
     assert not history["operations"]["measure"]["attempts"] and not captured.exists()
@@ -427,6 +436,42 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
         return source
 
     monkeypatch.setattr(recovery, "worker_source", worker_source)
+    if missing:
+        graph = tmp_path / "engine-store"
+        graph.mkdir()
+        machine.engine.name = "podman"
+        machine.engine.details = {"store": {"graphRoot": str(graph)}}
+
+        def build(source_root, *, target, tag, seconds, evidence, check_resources, iidfile):
+            assert source_root == source and target == "gpu" and seconds > 0
+            calls.append("image-build")
+            check_resources()
+            evidence.mkdir(exist_ok=True)
+            iidfile.write_text(image)
+            atomic_write(
+                evidence / "process.json",
+                dict(outcome="COMPLETE", returncode=0, cleanup_failure=None),
+            )
+            atomic_write(evidence / "cleanup.json", dict(acknowledged=True, within_bound=True))
+            atomic_write(
+                evidence / "command.json",
+                dict(
+                    argv=[
+                        "/usr/bin/podman",
+                        "build",
+                        "--target",
+                        "gpu",
+                        "--tag",
+                        tag,
+                        "--iidfile",
+                        str(iidfile),
+                        str(source),
+                    ]
+                ),
+            )
+            return image
+
+        machine.engine.build = build
 
     def action(name, grant=None):
         result, code = invoke(name, grant, resume=rev if name in {"qualify", "verify"} else None)
@@ -443,8 +488,20 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
             action, tmp_path, rev, 15, recovery=dict(reader=reader_rev, grant=grant["identity"])
         )
 
+    if missing:
+        with monkeypatch.context() as limits:
+            limits.setattr(host.runtime_build, "capacity", blocked)
+            no_space = resume()
+        assert no_space["files"]["failure.json"]["stage"] == "build_runtime"
+        assert no_space["files"]["failure.json"]["deficit_inodes"] == 1
+        assert no_space["files"]["recovery.json"]["after"] == history and calls == []
+
     partial = resume()
-    packages = ["package"] if installed_before_failure else ["package", "package"]
+    packages = (
+        ["image-build", "package"]
+        if missing
+        else ["package"] if installed_before_failure else ["package", "package"]
+    )
     assert partial["status"] == "PARTIAL" and calls == packages
     dest = tmp_path / "result.zip"
     api["write_readiness_zip"](dest, partial)
@@ -453,7 +510,24 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
     assert checked["failure"]["deficit_inodes"] == 1 and checked["recovery"]["before"] == history
     assert checked["failure"]["cause"]["error"] == "CapacityShortfall"
     assert checked["failure"]["cause"]["identity"] != history["first_error"]["identity"]
-    assert checked["recovery"]["after"]["operations"]["package"]["receipt"]
+    acquired = checked["recovery"]["after"]["operations"]
+    if missing:
+        assert acquired["package"]["attempts"] == failed and acquired["package"]["receipt"] is None
+        assert acquired["build_runtime"]["receipt"] and acquired["package_runtime"]["receipt"]
+        observed = acquired["build_runtime"]["image_build"]
+        assert observed["image"] == image and observed["samples"] >= 2
+        assert [r["device"] for r in observed["lowest"]] == [tmp_path.stat().st_dev]
+        from oeis_learn.generalization.progressive.budgets import BudgetJournal
+        from oeis_learn.generalization.progressive.velocity_records import operation_key
+
+        balance = BudgetJournal.inspect_existing(
+            area / "accounting", grant["identity"], grant["resources"], include_work=True
+        )
+        logical = operation_key(host.coordinates(grant, "build_runtime"), 0)["logical"]
+        build_reserve = balance["reserved_work"][logical + "/dispatch/0"]["elapsed_us"]
+        assert build_reserve == history["remaining_us"] - grant["holdback_us"] - 242_001_040
+    else:
+        assert acquired["package"]["receipt"]
     assert (
         bool(checked["recovery"]["after"]["operations"]["verify_paid_package"]["receipt"])
         == installed_before_failure
@@ -475,6 +549,13 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
         action("qualify", grant_path) == paid_result
         and action("qualify", grant_path) == paid_result
     )
+    if missing:
+        image_id = next(area.glob("operations/*/attempt-*/image-build/image-id"))
+        image_id.write_text(digest("different image"))
+        rejected, code = invoke("verify", resume=rev)
+        assert code and rejected["mechanical_status"] == "FAILED"
+        image_id.write_text(image)
+        assert action("verify")["report_ref"] == paid_result["receipt"]["identity"]
     api["write_readiness_zip"](dest, bundle)
     assert api["verify_initialization_zip"](dest, captured)["restores"] == 2
     import copy

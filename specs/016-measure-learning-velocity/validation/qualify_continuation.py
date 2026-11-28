@@ -4605,6 +4605,7 @@ def initialization_margins(options):
 
 def check_initialization_history(summary, member):
     phases = ("freeze_trials", "package", "verify_paid_package", "publish_prescore", "measure")
+    build_phases = {"build_runtime", "package_runtime"}
 
     def ref(value):
         if not isinstance(value, str) or not re.fullmatch("sha256:[0-9a-f]{64}", value):
@@ -4631,13 +4632,42 @@ def check_initialization_history(summary, member):
         if (
             set(snapshot) != {"grant", "first_error", "operations", "elapsed_us", "remaining_us"}
             or snapshot["grant"] != summary["grant"]
-            or set(stages) != set(phases)
+            or set(stages) not in (set(phases), set(phases) | build_phases)
         ):
             raise ValueError("original initialization journal scope differs")
         error(snapshot["first_error"])
         elapsed = 0
-        for state in stages.values():
-            if set(state) != {"attempts", "receipt", "first_error"} or len(state["attempts"]) > 2:
+        for name, state in stages.items():
+            fields = {"attempts", "receipt", "first_error"}
+            if name == "build_runtime" and state["receipt"]:
+                fields.add("image_build")
+                image = state["image_build"]
+                ref(image["image"])
+                if (
+                    set(image) != {"image", "samples", "lowest"}
+                    or measurement(image["samples"]) < 2
+                    or not 1 <= len(image["lowest"]) <= 2
+                ):
+                    raise ValueError("invalid image build observations")
+                devices = set()
+                fields_per_mount = {"device"} | {
+                    k + "_" + unit
+                    for k in ("available", "required", "reserved", "deficit")
+                    for unit in ("bytes", "inodes")
+                }
+                for row in image["lowest"]:
+                    device = measurement(row["device"])
+                    if device in devices or set(row) != fields_per_mount:
+                        raise ValueError("invalid build storage device or measurements")
+                    devices.add(device)
+                    for unit in ("bytes", "inodes"):
+                        free, need, floor, deficit = (
+                            measurement(row[k + "_" + unit])
+                            for k in ("available", "required", "reserved", "deficit")
+                        )
+                        if free < need + floor or deficit:
+                            raise ValueError("image build exceeded its storage reserve")
+            if set(state) != fields or len(state["attempts"]) > 2:
                 raise ValueError("invalid initialization operation history")
             error(state["first_error"])
             if state["receipt"] is not None:
@@ -4676,26 +4706,45 @@ def check_initialization_history(summary, member):
         return
     if before["first_error"] and before["first_error"] != after["first_error"]:
         raise ValueError("first initialization failure changed")
-    for phase in phases:
+    if before["operations"].keys() != after["operations"].keys():
+        raise ValueError("recovery observations cover different operations")
+    for phase in before["operations"]:
         old, new = (row["operations"][phase] for row in (before, after))
         if len(old["attempts"]) > len(new["attempts"]) or any(
-            old[k] and new[k] != old[k] for k in ("receipt", "first_error")
+            old.get(k) and new.get(k) != old[k] for k in ("receipt", "first_error", "image_build")
         ):
             raise ValueError("lost original initialization operation")
         for a, b in zip(old["attempts"], new["attempts"]):
             if a["event"] == "COMMIT" and a != b:
                 raise ValueError("original settled initialization debit changed")
-    if summary["status"] == "COMPLETE" and (
-        after["elapsed_us"] != summary["elapsed_us"]
-        or after["remaining_us"] != summary["remaining_us"]
-        or any(
-            (name != "verify_paid_package" or row["attempts"])
-            and not row["receipt"]
-            or any(a["event"] != "COMMIT" for a in row["attempts"])
-            for name, row in after["operations"].items()
-        )
-    ):
-        raise ValueError("completed recovery differs from its original grant and four receipts")
+    stages = after["operations"]
+    rebuilt = any(stages.get(k, {}).get("attempts") for k in build_phases)
+    if rebuilt:
+        lookup = stages["package"]
+        if (
+            lookup["receipt"]
+            or not lookup["attempts"]
+            or not lookup["first_error"]
+            or lookup["first_error"]["diagnosis"] != "runtime_unavailable"
+            or stages["verify_paid_package"]["attempts"]
+            or stages["package_runtime"]["attempts"]
+            and not stages["build_runtime"]["receipt"]
+        ):
+            raise ValueError("rebuilt runtime requires the original settled cache-only failure")
+    if summary["status"] == "COMPLETE":
+        required = {"freeze_trials", "publish_prescore", "measure"}
+        required.update(build_phases if rebuilt else {"package"})
+        if stages["verify_paid_package"]["attempts"]:
+            required.add("verify_paid_package")
+        if (
+            after["elapsed_us"] != summary["elapsed_us"]
+            or after["remaining_us"] != summary["remaining_us"]
+            or any(not stages[k]["receipt"] for k in required)
+            or any(a["event"] != "COMMIT" for row in stages.values() for a in row["attempts"])
+        ):
+            raise ValueError(
+                "completed recovery differs from its original grant and required receipts"
+            )
 
 
 def initialization_prescore(copy, qualification, summary):

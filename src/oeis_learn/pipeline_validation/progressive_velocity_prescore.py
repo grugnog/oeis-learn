@@ -278,7 +278,7 @@ def publish(root, area, grant, binding, request, quote, plan, runtime, *, readon
     return value["identity"]
 
 
-def host_operation(area, grant, name, request, build, *, snapshot=None):
+def host_operation(area, grant, name, request, build, *, snapshot=None, protected_us=0):
     """Bound host-owned registration and transport to the same original qualification grant."""
     import time
     from oeis_learn.generalization.progressive.budgets import BudgetJournal
@@ -317,6 +317,7 @@ def host_operation(area, grant, name, request, build, *, snapshot=None):
         execute=execute,
         verify=verify,
         max_attempts=2,
+        protected_us=protected_us,
     )["evidence"]
 
 
@@ -349,14 +350,16 @@ def funded_inputs(
     return saved["plan"], saved["quote"], saved["guards"]
 
 
-def funded_publication(root, area, grant, binding, request, quote, plan, runtime, *, snapshot=None):
+def funded_publication(root, area, grant, binding, request, quote, plan, runtime, *, snapshot=None,
+                       protected_us=0):
     def build(readonly):
         identity = publish(
             root, area, grant, binding, request, quote, plan, runtime, readonly=readonly
         )
         return seal(dict(prescore=identity, request=request["identity"]))
 
-    return host_operation(area, grant, "publish_prescore", request, build, snapshot=snapshot)[
+    return host_operation(area, grant, "publish_prescore", request, build, snapshot=snapshot,
+                          protected_us=protected_us)[
         "prescore"
     ]
 

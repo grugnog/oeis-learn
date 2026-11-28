@@ -26,6 +26,32 @@ def test_build_progress_does_not_corrupt_the_host_json_result(tmp_path, capfd):
     assert "[1/2] STEP" in err and "build warning" in err
 
 
+def test_monitored_build_checks_the_supervised_image_id_and_rechecks_storage(tmp_path):
+    engine_cli = tmp_path / "podman"
+    engine_cli.write_text(
+        "#!/bin/sh\n"
+        'if [ "$1" = build ]; then\n'
+        '  while [ "$1" != --iidfile ]; do shift; done\n'
+        f'  echo {IMAGE} > "$2"\n'
+        "  sleep 1.25\n"
+        f"else echo {IMAGE}; fi\n"
+    )
+    engine_cli.chmod(0o700)
+    engine = Engine("podman", executable=str(engine_cli), details={"host": {"serviceIsRemote": False}})
+    observations = []
+    evidence = tmp_path / "image-build"
+    iid = evidence / "image-id"
+    assert engine.build(tmp_path, seconds=8, evidence=evidence, iidfile=iid,
+                        check_resources=lambda: observations.append(True)) == IMAGE
+    assert len(observations) >= 2 and normalized_image(iid.read_text()) == IMAGE
+    assert json.loads((evidence / "cleanup.json").read_bytes())["acknowledged"] is True
+    with patch.object(engine, "image", return_value="sha256:" + "b" * 64), pytest.raises(
+        ValueError, match="built image ID differs"
+    ):
+        other = tmp_path / "second"
+        engine.build(tmp_path, seconds=8, evidence=other, iidfile=other / "image-id")
+
+
 @pytest.mark.parametrize("name", ["docker", "podman"])
 def test_startup_diagnostics_preserve_command_and_containment(name):
     engine = Engine(name, executable=name, details={})

@@ -141,12 +141,18 @@ class Engine:
         base_image=None,
         seconds=3600,
         evidence=None,
+        iidfile=None,
+        check_resources=None,
     ):
         if type(seconds) is not int or not 1 <= seconds <= 86400:
             raise ValueError("finite image-build deadline required")
         args = ["build", "--target", target, "--tag", tag]
         if base_image:
             args += ["--build-arg", "GPU_BASE_IMAGE=" + base_image]
+        if iidfile is not None:
+            args += ["--iidfile", str(iidfile)]
+        if check_resources is not None and evidence is None:
+            raise ValueError("a monitored image build requires supervisor evidence")
         # Podman can print build steps on stdout. Host commands reserve it for their result.
         args.append(str(Path(root).resolve()))
         if evidence is None:
@@ -157,6 +163,7 @@ class Engine:
             from .pipeline_validation.supervision import launch, log_tail
 
             evidence = Path(evidence)
+            monitor = {"check_resources": check_resources} if check_resources is not None else {}
             try:
                 with redirect_stdout(sys.stderr):
                     launch(
@@ -165,6 +172,7 @@ class Engine:
                         seconds=seconds,
                         stream_cap=65536,
                         cleanup_seconds=120,
+                        **monitor,
                     )
             except RuntimeError as exc:
                 tail = log_tail(evidence, "stderr") or log_tail(evidence, "stdout")
@@ -189,7 +197,10 @@ class Engine:
                     write(
                         evidence / "cleanup.json", dict(acknowledged=stopped, within_bound=stopped)
                     )
-        return self.image(tag)
+        image = self.image(tag)
+        if iidfile is not None and normalized_image(Path(iidfile).read_text()) != image:
+            raise ValueError("built image ID differs from the inspected tag")
+        return image
 
     def user_args(self):
         if self.name == "docker":

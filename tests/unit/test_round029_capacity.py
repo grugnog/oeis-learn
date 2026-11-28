@@ -33,6 +33,29 @@ def test_expected_tail_and_protected_followup():
     assert price_wave(plan, {}, remaining_us=250)["wave"]["expected_us"] is None
 
 
+def test_initialization_image_store_and_workspace_preserve_each_live_floor(monkeypatch):
+    import pytest
+    from oeis_learn.pipeline_validation import progressive_velocity_runtime_build as acquisition
+
+    readings = dict(workspace=dict(device=3, free_bytes=100, free_inodes=20),
+                    engine_store=dict(device=3, free_bytes=95, free_inodes=18))
+    terms = dict(workspace=dict(bytes=60, inodes=10), context=dict(bytes=21, inodes=5),
+                 reserve=dict(bytes=12, inodes=2))
+    monkeypatch.setattr(acquisition, "storage", lambda *_: readings)
+    with pytest.raises(acquisition.CapacityShortfall) as error:
+        acquisition.capacity(None, None, terms, 15)
+    assert error.value.deficits == dict(deficit_bytes=1, deficit_inodes=0)
+    readings["engine_store"].update(device=7, free_inodes=6)
+    with pytest.raises(acquisition.CapacityShortfall) as error:
+        acquisition.capacity(None, None, terms, 15)
+    assert error.value.deficits == dict(deficit_bytes=0, deficit_inodes=1)
+    readings["engine_store"]["free_inodes"] += 1
+    rows = acquisition.capacity(None, None, terms, 15)
+    assert [(r["device"], r["required_bytes"], r["reserved_bytes"]) for r in rows] == [
+        (3, 60, 15), (7, 21, 15)
+    ]
+
+
 def test_guard_projects_same_scope_and_serial_recovery_peaks():
     from oeis_learn.pipeline_validation.progressive_velocity_qualification import learner_mount
 

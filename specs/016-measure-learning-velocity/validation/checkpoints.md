@@ -344,3 +344,20 @@ attempt as `unclassified`. Both attempts have committed debits. The pre-score
 publication and HIP measurement have zero issued attempts. The grant has
 1,727,541,342 µs left after 72,458,658 µs charged. On the sampled mount the
 cached-image wave has 162,246,291,986 bytes and 121,871,110 inodes above reserve.
+
+The recovery command above can acquire the original worker image when its paid
+cache lookups ended before any package child started. It reopens those debits and
+builds the original commit's `gpu` target under a separate operation in the same
+grant. It checks live space on the workspace and the engine store before issuing
+the build, during execution and on exit. The guard counts the frozen initialization
+outputs and the tracked build context on their respective mounts. Layer growth is
+observed during the build. The clock protects the package and initialization launch
+windows, the grant holdback and the 101.545884 s priced follow-up.
+
+On success the reader verifies the build's immutable image ID, checks the candidate
+wheel in a CPU-only role, publishes the pre-score commitment, and runs the zero-token
+checkpoint and two restores. The ZIP records the acquired image, sampled storage
+minima, original debits and both archive checks. A pre-dispatch capacity stop
+retains the full balance. An interrupted build without proven termination keeps
+its issued reservation. The printed ZIP and private log are available on a partial
+result as well.

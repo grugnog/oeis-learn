@@ -463,6 +463,29 @@ def original_price_source(root, source, binding):
     return original, previous, current
 
 
+# These exact host revisions add opt-in image acquisition, monitoring and a protected
+# reservation. Existing timing callers use their original defaults. Keep all other
+# changes to these shared modules subject to the original workload checks.
+INITIALIZATION_HOST_UPDATES = {
+    "src/oeis_learn/container_runtime.py": (
+        "sha256:e65393fd15b6698ba0d933141207f94f318f89846cba2bb86805ea654a649980",
+        "sha256:72ea88da1536e6c06e220c33a1fccee15fd6518ac62b93ff910976bc1b6e74a0",
+    ),
+    "src/oeis_learn/pipeline_validation/supervision.py": (
+        "sha256:2d22ecb0bef5187197bf7ad026872be19fa962191c27a4cedef7bf4c3ce31ede",
+        "sha256:b17aa8929e7adaffbf66c0120117f670d5285f4885a027d95f3810571ed232f5",
+    ),
+    "src/oeis_learn/pipeline_validation/progressive_velocity_runtime.py": (
+        "sha256:53b1aa17afd8980af60d92685a989391609b92866ee552f1f6881111baecbedb",
+        "sha256:4d220f02041a2fb59bb5496707e2b8614ea272a1d591a3e473b9be42af7ed7dd",
+    ),
+    "src/oeis_learn/pipeline_validation/progressive_velocity_operations.py": (
+        "sha256:ce4ef5dbd205f09581150c7f2dc4be4f2526a3d119e0b4923de2bca8be8249b7",
+        "sha256:575216e3d0e32d7e4acd1b83e612ba0ce6c273cdf31a1ae5c6db3a6e982592c8",
+    ),
+}
+
+
 def checked_price_source(root, source, binding):
     """Retain historical prices across reader changes while pinning the measured workload."""
     original, previous, current = original_price_source(root, source, binding)
@@ -479,6 +502,7 @@ def checked_price_source(root, source, binding):
         "progressive_velocity_checkpoint_host.py",
         "progressive_velocity_initialization.py",  # separate zero-look checkpoint qualification
         "progressive_velocity_initialization_recovery.py",  # reads only the initialization grant
+        "progressive_velocity_runtime_build.py",  # separate grant-bound image acquisition
         "progressive_velocity_prescore.py",  # host-only preparation and publication
         "progressive_velocity_ledger_prices.py",  # separate host-only durable-accounting rehearsal
         "progressive_velocity_launch.py",  # read-only launch sizing outside both optimizer workers
@@ -493,6 +517,8 @@ def checked_price_source(root, source, binding):
         host_only -= {"progressive_velocity_broad.py", "progressive_velocity_broad_host.py"}
     for name in previous.keys() | current.keys():
         if previous.get(name) == current.get(name) or name.startswith("tests/"):
+            continue
+        if INITIALIZATION_HOST_UPDATES.get(name) == (previous.get(name), current.get(name)):
             continue
         path = Path(name)
         if (

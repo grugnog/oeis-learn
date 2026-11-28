@@ -134,6 +134,7 @@ def run_operation(
     max_attempts=None,
     installed=None,
     before_dispatch=None,
+    protected_us=0,
 ):
     """Only a verified supervisor boundary may release unused time. Issued work stays charged."""
     if (
@@ -141,6 +142,8 @@ def run_operation(
         or coordinates["study"] != grant["identity"]
         or journal.binding != {"campaign": grant["identity"], "caps": grant["resources"]}
         or "elapsed_us" in cost
+        or type(protected_us) is not int
+        or protected_us < 0
         or not set(cost) <= set(KEYS)
     ):
         raise ValueError("operation requires its original grant, request and registered work")
@@ -210,7 +213,7 @@ def run_operation(
         raise ValueError("original operation receipt has lost its verified boundary")
 
     left = journal.snapshot()["remaining"]
-    reserve = left["elapsed_us"] - grant["holdback_us"]
+    reserve = left["elapsed_us"] - grant["holdback_us"] - protected_us
     if reserve < minimum_us:
         raise InsufficientAuthority(
             "remaining workstation time after holdback cannot fund the minimum launch window"

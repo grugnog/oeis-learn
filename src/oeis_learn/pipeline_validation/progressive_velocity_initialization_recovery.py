@@ -19,7 +19,15 @@ from . import progressive_velocity_prescore as prescore
 from .identity import confined
 from .supervision import log_tail
 
-PHASES = ("freeze_trials", "package", "verify_paid_package", "publish_prescore", "measure")
+PHASES = (
+    "freeze_trials",
+    "package",
+    "verify_paid_package",
+    "build_runtime",
+    "package_runtime",
+    "publish_prescore",
+    "measure",
+)
 
 
 def worker_source(root, reader, revision):
@@ -67,6 +75,11 @@ def diagnosis(detail):
         ("Disk quota exceeded", "storage_quota"),
         ("Permission denied", "permission_denied"),
         ("settled compatible runtime required", "runtime_unavailable"),
+        ("local image store capacity unavailable", "store_unavailable"),
+        ("above the physical reserve", "capacity_shortfall"),
+        ("after holdback cannot fund", "insufficient_time"),
+        ("external deadline", "deadline"),
+        ("acquired initialization image no longer available", "runtime_unavailable"),
         ("qualified base package or candidate source archive changed", "base_or_archive_changed"),
         ("native runtime was built from different candidate inputs", "native_source_changed"),
         ("installed application differs", "installed_source_changed"),
@@ -154,6 +167,7 @@ def history(area, grant, *, private_log=False):
             attempts = []
             receipt = None
             error = None
+            build = {}
             if block.is_dir():
                 error = first_error(block, private_log=private_log)
                 pointer = confined(block, "receipt.json", exists=False)
@@ -168,13 +182,23 @@ def history(area, grant, *, private_log=False):
                     ):
                         raise ValueError("operation receipt has no original settled dispatch")
                     receipt = row["identity"]
+                    if phase == "build_runtime":
+                        evidence = row["evidence"]
+                        build["image_build"] = {
+                            k: evidence[k] for k in ("image", "samples", "lowest")
+                        }
             for ordinal in range(2):
                 key = f"{logical}/dispatch/{ordinal}"
                 if key not in balance["windows"]:
                     continue
                 window = balance["windows"][key]
                 out = confined(block, f"attempt-{ordinal:04d}", exists=False)
-                child = out / "package" if phase == "package" else out
+                child_name = {
+                    "package": "package",
+                    "package_runtime": "package",
+                    "build_runtime": "image-build",
+                }.get(phase)
+                child = out / child_name if child_name else out
                 code, category, log_hash = None, "unclassified", None
                 if child.exists():
                     child = confined(area, child)
@@ -209,7 +233,7 @@ def history(area, grant, *, private_log=False):
                         stderr_digest=log_hash,
                     )
                 )
-            operations[phase] = dict(attempts=attempts, receipt=receipt, first_error=error)
+            operations[phase] = dict(attempts=attempts, receipt=receipt, first_error=error, **build)
         if seen != balance["windows"].keys() or balance["consumed"]["tokens"]:
             raise ValueError("unexpected work in initialization grant")
         return dict(

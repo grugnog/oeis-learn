@@ -194,11 +194,17 @@ def wheel_sources(wheel, source):
     return snapshot
 
 
-def package_evidence(root, area, runtime, binding):
+def package_evidence(root, area, runtime, binding, *, built_parent=None):
     if runtime != seal(runtime):
         raise ValueError("candidate wheel acquisition identity differs")
     parent = runtime["parent"]
-    if parent != learner_runtime(root, parent["grant"][7:]) or not compatible(
+    if built_parent is not None:
+        if parent != built_parent or (parent["candidate"], parent["source"]) != (
+            binding["candidate"],
+            binding["source"],
+        ):
+            raise ValueError("package belongs to a different verified candidate image")
+    elif parent != learner_runtime(root, parent["grant"][7:]) or not compatible(
         root, parent["candidate"], binding["candidate"]
     ):
         raise ValueError("original qualified runtime or environment inputs differ")
