@@ -4472,6 +4472,64 @@ def donor_initialization(action, root, revision, minutes):
     return report
 
 
+def measurement(value):
+    if type(value) is not int or value < 0:
+        raise ValueError("nonnegative integer measurement required")
+    return value
+
+
+def initialization_margins(options):
+    names = ("wave", "first_ordinary_cut", "ordinary_initialization")
+    scopes = options["scopes"]
+    if set(scopes) != set(names) or options["research_authority"] is not None:
+        raise ValueError("expected physical launch scenarios without research authority")
+    margins = {}
+    eligible = []
+    reserve = options["followup_reserve_us"]
+    if reserve is not None:
+        measurement(reserve)
+    for name in names:
+        scope = scopes[name]
+        rows = []
+        devices = set()
+        for mount in scope["mounts"]:
+            device = measurement(mount["device"])
+            if device in devices:
+                raise ValueError("duplicate destination mount")
+            devices.add(device)
+            row = dict(device=device)
+            for unit in ("bytes", "inodes"):
+                free, need, floor, deficit = (
+                    measurement(mount[k + "_" + unit])
+                    for k in ("available", "required", "reserved", "deficit")
+                )
+                margin = free - need - floor
+                if deficit != max(0, -margin):
+                    raise ValueError("launch capacity deficit differs from mount totals")
+                row["margin_" + unit] = margin
+            rows.append(row)
+        margins[name] = rows
+        shortage = any(min(row["margin_bytes"], row["margin_inodes"]) < 0 for row in rows)
+        fits = scope["fits"]
+        if (fits is not None and type(fits) is not bool
+                or (fits is False) != shortage or fits is True and not rows):
+            raise ValueError("reported launch fit differs from physical demand")
+        expected, tail = scope["expected_us"], scope["tail_us"]
+        for price in (expected, tail, scope["tail_with_reserve_us"]):
+            if price is not None:
+                measurement(price)
+        if expected is not None and tail is not None and expected > tail:
+            raise ValueError("expected price exceeds tail")
+        funded_time = tail + reserve if tail is not None and reserve is not None else None
+        if scope["tail_with_reserve_us"] != funded_time:
+            raise ValueError("launch tail and follow-up reserve differ")
+        if fits is True and funded_time is not None:
+            eligible.append(name)
+    if options["next_scope"] != next(iter(eligible), None):
+        raise ValueError("next launch scope differs from priced capacity")
+    return dict(next_scope=options["next_scope"], capacity=margins)
+
+
 def verify_initialization_zip(path, qualification=None):
     summary, files = diagnostic_zip_members(path, INITIALIZATION)
     if (
@@ -4479,15 +4537,24 @@ def verify_initialization_zip(path, qualification=None):
         or summary.get("scientific_verdict") is not None
     ):
         raise ValueError("expected an initialization-only diagnostic")
+    launch = initialization_margins(files["launch.json"]) if "launch.json" in files else {}
     if summary["status"] != "COMPLETE":
         if summary["status"] not in {"PARTIAL", "UNVERIFIED"} or not summary.get(
             "errors", summary.get("checks")
         ):
             raise ValueError("missing initialization failure disposition")
+        failure = files.get("failure.json", {})
+        if "elapsed_us" in failure or "remaining_authority" in failure:
+            if (not re.fullmatch("sha256:[a-f0-9]{64}", summary.get("grant", ""))
+                    or measurement(failure.get("elapsed_us")) + measurement(failure.get("remaining_authority"))
+                    != measurement(summary["grant_minutes"]) * 60_000_000):
+                raise ValueError("failed operation differs from its original grant balance")
         return dict(
             status=summary["status"],
             errors=summary.get("errors", summary.get("checks")),
+            grant=summary.get("grant"),
             failure=files.get("failure.json"),
+            **launch,
         )
     if (
         set(files) != {"prescore.json", "cut.json", "verification.json", "launch.json"}
@@ -4613,6 +4680,7 @@ def verify_initialization_zip(path, qualification=None):
         restores=len(cut["restores"]),
         lease_us=cut["lease_us"],
         research_dispatches=0,
+        **launch,
     )
 
 

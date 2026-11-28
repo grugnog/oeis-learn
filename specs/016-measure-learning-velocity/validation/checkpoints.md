@@ -286,3 +286,24 @@ Return the printed `initialization.zip`, including after a capacity stop. Its pu
 pre-score archive contains look digests and counts. Private case IDs and weights stay on the
 workstation. The standalone reader accepts `--verify-initialization-zip RESULT.zip` and an
 optional final path to the separately retained qualification ZIP for byte-for-byte verification.
+
+### Returned initialization and full-wave capacity
+
+The donor returned a partial initialization ZIP, SHA-256
+`5584f20718f69b8daf7761a38f220faa943d38b4eefce32c6c1986556744b552`, for
+`3c954c15a93a3ba08264910a038efb926e38bfeb`. The returned mount had 537,220,202,496
+available bytes and 122,001,461 available inodes. The reader checks each scope's
+deficit and tail plus follow-up time, including for partial results.
+
+| Scope | Required bytes | Margin after 5 GiB reserve | Inode margin | Tail including follow-up |
+|---|---:|---:|---:|---:|
+| Ordinary initialization | 5,916,677,854 | 525,934,815,522 | 121,998,437 | 105,821,184 µs |
+| First ordinary training cut | 11,791,980,254 | 520,059,513,122 | 121,998,379 | 1,345,894,472 µs |
+| Four-recipe wave | 369,573,318,126 | 162,278,175,250 | 121,873,557 | 99,522,273,807 µs |
+
+The full wave fit at this observation. Its expected duration was 30,051,179,816 µs
+and its follow-up reserve was 101,545,884 µs. Research authority remained empty.
+The qualification stopped at the historical stage label `package` after 72,050,253 µs.
+Grant `sha256:a38310c4081a609e16f9014f249363653a126ec2896c860d4861eefb65484fa5`
+retained 1,727,949,747 µs. The returned ZIP contained neither a zero-cut receipt nor
+an underlying exception message.

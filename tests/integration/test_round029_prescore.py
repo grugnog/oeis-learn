@@ -21,6 +21,76 @@ from oeis_learn.pipeline_validation import progressive_round029 as controller
 from oeis_learn.pipeline_validation import progressive_velocity_checkpoint_host as host
 from oeis_learn.pipeline_validation import progressive_velocity_initialization as initial
 from oeis_learn.pipeline_validation import progressive_velocity_prescore as freeze
+from oeis_learn.pipeline_validation.progressive_velocity_launch import launch_options
+
+
+def launch_fixture():
+    mount = dict(
+        device=7,
+        available_bytes=1000,
+        required_bytes=700,
+        reserved_bytes=100,
+        available_inodes=80,
+        required_inodes=50,
+        reserved_inodes=3,
+        deficit_bytes=0,
+        deficit_inodes=0,
+    )
+    return launch_options(
+        dict(expected_us=9000, tail_us=10000, followup_reserve_us=900),
+        dict(
+            ordinary_cut_price=dict(expected_us=500, tail_us=600),
+            initialization_price=dict(expected_us=90, tail_us=100),
+            wave_space={
+                n: [mount] for n in ("wave", "first_ordinary_cut", "ordinary_initialization")
+            },
+        ),
+    )
+
+
+def test_partial_initialization_checks_capacity_and_original_balance(tmp_path):
+    source = Path(__file__).resolve().parents[2]
+    api = runpy.run_path(
+        str(source / "specs/016-measure-learning-velocity/validation/qualify_continuation.py")
+    )
+    output = tmp_path / "partial.zip"
+    launch = launch_fixture()
+    failure = dict(
+        mechanical_status="FAILED", stage="package", elapsed_us=10, remaining_authority=59_999_990
+    )
+    report = dict(
+        scope=freeze.VERSION,
+        status="PARTIAL",
+        research_run_requested=False,
+        scientific_verdict=None,
+        grant=digest("original"),
+        candidate="b" * 40,
+        grant_minutes=1,
+        errors=dict(qualification="SystemExit"),
+        files={"launch.json": launch, "failure.json": failure},
+    )
+
+    def verify():
+        api["write_readiness_zip"](output, report)
+        return api["verify_initialization_zip"](output)
+
+    checked = verify()
+    assert checked["capacity"]["wave"][0] == dict(device=7, margin_bytes=200, margin_inodes=27)
+    assert checked["grant"] == report["grant"] and checked["next_scope"] == "wave"
+    for record, field, invalid in (
+        (failure, "remaining_authority", 60_000_000),
+        (failure, "elapsed_us", True),
+        (launch, "research_authority", report["grant"]),
+        (launch, "next_scope", "first_ordinary_cut"),
+        (launch["scopes"]["wave"], "fits", False),
+        (launch["scopes"]["wave"], "tail_with_reserve_us", 10_000),
+        (launch["scopes"]["wave"]["mounts"][0], "available_bytes", 600),
+    ):
+        previous = record[field]
+        record[field] = invalid
+        with pytest.raises(ValueError):
+            verify()
+        record[field] = previous
 
 
 def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(tmp_path, monkeypatch):
@@ -140,12 +210,7 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(tmp_pat
             sources=dict(fresh=pointer["receipt"], checkpoint=marker["receipt"]),
         ),
     )
-    options = dict(
-        research_authority=None,
-        scopes=dict(ordinary_initialization=dict(tail_us=100, tail_with_reserve_us=1000)),
-        followup_reserve_us=900,
-    )
-    prices["launch_options"] = options
+    prices["launch_options"] = launch_fixture()
     info = dict(cuts=[], families=families, prices=prices, assessment="sealed", gpu_dispatches=0)
     monkeypatch.setattr(controller, "preflight", lambda *a, **kw: dict(inventory=info))
     machine = SimpleNamespace(
