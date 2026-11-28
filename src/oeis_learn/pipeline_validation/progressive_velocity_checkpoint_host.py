@@ -1,0 +1,822 @@
+"""One separately funded, resumable checkpoint qualification on the retained fresh projection."""
+
+import time
+
+from oeis_learn.experiments.source_snapshot import collect_snapshot
+from oeis_learn.generalization.progressive.budgets import KEYS, BudgetJournal
+from oeis_learn.generalization.progressive.contracts import digest, load, reference, seal
+from oeis_learn.generalization.progressive.trials import integer
+from oeis_learn.generalization.progressive.velocity_records import SESSION, operation_key
+from . import progressive_velocity_broad_host as broad
+from . import progressive_velocity_checkpoint as matrix
+from . import progressive_velocity_runtime_build as runtime_build
+from .identity import confined
+from .preparation_recovery import retain, revise
+from .progressive_handoff import stage
+
+from .progressive_research_resources import velocity_capacity
+from .progressive_roles import ROUND029_ROLE_POLICY
+from .progressive_round028_rehearsal import physical_scope
+from .progressive_velocity_image import preparation_boundary
+from .progressive_velocity_operations import InsufficientAuthority, replay_operation, run_operation
+from .progressive_velocity_qualification import authorize_qualification, learner_mount
+from .progressive_velocity_runtime import (
+    cached_runtime,
+    package_evidence,
+    package_worker,
+    wheel_mounts,
+)
+
+MARKER = "preparation/checkpoint-matrix.json"
+
+
+def origin(folder):
+    pointer = load(confined(folder, broad.FRESH_MARKER))
+    if pointer != seal(pointer):
+        raise ValueError("fresh qualification pointer differs")
+    return pointer
+
+
+def parent(revision, pointer):
+    return digest([matrix.VERSION, revision, pointer, matrix.METHODS, ROUND029_ROLE_POLICY])
+
+
+def inputs(root, folder, source):
+    fresh = broad.inventory(root, source, fresh=True)
+    pointer = origin(folder)
+    if (
+        not fresh
+        or fresh["identity"] != pointer["receipt"]
+        or not set(matrix.METHODS) <= set((fresh["device"] or {}).get("methods", {}))
+    ):
+        raise ValueError("the four ordinary-stream optimizer prices must be privately verified")
+    previous = confined(folder, "qualification/" + pointer["grant"][7:])
+    grant = load(confined(previous, "grant.json"))
+    cpu = broad.attempt(previous, broad.coordinates(grant, "prepare"), grant)
+    path = confined(cpu, "native/projection.json")
+    view = load(path, maximum=broad.MAX_INPUT)
+    timed = load(confined(previous, "device-request.json"))
+    if (
+        timed != seal(timed)
+        or timed["projection"] != reference(path.parent, path)
+        or view["fresh_start"] != fresh["start"]["identity"]
+    ):
+        raise ValueError("exposed training projection differs from the paid fresh timing")
+    return (
+        pointer,
+        path,
+        timed["physical"],
+        matrix.design(view, origin=fresh["identity"], microbatch=timed["design"]["microbatch"],
+                      eligible=fresh["device"]["methods"], calibration=fresh["device"].get("calibration")),
+    )
+
+
+def authorize(root, source, revision, minutes):
+    folder = confined(root, "run-state/discovery/" + SESSION)
+    pointer, _, _, plan = inputs(root, folder, source)
+    return authorize_qualification(
+        root, int(minutes), parent(revision, pointer), {k: 2 * v for k, v in plan["work"].items()}
+    )
+
+
+def coordinates(grant, phase):
+    return dict(broad.coordinates(grant, phase), method="checkpoint_matrix")
+
+
+def mount_totals(mounts):
+    return [
+        {
+            k: v
+            for k, v in row.items()
+            if k.startswith(("available_", "required_", "reserved_", "deficit_"))
+        }
+        for row in mounts
+    ]
+
+
+def capacity(root, area, revision, phase, floor):
+    # Recipes run serially and delete their disposable directory between methods.
+    if phase == "package":
+        peak = dict(bytes=2 * broad.archive_size(root, revision), inodes=16)
+        observed = dict(bytes=0, inodes=0)
+    else:
+        checkpoint = learner_mount({"free_bytes": 0, "free_inodes": 0}, floor=0)
+        peak = {k: checkpoint["required_" + k] // 2 for k in ("bytes", "inodes")}
+        observed = {g["units"]: g["observed"] for g in checkpoint["guards"]}
+    path = str(area.relative_to(root))
+    owner = dict(
+        owner="checkpoint_matrix_" + phase,
+        path=path,
+        scope=phase,
+        retained=[],
+        observed=observed,
+        projected=peak,
+        revision=revision,
+        harm="incomplete checkpoint publication",
+        exhaustion="retain completed receipts and inspect capacity",
+        rehearsal="T060",
+    )
+    mounts = velocity_capacity(
+        root, owners=[owner], floors=[dict(path=path, bytes=floor, inodes=0)]
+    )["mounts"]
+    if any(row["deficit_bytes"] or row["deficit_inodes"] for row in mounts):
+        raise broad.CapacityShortfall(phase, mounts, None)
+    return mount_totals(mounts)
+
+
+def dispatch_capacity(out, request):
+    data = load(confined(out.parent, out.name + "-capacity.json"))
+    if (
+        data != seal(data)
+        or data["request"] != request["identity"]
+        or not data["mounts"]
+        or any(
+            row["deficit_" + unit] != 0
+            or row["available_" + unit] < row["required_" + unit] + row["reserved_" + unit]
+            for row in data["mounts"]
+            for unit in ("bytes", "inodes")
+        )
+    ):
+        raise ValueError("dispatch capacity differs from the recorded requirement or floor")
+    return data["mounts"]
+
+
+def partial_treatments(area, grant, plan):
+    logical = operation_key(coordinates(grant, "measure"), 0)["logical"][7:]
+    found = {}
+    for attempt in range(2):
+        for method in plan["methods"]:
+            filename = f"operations/{logical}/attempt-{attempt:04d}/recipe-{method}.json"
+            try:
+                item = load(confined(area, filename))
+                row = matrix.checked_row(plan, method, item["measurement"])
+                if item == matrix.treatment(plan, method, row):
+                    found[f"attempt-{attempt}-recipe-{method}"] = item
+            except (OSError, TypeError, KeyError, ValueError):
+                continue
+    return found
+
+
+def incomplete(root, source, authority):
+    folder = confined(root, "run-state/discovery/" + SESSION)
+    grant = load(confined(root, authority))
+    _, _, _, plan = inputs(root, folder, source)
+    area = confined(folder, "qualification/" + grant["identity"][7:])
+    return partial_treatments(area, grant, plan)
+
+
+def stages(
+    root, area, grant, binding, projection, plan, run, *, freeze=None, build=None, source=None
+):
+    package_phase, package_request, built_parent = "package", binding, None
+    if build is not None:
+        built = run(
+            "build_runtime",
+            build,
+            {},
+            lambda out: runtime_build.verify(source, out, build, dispatch_capacity(out, build)),
+            lambda out: (out / "producer.json").is_file(),
+        )
+        built_parent = seal(
+            dict(
+                candidate=binding["candidate"],
+                source=binding["source"],
+                image=built["evidence"]["image"],
+                build=built["identity"],
+            )
+        )
+        package_phase = "package_runtime"
+        package_request = seal(dict(binding=binding["identity"], parent=built_parent))
+
+    def verify_package(out):
+        runtime = load(confined(out, "runtime.json"))
+        parent = {"built_parent": built_parent} if built_parent is not None else {}
+        package_evidence(root, area, runtime, binding, **parent)
+        return seal(
+            dict(runtime=runtime["identity"], capacity=dispatch_capacity(out, package_request))
+        )
+
+    installed = run(
+        package_phase,
+        package_request,
+        {},
+        verify_package,
+        lambda out: (out / "runtime.json").is_file(),
+    )
+    package_out = broad.attempt(area, coordinates(grant, package_phase), grant)
+    runtime = load(confined(package_out, "runtime.json"))
+    request = seal(
+        dict(
+            version=binding["version"],
+            physical=binding["physical"],
+            image=runtime["parent"]["image"],
+            source=binding["source"],
+            role_policy=ROUND029_ROLE_POLICY,
+            design=plan,
+            projection=reference(projection.parent, projection),
+        )
+    )
+
+    commitment = freeze(binding, request, plan, runtime) if freeze else None
+
+    def verify_device(out):
+        from .progressive_generator_probe import usage_summary
+
+        if load(confined(area, "request.json")) != request:
+            raise ValueError("checkpoint matrix request differs")
+        broad.check_stage(area, out, runtime, area / "request.json", projection, gpu=True)
+        data = load(confined(out, "producer.json"))
+        lease = integer(load(confined(out, "gpu-lease.json"))["elapsed_us"], 1)
+        elapsed = integer(data["elapsed_us"], 1)
+        telemetry = usage_summary(confined(out, "telemetry/samples.jsonl").parent, elapsed)
+        if (
+            data != seal(data)
+            or data["request"] != request["identity"]
+            or data["device"] != "hip"
+            or elapsed > lease
+            or telemetry != data["telemetry"]
+            or telemetry["covered_us"] > elapsed
+        ):
+            raise ValueError("invalid checkpoint matrix producer or physical clocks")
+        if commitment:
+            from .progressive_velocity_initialization import verify_cut
+
+            cut = verify_cut(plan, data["matrix"], out)
+            if sum(sum(v) for v in cut["clocks"].values()) > elapsed:
+                raise ValueError("ordinary save and restore clocks exceed the device role")
+            verified = dict(initialization=cut, prescore=commitment)
+        else:
+            rows = matrix.checked_methods(plan, data["matrix"])
+            for method, row in rows.items():
+                if load(confined(out, f"recipe-{method}.json")) != matrix.treatment(
+                    plan, method, row
+                ):
+                    raise ValueError(
+                        "individually published treatment differs from its completed matrix"
+                    )
+            if (
+                sum(
+                    r[k]
+                    for r in rows.values()
+                    for k in ("first_cut_us", "resumed_cut_us", "restore_us")
+                )
+                > data["elapsed_us"]
+            ):
+                raise ValueError("treatment clocks exceed the measured device stage")
+            verified = dict(methods=rows)
+        return seal(
+            dict(
+                producer=data["identity"],
+                **verified,
+                capacity=dispatch_capacity(out, request),
+                elapsed_us=elapsed,
+                lease_us=lease,
+                telemetry=telemetry,
+                worker_cpu_us=integer(data["worker_cpu_us"]),
+                peak_device_bytes=integer(data["peak_device_bytes"], 1),
+            )
+        )
+
+    paid = run(
+        "measure",
+        request,
+        plan["work"],
+        verify_device,
+        lambda out: (out / "producer.json").is_file(),
+    )
+    return seal(
+        dict(
+            version=binding["version"],
+            binding=binding["identity"],
+            origin=plan["origin"],
+            package_capacity=installed["evidence"]["capacity"],
+            acquisition=installed["identity"],
+            **(dict(image_build=built_parent["build"]) if built_parent else {}),
+            measurement=paid["identity"],
+            **paid["evidence"],
+        )
+    )
+
+
+def replay(root, folder, area, source, grant, binding, snapshot):
+    pointer, projection, physical, plan = inputs(root, folder, source)
+    freeze = build = None
+    from . import progressive_velocity_prescore as prescore
+
+    if binding["version"] == prescore.VERSION:
+        plan, quote, prefix = prescore.funded_inputs(
+            root,
+            folder,
+            area,
+            binding["candidate"],
+            source,
+            physical,
+            plan,
+            binding["floor_gib"],
+            grant,
+            snapshot=snapshot,
+        )
+
+        def freeze(binding, request, terms, runtime):
+            return prescore.funded_publication(
+                root, area, grant, binding, request, quote, terms, runtime, snapshot=snapshot
+            )
+
+    if (
+        binding != seal(binding)
+        or binding["origin"] != pointer
+        or binding["physical"] != physical
+        or binding["plan"] != plan["identity"]
+        or binding["source"] != digest(collect_snapshot(source))
+    ):
+        raise ValueError("checkpoint origins or recorded candidate source differ")
+
+    if binding["version"] == prescore.VERSION:
+        recover_package(root, area, grant, binding, snapshot=snapshot)
+        build = runtime_build.request(
+            root, area, coordinates(grant, "package"), grant, binding, quote, prefix, snapshot
+        )
+
+    def reopen(phase, request, work, verify, _installed):
+        return replay_operation(
+            area, coordinates(grant, phase), request, grant, work, snapshot, verify
+        )
+
+    return stages(
+        root,
+        area,
+        grant,
+        binding,
+        projection,
+        plan,
+        reopen,
+        freeze=freeze,
+        build=build,
+        source=source,
+    )
+
+
+def inventory(root, source):
+    """Reopen the measured cycles independently of the last command on the workstation."""
+    from oeis_learn.generalization.progressive.velocity_records import (
+        physical_root_id,
+        validate_grant,
+    )
+    from .progressive_velocity_timing_host import original_price_source
+
+    folder = confined(root, "run-state/discovery/" + SESSION, exists=False)
+    if not (folder / MARKER).is_file():
+        return None
+    marker = load(confined(folder, MARKER))
+    area = confined(folder, "qualification/" + marker["grant"][7:])
+    grant = load(confined(area, "grant.json"))
+    binding = load(confined(area, "binding.json"))
+    if (
+        marker != seal(marker)
+        or binding != seal(binding)
+        or binding["version"] != matrix.VERSION
+        or marker["grant"] != grant["identity"]
+        or binding["grant"] != grant["identity"]
+    ):
+        raise ValueError("checkpoint marker differs from its original grant")
+    authority = (
+        "run-state/discovery-authorizations/" + grant["authorizing_record_ref"][7:] + ".json"
+    )
+    validate_grant(
+        grant,
+        load(confined(root, authority)),
+        root=physical_root_id(root),
+        parent=parent(binding["candidate"], binding["origin"]),
+        action="qualify",
+    )
+    original, _, _ = original_price_source(root, source, binding)
+    balance = BudgetJournal.inspect_existing(
+        confined(area, "accounting"),
+        grant["identity"],
+        grant["resources"],
+        include_work=True,
+        include_windows=True,
+    )
+    record = replay(root, folder, area, original, grant, binding, balance)
+    if (
+        balance["pending"]
+        or record != load(confined(area, "receipt.json"))
+        or record["identity"] != marker["receipt"]
+    ):
+        raise ValueError("original checkpoint receipt or paid boundary differs")
+    logical = operation_key(coordinates(grant, "measure"), 0)["logical"]
+    receipt = load(confined(area, "operations/" + logical[7:] + "/receipt.json"))
+    window = balance["windows"][f"{logical}/dispatch/{receipt['attempt']}"]
+    proven = window["event"] == "COMMIT" and window["end_us"] is not None
+    return dict(
+        candidate=binding["candidate"],
+        receipt=record["identity"],
+        origin=record["origin"],
+        methods=record["methods"],
+        lease_us=record["lease_us"],
+        device_charge_us=window["charged_us"] if proven else None,
+        charged_tokens=balance["consumed"]["tokens"],
+    )
+
+
+def recover_package(root, area, grant, binding, journal=None, *, snapshot=None):
+    """Verify an already installed, paid package under the original grant's remaining clock."""
+    from . import progressive_velocity_prescore as prescore
+    from .progressive_velocity_operations import input_record, operation_receipt
+
+    coords = coordinates(grant, "package")
+    logical = operation_key(coords, 0)["logical"]
+    block = confined(area, "operations/" + logical[7:], exists=False)
+    state = snapshot or journal.snapshot(include_work=True)
+    reader_coords = dict(
+        coordinates(grant, "verify_paid_package"), method="ordinary_initialization"
+    )
+    reader_prefix = operation_key(reader_coords, 0)["logical"] + "/dispatch/"
+    reread = any(k.startswith(reader_prefix) for k in state["committed"])
+    # A normally completed package has no additional reader. Completed recoveries
+    # must reopen that reader even when an operator asks to resume again.
+    if (block / "receipt.json").is_file() and reread:
+        snapshot = state
+    elif (
+        snapshot is not None
+        or (block / "receipt.json").is_file()
+        or any(block.glob("boundary-*.json"))
+    ):
+        if snapshot is not None and reread:
+            raise ValueError("paid package reader lost its published operation")
+        return
+    if not (block / "first-error.json").is_file():
+        if reread:
+            raise ValueError("paid package reader lost its original failure")
+        return
+    error = load(confined(block, "first-error.json"))
+    attempt = error["attempt"]
+    if error != seal(error) or type(attempt) is not int or attempt not in (0, 1):
+        raise ValueError("original failed package attempt required")
+    key = f"{logical}/dispatch/{attempt}"
+    out = confined(block, f"attempt-{attempt:04d}", exists=False)
+    if (
+        key not in state["committed"]
+        or not (out / "runtime.json").is_file()
+        or (block / f"recovering-{attempt:04d}.json").exists()
+    ):
+        if reread:
+            raise ValueError("paid package reader lost its original installed runtime")
+        return
+    work = dict.fromkeys(KEYS, 0)
+    if load(confined(block, "input.json")) != input_record(coords, binding, work, grant) or any(
+        v for k, v in state["reserved_work"][key].items() if k != "elapsed_us"
+    ):
+        raise ValueError("original package registration or charge differs")
+    cleanup = load(confined(out, "cleanup.json"))
+    if cleanup.get("acknowledged") is not True or cleanup.get("within_bound") is not True:
+        raise ValueError("original package cleanup required for recovery")
+    terms = seal(
+        dict(
+            package=logical,
+            attempt=attempt,
+            binding=binding["identity"],
+            first_error=error["identity"],
+            grant=grant["identity"],
+        )
+    )
+
+    def recheck(readonly):
+        runtime = load(confined(out, "runtime.json"))
+        package_evidence(root, area, runtime, binding)
+        evidence = seal(dict(runtime=runtime["identity"], capacity=dispatch_capacity(out, binding)))
+        return operation_receipt(coords, binding, grant, attempt, evidence)
+
+    proof = prescore.host_operation(
+        area, grant, "verify_paid_package", terms, recheck, snapshot=snapshot
+    )
+    # A later inspection cannot change the end of an earlier reservation.
+    windows = BudgetJournal.inspect_existing(
+        confined(area, "accounting"), grant["identity"], grant["resources"], include_windows=True
+    )["windows"]
+    window = windows[key]
+    closed = window["end_us"] is not None
+    boundary = seal(
+        dict(
+            result=proof["identity"],
+            boot=window["boot"] if closed else None,
+            end_us=window["end_us"],
+            within_reservation=closed,
+            recovery=terms["identity"],
+        )
+    )
+    path = confined(block, f"boundary-{attempt:04d}.json", exists=False)
+    if snapshot is not None:
+        if load(path) != boundary or load(confined(block, "receipt.json")) != proof:
+            raise ValueError("paid package reader differs from the published installation")
+    else:
+        retain(path, boundary)
+        retain(block / "receipt.json", proof)
+
+
+def qualify(args, root, folder, source, revision, grant, host_factory, *, initialize=False):
+    from . import progressive_velocity_prescore as prescore
+    from .progressive_round029 import result
+
+    pointer, projection, physical, plan = inputs(root, folder, source)
+    expected_parent = (
+        prescore.parent(revision, load(confined(folder, MARKER)))
+        if initialize
+        else parent(revision, pointer)
+    )
+    if expected_parent != grant["registration_or_parent_ref"]:
+        raise ValueError("checkpoint qualification authority differs")
+    area = confined(folder, "qualification/" + grant["identity"][7:], exists=False)
+    area.mkdir(parents=True, exist_ok=True)
+    retain(area / "grant.json", grant)
+    journal = BudgetJournal(area / "accounting", grant["identity"], grant["resources"])
+    host = None
+    build = None
+    package_phase = "package"
+    phase = "freeze_trials" if initialize else "package"
+
+    def machine():
+        nonlocal host
+        if host is None:
+            host = host_factory(args, source_root=source, workspace=root, revision=revision)
+        return host
+
+    def run(name, request, work, verify, installed):
+        nonlocal phase
+        phase = name
+        space = []
+
+        def guard():
+            floor = max(
+                machine().policy["free_disk_floor_bytes"], getattr(args, "free_disk_gib", 0) << 30
+            )
+            if name == "build_runtime":
+                space.extend(runtime_build.capacity(area, machine().engine, request, floor))
+            elif initialize and name == "measure":
+                original = broad.attempt(area, coordinates(grant, package_phase), grant)
+                runtime = load(confined(original, "runtime.json"))
+                wheel = wheel_mounts(area, runtime)[1][0]
+                from .progressive_velocity_launch import wheel_peak
+
+                space.extend(
+                    prescore.dispatch_space(area, prefix, floor, installed=wheel_peak(wheel, area))
+                )
+            else:
+                space.extend(
+                    capacity(
+                        root,
+                        area,
+                        revision,
+                        "package" if name == "package_runtime" else name,
+                        floor,
+                    )
+                )
+
+        def execute(out, allowance):
+            deadline = time.monotonic_ns() + allowance * 1000
+            retain(
+                out.parent / (out.name + "-capacity.json"),
+                seal(dict(request=request["identity"], mounts=space)),
+            )
+
+            def seconds():
+                left = (deadline - time.monotonic_ns()) // 1_000_000_000 - 120
+                if left < 1:
+                    raise InsufficientAuthority("insufficient funded time for launch and cleanup")
+                return left
+
+            if name == "build_runtime":
+                with preparation_boundary(out, deadline):
+                    floor = max(
+                        machine().policy["free_disk_floor_bytes"], binding["floor_gib"] << 30
+                    )
+                    runtime_build.acquire(
+                        area, source, out, machine().engine, request, floor, seconds
+                    )
+                return
+            if name in {"package", "package_runtime"}:
+                with preparation_boundary(out, deadline):
+                    if name == "package_runtime":
+                        prior = request["parent"]
+                        if machine().engine.image(prior["image"]) != prior["image"]:
+                            raise ValueError("acquired initialization image no longer available")
+                    else:
+                        prior = cached_runtime(root, folder, revision, machine().engine)
+                        if prior is None:
+                            raise ValueError("settled compatible runtime required")
+                    runtime = package_worker(
+                        root,
+                        source,
+                        area,
+                        out,
+                        revision,
+                        prior,
+                        binding["source"],
+                        machine(),
+                        stage,
+                        seconds,
+                    )
+                    retain(out / "runtime.json", runtime)
+                return
+            try:
+                package_out = broad.attempt(area, coordinates(grant, package_phase), grant)
+                runtime = load(confined(package_out, "runtime.json"))
+                if (
+                    machine().engine.image(request["image"]) != request["image"]
+                    or physical_scope(machine(), "hip", machine=True) != physical
+                ):
+                    raise ValueError("checkpoint matrix physical device or image differs")
+                extras = wheel_mounts(area, runtime)
+                retain(area / "request.json", request)
+                mounts = [
+                    *extras,
+                    (area / "request.json", "/work/inputs/request.json"),
+                    (projection, "/work/inputs/projection.json"),
+                ]
+                timeout = seconds()
+            except (Exception, KeyboardInterrupt):
+                retain(
+                    out / "cleanup.json",
+                    dict(acknowledged=True, within_bound=time.monotonic_ns() <= deadline),
+                )
+                raise
+            stage(
+                machine(),
+                source,
+                request["image"],
+                out,
+                [
+                    "python",
+                    "-I",
+                    "-B",
+                    extras[0][1],
+                    "ordinary-initialization" if initialize else "checkpoint-matrix",
+                    extras[1][1],
+                    runtime["wheel"]["sha256"],
+                    binding["source"],
+                ],
+                gpu=True,
+                record_lease=True,
+                seconds=timeout,
+                readonly_inputs=mounts,
+            )
+
+        return run_operation(
+            area=area,
+            grant=grant,
+            journal=journal,
+            minimum_us=121_000_000,
+            coordinates=coordinates(grant, name),
+            request=request,
+            cost=work,
+            execute=execute,
+            verify=verify,
+            installed=installed,
+            before_dispatch=guard,
+            max_attempts=2,
+            protected_us=runtime_build.protected_time(quote, name) if build is not None else 0,
+        )
+
+    extra = {}
+    try:
+        freeze = None
+        if initialize:
+            plan, quote, prefix = prescore.funded_inputs(
+                root,
+                folder,
+                area,
+                revision,
+                source,
+                physical,
+                plan,
+                getattr(args, "free_disk_gib", 5),
+                grant,
+            )
+
+            def freeze(binding, request, terms, runtime):
+                nonlocal phase
+                phase = "publish_prescore"
+                return prescore.funded_publication(
+                    root, area, grant, binding, request, quote, terms, runtime,
+                    protected_us=runtime_build.protected_time(quote, phase) if build is not None else 0,
+                )
+
+        binding = seal(
+            dict(
+                version=prescore.VERSION if initialize else matrix.VERSION,
+                candidate=revision,
+                source=digest(collect_snapshot(source)),
+                grant=grant["identity"],
+                origin=pointer,
+                **(dict(floor_gib=getattr(args, "free_disk_gib", 5)) if initialize else {}),
+                physical=physical,
+                plan=plan["identity"],
+            )
+        )
+        retain(area / "binding.json", binding)
+        resumed = initialize and getattr(args, "resume_initialization", None)
+        if resumed:
+            phase = "verify_paid_package"
+            recover_package(root, area, grant, binding, journal)
+        if initialize:
+            logical = operation_key(coordinates(grant, "build_runtime"), 0)["logical"]
+            registered = (area / "operations" / logical[7:] / "input.json").exists()
+            if resumed or registered:
+                build = runtime_build.request(
+                    root,
+                    area,
+                    coordinates(grant, "package"),
+                    grant,
+                    binding,
+                    quote,
+                    prefix,
+                    journal.snapshot(include_work=True),
+                )
+                if registered and build is None:
+                    raise ValueError(
+                        "registered image acquisition lost its original cache-only failure"
+                    )
+                if build is not None:
+                    package_phase = "package_runtime"
+        rec = stages(
+            root,
+            area,
+            grant,
+            binding,
+            projection,
+            plan,
+            run,
+            freeze=freeze,
+            build=build,
+            source=source,
+        )
+        phase = "publication" if initialize else phase
+        retain(area / "receipt.json", rec)
+        if initialize:
+            from oeis_learn.generalization.progressive.velocity_donation_report import (
+                REPORT,
+                install,
+            )
+            from .progressive_velocity_donation import retained_qualification
+
+            public_report = area / "share" / REPORT
+            install(
+                public_report,
+                prescore.REPORT_MEMBER,
+                prescore.public_result(rec, journal.snapshot()),
+            )
+            prescore.verify_archives(public_report, retained_qualification(root, grant))
+        marker = seal(dict(grant=grant["identity"], receipt=rec["identity"]))
+        marker_path = "preparation/ordinary-initialization.json" if initialize else MARKER
+        if not (folder / marker_path).is_file() or load(confined(folder, marker_path)) != marker:
+            revise(folder / marker_path, marker)
+        status, code, reason, nxt = (
+            "COMPLETE",
+            0,
+            (
+                "Ordinary initialization and two zero-token restores verified"
+                if initialize
+                else "Four disposable checkpoint cycles verified"
+            ),
+            "verify",
+        )
+        extra = dict(
+            last=rec["identity"],
+            receipt=rec,
+            receipt_path=str((area / "receipt.json").relative_to(root)),
+        )
+    except (Exception, KeyboardInterrupt) as exc:
+        problem = dict(stage=phase, error=type(exc).__name__, reason=str(exc) or type(exc).__name__)
+        if isinstance(exc, broad.CapacityShortfall):
+            extra.update(exc.deficits)
+            problem.update(exc.deficits)
+            problem["capacity"] = dict(mounts=mount_totals(exc.capacity["mounts"]))
+        if not (area / "first-error.json").exists():
+            retain(area / "first-error.json", seal(problem))
+        status, code = ("BLOCKED", 2) if isinstance(exc, InsufficientAuthority) else ("FAILED", 1)
+        reason, nxt = (
+            problem["reason"],
+            "inspect_capacity" if isinstance(exc, broad.CapacityShortfall) else "inspect_attempt",
+        )
+        extra["diagnostics"] = problem
+    if (area / "first-error.json").is_file():
+        extra["first_error"] = load(confined(area, "first-error.json"))
+    balance = journal.snapshot()
+    value = result(
+        "qualify",
+        status,
+        reason,
+        nxt,
+        remaining=balance["remaining"]["elapsed_us"],
+        elapsed_us=balance["consumed"]["elapsed_us"],
+        charged_tokens=balance["consumed"]["tokens"],
+        research_dispatches=0,
+        scope="ordinary_initialization" if initialize else "checkpoint_matrix",
+        stage=phase,
+        **extra,
+    )
+    if not (folder / "status.json").is_file() or load(confined(folder, "status.json")) != seal(
+        value
+    ):
+        revise(folder / "status.json", seal(value))
+    return value, code

@@ -24,6 +24,189 @@ from oeis_learn.pipeline_validation.identity import confined, seal
 from .pilot_clocks import CORRECT_FULL, DESCRIPTIVE, DRAIN, FullClockEvidence, attempts
 
 
+def model_receipt(look, *, profile, weights, checkpoint, origin):
+    """The custodian commits the model before a visible-only probe is issued."""
+    from oeis_learn.generalization.progressive.contracts import _check, schema
+
+    zero = look["look"] == 0 and look["method"] != "D"
+    if (checkpoint is None) != zero:
+        raise ValueError("a trained or incumbent probe requires its registered checkpoint")
+    for ref in (look["registration"], profile, weights, origin, *(() if zero else (checkpoint,))):
+        _check(schema("common")["$defs"]["hash"], ref, {})
+    return seal(dict(version="round029-probe-model/v1",
+                     **{k: look[k] for k in ("registration", "method", "seed", "look")},
+                     profile=profile, weights=weights, checkpoint=checkpoint, origin=origin))
+
+
+def initial_probe_model(look, profile, start):
+    from oeis_learn.generalization.progressive.velocity_trials import validate_start
+
+    origin = validate_start(start)
+    if (look["look"] != 0 or profile["model"]["seed"] != look["seed"]
+            or origin["initialization"] != look["seed"] or origin["codec"] != profile["codec"]):
+        raise ValueError("probe requires its independently prepared random initialization")
+    return model_receipt(look, profile=digest(profile), weights=origin["initial_weights"],
+                         checkpoint=None, origin=origin["identity"])
+
+
+def donor_probe_model(root, look, profile, checkpoint):
+    """Reopen the original donor inventory before projecting weights to the search role."""
+    from oeis_learn.fresh.bigint_diagnostics import model_snapshot
+    from .progressive_velocity_donor import inventory
+
+    method = look["method"]
+    cuts = inventory(root)["cuts"]
+    cut = next((r for r in cuts if r["method"] == method and
+                r["look"] == (None if method == "D" else look["look"])), None)
+    if cut is None or not cut["inference"] or cut["weights"] != checkpoint["sha256"]:
+        raise ValueError("registered donor weights or model profile differs")
+    if method == "D":
+        if cut["recipe"] != digest(profile):
+            raise ValueError("incumbent model profile differs from its private freeze")
+    else:
+        from .progressive_velocity_census import training_source
+
+        _, package, _ = training_source(root)
+        if (
+            method != "00"
+            or look["look"] == 0
+            or cut["seeds"]["initialization"] != look["seed"]
+            or package["profile"] != profile
+            or cut["lineage"] != package["stream"]["identity"]
+        ):
+            raise ValueError(
+                "ordinary model profile or training cut differs from its private freeze"
+            )
+    control = model_control_for(look)
+    enc, dec, _ = load_baseline(control, profile, root=root, ref=checkpoint,
+                                reference_recipe=profile if method != "D" else None)
+    return model_receipt(look, profile=digest(profile), weights=model_snapshot(enc, dec),
+                         checkpoint=cut["weights"], origin=digest([cut["registration"], cut["lineage"], cut["weights"]]))
+
+
+def checked_probe_model(look, model):
+    from oeis_learn.generalization.progressive.campaign import velocity_policy
+
+    if look["method"] in velocity_policy()["controls"]:
+        if model is not None:
+            raise ValueError("conventional probe received a neural model")
+    elif not isinstance(model, dict) or model != model_receipt(
+        look, **{k: model.get(k) for k in ("profile", "weights", "checkpoint", "origin")}
+    ):
+        raise ValueError("registered model for this method, seed and look required")
+    return model
+
+
+def model_control_for(look):
+    return "retained_D" if look["method"] == "D" else "random" if look["look"] == 0 else "earlier_checkpoint"
+
+
+def conditioning_donors(look, prompts, mode, inference_seed):
+    from collections import defaultdict
+
+    donors = {p["id"]: p["id"] for p in prompts}
+    if mode == "shuffled":
+        strata = defaultdict(list)
+        for member, prompt in zip(look["members"], prompts, strict=True):
+            strata[member["stratum"]].append(prompt)
+        for stratum, recipients in strata.items():
+            groups = defaultdict(list)
+            for p in recipients:
+                groups[tuple(p["values"])].append(p["id"])
+            shift = max(map(len, groups.values()))
+            if 2 * shift > len(recipients):
+                raise ValueError(f"no differing donor permutation in registered stratum {stratum}")
+            order = [
+                key
+                for group in sorted(groups, key=lambda v: digest([inference_seed, v]))
+                for key in sorted(groups[group], key=lambda v: digest([inference_seed, v]))
+            ]
+            donors.update({key: order[(i + shift) % len(order)] for i, key in enumerate(order)})
+    return donors
+
+
+def velocity_probe(look, prompts, *, mode, inference_seed, model=None):
+    """Freeze encoder conditioning separately from the recipient used by the fitter and scorer."""
+    import re
+    from oeis_learn.generalization.progressive.campaign import velocity_policy
+    from oeis_learn.generalization.progressive.graph import velocity_look
+    from oeis_learn.generalization.progressive.metrics import _seed
+
+    cfg = velocity_policy()
+    _seed(inference_seed)
+    ids = [validate_prompt(p)["id"] for p in prompts]
+    if (not ids or len(set(ids)) != len(ids) or mode not in {"true", "shuffled"}
+            or look["method"] in cfg["controls"] and (look["profile"] != "full" or mode != "true")):
+        raise ValueError("registered ordered recipient roster and probe opportunity required")
+    if look["version"] == "round029-visible-look/v1":
+        # The custodian has already selected donors. No scoring roster crosses this boundary.
+        fields = {"version", "registration", "method", "seed", "look", "profile", "attempts",
+                  "opportunity", "members", "mode", "donors", "identity"}
+        donors = look["donors"]
+        values = {p["id"]: p["values"] for p in prompts}
+        profile = cfg["profiles"][look["profile"]]
+        if (set(look) != fields or look != seal(look) or ids != look["members"]
+                or not all(re.fullmatch("[0-9a-f]{64}", k) for k in ids)
+                or mode != look["mode"] or inference_seed != look["seed"]
+                or look["look"] not in profile["looks"] or look["attempts"] != profile["attempts"]
+                or look["opportunity"] != cfg["opportunity"] or set(donors) != set(ids)
+                or set(donors.values()) != set(ids) or any(
+                    k != d if mode == "true" else values[k] == values[d] for k, d in donors.items()
+                )):
+            raise ValueError("invalid visible probe projection")
+    else:
+        rebuilt = velocity_look(
+            registration=look["registration"], method=look["method"], seed=look["seed"],
+            look=look["look"], profile=look["profile"], extension=look["look"] == cfg["conditional_look"],
+            development=[row for row in look["members"] if row["stratum"] != "retention"],
+            retention=[row for row in look["members"] if row["stratum"] == "retention"],
+        )
+        if look != rebuilt or ids != [r["task"] for r in look["members"]]:
+            raise ValueError("registered ordered recipient roster and probe opportunity required")
+        donors = conditioning_donors(look, prompts, mode, inference_seed)
+    return seal(
+        dict(
+            version="round029-probe/v2",
+            model=checked_probe_model(look, model),
+            look=look,
+            recipients=digest(prompts),
+            mode=mode,
+            inference_seed=inference_seed,
+            donors=donors,
+        )
+    )
+
+
+def probe_inference(probe):
+    """Identity of the actual opportunity, independent of aliases for D or a shared zero look."""
+    look = probe["look"]
+    method = look["method"]
+    if method == "D":
+        coordinate = "D"
+    elif look["look"] == 0:
+        coordinate = ["initial", look["seed"]]
+    else:
+        coordinate = [method, look["seed"], look["look"]]
+    model = probe["model"]
+    return digest([coordinate, look["profile"], look["opportunity"], look["attempts"],
+                   probe["recipients"], probe["mode"], probe["inference_seed"], probe["donors"],
+                   [model[k] for k in ("profile", "weights", "checkpoint")] if model else method])
+
+
+def recover_case(entry, binding):
+    """An opened portfolio without a durable choice has no provable remaining clock."""
+    start = entry.get("start")
+    if start is not None and (start != seal(start) or any(start.get(k) != v for k, v in binding.items())):
+        raise ValueError("search recovery has a different prompt, model or probe")
+    choice = entry.get("choice")
+    if choice is not None:
+        if (start is None or choice != seal(choice) or any(choice.get(k) != v for k, v in binding.items())):
+            raise ValueError("previously sealed choice differs from its opening")
+        return choice["record"], choice["clock"]
+    return dict(selections=dict(equal_budget=None), arm_evidence=dict(equal_budget=dict(
+        complete=False, reason="interrupted_remaining_time_unknown")), costs=dict(issued=entry["issued"])), None
+
+
 def generate(
     root,
     output,
@@ -47,22 +230,84 @@ def generate(
     case_boundary_dir=None,
     inference_seed=None,
     measurements=None,
+    registered_probe=None,
+    recovered=None,
 ):
-    import torch
+    prompts = list(prompts)
+    if type(seconds) not in (int, float) or not 0 < seconds <= _maximum_seconds(budget):
+        raise ValueError("bounded installed generation required")
+    if registered_probe is not None:
+        from oeis_learn.generalization.progressive.campaign import velocity_policy
 
+        look = registered_probe["look"]
+        if (
+            registered_probe
+            != velocity_probe(
+                look,
+                prompts,
+                mode=registered_probe["mode"],
+                inference_seed=registered_probe["inference_seed"],
+                model=registered_probe.get("model"),
+            )
+            or inference_seed is not None
+            or evaluation_policy != DRAIN
+            or forced is not None
+            or component_library is not None
+        ):
+            raise ValueError("original registered probe required")
+        if look["method"] in velocity_policy()["controls"]:
+            from .progressive_velocity_controls import generate_control
+
+            if methods != (look["method"],) or checkpoint is not None or device != "cpu":
+                raise ValueError(
+                    "registered CPU control requires its own method and visible inputs"
+                )
+            control = globals().get("control_worker", generate_control)
+            return control(
+                output_root if output_root is not None else root,
+                output,
+                prompts,
+                recipe,
+                probe=registered_probe,
+                client=client,
+                seconds=seconds,
+                budget=budget,
+                case_elapsed_us=case_elapsed_us,
+                case_boundary_dir=case_boundary_dir,
+                measurements=measurements,
+                **({"recovered": recovered, "recover_control": recover_case} if recovered is not None else {}),
+            )
+        if methods != ("correct",) or look["method"] not in {
+            "00",
+            "01",
+            "02",
+            "03",
+            "04",
+            "05",
+            "06",
+            "D",
+        }:
+            raise ValueError("original registered neural probe required")
+        registered = registered_probe["model"]
+        if (model_control != model_control_for(look) or digest(recipe) != registered["profile"]
+                or (checkpoint["sha256"] if checkpoint else None) != registered["checkpoint"]
+                or model_control == "random" and seed != look["seed"]):
+            raise ValueError("model profile, checkpoint or initialization differs from the registered probe")
+        inference_seed = registered_probe["inference_seed"]
+        evaluation_policy = DESCRIPTIVE if look["profile"] == "common" else CORRECT_FULL
+    if evaluation_policy not in (DRAIN, DESCRIPTIVE, CORRECT_FULL) or (
+        evaluation_policy in (DESCRIPTIVE, CORRECT_FULL)
+        and (methods != ("correct",) or forced is not None or component_library is not None)
+    ):
+        raise ValueError("timed candidate generation requires the registered visible-only arm")
+
+    import torch
     from oeis_learn.decoder.bigint_codec import fitting_policy
     from oeis_learn.fresh.bigint_diagnostics import _seal, model_snapshot, portfolio
     from oeis_learn.fresh.conditioning_controls import condition_memory
     from oeis_learn.generalization.progressive.baselines import conditioning
     from oeis_learn.synthesis.admission import VisiblePrompt
 
-    if evaluation_policy not in (DRAIN, DESCRIPTIVE, CORRECT_FULL) or (
-        evaluation_policy in (DESCRIPTIVE, CORRECT_FULL) and (methods != ("correct",) or forced is not None or component_library is not None)
-    ):
-        raise ValueError("timed candidate generation requires the registered visible-only arm")
-
-    if type(seconds) not in (int, float) or not 0 < seconds <= _maximum_seconds(budget):
-        raise ValueError("bounded installed generation required")
     if (
         not isinstance(methods, tuple)
         or not methods
@@ -80,10 +325,10 @@ def generate(
         validate_input(component_library)
         if methods != ("correct",) or forced is not None:
             raise ValueError("component comparison requires one ordinary matched portfolio")
-    prompts = list(prompts)
     for p in prompts:
         validate_prompt(p)
-    prompts.sort(key=lambda p: p["id"])
+    if registered_probe is None:
+        prompts.sort(key=lambda p: p["id"])
     if not prompts or len({p["id"] for p in prompts}) != len(prompts):
         raise ValueError("nonempty unique visible roster required")
     if "shuffled" in methods:
@@ -107,6 +352,8 @@ def generate(
         device=device,
     )
     snapshot = model_snapshot(encoder, decoder)
+    if registered_probe is not None and snapshot != registered_probe["model"]["weights"]:
+        raise ValueError("resolved model tensors differ from the registered probe")
     if measurements is not None:
         measurements["load_and_identify_checkpoint_us"] = (time.monotonic_ns() - load_started) // 1000
     runtime_recipe = recipe.get("base_recipe", recipe)
@@ -115,6 +362,10 @@ def generate(
             raise ValueError("invalid registered inference seed")
         runtime_recipe = dict(runtime_recipe, model=dict(runtime_recipe["model"], seed=inference_seed))
     draw_identity = {} if inference_seed is None else {"inference_seed": inference_seed}
+    encoder_values = {p["id"]: p["values"] for p in prompts}
+    if registered_probe is not None:
+        draw_identity["velocity_probe"] = registered_probe["identity"]
+        encoder_values = {key: encoder_values[donor] for key, donor in registered_probe["donors"].items()}
     if forced is not None and (
         set(forced) != {p["id"] for p in prompts}
         or any(
@@ -128,12 +379,23 @@ def generate(
         if "shuffled" in methods
         else prompts
     )
+    recovered = recovered or {}
+    if not set(recovered) <= set(encoder_values):
+        raise ValueError("unknown recovered recipient")
+    recovered_clocks = []
     rows = {}
     evidence = FullClockEvidence(
-        output / "attempts", prompts, source=digest(recipe), work=snapshot, policy=evaluation_policy
+        output / "attempts", [p for p in prompts if p["id"] not in recovered], source=digest(recipe), work=snapshot, policy=evaluation_policy
     )
     try:
         for ordinal, p in enumerate(prompts):
+            if p["id"] in recovered:
+                binding = dict(prompt=digest(p), model=snapshot, policy=evaluation_policy, **draw_identity)
+                row, clock = recover_case(recovered[p["id"]], binding)
+                rows[p["id"]] = row
+                if clock is not None:
+                    recovered_clocks.append(clock)
+                continue
             if inference_seed is not None and time.monotonic() >= deadline:
                 raise TimeoutError("resident search stopped before opening the next portfolio")
             case_start = time.monotonic_ns() if case_elapsed_us is not None else None
@@ -144,7 +406,7 @@ def generate(
             memories = {}
             with torch.no_grad():
                 for mode, values in [
-                    ("correct", p["values"]),
+                    ("correct", encoder_values[p["id"]]),
                     *(
                         [("shuffled", controlled[ordinal]["values"])]
                         if "shuffled" in methods
@@ -303,6 +565,14 @@ def generate(
         evidence.finish()
     if model_snapshot(encoder, decoder) != snapshot:
         raise RuntimeError("generator mutated frozen weights")
+    if recovered:
+        summary = evidence.clock_summary
+        clocks = sorted(summary["clocks"] + recovered_clocks, key=lambda c: c["prompt"])
+        from collections import Counter
+        evidence.clock_summary = seal(dict(summary, clocks=clocks, expected_portfolios=len(prompts),
+            missing_portfolios=len(prompts)-len(clocks), terminations=dict(Counter(c["termination"] for c in clocks)),
+            cost_complete=len(clocks)==len(prompts) and all(c["cost_complete"] for c in clocks),
+            resumed_cases=digest(recovered)))
     if draw_identity:
         evidence.clock_summary = seal(dict(evidence.clock_summary, **draw_identity))
     if measurements is not None:
@@ -315,7 +585,7 @@ def generate(
             "model_control": model_control,
             "recipe": digest(recipe),
             "methods": list(methods),
-            "prompts": digest(prompts),
+            "prompts": digest(sorted(prompts, key=lambda p: p["id"])),
             "records": rows,
             "clock": evidence.clock_summary,
             "counts": counts,
@@ -330,7 +600,7 @@ def generate(
 
 
 def score(root, candidates, truth, *, client, output, seconds=3600, budget=None, selected_only=False,
-          measurements=None, independent_case_clock=False):
+          measurements=None, independent_case_clock=False, registered_probe=None):
     from oeis_learn.fresh.bigint_diagnostics import score as canonical_score
     from oeis_learn.synthesis.contracts import canonical_integer
 
@@ -403,6 +673,13 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None,
     if selected_only:
         methods = ("equal_budget",)
     outcomes = {r["id"]: {} for r in truth}
+    if registered_probe is not None:
+        from oeis_learn.synthesis.admission import reference_identity
+        from oeis_learn.generalization.progressive.velocity_metrics import case_outcome_receipt
+        scorer_ref = digest(["round029-selected-20-80/v1", reference_identity(),
+                             getattr(getattr(client, "limits", None), "identity", None),
+                             client.runtime_identity("bigint-body/v1") if hasattr(client, "runtime_identity") else None])
+        inference = probe_inference(registered_probe)
     for method in methods:
         if budget:
             budget.consume(attempts=len(truth), rejections=len(truth))
@@ -422,6 +699,20 @@ def score(root, candidates, truth, *, client, output, seconds=3600, budget=None,
             v["outcome"] = (
                 "success" if v["success"] else "failure" if v["complete"] else "unresolved"
             )
+            if registered_probe is not None:
+                choice = value["records"][key]["selections"][method]
+                selected_exact = v["success"] if choice is not None and v["scoring"]["complete"] else None
+                choice_ref = digest(choice) if choice is not None else None
+                truth_ref = digest(by_id[key])
+                observation = velocity_outcome(selected_exact=selected_exact, closed=upstream["complete"],
+                                              complete=v["complete"])
+                # Identical sealed choices at a genuinely shared inference opportunity can be reused.
+                evidence = dict(outcome_ref=digest([key, inference, choice_ref, scorer_ref, truth_ref,
+                                                    observation]), choice_ref=choice_ref,
+                                scorer_ref=scorer_ref, truth_ref=truth_ref)
+                v.update(observation, probe_ref=registered_probe["identity"],
+                         receipt=case_outcome_receipt(key, status=observation["status"], inference_ref=inference, **evidence))
+                v["outcome"] = {"solve": "success", "miss": "failure", "unresolved": "unresolved"}[v["status"]]
             outcomes[key][method] = v
     if measurements is not None:
         publish_started = time.monotonic_ns()
@@ -475,6 +766,63 @@ def generate_short(encoder, decoder, prompts, *, seed, seconds=4, max_tokens=64)
     return sample_batch(decoder, requests)
 
 
+def score_velocity(root, candidates, truth, *, client, output, probe, seconds=3600):
+    """The scored choice must have been issued at this look, mode and frozen opportunity."""
+    from .progressive_research_inputs import checked_file
+    from oeis_learn.generalization.progressive.campaign import velocity_policy
+
+    generated = load(checked_file(root, candidates), maximum=candidates["bytes"])
+    clock = generated["clock"]
+    method = probe["look"]["method"]
+    control = method in velocity_policy()["controls"]
+    policy = (
+        "round029-conventional-full/v1"
+        if control
+        else DESCRIPTIVE if probe["look"]["profile"] == "common" else CORRECT_FULL
+    )
+    if (
+        clock != seal(clock)
+        or clock.get("velocity_probe") != probe["identity"]
+        or clock.get("inference_seed") != probe["inference_seed"]
+        or clock["policy"] != policy
+        or generated["methods"] != ([method] if control else ["correct"])
+    ):
+        raise ValueError("sealed choices come from another probe profile or conditioning")
+    truth = list(truth)
+    by_id = {row["id"]: row for row in truth}
+    if len(by_id) != len(truth) or set(by_id) != set(probe["donors"]):
+        raise ValueError("original recipient truth roster required")
+    look = probe["look"]
+    ids = look["members"] if look["version"] == "round029-visible-look/v1" else [
+        m["task"] for m in look["members"]
+    ]
+    prompts = [dict(id=k, indices=by_id[k]["indices"][:20], values=by_id[k]["values"][:20])
+               for k in ids]
+    if (
+        velocity_probe(
+            probe["look"], prompts, mode=probe["mode"], inference_seed=probe["inference_seed"], model=probe.get("model")
+        )
+        != probe
+    ):
+        raise ValueError("scoring truth differs from frozen recipient prompt")
+    if not control:
+        model = checked_probe_model(probe["look"], probe.get("model"))
+        if (generated["model"] != model["weights"] or generated["checkpoint"] != model["checkpoint"]
+                or generated["recipe"] != model["profile"] or generated["model_control"] != model_control_for(probe["look"])):
+            raise ValueError("sealed choices were generated by a different model")
+    return score(
+        root,
+        candidates,
+        truth,
+        client=client,
+        output=output,
+        seconds=seconds,
+        selected_only=True,
+        independent_case_clock=True,
+        registered_probe=probe,
+    )
+
+
 def score_short(source, truth, *, client):
     """Separate nine-term scorer; truth is never an input to generation."""
     from oeis_learn.generalization.progressive.short_profile import validate_terms
@@ -512,3 +860,22 @@ def score_short(source, truth, *, client):
 def _maximum_seconds(budget):
     from oeis_learn.generalization.progressive.budgets import RoleWorkBudget
     return budget.evaluation_seconds if isinstance(budget,RoleWorkBudget) else 21600
+
+
+def velocity_outcome(*, selected_exact, closed, complete, evidence=None):
+    """Private selected-choice outcome independent of other unfinished portfolio work."""
+    if (type(complete) is not bool or type(closed) is not bool or
+            selected_exact is not None and type(selected_exact) is not bool):
+        raise ValueError("verified selected result and explicit closure flags required")
+    if selected_exact is True:
+        status = "solve"
+    elif selected_exact is False or closed and complete:
+        status = "miss"
+    else:
+        status = "unresolved"
+    observation = dict(status=status, complete=complete, closed=closed)
+    if evidence is not None:
+        from oeis_learn.generalization.progressive.velocity_metrics import case_outcome_receipt
+
+        observation["receipt"] = case_outcome_receipt(status=status, **evidence)
+    return observation

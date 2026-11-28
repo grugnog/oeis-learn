@@ -300,3 +300,450 @@ def prepare_combinatorial(root, output, statistics, **limits):
     value = prepare(statistics, **limits)
     atomic_write(confined(root, output, exists=False), value)
     return value
+
+
+def prepare_velocity_start(profile, stream, *, microbatch, broad=None, device):
+    """Prepare the actual random-weight fingerprint in a learner role from exposed inputs."""
+    from oeis_learn.fresh.bigint_diagnostics import model_snapshot
+    from oeis_learn.generalization.progressive.contracts import _check, digest, schema, seal
+    from oeis_learn.generalization.progressive.models import construct
+    from oeis_learn.generalization.progressive.training_rows import (
+        generator_common_policy,
+        pair_seeds,
+    )
+    from oeis_learn.generalization.progressive.velocity_trials import validate_start
+    from .progressive_training import resolve_update_policy
+
+    if stream != seal(stream) or stream["version"] != "round028-matched-stream/v1":
+        raise ValueError("sealed positive stream required")
+    seeds = pair_seeds(stream["registration"], stream["pair"])
+    order = stream["order"]
+    if (
+        seeds != stream["seeds"]
+        or profile["model"]["seed"] != seeds["initialization"]
+        or not order
+        or sorted(set(order), key=lambda k: (digest([seeds["training_families"], k]), k)) != order
+    ):
+        raise ValueError("training order or initial model seed differs from its frozen randomness")
+    _check(schema("common")["$defs"]["hash"], stream["row_identities"], {})
+    broad_ref = None
+    if broad is not None:
+        if (
+            broad != seal(broad)
+            or broad["version"] != "round029-broad-stream/v1"
+            or broad.get("ordinary_ref") != stream["identity"]
+            or broad.get("slot_order") != digest(order)
+            or broad["seed"] != seeds["training_families"]
+            or len(broad["order"]) != len(order)
+        ):
+            raise ValueError("broader composition treatment belongs to a different ordinary stream")
+        if broad["available"]:
+            broad_ref = broad["identity"]
+    ordinary = resolve_update_policy(
+        profile,
+        objective="ordinary",
+        effective_batch=32,
+        microbatch_size=microbatch,
+        weight_decay=0,
+        schedule_horizon_tokens=4_000_000,
+    )
+    encoder, decoder, _ = construct(profile, device=device)
+    return validate_start(
+        seal(
+            dict(
+                version="round029-initial-state/v1",
+                seed_authority=stream["registration"],
+                pair=stream["pair"],
+                initialization=seeds["initialization"],
+                stream_seed=seeds["training_families"],
+                ordinary=stream["identity"],
+                broad=broad_ref,
+                initial_weights=model_snapshot(encoder, decoder),
+                codec=profile["codec"],
+                common_policy=generator_common_policy(profile, ordinary),
+            )
+        )
+    )
+
+
+def freeze_velocity_screen(root, *, preferred, fallback, source, design, development, retention):
+    """Resolve historical seed-one provenance on the physical workspace before registering any look."""
+    from oeis_learn.generalization.progressive.campaign import velocity_registration
+    from oeis_learn.generalization.progressive.velocity_trials import select_start
+    from .progressive_velocity_donor import inventory
+
+    from . import progressive_velocity_broad_host as broad
+
+    inputs = inventory(root)
+    decision = broad.inventory(root, source)
+    if decision and decision["disposition"] == "requires_fresh_disjoint_start":
+        preferred = None
+        qualified = broad.inventory(root, source, fresh=True)
+        if qualified is not None:
+            prepared = qualified["start"]
+            if prepared is None or (fallback is not None and fallback != prepared):
+                raise ValueError(
+                    "fresh screen must match the qualified ordinary stream and initialization"
+                )
+            fallback = prepared
+        old = inputs.get("stream") or {}
+        if fallback and (
+            fallback["ordinary"] == old.get("identity")
+            or fallback["stream_seed"] == (old.get("seeds") or {}).get("training_families")
+        ):
+            raise ValueError("fresh screen cannot use the rejected ordinary stream")
+    start = select_start(inputs, preferred, fallback)
+    origin = start["origin"]
+    return velocity_registration(
+        source=source,
+        design=design,
+        development=development,
+        retention=retention,
+        initialization=origin["initialization"],
+        stream_seed=origin["stream_seed"],
+        ordinary=origin["ordinary"],
+        broad=origin["broad"],
+        training_start=start,
+    )
+
+
+def prepare_velocity_broad(
+    *,
+    root,
+    stream,
+    shards,
+    law,
+    ordinals,
+    familiar,
+    calibration,
+    protected,
+    indexes,
+    client,
+    budget=None,
+):
+    """Audit the original positives and prospective replacements before filling the same slots."""
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.generator import validate_policy
+    from oeis_learn.generalization.progressive.program_search_panels import BANDS
+    from oeis_learn.generalization.progressive.shared_support import validated_rows
+    from oeis_learn.generalization.progressive.training_rows import pair_seeds
+    from .progressive_research_inputs import checked_file
+
+    seeds = pair_seeds(stream["registration"], stream["pair"])
+    if (
+        client is None
+        or stream != seal(stream)
+        or stream["version"] != "round028-matched-stream/v1"
+        or seeds != stream["seeds"]
+        or validate_policy(law)["seed"] != seeds["training_families"]
+        or calibration != seal(calibration)
+        or calibration["version"] != "round028-difficulty-map/v1"
+        or not set(calibration["bins"].values()) <= set(BANDS) - {"unknown"}
+    ):
+        raise ValueError(
+            "registered native verifier, seed stream and frozen calibration map required"
+        )
+    rows = validated_rows(shards, native_verified=True)
+    order = stream["order"]
+    if (
+        not order
+        or len(set(order)) != len(order)
+        or not set(order) <= rows.keys()
+        or sorted(order, key=lambda k: (digest([seeds["training_families"], k]), k)) != order
+        or digest([rows[k]["identity"] for k in order]) != stream["row_identities"]
+    ):
+        raise ValueError("original verified positive row order differs")
+    if len(set(ordinals)) != len(ordinals):
+        raise ValueError("each prospective composition draw has one ordinal")
+    familiar = set(familiar)
+    if not familiar <= {rows[k]["structure"] for k in order}:
+        raise ValueError("familiar support must belong to the ordinary seed")
+    from pathlib import Path
+    from oeis_learn.experiments.source_snapshot import source_snapshot
+    from oeis_learn.generalization.progressive.contracts import load, reference
+    from oeis_learn.generalization.progressive.lifecycle import RunStore
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from .identity import confined
+    from .preparation_recovery import retain
+
+    root = Path(root)
+    index_paths = [checked_file(root, ref) for ref in indexes]
+    plan = seal(
+        dict(
+            version="round029-composition-plan/v1",
+            ordinary=stream["identity"],
+            law=digest(law),
+            ordinals=list(ordinals),
+            familiar=sorted(familiar),
+            calibration=calibration["identity"],
+            protected=digest(protected),
+            indexes=indexes,
+            runtime=client.runtime_identity("bigint-body/v1"),
+            reference=client.reference_sha256,
+            source=digest(source_snapshot()),
+        )
+    )
+    area = confined(
+        root,
+        f"run-state/discovery/{SESSION}/preparation/composition/{plan['identity'][7:]}",
+        exists=False,
+    )
+    area.mkdir(parents=True, exist_ok=True)
+    with RunStore.owner(area):
+        retain(area / "plan.json", plan)
+        receipt = confined(area, "receipt.json", exists=False)
+        if not receipt.exists():
+            result, selected, audit = _measure_velocity_broad(
+                stream, rows, law, calibration, protected, index_paths, plan, client, budget
+            )
+
+            def install(filename, value):
+                path = confined(area, filename, exists=False)
+                retain(path, value)
+                return reference(area, path)
+
+            row_refs = {
+                key: install("rows/" + row["identity"][7:] + ".json", row)
+                for key, row in selected.items()
+            }
+            retain(
+                receipt,
+                seal(
+                    dict(
+                        plan=plan["identity"],
+                        stream=install("stream.json", result),
+                        audit=install("audit.json", audit),
+                        rows=row_refs,
+                    )
+                ),
+            )
+        published = load(receipt, maximum=receipt.stat().st_size)
+        if published != seal(published) or published["plan"] != plan["identity"]:
+            raise ValueError("composition receipt differs from frozen input plan")
+
+        def reopen(ref):
+            return load(checked_file(area, ref), maximum=ref["bytes"])
+
+        result, audit = reopen(published["stream"]), reopen(published["audit"])
+        selected = {key: reopen(ref) for key, ref in published["rows"].items()}
+        if (
+            result != seal(result)
+            or audit != seal(audit)
+            or result["audit"] != audit["identity"]
+            or audit["plan"] != plan["identity"]
+            or result["ordinary_ref"] != stream["identity"]
+            or set(result["order"]) != selected.keys()
+            or any(
+                row != seal(row)
+                or row["draw_identity"] != key
+                or row["identity"] != audit["witnesses"][key]
+                for key, row in selected.items()
+            )
+        ):
+            raise ValueError("stored composition stream, selected witnesses or audit differs")
+        return result, selected, audit
+
+
+def _measure_velocity_broad(
+    stream, rows, law, calibration, protected, index_paths, plan, client, budget
+):
+    from contextlib import ExitStack
+    from oeis_learn.generalization.progressive.complexity import measure
+    from oeis_learn.generalization.progressive.contracts import seal
+    from oeis_learn.generalization.progressive.generator import broader_stream, draw, draw_exclusion
+    from oeis_learn.generalization.progressive.prepared_panels import composition
+    from oeis_learn.generalization.progressive.program_search_panels import (
+        descriptor,
+        difficulty_band,
+        fresh_groups,
+    )
+    from .progressive_research_inputs import ExposureIndex
+
+    order = stream["order"]
+    familiar = set(plan["familiar"])
+    candidates, slots, witnesses, rejected = {}, {}, {}, []
+
+    def witness(item, original=None):
+        key = item["draw_identity"]
+        if key in witnesses:
+            if witnesses[key]["source"] != item["source"]:
+                raise ValueError("different sources share a draw identity")
+            return
+        measurement = {}
+        row, reason = verify_draw(item, client=client, budget=budget, measurements=measurement)
+        if row is not None:
+            reason = draw_exclusion(row, law)
+            if reason:
+                row = None
+        if original is not None and row != original:
+            raise ValueError("ordinary positive failed independent witness replay")
+        if row is None:
+            rejected.append(dict(draw=key, reason=reason))
+            return
+        case = dict(
+            row,
+            id=key,
+            stratum="parameter" if row["structure"] in familiar else "training",
+            difficulty=measure(row["source"], reference_steps=measurement["reference_steps"]),
+        )
+        band = difficulty_band(descriptor(case), calibration)
+        candidates[key] = case
+        witnesses[key] = row
+        slots[key] = dict(
+            draw=key,
+            composition=composition(case, allow_parameters=True),
+            tokens=len(row["tokens"]),
+            band=band,
+            familiar=row["structure"] in familiar,
+        )
+
+    for key in order:
+        witness(rows[key], rows[key])
+    for ordinal in plan["ordinals"]:
+        witness(draw(law, ordinal))
+
+    def eligible(keys, readers):
+        groups, _ = fresh_groups(
+            [candidates[k] for k in keys], protected, indexes=readers, velocity=True
+        )
+        return {r["id"] for members in groups.values() for r in members}
+
+    with ExitStack() as stack:
+        readers = [stack.enter_context(ExposureIndex(path, readonly=True)) for path in index_paths]
+        originals = set(order)
+        if eligible(order, readers) != originals:
+            raise ValueError(
+                "original ordinary stream overlaps protected families or lacks exposure provenance"
+            )
+        clean = eligible(candidates, readers)
+    for key in sorted(candidates.keys() - originals - clean):
+        rejected.append(dict(draw=key, reason="protected_family_or_unverified_history"))
+    # A contaminated candidate bridge cannot invalidate an independently eligible ordinary slot.
+    allowed = originals | clean
+    support = [slots[k] for k in sorted(allowed) if slots[k]["band"] != "unknown"]
+    result = broader_stream(
+        [slots[k] for k in order],
+        support,
+        seed=stream["seeds"]["training_families"],
+        ordinary_ref=stream["identity"],
+    )
+    audit = seal(
+        dict(
+            version="round029-composition-audit/v1",
+            ordinary=stream["identity"],
+            plan=plan["identity"],
+            rejections=rejected,
+            witnesses={k: v["identity"] for k, v in witnesses.items()},
+            slots=slots,
+            selection=result["identity"],
+        )
+    )
+    result = seal(dict(result, audit=audit["identity"]))
+    return result, {k: witnesses[k] for k in result["order"]}, audit
+
+
+def prepare_velocity_learner(
+    journal,
+    method,
+    profile,
+    stream,
+    shards,
+    *,
+    microbatch,
+    audit=None,
+    client=None,
+    pair_manifest=None,
+):
+    """Project a registered recipe's actual ordered decoder targets and eligible donor prefixes."""
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.shared_support import validated_rows
+    from oeis_learn.generalization.progressive.training_rows import matching_pairs
+    from .progressive_velocity_matching import qualified_pairs, registered_update_policy
+
+    trial = journal.velocity_trial(method)["binding"]
+    if stream != seal(stream) or stream["identity"] != trial["stream_ref"]:
+        raise ValueError("recipe requires its registered positive stream")
+    rows = validated_rows(shards, native_verified=True)
+    order = stream["order"]
+    if not order or not set(order) <= rows.keys():
+        raise ValueError("positive stream includes an unavailable verified row")
+    if trial["recipe"]["stream"] == "ordinary":
+        if (
+            stream["version"] != "round028-matched-stream/v1"
+            or stream["seeds"]["initialization"] != trial["initialization"]
+            or stream["seeds"]["training_families"] != trial["stream_seed"]
+            or stream["row_identities"] != digest([rows[k]["identity"] for k in order])
+        ):
+            raise ValueError("ordinary training rows differ from original provenance")
+    elif (
+        stream["version"] != "round029-broad-stream/v1"
+        or not stream["available"]
+        or stream["seed"] != trial["stream_seed"]
+        or audit is None
+        or audit != seal(audit)
+        or audit["identity"] != stream.get("audit")
+        or any(rows[k]["identity"] != audit["witnesses"][k] for k in set(order))
+    ):
+        raise ValueError("broader composition requires its independently verified witnesses")
+    policy = registered_update_policy(journal, profile, method, microbatch=microbatch)
+    unique = list(dict.fromkeys(order))
+    pairs = None
+    if trial["recipe"]["matching"]:
+        from .identity import confined
+        from .preparation_recovery import retain
+        from oeis_learn.generalization.progressive.contracts import load
+
+        ordinary = trial["recipe"]["stream"] == "ordinary"
+        name = (
+            "matching-pairs.json"
+            if ordinary
+            else "matching-pairs-" + stream["identity"][7:] + ".json"
+        )
+        paid = None if ordinary else qualified_pairs(journal, stream, "broader")
+        with journal.lock():
+            original = confined(journal.root, name, exists=ordinary)
+            if original.is_file():
+                saved = load(original, maximum=original.stat().st_size)
+                if paid is not None and saved != paid:
+                    raise ValueError("registered learner pairs differ from their timing evidence")
+                paid = saved
+            if pair_manifest is not None and paid is not None and pair_manifest != paid:
+                raise ValueError("learner and priced matching selections differ")
+            pairs = matching_pairs(
+                shards,
+                unique,
+                seed=trial["stream_seed"],
+                client=client,
+                recorded=paid if paid is not None else pair_manifest,
+            )
+            if not pairs["coverage"]["full"]:
+                raise ValueError("full matching-pair coverage required for a training workload")
+            retain(original, pairs)
+    donors = (
+        {k: rows[v["donor"]]["values"][:20] for k, v in pairs["pairs"].items()} if pairs else {}
+    )
+    if pairs and not donors:
+        raise ValueError("matching treatment has no eligible training pairs")
+    projection = seal(
+        dict(
+            version="round029-learner-input/v3" if pairs else "round029-learner-input/v2",
+            **({"pair_proof": pairs["identity"]} if pairs else {}),
+            initial_weights=trial["initial_weights"],
+            registration=trial["registration"],
+            profile=profile,
+            policy=policy,
+            order=order,
+            rows={k: dict(tokens=rows[k]["tokens"], values=rows[k]["values"][:20]) for k in unique},
+            donors=donors,
+        )
+    )
+    return projection, seal(
+        dict(
+            trial=trial["identity"],
+            origin=trial["origin"],
+            initial_weights=trial["initial_weights"],
+            stream=stream["identity"],
+            package=projection["identity"],
+            matching_pairs=pairs,
+        )
+    )

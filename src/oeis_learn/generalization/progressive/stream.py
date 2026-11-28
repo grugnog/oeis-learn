@@ -194,14 +194,10 @@ class StreamStore:
 
             row, reason = verify_draw(value, client=client, budget=budget)
             if row is not None:
-                if row["structure"] in p["forbidden_structures"]:
-                    row, reason = None, "held_out_structure"
-                elif row["behavior"] in p["forbidden_behaviors"]:
-                    row, reason = None, "finite_behavior_exclusion"
-                elif any(
-                    digest(row["values"][i : i + 20]) in p["forbidden_prefixes"] for i in range(81)
-                ):
-                    row, reason = None, "finite_prefix_or_shift_exclusion"
+                from .generator import draw_exclusion
+                reason = draw_exclusion(row, p)
+                if reason is not None:
+                    row = None
             if row is not None:
                 raw = (json.dumps(row, sort_keys=True, indent=2) + "\n").encode()
                 if sum(r["bytes"] for r in s["rows"]) + len(raw) > p["shard_bytes"]:

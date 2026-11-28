@@ -54,6 +54,7 @@ def _check(rule, value, document):
         "oneOf",
         "type",
         "properties",
+        "propertyNames",
         "required",
         "additionalProperties",
         "items",
@@ -113,14 +114,22 @@ def _check(rule, value, document):
         type(value) not in (types[kind] if isinstance(types[kind], tuple) else (types[kind],))
     ):
         raise ValueError("schema type mismatch")
-    if kind == "object":
-        props = rule["properties"]
-        if rule.get("additionalProperties") is not False:
+    if isinstance(value, dict):
+        props = rule.get("properties", {})
+        extra = rule.get("additionalProperties")
+        if kind == "object" and extra is not False and not isinstance(extra, dict):
             raise ValueError("open authority schema forbidden")
-        if set(value) - set(props) or not set(rule.get("required", [])) <= set(value):
-            raise ValueError("unknown or missing keys")
+        if not set(rule.get("required", [])) <= value.keys():
+            raise ValueError("missing object member")
         for key, child in value.items():
-            _check(props[key], child, document)
+            if "propertyNames" in rule:
+                _check(rule["propertyNames"], key, document)
+            if key in props:
+                _check(props[key], child, document)
+            elif extra is False:
+                raise ValueError("unknown object member")
+            elif isinstance(extra, dict):
+                _check(extra, child, document)
     if kind == "array":
         if not rule.get("minItems", 0) <= len(value) <= rule.get("maxItems", 2**63):
             raise ValueError("array bound")

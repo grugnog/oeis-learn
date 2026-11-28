@@ -120,7 +120,7 @@ def native_candidates(path, request, census, training, support):
     return result
 
 
-def historical_row(row, support, role, *, legacy=False):
+def historical_row(row, support, role, *, legacy=False, velocity=False):
     result = {
         k: row[k]
         for k in (
@@ -135,6 +135,8 @@ def historical_row(row, support, role, *, legacy=False):
         )
         if k in row
     }
+    if velocity and "composition" in row:
+        result["composition"] = row["composition"]
     if result.get("source"):
         structure = structure_id(result["source"])
         require(
@@ -153,7 +155,16 @@ def historical_row(row, support, role, *, legacy=False):
     return result
 
 
-def read_inputs(root, refs, *, include_protected=False):
+def verify_origins(path, counts):
+    """Only complete, authenticated originals may replace an older relation index."""
+    with sqlite3.connect(path.as_uri() + "?mode=ro&immutable=1", uri=True) as db:
+        require(
+            dict(db.execute("SELECT name, rows FROM origins")) == counts,
+            "historical index origins differ from the reopened source rosters",
+        )
+
+
+def read_inputs(root, refs, *, include_protected=False, velocity=False):
     def authority(name, kind):
         ref = refs[name]
         require(
@@ -175,7 +186,8 @@ def read_inputs(root, refs, *, include_protected=False):
     )
     # The frozen exposure commits to the census. Authenticate the sibling materials
     # against that parent and independently match its training-support projection.
-    materials = _json(confined(root, exposure_path.parent.parent / "materials.json"))
+    materials_path = confined(root, exposure_path.parent.parent / "materials.json")
+    materials = _json(materials_path)
     require(
         seal(materials) == materials
         and materials["version"] == "progressive-research-materials/v1"
@@ -220,20 +232,30 @@ def read_inputs(root, refs, *, include_protected=False):
     )
     sources = _json(checked_file(root, data["candidates"]), maximum=128 << 20)
     candidates.extend(dict(r, stratum="oeis") for r in sources if source_eligibility(r) is None)
-    historical = [historical_row(r, support, "reservation") for r in [*old, *corrected]]
+    historical = [historical_row(r, support, "reservation", velocity=velocity) for r in [*old, *corrected]]
     protected = list(historical) if include_protected else []
-    historical.extend(historical_row(r, support, "training") for r in training)
+    historical.extend(historical_row(r, support, "training", velocity=velocity) for r in training)
     manifest = validate_manifest(read_bound_record(root, data["manifest"]))
     old_data = manifest["prior_inputs"]
-    sources = [(item["ref"], item["role"]) for item in old_data["originals"]]
+    sources = [("original." + item["name"], item["ref"], item["role"]) for item in old_data["originals"]]
     sources += [
-        (old_data["probes"], "training"),
-        (old_data["observed"], "legacy"),
-        (manifest["fresh_002"]["targets"], "legacy"),
+        ("prior.probes", old_data["probes"], "training"),
+        ("prior.observed", old_data["observed"], "legacy"),
+        ("fresh-002.targets", manifest["fresh_002"]["targets"], "legacy"),
     ]
-    for ref, role in sources:
-        additions = [historical_row(r, support, "training" if role == "training" else "legacy", legacy=True)
-                     for r in _json(checked_file(root, ref))]
+    origins = {}
+    for name, ref, role in sources:
+        additions = [
+            historical_row(
+                r,
+                support,
+                "training" if role == "training" else "legacy",
+                legacy=True,
+                velocity=velocity,
+            )
+            for r in _json(checked_file(root, ref))
+        ]
+        origins[name] = len(additions)
         historical.extend(additions)
         if include_protected and role != "training":
             protected.extend(additions)
@@ -245,10 +267,30 @@ def read_inputs(root, refs, *, include_protected=False):
         exposure["payload"]["indexes"] == [reference(root, p) for p in indexes],
         "frozen exposure indexes differ",
     )
+    originals_used = []
+    if velocity:
+        verify_origins(indexes[0], origins)
+        verify_origins(indexes[1], {"prospective-support": len(training)})
+        originals_used = [
+            authority("registered-research-data", "source"),
+            exposure_ref,
+            reference(root, materials_path),
+            materials["census"],
+            materials["request"],
+            materials["support"],
+            census["panel_revision"]["original"],
+            data["candidates"],
+            data["manifest"],
+            data["exposure"],
+            *(ref for _, ref, _ in sources),
+        ]
+        for namespace, ref in [*files.values(), originals["panel-reservations.json"]]:
+            originals_used.append(dict(ref, path=str((namespace / ref["path"]).relative_to(root))))
     return {
         "candidates": candidates,
         "historical": historical,
         **({"protected": protected} if include_protected else {}),
+        **({"originals_used": originals_used} if velocity else {}),
         "indexes": indexes,
         "package": package,
         "support": support,

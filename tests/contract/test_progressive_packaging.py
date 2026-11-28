@@ -59,7 +59,7 @@ def test_diagnostic_templates_ship_identically_and_all_feature_tests_are_registe
     assert not set(CPU_TESTS).intersection(excluded)
 
 
-def test_round028_sdist_and_installed_wheel_keep_both_experiment_contracts(tmp_path):
+def test_feature_contracts_in_source_sdist_and_installed_wheel(tmp_path):
     import json
     import os
     import tarfile
@@ -75,6 +75,16 @@ def test_round028_sdist_and_installed_wheel_keep_both_experiment_contracts(tmp_p
         "contracts/015-learned-program-search/learned-program-search.json":
             "configs/foundation/progressive/learned-program-search.json",
     }
+    velocity = "016-measure-learning-velocity"
+    resources.update({
+        f"contracts/{velocity}/{name}": f"specs/{velocity}/contracts/{name}"
+        for name in ("experiment.md", "operations.md", "search.md")
+    })
+    resources[f"contracts/{velocity}/learning-velocity.json"] = (
+        "configs/foundation/progressive/learning-velocity.json"
+    )
+    for packaged, source in resources.items():
+        assert snapshot["src/oeis_learn/generalization/progressive/" + packaged] == snapshot[source]
     # The checkout in the installed acceptance role is read-only. Ask setuptools
     # for its source manifest, then let sdist create its staging tree in scratch.
     import shutil
@@ -103,6 +113,19 @@ def test_round028_sdist_and_installed_wheel_keep_both_experiment_contracts(tmp_p
     sdist = next(extracted.glob("*/setup.py")).parent
     subprocess.run([sys.executable, "setup.py", "--quiet", "bdist_wheel", "--dist-dir", str(tmp_path)],
                    cwd=sdist, check=True, capture_output=True)
+    for helper in (
+        "specs/015-learned-program-search/validation/candidate_source.py",
+        "specs/015-learned-program-search/validation/collect_audit.py",
+        "specs/015-learned-program-search/validation/launch-round028.sh",
+        f"specs/{velocity}/validation/launch-round029.sh",
+        f"specs/{velocity}/validation/qualify-learner.sh",
+        f"specs/{velocity}/validation/replay_learner.py",
+        f"specs/{velocity}/validation/qualify_continuation.py",
+        f"specs/{velocity}/validation/round029-release.md",
+        f"specs/{velocity}/validation/round029-child-qualification.json",
+        f"specs/{velocity}/quickstart.md",
+    ):
+        assert (sdist / helper).read_bytes() == (root / helper).read_bytes()
     installed = tmp_path / "installed"
     with zipfile.ZipFile(next(tmp_path.glob("*.whl"))) as wheel:
         wheel.extractall(installed)
@@ -113,5 +136,44 @@ def test_round028_sdist_and_installed_wheel_keep_both_experiment_contracts(tmp_p
     code = "from oeis_learn.experiments.source_snapshot import source_snapshot; import json; print(json.dumps(source_snapshot()))"
     installed_snapshot = json.loads(subprocess.check_output(
         [sys.executable, "-c", code], cwd=tmp_path, env={**os.environ, "PYTHONPATH": str(installed)}))
-    for source in resources.values():
-        assert installed_snapshot[source] == snapshot[source]
+    assert installed_snapshot == snapshot
+    assert collect_snapshot(sdist) == snapshot
+    from oeis_learn.generalization.progressive.contracts import digest
+    from oeis_learn.pipeline_validation.progressive_velocity_runtime import BOOTSTRAP, wheel_sources
+    import pytest
+
+    (original,) = tmp_path.glob("*.whl")
+    fingerprint = digest(installed_snapshot)
+    assert wheel_sources(original, fingerprint) == installed_snapshot
+    subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-B",
+            str(root / BOOTSTRAP),
+            "check",
+            str(original),
+            file_digest(original.read_bytes()),
+            fingerprint,
+        ],
+        check=True,
+        cwd=tmp_path,
+    )
+    if shutil.which("uv"):
+        import venv
+
+        # Mirror the unseeded interpreter used by the construction CI shard.
+        clean = tmp_path / "without-pip"
+        venv.EnvBuilder(with_pip=False).create(clean)
+        subprocess.run(
+            [str(clean / "bin/python"), "-I", "-B", str(root / BOOTSTRAP), "check",
+             str(original), file_digest(original.read_bytes()), fingerprint],
+            check=True, cwd=tmp_path,
+        )
+    changed = tmp_path / "tampered" / original.name
+    changed.parent.mkdir()
+    with zipfile.ZipFile(original) as old, zipfile.ZipFile(changed, "w") as new:
+        for name in old.namelist():
+            new.writestr(name, b"# replaced" if name == BOOTSTRAP[4:] else old.read(name))
+    with pytest.raises(ValueError, match="wheel member differs"):
+        wheel_sources(changed, fingerprint)

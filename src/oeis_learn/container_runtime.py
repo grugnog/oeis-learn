@@ -9,6 +9,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -131,14 +132,75 @@ class Engine:
         )
         return normalized_image(result.stdout.decode())
 
-    def build(self, root, *, target="gpu", tag="oeis-learn:gpu", base_image=None, seconds=3600):
+    def build(
+        self,
+        root,
+        *,
+        target="gpu",
+        tag="oeis-learn:gpu",
+        base_image=None,
+        seconds=3600,
+        evidence=None,
+        iidfile=None,
+        check_resources=None,
+    ):
         if type(seconds) is not int or not 1 <= seconds <= 86400:
             raise ValueError("finite image-build deadline required")
         args = ["build", "--target", target, "--tag", tag]
         if base_image:
             args += ["--build-arg", "GPU_BASE_IMAGE=" + base_image]
-        self.call([*args, str(Path(root).resolve())], timeout=seconds)
-        return self.image(tag)
+        if iidfile is not None:
+            args += ["--iidfile", str(iidfile)]
+        if check_resources is not None and evidence is None:
+            raise ValueError("a monitored image build requires supervisor evidence")
+        # Podman can print build steps on stdout. Host commands reserve it for their result.
+        args.append(str(Path(root).resolve()))
+        if evidence is None:
+            self.call(args, timeout=seconds, stdout=sys.stderr)
+        else:
+            from contextlib import redirect_stdout
+            from .pipeline_validation.identity import write
+            from .pipeline_validation.supervision import launch, log_tail
+
+            evidence = Path(evidence)
+            monitor = {"check_resources": check_resources} if check_resources is not None else {}
+            try:
+                with redirect_stdout(sys.stderr):
+                    launch(
+                        [self.executable, *args],
+                        evidence,
+                        seconds=seconds,
+                        stream_cap=65536,
+                        cleanup_seconds=120,
+                        **monitor,
+                    )
+            except RuntimeError as exc:
+                tail = log_tail(evidence, "stderr") or log_tail(evidence, "stdout")
+                raise RuntimeError(f"Image build failed: {tail or exc}") from exc
+            finally:
+                path = evidence / "process.json"
+                if path.is_file():
+                    process = json.loads(path.read_bytes())
+                    # A normally returned local Podman build and its reaped process
+                    # group have stopped. A lost client cannot settle remote work.
+                    local = self.name == "podman" and (
+                        (self.details or {}).get("host", {}).get("serviceIsRemote") is False
+                    )
+                    rc = process["returncode"]
+                    stopped = process["cleanup_failure"] is None and (
+                        process["outcome"] == "COMPLETE"
+                        or local
+                        and type(rc) is int
+                        and rc > 0
+                        and (process["failure"] or "").startswith(f"RuntimeError: exit {rc}:")
+                    )
+                    write(
+                        evidence / "cleanup.json", dict(acknowledged=stopped, within_bound=stopped)
+                    )
+        image = self.image(tag)
+        if iidfile is not None and normalized_image(Path(iidfile).read_text()) != image:
+            raise ValueError("built image ID differs from the inspected tag")
+        return image
 
     def user_args(self):
         if self.name == "docker":

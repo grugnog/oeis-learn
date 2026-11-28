@@ -1,3 +1,4 @@
+import json
 import subprocess
 from unittest.mock import Mock, patch
 
@@ -6,6 +7,49 @@ import pytest
 from oeis_learn.container_runtime import Engine, normalized_image
 
 IMAGE = "sha256:" + "a" * 64
+
+
+def test_build_progress_does_not_corrupt_the_host_json_result(tmp_path, capfd):
+    engine_cli = tmp_path / "engine"
+    engine_cli.write_text(
+        "#!/bin/sh\n"
+        'if [ "$1" = build ]; then\n'
+        "  echo '[1/2] STEP 1/3: FROM base'\n"
+        "  echo 'build warning' >&2\n"
+        f"else\n  echo '{IMAGE}'\nfi\n"
+    )
+    engine_cli.chmod(0o700)
+    engine = Engine("podman", executable=str(engine_cli))
+    print(json.dumps({"image": engine.build(tmp_path)}))
+    out, err = capfd.readouterr()
+    assert json.loads(out) == {"image": IMAGE}
+    assert "[1/2] STEP" in err and "build warning" in err
+
+
+def test_monitored_build_checks_the_supervised_image_id_and_rechecks_storage(tmp_path):
+    engine_cli = tmp_path / "podman"
+    engine_cli.write_text(
+        "#!/bin/sh\n"
+        'if [ "$1" = build ]; then\n'
+        '  while [ "$1" != --iidfile ]; do shift; done\n'
+        f'  echo {IMAGE} > "$2"\n'
+        "  sleep 1.25\n"
+        f"else echo {IMAGE}; fi\n"
+    )
+    engine_cli.chmod(0o700)
+    engine = Engine("podman", executable=str(engine_cli), details={"host": {"serviceIsRemote": False}})
+    observations = []
+    evidence = tmp_path / "image-build"
+    iid = evidence / "image-id"
+    assert engine.build(tmp_path, seconds=8, evidence=evidence, iidfile=iid,
+                        check_resources=lambda: observations.append(True)) == IMAGE
+    assert len(observations) >= 2 and normalized_image(iid.read_text()) == IMAGE
+    assert json.loads((evidence / "cleanup.json").read_bytes())["acknowledged"] is True
+    with patch.object(engine, "image", return_value="sha256:" + "b" * 64), pytest.raises(
+        ValueError, match="built image ID differs"
+    ):
+        other = tmp_path / "second"
+        engine.build(tmp_path, seconds=8, evidence=other, iidfile=other / "image-id")
 
 
 @pytest.mark.parametrize("name", ["docker", "podman"])
@@ -153,3 +197,27 @@ def test_explicit_readonly_files_preserve_mount_and_network_boundary(tmp_path, n
     os.mkfifo(pipe)
     with pytest.raises(ValueError, match='read-only regular file'):
         engine.command(**dict(args, mounts=[(pipe, '/work/inputs/original.json', False)]))
+
+
+@pytest.mark.parametrize("remote", [False, True])
+def test_recorded_build_keeps_log_tails_and_requires_local_termination(tmp_path, remote):
+    engine_cli = tmp_path / "podman"
+    engine_cli.write_text(
+        "#!/bin/sh\n"
+        "python3 -c 'print(\"x\" * 100000)'\n"
+        "echo 'fixture final build step'\n"
+        "echo 'fixture layer could not be committed' >&2\n"
+        "exit 125\n"
+    )
+    engine_cli.chmod(0o700)
+    engine = Engine(
+        "podman", executable=str(engine_cli), details={"host": {"serviceIsRemote": remote}}
+    )
+    evidence = tmp_path / "build-logs"
+    with pytest.raises(RuntimeError, match="fixture layer could not be committed"):
+        engine.build(tmp_path, seconds=10, evidence=evidence)
+    process = json.loads((evidence / "process.json").read_bytes())
+    assert process["returncode"] == 125 and process["cleanup_failure"] is None
+    assert "fixture final build step" in (evidence / "stdout.log").read_text()
+    assert (evidence / "stdout.log").stat().st_size <= 65536
+    assert json.loads((evidence / "cleanup.json").read_bytes())["acknowledged"] == (not remote)

@@ -81,17 +81,21 @@ class ExposureIndex:
             if path.is_symlink() or not path.is_file():
                 raise ValueError('original exposure index required')
             self.db = sqlite3.connect(path.resolve().as_uri() + '?mode=ro', uri=True)
+            self.relation_index = self.db.execute('PRAGMA user_version').fetchone()[0] == 29
             return
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         if path.exists():
             if not resume or path.is_symlink() or path.stat().st_size>8<<30:
                 raise ValueError('fresh exposure index required')
             self.db=sqlite3.connect(path)
+            self.relation_index = self.db.execute('PRAGMA user_version').fetchone()[0] == 29
             if (self.db.execute('PRAGMA quick_check').fetchone()[0]!='ok'
                     or {r[0] for r in self.db.execute("SELECT name FROM sqlite_master WHERE type='table'")}!={'keys','origins'}):
                 self.db.close();raise ValueError('original exposure index recovery schema differs')
             return
         self.db = sqlite3.connect(path)
+        self.relation_index = True
+        self.db.execute('PRAGMA user_version=29')
         self.db.execute('PRAGMA journal_mode=DELETE')
         self.db.execute('PRAGMA cache_size=-32768')
         page_size = self.db.execute('PRAGMA page_size').fetchone()[0]
@@ -131,12 +135,47 @@ class ExposureIndex:
                 result.add((field, digest(row[field])))
         return sorted(result)
 
+    @staticmethod
+    def relations(row):
+        from oeis_learn.generalization.progressive.generator import structure_id
+        from oeis_learn.generalization.progressive.prepared_panels import composition
+
+        if row.get("source"):
+            structure = structure_id(row["source"])
+            if row.get("structure") not in (None, structure):
+                raise ValueError("declared exposure structure differs from source")
+            shape = composition(dict(row, stratum=row.get("stratum")), allow_parameters=True)
+        else:
+            structure, shape = row.get("structure"), row.get("composition")
+        return {kind: value for kind, value in (("structure", structure), ("composition", shape))
+                if value is not None}
+
+    def velocity_match(self, keys, relations, *, allows_parameter):
+        """A transfer exception requires provenance from the historical endpoint as well."""
+        keys = {(k, v) for k, v in keys if k != "structure"}
+        if not self.relation_index:
+            if self.matching_keys(keys):
+                return "excluded"
+            if self.db.execute("SELECT 1 FROM origins LIMIT 1").fetchone():
+                return "unavailable"
+            return None
+        prefix = "029:protected:" if allows_parameter else "029:all:"
+        keys.update((prefix + kind, value) for kind, value in relations.items())
+        return "excluded" if self.matching_keys(keys) else None
+
     def add(self, row, *, origin, role):
         if self.readonly:
             raise ValueError('original exposure index is immutable')
         if role not in {'training', 'development', 'confirmation', 'assessment'}:
             raise ValueError('explicit original exposure role required')
-        self.db.executemany('INSERT OR IGNORE INTO keys VALUES (?,?)', self.keys(row))
+        keys = self.keys(row)
+        if self.relation_index:
+            relations = self.relations(row)
+            keys.extend(("029:all:" + kind, value) for kind, value in relations.items())
+            if row.get("stratum") not in {"parameter", "retention"}:
+                keys.extend(("029:protected:" + kind, value) for kind, value in relations.items())
+            keys.extend(("029:declared", digest(group)) for group in row.get("declared_groups", ()))
+        self.db.executemany('INSERT OR IGNORE INTO keys VALUES (?,?)', keys)
         self.db.execute('INSERT INTO origins VALUES (?,1) ON CONFLICT(name) DO UPDATE SET rows=rows+1', (origin,))
 
     def matching_keys(self, keys):
@@ -155,7 +194,7 @@ class ExposureIndex:
     def summary(self):
         origins = dict(self.db.execute('SELECT name,rows FROM origins ORDER BY name'))
         return dict(rows=sum(origins.values()), origins=origins,
-                    keys=dict(self.db.execute('SELECT kind,count(*) FROM keys GROUP BY kind')),
+                    keys=dict(self.db.execute("SELECT kind,count(*) FROM keys WHERE kind NOT LIKE '029:%' GROUP BY kind")),
                     detector_limits='exact 100-term behavior, all 20-term windows, canonical structure and original identities; no all-domain equivalence claim')
 
 

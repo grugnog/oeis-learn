@@ -162,3 +162,117 @@ def capacity(area, host, checkpoint_bytes, *, scale, share, cached, measure, out
             deficit_inodes=max(0, record["required_inodes"] - record["free_inodes"]),
         )
     return list(required.values())
+
+
+def owned_allocations(paths):
+    """Physical allocations for one owner, counting overlapping paths and hard links once."""
+    import stat
+    from itertools import chain
+
+    seen = set()
+    total = 0
+    for root in paths:
+        for path in chain((root,), root.rglob("*")) if root.is_dir() else (root,):
+            info = path.lstat()
+            if stat.S_ISLNK(info.st_mode):
+                raise ValueError("physical allocation alias")
+            key = info.st_dev, info.st_ino
+            if key not in seen:
+                total += info.st_blocks * 512
+                seen.add(key)
+    return dict(bytes=total, inodes=len(seen))
+
+
+def mount_demand(*, available, reserve, pending):
+    """Only incremental simultaneous writers compete with the actual free space."""
+    from oeis_learn.generalization.budgets import integer
+
+    out = {}
+    for unit in ("bytes", "inodes"):
+        need = sum(integer(row[unit]) for row in pending)
+        free, floor = integer(available[unit]), integer(reserve[unit])
+        out.update({f"available_{unit}": free, f"required_{unit}": need, f"reserved_{unit}": floor,
+                    f"deficit_{unit}": max(0, need + floor - free)})
+    return out
+
+
+def _mount_space(path):
+    import os
+
+    fs = os.statvfs(path)
+    return path.stat().st_dev, fs.f_bavail * fs.f_frsize, fs.f_favail
+
+
+def velocity_mounts(root, owners, floors, *, measure=_mount_space):
+    """Price concurrent owner peaks at their destination, with only authenticated same-mount credit."""
+    from oeis_learn.generalization.budgets import integer
+    from .progressive_research_inputs import checked_file
+    from .progressive_research_resources import velocity_guard
+
+    mounts, occupied, seen, reserved_mounts = {}, {}, set(), set()
+
+    def backing(name):
+        # A planned directory can be absent. Its closest existing ancestor owns the new writes.
+        path = confined(root, name, exists=False)
+        while not path.exists():
+            path = path.parent
+        dev, size, nodes = measure(path)
+        if dev not in mounts:
+            mounts[dev] = dict(
+                device=dev,
+                available=dict(bytes=size, inodes=nodes),
+                reserve=dict(bytes=0, inodes=0),
+                pending=[],
+                owners=[],
+            )
+            occupied[dev] = {}
+        else:
+            for unit, value in (("bytes", size), ("inodes", nodes)):
+                mounts[dev]["available"][unit] = min(mounts[dev]["available"][unit], value)
+        return mounts[dev]
+
+    for floor in floors:
+        m = backing(floor["path"])
+        reserved_mounts.add(m["device"])
+        for unit in ("bytes", "inodes"):
+            m["reserve"][unit] = max(m["reserve"][unit], integer(floor[unit]))
+    for owner in owners:
+        if owner["owner"] in seen or not re.fullmatch(r"[0-9a-f]{40}", owner["revision"]):
+            raise ValueError("unique storage owner and immutable source revision required")
+        seen.add(owner["owner"])
+        m = backing(owner["path"])
+        if m["device"] not in reserved_mounts:
+            raise ValueError("explicit byte and inode reserve required on each owner mount")
+        resident = {}
+        for ref in owner["retained"]:
+            path = checked_file(root, ref)
+            if measure(path.parent)[0] != m["device"]:
+                continue
+            st = path.stat()
+            resident[st.st_dev, st.st_ino] = st.st_blocks * 512
+        occupied[m["device"]].update(resident)
+        credit = dict(bytes=sum(resident.values()), inodes=len(resident))
+        basis = {
+            k: owner[k] for k in ("owner", "scope", "revision", "harm", "exhaustion", "rehearsal")
+        }
+        guards = [
+            velocity_guard(
+                units=u, observed=owner["observed"][u], projected=owner["projected"][u], **basis
+            )
+            for u in ("bytes", "inodes")
+        ]
+        pending = {g["units"]: max(0, g["value"] - credit[g["units"]]) for g in guards}
+        m["pending"].append(pending)
+        m["owners"].append(
+            dict(owner=owner["owner"], guards=guards, retained=credit, incremental=pending)
+        )
+    return [
+        dict(
+            device=dev,
+            owners=m["owners"],
+            retained_bytes=sum(occupied[dev].values()),
+            retained_inodes=len(occupied[dev]),
+            **mount_demand(available=m["available"], reserve=m["reserve"], pending=m["pending"]),
+        )
+        for dev, m in sorted(mounts.items())
+    ]

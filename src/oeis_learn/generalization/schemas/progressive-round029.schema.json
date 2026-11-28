@@ -1,0 +1,554 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "progressive-round029.schema.json",
+  "$defs": {
+    "grant": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "round029-grant/v1"
+        },
+        "study_id": {
+          "const": "016-research-round-029"
+        },
+        "registration_or_parent_ref": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "controller_ref": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "scope": {
+          "enum": [
+            "qualification",
+            "cpu",
+            "exploration",
+            "confirmation"
+          ]
+        },
+        "state_root_id": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "allowed_operations": {
+          "type": "array",
+          "items": {
+            "$ref": "progressive-common.schema.json#/$defs/text"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "total_us": {
+          "$ref": "progressive-common.schema.json#/$defs/integer"
+        },
+        "holdback_us": {
+          "$ref": "progressive-common.schema.json#/$defs/integer"
+        },
+        "resources": {
+          "$ref": "progressive-common.schema.json#/$defs/caps"
+        },
+        "authorizing_record_ref": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "identity": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        }
+      },
+      "required": [
+        "version",
+        "study_id",
+        "registration_or_parent_ref",
+        "scope",
+        "state_root_id",
+        "allowed_operations",
+        "total_us",
+        "holdback_us",
+        "resources",
+        "authorizing_record_ref",
+        "identity"
+      ],
+      "additionalProperties": false
+    },
+    "operation": {
+      "type": "object",
+      "properties": {
+        "study": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
+        "stage": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "method": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "seed": {
+          "$ref": "progressive-common.schema.json#/$defs/integer"
+        },
+        "look": {
+          "$ref": "progressive-common.schema.json#/$defs/integer"
+        },
+        "panel": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "profile": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "input_mode": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "role": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "ordinal": {
+          "$ref": "progressive-common.schema.json#/$defs/integer"
+        }
+      },
+      "required": [
+        "study",
+        "stage",
+        "method",
+        "seed",
+        "look",
+        "panel",
+        "profile",
+        "input_mode",
+        "role",
+        "ordinal"
+      ],
+      "additionalProperties": false
+    },
+    "result_field": {
+      "enum": [
+        "version",
+        "action",
+        "session_id",
+        "mechanical_status",
+        "scientific_verdict",
+        "last_committed_ref",
+        "remaining_authority",
+        "next_action",
+        "reason",
+        "first_error"
+      ]
+    },
+    "diagnostic": {
+      "type": "object",
+      "properties": {
+        "error": {"type": "string", "minLength": 1},
+        "stage": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1},
+        "attempt": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "capacity": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "attempt_path": {"$ref": "progressive-common.schema.json#/$defs/path"},
+        "exit": {"oneOf": [{"type": "integer"}, {"type": "null"}]},
+        "deficit_bytes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "deficit_inodes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "identity": {"$ref": "progressive-common.schema.json#/$defs/hash"}
+      },
+      "required": ["error", "stage", "reason"],
+      "additionalProperties": false
+    },
+    "unmeasured_supply": {
+      "type": "object",
+      "properties": {"count": {"type": "null"}, "reason": {"type": "string", "minLength": 1}},
+      "required": ["count", "reason"],
+      "additionalProperties": false
+    },
+    "family_supply": {
+      "type": "object",
+      "properties": {
+        "count": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "by_role": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "cases": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+                "families": {"$ref": "progressive-common.schema.json#/$defs/integer"}
+              },
+              "required": ["cases", "families"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "eligible_cases": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "eligible_components": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "excluded_cases": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "deficits": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {"$ref": "progressive-common.schema.json#/$defs/integer"}
+          }
+        },
+        "provenance_reason": {"oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]},
+        "provenance_unavailable": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "registration": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "measurement": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "reason": {"type": "null"}
+      },
+      "required": [
+        "count",
+        "by_role",
+        "eligible_cases",
+        "eligible_components",
+        "excluded_cases",
+        "deficits",
+        "provenance_unavailable",
+        "provenance_reason",
+        "registration",
+        "measurement",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "pair_supply": {
+      "type": "object",
+      "properties": {
+        "count": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "eligible_families": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "positive_rows": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "excluded_rows": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "dispositions": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {"$ref": "progressive-common.schema.json#/$defs/integer"}
+        },
+        "registration": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "measurement": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "reason": {"type": "null"}
+      },
+      "required": [
+        "count",
+        "eligible_families",
+        "positive_rows",
+        "excluded_rows",
+        "dispositions",
+        "registration",
+        "measurement",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "inventory": {
+      "type": "object",
+      "properties": {
+        "archives": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "assessment": {"const": "sealed"},
+        "cuts": {"type": "array", "items": {"type": "object", "properties": {}, "additionalProperties": {}}},
+        "historical_scores": {"type": "array", "items": {"type": "object", "properties": {}, "additionalProperties": {}}},
+        "original_clocks": {},
+        "reuse": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "gpu_dispatches": {"const": 0},
+        "stream": {"oneOf": [{"type": "object", "properties": {}, "additionalProperties": {}}, {"type": "null"}]},
+        "families": {"oneOf": [{"$ref": "#/$defs/unmeasured_supply"}, {"$ref": "#/$defs/family_supply"}]},
+        "matching_pairs": {"oneOf": [{"$ref": "#/$defs/unmeasured_supply"}, {"$ref": "#/$defs/pair_supply"}]},
+        "prices": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "trial_preparation": {
+          "type": "object",
+          "properties": {
+            "accepted": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+            "registration": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+            "receipt": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+            "sources": {
+              "type": "object",
+              "propertyNames": {"enum": ["fresh", "checkpoint", "controls", "paired", "bank", "accounting"]},
+              "required": ["fresh", "checkpoint", "controls", "paired", "bank", "accounting"],
+              "additionalProperties": {"$ref": "progressive-common.schema.json#/$defs/hash"}
+            },
+            "supported": {"const": ["00", "04", "05", "06"]},
+            "proposed_total_us": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "research_authority": {"type": "null"}
+          },
+          "required": ["accepted", "registration", "receipt", "sources", "supported", "proposed_total_us", "research_authority"],
+          "additionalProperties": false
+        },
+        "trial_preparation_error": {"type": "string", "minLength": 1},
+        "new_positive_tokens_before_overshoot_if_control_reusable": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "capacity": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "mount": {
+          "type": "object",
+          "properties": {
+            "device": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "reserved_bytes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "reserved_inodes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "deficit_bytes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "deficit_inodes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "available_bytes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "available_inodes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "required_bytes": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},
+            "required_inodes": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},
+            "reason": {"type": "string", "minLength": 1}
+          },
+          "required": ["device", "available_bytes", "available_inodes", "required_bytes", "required_inodes", "reason"],
+          "additionalProperties": false
+        },
+        "reason": {"type": "string", "minLength": 1},
+        "stream_reason": {"type": "string", "minLength": 1},
+        "historical_reservations": {"type": "object", "properties": {}, "additionalProperties": {}}
+      },
+      "required": [
+        "archives",
+        "assessment",
+        "cuts",
+        "historical_scores",
+        "original_clocks",
+        "gpu_dispatches",
+        "stream",
+        "families",
+        "matching_pairs",
+        "prices",
+        "mount",
+        "new_positive_tokens_before_overshoot_if_control_reusable"
+      ],
+      "additionalProperties": false
+    },
+    "result": {
+      "type": "object",
+      "properties": {
+        "version": {"const": "round029-result/v1"},
+        "action": {"enum": ["preflight", "status", "qualify", "cpu", "run", "verify"]},
+        "session_id": {"const": "016-research-round-029"},
+        "mechanical_status": {"enum": ["INSPECTED", "BLOCKED", "COMPLETE", "FAILED", "VERIFIED", "PARTIAL"]},
+        "scientific_verdict": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/text"}, {"type": "null"}]},
+        "last_committed_ref": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/hash"}, {"type": "null"}]},
+        "remaining_authority": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},
+        "next_action": {"$ref": "progressive-common.schema.json#/$defs/text"},
+        "reason": {"type": "string", "minLength": 1},
+        "report_ref": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "verification_scope": {"$ref": "progressive-common.schema.json#/$defs/text"},
+        "first_error": {"$ref": "#/$defs/diagnostic"},
+        "deficit_bytes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "deficit_inodes": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "inventory": {"$ref": "#/$defs/inventory"},
+        "state_root_id": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "qualification_policy": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+        "owner_active": {"type": "boolean"},
+        "progress": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "stage": {"type": "string", "minLength": 1},
+        "recipe": {"oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]},
+        "seed": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},
+        "look": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},
+        "useful_tokens": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "charged_tokens": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "elapsed_us": {"oneOf": [{"$ref": "progressive-common.schema.json#/$defs/integer"}, {"type": "null"}]},
+        "telemetry": {"type": "string", "minLength": 1},
+        "scope": {"type": "string", "minLength": 1},
+        "remaining_tokens": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "research_dispatches": {"const": 0},
+        "operation": {
+          "type": "object",
+          "properties": {
+            "logical": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+            "physical": {"$ref": "progressive-common.schema.json#/$defs/hash"}
+          },
+          "required": ["logical", "physical"],
+          "additionalProperties": false
+        },
+        "attempt": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "reserved_us": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "cleanup_seconds": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+        "receipt": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "receipt_path": {"$ref": "progressive-common.schema.json#/$defs/path"},
+        "qualification_path": {"$ref": "progressive-common.schema.json#/$defs/path"},
+        "diagnostics": {"$ref": "#/$defs/diagnostic"}
+      },
+      "required": [
+        "version",
+        "action",
+        "session_id",
+        "mechanical_status",
+        "scientific_verdict",
+        "last_committed_ref",
+        "remaining_authority",
+        "next_action",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {"action": {"const": "preflight"}, "scientific_verdict": {"type": "null"}},
+          "propertyNames": {
+            "oneOf": [
+              {"$ref": "#/$defs/result_field"},
+              {"enum": ["inventory", "state_root_id", "qualification_policy"]}
+            ]
+          },
+          "oneOf": [
+            {
+              "properties": {"mechanical_status": {"const": "INSPECTED"}},
+              "required": ["inventory", "state_root_id", "qualification_policy"]
+            },
+            {"properties": {"mechanical_status": {"const": "FAILED"}}, "required": ["first_error"]}
+          ]
+        },
+        {
+          "properties": {"action": {"const": "status"}},
+          "propertyNames": {
+            "oneOf": [
+              {"$ref": "#/$defs/result_field"},
+              {
+                "enum": [
+                  "owner_active",
+                  "progress",
+                  "stage",
+                  "recipe",
+                  "seed",
+                  "look",
+                  "useful_tokens",
+                  "charged_tokens",
+                  "elapsed_us",
+                  "telemetry"
+                ]
+              }
+            ]
+          },
+          "oneOf": [
+            {
+              "properties": {"mechanical_status": {"const": "INSPECTED"}},
+              "required": ["owner_active"],
+              "oneOf": [
+                {"required": ["progress"]},
+                {
+                  "required": [
+                    "stage",
+                    "recipe",
+                    "seed",
+                    "look",
+                    "useful_tokens",
+                    "charged_tokens",
+                    "elapsed_us",
+                    "telemetry"
+                  ]
+                }
+              ]
+            },
+            {"properties": {"mechanical_status": {"const": "FAILED"}}, "required": ["first_error"]}
+          ]
+        },
+        {
+          "properties": {"action": {"const": "qualify"}, "scientific_verdict": {"type": "null"}},
+          "propertyNames": {
+            "oneOf": [
+              {"$ref": "#/$defs/result_field"},
+              {
+                "enum": [
+                  "stage",
+                  "scope",
+                  "charged_tokens",
+                  "elapsed_us",
+                  "remaining_tokens",
+                  "research_dispatches",
+                  "cleanup_seconds",
+                  "operation",
+                  "attempt",
+                  "reserved_us",
+                  "receipt",
+                  "receipt_path",
+                  "diagnostics",
+                  "deficit_bytes",
+                  "deficit_inodes"
+                ]
+              }
+            ]
+          },
+          "oneOf": [
+            {"properties": {"mechanical_status": {"const": "BLOCKED"}}},
+            {"properties": {"mechanical_status": {"const": "FAILED"}}, "required": ["first_error"]},
+            {
+              "properties": {"mechanical_status": {"const": "PARTIAL"}},
+              "required": ["operation", "attempt", "reserved_us"]
+            },
+            {
+              "properties": {"mechanical_status": {"const": "COMPLETE"}},
+              "required": ["receipt", "receipt_path"]
+            }
+          ]
+        },
+        {
+          "properties": {"action": {"const": "cpu"}},
+          "propertyNames": {
+            "oneOf": [
+              {"$ref": "#/$defs/result_field"},
+              {
+                "enum": ["stage", "elapsed_us", "diagnostics", "deficit_bytes", "deficit_inodes", "report_ref"]
+              }
+            ]
+          },
+          "oneOf": [
+            {"properties": {"mechanical_status": {"const": "BLOCKED"}}},
+            {"properties": {"mechanical_status": {"const": "FAILED"}}, "required": ["first_error"]},
+            {"properties": {"mechanical_status": {"const": "PARTIAL"}}},
+            {"properties": {"mechanical_status": {"const": "COMPLETE"}}}
+          ]
+        },
+        {
+          "properties": {"action": {"const": "run"}},
+          "propertyNames": {
+            "oneOf": [
+              {"$ref": "#/$defs/result_field"},
+              {
+                "enum": ["stage", "recipe", "look", "seed", "charged_tokens", "elapsed_us", "diagnostics", "deficit_bytes", "deficit_inodes", "report_ref", "receipt_path", "qualification_path"]
+              }
+            ]
+          },
+          "oneOf": [
+            {"properties": {"mechanical_status": {"const": "BLOCKED"}}},
+            {"properties": {"mechanical_status": {"const": "FAILED"}}, "required": ["first_error"]},
+            {"properties": {"mechanical_status": {"const": "PARTIAL"}}},
+            {"properties": {"mechanical_status": {"const": "COMPLETE"}}, "required": ["report_ref"]},
+            {"properties": {"mechanical_status": {"const": "VERIFIED"}}, "required": ["report_ref"]}
+          ]
+        },
+        {
+          "properties": {"action": {"const": "verify"}},
+          "propertyNames": {"oneOf": [{"$ref": "#/$defs/result_field"}, {"enum": ["report_ref", "verification_scope"]}]},
+          "required": ["verification_scope"],
+          "oneOf": [
+            {"properties": {"mechanical_status": {"const": "BLOCKED"}}},
+            {"properties": {"mechanical_status": {"const": "FAILED"}}, "required": ["first_error"]},
+            {"properties": {"mechanical_status": {"const": "VERIFIED"}}, "required": ["report_ref"]}
+          ]
+        }
+      ]
+    },
+    "stored_reference": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "owner": {
+          "$ref": "progressive-common.schema.json#/$defs/text"
+        },
+        "artifact": {
+          "$ref": "progressive-common.schema.json#/$defs/artifact"
+        }
+      },
+      "required": [
+        "format",
+        "owner",
+        "artifact"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/grant"
+    },
+    {
+      "$ref": "#/$defs/operation"
+    },
+    {
+      "$ref": "#/$defs/result"
+    },
+    {
+      "$ref": "#/$defs/stored_reference"
+    }
+  ]
+}

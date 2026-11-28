@@ -355,7 +355,7 @@ def linear_recurrence(prompt, *, max_order=2, coefficient_bits=4096):
     return None
 
 
-def iter_candidates(method, prompt, portfolio):
+def iter_candidates(method, prompt, portfolio, *, deadline=None):
     """Drainable visible-only sources under one prospectively fixed allowance.
 
     The caller fits/drains each yielded candidate before requesting another.
@@ -376,6 +376,8 @@ def iter_candidates(method, prompt, portfolio):
         raise ValueError("model candidates require the installed generator")
     for source in sources:
         began = time.monotonic()
+        if deadline is not None and began >= deadline:
+            break
         try:
             portfolio.reserve(method)
         except TimeoutError:

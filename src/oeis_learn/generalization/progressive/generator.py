@@ -113,3 +113,61 @@ def draw(policy, ordinal):
         "draw_identity": digest([digest(p), ordinal]),
         "detector_limit": "structural normalization and finite 100-term signatures do not prove semantic independence",
     }
+
+
+def draw_exclusion(row, law):
+    if row["structure"] in law["forbidden_structures"]:
+        return "held_out_structure"
+    if row["behavior"] in law["forbidden_behaviors"]:
+        return "finite_behavior_exclusion"
+    if law["forbidden_prefixes"] and any(
+        digest(row["values"][i:i + 20]) in law["forbidden_prefixes"] for i in range(81)
+    ):
+        return "finite_prefix_or_shift_exclusion"
+    return None
+
+
+def broader_stream(slots, support, *, seed, ordinary_ref=None):
+    """Preserve exact token length and difficulty. A deficient band retains its ordinary slot."""
+    from collections import Counter, defaultdict
+    from .contracts import seal
+    from .trials import integer
+
+    def describe(sequence):
+        counts = Counter(r["composition"] for r in sequence)
+        tokens = sum(integer(r["tokens"], 1) for r in sequence)
+        return dict(tokens=tokens, distinct=len(counts), frequencies=dict(counts),
+                    per_million=len(counts)*1_000_000/tokens if tokens else None,
+                    bands=dict(Counter(r["band"] for r in sequence)),
+                    lengths=dict(Counter(str(r["tokens"]) for r in sequence)))
+
+    by_band = defaultdict(lambda:defaultdict(list))
+    for row in support:
+        if not row["familiar"]:
+            by_band[row["tokens"], row["band"]][row["composition"]].append(row)
+    for families in by_band.values():
+        for group in families.values():
+            group.sort(key=lambda r: digest([seed, r["draw"]]))
+    usage = Counter()
+    members = Counter()
+    selected = []
+    short = 0
+    for slot in slots:
+        chosen = slot
+        if not slot["familiar"]:
+            key = slot["tokens"], slot["band"]
+            options = by_band[key]
+            if options:
+                family = min(options, key=lambda f: (usage[key, f], digest([seed, key, f])))
+                options_for_family = options[family]
+                chosen = options_for_family[members[key,family] % len(options_for_family)]
+                members[key,family] += 1
+            else:
+                short += 1
+        usage[(chosen["tokens"], chosen["band"]), chosen["composition"]] += 1
+        selected.append(chosen)
+    ordinary, broad = describe(slots), describe(selected)
+    parent = {} if ordinary_ref is None else dict(ordinary_ref=ordinary_ref, slot_order=digest([r["draw"] for r in slots]))
+    return seal(dict(version="round029-broad-stream/v1", seed=seed, ordinary=ordinary, broad=broad, **parent,
+                     spill="retain_ordinary_slot", shortage=short, order=[r["draw"] for r in selected],
+                     available=broad["distinct"] > ordinary["distinct"]))

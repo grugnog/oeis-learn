@@ -444,14 +444,21 @@ def initializer_origin(root, initializer, *, track, purpose):
     return read(initializer["origin"]), list(refs.values())
 
 
-def learned_search_policy():
+def _feature_policy(feature, filename):
     from importlib.resources import files
     from pathlib import Path
 
-    filename = "learned-program-search.json"
     source = Path(__file__).resolve().parents[4] / "configs/foundation/progressive" / filename
-    resource = files(__package__).joinpath("contracts", "015-learned-program-search", filename)
+    resource = files(__package__).joinpath("contracts", feature, filename)
     return json.loads((source if source.is_file() else resource).read_text())
+
+
+def learned_search_policy():
+    return _feature_policy("015-learned-program-search", "learned-program-search.json")
+
+
+def velocity_policy():
+    return _feature_policy("016-measure-learning-velocity", "learning-velocity.json")
 
 
 def diagnostic_registration(revision):
@@ -476,3 +483,68 @@ def validate_diagnostic_registration(value):
         raise ValueError("diagnostic registration differs from the candidate policy")
     validate_profile(value["policy"]["profile"])
     return value
+
+
+
+def velocity_registration(*, source, design, development, retention, initialization, stream_seed,
+                          ordinary, broad, scope="exploration", parent=None, finalist=None, training_start=None):
+    """Freeze the study inputs before issuing any look. Funding is a separate record."""
+    import re
+    from .contracts import _check, digest, schema, seal
+    from .graph import velocity_look
+    from .metrics import _seed
+
+    policy = velocity_policy()
+    for ref in (design, ordinary, *([broad] if broad is not None else [])):
+        _check(schema("common")["$defs"]["hash"], ref, {})
+    _seed(initialization)
+    _seed(stream_seed)
+    if not isinstance(source, str) or not re.fullmatch(r"[0-9a-f]{40}", source):
+        raise ValueError("immutable candidate Git revision required")
+    row_ids = [r["id"] for r in policy["recipes"]]
+    if scope == "exploration":
+        if parent is not None or finalist is not None:
+            raise ValueError("exploration must use the registered predecessor")
+    elif scope in {"paired_extension", "confirmation"}:
+        if (not isinstance(parent, dict) or parent != seal(parent)
+                or set(parent) != {"version", "registration", "state", "evidence", "identity"}
+                or parent.get("version") != "round029-study-boundary/v1"
+                or parent.get("state") not in {"closed", "resumable"} or finalist not in row_ids[1:]):
+            raise ValueError("closed or resumable parent and registered finalist required")
+        for key in ("registration", "evidence"):
+            _check(schema("common")["$defs"]["hash"], parent[key], {})
+    else:
+        raise ValueError("unknown study scope")
+    start = {}
+    if training_start is not None:
+        from .velocity_trials import validate_study_start
+        validate_study_start(training_start, initialization, stream_seed, ordinary, broad)
+        if scope == "paired_extension":
+            raise ValueError("paired extension must continue its original training state")
+        if scope == "confirmation" and (
+            training_start["mode"] != "fresh_shared_control" or training_start["origin"]["pair"] != 1
+        ):
+            raise ValueError("confirmation requires the prepared independent paired start")
+        start["training_start"] = training_start
+    if scope == "confirmation" and training_start is None:
+        raise ValueError("confirmation requires authenticated ordinary and finalist streams")
+    panels = dict(development=development, retention=retention)
+    velocity_look(registration=design, method="00", seed=initialization, profile="full",
+                  look=4_000_000, **panels)
+    if {r["group"] for r in development} & {r["group"] for r in retention}:
+        raise ValueError("retention families must be disjoint")
+    return seal(dict(version="round029-study/v1", session=policy["session_id"], policy=digest(policy),
+                     predecessor=learned_search_policy()["campaign"], source=source, design=design,
+                     scope=scope, parent=parent, parent_ref=parent["registration"] if parent else None,
+                     finalist=finalist, development=development, retention=retention, panel_ref=digest(panels),
+                     initialization=initialization, stream_seed=stream_seed, ordinary=ordinary, broad=broad, **start))
+
+
+def validate_velocity_registration(registration):
+    keys = ("source", "design", "development", "retention", "initialization", "stream_seed",
+            "ordinary", "broad", "scope", "parent", "finalist")
+    if "training_start" in registration:
+        keys = (*keys, "training_start")
+    if velocity_registration(**{k: registration[k] for k in keys}) != registration:
+        raise ValueError("frozen velocity study differs")
+    return registration

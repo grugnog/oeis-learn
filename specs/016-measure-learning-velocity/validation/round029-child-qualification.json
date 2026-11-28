@@ -1,0 +1,34 @@
+{
+  "candidate": "a89af7fe820138a925090e340bbfeef45094adb7",
+  "receipt": "sha256:2ee4df2b9d89996ec6e8c4353c93fd59d0bc85e5ec8edbe2783b3e7e4232f7a6",
+  "children": {
+    "16": {
+      "parent": "sha256:5195e0048b981b941c8fa37fa496b929d66e688487876b4d82176bcfaff177e5",
+      "checkpoint": "sha256:5a83405d6b218a9f8f9950205adafc6ac8a72e32613403a9ed0e14b10d12012a",
+      "useful_tokens": 600,
+      "charged_tokens": 800,
+      "discarded_tokens": 200,
+      "incremental_charged_tokens": 209,
+      "horizon": 8000000,
+      "verified_replays": 2
+    },
+    "32": {
+      "parent": "sha256:c55923401e36cfce63b73575583f721465871f6fb49d5f122682a9fde976d6e2",
+      "checkpoint": "sha256:263be09f2c20a0bc1491941eca24a1d9cd7925642d9468a42e1d71d8558f06aa",
+      "useful_tokens": 1191,
+      "charged_tokens": 1591,
+      "discarded_tokens": 400,
+      "incremental_charged_tokens": 400,
+      "horizon": 8000000,
+      "verified_replays": 2
+    }
+  },
+  "charged_tokens": 4182,
+  "elapsed_us": 378528890,
+  "remaining_us": 821471110,
+  "lease_us": 330846476,
+  "peak_device_bytes": 4250619904,
+  "verified_replays": 2,
+  "research_dispatches": 0,
+  "scientific_verdict": null
+}

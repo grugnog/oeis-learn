@@ -42,6 +42,23 @@ ROLE_POLICY = digest(
         for name, v in REGISTRY.items()
     }
 )
+# Keep the historical role-policy digest addressable by 013/028 receipts.
+ROUND029_ROLES = MappingProxyType({
+    "train": Operation("learner", ("training",), True),
+    "teacher": Operation("teacher", ("training",)),
+    "oracle": Operation("oracle", ("visible", "skeleton")),
+    "search": Operation("proposer", ("visible", "guide")),
+    "generate": Operation("generator", ("visible", "model"), True),
+    "select": Operation("selector", ("visible", "admissions")),
+    "score": Operation("scorer", ("choices", "score_truth")),
+    "bank": Operation("auditor", ("sealed_bank", "score_truth")),
+})
+ROUND029_ROLE_POLICY = digest({
+    name: {"role": v.role, "channels": list(v.channels), "gpu": v.gpu}
+    for name, v in ROUND029_ROLES.items()
+})
+
+
 IMPLEMENTED = frozenset(
     {
         "source-pilot",

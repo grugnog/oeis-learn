@@ -7,6 +7,18 @@ import subprocess
 import time
 
 
+def log_tail(directory, stream, *, limit=2048):
+    """Return the end of a retained supervisor stream without reading an unbounded log."""
+    if stream not in ("stdout", "stderr"):
+        raise ValueError("unknown supervisor stream")
+    path = Path(directory) / (stream + ".log")
+    if not path.is_file() or path.is_symlink():
+        return ""
+    with path.open("rb") as body:
+        body.seek(max(0, os.fstat(body.fileno()).st_size - limit))
+        return body.read(limit).decode("utf-8", errors="replace").strip()
+
+
 def diagnostic_program(body, label):
     """Wrap installed code with progress only; never walk another thread's frames.
 
@@ -45,7 +57,7 @@ def _live_process_group(group):
 
 
 def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartbeat=30,
-           cleanup_state=None, grace_seconds=None,allowed_returncodes=(0,)):
+           cleanup_state=None, grace_seconds=None, allowed_returncodes=(0,), check_resources=None):
     output=Path(output); output.mkdir(parents=True,exist_ok=True)
     start=time.monotonic();next_beat=start+heartbeat
     process=None;omitted={'stdout':0,'stderr':0}
@@ -56,6 +68,9 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
     write(output/'command.json',dict(argv=list(argv),seconds=seconds,stream_cap=stream_cap,cleanup_seconds=cleanup_seconds))
     interrupted=False
     try:
+        if check_resources is not None:
+            check_resources()
+        next_check = start + 1
         process=subprocess.Popen(argv,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
         with selectors.DefaultSelector() as selector:
             for name, pipe in [('stdout',process.stdout),('stderr',process.stderr)]:
@@ -65,6 +80,9 @@ def launch(argv, output, *, seconds, stream_cap=8<<20, cleanup_seconds=5, heartb
                 now=time.monotonic()
                 if now-start>=seconds:
                     raise TimeoutError('external deadline: '+str(argv))
+                if check_resources is not None and now >= next_check:
+                    check_resources()
+                    next_check = now + 1
                 if now>=next_beat:
                     print(f'  running {now-start:.1f}s; remaining {seconds-(now-start):.1f}s; logs {output}',flush=True)
                     next_beat=now+heartbeat

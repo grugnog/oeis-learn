@@ -47,14 +47,16 @@ def should_prune(*, value, coordinate, references, control=False):
 
 
 class TrialJournal:
-    def __init__(self, root, *, study, token_cap=4000000, elapsed_cap_us=7200000000,provenance_root=None):
+    def __init__(self, root, *, study, token_cap=4000000, elapsed_cap_us=7200000000,provenance_root=None, readonly=False):
         if not isinstance(study, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", study) is None:
             raise ValueError("sealed study identity required")
         self.root = Path(root)
+        self.readonly = readonly
         self.provenance_root=Path(provenance_root) if provenance_root is not None else self.root
         if self.root.is_symlink():
             raise ValueError("journal symlink")
-        self.root.mkdir(parents=True, exist_ok=True)
+        if not readonly:
+            self.root.mkdir(parents=True, exist_ok=True)
         self.binding = seal(
             {
                 "version": "progressive-trial-journal/v1",
@@ -65,7 +67,7 @@ class TrialJournal:
         )
         with self.lock():
             p = self.root / "binding.json"
-            if p.exists():
+            if readonly or p.exists():
                 if load(p) != self.binding:
                     raise ValueError("trial allowance cannot change")
             else:
@@ -95,6 +97,191 @@ class TrialJournal:
                 atomic_write(path, result)
             return result["identity"]
 
+    def register_velocity(self, registration):
+        from .campaign import validate_velocity_registration
+        from .velocity_trials import recipe_bindings
+        from oeis_learn.pipeline_validation.preparation_recovery import retain
+
+        reg = validate_velocity_registration(registration)
+        if reg["identity"] != self.binding["study"]:
+            raise ValueError("different study journal")
+        with self.lock():
+            retain(self.root / "velocity-registration.json", reg)
+        bindings = recipe_bindings(reg["identity"], initialization=reg["initialization"],
+                                   stream_seed=reg["stream_seed"], ordinary=reg["ordinary"], broad=reg["broad"],
+                                   training_start=reg.get("training_start"))
+        methods = list(bindings) if reg["scope"] == "exploration" else ["00", reg["finalist"]]
+        for ordinal, method in enumerate(methods):
+            binding = bindings[method]
+            row = binding["recipe"]
+            parameters = dict(lr_multiplier=1, schedule="constant", effective_batch=row["batch"],
+                              weight_decay=row["decay"], dropout=0)
+            proposal = self.propose(ordinal, parameters=parameters, seed=reg["initialization"])
+            with self.lock():
+                retain(self.root / ("trial-" + method + ".json"), seal(dict(
+                    version="round029-registered-trial/v1", binding=binding, proposal=proposal["identity"],
+                    ordinal=ordinal)))
+
+    def velocity_trial(self, method):
+        from .campaign import velocity_policy
+
+        if method not in {row["id"] for row in velocity_policy()["recipes"]}:
+            raise ValueError("unregistered recipe")
+        with self.lock():
+            entry = load(self.root / ("trial-" + method + ".json"))
+            proposal = self.proposal(entry["ordinal"])
+            binding = entry["binding"]
+            if (entry != seal(entry) or binding != seal(binding) or binding["registration"] != self.binding["study"]
+                    or binding["recipe"]["id"] != method or entry["proposal"] != proposal["identity"]):
+                raise ValueError("registered trial differs")
+            return entry
+
+    def observe_velocity(self, registration, look, *, evidence=None, reason=None):
+        """An interim measurement or a missed look always keeps its frozen denominator."""
+        from .contracts import _check, schema
+        from .graph import velocity_study_looks
+        from oeis_learn.pipeline_validation.preparation_recovery import retain
+        from oeis_learn.pipeline_validation.identity import confined
+
+        with self.lock():
+            reg = load(self.root / "velocity-registration.json")
+            if reg != registration or reg["identity"] != self.binding["study"]:
+                raise ValueError("observation must use the original frozen study")
+            series = velocity_study_looks(reg).get(look["method"], {}).get(look["profile"], [])
+            series = [entry for entry in series if entry["seed"] == look["seed"]]
+            if look not in series:
+                raise ValueError("observation outside frozen roster or profile")
+            detail = None
+            if isinstance(evidence, dict):
+                from .velocity_metrics import measured_look
+
+                detail = measured_look(evidence["probe"], evidence["scores"],
+                                       cut=evidence["cut"], work=evidence["work"])
+                if detail != evidence or detail["probe"]["look"] != look or detail["probe"]["mode"] != "true":
+                    raise ValueError("scored measurement differs from the original registered look")
+                evidence = detail["identity"]
+            if evidence is None:
+                if not isinstance(reason, str) or not reason.strip():
+                    raise ValueError("unavailable look requires its disposition")
+            else:
+                _check(schema("common")["$defs"]["hash"], evidence, {})
+                if reason is not None:
+                    raise ValueError("measured look cannot also be unavailable")
+            previous = self.binding["identity"]
+            for earlier in series[:series.index(look)]:
+                path = self.root / ("look-" + earlier["identity"][7:] + ".json")
+                if not path.is_file():
+                    raise ValueError("previous registered look is missing")
+                entry = load(path)
+                if entry != seal(entry) or entry["look"] != earlier["identity"] or entry["previous"] != previous:
+                    raise ValueError("previous registered observation differs")
+                previous = entry["identity"]
+            path = self.root / ("look-" + look["identity"][7:] + ".json")
+            prior = load(path) if path.is_file() else None
+            record = dict(version="round029-observation/v1", registration=reg["identity"],
+                          previous=previous, look=look["identity"], denominator=len(look["members"]),
+                          evidence=evidence, reason=reason)
+            if (detail is not None and prior is None) or (prior and "measurement_format" in prior):
+                record["measurement_format"] = "round029-measured-look/v1"
+            record = seal(record)
+            if prior is not None and record != prior:
+                raise ValueError("original recovery publication differs: " + str(path))
+            if detail is not None:
+                measurement = confined(self.root, "measurements/" + evidence[7:] + ".json", exists=self.readonly)
+                if self.readonly:
+                    if load(measurement, maximum=128 << 20) != detail:
+                        raise ValueError("original trial measurement differs")
+                else:
+                    retain(measurement, detail)
+            if self.readonly:
+                if prior != record:
+                    raise ValueError("original trial observation missing or altered")
+            else:
+                retain(path, record)
+            return record["identity"]
+
+    def velocity_report(self, registration, *, stratum, seed, draws=10_000, budgets=None, model_seed=None):
+        """Reopen measured looks and explicit dispositions at one frozen study boundary."""
+        from .contracts import CAMPAIGN_DOCUMENT_BYTES, _check, schema
+        from .graph import velocity_study_looks
+        from .velocity_metrics import measured_look, study_curve
+        from oeis_learn.pipeline_validation.identity import confined
+
+        graph = velocity_study_looks(registration)
+        model_seed = registration["initialization"] if model_seed is None else model_seed
+        selected, measurements = {}, {}
+        with self.lock():
+            if (load(confined(self.root, "velocity-registration.json")) != registration
+                    or self.binding["study"] != registration["identity"]):
+                raise ValueError("different frozen study journal")
+            for method, profiles in graph.items():
+                selected[method] = {}
+                for profile, series in profiles.items():
+                    looks = [look for look in series if look["seed"] == model_seed]
+                    selected[method][profile] = looks
+                    previous = self.binding["identity"]
+                    for look in looks:
+                        ref = look["identity"]
+                        path = confined(self.root, "look-" + ref[7:] + ".json", exists=False)
+                        if not path.is_file():
+                            previous = None
+                            continue
+                        observation = load(path)
+                        if (observation != seal(observation) or observation["version"] != "round029-observation/v1"
+                                or observation["registration"] != registration["identity"] or previous is None
+                                or observation["previous"] != previous or observation["look"] != ref
+                                or observation["denominator"] != len(look["members"])):
+                            raise ValueError("registered observation chain differs")
+                        previous = observation["identity"]
+                        evidence = observation["evidence"]
+                        if evidence is None:
+                            if not isinstance(observation["reason"], str) or not observation["reason"].strip():
+                                raise ValueError("unavailable look requires a disposition")
+                            measurements[ref] = {"reason": observation["reason"]}
+                            continue
+                        _check(schema("common")["$defs"]["hash"], evidence, {})
+                        detail = confined(self.root, "measurements/" + evidence[7:] + ".json", exists=False)
+                        if not detail.is_file():
+                            if "measurement_format" in observation:
+                                raise ValueError("committed measurement is missing")
+                            measurements[ref] = {"reason": "historical evidence reference without measurement details"}
+                            continue
+                        value = load(detail, maximum=CAMPAIGN_DOCUMENT_BYTES)
+                        expected = measured_look(value["probe"], value["scores"], cut=value["cut"], work=value["work"])
+                        if (value != expected or value["identity"] != evidence or value["probe"]["look"] != look
+                                or observation["reason"] is not None):
+                            raise ValueError("saved scored measurement differs from its registered observation")
+                        measurements[ref] = value
+        if not any(looks for profiles in selected.values() for looks in profiles.values()):
+            raise ValueError("model seed outside the frozen study")
+        return study_curve(selected, measurements, stratum=stratum, seed=seed, draws=draws, budgets=budgets)
+
+    def record_velocity_branch(self, branch, *, decision, reason, grant=None, approval=None, root_id=None,
+                               accepted=None):
+        """Record an unused or independently funded branch without terminal optimizer feedback."""
+        from .campaign import velocity_policy
+        from .contracts import _check, schema
+        from .velocity_records import accepted_grant_parent, validate_grant
+        from oeis_learn.pipeline_validation.preparation_recovery import retain
+
+        if branch not in velocity_policy()["branches"] or not isinstance(reason, str) or not reason.strip():
+            raise ValueError("registered branch and reason required")
+        _check(schema("common")["$defs"]["hash"], decision, {})
+        with self.lock():
+            reg = load(self.root / "velocity-registration.json")
+            if grant is not None:
+                if (accepted is None or accepted.get("registration") != reg["identity"]
+                        or branch not in grant["allowed_operations"]):
+                    raise ValueError("branch missing from independently accepted and funded registration")
+                action = "cpu" if grant["scope"] == "cpu" else "run"
+                parent = accepted_grant_parent(accepted, grant["scope"])
+                validate_grant(grant, approval, root=root_id, parent=parent, action=action)
+            record = seal(dict(version="round029-branch/v1", study=reg["identity"], branch=branch,
+                               state="funded" if grant else "unused", decision=decision, reason=reason,
+                               grant=grant["identity"] if grant else None))
+            retain(self.root / ("branch-" + branch + "-" + decision[7:] + ".json"), record)
+            return record
+
     @contextmanager
     def lock(self):
         import fcntl
@@ -102,8 +289,8 @@ class TrialJournal:
         p = self.root / "journal.lock"
         if p.is_symlink():
             raise ValueError("lock alias")
-        with p.open("a") as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
+        with p.open("rb" if self.readonly else "a") as f:
+            fcntl.flock(f, fcntl.LOCK_SH if self.readonly else fcntl.LOCK_EX)
             yield
 
     def read(self):

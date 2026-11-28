@@ -173,6 +173,23 @@ def exposure_at(stream, rows, updates, size=32):
                 updates=updates, cursor=updates * size)
 
 
+def generator_common_policy(profile, update):
+    """The model, features and update semantics committed by a round028 milestone."""
+    from .contracts import digest
+
+    return digest(
+        {
+            "update": {
+                k: v
+                for k, v in update.items()
+                if k not in {"objective", "identity", "model_profile"}
+            },
+            "model": {k: v for k, v in profile["model"].items() if k != "seed"},
+            "inputs": profile["inputs"],
+        }
+    )
+
+
 def matched_milestone(package, rows, checkpoint, restored, useful, target):
     """Bind a spending observation to the complete private recovery cut."""
     from .contracts import digest
@@ -194,11 +211,213 @@ def matched_milestone(package, rows, checkpoint, restored, useful, target):
                      registration=stream["registration"], pair=stream["pair"], seeds=stream["seeds"],
                      arm=package["update_policy"]["objective"], stream=stream["identity"],
                      initial=selection["initial_weights"], codec=package["profile"]["codec"],
-                     common_policy=digest({
-                         "update":{k:v for k,v in package["update_policy"].items()
-                                   if k not in {"objective", "identity", "model_profile"}},
-                         "model":{k:v for k,v in package["profile"]["model"].items() if k != "seed"},
-                         "inputs":package["profile"]["inputs"],
-                     }), target=target,
+                     common_policy=generator_common_policy(package["profile"], package["update_policy"]), target=target,
                      charged=ledger.consumed, discarded=restored["discarded_tokens"],
                      overshoot=max(0, ledger.consumed-target), **expected))
+
+
+def matching_proof(tokens, donor, *, client=None, replay=None):
+    """Classify a donor under the *decoded* target's live grounding policy."""
+    from oeis_learn.decoder.bigint_codec import decode_body, encode_body, fitting_policy, TOKEN_TO_ID
+    from oeis_learn.synthesis.evidence import classify_scope
+    from oeis_learn.synthesis.reference import evaluate
+    from oeis_learn.synthesis.replay import replay_native
+    from .contracts import digest
+
+    source = decode_body(tokens)
+    if encode_body(source) != list(tokens):
+        raise ValueError("matching target did not round-trip")
+    policy = fitting_policy(source)
+    binding = dict(target=digest(tokens), prompt=donor.sha256, policy=policy)
+    # No integer or parameter syntax means there is no possible adjustable coefficient.
+    if not {TOKEN_TO_ID["int"], TOKEN_TO_ID["param.get"]}.intersection(tokens):
+        result = evaluate(source, list(donor.indices))
+        outcome = "unsupported" if result.outcome != "ok" else (
+            "equivalent" if tuple(result.values) == donor.values else "eligible")
+        return seal(dict(**binding, status=outcome, proof="independent_fixed_target"))
+    if client is None:
+        return seal(dict(**binding, status="needs_native_replay", proof=None))
+    try:
+        fit = client.fit(source, donor, policy=policy)
+    except TimeoutError:
+        return seal(dict(**binding, status="timed_out", proof=None))
+    native = fit.get("native") or {}
+    outcome = fit["outcome"]
+    proof = None
+    if outcome == "unsat_in_scope":
+        if classify_scope(native) != "unsat_in_scope" or native.get("coefficient_bits") != 4096:
+            status = "partial_scope"
+        else:
+            proof = dict(indices=list(donor.indices), values=list(donor.values), profile="bigint-body/v1",
+                         original_source=source, policy=policy, result=fit,
+                         runtime=client.runtime_identity("bigint-body/v1"), reference=client.reference_sha256)
+            proof["identity_sha256"] = digest(proof)
+            status = "eligible" if (replay or replay_native)(proof) else "unverified"
+    elif outcome == "verified_solution":
+        status = "regroundable"
+    elif outcome == "timeout":
+        status = "timed_out"
+    elif outcome in {"resource_exhausted", "unknown"}:
+        status = "unfinished"
+    else:
+        status = "unsupported"
+    return seal(dict(**binding, status=status, proof=proof))
+
+
+def _recorded_label(tokens, prompt, label, runtime, reference):
+    """Reopen the worker's replayed UNSAT certificate against the exact target and donor."""
+    from .contracts import digest
+    from oeis_learn.decoder.bigint_codec import decode_body, fitting_policy
+    from oeis_learn.synthesis.evidence import classify_scope
+
+    expected = matching_proof(tokens, prompt)
+    if expected["status"] != "needs_native_replay":
+        if label != expected:
+            raise ValueError("fixed-target matching proof differs")
+        return expected
+    if label != seal(label) or any(label[k] != expected[k] for k in ("target", "prompt", "policy")):
+        raise ValueError("native matching proof belongs to another target or donor")
+    status, proof = label["status"], label["proof"]
+    if status == "eligible":
+        source = decode_body(tokens)
+        if not isinstance(proof, dict) or proof.get("identity_sha256") != digest(
+            {k: v for k, v in proof.items() if k != "identity_sha256"}
+        ):
+            raise ValueError("native matching proof identity differs")
+        fit = proof["result"]
+        if (
+            runtime is None
+            or reference is None
+            or proof["runtime"] != runtime
+            or proof["reference"] != reference
+            or proof["original_source"] != source
+            or proof["policy"] != fitting_policy(source)
+            or proof["profile"] != "bigint-body/v1"
+            or proof["indices"] != list(prompt.indices)
+            or proof["values"] != list(prompt.values)
+            or fit["outcome"] != "unsat_in_scope"
+            or classify_scope(fit["native"]) != "unsat_in_scope"
+            or fit["native"]["coefficient_bits"] != 4096
+        ):
+            raise ValueError("full-scope matching proof or native identity differs")
+    elif status not in {
+        "needs_native_replay",
+        "timed_out",
+        "unverified",
+        "regroundable",
+        "unfinished",
+        "partial_scope",
+        "unsupported",
+    }:
+        raise ValueError("unknown matching proof disposition")
+    return label
+
+
+def matching_pairs(shards, order, *, seed, client=None, recorded=None, native_limit=None):
+    """Freeze a within-band derangement. All positives retain their original stream slots."""
+    from collections import Counter, defaultdict
+    from .contracts import digest
+    from .shared_support import validated_rows
+    from oeis_learn.synthesis.admission import VisiblePrompt
+    from oeis_learn.synthesis.contracts import canonical_integer
+
+    from .metrics import _seed
+    from oeis_learn.decoder.bigint_codec import TOKEN_TO_ID
+    from oeis_learn.generalization.budgets import integer
+
+    _seed(seed)
+    if native_limit is not None:
+        integer(native_limit)
+    adjustable_tokens = {TOKEN_TO_ID["int"], TOKEN_TO_ID["param.get"]}
+    native_attempts = 0
+    rows = validated_rows(shards, native_verified=True)
+    if len(set(order)) != len(order) or not set(order) <= rows.keys():
+        raise ValueError("verified unique training support required")
+    bands = defaultdict(list)
+    for key in order:
+        values = [canonical_integer(v) for v in rows[key]["values"][:20]]
+        signs = tuple((v > 0) - (v < 0) for v in values)
+        bands[len(values), max(abs(v).bit_length() for v in values), signs].append(key)
+    runtime = client.runtime_identity("bigint-body/v1") if client is not None else None
+    reference = client.reference_sha256 if client is not None else None
+    if recorded is not None:
+        if (
+            recorded != seal(recorded)
+            or recorded["seed"] != seed
+            or recorded["order"] != digest(order)
+        ):
+            raise ValueError("matching evidence belongs to a different seed or stream")
+        if client is not None and (recorded["runtime"], recorded["reference"]) != (
+            runtime,
+            reference,
+        ):
+            raise ValueError("recorded matching evidence belongs to a different native worker")
+        runtime, reference = recorded["runtime"], recorded["reference"]
+    labels, donor_map = {}, {}
+    statuses = Counter()
+    pairs = {}
+    for members in bands.values():
+        # Contiguous identical visible values and rotation by the largest group size
+        # yield a complete differing-value permutation whenever one exists.
+        groups = defaultdict(list)
+        for key in members:
+            groups[tuple(rows[key]["values"][:20])].append(key)
+        largest = max(map(len, groups.values()))
+        ordered = [k for values in sorted(groups, key=lambda v: digest([seed, v]))
+                   for k in sorted(groups[values], key=lambda k: digest([seed, k]))]
+        for i, key in enumerate(ordered):
+            donor = ordered[(i + largest) % len(ordered)]
+            donor_map[key] = donor
+            row = rows[key]
+            values = rows[donor]["values"][:20]
+            if values == row["values"][:20]:
+                statuses["no_differing_donor"] += 1
+                continue
+            prompt = VisiblePrompt(tuple(row["indices"][:20]), tuple(values))
+            adjustable = not adjustable_tokens.isdisjoint(row["tokens"])
+            funded = native_limit is None or native_attempts < native_limit
+            if recorded is None:
+                proof = matching_proof(row["tokens"], prompt, client=client if funded else None)
+            else:
+                proof = _recorded_label(
+                    row["tokens"], prompt, recorded["labels"][key], runtime, reference
+                )
+            if adjustable and proof["status"] != "needs_native_replay":
+                if not funded:
+                    raise ValueError("matching evidence exceeds its funded native scope")
+                native_attempts += 1
+            labels[key] = proof
+            statuses[proof["status"]] += 1
+            if proof["status"] == "eligible":
+                pairs[key] = dict(donor=donor, family=row["structure"], proof=proof)
+    missing = statuses.get("needs_native_replay", 0)
+    result = seal(
+        dict(
+            version="round029-training-pairs/v1",
+            seed=seed,
+            order=digest(order),
+            rows=digest([rows[k]["identity"] for k in order]),
+            labels=labels,
+            donor_map=donor_map,
+            runtime=runtime,
+            reference=reference,
+            coverage=dict(
+                full=missing == 0,
+                rows=len(order),
+                unmeasured_native=missing,
+                **(
+                    {"native_attempts": native_attempts}
+                    if recorded is None or "native_attempts" in recorded["coverage"]
+                    else {}
+                ),
+            ),
+            positive_rows=len(order),
+            eligible_rows=len(pairs),
+            dispositions=dict(statuses),
+            eligible_families=len({rows[k]["structure"] for k in pairs}),
+            pairs=pairs,
+        )
+    )
+    if recorded is not None and result != recorded:
+        raise ValueError("matching donor map, evidence or coverage differs")
+    return result

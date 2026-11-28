@@ -138,3 +138,25 @@ def fitting_client():
         pytest.skip('requires native qualification image')
     with SynthesisClient(identity('retirement-caller-regressions/v1')) as client:
         yield client
+
+
+@pytest.fixture
+def velocity_supply_rows():
+    """Sealed private test rows with two represented structures and one duplicate prefix."""
+    from oeis_learn.decoder.bigint_codec import encode_body
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+    from oeis_learn.generalization.progressive.generator import structure_id
+
+    rows = []
+    for ordinal, start, double in ((1, 168, False), (2, 168, False), (3, 64, True)):
+        source = "(program (return (add $index $index)))" if double else "(program (return $index))"
+        indices = list(range(start, start + 100))
+        values = [str(n * (2 if double else 1)) for n in indices]
+        rows.append(seal(dict(version="progressive-training-row/v1", ordinal=ordinal,
+                              draw_identity=digest(ordinal), source_policy=digest("fixture"),
+                              source=source, structure=structure_id(source), behavior=digest(values),
+                              indices=list(map(str, indices)), values=values, target_source=source,
+                              tokens=encode_body(source), target_disposition="fixed", membership="training",
+                              native_verified=True, control_events={}, branch_events={}, operations=[],
+                              detector_limit="fixture")))
+    return rows

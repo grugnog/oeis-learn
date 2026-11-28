@@ -1067,3 +1067,57 @@ def generator_replication(panels, results, *, registration, links=()):
                      panel=digest(roster), contrasts=comparisons, seed_gain_ranges=seed_ranges,
                      next_action="RECOMMEND_SEPARATELY_BUDGETED_CONFIRMATION" if recommend
                      else "RETAIN_REFERENCE"))
+
+
+
+def open_velocity_study(folder, registration):
+    """Recover the original seven registered proposals or the original paired child."""
+    from oeis_learn.generalization.progressive.campaign import validate_velocity_registration
+    from oeis_learn.generalization.progressive.trials import TrialJournal
+    from .identity import confined
+
+    reg = validate_velocity_registration(registration)
+    if reg["parent"] is not None:
+        previous = confined(folder, "registrations/" + reg["parent_ref"][7:])
+        boundary = load(confined(previous, "boundary-" + reg["parent"]["identity"][7:] + ".json"))
+        parent = validate_velocity_registration(load(confined(previous, "velocity-registration.json")))
+        if boundary != reg["parent"] or parent["identity"] != reg["parent_ref"]:
+            raise ValueError("original retained study parent differs")
+        if reg["scope"] == "confirmation":
+            original = {row["group"] for k in ("development", "retention") for row in parent[k]}
+            child = {row["group"] for k in ("development", "retention") for row in reg[k]}
+            from oeis_learn.generalization.progressive.training_rows import pair_seeds
+
+            origin = reg["training_start"]["origin"]
+            first = pair_seeds(origin["seed_authority"], 0)
+            parent_streams = {parent["ordinary"], parent["broad"]} - {None}
+            child_streams = {reg["ordinary"]}
+            if reg["finalist"] in {"01", "03"}:
+                if reg["broad"] is None or parent["broad"] is None:
+                    raise ValueError("confirmation finalist requires both broader streams")
+                child_streams.add(reg["broad"])
+            prior_start = parent.get("training_start")
+            if (original & child or child_streams & parent_streams
+                    or first != dict(initialization=parent["initialization"], training_families=parent["stream_seed"])
+                    or prior_start and (prior_start["origin"]["seed_authority"] != origin["seed_authority"]
+                                        or prior_start["origin"]["initial_weights"] == origin["initial_weights"])):
+                raise ValueError("confirmation needs independent families and paired training lineage")
+    root = confined(folder, "registrations/" + reg["identity"][7:], exists=False)
+    journal = TrialJournal(root, study=reg["identity"], token_cap=8_000_000 if reg["scope"] == "paired_extension" else 4_000_000)
+    journal.register_velocity(reg)
+    return journal
+
+
+def close_velocity_study(folder, registration, *, state, evidence):
+    from oeis_learn.generalization.progressive.contracts import _check, schema, seal
+    from .preparation_recovery import retain
+
+    if state not in {"resumable", "closed"}:
+        raise ValueError("invalid study parent state")
+    _check(schema("common")["$defs"]["hash"], evidence, {})
+    journal = open_velocity_study(folder, registration)
+    boundary = seal(dict(version="round029-study-boundary/v1", registration=registration["identity"],
+                         state=state, evidence=evidence))
+    with journal.lock():
+        retain(journal.root / ("boundary-" + boundary["identity"][7:] + ".json"), boundary)
+    return boundary

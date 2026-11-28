@@ -304,16 +304,48 @@ class BudgetJournal:
                 )
             )
 
-    def snapshot(self):
+    def _snapshot(self, *, include_work=False):
+        _, pending, finished, totals, previous = self._read()
+        return dict(
+            consumed=dict(totals),
+            remaining={k: self.binding["caps"][k] - totals[k] for k in KEYS},
+            pending=sorted(pending),
+            committed=sorted(finished),
+            watermark=previous,
+            **({"reserved_work": {k: v["cost"] for k, v in self._reservations.items()}} if include_work else {}),
+        )
+
+    def snapshot(self, *, include_work=False):
         with self.lock():
-            events, pending, finished, totals, previous = self._read()
-            return dict(
-                consumed=dict(totals),
-                remaining={k: self.binding["caps"][k] - totals[k] for k in KEYS},
-                pending=sorted(pending),
-                committed=sorted(finished),
-                watermark=previous,
-            )
+            return self._snapshot(include_work=include_work)
+
+    @classmethod
+    def inspect_existing(cls, root, campaign, caps, *, include_windows=False, include_work=False):
+        """Verify an existing journal under a shared lock, even on a read-only mount."""
+        from oeis_learn.pipeline_validation.identity import confined
+
+        view = cls.__new__(cls)
+        view.root = Path(root)
+        view.binding = dict(campaign=campaign, caps=vector(caps))
+        with confined(root, "budget.lock").open("rb") as lock:
+            fcntl.flock(lock, fcntl.LOCK_SH)
+            view.path = confined(root, "budget.jsonl")
+            if load(confined(root, "budget-binding.json")) != seal(view.binding):
+                raise ValueError("campaign budget binding changed")
+            snapshot = view._snapshot(include_work=include_work)
+            if include_windows:
+                # _consume verified each settlement against its original reservation.
+                windows = {}
+                for e in view._read()[0]:
+                    windows[e["operation"]] = dict(
+                        boot=e["boot"],
+                        start_us=e["start_us"],
+                        end_us=e["end_us"],
+                        charged_us=e["cost"]["elapsed_us"],
+                        event=e["event"],
+                    )
+                snapshot["windows"] = windows
+            return snapshot
 
     def reconcile(self, task=None):
         # Without trustworthy termination proof, active time outside the last

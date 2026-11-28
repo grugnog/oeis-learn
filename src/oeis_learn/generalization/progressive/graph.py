@@ -172,3 +172,70 @@ def generator_look(panels, *, registration, pair, arm, target, split):
                      seed=seeds["initialization"], arm=arm, target=target, split=split, panels=digest(panels),
                      members=members, attempts=8 if full else 1, portfolio_us=60_000_000, fit_us=4_000_000,
                      max_tokens=1024, profile="bigint-20-100/v1", spending=full))
+
+
+def velocity_look(*, registration, method, seed, look, profile, development, retention,
+                  extension=False):
+    from .campaign import velocity_policy
+    from .cohorts import STRATA
+    from .contracts import seal
+
+    policy = velocity_policy()
+    if profile not in policy["profiles"]:
+        raise ValueError("unregistered inference profile")
+    cfg = policy["profiles"][profile]
+    if (type(look) is not int or look not in cfg["looks"] and not (
+            extension and look == policy["conditional_look"])):
+        raise ValueError("unregistered look/profile")
+    if method not in {r["id"] for r in policy["recipes"]} and (
+            profile != "full" or method not in [policy["reference"], *policy["controls"]]):
+        raise ValueError("unregistered method at this profile")
+    members = []
+    seen, families = set(), set()
+    for panel, rows in (("development", development), ("retention", retention)):
+        for row in rows:
+            if (set(row) != {"task", "stratum", "group"} or row["task"] in seen
+                    or not all(type(v) is str and v for v in row.values())
+                    or row["stratum"] not in (STRATA if panel == "development" else ("retention",))):
+                raise ValueError("invalid or duplicate frozen case")
+            seen.add(row["task"])
+            key = row["stratum"], row["group"]
+            if profile == "full" or panel == "development" and key not in families:
+                members.append(row)
+            families.add(key)
+    return seal(dict(version="round029-look/v1", registration=registration, method=method,
+                     seed=seed, look=look, profile=profile, members=members,
+                     attempts=cfg["attempts"], opportunity=policy["opportunity"]))
+
+
+
+def velocity_study_looks(registration):
+    """The same pre-score registration fixes every coordinate, including separate full endpoints."""
+    from .campaign import velocity_policy, validate_velocity_registration
+
+    reg = validate_velocity_registration(registration)
+    policy = velocity_policy()
+    seed = reg["initialization"]
+    screen = reg["scope"] == "exploration"
+    extension = reg["scope"] == "paired_extension"
+    methods = ([r["id"] for r in policy["recipes"]] if screen else ["00", reg["finalist"]])
+    graph = {}
+    for method in [*methods, "D", *(policy["controls"] if screen else [])]:
+        def look(target, profile):
+            return velocity_look(registration=reg["identity"], method=method, seed=seed, look=target,
+                                 profile=profile, extension=extension,
+                                 development=reg["development"], retention=reg["retention"])
+
+        target = policy["conditional_look"] if extension else 4_000_000
+        graph[method] = {"full": [look(target, "full")]}
+        if reg["scope"] == "confirmation" and method in methods:
+            from .training_rows import pair_seeds
+
+            first = pair_seeds(reg["training_start"]["origin"]["seed_authority"], 0)["initialization"]
+            graph[method]["full"].insert(0, velocity_look(
+                registration=reg["identity"], method=method, seed=first, look=target, profile="full",
+                development=reg["development"], retention=reg["retention"]))
+        if method in methods and (screen or extension):
+            targets = [target] if extension else policy["profiles"]["common"]["looks"]
+            graph[method]["common"] = [look(t, "common") for t in targets]
+    return graph

@@ -11,6 +11,7 @@ recursive-include docker/dev *.sh
 recursive-include scripts *.py *.sh *.json *.yaml *.yml
 recursive-include specs/007-experiment-foundation/contracts *.json
 recursive-include specs/005-trustworthy-synthesis-readiness/contracts *.json
+include specs/005-trustworthy-synthesis-readiness/contracts/cli-interface.md
 
 # Current convergence validation must work from the extracted source distribution.
 recursive-include specs/007-experiment-foundation *.md *.json *.py *.yaml *.yml
@@ -41,3 +42,16 @@ recursive-include src/oeis_learn/generalization/policies *.json
 recursive-include src/oeis_learn/generalization/schemas progressive-*.schema.json
 recursive-include specs/013-progressive-mathematical-discovery/contracts *.md
 recursive-include specs/015-learned-program-search/contracts *.md
+recursive-include specs/016-measure-learning-velocity/contracts *.md
+
+# Source-based host authentication tests use the same Git helpers as the workstation.
+include specs/015-learned-program-search/validation/candidate_source.py
+include specs/015-learned-program-search/validation/collect_audit.py
+include specs/015-learned-program-search/validation/launch-round028.sh
+include specs/016-measure-learning-velocity/validation/launch-round029.sh
+include specs/016-measure-learning-velocity/validation/qualify-learner.sh
+include specs/016-measure-learning-velocity/validation/replay_learner.py
+include specs/016-measure-learning-velocity/validation/qualify_continuation.py
+include specs/016-measure-learning-velocity/validation/round029-release.md
+include specs/016-measure-learning-velocity/validation/round029-child-qualification.json
+include specs/016-measure-learning-velocity/quickstart.md

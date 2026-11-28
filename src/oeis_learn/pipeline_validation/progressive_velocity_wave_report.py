@@ -1,0 +1,792 @@
+"""Publish and independently reduce anonymous joint family counts for the exploration wave."""
+
+import json
+import os
+import re
+import zipfile
+
+from oeis_learn.generalization.progressive import velocity_donation_report as public
+from oeis_learn.generalization.progressive import velocity_metrics as metrics
+from oeis_learn.generalization.progressive.cohorts import STRATA
+from oeis_learn.generalization.progressive.campaign import velocity_policy
+from oeis_learn.generalization.progressive.contracts import _atomic_write, digest, load, seal
+from oeis_learn.generalization.progressive.budgets import KEYS, vector
+from oeis_learn.generalization.progressive.program_search_outcome import (
+    archive_bytes,
+    read_canonical as canonical_members,
+)
+from oeis_learn.generalization.progressive.program_search_rehearsal_report import encode
+from oeis_learn.generalization.progressive.velocity_records import operation_key
+from .identity import confined
+from .preparation_recovery import retain
+from oeis_learn.generalization.progressive.program_search_costing import workstation_accounting
+from oeis_learn.generalization.progressive.trials import integer
+from oeis_learn.generalization.progressive.velocity_report import public_family_cells
+from . import progressive_velocity_trial_preparation as preparation
+from . import progressive_velocity_wave_commitment as commitment
+from . import progressive_velocity_conditioning as conditioning
+from . import progressive_velocity_attestation as attestation
+
+ARCHIVE = public.REPORT
+MEMBER = "comparative-exploration.json"
+ACCOUNT = "comparative-accounting.json"
+SCIENCE = "comparative-observations.zip"
+VERSION = "round029-comparative-report/v1"
+EXPOSURE = (
+    "useful_tokens charged_tokens discarded_tokens updates last_update_tokens overshoot".split()
+)
+WORK = "origin receipt role beneficiaries state host boot start_us end_us charged_us issued_tokens worker_cpu_us lease_us covered_us busy_us"
+
+
+def sufficient(accepted, measured, key, scope=None):
+    expected = {r["roster"] for r in accepted["schedule"]}
+    paired = {r for modes in (scope or {}).get("groups", {}).values() for r in modes.values()}
+    if set(measured) != expected | paired:
+        raise ValueError("every supported opportunity needs its verified score")
+    costs, points, panels = {}, {}, {}
+    for row in accepted["schedule"]:
+        ref = row["roster"]
+        m = measured[ref]
+        if m != seal(m) or m["probe"]["look"]["identity"] != ref:
+            raise ValueError("measurement differs from its accepted look")
+        work = []
+        for span in m["work"]:
+            public.closed(span, WORK)
+            if costs.setdefault(span["receipt"], span) != span:
+                raise ValueError("conflicting shared role accounting")
+            work.append(span["receipt"])
+        points[ref] = dict(
+            score=m["scores"]["identity"],
+            **({"model": digest(m["probe"]["model"])} if scope else {}),
+            measurement=m["identity"],
+            work=work,
+            cut=(dict({k: m["cut"][k] for k in EXPOSURE}, checkpoint=digest(m["cut"]["model"]))
+                 if m["cut"] is not None else None),
+        )
+    for profile in ("common", "full"):
+        subset = {ref: measured[ref] for ref in expected if measured[ref]["probe"]["look"]["profile"] == profile}
+        names = sorted(subset)
+        if not names:
+            panels[profile] = dict(rosters=[], families=[])
+            continue
+        probes = {ref: subset[ref]["probe"] for ref in names}
+        rows = metrics._score_rows(subset)
+        families, coordinates = metrics._frozen_rows(rows, probes, names, ())
+        cells = []
+        for s in (*STRATA, "retention"):
+            result = metrics.family_contrast(families, coordinates, dict.fromkeys(names, 1), s)
+            cells.extend(public_family_cells(result, key=key)["families"])
+        panels[profile] = dict(rosters=names, families=cells)
+    data = dict(points=points, costs=costs, panels=panels)
+    if scope is not None:
+        data["conditioning"] = conditioning.statistics(scope, measured, key, costs)
+    return data
+
+
+def expand(panel, refs, size):
+    public.closed(panel, "families rosters")
+    if panel["rosters"] != refs:
+        raise ValueError("public comparison coordinates differ from the pre-score roster")
+    rows = {}
+    for family in panel["families"]:
+        public.closed(family, "stratum family frozen_size patterns")
+        s, label = family["stratum"], family["family"]
+        if (
+            s not in (*STRATA, "retention")
+            or not re.fullmatch("[a-f0-9]{64}", label)
+            or (s, label) in rows
+        ):
+            raise ValueError("invalid anonymous family or stratum")
+        entries = []
+        for part in family["patterns"]:
+            public.closed(part, "count outcomes")
+            count = integer(part["count"], 1)
+            if len(part["outcomes"]) != len(refs) or len(entries) + count > size:
+                raise ValueError("invalid public joint pattern")
+            groups = {}
+            for o in part["outcomes"]:
+                public.closed(o, "status complete closed equality")
+                eq = integer(o["equality"])
+                val = o["status"], o["complete"], o["closed"]
+                if (
+                    eq > len(groups)
+                    or groups.setdefault(eq, val) != val
+                    or val[0] not in ("solve", "miss", "unresolved")
+                    or any(type(v) is not bool for v in val[1:])
+                ):
+                    raise ValueError("invalid public outcome equality or closure")
+            for _ in range(count):
+                i = len(entries)
+                entries.append(
+                    dict(
+                        observations={
+                            ref: dict(o, receipt=dict(identity=(s, label, i, o["equality"])))
+                            for ref, o in zip(refs, part["outcomes"], strict=True)
+                        }
+                    )
+                )
+        if len(entries) != integer(family["frozen_size"], 1):
+            raise ValueError("joint counts differ from the frozen family denominator")
+        rows[s, label] = entries
+    if sum(map(len, rows.values())) != size:
+        raise ValueError("public panel denominator differs from pre-score commitment")
+    return rows
+
+
+def reduce(accepted, data, *, draws=10_000):
+    has_sample = "conditioning" in data
+    public.closed(data, "points costs panels" + (" conditioning" if has_sample else ""))
+    points, costs = data["points"], data["costs"]
+    graph, measurements, indexes, coords = {}, {}, {}, {}
+    scheduled = {r["roster"]: r for r in accepted["schedule"]}
+    if points.keys() != scheduled.keys() or set(data["panels"]) != {"common", "full"}:
+        raise ValueError("public report lacks a registered opportunity")
+    used = set()
+    shared_cuts = {}
+    for k, v in costs.items():
+        public.closed(v, WORK)
+        public.hashes(k, v["host"])
+        if (
+            v["receipt"] != k
+            or v["origin"] != "incremental"
+            or v["role"] not in {"train", "search", "score"}
+            or not set(v["beneficiaries"])
+            <= set(accepted["trials"]) | {"D", "template", "polynomial", "linear_recurrence"}
+            or not re.fullmatch("[0-9a-fA-F-]{36}", v["boot"])
+        ):
+            raise ValueError("invalid public workstation operation")
+    workstation_accounting(costs.values())
+    for ref, row in scheduled.items():
+        m = points[ref]
+        public.closed(m, "score measurement work cut" + (" model" if has_sample else ""))
+        if has_sample:
+            public.hashes(m["model"])
+        public.hashes(m["score"], m["measurement"])
+        if len(set(m["work"])) != len(m["work"]) or not set(m["work"]) <= costs.keys():
+            raise ValueError("missing or duplicate workstation receipt")
+        used.update(m["work"])
+        method, profile, target = row["method"], row["profile"], row["look"]
+        cut = m["cut"]
+        if method in accepted["supported"]:
+            public.closed(cut, "checkpoint " + " ".join(EXPOSURE))
+            public.hashes(cut["checkpoint"])
+            if (shared_cuts.setdefault((method, target), cut) != cut
+                    or has_sample and cut["checkpoint"] != m["model"]):
+                raise ValueError("evaluation profiles refer to different training cuts")
+            for k in EXPOSURE:
+                integer(cut[k])
+            from oeis_learn.generalization.progressive.velocity_trials import crossed
+
+            if (
+                not crossed(cut, target)
+                or cut["useful_tokens"] - target != cut["overshoot"]
+                or cut["charged_tokens"] != cut["useful_tokens"] + cut["discarded_tokens"]
+            ):
+                raise ValueError("public whole-update crossing differs")
+        elif cut is not None:
+            raise ValueError("fixed comparator has a training trajectory")
+        look = dict(identity=ref, method=method, look=target, profile=profile)
+        graph.setdefault(method, {}).setdefault(profile, []).append(look)
+        coords[ref] = dict(
+            registration=accepted["registration"],
+            method=method,
+            look=target,
+            profile=profile,
+            seed=accepted["seed"],
+            input_mode="true",
+        )
+        measurements[ref] = dict(
+            probe=dict(look=look, mode="true"), cut=cut, work=[costs[k] for k in m["work"]]
+        )
+    extra = {}
+    if has_sample:
+        extra["conditioning"], diagnostic_work = conditioning.reduce_selected(
+            data["conditioning"], costs, points, accepted["schedule"])
+        if used.intersection(diagnostic_work):
+            raise ValueError("paired diagnostic work was also credited to a primary curve")
+        used.update(diagnostic_work)
+    if used != costs.keys():
+        raise ValueError("orphan public workstation operation")
+    for method in accepted["omitted"]:
+        graph[method] = {}
+    for profile, panel in data["panels"].items():
+        refs = sorted(k for k, r in scheduled.items() if r["profile"] == profile)
+        sizes = {scheduled[k]["members"] for k in refs}
+        if len(sizes) != 1:
+            raise ValueError("unmatched public opportunities")
+        indexes[profile] = expand(panel, refs, sizes.pop())
+
+    def paired(terms, stratum):
+        profiles = {scheduled[k]["profile"] for k in terms}
+        if len(profiles) != 1:
+            raise ValueError("mixed common and full opportunities")
+        return metrics.family_contrast(
+            indexes[profiles.pop()], [coords[k] for k in sorted(terms)], terms, stratum
+        )
+
+    curves = {
+        s: metrics.study_curve(
+            graph,
+            measurements,
+            stratum=s,
+            seed=accepted["seed"],
+            draws=draws,
+            budgets=dict(
+                useful_tokens=[1_000_000, 4_000_000],
+                charged_us=sorted(
+                    {
+                        workstation_accounting(m["work"])["by_beneficiary"]
+                        .get(m["probe"]["look"]["method"], {})
+                        .get("production_us")
+                        for m in measurements.values()
+                    }
+                    - {None}
+                ),
+            ),
+            paired=paired,
+        )
+        for s in (*STRATA, "structural", "retention")
+    }
+    direct = {}
+    controls = velocity_policy()["controls"]
+    for method in [*accepted["supported"], *controls]:
+        arm = graph[method]["full"][0]["identity"]
+        direct[method] = {}
+        for comparator in ("D", "00"):
+            if comparator == method:
+                continue
+            other = graph[comparator]["full"][0]["identity"]
+            terms = {arm: 1, other: -1}
+
+            def estimate(s):
+                v = paired(terms, s)
+                return {
+                    **{
+                        k: v[k]
+                        for k in (
+                            "observed_pp",
+                            "lower_pp",
+                            "upper_pp",
+                            "denominator",
+                            "gains",
+                            "losses",
+                            "both",
+                            "neither",
+                            "unresolved_overlay",
+                        )
+                    },
+                    "sampling": metrics._sample_contrast(v, terms, s, accepted["seed"], draws),
+                }
+
+            direct[method][comparator] = {
+                s: estimate(s) for s in ("oeis", "structural", "retention")
+            }
+    endpoints = curves["oeis"]["endpoints"]
+    competitive_controls = []
+    for method in controls:
+        gains = direct[method]["D"]
+        arm, reference = endpoints[method], endpoints["D"]
+        axes = [axis for axis in ("inference_us", "charged_us") if arm[axis] is not None
+                and reference[axis] is not None and arm[axis] <= reference[axis]]
+        cost, incumbent = arm["inference_us"], reference["inference_us"]
+        if (any((gains[s]["observed_pp"] or 0) > 0 for s in ("oeis", "structural"))
+                and axes):
+            competitive_controls.append(dict(method=method, comparator="D", inference_us=cost,
+                incumbent_inference_us=incumbent, charged_us=arm["charged_us"],
+                incumbent_charged_us=reference["charged_us"], competitive_axes=axes,
+                alternative="retain_D_and_preserve_followup", oeis=gains["oeis"], structural=gains["structural"],
+                retention=gains["retention"], proposed_branch="matched_control_repeat",
+                marginal_us=None, funding="separate_matched_quote_required"))
+    negative = not competitive_controls and all(
+        direct[m]["D"][s]["upper_pp"] is not None and direct[m]["D"][s]["upper_pp"] <= 0
+        for m in accepted["supported"]
+        for s in ("oeis", "structural")
+    )
+    decision = dict(
+        verdict="retain_D" if negative else "inconclusive",
+        incumbent="D",
+        assessment="sealed",
+        confirmation="separate_grant_required",
+        comparator="D",
+        reason="no_positive_supported_upper_bound" if negative else "independent_evidence_required",
+        excluded=accepted["omitted"],
+    )
+    shortlist = []
+    for method in accepted["supported"]:
+        if method == "00":
+            continue
+        contrasts = direct[method]["00"]
+        direct_oeis, structural = contrasts["oeis"], contrasts["structural"]
+        expected = direct_oeis["observed_pp"]
+        if (
+            max(expected or 0, structural["observed_pp"] or 0, direct_oeis["upper_pp"] or 0) <= 0
+        ):
+            continue
+        arm = graph[method]["full"][0]["identity"]
+        ordinary = graph["00"]["full"][0]["identity"]
+        terms = {arm: 1, ordinary: -1}
+        groups = indexes["full"]
+        leave_one = []
+        for group in {label for s, label in groups if s == "oeis"}:
+            subset = {k: v for k, v in groups.items() if k[1] != group}
+            change = metrics.family_contrast(subset, [], terms, "oeis")["observed_pp"]
+            if change is not None:
+                leave_one.append(change)
+        sensitive = (
+            expected is not None and direct_oeis["lower_pp"] <= 0 < direct_oeis["upper_pp"]
+            or bool(leave_one)
+            and min(leave_one) <= 0 < max(leave_one)
+        )
+        followup = (
+            "resolve_missing"
+            if sensitive
+            else "oeis_measurement" if expected is None or expected <= 0 else "confirmation"
+        )
+        shortlist.append(
+            dict(
+                method=method,
+                comparator="00",
+                direct_oeis_pp=expected,
+                structural_pp=structural["observed_pp"], oeis_denominator=direct_oeis["denominator"],
+                measurement_supply="no_registered_oeis_families" if expected is None else "registered",
+                alternative="retain_D_and_preserve_followup",
+                leave_one_family_out=[min(leave_one), max(leave_one)] if leave_one else None,
+                proposed_branch=followup,
+                marginal_us=(accepted["followup_us"] if followup == "oeis_measurement" and expected is not None else None),
+            )
+        )
+    shortlist.sort(
+        key=lambda r: (
+            r["direct_oeis_pp"] is None, -(r["direct_oeis_pp"] or 0),
+            r["marginal_us"] is None,
+            r["marginal_us"] or 0,
+            r["method"],
+        )
+    )
+    decision.update(
+        shortlist=shortlist,
+        competitive_controls=competitive_controls,
+        protected_followup_us=accepted["followup_us"],
+        spending_action=("review_unfunded_branch" if shortlist else
+                         "price_control_repeat" if competitive_controls else "retain_incumbent"),
+        next_dispatch=None,
+    )
+    policy = velocity_policy()
+    sizes_by_profile = {r["profile"]: r["members"] for r in accepted["schedule"]}
+    missing = {
+        m: [
+            dict(profile=p, look=t, disposition="excluded_before_scoring", reason_ref=reason,
+                 denominator=sizes_by_profile[p], remaining_denominator=sizes_by_profile[p])
+            for p in ("common", "full")
+            for t in policy["profiles"][p]["looks"]
+        ]
+        for m, reason in accepted["omitted"].items()
+    }
+    decision["missing_looks"] = missing
+    return dict(curves=curves, direct=direct, decision=decision, **extra)
+
+
+def publication(area, grant, accepted, observed, *, marker, key, readonly, scope=None):
+    data = sufficient(accepted, observed, bytes.fromhex(key), scope)
+    slot = len(accepted["schedule"]) + 1
+    proof = attestation.sign(area, bytes.fromhex(key), grant["identity"], slot, data, readonly=readonly)
+    value = seal(
+        dict(
+            attestation=proof, version=VERSION,
+            accepted=accepted["identity"],
+            grant=grant["identity"],
+            registration=accepted["registration"],
+            controller=marker,
+            statistics=data,
+            **reduce(accepted, data),
+        )
+    )
+    path = area / "share" / SCIENCE
+    if not readonly:
+        public.install(path, MEMBER, value)
+    if public.read_member(path, MEMBER) != value:
+        raise ValueError("comparative publication differs from private role evidence")
+    return value
+
+
+def checked_science(value, qualification):
+    frozen = commitment.read(qualification)
+    q = frozen["preparation"]
+    attestation.verify(frozen["publication_keys"], len(q["schedule"])+1,
+                       value["statistics"], value["attestation"])
+    if value["statistics"].get("conditioning", {}).get("scope") != frozen.get("conditioning"):
+        raise ValueError("conditioning sample or quoted costs differ from the pre-score scope")
+    if value["controller"] != frozen["controller"] or value["grant"] != frozen["grant"]["identity"]:
+        raise ValueError("report differs from the independently retained operator authorization")
+    for profile, panel in value["statistics"]["panels"].items():
+        groups = sorted(({k: row[k] for k in ("stratum", "family", "frozen_size")}
+                         for row in panel["families"]), key=lambda r: (r["stratum"], r["family"]))
+        if groups != frozen["families"][profile]:
+            raise ValueError("public family membership differs from the pre-score commitment")
+    for row in q["schedule"]:
+        if row["method"] in q["supported"]:
+            expected = frozen["crossings"][row["method"]][str(row["look"])]
+            cut = value["statistics"]["points"][row["roster"]]["cut"]
+            if any(cut[k] != expected[k] for k in ("useful_tokens", "updates", "last_update_tokens", "overshoot")):
+                raise ValueError("public exposure differs from the pre-score whole-update crossing")
+    if (
+        q != seal(q)
+        or q["version"] != preparation.VERSION
+        or q["assessment"] != "sealed"
+        or q["research_authority"] is not None
+    ):
+        raise ValueError("independent supported-wave commitment required")
+    public.closed(
+        value,
+        "version accepted grant registration controller statistics curves direct decision attestation"
+        + (" conditioning" if "conditioning" in frozen else ""),
+        sealed=True,
+    )
+    public.hashes(value["grant"])
+    pinned = value["controller"]
+    public.closed(
+        pinned, "version accepted grant controller driver family_labels operations"
+        + (" qualification" if "qualification" in pinned else ""), sealed=True
+    )
+    public.hashes(pinned["driver"], pinned["family_labels"], pinned["operations"])
+    if (
+        pinned["version"] != "round029-comparative-wave/v1"
+        or pinned["grant"] != value["grant"]
+        or pinned["accepted"] != q["identity"]
+        or not re.fullmatch("[a-f0-9]{40}", pinned["controller"])
+    ):
+        raise ValueError("comparative controller differs from the accepted wave")
+    if (
+        value["version"] != VERSION
+        or value["accepted"] != q["identity"]
+        or value["registration"] != q["registration"]
+        or any(value[k] != v for k, v in reduce(q, value["statistics"]).items())
+    ):
+        raise ValueError("comparative decision or statistics differ from independent replay")
+    return value
+
+
+def accounting(area, grant, report, balance, *, exclude=None):
+    if any(k.split("/")[0] != exclude for k in balance["pending"]):
+        raise ValueError("unsettled comparative work")
+    dispatches = []
+    for key in sorted(balance["committed"]):
+        logical, verb, ordinal = key.split("/")
+        if logical == exclude:
+            continue
+        if verb not in {"dispatch", "verify"}:
+            raise ValueError("unexpected comparative journal operation")
+        block = confined(area, "operations/" + logical[7:])
+        registered = load(confined(block, "input.json"))
+        window = balance["windows"][key]
+        work = dict(balance["reserved_work"][key], elapsed_us=window["charged_us"])
+        dispatches.append(
+            dict(
+                receipt=digest([grant["identity"], key]),
+                role=registered["coordinates"]["role"],
+                logical=logical,
+                operation=verb,
+                attempt=int(ordinal),
+                work=work,
+                terminated=window["end_us"] is not None,
+            )
+        )
+    return seal(
+        dict(
+            version="round029-comparative-accounting/v1",
+            grant=grant,
+            report=report,
+            dispatches=dispatches,
+            consumed={k: sum(d["work"][k] for d in dispatches) for k in KEYS},
+            remaining={k: grant["resources"][k] - sum(d["work"][k] for d in dispatches) for k in KEYS},
+        )
+    )
+
+
+def check_account(account, science, frozen, *, final=False, partial=False):
+    accepted = frozen["preparation"]
+    public.closed(account, "version grant report dispatches consumed remaining", sealed=True)
+    grant = account["grant"]
+    pinned = science["controller"]
+    if grant.get("controller_ref") != digest(
+        [
+            pinned["version"],
+            accepted["identity"],
+            pinned["controller"],
+            pinned["driver"],
+            pinned["family_labels"],
+            pinned["operations"],
+        ] + ([pinned["qualification"]] if "qualification" in pinned else [])
+    ):
+        raise ValueError(
+            "controller or frozen statistical labels differ from the research authority"
+        )
+    if grant != frozen["grant"] or pinned != frozen["controller"]:
+        raise ValueError("accounting differs from the independently authorized grant")
+    if (
+        account["version"] != "round029-comparative-accounting/v1"
+        or account["report"] != science["identity"]
+        or grant["identity"] != science["grant"]
+        or grant["allowed_operations"] != ["run"]
+        or grant["holdback_us"] != accepted["followup_us"]
+        or account["remaining"]["elapsed_us"] < grant["holdback_us"]
+    ):
+        raise ValueError("comparative accounting or protected reserve differs")
+    vector(account["consumed"])
+    vector(account["remaining"])
+    totals = dict.fromkeys(KEYS, 0)
+    seen, stages, expected = set(), set(), science["statistics"]["costs"]
+    issued = set()
+    for dispatch in account["dispatches"]:
+        public.closed(dispatch, "receipt role logical operation attempt work terminated")
+        receipt, role = dispatch["receipt"], dispatch["role"]
+        public.hashes(receipt)
+        integer(dispatch["attempt"])
+        if (
+            receipt in seen
+            or role not in {"prepare", "train", "search", "score", "publish"}
+            or type(dispatch["terminated"]) is not bool
+        ):
+            raise ValueError("duplicate or invalid comparative dispatch")
+        seen.add(receipt)
+        stages.add(role)
+        logical, verb, attempt = (dispatch[k] for k in ("logical", "operation", "attempt"))
+        planned = frozen["operations"].get(logical)
+        if (planned is None or verb not in {"dispatch", "verify"} or planned["coordinates"]["role"] != role
+                or operation_key(planned["coordinates"], attempt)["logical"] != logical
+                or receipt != digest([grant["identity"], f"{logical}/{verb}/{attempt}"])):
+            raise ValueError("dispatch is outside the authorized operation schedule")
+        if verb == "dispatch":
+            issued.add(logical)
+        work = vector(dispatch["work"])
+        priced = planned["work"] if verb == "dispatch" else {}
+        if any(work[k] != priced.get(k, 0) for k in KEYS if k != "elapsed_us"):
+            raise ValueError("non-time debit differs from registered dispatch")
+        if role in {"train", "search", "score"} and (not partial or receipt in expected) and (
+            receipt not in expected
+            or expected[receipt]["role"] != role
+            or expected[receipt]["charged_us"] != work["elapsed_us"]
+            or expected[receipt]["issued_tokens"] != work["tokens"]
+        ):
+            raise ValueError("public look cost differs from settled grant debit")
+        for k in KEYS:
+            totals[k] += work[k]
+    mandatory = {key for key, op in frozen["operations"].items()
+                 if op["coordinates"]["stage"] != "partial_publication"
+                 and (final or op["coordinates"]["stage"] != "delivery")}
+    if (
+        (not partial and not mandatory <= issued)
+        or not expected.keys() <= seen
+        or (not partial and stages != {"prepare", "train", "search", "score", "publish"})
+        or totals != account["consumed"]
+        or any(totals[k] + account["remaining"][k] != grant["resources"][k] for k in KEYS)
+    ):
+        raise ValueError("private and public cumulative debits differ")
+    coordinates = {d["receipt"]: frozen["operations"][d["logical"]]["coordinates"] for d in account["dispatches"]}
+    scope = {} if partial else frozen.get("conditioning", {})
+    for group, modes in scope.get("groups", {}).items():
+        method, profile = group.split("-")
+        for mode, ref in modes.items():
+            actual = {k for k, c in coordinates.items() if c["stage"] == conditioning.STAGE
+                      and (c["method"], c["profile"], c["input_mode"]) == (method, profile, mode)}
+            if set(science["statistics"]["conditioning"]["points"][ref]["work"]) != actual:
+                raise ValueError("conditioning sample omits or substitutes a settled mode debit")
+    for ref, c in coordinates.items():
+        if ref not in expected:
+            continue
+        shared = c["stage"] == "exploration" and c["look"] == 0 and c["role"] in {"search", "score"}
+        beneficiaries = accepted["supported"] if shared else [c["method"]]
+        if expected[ref]["beneficiaries"] != beneficiaries or expected[ref]["host"] != grant["state_root_id"]:
+            raise ValueError("workstation span has different beneficiaries or owner")
+    for row in accepted["schedule"]:
+        if partial and row["roster"] not in science["statistics"]["points"]:
+            continue
+        refs = science["statistics"]["points"][row["roster"]]["work"]
+        method, target = row["method"], row["look"]
+        required = set()
+        for receipt, c in coordinates.items():
+            if c["stage"] != "exploration" or c["look"] > target:
+                continue
+            beneficiaries = accepted["supported"] if c["look"] == 0 and c["role"] != "train" else [c["method"]]
+            if method not in beneficiaries:
+                continue
+            if c["role"] == "train" or c["profile"] == "common" or c["profile"] == row["profile"]:
+                required.add(receipt)
+        if set(refs) != required:
+            raise ValueError("primary look omits or substitutes a settled workstation debit")
+    return account
+
+
+
+PARTIAL = "round029-comparative-partial/v1"
+
+
+def partial_decision(frozen, statistics):
+    accepted = frozen["preparation"]
+    points = statistics["points"]
+    schedule = accepted["schedule"]
+    scheduled = {r["roster"]: r for r in schedule}
+    if not points or not points.keys() <= scheduled.keys() or set(statistics["panels"]) != {"common", "full"}:
+        raise ValueError("partial publication lacks a registered observation")
+    panels = {}
+    for profile, panel in statistics["panels"].items():
+        refs = sorted(k for k in points if scheduled[k]["profile"] == profile)
+        families = frozen["families"][profile] if refs else []
+        if sorted(({k: f[k] for k in ("stratum", "family", "frozen_size")} for f in panel["families"]),
+                  key=lambda r: (r["stratum"], r["family"])) != families:
+            raise ValueError("partial family denominators differ from the independent roster")
+        size = sum(f["frozen_size"] for f in families)
+        panels[profile] = expand(panel, refs, size)
+    looks, completed = [], []
+    for row in schedule:
+        ref = row["roster"]
+        entry = dict(row, remaining_denominator=row["members"], reason="registered_look_outstanding")
+        if ref in points:
+            completed.append(ref)
+            entry.update(remaining_denominator=0, reason=None, measurement=points[ref]["measurement"])
+            if row["method"] in accepted["supported"]:
+                crossing = frozen["crossings"][row["method"]][str(row["look"])]
+                cut = points[ref]["cut"]
+                if any(cut[k] != crossing[k] for k in ("useful_tokens", "updates", "last_update_tokens", "overshoot")):
+                    raise ValueError("partial observation has a different training exposure")
+            entry["yield"] = {}
+            for stratum in (*STRATA, "structural", "retention"):
+                estimate = metrics.family_contrast(panels[row["profile"]], [], {ref: 1}, stratum)
+                entry["yield"][stratum] = {k: estimate[k] for k in ("denominator","observed_pp","lower_pp","upper_pp")}
+            entry["charged_us"] = sum(statistics["costs"][k]["charged_us"] for k in points[ref]["work"])
+        looks.append(entry)
+    policy = velocity_policy()
+    for method, reason in accepted["omitted"].items():
+        for profile in ("common", "full"):
+            size = sum(f["frozen_size"] for f in frozen["families"][profile])
+            looks.extend(dict(method=method, profile=profile, look=t, members=size, remaining_denominator=size,
+                              reason=reason) for t in policy["profiles"][profile]["looks"])
+    return dict(verdict="inconclusive", mechanical_status="PARTIAL", incumbent="D", completed=len(completed),
+                looks=looks, spending_action="resume_original_grant", next_dispatch=None)
+
+
+def partial_science(area, grant, frozen, measured, key, last, *, readonly):
+    primary = {r["roster"] for r in frozen["preparation"]["schedule"]}
+    measured = {k: v for k,v in measured.items() if k in primary}
+    selected = [r for r in frozen["preparation"]["schedule"] if r["roster"] in measured]
+    data = sufficient(dict(schedule=selected), measured, key)
+    statement = dict(statistics=data, last=last)
+    proof = attestation.sign(area, key, grant["identity"], len(selected), statement, readonly=readonly)
+    return seal(dict(version=PARTIAL, grant=grant["identity"], accepted=frozen["preparation"]["identity"],
+                     controller=frozen["controller"], attestation=proof, **statement,
+                     decision=partial_decision(frozen, data)))
+
+
+def check_partial(science, frozen):
+    public.closed(science, "version grant accepted controller statistics last attestation decision", sealed=True)
+    data = science["statistics"]
+    public.closed(data, "points costs panels")
+    public.hashes(science["last"])
+    if (science["version"] != PARTIAL or science["accepted"] != frozen["preparation"]["identity"]
+            or science["grant"] != frozen["grant"]["identity"] or science["controller"] != frozen["controller"]
+            or science["last"] not in data["points"]
+            or science["decision"] != partial_decision(frozen, data)):
+        raise ValueError("partial decision differs from the independently retained boundary")
+    attestation.verify(frozen["publication_keys"], len(data["points"]),
+                       dict(statistics=data, last=science["last"]), science["attestation"])
+
+
+def read_canonical(path, members):
+    with zipfile.ZipFile(path) as archive:
+        comment = archive.comment
+    return canonical_members(path, members, comment=comment)
+
+
+def stage_archive(area, grant, balance, qualification, logical, path, science, *, install):
+    """Install and cold-read the entire public release inside the registered host window."""
+    frozen = commitment.read(qualification)
+    partial = science["version"] == PARTIAL
+    if partial:
+        check_partial(science, frozen)
+    else:
+        checked_science(science, qualification)
+    account = accounting(area, grant, science["identity"], balance, exclude=logical)
+    check_account(account, science, frozen, partial=partial)
+    records = {MEMBER: encode(science), ACCOUNT: encode(account)}
+    if install and not path.is_file():
+        _atomic_write(path, archive_bytes(records))
+    if read_canonical(path, (MEMBER, ACCOUNT)) != records:
+        raise ValueError("installed comparative release differs from its original paid evidence")
+    with zipfile.ZipFile(path) as archive:
+        base_size = path.stat().st_size - len(archive.comment)
+    return seal(dict(report=science["identity"], account=account["identity"], size=base_size,
+                     logical=logical, slot=len(frozen["preparation"]["schedule"]) + 2 +
+                     (len(science["statistics"]["points"]) if partial else 0),
+                     verdict=science["decision"]["verdict"]))
+
+
+def deliver(area, grant, balance, path, proof, secret, *, readonly):
+    """Echo only the settled terminal receipt into the installed ZIP's bounded comment.
+
+    The archive body, installation and independent cold read are already covered by
+    this operation. A crash writing its debit echo can be repaired at the same offset.
+    """
+    logical = proof["logical"]
+    charges = []
+    for key in sorted(k for k in balance["committed"] if k.startswith(logical + "/")):
+        _, verb, attempt = key.split("/")
+        window = balance["windows"][key]
+        charges.append(dict(receipt=digest([grant["identity"], key]), role="publish", logical=logical,
+                            operation=verb, attempt=int(attempt), terminated=window["end_us"] is not None,
+                            work=dict(balance["reserved_work"][key], elapsed_us=window["charged_us"])))
+    statement = dict(report=proof["report"], account=proof["account"], dispatches=charges,
+                     consumed=balance["consumed"], remaining=balance["remaining"])
+    signature = attestation.sign(area, secret, grant["identity"], proof["slot"], statement, readonly=readonly)
+    comment = encode(dict(statement, attestation=signature))
+    if len(comment) > 65535 or not charges:
+        raise ValueError("invalid comparative settlement size or missing terminal charge")
+    tail = len(comment).to_bytes(2, "little") + comment
+    with path.open("rb" if readonly else "r+b") as stream:
+        stream.seek(proof["size"] - 2)
+        if stream.read(len(tail) + 1) != tail:
+            if readonly:
+                raise ValueError("original terminal settlement differs")
+            stream.seek(proof["size"] - 2)
+            stream.write(tail)
+            stream.truncate()
+            stream.flush()
+            os.fsync(stream.fileno())
+    return statement
+
+
+def verify_release(path, qualification):
+    records = read_canonical(path, (MEMBER, ACCOUNT))
+    science, account = (json.loads(records[k]) for k in (MEMBER, ACCOUNT))
+    if records != {MEMBER: encode(science), ACCOUNT: encode(account)}:
+        raise ValueError("noncanonical comparative records")
+    frozen = commitment.read(qualification)
+    partial = science["version"] == PARTIAL
+    if partial:
+        check_partial(science, frozen)
+    else:
+        checked_science(science, qualification)
+    check_account(account, science, frozen, partial=partial)
+    with zipfile.ZipFile(path) as archive:
+        raw = archive.comment
+    if not raw:
+        raise ValueError("missing comparative terminal settlement")
+    footer = json.loads(raw)
+    if encode(footer) != raw:
+        raise ValueError("noncanonical comparative settlement")
+    signature = footer.pop("attestation")
+    public.closed(footer, "report account dispatches consumed remaining")
+    size = len(frozen["preparation"]["schedule"])
+    slot = len(science["statistics"]["points"]) if partial else 0
+    attestation.verify(frozen["publication_keys"], size + 2 + slot, footer, signature)
+    if (footer["account"] != account["identity"] or footer["report"] != science["identity"]
+            or not footer["dispatches"] or any(frozen["operations"][d["logical"]]["coordinates"]["stage"] !=
+               ("partial_publication" if partial else "delivery") for d in footer["dispatches"])):
+        raise ValueError("settlement differs from original accounting or terminal operation")
+    final = seal(dict(account, dispatches=account["dispatches"] + footer["dispatches"],
+                      consumed=footer["consumed"], remaining=footer["remaining"]))
+    check_account(final, science, frozen, final=True, partial=partial)
+    return science, final
+
+
+def verify(path, qualification):
+    return verify_release(path, qualification)[0]

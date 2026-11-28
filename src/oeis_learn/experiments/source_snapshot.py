@@ -34,6 +34,7 @@ def collect_snapshot(root):
         "specs/012-parameterized-adaptive-curriculum/contracts",
         "specs/013-progressive-mathematical-discovery/contracts",
         "specs/015-learned-program-search/contracts",
+        "specs/016-measure-learning-velocity/contracts",
     ):
         files.update(
             p
@@ -77,13 +78,16 @@ def collect_snapshot(root):
         "generalization/progressive/contracts/" + p.name: p
         for p in (root / "specs/013-progressive-mathematical-discovery/contracts").glob("*.md")
     })
-    feature = "015-learned-program-search"
-    prefix = "generalization/progressive/contracts/" + feature + "/"
-    feature_contracts = root / "specs" / feature / "contracts"
-    profile = root / "configs/foundation/progressive/learned-program-search.json"
-    resources.update({prefix + p.name: p for p in feature_contracts.glob("*.md")})
-    if feature_contracts.is_dir() or profile.exists():
-        resources[prefix + profile.name] = profile
+    for feature, filename in (
+        ("015-learned-program-search", "learned-program-search.json"),
+        ("016-measure-learning-velocity", "learning-velocity.json"),
+    ):
+        prefix = "generalization/progressive/contracts/" + feature + "/"
+        feature_contracts = root / "specs" / feature / "contracts"
+        profile = root / "configs/foundation/progressive" / filename
+        resources.update({prefix + p.name: p for p in feature_contracts.glob("*.md")})
+        if feature_contracts.is_dir() or profile.exists():
+            resources[prefix + filename] = profile
     snapshot.update(
         {"src/oeis_learn/" + name: file_digest(p.read_bytes()) for name, p in resources.items()}
     )
