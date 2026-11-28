@@ -46,3 +46,24 @@ The CPU role replays the training witnesses and measures diversity at matched to
 The earlier ordinary receipt retains its measured updates, tokens and preparation cost. When its donor selection differs, its recipe 02 sample and calibration remain visible as historical measurements. The forecast carries forward eligible ordinary optimizer prices and admits each matching price after verifying its registered scope.
 
 The command verifies the receipt and refreshes the forecast. Return the saved `broader.json` file. It includes the disposition and charges if the exposure or diversity check ends the run before HIP. A physical capacity block reports the affected mount, byte and inode deficits and an affordable draw count where one exists. A retry against the same grant reuses settled stages and its remaining allowance.
+
+## Fresh start after a measured overlap
+
+Use `fresh-start` on the detached workstation after `broader` reports `requires_fresh_disjoint_start`. The launcher reopens the paid rejection, the original ordinary measurement and family reservations. A separate preparation grant binds the new work to those receipts. Repeating the same command with the same revision and ceiling reopens the same grant.
+
+```bash
+(
+  set -euo pipefail
+  umask 077
+  : "${ROUND029_REV:?full fresh-start implementation commit}"
+  : "${ROUND029_MINUTES:?cumulative minutes for the fresh-start grant}"
+  out=$(mktemp -d "$HOME/round029-fresh.XXXXXX")
+  git fetch --no-tags origin "$ROUND029_REV"
+  git show "${ROUND029_REV}:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - "$ROUND029_REV" "$ROUND029_MINUTES" fresh-start --output "$out/fresh-start.json"
+)
+```
+
+The rejection receipt fixes a new initialization and generator seed before new data are inspected. Under the pilot law, the first 256 ordinals supply ordinary candidates and the next 256 supply potential broader replacements. The custodian checks both ranges jointly against history, all original pilot rows, reservations and connecting families. An empty ordinary frame closes before native or HIP work.
+
+The native worker independently executes the eligible ordinary rows and prepares the matched broader stream. The timing stage uses one HIP lease to measure the ordinary calibration and eligible recipes. Recipes 02 and 03 require verified matching support. Recipes 01 and 03 require increased composition diversity at matched exposure. A breadth shortage still permits ordinary recipes 00, 04, 05 and 06. The attachment reports the new supply, shared start, measured methods, charged work and remaining forecast gaps. This qualification requests zero research updates.

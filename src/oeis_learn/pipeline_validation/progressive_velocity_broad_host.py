@@ -1,6 +1,7 @@
 """Fund the origin audit, native stream preparation, and both broader HIP timings together."""
 
 from pathlib import Path
+import re
 import sys
 import time
 
@@ -40,25 +41,41 @@ from .progressive_velocity_runtime import (
 )
 from .progressive_velocity_supply import _area
 from . import progressive_velocity_timing_host as ordinary
+from . import progressive_velocity_fresh as fresh_start
 
 VERSION = "round029-broader-timing/v2"
 DRAW_BLOCK = 512
 MARKER = "preparation/broader-prices.json"
+FRESH_MARKER = "preparation/fresh-start-prices.json"
 
 
-def original_pointers(root, folder):
+def original_pointers(root, folder, *, fresh=False):
     ordinary_price = load(confined(folder, "preparation/update-prices.json"))
     families = load(confined(_area(root, "families"), "funded.json"))
     if ordinary_price != seal(ordinary_price) or families != seal(families):
         raise ValueError("original timing and family payments required")
-    return dict(ordinary=ordinary_price, families=families)
+    origins = dict(ordinary=ordinary_price, families=families)
+    if fresh:
+        overlap = load(confined(folder, MARKER))
+        area = confined(folder, "qualification/" + overlap["grant"][7:])
+        record = load(confined(area, "receipt.json"))
+        if (
+            overlap != seal(overlap)
+            or record != seal(record)
+            or overlap["receipt"] != record["identity"]
+            or record["disposition"] != "requires_fresh_disjoint_start"
+            or record["device"] is not None
+        ):
+            raise ValueError("fresh qualification requires the paid disjointness rejection")
+        origins["overlap"] = overlap
+    return origins
 
 
 def parent(revision, origins):
     return digest([VERSION, revision, velocity_policy(), DRAW_BLOCK, origins])
 
 
-def preparation_plan(root):
+def preparation_plan(root, *, overlap=None):
     """Read the frozen package for a work ceiling. The custodian reopens its paid origin."""
     from .progressive_velocity_donor import AREA, PARENT
     from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES
@@ -69,6 +86,16 @@ def preparation_plan(root):
     stream = pkg["stream"]
     if freeze != seal(freeze) or stream != seal(stream) or freeze["stream"] != stream["identity"]:
         raise ValueError("broader work requires the original frozen stream")
+    if overlap is not None:
+        frame = fresh_start.frame(overlap, stream, DRAW_BLOCK)
+        return dict(
+            stream=stream["identity"],
+            start=0,
+            draws=frame["draws"],
+            slots=len(stream["order"]),
+            input_bytes=freeze["training"]["bytes"],
+            frame=frame,
+        )
     start = pkg["native_draws"]
     end = min(start + DRAW_BLOCK, stream["law"]["max_draws"])
     if type(start) is not int or not 0 <= start <= end:
@@ -150,23 +177,26 @@ def check_capacity(root, area, binding, phase, args):
     raise CapacityShortfall(phase, mounts, dict(stage=phase, draws=lo) if lo else None)
 
 
-def authorize(root, minutes, revision):
+def authorize(root, minutes, revision, *, fresh=False):
     from oeis_learn.decoder.bigint_codec import MAX_BODY_TOKENS
     from .progressive_velocity_qualification import authorize_qualification
 
     folder = confined(root, "run-state/discovery/" + SESSION)
     # Three recipes, two support classes, three load bands, two samples and one calibration, with one retry.
-    plan = preparation_plan(root)
-    attempts = 2 * (3 * 2 * 3 * 2 + (plan["slots"] + 31) // 32)
+    origins = original_pointers(root, folder, fresh=fresh)
+    plan = preparation_plan(root, overlap=origins["overlap"]) if fresh else preparation_plan(root)
+    slots = plan["frame"]["ordinary_end"] if fresh else plan["slots"]
+    recipes = 7 if fresh else 3
+    attempts = 2 * (recipes * 2 * 3 * 2 + (slots + 31) // 32)
     return authorize_qualification(
         root,
         minutes,
-        parent(revision, original_pointers(root, folder)),
+        parent(revision, origins),
         dict(
             attempts=attempts,
             tokens=attempts * 32 * MAX_BODY_TOKENS,
             draws=2 * plan["draws"],
-            native_work=2 * (5 * plan["slots"] + plan["draws"]),
+            native_work=2 * (5 * slots + plan["draws"]),
         ),
     )
 
@@ -213,6 +243,9 @@ def custodian(root, source, out, origins, *, work_plan=None):
     from .progressive_round028_audit import ORIGINAL
 
     folder = confined(root, "run-state/discovery/" + SESSION)
+    overlap = origins.get("overlap")
+    if overlap and inventory(root, source)["identity"] != overlap["receipt"]:
+        raise ValueError("fresh custodian could not reopen the paid original exclusion")
     cal, weights, machine = paid_calibration(root, source, folder, origins)
     freeze, pkg, originals = training_source(root)
     _, family = funded_inventory(root, "families", origins["families"], with_original=True)
@@ -272,6 +305,8 @@ def custodian(root, source, out, origins, *, work_plan=None):
         )
 
     if not stock["calibrated"] or not stock["allocations"].get("calibration"):
+        if overlap:
+            common["ordinary_slots"] = 0
         finish("requires_frozen_difficulty_map", {})
         return
     diff_path = confined(panel, "difficulty-map.json")
@@ -301,7 +336,7 @@ def custodian(root, source, out, origins, *, work_plan=None):
             stratum="parameter" if row["structure"] in familiar else "training",
         )
 
-    protected.extend(candidate(rows[k]) for k in rows.keys() - set(keys))
+    protected.extend(candidate(rows[k]) for k in (rows if overlap else rows.keys() - set(keys)))
     positives = [candidate(rows[k]) for k in keys]
 
     def eligible(cases):
@@ -315,6 +350,33 @@ def custodian(root, source, out, origins, *, work_plan=None):
                       excluded=len(requested - eligible_ids),
                       components=sum(any(r["id"] in requested for r in group) for group in groups.values()))
         return eligible_ids, counts
+
+    if overlap:
+        frame = fresh_start.frame(overlap, stream, DRAW_BLOCK)
+        if not work_plan or work_plan.get("frame") != frame:
+            raise ValueError("fresh custodian requires its reserved seed and ordinal ranges")
+        ordinary_rows, ordinals, counts = fresh_start.census(frame, candidate, eligible)
+        common.update(drawn=frame["draws"], ordinary_slots=len(ordinary_rows))
+        if not ordinary_rows:
+            finish("no_disjoint_ordinary_support", counts)
+            return
+        finish(
+            "eligible",
+            counts,
+            dict(
+                frame=frame,
+                ordinary_rows=ordinary_rows,
+                eligible_ordinals=ordinals,
+                familiar=sorted(familiar & {r["structure"] for r in ordinary_rows}),
+                difficulty=difficulty,
+                pair_seed=frame["law"]["seed"],
+                profile=fresh_start.profile_for(pkg["profile"], frame),
+                microbatch=pkg["microbatch"],
+                previous_weights=weights,
+                calibration=cal,
+            ),
+        )
+        return
 
     original_keys, counts = eligible(positives)
     if original_keys != set(keys):
@@ -332,6 +394,18 @@ def custodian(root, source, out, origins, *, work_plan=None):
         if row is not None:
             additions.append(candidate(row))
     clean, combined_counts = eligible([*positives, *additions])
+    if not set(keys) <= clean:
+        common["drawn"] = end - start
+        finish(
+            "requires_fresh_disjoint_start",
+            dict(
+                combined=combined_counts,
+                candidates=len(keys),
+                eligible=len(set(keys) & clean),
+                excluded=len(set(keys) - clean),
+            ),
+        )
+        return
     ordinals = [r["ordinal"] for r in additions if r["id"] in clean]
     common["drawn"] = end - start
     finish(
@@ -378,9 +452,27 @@ def custody_evidence(root, binding, out):
     if custody != seal(custody) or custody["origins"] != binding["origins"]:
         raise ValueError("broader preparation differs from its private donor parents")
     plan = binding.get("work_plan")
-    if plan and (custody["stream"] != plan["stream"] or custody["ordinary_slots"] != plan["slots"]
-                 or custody["drawn"] != (plan["draws"] if custody["training"] else 0)):
-        raise ValueError("custodian work differs from its original draw reservation")
+    fresh = "overlap" in binding["origins"]
+    if plan:
+        slots = custody["ordinary_slots"]
+        if fresh:
+            if custody["disposition"] != "requires_frozen_difficulty_map":
+                fresh_start.check_counts(custody["counts"], plan["frame"])
+            expected_slots = custody["counts"].get("ordinary_eligible", 0)
+            expected_draws = (
+                plan["draws"] if custody["disposition"] != "requires_frozen_difficulty_map" else 0
+            )
+        else:
+            expected_slots = plan["slots"]
+            expected_draws = plan["draws"] if custody["training"] else 0
+            if custody["disposition"] == "requires_fresh_disjoint_start" and custody["drawn"]:
+                expected_draws = plan["draws"]
+        if (
+            custody["stream"] != plan["stream"]
+            or slots != expected_slots
+            or custody["drawn"] != expected_draws
+        ):
+            raise ValueError("custodian work differs from its original draw reservation")
     for ref in custody["sources"]:
         checked_file(root, ref)
     base = dict(
@@ -398,6 +490,12 @@ def custody_evidence(root, binding, out):
             or not custody["counts"]["excluded"]
         ):
             raise ValueError("fresh start requires a measured exclusion in the original stream")
+        if (
+            fresh
+            and custody["disposition"] == "no_disjoint_ordinary_support"
+            and custody["ordinary_slots"] == 0
+        ):
+            return seal(dict(base, design=None))
         if custody["disposition"] not in (
             "requires_frozen_difficulty_map",
             "requires_fresh_disjoint_start",
@@ -406,6 +504,18 @@ def custody_evidence(root, binding, out):
         return seal(dict(base, design=None))
     original = load(checked_file(out / "custodian", custody["training"]), maximum=MAX_INPUT)
     ordinals = original["eligible_ordinals"]
+    if fresh:
+        fresh_start.validate_inputs(original)
+        if (
+            original["frame"] != plan["frame"]
+            or original != seal(original)
+            or len(original["ordinary_rows"]) != custody["ordinary_slots"]
+            or len(ordinals) != custody["counts"]["prospective_native"]
+            or original["previous_weights"] != custody["initial_weights"]
+        ):
+            raise ValueError("fresh reference selection differs from its paid custody")
+        witnesses = 2 * custody["ordinary_slots"] + len(ordinals)
+        return seal(dict(base, training=custody["training"], native_witnesses=witnesses))
     if (original != seal(original) or original["stream"]["identity"] != custody["stream"]
             or len(ordinals) != len(set(ordinals)) or plan and any(
                 type(i) is not int or not plan["start"] <= i < plan["start"] + plan["draws"]
@@ -421,8 +531,8 @@ def funded_pairs(grant, slots, witnesses):
 
 
 def native_request(binding, grant, runtime, original):
-    slots = len(original["stream"]["order"])
-    witnesses = slots + len(original["eligible_ordinals"])
+    slots = len(original["ordinary_rows"])
+    witnesses = slots * (2 if "frame" in original else 1) + len(original["eligible_ordinals"])
     fields = dict(original, native_pair_limit=funded_pairs(grant, slots, witnesses))
     return role_request(binding, runtime, "prepare-broad", fields)
 
@@ -462,6 +572,17 @@ def cpu_evidence(root, area, binding, out):
         return load(checked_file(base_dir, ref), maximum=ref["bytes"])
 
     plan = load(confined(base_dir, "plan.json"))
+    stream, audit = reopen(receipt["stream"]), reopen(receipt["audit"])
+    fresh = "frame" in requested
+    if fresh:
+        package = load(confined(stage_out, "fresh-ordinary.json"), maximum=MAX_INPUT)
+        requested = fresh_start.reopen(requested, package, stream)
+        if any(
+            audit["witnesses"].get(row["draw_identity"]) != row["identity"]
+            for row in requested["ordinary_rows"]
+        ):
+            raise ValueError("fresh ordinary rows differ from the independent composition replay")
+        base = dict(base, start=package["start"])
     if (
         plan != seal(plan)
         or receipt != seal(receipt)
@@ -474,7 +595,6 @@ def cpu_evidence(root, area, binding, out):
         or plan["source"] != binding["source"]
     ):
         raise ValueError("native composition draw plan differs from the funded request")
-    stream, audit = reopen(receipt["stream"]), reopen(receipt["audit"])
     rows = {k: reopen(ref) for k, ref in receipt["rows"].items()}
     stats = produced["supply"]
     if (
@@ -504,15 +624,19 @@ def cpu_evidence(root, area, binding, out):
     ):
         raise ValueError("broader slot selection differs from the recorded witnesses")
     expected_stats = supply_counts(stream, audit, requested)
-    if produced["disposition"] != (
-        "prepared" if stream["available"] else "no_breadth_at_matched_exposure"
-    ):
+    disposition = (
+        "prepared"
+        if stream["available"]
+        else ("fresh_ordinary_only" if fresh else "no_breadth_at_matched_exposure")
+    )
+    if produced["disposition"] != disposition:
         raise ValueError("broader availability differs from observed diversity")
-    if stream["available"]:
+    if stream["available"] or fresh:
         from .progressive_velocity_broad import matching_views
 
         manifests = load(confined(stage_out, "pairs.json"), maximum=MAX_INPUT)
-        if any(
+        expected_roles = {"ordinary", "broader"} if stream["available"] else {"ordinary"}
+        if set(manifests) != expected_roles or any(
             pair["runtime"] != plan["runtime"] or pair["reference"] != plan["reference"]
             for pair in manifests.values()
         ):
@@ -674,6 +798,11 @@ def combined(binding, prep, gpu, *, work=None):
             drawn=e["drawn"],
             **({"preparation_work": work} if work is not None else {}),
             supply=e.get("supply"),
+            **(
+                {"overlap": binding["origins"]["overlap"]["receipt"], "start": e.get("start")}
+                if "overlap" in binding.get("origins", {})
+                else {}
+            ),
             calibration=e["calibration"]["observation"],
             ordinary_measurement=e["calibration"]["measurement"],
             sample_work=e["design"]["cost"] if e["design"] else dict(attempts=0, tokens=0),
@@ -692,7 +821,7 @@ def stages(root, area, grant, binding, run):
     witnesses = custody["evidence"].get("native_witnesses", 0)
     if custody["evidence"].get("training"):
         # Each stream can fit and replay one adjustable target per positive slot.
-        witnesses += 2 * funded_pairs(grant, plan["slots"], witnesses)
+        witnesses += 2 * funded_pairs(grant, custody["evidence"]["ordinary_slots"], witnesses)
         package = run("package", custody, {}, lambda out: runtime_evidence(root, area, binding, out),
                       lambda out: (out / "runtime.json").is_file())
         prep = run("prepare", package, {"native_work": witnesses},
@@ -715,7 +844,13 @@ def runtime_evidence(root, area, binding, out):
 
 
 def replay(root, area, grant, binding, snapshot):
-    if binding["work_plan"] != preparation_plan(root):
+    origins = binding["origins"]
+    expected = (
+        preparation_plan(root, overlap=origins["overlap"])
+        if "overlap" in origins
+        else preparation_plan(root)
+    )
+    if binding["work_plan"] != expected:
         raise ValueError("original broader work plan differs")
     def reopen(phase, request, cost, verify, installed):
         return replay_operation(area, coordinates(grant, phase), request, grant, cost, snapshot, verify)
@@ -728,11 +863,22 @@ def with_charges(record, snapshot):
     return seal(dict(record, charged_work={k: snapshot["consumed"][k] for k in keys}))
 
 
-def inventory(root, source):
+def inventory(root, source, *, fresh=False):
     folder = confined(root, "run-state/discovery/" + SESSION, exists=False)
-    marker_path = folder / MARKER
+    marker_path = folder / (FRESH_MARKER if fresh else MARKER)
     if not marker_path.is_file():
         return None
+    if isinstance(source, str) and re.fullmatch("[0-9a-f]{40}", source):
+        # Screen registration supplies its revision. A wheel must use the checked-out
+        # source of its installed reader to verify historical Git trees.
+        from oeis_learn.experiments.source_snapshot import source_snapshot
+
+        checkout = Path(__file__).resolve().parents[3]
+        if not (checkout / "src/oeis_learn").is_dir():
+            checkout = confined(root, "run-state/discovery-tools/round028-source/" + source)
+            if collect_snapshot(checkout) != source_snapshot():
+                raise ValueError("fresh screen requires the source of its installed reader")
+        source = checkout
     marker = load(confined(root, marker_path))
     area = confined(folder, "qualification/" + marker["grant"][7:])
     grant, binding = (load(confined(area, k + ".json")) for k in ("grant", "binding"))
@@ -742,10 +888,24 @@ def inventory(root, source):
         or binding != seal(binding)
         or binding["version"] != VERSION
         or binding["grant"] != grant["identity"]
-        or original_pointers(root, folder) != binding["origins"]
+        or original_pointers(root, folder, fresh=fresh) != binding["origins"]
     ):
         raise ValueError("broader price pointer or paid origins differ")
-    ordinary.checked_price_source(root, source, binding)
+    saved = load(confined(area, "receipt.json"))
+    negative = (
+        not fresh
+        and saved.get("disposition") == "requires_fresh_disjoint_start"
+        and saved.get("device") is None
+        and saved.get("measurement") is None
+    )
+    if negative:
+        # This paid exclusion supplies no transferable worker clock. Its original source and
+        # debits still have to reopen, including when the next worker implements a fresh stream.
+        ordinary.original_price_source(root, source, binding)
+    else:
+        ordinary.checked_price_source(root, source, binding)
+    if fresh and inventory(root, source)["identity"] != binding["origins"]["overlap"]["receipt"]:
+        raise ValueError("fresh timing refers to a different overlap decision")
     approval = load(
         confined(
             root,
@@ -772,12 +932,12 @@ def inventory(root, source):
     return record
 
 
-def qualify(args, root, folder, source, revision, grant, host_factory):
+def qualify(args, root, folder, source, revision, grant, host_factory, *, fresh=False):
     from .progressive_round029 import result
     from .supervision import launch
     from contextlib import redirect_stdout
 
-    origins = original_pointers(root, folder)
+    origins = original_pointers(root, folder, fresh=fresh)
     if grant["registration_or_parent_ref"] != parent(revision, origins):
         raise ValueError("broader timing grant belongs to different paid inputs")
     area = confined(folder, "qualification/" + grant["identity"][7:], exists=False)
@@ -789,7 +949,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
             source=digest(collect_snapshot(source)),
             grant=grant["identity"],
             origins=origins,
-            work_plan=preparation_plan(root),
+            work_plan=preparation_plan(root, overlap=origins["overlap"]) if fresh else preparation_plan(root),
         )
     )
     retain(area / "binding.json", binding)
@@ -907,8 +1067,9 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
         rec = with_charges(stages(root, area, grant, binding, dispatch), journal.snapshot())
         retain(area / "receipt.json", rec)
         marker = seal(dict(grant=grant["identity"], receipt=rec["identity"]))
-        if not (folder / MARKER).exists() or load(confined(folder, MARKER)) != marker:
-            revise(folder / MARKER, marker)
+        pointer = FRESH_MARKER if fresh else MARKER
+        if not (folder / pointer).exists() or load(confined(folder, pointer)) != marker:
+            revise(folder / pointer, marker)
         state, code, reason, nxt = "COMPLETE", 0, rec["disposition"], "preflight"
         extra.update(
             last=rec["identity"],
@@ -943,7 +1104,7 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
         state,
         reason,
         nxt,
-        scope="broader_update_timings",
+        scope="fresh_start_timings" if fresh else "broader_update_timings",
         stage=phase,
         remaining=snapshot["remaining"]["elapsed_us"],
         elapsed_us=snapshot["consumed"]["elapsed_us"],

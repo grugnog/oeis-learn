@@ -340,6 +340,25 @@ def test_screen_freezes_verified_shared_start_and_reruns_control_only_on_mismatc
             device="cpu",
         )
 
+    from oeis_learn.pipeline_validation import progressive_velocity_broad_host as broad_host
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+
+    folder = tmp_path / "run-state/discovery" / SESSION
+    (folder / broad_host.MARKER).parent.mkdir(parents=True)
+    (folder / broad_host.MARKER).touch()
+
+    def paid(root, source, *, fresh=False):
+        return (
+            dict(start=replacement) if fresh else dict(disposition="requires_fresh_disjoint_start")
+        )
+
+    monkeypatch.setattr(broad_host, "inventory", paid)
+    reg = freeze_velocity_screen(tmp_path, preferred=preferred, fallback=None, **kwargs)
+    assert reg["training_start"]["mode"] == "fresh_shared_control"
+    assert reg["training_start"]["origin"] == replacement
+    with pytest.raises(ValueError, match="qualified ordinary"):
+        freeze_velocity_screen(tmp_path, preferred=preferred, fallback=preferred, **kwargs)
+
 
 @pytest.fixture
 def matched_composition_inputs(tmp_path):
@@ -799,6 +818,24 @@ def test_broader_timings_share_ordinary_weight_count_repeated_slots_and_charge_b
     observed = broad.run(view, design, device="cpu")
     prices = broad.prices(view, design, observed)
     assert set(prices) == {"01", "03"}
+    ordinary = seal(dict(order=keys, seeds={"training_families": 29}))
+    expanded = seal(dict(order=[*keys, repeated], seed=29, available=True))
+    inputs = dict(
+        origin,
+        stream=ordinary,
+        ordinary_rows=list(rows.values()),
+        pair_seed=29,
+        start=seal(dict(fixture="fresh weights")),
+    )
+    both, _ = broad.matching_views(inputs, expanded, rows)
+    full = broad.design(both, 8, frozen)
+    matrix = broad.run(both, full, device="cpu")
+    assert set(broad.prices(both, full, matrix)) == {r["id"] for r in velocity_policy()["recipes"]}
+    assert matrix["calibration"]["initial_weights"] == origin["initial_weights"]
+    assert full["methods"]["04"]["batch"] == full["methods"]["06"]["batch"] == 16
+    assert full["cost"]["attempts"] == (
+        full["calibration_batches"] + sum(len(r["samples"]) for r in matrix["methods"].values())
+    )
     assert all(r["tail_us"] >= r["expected_us"] > 0 for r in prices.values())
     assert design["cost"]["tokens"] == sum(
         s["positive_tokens"] for v in observed["methods"].values() for s in v["samples"].values()
@@ -810,9 +847,9 @@ def test_broader_timings_share_ordinary_weight_count_repeated_slots_and_charge_b
         broad.prices(view, design, seal(forged))
 
 
-@pytest.mark.parametrize("prospects", [True, False])
+@pytest.mark.parametrize(("prospects", "fresh"), [(True, False), (False, False), (False, True)])
 def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes(
-    tmp_path, monkeypatch, matched_composition_inputs, prospects
+    tmp_path, monkeypatch, matched_composition_inputs, prospects, fresh
 ):
     from pathlib import Path
     from types import SimpleNamespace
@@ -849,8 +886,25 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
     monkeypatch.setattr(host, "archive_size", lambda *_: 8192)
     stream = seal(dict(x["stream"], law=x["law"]))
     plan = dict(stream=stream["identity"], start=25, draws=2, slots=4, input_bytes=8192)
-    monkeypatch.setattr(host, "preparation_plan", lambda root: plan)
-    grant = load(host.authorize(tmp_path, 5, revision))
+    from oeis_learn.pipeline_validation import progressive_velocity_fresh as fresh_worker
+
+    if fresh:
+        # The historical exclusion is a separately settled grant. Only its original
+        # workspace replay is supplied by this fixture.
+        rejected = seal(dict(disposition="requires_fresh_disjoint_start", device=None))
+        overlap = seal(dict(grant=digest("overlap grant"), receipt=rejected["identity"]))
+        atomic_write(folder / host.MARKER, overlap)
+        atomic_write(folder / "qualification" / overlap["grant"][7:] / "receipt.json", rejected)
+        read = host.inventory
+        monkeypatch.setattr(
+            host,
+            "inventory",
+            lambda root, src, *, fresh=False: read(root, src, fresh=True) if fresh else rejected,
+        )
+        frame = fresh_worker.frame(overlap, stream, 16)
+        plan.update(frame=frame, start=0, draws=16)
+    monkeypatch.setattr(host, "preparation_plan", lambda root, **kwargs: plan)
+    grant = load(host.authorize(tmp_path, 5, revision, fresh=fresh))
     model = resolve_profile(
         resolve({"version": "bigint-bootstrap/v1"}),
         seed=x["stream"]["seeds"]["initialization"],
@@ -878,17 +932,49 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
                 calibration=cal,
             )
         )
+        counts = {}
+        if fresh:
+            from oeis_learn.generalization.progressive.generator import draw
+            from oeis_learn.pipeline_validation.progressive_preparation import verify_draw
+
+            rows = [verify_draw(draw(frame["law"], i))[0] for i in range(frame["ordinary_end"])]
+            plan = seal(
+                dict(
+                    frame=frame,
+                    ordinary_rows=rows,
+                    eligible_ordinals=[],
+                    familiar=[],
+                    pair_seed=frame["law"]["seed"],
+                    previous_weights=origin["initial_weights"],
+                    profile=fresh_worker.profile_for(model, frame),
+                    microbatch=8,
+                    calibration=cal,
+                    difficulty=x["calibration"],
+                )
+            )
+            counts = dict(
+                candidates=16,
+                eligible=len(rows),
+                excluded=16 - len(rows),
+                reference_rejected=0,
+                ordinary_eligible=len(rows),
+                prospective_eligible=0,
+                prospective_familiar=0,
+                prospective_native=0,
+            )
         atomic_write(out / "training.json", plan)
         atomic_write(
             out / "custody.json",
             seal(
                 dict(
                     origins=load(Path(argv[-1]))["origins"],
-                    ordinary_slots=4, stream=stream["identity"],
-                    drawn=2,
+                    ordinary_slots=len(plan["ordinary_rows"]),
+                    stream=stream["identity"],
+                    drawn=frame["draws"] if fresh else 2,
+                    initial_weights=origin["initial_weights"],
                     physical=machine,
                     calibration=cal,
-                    counts={},
+                    counts=counts,
                     disposition="eligible",
                     sources=[],
                     training=reference(out, out / "training.json"),
@@ -992,13 +1078,13 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
             source,
             revision,
             grant,
-            lambda *a, **kw: SimpleNamespace(engine=engine),
+            lambda *a, **kw: SimpleNamespace(engine=engine), fresh=fresh,
         )
 
     # A grant one draw short must leave the custodian and native service untouched.
     small = seal(dict(grant, resources=dict(grant["resources"], draws=1)))
     refused, code = host.qualify(None, tmp_path, folder, source, revision, small,
-                                 lambda *a, **kw: pytest.fail("unfunded worker"))
+                                 lambda *a, **kw: pytest.fail("unfunded worker"), fresh=fresh)
     assert code == 2 and not calls and refused["elapsed_us"] == 0
 
     from oeis_learn.pipeline_validation import progressive_research_resources as resources
@@ -1017,15 +1103,29 @@ def test_broader_native_preparation_replays_slots_and_prices_only_viable_recipes
     first, code = qualify()
     assert code == 0, first
     assert first["receipt"]["disposition"] == (
-        "prepared" if prospects else "no_breadth_at_matched_exposure"
+        "fresh_ordinary_only"
+        if fresh
+        else ("prepared" if prospects else "no_breadth_at_matched_exposure")
     )
-    assert (first["charged_tokens"] > 0) is prospects
-    assert qualify() == (first, 0) and host.inventory(tmp_path, source) == first["receipt"]
-    assert calls == ["custodian", "prepare-broad"] + (["time-broad"] if prospects else [])
+    if fresh:
+        receipt = first["receipt"]
+        assert receipt["start"]["initial_weights"] != origin["initial_weights"]
+        assert receipt["start"]["initialization"] != stream["seeds"]["initialization"]
+        assert receipt["start"]["stream_seed"] != stream["seeds"]["training_families"]
+        assert receipt["start"]["broad"] is None and receipt["overlap"] == overlap["receipt"]
+        assert {"00", "04", "05", "06"} <= receipt["device"]["methods"].keys()
+        assert not {"01", "03"} & receipt["device"]["methods"].keys()
+        assert load(folder / host.MARKER) == overlap
+    assert (first["charged_tokens"] > 0) is (prospects or fresh)
+    assert (
+        qualify() == (first, 0)
+        and host.inventory(tmp_path, source, fresh=fresh) == first["receipt"]
+    )
+    assert calls == ["custodian", "prepare-broad"] + (["time-broad"] if prospects or fresh else [])
     debits = first["receipt"]["preparation_work"]
-    assert debits["draws"] == 2
+    assert debits["draws"] == plan["draws"]
     assert debits["native_work"] >= 4 + len(x["ordinals"] if prospects else [])
-    assert first["receipt"]["drawn"] == 2
+    assert first["receipt"]["drawn"] == plan["draws"]
     # Interrupt after nested producer installation, before the host publishes its boundary.
     from oeis_learn.generalization.progressive.budgets import BudgetJournal
     from oeis_learn.pipeline_validation.progressive_velocity_operations import run_operation
@@ -1141,6 +1241,37 @@ def test_broader_custodian_checks_reserved_shift_before_native_projection(
             and receipt["drawn"] == 0
             and receipt["training"] is None
         )
+        from oeis_learn.fresh.bigint_config import resolve
+        from oeis_learn.generalization.progressive.generator import draw
+        from oeis_learn.generalization.progressive.models import resolve_profile
+        from oeis_learn.pipeline_validation.progressive_preparation import verify_draw
+
+        overlap = seal(dict(grant=digest("overlap grant"), receipt=receipt["identity"]))
+        origins = dict(families={}, overlap=overlap)
+        monkeypatch.setattr(host, "inventory", lambda *_: receipt)
+        monkeypatch.setattr(host, "DRAW_BLOCK", 24)
+        frame = host.fresh_start.frame(overlap, stream, host.DRAW_BLOCK)
+        # An unselected sibling in a reserved family links to a fresh first-half draw.
+        shifted, _ = verify_draw(draw(frame["law"], 0))
+        sibling["values"][:20] = shifted["values"][80:]
+        package["profile"] = resolve_profile(
+            resolve({"version": "bigint-bootstrap/v1"}), seed=stream["seeds"]["initialization"]
+        )
+        fresh_out = tmp_path / "fresh"
+        fresh_out.mkdir()
+        host.custodian(tmp_path, tmp_path, fresh_out, origins, work_plan={"frame": frame})
+        fresh = load(fresh_out / "custody.json")
+        host.fresh_start.check_counts(fresh["counts"], frame)
+        assert fresh["drawn"] == 24 and fresh["counts"]["excluded"] > 0
+        assert fresh["disposition"] == "eligible"
+        selected = load(fresh_out / fresh["training"]["path"])
+        host.fresh_start.validate_inputs(selected)
+        assert 0 not in {row["ordinal"] for row in selected["ordinary_rows"]}
+        assert selected["profile"]["model"]["seed"] != package["profile"]["model"]["seed"]
+        assert all(not r["native_verified"] for r in selected["ordinary_rows"])
+        assert "reserved" not in str(selected) and "protected" not in selected
+        with pytest.raises(ValueError, match="frozen draw ranges"):
+            host.fresh_start.validate_inputs(dict(selected, eligible_ordinals=[0]))
     else:
         assert receipt["disposition"] == "eligible" and receipt["drawn"] == 2
         training = load(out / receipt["training"]["path"])

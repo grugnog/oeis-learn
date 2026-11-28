@@ -65,6 +65,8 @@ def matching_views(data, stream, selected, *, client=None, recorded=None):
         ("ordinary", data["stream"], ordinary),
         ("broader", stream, selected),
     ):
+        if name == "broader" and "frame" in data and not stream["available"]:
+            continue
         order = list(dict.fromkeys(positives["order"]))
         pairs = matching_pairs(
             shards(list(rows.values())),
@@ -90,7 +92,12 @@ def matching_views(data, stream, selected, *, client=None, recorded=None):
             eligible_families=pairs["eligible_families"],
         )
     return seal(
-        dict(version="round029-paired-timing-input/v1", streams=views, support=summary)
+        dict(
+            version="round029-paired-timing-input/v1",
+            streams=views,
+            support=summary,
+            **({"fresh_start": data["start"]["identity"]} if "start" in data else {}),
+        )
     ), manifests
 
 
@@ -99,13 +106,21 @@ def design(view, microbatch, calibration):
         if view != seal(view):
             raise ValueError("matching timing inputs differ")
         methods, cells = {}, {}
-        for method, name, source_method in (
+        timings = {
+            name: timing_design(stream, len(stream["rows"]), microbatch)
+            for name, stream in view["streams"].items()
+        }
+        recipes = [
             ("01", "broader", "00"),
             ("02", "ordinary", "02"),
             ("03", "broader", "02"),
-        ):
-            projected = view["streams"][name]
-            timing = timing_design(projected, len(projected["rows"]), microbatch)
+        ]
+        if "fresh_start" in view:
+            recipes.extend((m, "ordinary", m) for m in ("00", "04", "05", "06"))
+        for method, name, source_method in recipes:
+            if name not in view["streams"]:
+                continue
+            timing = timings[name]
             if source_method not in timing["methods"]:
                 continue
             if source_method == "02" and (
@@ -114,7 +129,7 @@ def design(view, microbatch, calibration):
             ):
                 continue
             methods[method] = timing["methods"][source_method]
-            cells[method] = timing["plans"]["32"]
+            cells[method] = timing["plans"][str(methods[method]["batch"])]
         ordinary = view["streams"]["ordinary"]
         batches = len(ordinary["order"]) // 32
         calibration_tokens = sum(len(ordinary["rows"][k]["tokens"]) for k in ordinary["order"])
@@ -171,6 +186,12 @@ def supply_counts(stream, audit, data):
 def prepare(data, out, client):
     from .progressive_preparation import prepare_velocity_broad
 
+    if "frame" in data:
+        from . import progressive_velocity_fresh as fresh
+
+        rows = fresh.native_rows(data, client)
+        ordinary = fresh.ordinary_stream(data, rows)
+        data = dict(data, ordinary_rows=rows, stream=ordinary)
     stream, selected, audit = prepare_velocity_broad(
         root=out,
         stream=data["stream"],
@@ -184,7 +205,20 @@ def prepare(data, out, client):
         client=client,
     )
     stats = supply_counts(stream, audit, data)
-    if not stream["available"]:
+    if "frame" in data:
+        from .progressive_preparation import prepare_velocity_start
+
+        start = prepare_velocity_start(
+            data["profile"], ordinary, microbatch=data["microbatch"], broad=stream, device="cpu"
+        )
+        if start["initial_weights"] == data["previous_weights"]:
+            raise ValueError("fresh model reproduced the rejected pilot initialization")
+        package = seal(
+            dict(request=data["identity"], stream=ordinary, ordinary_rows=rows, start=start)
+        )
+        atomic_write(out / "fresh-ordinary.json", package)
+        data = dict(data, initial_weights=start["initial_weights"], start=start)
+    if not stream["available"] and "frame" not in data:
         return seal(
             dict(
                 request=data["identity"],
@@ -198,7 +232,14 @@ def prepare(data, out, client):
     atomic_write(out / "pairs.json", manifests)
     atomic_write(out / "projection.json", view)
     stats["matching"] = view["support"]
-    return seal(dict(request=data["identity"], disposition="prepared", supply=stats, design=plan))
+    return seal(
+        dict(
+            request=data["identity"],
+            disposition="prepared" if stream["available"] else "fresh_ordinary_only",
+            supply=stats,
+            design=plan,
+        )
+    )
 
 
 def run(view, plan, *, device):
@@ -228,7 +269,7 @@ def run(view, plan, *, device):
     methods = {}
     for method, terms in plan["methods"].items():
         projected = (
-            view["streams"]["ordinary" if method == "02" else "broader"]
+            view["streams"]["broader" if method in ("01", "03") else "ordinary"]
             if "streams" in view
             else view
         )
@@ -240,7 +281,7 @@ def run(view, plan, *, device):
         policy = update_policy(
             projected["profile"],
             method,
-            microbatch=min(32, plan["microbatch"]),
+            microbatch=min(terms["batch"], plan["microbatch"]),
             matching_weight=calibration["weight"] if terms["matching"] else None,
         )
         runner = PolicyUpdate(projected["profile"], policy, device=device)
@@ -250,7 +291,7 @@ def run(view, plan, *, device):
         ledger = Ledger(sum(s["positive_tokens"] for s in terms["samples"].values()))
         samples = {}
         for cursor in sorted(terms["samples"], key=int):
-            keys = matched_batch(order, int(cursor), 32)
+            keys = matched_batch(order, int(cursor), terms["batch"])
             start = now()
             seq, tokens = batch([projected["rows"][k] for k in keys], device)
             donors = (
@@ -300,14 +341,14 @@ def prices(view, plan, observed):
                 raise ValueError("matching optimizer requires a registered loss weight")
             continue
         projected = (
-            view["streams"]["ordinary" if method == "02" else "broader"]
+            view["streams"]["broader" if method in ("01", "03") else "ordinary"]
             if "streams" in view
             else view
         )
         expected = update_policy(
             projected["profile"],
             method,
-            microbatch=min(32, plan["microbatch"]),
+            microbatch=min(terms["batch"], plan["microbatch"]),
             matching_weight=calibration["weight"] if terms["matching"] else None,
         )
         if (
@@ -357,6 +398,9 @@ def checked_request(data, action):
         },
         "time-broad": {"preparation", "physical", "projection", "design"},
     }
+    fresh = action == "prepare-broad" and "frame" in data
+    if fresh:
+        fields[action] = (fields[action] - {"stream", "initial_weights"}) | {"frame", "previous_weights"}
     if (
         action not in fields
         or set(data) != common | fields[action]
@@ -364,7 +408,13 @@ def checked_request(data, action):
         or data["role"] != action
     ):
         raise ValueError("broader qualification role requires its closed training-only request")
-    if action == "prepare-broad":
+    if fresh:
+        from . import progressive_velocity_fresh
+
+        progressive_velocity_fresh.validate_inputs(data)
+        if integer(data["native_pair_limit"]) > 2 * len(data["ordinary_rows"]):
+            raise ValueError("fresh native pair selection exceeds its funded slots")
+    elif action == "prepare-broad":
         from oeis_learn.generalization.progressive.shared_support import validated_rows
 
         stream = data["stream"]

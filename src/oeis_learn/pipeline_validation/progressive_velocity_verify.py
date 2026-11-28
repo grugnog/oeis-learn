@@ -138,7 +138,7 @@ def donor_continuation(root, folder, source, cut):
     return None
 
 
-def private_result(root, folder):
+def private_result(root, folder, *, source=None):
     def blocked(reason):
         return (
             result("verify", "BLOCKED", reason, "status", verification_scope="private_workspace"),
@@ -220,10 +220,21 @@ def private_result(root, folder):
                 raise ValueError("original learner debit missing")
             report, scope = record["identity"], "private_learner_rehearsal"
         elif broader:
-            if binding["origins"] != broad.original_pointers(root, folder):
+            fresh = "overlap" in binding["origins"]
+            if binding["origins"] != broad.original_pointers(root, folder, fresh=fresh):
                 raise ValueError("broader inputs differ from the original paid records")
+            if fresh:
+                source = source or confined(
+                    root, "run-state/discovery-tools/round028-source/" + binding["candidate"]
+                )
+                if (
+                    broad.inventory(root, source)["identity"]
+                    != binding["origins"]["overlap"]["receipt"]
+                ):
+                    raise ValueError("fresh qualification has a different paid exclusion")
             record = broad.replay(root, area, grant, binding, snapshot)
-            report, scope = record["identity"], "private_broader_timings"
+            report = record["identity"]
+            scope = "private_fresh_start_timings" if fresh else "private_broader_timings"
         elif matrix:
             record = timing.replay(root, area, binding, grant, snapshot)
             report, scope = record["identity"], "private_update_timings"

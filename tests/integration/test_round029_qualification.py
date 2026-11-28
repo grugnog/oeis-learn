@@ -752,7 +752,17 @@ def test_broader_disjointness_failure_reopens_both_treatments_without_device_or_
     )
     source = Path(__file__).resolve().parents[2]
     plan = dict(stream=digest("stream"), start=25, draws=2, slots=8, input_bytes=8192)
-    monkeypatch.setattr(broad, "preparation_plan", lambda root: plan)
+    from oeis_learn.generalization.progressive.generator import default_policy
+    from oeis_learn.generalization.progressive.training_rows import pair_seeds
+
+    old = dict(seeds=pair_seeds(digest("old"), 0), law=default_policy(seed=29))
+
+    def work_plan(root, *, overlap=None):
+        if overlap is None:
+            return plan
+        return dict(plan, start=0, frame=broad.fresh_start.frame(overlap, old, 2))
+
+    monkeypatch.setattr(broad, "preparation_plan", work_plan)
     args = SimpleNamespace(
         workspace=tmp_path,
         action="qualify",
@@ -765,6 +775,7 @@ def test_broader_disjointness_failure_reopens_both_treatments_without_device_or_
     def custody(argv, out, **options):
         calls.append(argv)
         binding = load(Path(argv[-1]))
+        fresh = "overlap" in binding["origins"]
         atomic_write(
             out / "process.json", dict(outcome="COMPLETE", returncode=0, cleanup_failure=None)
         )
@@ -773,15 +784,31 @@ def test_broader_disjointness_failure_reopens_both_treatments_without_device_or_
             seal(
                 dict(
                     origins=binding["origins"],
-                    ordinary_slots=8, stream=plan["stream"],
+                    ordinary_slots=0 if fresh else 8,
+                    stream=plan["stream"],
                     sources=[],
                     physical=digest("device"),
                     calibration=dict(
                         observation=digest("weight"), measurement=digest("paid matrix")
                     ),
-                    disposition="requires_fresh_disjoint_start",
-                    counts=dict(candidates=8, excluded=3),
-                    drawn=0,
+                    disposition="no_disjoint_ordinary_support"
+                    if fresh
+                    else "requires_fresh_disjoint_start",
+                    counts=(
+                        dict(
+                            candidates=2,
+                            eligible=0,
+                            excluded=2,
+                            reference_rejected=0,
+                            ordinary_eligible=0,
+                            prospective_eligible=0,
+                            prospective_familiar=0,
+                            prospective_native=0,
+                        )
+                        if fresh
+                        else dict(candidates=8, excluded=3)
+                    ),
+                    drawn=2 if fresh else 0,
                     training=None,
                 )
             ),
@@ -823,6 +850,37 @@ def test_broader_disjointness_failure_reopens_both_treatments_without_device_or_
     assert checked["last_committed_ref"] == first["receipt"]["identity"]
     assert broad.inventory(tmp_path, source) == first["receipt"]
     c = next(folder.glob("qualification/*/operations/*/attempt-*/custodian/custody.json"))
+    original_marker = load(folder / broad.MARKER)
+    args.authority = broad.authorize(tmp_path, 5, revision, fresh=True)
+    args.action = "qualify"
+    fresh, code = run()
+    assert code == 0 and fresh["receipt"]["disposition"] == "no_disjoint_ordinary_support", fresh
+    assert fresh["charged_tokens"] == fresh["research_dispatches"] == 0
+    assert fresh["receipt"]["charged_work"] == dict(draws=2, native_work=0, attempts=0, tokens=0)
+    assert fresh["receipt"]["overlap"] == original_marker["receipt"]
+    assert fresh["receipt"]["start"] is None and fresh["receipt"]["device"] is None
+    assert run() == (fresh, 0) and len(calls) == 2
+    args.action, args.authority = "verify", None
+    verified, code = run()
+    assert code == 0 and verified["verification_scope"] == "private_fresh_start_timings", verified
+    assert load(folder / broad.MARKER) == original_marker
+    assert broad.inventory(tmp_path, source, fresh=True) == fresh["receipt"]
+
+    helper = source / "specs/016-measure-learning-velocity/validation/qualify_continuation.py"
+    def action(name, grant=None):
+        if name == "preflight":
+            prices = dict(fresh_start=fresh["receipt"], broader_updates=first["receipt"],
+                          timed_updates=dict(measurement=fresh["receipt"]["ordinary_measurement"]))
+            return dict(inventory=dict(prices=prices), reason="inspect the fresh frame")
+        args.action, args.authority = name, grant
+        value, code = run()
+        assert code == 0, value
+        return value
+    summary = runpy.run_path(str(helper))["donor_timings"](action, tmp_path, revision, "5", fresh=True)
+    assert summary["scope"] == "fresh_start_timings" and summary["fresh_start"] == fresh["receipt"]
+    assert summary["elapsed_us"] + summary["remaining_us"] == 300_000_000
+    assert len(calls) == 2
+
     import json
 
     c.write_text(json.dumps(seal(dict(load(c), counts=dict(candidates=8, excluded=0)))))

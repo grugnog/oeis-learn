@@ -197,6 +197,21 @@ def test_rejected_positive_stream_requires_a_new_control_and_matched_timings(tmp
     assert {"ordinary_to_4000000_tokens", "optimizer_to_4M_recipe_04",
             "ordinary_matching_calibration"} <= set(prices["wave"]["missing"])
     assert prices["timed_updates"]["methods"]["04"]["expected_us"] == 12
+    fixed = dict(method="D", look=4_000_000, action="reuse_score", score=digest("fixed D"))
+    info["reuse"]["measurements"].extend([fixed, fixed])
+    rate = dict(expected_us=19, tail_us=24)
+    info["prices"]["fresh_start"] = dict(
+        disposition="fresh_ordinary_only",
+        supply=dict(matching=dict(ordinary=dict(coverage=dict(full=False)))),
+        device=dict(methods={"00": rate, "04": rate}, calibration=dict(elapsed_us=11)),
+    )
+    priced = velocity_forecast(info, velocity_policy())
+    assert priced["unit_prices"]["ordinary_to_4000000_tokens"] == rate
+    assert priced["unit_prices"]["optimizer_to_4M_recipe_04"] == rate
+    assert {"optimizer_to_4M_recipe_01", "ordinary_matching_calibration"} <= set(
+        priced["wave"]["missing"]
+    )
+    assert priced["additional_control_tokens"] == 4_000_000 and priced["prior_score_credits"] == 1
 
 
 def test_preflight_prices_verified_exposed_clocks_even_without_private_freeze(

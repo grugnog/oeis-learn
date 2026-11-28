@@ -124,6 +124,17 @@ def preflight(root, source=None):
             if broader["ordinary_measurement"] != measured["measurement"]:
                 raise ValueError("broader timing belongs to a different ordinary calibration")
             info["prices"]["broader_updates"] = broader
+            if broader["disposition"] == "requires_fresh_disjoint_start":
+                fresh = broad_inventory(root, source, fresh=True)
+                if fresh is not None:
+                    if (
+                        fresh["overlap"] != broader["identity"]
+                        or fresh["ordinary_measurement"] != measured["measurement"]
+                    ):
+                        raise ValueError(
+                            "fresh timing belongs to a different disjointness decision"
+                        )
+                    info["prices"]["fresh_start"] = fresh
     except (OSError, ValueError, KeyError) as exc:
         info["prices"]["broader_reason"] = str(exc)
     info["prices"] = velocity_forecast(info, policy)
@@ -178,14 +189,26 @@ def preflight(root, source=None):
             "Audit the broader stream and measure eligible recipes 01, 02 and 03 with their registered matching inputs",
             "qualify",
         )
-    elif (info["prices"].get("broader_updates") or {}).get(
+    elif (info["prices"].get("fresh_start") or {}).get(
+        "disposition"
+    ) == "no_disjoint_ordinary_support":
+        reason, next_action = (
+            "The new draw frame supplied no eligible ordinary positives. Inspect its exposure counts before extending the frame",
+            "inspect_inputs",
+        )
+    elif (info["prices"].get("fresh_start") or {}).get("disposition") == "fresh_ordinary_only":
+        reason, next_action = (
+            "The fresh ordinary stream is priced. Inspect the native breadth shortage before extending the broader draw frame",
+            "inspect_inputs",
+        )
+    elif not info["prices"].get("fresh_start") and (info["prices"].get("broader_updates") or {}).get(
         "disposition"
     ) == "requires_fresh_disjoint_start":
         reason, next_action = (
-            "The original positive stream overlaps protected families. Prepare a fresh matched start for the broader comparison",
-            "inspect_inputs",
+            "The original positives overlap protected families. Qualify the fresh ordinary control and eligible matched recipes",
+            "qualify",
         )
-    elif (info["prices"].get("broader_updates") or {}).get(
+    elif (info["prices"].get("fresh_start") or info["prices"].get("broader_updates") or {}).get(
         "disposition"
     ) == "requires_frozen_difficulty_map":
         reason, next_action = (
@@ -289,7 +312,7 @@ def execute(args, source, *, host_factory=None):
         if not funded:
             from .progressive_velocity_verify import private_result
 
-            return private_result(root, folder)
+            return private_result(root, folder, source=source)
         grant = checked("grant", load(args.authority))
         authorizer = confined(
             root,
@@ -309,7 +332,7 @@ def execute(args, source, *, host_factory=None):
         from . import progressive_velocity_broad_host as broad
 
         timing = False
-        broader = False
+        broader = fresh = False
         if (
             action == "qualify"
             and not donation
@@ -326,6 +349,8 @@ def execute(args, source, *, host_factory=None):
                     broader = claimed == broad.parent(
                         revision, broad.original_pointers(root, folder)
                     )
+                    if not broader and (folder / broad.MARKER).is_file():
+                        fresh = claimed == broad.parent(revision, broad.original_pointers(root, folder, fresh=True))
             except FileNotFoundError:
                 pass
         parent = None
@@ -336,6 +361,7 @@ def execute(args, source, *, host_factory=None):
                 or preparation
                 or timing
                 or broader
+                or fresh
                 or claimed == qualification_parent(revision, children=True)
                 else qualification_parent(revision)
             )
@@ -355,8 +381,8 @@ def execute(args, source, *, host_factory=None):
         folder.mkdir(parents=True, exist_ok=True)
         with RunStore.owner(folder):
             if action == "qualify":
-                if broader:
-                    return broad.qualify(args, root, folder, source, revision, grant, host_factory)
+                if broader or fresh:
+                    return broad.qualify(args, root, folder, source, revision, grant, host_factory, fresh=fresh)
                 if timing:
                     from .progressive_velocity_timing_host import qualify
                 elif preparation:

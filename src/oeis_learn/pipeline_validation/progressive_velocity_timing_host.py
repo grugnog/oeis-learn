@@ -412,6 +412,7 @@ def ordinary_workload_unchanged(name, original, source):
         "pipeline_validation/progressive_research_resources.py",
         "pipeline_validation/progressive_study.py",
         "pipeline_validation/progressive_velocity_census.py",
+        "pipeline_validation/progressive_velocity_fresh.py",
         "pipeline_validation/progressive_velocity_child.py",
         "pipeline_validation/progressive_velocity_operations.py",
     }
@@ -442,13 +443,13 @@ def ordinary_workload_unchanged(name, original, source):
     return kernel(original) == kernel(source)
 
 
-def checked_price_source(root, source, binding):
-    """Retain historical prices across reader changes while pinning the measured workload."""
+def original_price_source(root, source, binding):
+    """Authenticate the Git tree of the producer before interpreting a historical receipt."""
     if source is None:
         raise ValueError("candidate source required for timing reuse")
     current = collect_snapshot(source)
     if digest(current) == binding["source"]:
-        return
+        return source, current, current
     revision = binding["candidate"]
     if not re.fullmatch("[0-9a-f]{40}", revision):
         raise ValueError("original timed candidate revision required")
@@ -459,6 +460,14 @@ def checked_price_source(root, source, binding):
     previous = collect_snapshot(original)
     if digest(previous) != binding["source"]:
         raise ValueError("original timing source differs from the funded binding")
+    return original, previous, current
+
+
+def checked_price_source(root, source, binding):
+    """Retain historical prices across reader changes while pinning the measured workload."""
+    original, previous, current = original_price_source(root, source, binding)
+    if previous is current:
+        return
     # Only these out-of-worker readers, orchestration and tests may change.
     # Model, optimizer, calibration, input encoding, runtime, policy, and contracts
     # all retain their original identities. Acquisition is priced separately.

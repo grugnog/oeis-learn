@@ -63,14 +63,16 @@ def qualified_pairs(journal, stream, role):
     from . import progressive_velocity_broad_host as broad
 
     folder = journal.root.parent.parent
-    if not (folder / broad.MARKER).is_file():
+    fresh = (folder / broad.FRESH_MARKER).is_file()
+    pointer = broad.FRESH_MARKER if fresh else broad.MARKER
+    if not (folder / pointer).is_file():
         return None
-    marker = load(confined(folder, broad.MARKER))
+    marker = load(confined(folder, pointer))
     area = confined(folder, "qualification/" + marker["grant"][7:])
     root = folder.parents[2]
     binding = load(confined(area, "binding.json"))
     source = confined(root, "run-state/discovery-tools/round028-source/" + binding["candidate"])
-    receipt = broad.inventory(root, source)
+    receipt = broad.inventory(root, source, fresh=True) if fresh else broad.inventory(root, source)
     support = ((receipt.get("supply") or {}).get("matching") or {}).get(role)
     if support is None or support["stream"] != stream["identity"]:
         return None

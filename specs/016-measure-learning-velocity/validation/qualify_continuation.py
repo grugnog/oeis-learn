@@ -252,21 +252,24 @@ def donor_supply(action, root, revision, minutes):
     )
 
 
-def donor_timings(action, root, revision, minutes, *, broader=False):
+def donor_timings(action, root, revision, minutes, *, broader=False, fresh=False):
     from oeis_learn.pipeline_validation.progressive_velocity_timing_host import authorize_timing
 
     from oeis_learn.pipeline_validation.progressive_velocity_broad_host import (
         authorize as authorize_broader,
     )
 
-    authority = (authorize_broader if broader else authorize_timing)(root, int(minutes), revision)
+    if fresh:
+        authority = authorize_broader(root, int(minutes), revision, fresh=True)
+    else:
+        authority = (authorize_broader if broader else authorize_timing)(root, int(minutes), revision)
     try:
         first = action("qualify", authority)
     except SystemExit as exc:
         first = json.loads(str(exc))
     summary = dict(
         candidate=revision,
-        scope="broader_update_timings" if broader else "ordinary_update_timings",
+        scope="fresh_start_timings" if fresh else ("broader_update_timings" if broader else "ordinary_update_timings"),
         status=first["mechanical_status"],
         reason=first["reason"],
         grant=json.loads(authority.read_bytes())["identity"],
@@ -289,24 +292,30 @@ def donor_timings(action, root, revision, minutes, *, broader=False):
         )
     verification = action("verify")
     record = first["receipt"]
+    expected_scope = (
+        "private_fresh_start_timings"
+        if fresh
+        else ("private_broader_timings" if broader else "private_update_timings")
+    )
     if (
-        verification["verification_scope"]
-        != ("private_broader_timings" if broader else "private_update_timings")
+        verification["verification_scope"] != expected_scope
         or verification["last_committed_ref"] != record["identity"]
         or first["research_dispatches"] != 0
     ):
         raise ValueError("original timing debit or private replay differs")
     inspected = action("preflight")
     prices = inspected["inventory"]["prices"]
-    if broader:
+    if broader or fresh:
+        key = "fresh_start" if fresh else "broader_updates"
         if (
-            prices.get("broader_updates") != record
+            prices.get(key) != record
+            or (fresh and prices.get("broader_updates", {}).get("identity") != record["overlap"])
             or prices.get("timed_updates", {}).get("measurement") != record["ordinary_measurement"]
         ):
             raise ValueError(
                 "preflight did not reopen both paid scopes and their shared calibration"
             )
-        return dict(summary, broader=record, prices=prices, next_action=inspected["reason"])
+        return dict(summary, **{"fresh_start" if fresh else "broader": record}, prices=prices, next_action=inspected["reason"])
     if prices.get("timed_updates", {}).get("measurement") != record["measurement"]:
         raise ValueError("preflight did not reopen the original update matrix")
     return dict(
@@ -327,7 +336,7 @@ def donor_timings(action, root, revision, minutes, *, broader=False):
 
 
 def main(revision, minutes, mode="donation"):
-    if mode not in {"donation", "children", "review-children", "supply", "timings", "broader"}:
+    if mode not in {"donation", "children", "review-children", "supply", "timings", "broader", "fresh-start"}:
         raise SystemExit("Unknown continuation qualification mode.")
     root = Path.cwd().resolve()
     if not re.fullmatch(r"[a-f0-9]{40}", revision) or not re.fullmatch(r"[1-9][0-9]*", minutes):
@@ -364,8 +373,8 @@ def main(revision, minutes, mode="donation"):
     def action(name, *args):
         return checked_json([*launcher, name, *map(str, args)], root, name)
 
-    if mode in {"timings", "broader"}:
-        return donor_timings(action, root, revision, minutes, broader=mode == "broader")
+    if mode in {"timings", "broader", "fresh-start"}:
+        return donor_timings(action, root, revision, minutes, broader=mode == "broader", fresh=mode == "fresh-start")
     if mode == "supply":
         return donor_supply(action, root, revision, minutes)
     inventory = action("preflight")["inventory"]
@@ -453,7 +462,7 @@ def cli(argv):
         "mode",
         nargs="?",
         default="donation",
-        choices=("donation", "children", "review-children", "supply", "timings", "broader"),
+        choices=("donation", "children", "review-children", "supply", "timings", "broader", "fresh-start"),
     )
     parser.add_argument(
         "--output",
@@ -461,7 +470,7 @@ def cli(argv):
         help="save the verified summary or failure diagnostic to a new JSON file",
     )
     args = parser.parse_args(argv)
-    if args.mode in {"supply", "timings", "broader"} and args.output is None:
+    if args.mode in {"supply", "timings", "broader", "fresh-start"} and args.output is None:
         parser.error("Donor preparation requires an output file (--output PATH)")
     request = (args.revision, args.minutes, args.mode)
     if args.output is None:

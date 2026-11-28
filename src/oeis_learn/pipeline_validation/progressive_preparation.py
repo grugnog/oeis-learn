@@ -372,7 +372,27 @@ def freeze_velocity_screen(root, *, preferred, fallback, source, design, develop
     from oeis_learn.generalization.progressive.velocity_trials import select_start
     from .progressive_velocity_donor import inventory
 
-    start = select_start(inventory(root), preferred, fallback)
+    from . import progressive_velocity_broad_host as broad
+
+    inputs = inventory(root)
+    decision = broad.inventory(root, source)
+    if decision and decision["disposition"] == "requires_fresh_disjoint_start":
+        preferred = None
+        qualified = broad.inventory(root, source, fresh=True)
+        if qualified is not None:
+            prepared = qualified["start"]
+            if prepared is None or (fallback is not None and fallback != prepared):
+                raise ValueError(
+                    "fresh screen must match the qualified ordinary stream and initialization"
+                )
+            fallback = prepared
+        old = inputs.get("stream") or {}
+        if fallback and (
+            fallback["ordinary"] == old.get("identity")
+            or fallback["stream_seed"] == (old.get("seeds") or {}).get("training_families")
+        ):
+            raise ValueError("fresh screen cannot use the rejected ordinary stream")
+    start = select_start(inputs, preferred, fallback)
     origin = start["origin"]
     return velocity_registration(
         source=source,

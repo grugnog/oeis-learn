@@ -377,6 +377,7 @@ def velocity_forecast(info, policy):
     control = [c for c in info["cuts"] if c["method"] == "00"]
     missing_cuts = {c["look"] for c in control if not (c.get("weights") and c.get("lineage"))}
     broad = info["prices"].get("broader_updates")
+    fresh = info["prices"].get("fresh_start")
     fresh_required = (broad or {}).get("disposition") == "requires_fresh_disjoint_start"
     if fresh_required:
         missing_cuts.update(c["look"] for c in control)
@@ -413,7 +414,9 @@ def velocity_forecast(info, policy):
         # A broad stream has its own shapes and eligible donors. It needs its own price.
         del plan["wave"]["six_treatment_trajectories"]
         del plan["wave"]["matching_calibration_and_auxiliary_passes"]
-        device = (broad or {}).get("device") or {}
+        device = (fresh or broad or {}).get("device") or {}
+        if fresh_required and "00" in device.get("methods", {}):
+            prices["ordinary_to_4000000_tokens"] = device["methods"]["00"]
         for row in policy["recipes"]:
             if row["id"] == "00":
                 continue
@@ -423,7 +426,10 @@ def velocity_forecast(info, policy):
                 prices[key] = device["methods"][row["id"]]
             elif not fresh_required and row["stream"] == "ordinary" and row["id"] in timed["methods"]:
                 prices[key] = timed["methods"][row["id"]]
+        support = ((fresh or broad or {}).get("supply") or {}).get("matching", {}).get("ordinary")
         clock = device.get("calibration", {}).get("elapsed_us")
+        if support is not None and not support["coverage"]["full"]:
+            clock = None
         if clock is None and not fresh_required and timed.get("matching_scope", {}).get("full"):
             clock = timed["calibration_us"]
         plan["wave"]["ordinary_matching_calibration"] = 1
@@ -471,6 +477,15 @@ def velocity_forecast(info, policy):
                         exhaustion="drain and resume a smaller batch",
                     )
                 )
+    credits = info["reuse"]["distinct_score_credits"]
+    if fresh_required:
+        credits = len(
+            {
+                r["score"]
+                for r in info["reuse"]["measurements"]
+                if r["method"] == "D" and r["action"] == "reuse_score"
+            }
+        )
     return dict(
         **result,
         basis=(
@@ -480,6 +495,7 @@ def velocity_forecast(info, policy):
         ),
         **({"timed_updates": timed} if timed else {}),
         **({"broader_updates": broad} if broad else {}),
+        **({"fresh_start": fresh} if fresh else {}),
         **({"broader_reason": info["prices"]["broader_reason"]} if "broader_reason" in info["prices"] else {}),
         **(
             {"timing_reason": info["prices"]["timing_reason"]}
@@ -506,7 +522,7 @@ def velocity_forecast(info, policy):
         prescore_028_balance=info["prices"].get("prescore_028_balance"),
         resident_028=resident,
         provisional_guards=guards,
-        prior_score_credits=0 if fresh_required else info["reuse"]["distinct_score_credits"],
+        prior_score_credits=credits,
         inference_reuse_basis="aggregate screen assumes fresh requests until the ordered graph matches",
         original_028_workloads=work,
         unit_prices=prices,
