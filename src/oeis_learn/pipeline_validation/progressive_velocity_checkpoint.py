@@ -20,31 +20,53 @@ VERSION = "round029-checkpoint-matrix/v1"
 METHODS = ("00", "04", "05", "06")
 
 
-def package(ordinary, method, microbatch, origin):
+def package(stream, method, microbatch, origin, *, matching_weight=None):
     recipe = next(r for r in velocity_policy()["recipes"] if r["id"] == method)
     return seal(
         dict(
-            version="round029-learner-input/v2",
+            version="round029-learner-input/v3" if recipe["matching"] else "round029-learner-input/v2",
+            **({"pair_proof": stream["pair_proof"]} if recipe["matching"] else {}),
             registration=origin,
-            profile=ordinary["profile"],
-            initial_weights=ordinary["initial_weights"],
+            profile=stream["profile"],
+            initial_weights=stream["initial_weights"],
             policy=update_policy(
-                ordinary["profile"], method, microbatch=min(recipe["batch"], microbatch)
+                stream["profile"], method, microbatch=min(recipe["batch"], microbatch),
+                matching_weight=matching_weight,
             ),
-            rows=ordinary["rows"],
-            order=ordinary["order"][: len(ordinary["rows"])],
-            donors={},
+            rows=stream["rows"],
+            order=stream["order"][: len(stream["rows"])],
+            donors=stream["donors"] if recipe["matching"] else {},
         )
     )
 
 
-def design(view, *, microbatch, origin):
+def treatment_package(view, method, microbatch, origin, calibration):
+    from .progressive_velocity_matching import _verified, check_projection
+
+    recipe = next(r for r in velocity_policy()["recipes"] if r["id"] == method)
+    name = "broader" if recipe["stream"] == "broad" else "ordinary"
+    ordinary = view["streams"]["ordinary"]
+    stream = view["streams"][name]
+    weight = None
+    if method not in METHODS:
+        check_projection(stream)
+        if stream["profile"] != ordinary["profile"] or stream["initial_weights"] != ordinary["initial_weights"]:
+            raise ValueError("treatments require a shared model profile and initialization")
+        if recipe["matching"]:
+            if not all(view["support"][k]["coverage"]["full"] for k in ("ordinary", name)):
+                raise ValueError("matching requires full coverage on the priced streams")
+            weight = _verified(calibration, ordinary)["weight"]
+            if weight is None or not stream["donors"]:
+                raise ValueError("matching requires eligible pairs and a measured training-only weight")
+    return package(stream, method, microbatch, origin, matching_weight=weight)
+
+
+def design(view, *, microbatch, origin, eligible=METHODS, calibration=None):
     if view != seal(view) or not view.get("fresh_start"):
         raise ValueError("a bound fresh training projection is required")
-    ordinary = view["streams"]["ordinary"]
     methods = {}
-    for method in METHODS:
-        learner = package(ordinary, method, microbatch, origin)
+    for method in sorted(eligible):
+        learner = treatment_package(view, method, microbatch, origin, calibration)
         size = learner["policy"]["effective_batch"]
         tokens = [
             exposure(learner, learner["rows"], updates=i, batch=size)["useful_tokens"]
@@ -60,6 +82,7 @@ def design(view, *, microbatch, origin):
             origin=origin,
             microbatch=microbatch,
             methods=methods,
+            **({"calibration": calibration} if {"02", "03"}.intersection(methods) else {}),
             work=dict(attempts=2 * len(methods), tokens=sum(r["second"] for r in methods.values())),
         )
     )
@@ -69,7 +92,9 @@ def measure(view, plan, out, *, device):
     from .progressive_pilot_capacity import owned_allocations
     from .progressive_velocity_worker import train_to
 
-    if plan != design(view, microbatch=plan["microbatch"], origin=plan["origin"]):
+    calibration = plan.get("calibration")
+    if plan != design(view, microbatch=plan["microbatch"], origin=plan["origin"],
+                      eligible=plan["methods"], calibration=calibration):
         raise ValueError("checkpoint treatment design differs")
 
     def clock():
@@ -81,7 +106,7 @@ def measure(view, plan, out, *, device):
 
     methods = {}
     for method, terms in plan["methods"].items():
-        learner = package(view["streams"]["ordinary"], method, plan["microbatch"], plan["origin"])
+        learner = treatment_package(view, method, plan["microbatch"], plan["origin"], calibration)
         with tempfile.TemporaryDirectory(dir=out) as directory:
             folder = Path(directory)
             io = {"save": [], "load": []}
@@ -204,7 +229,7 @@ def checked_methods(plan, measured):
     if (
         measured != seal(measured)
         or measured["design"] != plan["identity"]
-        or set(measured["methods"]) != set(METHODS)
+        or set(measured["methods"]) != set(plan["methods"])
     ):
         raise ValueError("checkpoint matrix differs from its registered design")
     for method, row in measured["methods"].items():

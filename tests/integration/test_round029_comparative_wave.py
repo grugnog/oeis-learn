@@ -16,8 +16,11 @@ def fixture_wave(methods, *, paired=False):
         design=digest("design"),
         initialization=9,
         stream_seed=42,
-        development=[dict(task=f"case-{s}-{i}", group=f"group-{s}-{i}", stratum=s)
-                     for s in strata for i in range(2 if paired else 1)],
+        development=[
+            dict(task=f"case-{s}-{i}", group=f"group-{s}-{i}", stratum=s)
+            for s in strata
+            for i in range(2 if paired else 1)
+        ],
         retention=[dict(task="other", group="family", stratum="retention")],
         ordinary=digest("stream"),
         broad=digest("broader"),
@@ -91,3 +94,279 @@ def test_frozen_wave_has_separate_endpoints_exact_crossings_and_one_allowance(tm
         wave.authority(tmp_path, "b" * 40, 2, accepted, ops, digest("other"), digest("labels"))[2]
         != marker
     )
+
+
+def accepted_donor(root, source, methods, monkeypatch):
+    """Qualify stored, measured CPU fixtures through the real preparation and archive reader."""
+    from types import SimpleNamespace
+    from oeis_learn.decoder.bigint_codec import encode_body
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.generalization.progressive import velocity_donation_report as public
+    from oeis_learn.generalization.progressive.contracts import atomic_write, load, reference
+    from oeis_learn.generalization.progressive.generator import broader_stream, structure_id
+    from oeis_learn.generalization.progressive.models import resolve_profile
+    from oeis_learn.generalization.progressive.training_rows import pair_seeds
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from oeis_learn.pipeline_validation import progressive_round029 as command
+    from oeis_learn.pipeline_validation import progressive_velocity_broad as broad
+    from oeis_learn.pipeline_validation import progressive_velocity_checkpoint as checkpoint
+    from oeis_learn.pipeline_validation import progressive_velocity_trial_preparation as preparation
+    from oeis_learn.pipeline_validation.progressive_preparation import prepare_velocity_start
+    from oeis_learn.generalization.progressive.velocity_trials import select_start
+    from oeis_learn.pipeline_validation.progressive_study import open_velocity_study
+    from oeis_learn.pipeline_validation.progressive_velocity_broad_host import FRESH_MARKER
+    from oeis_learn.pipeline_validation.progressive_velocity_worker import measure_calibration
+
+    _, template, _ = fixture_wave(methods, paired=True)
+    extended = "01" in methods
+    authority = digest("independent-training-seed")
+    seeds = pair_seeds(authority, 0)
+    profile = resolve_profile(
+        resolve({"version": "bigint-bootstrap/v1"}),
+        shape="smaller_width",
+        seed=seeds["initialization"],
+    )
+    rows, slots = {}, {}
+    for i in range(6 if extended else 1):
+        op = "add" if i < 4 else "mul"
+        body = f"(program (return ({op} $index $index)))"
+        indices = list(range(67 + i, 167 + i))
+        values = [str(n + n if op == "add" else n * n) for n in indices]
+        key = digest(["draw", i])
+        row = seal(
+            dict(
+                version="progressive-training-row/v1",
+                ordinal=i,
+                draw_identity=key,
+                source_policy=authority,
+                source=body,
+                structure=structure_id(body),
+                behavior=digest(values),
+                indices=list(map(str, indices)),
+                values=values,
+                target_source=body,
+                tokens=encode_body(body),
+                target_disposition="fixed",
+                membership="training",
+                native_verified=True,
+                control_events={},
+                branch_events={},
+                operations=[],
+                detector_limit="fixture",
+            )
+        )
+        rows[key] = row
+        slots[key] = dict(
+            draw=key,
+            composition=row["structure"],
+            tokens=len(row["tokens"]),
+            band="middle",
+            familiar=False,
+        )
+    seed = seeds["training_families"]
+    order = sorted(list(rows)[:4], key=lambda k: (digest([seed, k]), k))
+    ordinary = seal(
+        dict(
+            version="round028-matched-stream/v1",
+            registration=authority,
+            pair=0,
+            seeds=seeds,
+            order=order,
+            row_identities=digest([rows[k]["identity"] for k in order]),
+        )
+    )
+    stream = broader_stream(
+        [slots[k] for k in order],
+        list(slots.values()),
+        seed=seed,
+        ordinary_ref=ordinary["identity"],
+    )
+    audit = seal(
+        dict(
+            plan=digest("native-plan"),
+            selection=stream["identity"],
+            slots=slots,
+            rejections=[],
+            witnesses={k: r["identity"] for k, r in rows.items()},
+        )
+    )
+    stream = seal(dict(stream, audit=audit["identity"]))
+    assert stream["available"] == extended
+    start = prepare_velocity_start(profile, ordinary, microbatch=8, broad=stream, device="cpu")
+    folder = root / "run-state/discovery" / SESSION
+    folder.mkdir(parents=True)
+    reg = velocity_registration(
+        source="a" * 40,
+        design=digest("design"),
+        initialization=start["initialization"],
+        stream_seed=seed,
+        ordinary=start["ordinary"],
+        broad=start["broad"],
+        training_start=select_start(dict(cuts=[]), None, start),
+        development=template["development"],
+        retention=template["retention"],
+    )
+    journal = open_velocity_study(folder, reg)
+    fresh_grant = digest("original fresh grant")
+    fresh_area = folder / "qualification" / fresh_grant[7:]
+    native = fresh_area / "prepared/native"
+    selected = {k: rows[k] for k in stream["order"]}
+    ordinary_rows = [rows[k] for k in order]
+    view, pairs = broad.matching_views(
+        dict(
+            stream=ordinary,
+            ordinary_rows=ordinary_rows,
+            start=start,
+            frame=True,
+            pair_seed=seed,
+            initial_weights=start["initial_weights"],
+            profile=profile,
+        ),
+        stream,
+        selected,
+    )
+    observation = measure_calibration(view["streams"]["ordinary"], device="cpu")
+    assert (observation["weight"] is not None) == extended
+    fresh = seal(
+        dict(
+            start=start,
+            supply=dict(matching=view["support"]),
+            device=dict(calibration=observation, methods=dict.fromkeys(methods, {"tail_us": 500})),
+        )
+    )
+    atomic_write(folder / FRESH_MARKER, seal(dict(grant=fresh_grant, receipt=fresh["identity"])))
+    atomic_write(fresh_area / "receipt.json", fresh)
+    atomic_write(
+        native / "fresh-ordinary.json",
+        seal(dict(stream=ordinary, ordinary_rows=ordinary_rows, start=start)),
+    )
+    atomic_write(native / "pairs.json", pairs)
+    path = native / "projection.json"
+    atomic_write(path, view)
+    area = native / "run-state/discovery" / SESSION / "preparation/composition" / audit["plan"][7:]
+
+    def save(name, value):
+        atomic_write(area / name, value)
+        return reference(area, area / name)
+
+    save(
+        "receipt.json",
+        seal(
+            dict(
+                stream=save("stream.json", stream),
+                audit=save("audit.json", audit),
+                rows={k: save(k[7:] + ".json", r) for k, r in selected.items()},
+            )
+        ),
+    )
+    matrix = checkpoint.design(
+        view, microbatch=8, origin=fresh["identity"], eligible=methods, calibration=observation
+    )
+    looks = {
+        m: {
+            p: [
+                dict(look=r["look"], members=len(r["members"]), receipt=r["identity"])
+                for r in series
+            ]
+            for p, series in profiles.items()
+        }
+        for m, profiles in velocity_study_looks(reg).items()
+    }
+    reasons = [
+        "ordinary already has a distinct composition in every matched slot",
+        "complete census found zero eligible ordinary matching slots",
+    ]
+    omitted = {} if extended else {"01": reasons[:1], "02": reasons[1:], "03": reasons}
+    sources = {k: digest(k + "-price") for k in preparation.SOURCES}
+    sources["fresh"] = fresh["identity"]
+    quote = seal(
+        dict(
+            sources=sources,
+            expected_us=50_000_000,
+            tail_us=70_000_000,
+            followup_reserve_us=5_000_000,
+        )
+    )
+    q = seal(
+        dict(
+            candidate="a" * 40,
+            **{k: digest(k) for k in ("source", "image", "wheel", "physical", "role_policy")},
+            quote=quote,
+            registration=reg["identity"],
+            supported=methods,
+            omitted=omitted,
+            seed=seeds["initialization"],
+            stream_seed=seed,
+            graph=digest(looks),
+            looks=looks,
+            trials={m: journal.velocity_trial(m)["identity"] for m in looks if m.isdigit()},
+        )
+    )
+    cut = dict(
+        receipt=digest("initial cut"), state=digest("state"), checkpoint=digest("checkpoint")
+    )
+    atomic_write(
+        folder / preparation.INITIAL_MARKER,
+        seal(dict(grant=digest("zero grant"), receipt=cut["receipt"])),
+    )
+    grant = load(preparation.authorize(root, "b" * 40, 2))
+    mount = dict(
+        device=root.stat().st_dev,
+        **{
+            kind + "_" + unit: value
+            for unit in ("bytes", "inodes")
+            for kind, value in (("required", 1), ("reserved", 1), ("available", 9), ("deficit", 0))
+        },
+    )
+    prices = dict(
+        launch_estimate=dict(missing=[], sources=sources),
+        launch_options=dict(
+            research_authority=None, scopes=dict(wave=dict(fits=True, mounts=[mount]))
+        ),
+    )
+    with monkeypatch.context() as hardware:
+        hardware.setattr(
+            command,
+            "preflight",
+            lambda *a, **kw: dict(
+                inventory=dict(prices=prices, gpu_dispatches=0, assessment="sealed")
+            ),
+        )
+        hardware.setattr(
+            preparation, "verified_initialization", lambda *args: (q, cut, matrix, path)
+        )
+        result, code = preparation.qualify(SimpleNamespace(), root, folder, source, "b" * 40, grant)
+        assert code == 0, result
+    accepted = public.read_member(
+        preparation.retained_qualification(root, grant), preparation.MEMBER
+    )
+    assert accepted["omitted"] == {m: digest(reason) for m, reason in omitted.items()}
+    assert preparation.published(root, folder)["accepted"] == accepted["identity"]
+    reopened, packages = wave.inputs(root, folder, accepted)
+    assert reg == reopened
+    if extended:
+        assert (
+            packages["00"]["rows"]
+            == packages["02"]["rows"]
+            != packages["01"]["rows"]
+            == packages["03"]["rows"]
+        )
+        for m, name in (("02", "ordinary"), ("03", "broader")):
+            assert packages[m]["pair_proof"] == pairs[name]["identity"]
+            assert packages[m]["policy"]["matching_weight"] == observation["weight"]
+            assert packages[m]["donors"] == view["streams"][name]["donors"] != {}
+        from oeis_learn.pipeline_validation.progressive_velocity_wave_role import perform
+        for method in ("01", "02", "03"):
+            learner = packages[method]
+            request = dict(role="train", learner=learner["identity"], parent_files=[], target=1,
+                           cap=matrix["methods"][method]["first"])
+            result = perform(root / ("cpu-update-" + method), request, dict(package=learner), device="cpu")
+            assert result["cut"]["updates"] == 1
+            assert (result["cut"]["metrics"].get("matching_eligible", 0) > 0) == (method != "01")
+        original = (native / "pairs.json").read_bytes()
+        import json
+        (native / "pairs.json").write_text(json.dumps(dict(pairs, broader=pairs["ordinary"])))
+        with pytest.raises(ValueError):
+            wave.inputs(root, folder, accepted)
+        (native / "pairs.json").write_bytes(original)
+    return folder, accepted, reopened, packages

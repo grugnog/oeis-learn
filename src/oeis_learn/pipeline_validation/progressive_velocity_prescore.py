@@ -46,14 +46,15 @@ def inputs(revision, info, original, binding, paid_plan):
     if (
         estimate["missing"]
         or estimate["sources"]["fresh"] != fresh["identity"]
-        or set(wave["methods"]) != {"00", "04", "05", "06"}
+        or set(wave["methods"]) != set(paid_plan["methods"])
+        or "00" not in wave["methods"]
         or estimate["sources"]["checkpoint"] != binding["checkpoint"]["receipt"]
         or paid_plan["origin"] != fresh["identity"]
         or not estimate["followup_reserve_us"]
         or options["scopes"]["ordinary_initialization"]["tail_us"] is None
         or original != seal(original)
     ):
-        raise ValueError("complete paid four-recipe prices and fresh qualification required")
+        raise ValueError("complete paid recipe prices and fresh qualification required")
 
     def panel(role):
         return [
@@ -445,7 +446,7 @@ def verify_archives(report_path, qualification_path):
         or q["graph"] != digest(q["looks"])
         or set(q["looks"]) != methods | {policy["reference"], *policy["controls"]}
         or set(q["trials"]) != methods
-        or q["supported"] != ["00", "04", "05", "06"]
+        or q["supported"] != sorted(methods - set(q["omitted"])) or "00" not in q["supported"]
         or set(q["omitted"]) != methods - set(q["supported"])
         or q["quote"] != seal(q["quote"])
         or integer(q["quote"]["expected_us"], 1) > integer(q["quote"]["tail_us"], 1)

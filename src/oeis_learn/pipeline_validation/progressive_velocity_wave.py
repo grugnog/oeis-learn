@@ -143,7 +143,60 @@ def plan(accepted, registration, packages, sample=None):
     return graph, look_index, cuts, ops
 
 
+def reopen_treatments(folder, native, reg, view, matrix):
+    """Rebuild the priced slot/donor projection from the original native witnesses."""
+    from . import progressive_velocity_broad as broad
+    from . import progressive_velocity_checkpoint_host as checkpoints
+
+    pointer = checkpoints.origin(folder)
+    fresh = load(confined(folder, "qualification/" + pointer["grant"][7:] + "/receipt.json"))
+    if (fresh != seal(fresh) or fresh["identity"] != pointer["receipt"]
+            or fresh["identity"] != matrix["origin"] or fresh["supply"]["matching"] != view["support"]
+            or not matrix["methods"].keys() <= fresh["device"]["methods"].keys()):
+        raise ValueError("eligible learner packages require their paid support and optimizer prices")
+    saved = load(confined(native, "fresh-ordinary.json"), maximum=MAX_INPUT)
+    ordinary = saved["stream"]
+    start = saved["start"]
+    ordinary_rows = {row["draw_identity"]: row for row in saved["ordinary_rows"]}
+    if (saved != seal(saved) or ordinary != seal(ordinary) or ordinary["identity"] != reg["ordinary"]
+            or start != reg["training_start"]["origin"] or start != fresh["start"]
+            or len(ordinary_rows) != len(saved["ordinary_rows"])
+            or set(ordinary["order"]) != ordinary_rows.keys()
+            or digest([ordinary_rows[k]["identity"] for k in ordinary["order"]]) != ordinary["row_identities"]
+            or ordinary["seeds"]["training_families"] != reg["stream_seed"]):
+        raise ValueError("ordinary witnesses differ from the registered training start")
+    parent = confined(native, "run-state/discovery/" + SESSION + "/preparation/composition")
+    receipts = list(parent.glob("*/receipt.json"))
+    if len(receipts) != 1:
+        raise ValueError("one original composition receipt required")
+    receipt = load(confined(parent, receipts[0]), maximum=MAX_INPUT)
+
+    def reopen(ref):
+        return load(checked_file(receipts[0].parent, ref), maximum=ref["bytes"])
+
+    stream, audit = reopen(receipt["stream"]), reopen(receipt["audit"])
+    rows = {k: reopen(ref) for k, ref in receipt["rows"].items()}
+    if (receipt != seal(receipt) or stream != seal(stream) or audit != seal(audit)
+            or stream["audit"] != audit["identity"] or stream["ordinary_ref"] != reg["ordinary"]
+            or (stream["identity"] if stream["available"] else None) != reg["broad"]
+            or any(row["identity"] != audit["witnesses"][k] for k, row in rows.items())):
+        raise ValueError("broader witnesses differ from the registered stream or composition audit")
+    manifests = load(confined(native, "pairs.json"), maximum=MAX_INPUT)
+    origin = dict(stream=ordinary, ordinary_rows=saved["ordinary_rows"], start=start, frame=True,
+                  pair_seed=reg["stream_seed"], initial_weights=start["initial_weights"],
+                  profile=view["streams"]["ordinary"]["profile"])
+    reopened, pairs = broad.matching_views(origin, stream, rows, recorded=manifests)
+    if reopened != view or pairs != manifests:
+        raise ValueError("learner donor map, pair proofs or stream projection differs")
+    if {"02", "03"}.intersection(matrix["methods"]) and (
+        matrix.get("calibration") != fresh["device"]["calibration"]
+    ):
+        raise ValueError("matching weight differs from the paid ordinary calibration")
+
+
 def inputs(root, folder, accepted):
+    from oeis_learn.generalization.progressive.campaign import validate_velocity_registration
+
     area = confined(folder, "qualification/" + accepted["preparation_grant"][7:])
     private = load(confined(area, "trial-inputs.json"))
     if (
@@ -152,22 +205,28 @@ def inputs(root, folder, accepted):
         or private["targets"] != accepted["training"]
     ):
         raise ValueError("funded trial input commitment differs")
-    reg = load(checked_file(root, private["registration"]))
-    view = load(checked_file(root, private["projection"]), maximum=MAX_INPUT)
+    reg = validate_velocity_registration(load(checked_file(root, private["registration"])))
+    path = checked_file(root, private["projection"])
+    view = load(path, maximum=MAX_INPUT)
     matrix = private["matrix"]
     if (
         view != seal(view)
+        or matrix != seal(matrix)
+        or reg["identity"] != accepted["registration"]
+        or view["fresh_start"] != reg["training_start"]["origin"]["identity"]
+        or view["streams"]["ordinary"]["plan"] != reg["ordinary"]
         or view["identity"] != matrix["projection"]
         or matrix["methods"] != accepted["learners"]
+        or set(matrix["methods"]) != set(accepted["supported"])
         or matrix["origin"] != accepted["sources"]["fresh"]
     ):
         raise ValueError("funded training projection differs")
-    packages = {
-        m: checkpoint.package(
-            view["streams"]["ordinary"], m, matrix["microbatch"], matrix["origin"]
-        )
-        for m in accepted["supported"]
-    }
+    if set(matrix["methods"]) - set(checkpoint.METHODS):
+        reopen_treatments(folder, path.parent, reg, view, matrix)
+    packages = {m: checkpoint.treatment_package(view, m, matrix["microbatch"], matrix["origin"],
+                                                matrix.get("calibration")) for m in matrix["methods"]}
+    if any(p["identity"] != matrix["methods"][m]["package"] for m, p in packages.items()):
+        raise ValueError("reopened learner package differs from its paid matrix")
     return reg, packages
 
 

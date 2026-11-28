@@ -66,7 +66,8 @@ def inputs(root, folder, source):
         pointer,
         path,
         timed["physical"],
-        matrix.design(view, origin=fresh["identity"], microbatch=timed["design"]["microbatch"]),
+        matrix.design(view, origin=fresh["identity"], microbatch=timed["design"]["microbatch"],
+                      eligible=fresh["device"]["methods"], calibration=fresh["device"].get("calibration")),
     )
 
 
@@ -144,7 +145,7 @@ def partial_treatments(area, grant, plan):
     logical = operation_key(coordinates(grant, "measure"), 0)["logical"][7:]
     found = {}
     for attempt in range(2):
-        for method in matrix.METHODS:
+        for method in plan["methods"]:
             filename = f"operations/{logical}/attempt-{attempt:04d}/recipe-{method}.json"
             try:
                 item = load(confined(area, filename))

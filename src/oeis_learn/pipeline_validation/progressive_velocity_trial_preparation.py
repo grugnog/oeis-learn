@@ -95,7 +95,7 @@ def schedule(looks, supported):
 
 def training_requests(registration, methods):
     rows = []
-    for method in checkpoints.matrix.METHODS:
+    for method in sorted(methods):
         terms = methods[method]
         public.closed(terms, "package batch first second")
         public.hashes(terms["package"])
@@ -404,9 +404,10 @@ def verify_archives(report_path, qualification_path):
         or integer(r["elapsed_us"]) + integer(r["remaining_us"]) != integer(r["total_us"], 1)
         or integer(q["expected_us"], 1) > integer(q["tail_us"], 1)
         or q["proposed_total_us"] != q["tail_us"] + integer(q["followup_us"], 1)
-        or q["supported"] != list(checkpoints.matrix.METHODS)
+        or q["supported"] != sorted({r["id"] for r in velocity_policy()["recipes"]} - set(q["omitted"]))
+        or "00" not in q["supported"]
         or set(q["learners"]) != set(q["supported"])
-        or set(q["omitted"]) != {"01", "02", "03"}
+        or set(q["trials"]) != {r["id"] for r in velocity_policy()["recipes"]}
         or set(q["trials"]) != set(q["supported"]) | set(q["omitted"])
         or q["policy"] != digest(velocity_policy())
         or q["training"] != training_requests(q["registration"], q["learners"])

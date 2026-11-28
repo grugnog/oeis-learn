@@ -5,7 +5,6 @@ from types import SimpleNamespace
 
 import pytest
 
-from oeis_learn.generalization.progressive import velocity_donation_report as public
 from oeis_learn.generalization.progressive.campaign import velocity_policy
 from oeis_learn.generalization.progressive.contracts import (
     atomic_write,
@@ -15,7 +14,6 @@ from oeis_learn.generalization.progressive.contracts import (
     seal,
 )
 from oeis_learn.generalization.progressive.velocity_metrics import case_outcome_receipt
-from oeis_learn.generalization.progressive.velocity_records import SESSION
 from oeis_learn.pipeline_validation import progressive_round029 as command
 from oeis_learn.pipeline_validation import progressive_velocity_run as runner
 from oeis_learn.pipeline_validation import progressive_velocity_conditioning as conditioning
@@ -26,60 +24,25 @@ from oeis_learn.pipeline_validation.progressive_evaluation import (
     probe_inference,
     velocity_probe,
 )
-from tests.integration.test_round029_comparative_wave import fixture_wave
+from tests.integration.test_round029_comparative_wave import accepted_donor
 
 
 @pytest.mark.parametrize("methods", [["00", "04", "05", "06"], [f"0{i}" for i in range(7)]])
 def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypatch, methods):
     from oeis_learn.pipeline_validation import progressive_round028 as historical
-    from oeis_learn.pipeline_validation import progressive_velocity_trial_preparation as preparation
     from oeis_learn.pipeline_validation import progressive_velocity_wave_host as host
-    from oeis_learn.generalization.progressive.velocity_records import physical_root_id
 
     source = Path(__file__).resolve().parents[2]
     revision = "b" * 40
-    accepted, reg, packages = fixture_wave(methods, paired=True)
-    # Role calls, outcomes and hardware identities are synthetic in this fixture.
-    for m in methods:
-        packages[m] = seal(dict(packages[m], profile={"model": {"seed": 9}}))
-    training = [dict(r, learner=packages[r["method"]]["identity"]) for r in accepted["training"]]
-    accepted = seal(
-        dict(
-            accepted,
-            training=training,
-            version=preparation.VERSION,
-            seed=9,
-            owner=physical_root_id(tmp_path),
-            source=digest("source"),
-            sources=dict(paired=digest("paired-price"), bank=digest("bank-price")),
-            wheel=digest("wheel"),
-            image=digest("image"),
-            assessment="sealed",
-            tail_us=90_000_000_000,
-            preparation_grant=digest("original grant"),
-            research_authority=None,
-        )
-    )
-    folder = tmp_path / "run-state/discovery" / SESSION
-    folder.mkdir(parents=True)
-    from oeis_learn.pipeline_validation.progressive_study import open_velocity_study
-    trial_journal = open_velocity_study(folder, reg)
-    accepted = seal(dict(accepted, trials={m: trial_journal.velocity_trial(m)["identity"]
-                         for m in accepted["trials"]}))
-    atomic_write(folder / "accepted.json", accepted)
-    qualification = tmp_path / "external/qualification.zip"
-    public.install(qualification, preparation.MEMBER, accepted)
-    atomic_write(
-        folder / ("qualification/" + accepted["preparation_grant"][7:] + "/grant.json"),
-        {"original": 1},
-    )
-    (tmp_path / "run-state/discovery-authorizations").mkdir()
+    folder, accepted, reg, packages = accepted_donor(tmp_path, source, methods, monkeypatch)
+    seed = reg["initialization"]
+
     def prompt(row):
         offset = -3 if row["task"].endswith("0") else 7
         return dict(id=row["task"], indices=list(map(str, range(offset, offset + 20))),
                     values=[str(offset)] * 20)
     prompts = {r["task"]: prompt(r) for r in reg["development"]}
-    price = dict(**accepted["sources"], methods=methods, expected_us=250, tail_us=310,
+    price = dict(paired=accepted["sources"]["paired"], bank=accepted["sources"]["bank"], methods=methods, expected_us=250, tail_us=310,
                  search_us=120, selected_us=50, bank_us=60, overhead_us=20)
     monkeypatch.setattr(conditioning, "paid_inputs", lambda *_: (price, prompts))
     sample = conditioning.freeze(accepted, reg, price, prompts)
@@ -100,8 +63,6 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         "git",
         lambda *a: velocity_policy()["donor_revision"] if a[1] == "rev-parse" else None,
     )
-    monkeypatch.setattr(preparation, "published", lambda *_: {"accepted": accepted["identity"]})
-    monkeypatch.setattr(wave, "inputs", lambda *_: (reg, packages))
     path = wave.authorize(tmp_path, source, 1680, accepted["identity"])
     assert load(path) == grant
     qualification = runner.retained_qualification(tmp_path, grant)
@@ -159,7 +120,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
                     f.write_text(str(key))
                     weight = reference(f.parent, f)
                     model = model_receipt(
-                        dict(registration=reg["identity"], method=method, seed=9, look=target),
+                        dict(registration=reg["identity"], method=method, seed=seed, look=target),
                         profile=digest(data["package"]["profile"]),
                         weights=digest(key),
                         checkpoint=weight["sha256"] if target else None,
@@ -188,7 +149,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
                             origin=request["origin"],
                         )
                     probe = velocity_probe(
-                        look, data["prompts"], mode=look["mode"], inference_seed=9, model=model
+                        look, data["prompts"], mode=look["mode"], inference_seed=seed, model=model
                     )
                     f = out / "generated/candidates.json"
                     atomic_write(

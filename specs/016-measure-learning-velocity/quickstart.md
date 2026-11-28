@@ -280,6 +280,11 @@ follow-up and includes one shared retry allowance equal to the largest dispatch
 in each resource. A stopped learner resumes from its saved optimizer state and
 issued-update journal when available.
 
+The donor acceptance records its original exclusion reasons for 01–03. When a
+preparation funds these recipes, 01 and 03 reopen the registered broader stream.
+Recipes 02 and 03 replay the stored pair proofs for their own stream and use the
+weight from the paid ordinary-stream calibration.
+
 Each stage prints its role, method, look and profile to stderr. On completion,
 `receipt_path` names the report ZIP, and `qualification_path` names the independent
 pre-score ZIP. The report includes anonymous joint family counts, separate curves
