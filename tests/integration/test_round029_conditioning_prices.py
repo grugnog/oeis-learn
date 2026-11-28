@@ -723,6 +723,22 @@ def test_launch_projection_prices_the_matched_banks_once_and_requires_verified_p
     assert result["known_expected_us"] == 110 + 5 + 9 * 140
     assert result["known_tail_us"] == 215 + 5 + 9 * (140 + 2 * 4 * 7)
     assert result["missing"] == ["trajectory_startup_extra_checkpoints_and_drain", "verification_and_publication"]
+    files["preflight.json"]["supported_wave"]["fresh_receipt"] = digest("fresh")
+    files["preflight.json"]["launch_preparation"] = dict(
+        checkpoint_receipt=digest("checkpoint"), fresh_receipt=digest("fresh"),
+        trajectory=dict(known_expected_us=50, known_tail_us=70, missing=[]),
+        publication_proxy=dict(expected_us=11, tail_us=12),
+        verification_and_publication=dict(expected_us=14, tail_us=25))
+    priced = project(files)
+    assert priced["expected_us"] == result["known_expected_us"] + 50 + 14
+    assert priced["tail_with_reserve_us"] == result["known_tail_us"] + 70 + 25 + 7
+    assert not priced["missing"] and priced["research_authority"] is None
+    assert "historical_scale_publication_and_read" not in priced["items"]
+    files["preflight.json"]["launch_preparation"]["verification_and_publication"] = None
+    fallback = project(files)
+    assert fallback["known_expected_us"] == result["known_expected_us"] + 50 + 11
+    assert fallback["missing"] == ["round029_private_verification_and_report_scale"]
+    assert fallback["tail_with_reserve_us"] is None
     wrong = deepcopy(files)
     wrong["preflight.json"]["supported_wave"]["known_expected_us"] += 1
     with pytest.raises(ValueError, match="control"):

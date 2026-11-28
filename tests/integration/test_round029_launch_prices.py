@@ -151,6 +151,10 @@ def test_combined_command_keeps_pricing_and_returns_original_zip_when_conditioni
     publish(destination, dict(result, status="COMPLETE"))
     with pytest.raises(ValueError):
         api["verify_launch_zip"](destination)
+    # A problem reopening the CPU marker leaves the already paid byte-for-byte result available.
+    retained = dict(result["files"], **{"preparation.json": {}})
+    publish(destination, dict(result, files=retained, errors={"update-accounting": "ValueError"}))
+    assert api["verify_launch_zip"](destination)["status"] == "PARTIAL"
     altered = dict(result["files"])
     cpu = dict(altered["accounting.json"])
     cpu["remaining_us"] += 1

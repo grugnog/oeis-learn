@@ -3934,6 +3934,11 @@ def conditioning_copy(member):
     return diagnostic_zip_members(io.BytesIO(raw), CONDITIONING)
 
 
+def estimate_with_preparation(parts, preparation):
+    refreshed = dict(parts["preflight.json"], launch_preparation=preparation)
+    return launch_estimate({**parts, "preflight.json": refreshed})
+
+
 def donor_launch_prices(action, root, revision, minutes, supplied):
     from oeis_learn.generalization.progressive.lifecycle import RunStore
     from oeis_learn.generalization.progressive.velocity_records import SESSION
@@ -4016,15 +4021,10 @@ def donor_launch_prices(action, root, revision, minutes, supplied):
         print(f"{step}: {exc}", file=sys.stderr)
         errors[step] = type(exc).__name__
     if bound:
-        merged = dict(
-            parts,
-            **{
-                "preflight.json": dict(
-                    parts["preflight.json"], launch_preparation=files["preparation.json"]
-                )
-            },
-        )
-        files["estimate.json"] = launch_estimate(merged)
+        try:
+            files["estimate.json"] = estimate_with_preparation(parts, files["preparation.json"])
+        except (ValueError, KeyError, TypeError) as exc:
+            errors["estimate"] = type(exc).__name__
     complete = bound and summary["status"] == "COMPLETE" and not errors
     return dict(report, status="COMPLETE" if complete else "PARTIAL")
 
@@ -4056,15 +4056,14 @@ def verify_launch_zip(path):
         if summary["conditioning_status"] != conditioning["status"]:
             raise ValueError("conditioning status differs from original ZIP")
         if "estimate.json" in files:
-            prep = files["preparation.json"]
-            merged = dict(
-                parts, **{"preflight.json": dict(parts["preflight.json"], launch_preparation=prep)}
-            )
-            if launch_estimate(merged) != files["estimate.json"]:
+            if estimate_with_preparation(parts, files["preparation.json"]) != files["estimate.json"]:
                 raise ValueError("returned launch estimate differs")
     if "estimate.json" in files and (not conditioning or "conditioning" in summary["errors"]):
         raise ValueError("a launch estimate requires privately linked conditioning evidence")
-    if result and not result["errors"] and "launch-preflight" not in summary["errors"]:
+    independently_reopened = not (
+        {"launch-preflight", "update-accounting"} & summary["errors"].keys()
+    )
+    if result and not result["errors"] and independently_reopened:
         if files["preparation.json"].get("accounting_receipt") != result["identity"]:
             raise ValueError("published trajectory has different CPU prices")
     if summary["status"] == "COMPLETE" and (
@@ -4079,8 +4078,33 @@ def verify_launch_zip(path):
         raise ValueError(
             "complete preparation requires the original recovered matrix and CPU prices"
         )
+    preparation = files.get("preparation.json", {})
+    capacity = preparation.get("wave_space")
+    margins = None
+    if capacity:
+        units = (
+            "device",
+            "available_bytes",
+            "available_inodes",
+            "required_bytes",
+            "required_inodes",
+            "reserved_bytes",
+            "reserved_inodes",
+            "deficit_bytes",
+            "deficit_inodes",
+        )
+        margins = dict(
+            fits_with_reserve=capacity["fits_with_reserve"],
+            missing=capacity["missing"],
+            wave=[select_fields(m, *units) for m in capacity["wave"]],
+            first_ordinary_cut=[select_fields(m, *units) for m in capacity["first_ordinary_cut"]],
+        )
     return dict(
-        status=summary["status"], verified_members=len(files), estimate=files.get("estimate.json")
+        status=summary["status"],
+        verified_members=len(files),
+        estimate=files.get("estimate.json"),
+        capacity=margins,
+        preparation_errors=summary["errors"],
     )
 
 

@@ -474,6 +474,9 @@ def wave_space(
         first_ordinary_cut=first,
         chunks=chunks,
         projected_private=private,
+        sample_grant=sample.get("grant"),
+        eight_case_allocations=sample["roles"],
+        cached_installation=sample["runtime"],
         missing=missing,
         fits_with_reserve=False if not fits else None if missing else True,
         basis="Cached image, existing data and serial roles. A full paid paired block bounds one "
