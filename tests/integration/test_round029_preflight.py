@@ -55,6 +55,43 @@ def test_preflight_without_private_donor_is_successful_read_only(tmp_path):
     assert not list(tmp_path.iterdir())
 
 
+def test_preflight_after_supported_wave_publication(tmp_path, monkeypatch):
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from oeis_learn.pipeline_validation import progressive_round029 as controller
+    from oeis_learn.pipeline_validation import progressive_velocity_trial_preparation as trials
+
+    folder = tmp_path / "run-state/discovery" / SESSION
+    folder.mkdir(parents=True)
+    (folder / "accepted.json").write_text("{}")
+    sources = {key: digest(key) for key in trials.SOURCES}
+    publication = dict(
+        accepted=digest("accepted"), registration=digest("registration"), sources=sources,
+        supported=["00", "04", "05", "06"], proposed_total_us=100,
+        research_authority=None, receipt=digest("receipt"),
+    )
+    forecast = controller.velocity_forecast
+
+    def quoted(*args):
+        return dict(forecast(*args), launch_estimate={"sources": sources},
+                    launch_options={"next_scope": "wave"})
+
+    monkeypatch.setattr(controller, "velocity_forecast", quoted)
+    monkeypatch.setattr(trials, "published", lambda *_: publication)
+    value = controller.preflight(tmp_path)
+    assert value["next_action"] == "review_qualification"
+    assert value["inventory"]["trial_preparation"] == publication
+
+    def invalid(*_):
+        raise ValueError("accepted trial preparation differs from its original publication")
+
+    monkeypatch.setattr(trials, "published", invalid)
+    value = controller.preflight(tmp_path)
+    assert "trial_preparation" not in value["inventory"]
+    assert value["inventory"]["trial_preparation_error"] == (
+        "accepted trial preparation differs from its original publication"
+    )
+
+
 def test_public_preflight_reports_only_bound_supply(tmp_path, velocity_supply_rows):
     from oeis_learn.generalization.progressive.contracts import atomic_write, reference, seal
     from oeis_learn.pipeline_validation.progressive_velocity_supply import register_supply, measure_supply

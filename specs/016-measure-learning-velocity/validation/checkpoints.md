@@ -361,3 +361,22 @@ minima, original debits and both archive checks. A pre-dispatch capacity stop
 retains the full balance. An interrupted build without proven termination keeps
 its issued reservation. The printed ZIP and private log are available on a partial
 result as well.
+
+### Returned HIP initialization and supported-wave publication
+
+Reader `7096a078` verified the independently retained pre-score archive and the
+physical donor's ordinary zero cut. The 8,789,265 µs HIP lease saved a
+421,724,160-byte checkpoint and restored the same state twice. Save time was
+3,917,657 µs. Restore times were 461,308 and 453,711 µs. The grant charged
+410,664,751 µs in total and retained 1,389,335,249 µs. Training updates and
+charged tokens were both zero. The initialization ZIP SHA-256 is
+`0dfd239935b8ce64129c965e676a12896729c9d44498e8ab2968165a7dedfed0`.
+
+The combined ZIP (`1358bb7a9b33f2f1bc3953ac34cff8837e3463271b72dfc5fbaa0afc5a09de66`)
+contains the identical initialization ZIP. The separate fifteen-minute host grant
+`sha256:d7b1b1ce6b68ffbd9663a5de57d44509832792271f01fb901368e12d1d8b2b3c`
+finished qualification, then private verification returned `FAILED`. The partial
+ZIP reports the stopping point. The exception detail and the two published wave
+archives stayed on the donor. Preflight on the original reader reproducibly
+rejects the inventory member added after wave acceptance. Completing the readback
+requires the original funded registration, both journals and the independent archive.

@@ -245,6 +245,26 @@
         "families": {"oneOf": [{"$ref": "#/$defs/unmeasured_supply"}, {"$ref": "#/$defs/family_supply"}]},
         "matching_pairs": {"oneOf": [{"$ref": "#/$defs/unmeasured_supply"}, {"$ref": "#/$defs/pair_supply"}]},
         "prices": {"type": "object", "properties": {}, "additionalProperties": {}},
+        "trial_preparation": {
+          "type": "object",
+          "properties": {
+            "accepted": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+            "registration": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+            "receipt": {"$ref": "progressive-common.schema.json#/$defs/hash"},
+            "sources": {
+              "type": "object",
+              "propertyNames": {"enum": ["fresh", "checkpoint", "controls", "paired", "bank", "accounting"]},
+              "required": ["fresh", "checkpoint", "controls", "paired", "bank", "accounting"],
+              "additionalProperties": {"$ref": "progressive-common.schema.json#/$defs/hash"}
+            },
+            "supported": {"const": ["00", "04", "05", "06"]},
+            "proposed_total_us": {"$ref": "progressive-common.schema.json#/$defs/integer"},
+            "research_authority": {"type": "null"}
+          },
+          "required": ["accepted", "registration", "receipt", "sources", "supported", "proposed_total_us", "research_authority"],
+          "additionalProperties": false
+        },
+        "trial_preparation_error": {"type": "string", "minLength": 1},
         "new_positive_tokens_before_overshoot_if_control_reusable": {"$ref": "progressive-common.schema.json#/$defs/integer"},
         "capacity": {"type": "object", "properties": {}, "additionalProperties": {}},
         "mount": {
