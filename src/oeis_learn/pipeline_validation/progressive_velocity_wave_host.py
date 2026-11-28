@@ -26,7 +26,6 @@ from .preparation_recovery import retain
 from .progressive_evaluation import model_receipt
 from .progressive_handoff import stage
 from .progressive_panel_sources import read_inputs
-from .progressive_pilot_capacity import owned_allocations
 from .progressive_research_inputs import checked_file
 from .progressive_round028_audit import ORIGINAL
 from .progressive_round028_pilot import outcome_channels
@@ -83,20 +82,50 @@ def panel(root, folder, registration):
     return selected
 
 
-def capacity(area, accepted, floor):
-    stat = os.statvfs(area)
-    owned = owned_allocations([area])
-    device = area.stat().st_dev
-    # The accepted donor colocates the registered owners on one physical mount.
-    if [r["device"] for r in accepted["capacity"]] != [device]:
-        raise ValueError("comparative mount layout differs from the accepted donor")
-    (row,) = accepted["capacity"]
-    for unit, available, reserve in (
-        ("bytes", stat.f_bavail * stat.f_frsize, max(floor, row["reserved_bytes"])),
-        ("inodes", stat.f_favail, row["reserved_inodes"]),
-    ):
-        if available < reserve + max(0, row["required_" + unit] - owned[unit]):
-            raise InsufficientAuthority("insufficient live comparative capacity in " + unit)
+def capacity(area, accepted, floor, limits=None, retained=None, owner="comparative wave"):
+    """Credit stable, authenticated files once, capped by their original owner's peak."""
+    # All writable roles are confined to operations; the journal and archive can be mounted separately.
+    mounts = {}
+    for subdir in ("", "operations", "share", "accounting", "inputs", "projections"):
+        path = area / subdir
+        if path.exists():
+            mounts[path.stat().st_dev] = path
+    rows = {r["device"]: r for r in accepted["capacity"]}
+    if mounts.keys() != rows.keys():
+        raise InsufficientAuthority(f"{owner}: actual mount IDs {sorted(mounts)} differ from "
+                                    f"accepted capacity {sorted(rows)}")
+    seen = set()
+    credits = {dev: dict(bytes=0, inodes=0) for dev in rows}
+    for name, paths in (retained or {}).items():
+        device = limits[name].get("device", area.stat().st_dev)
+        amount = dict(bytes=0, inodes=0)
+        for path, original in paths.items():
+            try:
+                current = path.lstat()
+            except FileNotFoundError:
+                continue
+            key = current.st_dev, current.st_ino
+            if (current.st_dev == device and key not in seen
+                    and (current.st_ino, current.st_ctime_ns, current.st_size) ==
+                        (original.st_ino, original.st_ctime_ns, original.st_size)):
+                amount["bytes"] += current.st_blocks * 512
+                amount["inodes"] += 1
+                seen.add(key)
+        for unit in amount:
+            credits[device][unit] += min(amount[unit], limits[name][unit])
+    for device, row in rows.items():
+        stat = os.statvfs(mounts[device])
+        for unit, available, reserve in (
+            ("bytes", stat.f_bavail * stat.f_frsize, max(floor, row["reserved_bytes"])),
+            ("inodes", stat.f_favail, row["reserved_inodes"]),
+        ):
+            required = row["required_" + unit] - credits[device][unit]
+            deficit = required + reserve - available
+            if deficit > 0:
+                raise InsufficientAuthority(
+                    f"{owner} on mount {device}: available {available} {unit}, "
+                    f"pending {required}, reserve {reserve}, deficit {deficit} {unit}"
+                )
 
 
 def next_files(directory, pointer):
@@ -212,7 +241,7 @@ def check_cut(out, request, package, producer, expected):
     return dict(cut=dict(cut, model=model), weight=weight)
 
 
-def custody(root, folder, accepted, reg):
+def custody(root, folder, accepted, reg, source):
     """Only the custodian opens the source census, incumbent and paid acquisition."""
     original = load(confined(folder, preparation.INITIAL_MARKER))
     quote = load(confined(folder, "qualification/" + original["grant"][7:] + "/quote.json"))
@@ -251,9 +280,18 @@ def custody(root, folder, accepted, reg):
         k: {f: v[f] for f in ("id", "indices", "values")}
         for k, v in panel(root, folder, reg).items()
     }
+    from .progressive_round029 import preflight
+
+    prices = preflight(root, source)["inventory"]["prices"]["launch_preparation"]
+    mounts = prices["wave_space"]["wave"]
+    keys = ("device", "required_bytes", "required_inodes")
+    if [[m[k] for k in keys] for m in mounts] != [[m[k] for k in keys] for m in accepted["capacity"]]:
+        raise ValueError("reopened owner peaks differ from the accepted wave capacity")
+    limits = {o["owner"]: dict(o["incremental"], device=m["device"]) for m in mounts for o in m["owners"]}
     return seal(
         dict(
             accepted=accepted["identity"],
+            capacity_owners=limits,
             wheel=reference(root, runtime(root, folder, accepted)),
             startup_us=integer(quote["initial_role_us"], 1),
             training_tail_us={
@@ -279,6 +317,8 @@ class Donor:
         self.startup_us, self.training_tail_us = basis["startup_us"], basis["training_tail_us"]
         self.wheel = checked_file(root, basis["wheel"])
         self.witnesses = basis["witnesses"]
+        self.capacity_owners = basis["capacity_owners"]
+        self.retained = {}
         self.incumbent = basis["incumbent"]
         self.incumbent_path = checked_file(root, self.incumbent["weight"])
         self.role = confined(source, wave.DRIVER)
@@ -292,6 +332,17 @@ class Donor:
             if readonly
             else host_factory(args, source_root=source, workspace=root, revision=revision)
         )
+
+    def credit_cut(self, method, out, cut):
+        directory = confined(out, "learner")
+        name = "learner_" + method
+        if name not in self.capacity_owners:
+            return
+        items = self.retained.setdefault(name, {})
+        for ref in next_files(directory, cut["checkpoint"]):
+            if ref["path"].startswith("checkpoint/") and not ref["path"].endswith("latest.json"):
+                path = checked_file(directory, ref)
+                items[path] = path.stat()
 
     def channels(self, look):
         return outcome_channels(look, self.witnesses)
@@ -319,7 +370,8 @@ class Donor:
         image = self.accepted["image"]
 
         def guard():
-            capacity(self.area, self.accepted, self.host.policy["free_disk_floor_bytes"])
+            capacity(self.area, self.accepted, self.host.policy["free_disk_floor_bytes"],
+                     self.capacity_owners, self.retained, request["role"] + " " + request["method"])
             if self.host.engine.image(image) != image:
                 raise ValueError("accepted image is missing from the donor cache")
             if (

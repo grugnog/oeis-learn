@@ -111,6 +111,7 @@ def test_registered_operation_recovers_receipt_before_commit_and_protects_holdba
     assert good["attempt"] == 1 and len(issued) == 2
     block = issued[-1].parent
     (block / "receipt.json").unlink()
+    args["verify"] = lambda out: pytest.fail("committed evidence must reopen without a new verifier")
     for _ in range(2):
         assert run_operation(**args) == good
     assert len(issued) == 2 and journal.snapshot()["consumed"]["attempts"] == 2
@@ -353,8 +354,8 @@ def test_funded_verifier_stops_and_complete_nested_output_survives(tmp_path):
     assert time.monotonic() - start < 1
     assert not (attempts[0] / "late-write").exists()
     assert journal.snapshot()["remaining"]["elapsed_us"] == g["holdback_us"]
-    args["verify"] = lambda out: broad.cpu_evidence(tmp_path, tmp_path, binding, out)
-    first = run_operation(**args)
-    assert first["evidence"]["disposition"] == "requires_fresh_disjoint_start"
-    assert run_operation(**args) == first and len(attempts) == 1
+    for _ in range(2):
+        with pytest.raises(InsufficientAuthority, match="verification"):
+            run_operation(**args)
+    assert not (attempts[0] / "late-write").exists() and len(attempts) == 1
     assert "verification" in load(attempts[0].parent / "first-error.json")["reason"]

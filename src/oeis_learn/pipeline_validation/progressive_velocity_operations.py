@@ -3,7 +3,7 @@
 from pathlib import Path
 import time
 
-from oeis_learn.generalization.progressive.budgets import KEYS, vector
+from oeis_learn.generalization.progressive.budgets import BudgetJournal, KEYS, vector
 from oeis_learn.generalization.progressive.contracts import load, seal
 from oeis_learn.generalization.progressive.velocity_records import operation_key
 from .identity import confined
@@ -155,8 +155,47 @@ def run_operation(
     retain(block / "input.json", input_record(coordinates, request, work, grant))
     prefix = logical + "/dispatch/"
 
-    def verified(out, attempt):
-        return operation_receipt(coordinates, request, grant, attempt, verify(out))
+    def recover_proof(out, attempt, key, *, original_pending=False):
+        cached = block / f"verified-{attempt:04d}.json"
+        if cached.exists() or receipt.exists():
+            saved = load(cached if cached.exists() else receipt)
+            proof = operation_receipt(coordinates, request, grant, attempt, saved["evidence"])
+            if proof != saved:
+                raise ValueError("cached supervisor evidence differs from the original dispatch")
+            return proof
+
+        boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+        snapshot = BudgetJournal.inspect_existing(
+            journal.root, grant["identity"], grant["resources"], include_windows=True
+        )
+        clock = snapshot["windows"][key]
+        deadline = clock["start_us"] + clock["charged_us"]
+        now = time.monotonic_ns() // 1000
+        if original_pending and clock["boot"] == boot and now < deadline:
+            evidence = funded_verification(verify, out, deadline)
+        else:
+            prefix = logical + "/verify/"
+            for orphan in snapshot["pending"]:
+                if orphan.startswith(prefix):
+                    journal.commit(orphan)
+            left = journal.snapshot()["remaining"]["elapsed_us"] - grant["holdback_us"] - protected_us
+            allowance = min(left, maximum_us) if maximum_us is not None else left
+            if allowance < 1:
+                raise VerificationExpired("no funded recovery verification time above holdback")
+            ordinal = sum(k.startswith(prefix) for k in snapshot["windows"])
+            now = time.monotonic_ns() // 1000
+            debit = journal.reserve(logical, "verify", ordinal,
+                                    dict(dict.fromkeys(KEYS, 0), elapsed_us=allowance),
+                                    boot=boot, monotonic_us=now)
+            try:
+                evidence = funded_verification(verify, out, now + allowance)
+            finally:
+                end = time.monotonic_ns() // 1000
+                journal.commit(debit["key"], boot=boot, monotonic_us=end,
+                               termination_proven=end <= now + allowance)
+        proof = operation_receipt(coordinates, request, grant, attempt, evidence)
+        retain(cached, proof)
+        return proof
 
     receipt = block / "receipt.json"
     state = journal.snapshot(include_work=True)
@@ -174,7 +213,7 @@ def run_operation(
         recovery = confined(block, f"recovering-{attempt:04d}.json", exists=False)
         if boundary.exists():
             recorded = load(boundary)
-            proof = verified(out, attempt)
+            proof = recover_proof(out, attempt, key, original_pending=key in state["pending"])
             if recorded != seal(recorded) or recorded["result"] != proof["identity"]:
                 raise ValueError("installed operation or original supervisor boundary differs")
             journal.commit(
@@ -191,12 +230,14 @@ def run_operation(
             # Record the recovery intent before committing so a second interruption is resumable.
             if out.is_dir():
                 retain(recovery, seal(dict(reservation=key)))
-            journal.commit(key)
             available = installed(out) if installed else (out / "producer.json").is_file()
             if available and (out / "cleanup.json").is_file():
                 cleanup = load(confined(out, "cleanup.json"))
                 if cleanup.get("acknowledged") is True and cleanup.get("within_bound") is True:
-                    proof = verified(out, attempt)
+                    try:
+                        proof = recover_proof(out, attempt, key, original_pending=key in state["pending"])
+                    finally:
+                        journal.commit(key)
                     retain(
                         boundary,
                         seal(
@@ -210,6 +251,7 @@ def run_operation(
                     )
                     retain(receipt, proof)
                     return proof
+            journal.commit(key)
     if receipt.exists():
         raise ValueError("original operation receipt has lost its verified boundary")
 
@@ -252,6 +294,7 @@ def run_operation(
         within = 0 <= end - start <= reserve
         if not within:
             raise InsufficientAuthority("operation exceeded its original wall-time reservation")
+        retain(block / f"verified-{attempt:04d}.json", proof)
         retain(
             block / f"boundary-{attempt:04d}.json",
             seal(dict(result=proof["identity"], boot=boot, end_us=end, within_reservation=within)),

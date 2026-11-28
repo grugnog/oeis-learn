@@ -398,7 +398,7 @@ def accounting(area, grant, report, balance):
     dispatches = []
     for key in sorted(balance["committed"]):
         logical, verb, ordinal = key.split("/")
-        if verb != "dispatch":
+        if verb not in {"dispatch", "verify"}:
             raise ValueError("unexpected comparative journal operation")
         block = confined(area, "operations/" + logical[7:])
         registered = load(confined(block, "input.json"))

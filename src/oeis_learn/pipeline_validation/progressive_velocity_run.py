@@ -55,12 +55,12 @@ def window(grant, accepted, coords, request, donor, cost):
 
 
 def costs(snapshot, grant, coords, op, names):
-    prefix = operation_key(coords, 0)["logical"] + "/dispatch/"
+    prefix = operation_key(coords, 0)["logical"] + "/"
     windows = snapshot["windows"]
     rows = []
     for key in sorted(k for k in snapshot["committed"] if k.startswith(prefix)):
         w = windows[key]
-        certified = key == prefix + str(op["attempt"])
+        certified = key == prefix + "dispatch/" + str(op["attempt"])
         proof = op["evidence"] if certified else {}
         device = proof.get("telemetry", {})
         rows.append(
@@ -281,6 +281,7 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
         evidence = paid["evidence"]
         if role == "train":
             cuts[key] = evidence, out
+            donor.credit_cut(method, out, evidence["cut"])
             train_work.setdefault(method, []).extend(work)
         elif role == "search":
             generated[look["identity"]] = evidence, out, work
@@ -376,10 +377,12 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
         from .progressive_velocity_image import preparation_boundary
 
         def host_space():
-            physical.capacity(area, accepted, getattr(args, "free_disk_gib", 5) << 30)
+            physical.capacity(area, accepted, getattr(args, "free_disk_gib", 5) << 30,
+                              getattr(donor, "capacity_owners", None), getattr(donor, "retained", None),
+                              status["stage"])
 
         def custody_basis(out, *, install):
-            basis = physical.custody(root, folder, accepted, reg)
+            basis = physical.custody(root, folder, accepted, reg, source)
             if install:
                 retain(out / "custodian.json", basis)
             if load(confined(out, "custodian.json"), maximum=wave.MAX_INPUT) != basis:

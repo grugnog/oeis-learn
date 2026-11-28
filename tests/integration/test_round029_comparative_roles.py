@@ -138,3 +138,30 @@ def test_selected_control_role_cannot_read_truth_until_choices_are_sealed(tmp_pa
     measured = measured_look(generated["probe"], result)
     assert result["candidates"] == generated["artifact"]["sha256"]
     assert len(measured["scores"]["outcomes"]) == len(members)
+
+
+def test_comparative_capacity_credits_only_registered_checkpoint_files(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from oeis_learn.pipeline_validation import progressive_velocity_wave_host as host
+    f = tmp_path / "stale.log"
+    f.write_bytes(b"x" * 8192)
+    device = tmp_path.stat().st_dev
+    row = dict(device=device, required_bytes=12288, required_inodes=3,
+               reserved_bytes=4096, reserved_inodes=1)
+    accepted = dict(capacity=[row])
+    fs = SimpleNamespace(f_frsize=4096, f_bavail=1, f_favail=1)
+    monkeypatch.setattr(host.os, "statvfs", lambda p: fs)
+    with pytest.raises(host.InsufficientAuthority, match=r"deficit.*12288"):
+        host.capacity(tmp_path, accepted, 4096)
+    stable = tmp_path / "verified-weights"
+    stable.write_bytes(b"w" * 8192)
+    limits = {"learner_00": dict(bytes=8192, inodes=1)}
+    retained = {"learner_00": {stable: stable.stat()}}
+    fs.f_bavail = 2
+    with pytest.raises(host.InsufficientAuthority, match="inodes"):
+        host.capacity(tmp_path, accepted, 4096, limits, retained)
+    fs.f_favail = 3
+    host.capacity(tmp_path, accepted, 4096, limits, retained)
+    stable.unlink()
+    with pytest.raises(host.InsufficientAuthority, match="bytes"):
+        host.capacity(tmp_path, accepted, 4096, limits, retained)

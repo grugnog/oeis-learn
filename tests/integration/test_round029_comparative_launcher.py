@@ -110,6 +110,9 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         def __init__(self, *args, **kwargs):
             pass
 
+        def credit_cut(self, method, out, cut):
+            pass
+
         def channels(self, look):
             prompts = [
                 dict(id=r["task"], indices=list(map(str, range(20))), values=["0"] * 20)
