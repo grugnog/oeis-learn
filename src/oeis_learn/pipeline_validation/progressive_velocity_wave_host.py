@@ -125,7 +125,7 @@ def joined_scores(scores, live, private, handles):
     return seal(dict(scores, visible_scores=scores["identity"], outcomes=outcomes))
 
 
-def capacity(area, accepted, floor, limits=None, retained=None, owner="comparative wave"):
+def capacity(area, accepted, floor, limits=None, retained=None, owner="comparative wave", pending=None):
     """Credit stable, authenticated files once, capped by their original owner's peak."""
     # All writable roles are confined to operations; the journal and archive can be mounted separately.
     mounts = {}
@@ -163,6 +163,9 @@ def capacity(area, accepted, floor, limits=None, retained=None, owner="comparati
             ("inodes", stat.f_favail, row["reserved_inodes"]),
         ):
             required = row["required_" + unit] - credits[device][unit]
+            if pending is not None and str(device) in pending:
+                # A prefix prices additional coexistence above current occupancy, including staging.
+                required = min(required, integer(pending[str(device)][unit]))
             deficit = required + reserve - available
             if deficit > 0:
                 raise InsufficientAuthority(
@@ -313,7 +316,14 @@ def check_cut(out, request, package, producer, expected):
     if cut["model"] != model_receipt(worker_look, **model_terms):
         raise ValueError("worker model differs from the authenticated checkpoint")
     model = model_receipt(dict(worker_look, registration=request["registration"]), **model_terms)
-    return dict(cut=dict(cut, model=model), weight=weight)
+    files = next_files(directory, pointer)
+    allocations = {}
+    for item in files:
+        name = item["path"]
+        if name.startswith("checkpoint/") and not name.endswith("latest.json"):
+            stat = confined(directory, name).stat()
+            allocations[name] = [stat.st_dev, stat.st_ino, stat.st_ctime_ns, stat.st_size]
+    return dict(cut=dict(cut, model=model), weight=weight, files=files, allocations=allocations)
 
 
 def custody(root, folder, accepted, reg, source):
@@ -382,6 +392,26 @@ def custody(root, folder, accepted, reg, source):
     )
 
 
+def operation_space(prefixes, request):
+    role = request["role"]
+    if role == "train":
+        if request["method"] == "00":
+            key = "initialization" if request["target"] == 0 else "first_cut" if request["target"] <= 1_000_000 else "00"
+        else:
+            key = request["method"]
+        return prefixes.get(key)
+    if role in {"search", "score"} and "portfolio_blocks" in prefixes:
+        look = request["look"] if role == "search" else request["probe"]["look"]
+        method = request["method"]
+        proxy = ("ordinary-" + look["profile"] if method.isdigit() else "D-full" if method == "D" else method)
+        if not any(proxy in rows for rows in prefixes["portfolio_blocks"].values()):
+            return None
+        blocks = (len(look["members"]) + 7) // 8
+        return {dev: {u: base[u] + blocks * prefixes["portfolio_blocks"].get(dev, {}).get(proxy, {}).get(u, 0)
+                      for u in ("bytes", "inodes")} for dev, base in prefixes["portfolio_base"].items()}
+    return prefixes.get(role)
+
+
 class Donor:
     def __init__(
         self, root, source, area, accepted, basis, revision, args, host_factory, *, readonly=False
@@ -390,12 +420,15 @@ class Donor:
             raise ValueError("private comparative role inputs differ")
         self.accepted, self.source, self.area = accepted, source, area
         self.startup_us, self.training_tail_us = basis["startup_us"], basis["training_tail_us"]
-        self.wheel = checked_file(root, basis["wheel"])
+        # Custody authenticated these immutable references inside its funded operation.
+        # Each mounted reader checks its expected content again inside its worker window.
+        self.wheel = confined(root, basis["wheel"]["path"])
         self.witnesses = basis["witnesses"]
         self.capacity_owners = basis["capacity_owners"]
         self.retained = {}
+        self.prefixes = {}
         self.incumbent = basis["incumbent"]
-        self.incumbent_path = checked_file(root, self.incumbent["weight"]) if self.incumbent else None
+        self.incumbent_path = confined(root, self.incumbent["weight"]["path"]) if self.incumbent else None
         self.role = confined(source, wave.DRIVER)
         self.evaluator = confined(source, wave.EVALUATOR)
         operator = confined(
@@ -409,16 +442,17 @@ class Donor:
             else host_factory(args, source_root=source, workspace=root, revision=revision)
         )
 
-    def credit_cut(self, method, out, cut):
+    def credit_cut(self, method, out, evidence):
         directory = confined(out, "learner")
         name = "learner_" + method
         if name not in self.capacity_owners:
             return
         items = self.retained.setdefault(name, {})
-        for ref in next_files(directory, cut["checkpoint"]):
-            if ref["path"].startswith("checkpoint/") and not ref["path"].endswith("latest.json"):
-                path = checked_file(directory, ref)
-                items[path] = path.stat()
+        for name, fingerprint in evidence["allocations"].items():
+            path = confined(directory, name)
+            stat = path.stat()
+            if [stat.st_dev, stat.st_ino, stat.st_ctime_ns, stat.st_size] == fingerprint:
+                items[path] = stat
 
     def channels(self, look):
         return outcome_channels(look, self.witnesses)
@@ -449,7 +483,8 @@ class Donor:
 
         def guard():
             capacity(self.area, self.accepted, self.host.policy["free_disk_floor_bytes"],
-                     self.capacity_owners, self.retained, request["role"] + " " + request["method"])
+                     self.capacity_owners, self.retained, request["role"] + " " + request["method"],
+                     operation_space(self.prefixes, request))
             if self.host.engine.image(image) != image:
                 raise ValueError("accepted image is missing from the donor cache")
             if (

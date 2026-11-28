@@ -203,6 +203,17 @@ def test_comparative_capacity_credits_only_registered_checkpoint_files(tmp_path,
         host.capacity(tmp_path, accepted, 4096, limits, retained)
     fs.f_favail = 3
     host.capacity(tmp_path, accepted, 4096, limits, retained)
+    prefix = {str(device): dict(bytes=4096, inodes=2)}
+    host.capacity(tmp_path, accepted, 4096, owner="next ordinary cut", pending=prefix)
+    fs.f_favail = 2
+    with pytest.raises(host.InsufficientAuthority, match="next ordinary cut.*deficit 1 inodes"):
+        host.capacity(tmp_path, accepted, 4096, owner="next ordinary cut", pending=prefix)
+    fs.f_bavail = 1
+    with pytest.raises(host.InsufficientAuthority, match="next ordinary cut.*deficit 4096 bytes"):
+        host.capacity(tmp_path, accepted, 4096, owner="next ordinary cut", pending=prefix)
+    host.capacity(tmp_path, accepted, 4096, owner="independent scorer",
+                  pending={str(device): dict(bytes=0, inodes=1)})
+    fs.f_bavail, fs.f_favail = 2, 3
     stable.unlink()
     with pytest.raises(host.InsufficientAuthority, match="bytes"):
         host.capacity(tmp_path, accepted, 4096, limits, retained)

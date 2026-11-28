@@ -21,10 +21,11 @@ LAYERS = (
 MEMBERS = ("outcome.json", *(layer[0] for layer in LAYERS))
 
 
-def archive_bytes(records):
+def archive_bytes(records, *, comment=b""):
     """Fixed ZIP metadata and stored JSON make the share portable and byte-reproducible."""
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w") as archive:
+        archive.comment = comment
         for name, raw in records.items():
             member = zipfile.ZipInfo(name)
             member.create_system = 3
@@ -134,7 +135,7 @@ def build_outcome(timing_path):
     return archive_bytes({"outcome.json": encode(outcome(parent, records)), **records})
 
 
-def read_canonical(path, members):
+def read_canonical(path, members, *, comment=b""):
     with zipfile.ZipFile(path) as archive:
         if (
             tuple(archive.namelist()) != members
@@ -145,7 +146,7 @@ def read_canonical(path, members):
             raise ValueError("terminal share requires canonical stored projections")
         records = {name: archive.read(name) for name in members}
     # Reject even unreferenced bytes, ZIP comments, private metadata and alternate encodings.
-    canonical = archive_bytes(records)
+    canonical = archive_bytes(records, comment=comment)
     if isinstance(path, (str, Path)):
         with Path(path).open("rb") as stream:
             identical = stream.read(len(canonical) + 1) == canonical

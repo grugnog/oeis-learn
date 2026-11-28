@@ -7,10 +7,10 @@ from oeis_learn.generalization.progressive.velocity_records import validate_gran
 from oeis_learn.pipeline_validation import progressive_velocity_wave as wave
 
 
-def fixture_wave(methods, *, paired=False):
+def fixture_wave(methods, *, paired=False, strata=None):
     from oeis_learn.generalization.progressive.cohorts import STRATA
 
-    strata = STRATA if len(methods) == 7 else ("oeis",)
+    strata = strata or (STRATA if len(methods) == 7 else ("oeis",))
     registration = velocity_registration(
         source="a" * 40,
         design=digest("design"),
@@ -96,7 +96,7 @@ def test_frozen_wave_has_separate_endpoints_exact_crossings_and_one_allowance(tm
     )
 
 
-def accepted_donor(root, source, methods, monkeypatch):
+def accepted_donor(root, source, methods, monkeypatch, *, strata=None):
     """Qualify stored, measured CPU fixtures through the real preparation and archive reader."""
     from types import SimpleNamespace
     from oeis_learn.decoder.bigint_codec import encode_body
@@ -117,7 +117,7 @@ def accepted_donor(root, source, methods, monkeypatch):
     from oeis_learn.pipeline_validation.progressive_velocity_broad_host import FRESH_MARKER
     from oeis_learn.pipeline_validation.progressive_velocity_worker import measure_calibration
 
-    _, template, _ = fixture_wave(methods, paired=True)
+    _, template, _ = fixture_wave(methods, paired=True, strata=strata)
     extended = "01" in methods
     authority = digest("independent-training-seed")
     seeds = pair_seeds(authority, 0)
@@ -370,3 +370,59 @@ def accepted_donor(root, source, methods, monkeypatch):
             wave.inputs(root, folder, accepted)
         (native / "pairs.json").write_bytes(original)
     return folder, accepted, reopened, packages
+
+
+def test_changed_effective_worker_requires_new_evidence_and_matching_starts_reuse_it(tmp_path, monkeypatch):
+    from pathlib import Path
+    from types import SimpleNamespace
+    import shutil
+    from oeis_learn.generalization.progressive.contracts import atomic_write, load, reference
+    from oeis_learn.pipeline_validation import progressive_round029 as command
+    from oeis_learn.pipeline_validation import progressive_velocity_wave_qualification as rehearsal
+    from oeis_learn.pipeline_validation import progressive_velocity_wave_host as host
+
+    source = Path(__file__).resolve().parents[2]
+    folder, accepted, _, _ = accepted_donor(tmp_path, source, ["00","04","05","06"], monkeypatch)
+    mirror = tmp_path / "candidate"
+    for name in (wave.DRIVER, wave.EVALUATOR, wave.CONTROLS):
+        path = mirror / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source / name, path)
+    wheel = tmp_path / "fixture.whl"
+    wheel.write_bytes(b"disposable")
+    monkeypatch.setattr(host, "runtime", lambda *_: wheel)
+    monkeypatch.setattr(command, "preflight", lambda *_: dict(inventory=dict(prices=dict(
+        launch_preparation=dict(wave_space=dict(dispatch_prefixes={}))))))
+    launches = []
+    class Supervisor:
+        def __init__(self, *args):
+            pass
+        def supervise(self, request, data, extra, proof):
+            def execute(out, allowance):
+                role = request["role"]
+                launches.append(role)
+                if role == "search":
+                    candidate = out / "choices.json"
+                    atomic_write(candidate, seal(dict(choice=digest("selected"))))
+                atomic_write(out / "producer.json", seal(dict(request=request["identity"])))
+                atomic_write(out / "cleanup.json", dict(acknowledged=True, within_bound=True))
+            def verify(out):
+                selected = (dict(artifact=reference(out, out / "choices.json"), probe=dict(identity=digest("probe")))
+                            if request["role"] == "search" else {})
+                return seal(dict(producer=load(out / "producer.json")["identity"], **selected))
+            return execute, verify, lambda: None
+    monkeypatch.setattr(host, "Donor", Supervisor)
+    for _ in range(2):
+        path = rehearsal.authorize(tmp_path, mirror, 30, accepted["identity"])
+        if not launches:
+            with pytest.raises(ValueError, match="qualification"):
+                rehearsal.required(tmp_path, folder, mirror, accepted)
+        value, code = rehearsal.qualify(SimpleNamespace(), tmp_path, folder, mirror, "a"*40, load(path), None)
+        assert code == 0 and value["last_committed_ref"] == rehearsal.required(tmp_path, folder, mirror, accepted)
+        assert launches == ["train", "search", "score"]
+    adapter = mirror / wave.CONTROLS
+    with adapter.open("a") as modified:
+        modified.write("\n# changed mounted control\n")
+    with pytest.raises(ValueError, match="qualification"):
+        rehearsal.required(tmp_path, folder, mirror, accepted)
+    assert not (folder / wave.MARKER).exists()

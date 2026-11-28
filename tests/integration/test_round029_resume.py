@@ -359,3 +359,41 @@ def test_funded_verifier_stops_and_complete_nested_output_survives(tmp_path):
             run_operation(**args)
     assert not (attempts[0] / "late-write").exists() and len(attempts) == 1
     assert "verification" in load(attempts[0].parent / "first-error.json")["reason"]
+
+
+@pytest.mark.parametrize("role", ["prepare", "publish"])
+def test_measured_host_window_survives_unproven_loss(tmp_path, role):
+    import time
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal, KEYS
+    from oeis_learn.generalization.progressive.contracts import atomic_write, digest, load, seal
+    from oeis_learn.pipeline_validation.progressive_velocity_operations import run_operation
+    from oeis_learn.pipeline_validation.progressive_velocity_run import window
+
+    total = 1680 * 60_000_000
+    grant = dict(identity=digest("host loss"), resources=dict(dict.fromkeys(KEYS, 0), elapsed_us=total),
+                 holdback_us=101_545_884)
+    journal = BudgetJournal(tmp_path / "accounting", grant["identity"], grant["resources"])
+    coords = dict(study=grant["identity"], stage="preparation" if role == "prepare" else "publication",
+                  method="wave", seed=1, look=0, panel="development", profile="full", input_mode="true",
+                  role=role, ordinal=0)
+    timings = dict(preparation_us=3_000_000, publication_us=4_000_000, checkpoint_read_us=500_000)
+    allowance = window(grant, {}, coords, {}, None, {}, host_plan=timings)
+    assert allowance == (127_000_000 if role == "prepare" else 129_000_000)
+    def work(out, limit):
+        assert limit == allowance
+        if out.name.endswith("0000"):
+            raise RuntimeError("lost before termination")
+        time.sleep(.04)
+        atomic_write(out / "producer.json", seal(dict(verified=True)))
+        atomic_write(out / "cleanup.json", dict(acknowledged=True, within_bound=True))
+    args = dict(area=tmp_path, journal=journal, grant=grant, coordinates=coords, cost={},
+                request=seal(dict(role=role)), execute=work, verify=lambda p: load(p / "producer.json"),
+                maximum_us=allowance, max_attempts=2)
+    with pytest.raises(RuntimeError, match="lost before termination"):
+        run_operation(**args)
+    assert journal.snapshot()["consumed"]["elapsed_us"] == allowance
+    result = run_operation(**args)
+    assert run_operation(**args) == result and result["attempt"] == 1
+    used = journal.snapshot()["consumed"]["elapsed_us"]
+    assert allowance + 40_000 <= used < 2 * allowance
+    assert journal.snapshot()["remaining"]["elapsed_us"] == total - used > grant["holdback_us"]

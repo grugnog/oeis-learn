@@ -481,9 +481,32 @@ def wave_space(
     # generation tree bounds all of those bytes. A later cut retains earlier states.
     initial = [o for o in prefix if o["owner"] != "pending_checkpoint"]
     initial_mounts = velocity_mounts(root, initial, owner_floors(root, initial, floor, registered))
+    def compact(rows):
+        return {str(m["device"]): {unit: m["required_" + unit] for unit in ("bytes", "inodes")}
+                for m in rows}
+
+    prefixes = dict(prepare=compact(initial_mounts), initialization=compact(initial_mounts),
+                    first_cut=compact(first))
+    for role, names in [("publish", {"release_staging", "role_accounts"}),
+                        *[(method, {"learner_" + method, "pending_checkpoint", "worker_staging",
+                                    "learner_accounts"}) for method in wave["methods"]]]:
+        prefixes[role] = {
+            str(m["device"]): {unit:sum(o["incremental"][unit] for o in m["owners"] if o["owner"] in names)
+                               for unit in ("bytes","inodes")} for m in mounts
+        }
+    # A single resident search/score owns one measured eight-case block per chunk.
+    # Retained private outputs are already reflected in statvfs at dispatch.
+    prefixes["portfolio_base"] = {
+        str(m["device"]): {unit:sum(o["incremental"][unit] for o in m["owners"]
+                                   if o["owner"] in {"worker_staging","role_accounts"})
+                           for unit in ("bytes","inodes")} for m in mounts}
+    for m in mounts:
+        if any(o["owner"] == "private_portfolios" for o in m["owners"]):
+            prefixes["portfolio_blocks"] = {str(m["device"]): {
+                name:{u:2*row[u] for u in ("bytes","inodes")} for name,row in sample["roles"].items()}}
     fits = not any(m["deficit_bytes"] or m["deficit_inodes"] for m in mounts)
     return dict(
-        wave=mounts,
+        dispatch_prefixes=prefixes, wave=mounts,
         first_ordinary_cut=first,
         ordinary_initialization=initial_mounts,
         chunks=chunks,

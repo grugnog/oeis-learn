@@ -87,7 +87,7 @@ def authorize(root, source, minutes, expected):
 
 def qualify(args, root, folder, source, revision, grant, host_factory):
     from oeis_learn.generalization.progressive.velocity_records import operation_key
-    from .progressive_round029 import result
+    from .progressive_round029 import preflight, result
     accepted = accepted_preparation(folder)
     bound = binding(source, accepted)
     area = directory(folder, bound)
@@ -100,6 +100,8 @@ def qualify(args, root, folder, source, revision, grant, host_factory):
         basis = seal(dict(accepted=accepted["identity"], wheel=wheel, capacity_owners={},
                           startup_us=0, training_tail_us={}, witnesses={}, incumbent=None))
         donor = physical.Donor(root, source, area, accepted, basis, revision, args, host_factory)
+        prices = preflight(root, source)["inventory"]["prices"]["launch_preparation"]
+        donor.prefixes = prices["wave_space"]["dispatch_prefixes"]
         journal = BudgetJournal(area / "accounting", grant["identity"], grant["resources"])
         indices = list(range(-3, 97))
         truth = dict(id=look["members"][0]["task"], indices=list(map(str, indices)),

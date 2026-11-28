@@ -30,8 +30,11 @@ def prescore(accepted, design, grant, approval, marker, secret, sample=None):
         if key in expected:
             raise ValueError("duplicate prospective operation")
         expected[key] = dict(coordinates=coords, work=work)
-    for role, stage in (("prepare", "preparation"), ("publish", "publication")):
+    for role, stage in (("prepare", "preparation"), ("publish", "publication"), ("publish", "delivery")):
         add(dict(coordinate(grant, role=role, stage=stage), seed=accepted["seed"]), {})
+    for slot in range(1, len(accepted["schedule"]) + 1):
+        add(dict(coordinate(grant, role="publish", stage="partial_publication", ordinal=slot),
+                 seed=accepted["seed"]), {})
     for i, op in enumerate(ops):
         if op["cost"] or op["role"] == "train":
             add(coordinate(grant, looks[op["roster"]], role=op["role"], ordinal=i,
@@ -56,7 +59,11 @@ def prescore(accepted, design, grant, approval, marker, secret, sample=None):
                                   family=hmac.digest(secret, r["group"].encode(), "sha256").hex())
                              for r in sample["members"]), key=lambda r: (r["stratum"], r["family"])),
         )
-    return seal(dict(version="round029-comparative-prescore/v1", preparation=accepted, **paired,
+    from .progressive_velocity_attestation import anchors
+    # Separate one-use keys for a partial primary boundary and for the terminal result.
+    keys = anchors(secret, grant["identity"], 2 * len(accepted["schedule"]) + 2)
+    return seal(dict(version="round029-comparative-prescore/v2", preparation=accepted, **paired,
+                     publication_keys=keys,
                      authorization=approval, grant=grant, controller=marker, operations=expected,
                      families=families, crossings={m: {str(k): v for k,v in cuts.items()}
                                                   for m,cuts in crossings.items()}))
@@ -68,11 +75,12 @@ def install(root, grant, record):
 
 def read(path):
     record = public.read_member(path, MEMBER)
-    fields = "version preparation authorization grant controller operations families crossings"
+    fields = "version preparation authorization grant controller operations families crossings publication_keys"
     public.closed(record, fields + (" conditioning" if "conditioning" in record else ""), sealed=True)
     q, g = record["preparation"], record["grant"]
     validate_grant(g, record["authorization"], root=q["owner"], parent=q["identity"], action="run")
-    if (record["version"] != "round029-comparative-prescore/v1" or q != seal(q)
+    if (record["version"] != "round029-comparative-prescore/v2"
+            or len(record["publication_keys"]) != 2 * len(q["schedule"]) + 3 or q != seal(q)
             or g["total_us"] < q["proposed_total_us"] or g["holdback_us"] != q["followup_us"]
             or record["controller"]["grant"] != g["identity"]
             or record["controller"]["accepted"] != q["identity"]):

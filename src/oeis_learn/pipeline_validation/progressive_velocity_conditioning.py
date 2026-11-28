@@ -17,7 +17,8 @@ def paid_inputs(root, folder, source, accepted, registration):
     from .progressive_round029 import preflight
     from .progressive_velocity_wave_host import panel
 
-    estimate = preflight(root, source)["inventory"]["prices"]["launch_estimate"]
+    prices = preflight(root, source)["inventory"]["prices"]
+    estimate = prices["launch_estimate"]
     if (
         estimate["sources"] != accepted["sources"]
         or estimate["methods"] != accepted["supported"]
@@ -35,7 +36,14 @@ def paid_inputs(root, folder, source, accepted, registration):
         bank=estimate["sources"]["bank"],
     )
     witnesses = panel(root, folder, registration)
-    return price, {
+    from .progressive_velocity_trial_preparation import published
+    prior = published(root, folder)
+    planning = prices["launch_preparation"]
+    host_plan = dict(preparation_us=prior["elapsed_us"],
+                     publication_us=planning["verification_and_publication"]["tail_us"],
+                     checkpoint_read_us=estimate["provisional_publication"]["checkpoint_read_us"],
+                     prefixes=planning["wave_space"]["dispatch_prefixes"])
+    return price, host_plan, {
         r["task"]: validate_prompt(
             dict(
                 id=r["task"],
@@ -71,7 +79,7 @@ def funding(accepted, price, total_us):
                 funded=funded, omitted=omitted)
 
 
-def freeze(accepted, registration, price, prompts, total_us):
+def freeze(accepted, registration, price, prompts, total_us, *, host_plan=None):
     components = ("search_us", "selected_us", "bank_us", "overhead_us")
     if (
         price["methods"] != accepted["supported"]
@@ -102,6 +110,7 @@ def freeze(accepted, registration, price, prompts, total_us):
     return seal(
         dict(
             version="round029-conditioning-sample/v1",
+            **({"host": host_plan} if host_plan is not None else {}),
             accepted=accepted["identity"],
             members=members,
             donors=donors,
@@ -116,8 +125,8 @@ def freeze(accepted, registration, price, prompts, total_us):
 def original(root, folder, source, accepted, registration, *, total_us=None):
     path = confined(folder, PATH, exists=False)
     if total_us is not None and not path.exists():
-        price, prompts = paid_inputs(root, folder, source, accepted, registration)
-        return freeze(accepted, registration, price, prompts, total_us)
+        price, host_plan, prompts = paid_inputs(root, folder, source, accepted, registration)
+        return freeze(accepted, registration, price, prompts, total_us, host_plan=host_plan)
     sample = load(path)
     if (sample != seal(sample) or sample["accepted"] != accepted["identity"]
             or (total_us is not None and sample["funding"]["total_us"] != total_us)):

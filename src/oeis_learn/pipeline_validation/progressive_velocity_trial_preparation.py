@@ -352,7 +352,7 @@ def published(root, folder):
         supported=accepted["supported"],
         proposed_total_us=accepted["proposed_total_us"],
         research_authority=None,
-        receipt=record["identity"],
+        elapsed_us=balance["consumed"]["elapsed_us"], receipt=record["identity"],
     )
 
 

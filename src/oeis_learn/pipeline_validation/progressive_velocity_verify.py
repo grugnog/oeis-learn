@@ -33,9 +33,11 @@ def archive_result(report, qualification):
         with zipfile.ZipFile(report) as archive:
             research = archive.namelist() == [comparative.MEMBER, comparative.ACCOUNT]
         if research:
-            value = comparative.verify(report, qualification)
+            value, account = comparative.verify_release(report, qualification)
+            partial = value["version"] == comparative.PARTIAL
             verified = result("verify", "VERIFIED", "Recomputed the comparative decision from anonymous paired observations",
-                              "review_exploration", last=value["identity"], report_ref=value["identity"],
+                              "resume_original_grant" if partial else "review_exploration", last=value["identity"], report_ref=value["identity"],
+                              remaining=account["remaining"]["elapsed_us"],
                               verification_scope="paired_archives_comparative_wave")
             verified["scientific_verdict"] = value["decision"]["verdict"]
             return verified, 0
@@ -196,7 +198,7 @@ def private_result(root, folder, *, source=None, trial_grant=None):
             saved = load(confined(folder, "status.json"))
             if saved != seal(saved) or saved["session_id"] != SESSION:
                 raise ValueError("saved status differs")
-            if saved["action"] == "run" and saved["mechanical_status"] == "COMPLETE":
+            if saved["action"] == "run" and saved.get("receipt_path"):
                 from . import progressive_velocity_wave as wave
                 from .progressive_round028 import candidate_revision
                 from .progressive_velocity_run import run
@@ -206,7 +208,40 @@ def private_result(root, folder, *, source=None, trial_grant=None):
                 approval = load(confined(root, "run-state/discovery-authorizations/" +
                                          grant["authorizing_record_ref"][7:] + ".json"))
                 validate_grant(grant, approval, root=physical_root_id(root), parent=marker["accepted"], action="run")
-                return run(None, root, folder, source, candidate_revision(source, root), grant, None, readonly=True)
+                if saved["mechanical_status"] == "COMPLETE":
+                    return run(None, root, folder, source, candidate_revision(source, root), grant, None, readonly=True)
+                from . import progressive_velocity_wave_report as report
+                from . import progressive_velocity_wave_commitment as commitment
+                from oeis_learn.generalization.progressive.trials import TrialJournal
+                area = confined(folder, "comparative/" + grant["identity"][7:])
+                qualifier = donation.retained_qualification(root, grant)
+                public_path = confined(root, saved["receipt_path"])
+                frozen = commitment.read(qualifier)
+                science, ledger = report.verify_release(public_path, qualifier)
+                accepted = frozen["preparation"]
+                registry = confined(folder, "registrations/" + accepted["registration"][7:])
+                reg = load(confined(registry, "velocity-registration.json"))
+                journal = TrialJournal(registry, study=reg["identity"], readonly=True)
+                measurements = {}
+                for ref, point in science["statistics"]["points"].items():
+                    data = load(confined(registry, "measurements/" + point["measurement"][7:] + ".json"), maximum=128 << 20)
+                    journal.observe_velocity(reg, data["probe"]["look"], evidence=data)
+                    measurements[ref] = data
+                subset = [r for r in accepted["schedule"] if r["roster"] in measurements]
+                balance = BudgetJournal.inspect_existing(area / "accounting", grant["identity"], grant["resources"],
+                                                         include_work=True, include_windows=True)
+                original = report.accounting(area, grant, science["identity"], balance)
+                known = {d["receipt"]: d for d in original["dispatches"]}
+                if (science["version"] != report.PARTIAL or science["identity"] != saved["last_committed_ref"]
+                        or ledger["grant"] != grant or any(known.get(d["receipt"]) != d for d in ledger["dispatches"])
+                        or report.sufficient(dict(schedule=subset), measurements,
+                            bytes.fromhex(wave.family_key(folder)["key"])) != science["statistics"]):
+                    raise ValueError("private partial measurements or settled charges differ")
+                value = result("verify", "VERIFIED", "Reopened the last funded comparative observation boundary",
+                               "resume_original_grant", last=science["identity"], report_ref=science["identity"],
+                               remaining=ledger["remaining"]["elapsed_us"], verification_scope="private_comparative_wave")
+                value["scientific_verdict"] = science["decision"]["verdict"]
+                return value, 0
             if saved["action"] != "qualify" or saved["mechanical_status"] != "COMPLETE":
                 return blocked("The current session has no completed publication at this boundary")
             path = confined(root, saved["receipt_path"])

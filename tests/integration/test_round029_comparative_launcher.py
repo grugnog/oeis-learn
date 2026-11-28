@@ -27,14 +27,17 @@ from oeis_learn.pipeline_validation.progressive_evaluation import (
 from tests.integration.test_round029_comparative_wave import accepted_donor
 
 
-@pytest.mark.parametrize("methods", [["00", "04", "05", "06"], [f"0{i}" for i in range(7)]])
-def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypatch, methods):
+@pytest.mark.parametrize("scenario", ["negative", "structural_only", "measured_zero"])
+def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypatch, scenario):
     from oeis_learn.pipeline_validation import progressive_round028 as historical
     from oeis_learn.pipeline_validation import progressive_velocity_wave_host as host
 
     source = Path(__file__).resolve().parents[2]
     revision = "b" * 40
-    folder, accepted, reg, packages = accepted_donor(tmp_path, source, methods, monkeypatch)
+    from oeis_learn.generalization.progressive.cohorts import STRATA
+    methods = [f"0{i}" for i in range(7)] if scenario == "negative" else ["00", "04", "05", "06"]
+    strata = tuple(s for s in STRATA if scenario != "structural_only" or s != "oeis")
+    folder, accepted, reg, packages = accepted_donor(tmp_path, source, methods, monkeypatch, strata=strata)
     seed = reg["initialization"]
 
     def prompt(row):
@@ -50,9 +53,15 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
                     items=dict(paired_search_selected_and_banks={k: price[k] for k in ("expected_us", "tail_us")}),
                     conditioning_components={k: price[k] for k in ("search_us", "selected_us", "bank_us", "overhead_us")},
                     conditioning_extra_role_us=price["split_overhead_us"])
-    monkeypatch.setattr(command, "preflight", lambda *_: dict(inventory=dict(prices=dict(launch_estimate=estimate))))
+    peak = {"preparation_us": runner.preparation.published(tmp_path, folder)["elapsed_us"],
+            "checkpoint_read_us": 1000, "publication_us": 1_000_000, "prefixes": {}}
+    estimate["provisional_publication"] = dict(checkpoint_read_us=peak["checkpoint_read_us"])
+    planning = dict(verification_and_publication=dict(tail_us=peak["publication_us"]),
+                    wave_space=dict(dispatch_prefixes=peak["prefixes"]))
+    monkeypatch.setattr(command, "preflight", lambda *_: dict(inventory=dict(prices=dict(
+        launch_estimate=estimate, launch_preparation=planning))))
     monkeypatch.setattr(host, "panel", lambda *_: prompts)
-    sample = conditioning.freeze(accepted, reg, price, prompts, 1680 * 60_000_000)
+    sample = conditioning.freeze(accepted, reg, price, prompts, 1680 * 60_000_000, host_plan=peak)
     design = wave.plan(accepted, reg, packages, sample)
     from oeis_learn.pipeline_validation import progressive_velocity_wave_qualification as rehearsal
     qualified = digest("fixture installed worker qualification")
@@ -180,10 +189,19 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
                     p = dict(probe=probe, artifact=reference(out, f))
                 else:
                     probe = request["probe"]
+                    import time
+                    if method == "D" and scenario == "measured_zero":
+                        time.sleep(0.06)
                     observations = {}
+                    structural = {__import__("hmac").digest(bytes.fromhex(wave.family_key(folder)["key"]),
+                                  b"case\0" + row["task"].encode(), "sha256").hex()
+                                  for row in reg["development"] if row["stratum"] != "oeis"}
                     for k in probe["donors"]:
                         inference = probe_inference(probe)
-                        status = "solve" if method == "D" or "barrier" in request and probe["mode"] == "true" else "miss"
+                        success = (probe["mode"] == "true" if "barrier" in request else
+                                   method == "D" if scenario == "negative" else
+                                   method == "polynomial" or method == "04" and k in structural)
+                        status = "solve" if success else "miss"
                         evidence = case_outcome_receipt(
                             k,
                             status=status,
@@ -219,8 +237,12 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
 
             def verify(out):
                 p = load(out / "producer.json")
+                if request["role"] == "train" and request["target"] == 1_000_000:
+                    import time
+                    time.sleep(.04)
+                    assert reference(out / "learner/checkpoint", out / "learner/checkpoint/weight") == p["weight"]
                 evidence = (
-                    {k: p[k] for k in ("cut", "weight")}
+                    dict(cut=p["cut"], weight=p["weight"], files=[], allocations={})
                     if request["role"] == "train"
                     else proof(out, p)
                 )
@@ -251,7 +273,42 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         fault.setattr(TrialJournal, "observe_velocity", lose_observation)
         paused, code = command.execute(args, source)
         assert code == 1 and "before trial observation" in paused["reason"]
+    if scenario == "measured_zero":
+        original_supervise = Roles.supervise
+        def stop_at_boundary(self, request, data, extra, proof):
+            if request["target"] == 4_000_000:
+                raise runner.InsufficientAuthority("next cut on mount 7: deficit 4096 bytes")
+            return original_supervise(self, request, data, extra, proof)
+        with monkeypatch.context() as fault:
+            fault.setattr(Roles, "supervise", stop_at_boundary)
+            checkpoint, code = command.execute(args, source)
+            assert code == 2 and checkpoint["scientific_verdict"] == "inconclusive", checkpoint
+            assert "deficit 4096 bytes" in checkpoint["reason"]
+            verified, code = command.execute(SimpleNamespace(**dict(vars(args), action="verify", authority=None)), source)
+            assert code == 0 and verified["report_ref"] == checkpoint["report_ref"], verified
+            import shutil
+            partial_copy, independent = tmp_path / "partial.zip", tmp_path / "partial-q.zip"
+            shutil.copyfile(tmp_path / checkpoint["receipt_path"], partial_copy)
+            shutil.copyfile(qualification, independent)
+            hidden = folder.with_name("temporarily-unmounted")
+            folder.rename(hidden)
+            try:
+                science, ledger = report.verify_release(partial_copy, independent)
+            finally:
+                hidden.rename(folder)
+            assert science["decision"]["completed"] == 8
+            outstanding = [r for r in science["decision"]["looks"] if r["reason"] == "registered_look_outstanding"]
+            assert len(outstanding) == 12 and all(r["remaining_denominator"] == r["members"] > 0 for r in outstanding)
+            assert ledger["remaining"]["elapsed_us"] == checkpoint["remaining_authority"]
+            assert command.execute(args, source)[0]["report_ref"] == checkpoint["report_ref"]
     completed_searches = calls.count(("search", "00", 1_000_000))
+    import time
+    assemble = report.stage_archive
+    def slow_cold_read(*args, **kwargs):
+        if not kwargs["install"]:
+            time.sleep(.04)
+        return assemble(*args, **kwargs)
+    monkeypatch.setattr(report, "stage_archive", slow_cold_read)
     publish = report.deliver
 
     def interrupted_publication(*args, **kwargs):
@@ -299,7 +356,11 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     )
     result, code = command.execute(verify_args, source)
     assert code == 0 and result["report_ref"] == last, result
-    value = report.verify(copy, qcopy)
+    value, complete_account = report.verify_release(copy, qcopy)
+    assert complete_account["remaining"]["elapsed_us"] == v["remaining_authority"]
+    assert complete_account["consumed"]["elapsed_us"] == v["elapsed_us"]
+    assert any(s["role"] == "train" and s["charged_us"] >= 40_000 for s in value["statistics"]["costs"].values())
+    assert any(d["role"] == "publish" and d["work"]["elapsed_us"] >= 40_000 for d in complete_account["dispatches"])
     assert value["decision"]["excluded"] == accepted["omitted"]
     assert len(list((renamed / "registrations" / reg["identity"][7:]).glob("look-*.json"))) == 32
     for missing in value["decision"]["missing_looks"].values():
@@ -308,10 +369,21 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         point = value["curves"]["oeis"]["curves"]["00"]["looks"][1]
         assert point["issued_tokens"] == 2 * point["useful_tokens"]
         assert point["unknown_execution_tokens"] == point["useful_tokens"] and point["discarded_tokens"] == 0
-    assert value["direct"]["04"]["D"]["oeis"]["losses"] == 2
+    if scenario == "negative":
+        assert value["direct"]["04"]["D"]["oeis"]["losses"] == 2
+    else:
+        candidate = next(r for r in value["decision"]["shortlist"] if r["method"] == "04")
+        assert candidate["structural_pp"] == 100 and candidate["comparator"] == "00"
+        assert candidate["proposed_branch"] == "oeis_measurement"
+        missing = scenario == "structural_only"
+        assert candidate["direct_oeis_pp"] == (None if missing else 0)
+        assert candidate["measurement_supply"] == ("no_registered_oeis_families" if missing else "registered")
+        assert candidate["marginal_us"] == (None if missing else accepted["followup_us"])
+        if not missing:
+            assert value["direct"]["polynomial"]["D"]["oeis"]["observed_pp"] == 100
+            assert any(r["method"] == "polynomial" for r in value["decision"]["competitive_controls"])
     diagnostic = value["conditioning"]
-    assert diagnostic["selected"]["00-common"]["oeis"]["observed_pp"] == 100
-    assert diagnostic["selected"]["00-common"]["oeis"]["gains"] == 2
+    assert diagnostic["selected"]["00-common"]["oeis"]["observed_pp"] == (None if scenario == "structural_only" else 100)
     assert diagnostic["choices_barrier"] == load(renamed / "comparative" / grant["identity"][7:] /
                                                 "sealed-conditioning-choices.json")["identity"]
     assert diagnostic["bank_dispatches"] == 0 and diagnostic["quote"] == price
@@ -321,7 +393,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     assert value["curves"]["retention"]["endpoints"]["D"]["yield"]["denominator"] == 1
     assert (
         value["curves"]["oeis"]["effects"]["4000000"]["batch_decay"]["interaction"]["denominator"]
-        == 2
+        == (0 if scenario == "structural_only" else 2)
     )
     assert b'"task"' not in copy.read_bytes() and b'"truth"' not in copy.read_bytes()
     import json
@@ -368,7 +440,29 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         alt = tmp_path / "fixed-control.zip"
         alt.write_bytes(report.archive_bytes({report.MEMBER: report.encode(variant),
                         report.ACCOUNT: report.encode(seal(dict(billed, report=variant["identity"])))}))
-        assert report.verify(alt, qcopy)["decision"] == alternative
+        with pytest.raises(ValueError, match="publication"):
+            report.verify(alt, qcopy)
+        # The underlying ledger check must catch a look assignment even without the signature gate.
+        look = next(r for r in accepted["schedule"] if (r["method"],r["look"]) == ("00",1_000_000))
+        bad_look = deepcopy(value)
+        refs = bad_look["statistics"]["points"][look["roster"]]["work"]
+        refs.remove(next(k for k in refs if value["statistics"]["costs"][k]["role"] == "search"))
+        from oeis_learn.pipeline_validation import progressive_velocity_wave_commitment as commitment
+        with pytest.raises(ValueError, match="primary look"):
+            report.check_account(account, bad_look, commitment.read(qcopy))
+        look = next(r for r in accepted["schedule"] if (r["method"], r["profile"]) == ("04", "full"))
+        common = next(r for r in accepted["schedule"] if (r["method"], r["look"], r["profile"]) == ("04", 4_000_000, "common"))
+        bad_look = deepcopy(value)
+        bad_look["statistics"]["points"][look["roster"]]["work"] = value["statistics"]["points"][common["roster"]]["work"]
+        with pytest.raises(ValueError, match="primary look"):
+            report.check_account(account, bad_look, commitment.read(qcopy))
+        for span in scenario["costs"].values():
+            if span["beneficiaries"] in (["polynomial"], ["D"]) and span["role"] in {"search","score"}:
+                charge = {"polynomial":{"search":20,"score":100}, "D":{"search":10,"score":10000}}
+                span["charged_us"] = charge[span["beneficiaries"][0]][span["role"]]
+                span["end_us"] = span["start_us"] + span["charged_us"]
+        competitive = report.reduce(accepted, scenario)["decision"]["competitive_controls"][0]
+        assert competitive["method"] == "polynomial" and competitive["competitive_axes"] == ["charged_us"]
 
     for i, tamper in enumerate(("decision", "count", "reserve", "parent", "family", "cut",
                                 "larger_grant", "below_wave", "dispatch", "conditioning_scope")):
@@ -383,7 +477,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
             changed["accepted"] = digest("unrelated prescore")
         elif tamper == "family":
             cells = changed["statistics"]["panels"]["full"]["families"]
-            a, b = (next(f for f in cells if f["stratum"] == s) for s in ("oeis", "retention"))
+            a, b = (next(f for f in cells if f["stratum"] == s) for s in (strata[0], "retention"))
             a["family"], b["family"] = b["family"], a["family"]
         elif tamper == "cut":
             r = next(r for r in accepted["schedule"] if r["method"] == "00" and r["profile"] == "full")

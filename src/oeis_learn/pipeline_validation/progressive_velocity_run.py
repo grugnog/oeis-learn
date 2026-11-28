@@ -16,7 +16,6 @@ from . import progressive_velocity_wave_host as physical
 from .identity import confined
 from .preparation_recovery import retain, revise
 from .progressive_evaluation import conditioning_donors, probe_inference, velocity_probe
-from .progressive_research_inputs import checked_file
 from .progressive_velocity_broad_host import attempt
 from .progressive_velocity_donation import retained_qualification
 from .progressive_velocity_operations import (
@@ -37,9 +36,12 @@ def original_balance(area, grant):
     )
 
 
-def window(grant, accepted, coords, request, donor, cost):
+def window(grant, accepted, coords, request, donor, cost, *, host_plan=None):
     if coords["stage"] not in {"exploration", conditioning.STAGE}:
-        return grant["total_us"] - grant["holdback_us"]
+        key = "preparation_us" if coords["role"] == "prepare" else "publication_us"
+        # Measured prior host work plus checkpoint I/O, doubled for a second peak,
+        # with the same cleanup margin used by the physical supervisor.
+        return 120_000_000 + 2 * (host_plan[key] + host_plan["checkpoint_read_us"])
     method = coords["method"]
     if coords["role"] == "train":
         tail = (donor.training_tail_us[method] * cost["tokens"] + 3_999_999) // 4_000_000
@@ -151,9 +153,9 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
             if previous:
                 parent, out = cuts[method, max(previous)]
                 parent_dir = confined(out, "learner")
-                parent_files = physical.next_files(parent_dir, parent["cut"]["checkpoint"])
+                parent_files = parent["files"]
                 extra = [
-                    (checked_file(parent_dir, f), "/work/inputs/parent/" + f["path"])
+                    (confined(parent_dir, f["path"]), "/work/inputs/parent/" + f["path"])
                     for f in parent_files
                 ]
             data = dict(package=learner)
@@ -213,7 +215,7 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
                         weight = dict(f, path="inputs/model.pt")
                         extra = [
                             (
-                                checked_file(confined(output, "learner/checkpoint"), f),
+                                confined(output, "learner/checkpoint/" + f["path"]),
                                 "/work/inputs/model.pt",
                             )
                         ]
@@ -268,7 +270,7 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
                 probe = velocity_probe(look, prompts, mode=mode, inference_seed=look["seed"],
                                        model=live["model"])
                 reference = dict(f, path="inputs/candidates.json")
-                extra = [(checked_file(search_out, f), "/work/inputs/candidates.json")]
+                extra = [(confined(search_out, f["path"]), "/work/inputs/candidates.json")]
                 data = dict(truth=[dict(t, id=handles[t["id"]]) for t in truth])
                 if paired and barrier is None:
                     choices = {o["roster"]: generated[o["roster"]][0]["artifact"]["sha256"]
@@ -309,7 +311,7 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
         evidence = paid["evidence"]
         if role == "train":
             cuts[key] = evidence, out
-            donor.credit_cut(method, out, evidence["cut"])
+            donor.credit_cut(method, out, evidence)
             train_work.setdefault(method, []).extend(work)
         elif role == "search":
             generated[ref] = evidence, out, work
@@ -366,6 +368,9 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
     elif grant != load(confined(area, "grant.json")):
         raise ValueError("original comparative grant differs")
     donor = None
+    committed = {}
+    qualification = retained_qualification(root, grant)
+    from . import progressive_velocity_wave_commitment as commitment
     status = dict(recipe=None, look=None, stage="preparation")
 
     def progress(method, target, phase):
@@ -403,18 +408,42 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
                 before_dispatch=guard,
                 max_attempts=2,
                 minimum_us=121_000_000 if coords["stage"] in {"exploration", conditioning.STAGE} else 1,
-                maximum_us=window(grant, accepted, coords, request, donor, cost),
+                protected_us=(window(grant, accepted, {"stage":"partial_publication","role":"publish"},
+                                     {}, donor, {}, host_plan=sample["host"])
+                              if coords["stage"] in {"exploration", conditioning.STAGE} else 0),
+                maximum_us=window(grant, accepted, coords, request, donor, cost, host_plan=sample["host"]),
             )
             snapshot = original_balance(area, grant)
         return paid, attempt(area, coords, grant), snapshot
 
+    from .progressive_velocity_image import preparation_boundary
+
+    def release_archive(stage, path, science, request, ordinal=0):
+        coords = dict(commitment.coordinate(grant, role="publish", stage=stage, ordinal=ordinal),
+                      seed=accepted["seed"])
+        logical = operation_key(coords, 0)["logical"]
+        def assemble(out, install):
+            snapshot = original_balance(area, grant)
+            evidence = report.stage_archive(area, grant, snapshot, qualification, logical, path,
+                                            science(), install=install)
+            if not install and load(confined(out, "producer.json")) != evidence:
+                raise ValueError("installed release differs from its paid terminal receipt")
+            return evidence
+        def execute(out, allowance):
+            deadline = time.monotonic_ns() // 1000 + allowance
+            with preparation_boundary(out, deadline * 1000):
+                retain(out / "producer.json", funded_verification(lambda out: assemble(out, True), out, deadline))
+        paid, _, snapshot = invoke(coords, request, {}, execute, lambda out: assemble(out, False), host_space)
+        report.deliver(area, grant, snapshot, path, paid["evidence"], bytes.fromhex(secret["key"]), readonly=readonly)
+        return paid["evidence"], snapshot
+
     try:
-        from .progressive_velocity_image import preparation_boundary
 
         def host_space():
             physical.capacity(area, accepted, getattr(args, "free_disk_gib", 5) << 30,
                               getattr(donor, "capacity_owners", None), getattr(donor, "retained", None),
-                              status["stage"])
+                              status["stage"], sample["host"]["prefixes"].get(
+                                  "prepare" if status["stage"] == "preparation" else "publish"))
 
         def custody_basis(out, *, install):
             basis = physical.custody(root, folder, accepted, reg, source)
@@ -460,6 +489,7 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
         donor = physical.Donor(
             root, source, area, accepted, basis, revision, args, host_factory, readonly=readonly
         )
+        donor.prefixes = sample["host"]["prefixes"]
         from oeis_learn.generalization.progressive.trials import TrialJournal
 
         registry = confined(folder, "registrations/" + reg["identity"][7:])
@@ -473,11 +503,10 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
                     trials.observe_velocity(reg, look, reason=reason)
         def observe(look, measurement):
             trials.observe_velocity(reg, look, evidence=measurement)
+            committed[look["identity"]] = measurement
         observed = screen(area, grant, marker, accepted, packages, design, donor, invoke, progress,
                           observe, bytes.fromhex(secret["key"]), sample, readonly=readonly)
         status.update(stage="publication", recipe=None, look=None)
-        qualification = retained_qualification(root, grant)
-        from . import progressive_velocity_wave_commitment as commitment
         scope = commitment.read(qualification)["conditioning"]
         request = seal(
             dict(
@@ -536,7 +565,10 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
 
         paid, _, balance = invoke(coords, request, {}, publish, verify_publication, host_space)
         record = paid["evidence"]
-        settled = report.deliver(area, grant, accepted, balance, qualification=qualification, readonly=readonly)
+        status.update(stage="delivery")
+        archive = confined(area, "share/" + report.ARCHIVE, exists=readonly)
+        settled, balance = release_archive("delivery", archive, lambda: report.public.read_member(
+            confined(area, "share/" + report.SCIENCE), report.MEMBER), seal(dict(publication=record["report"])))
         if settled["report"] != record["report"]:
             raise ValueError("installed final accounting belongs to another publication")
         value = result(
@@ -569,6 +601,25 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
         if not first.exists():
             retain(first, error)
         code = 2 if isinstance(exc, InsufficientAuthority) else 1
+        latest = area / "partial-boundary.json"
+        if committed and status["stage"] in {"train", "search", "score"}:
+            slot = len(committed)
+            last = next(reversed(committed))
+            path = confined(area, f"share/comparative-partial-{slot}.zip", exists=False)
+            if not latest.is_file() or load(latest)["count"] < slot:
+                try:
+                    frozen = commitment.read(qualification)
+                    def science():
+                        return report.partial_science(area, grant, frozen, committed, bytes.fromhex(secret["key"]),
+                                                      last, readonly=False)
+                    settled, _ = release_archive("partial_publication", path, science,
+                                                seal(dict(grant=grant["identity"], last=last)), ordinal=slot)
+                    revise(latest, seal(dict(count=slot, report=settled["report"], path=str(path.relative_to(root)))))
+                except (OSError, ValueError, KeyError, RuntimeError) as publication_error:
+                    error["partial_publication"] = str(publication_error)
+                    revise(area / "partial-publication-error.json", seal(error))
+                    reason += "; partial publication: " + str(publication_error)
+        latest = load(latest) if latest.is_file() else {}
         balance = journal.snapshot()
         value = result(
             "run",
@@ -579,8 +630,13 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
             elapsed_us=balance["consumed"]["elapsed_us"],
             charged_tokens=balance["consumed"]["tokens"],
             first_error=load(first),
+            last=latest.get("report"),
+            **(dict(report_ref=latest["report"], receipt_path=latest["path"],
+                    qualification_path=str(qualification.relative_to(root))) if latest else {}),
             **status,
         )
+        if latest:
+            value["scientific_verdict"] = "inconclusive"
     if not readonly:
         revise(folder / "status.json", seal(value))
     return value, code
