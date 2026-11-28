@@ -30,7 +30,7 @@ VERSION = "round029-comparative-report/v1"
 EXPOSURE = (
     "useful_tokens charged_tokens discarded_tokens updates last_update_tokens overshoot".split()
 )
-WORK = "origin receipt role beneficiaries state host boot start_us end_us charged_us worker_cpu_us lease_us covered_us busy_us"
+WORK = "origin receipt role beneficiaries state host boot start_us end_us charged_us issued_tokens worker_cpu_us lease_us covered_us busy_us"
 
 
 def sufficient(accepted, measured, key):
@@ -224,7 +224,8 @@ def reduce(accepted, data, *, draws=10_000):
         for s in (*STRATA, "structural", "retention")
     }
     direct = {}
-    for method in accepted["supported"]:
+    controls = velocity_policy()["controls"]
+    for method in [*accepted["supported"], *controls]:
         arm = graph[method]["full"][0]["identity"]
         direct[method] = {}
         for comparator in ("D", "00"):
@@ -256,7 +257,18 @@ def reduce(accepted, data, *, draws=10_000):
             direct[method][comparator] = {
                 s: estimate(s) for s in ("oeis", "structural", "retention")
             }
-    negative = all(
+    endpoints = curves["oeis"]["endpoints"]
+    competitive_controls = []
+    for method in controls:
+        gains = direct[method]["D"]
+        cost, incumbent = (endpoints[m]["inference_us"] for m in (method, "D"))
+        if (any((gains[s]["observed_pp"] or 0) > 0 for s in ("oeis", "structural"))
+                and cost is not None and incumbent is not None and cost <= incumbent):
+            competitive_controls.append(dict(method=method, comparator="D", inference_us=cost,
+                incumbent_inference_us=incumbent, oeis=gains["oeis"], structural=gains["structural"],
+                retention=gains["retention"], proposed_branch="matched_control_repeat",
+                marginal_us=None, funding="separate_matched_quote_required"))
+    negative = not competitive_controls and all(
         direct[m]["D"][s]["upper_pp"] is not None and direct[m]["D"][s]["upper_pp"] <= 0
         for m in accepted["supported"]
         for s in ("oeis", "structural")
@@ -323,14 +335,18 @@ def reduce(accepted, data, *, draws=10_000):
     )
     decision.update(
         shortlist=shortlist,
+        competitive_controls=competitive_controls,
         protected_followup_us=accepted["followup_us"],
-        spending_action="review_unfunded_branch" if shortlist else "retain_incumbent",
+        spending_action=("review_unfunded_branch" if shortlist else
+                         "price_control_repeat" if competitive_controls else "retain_incumbent"),
         next_dispatch=None,
     )
     policy = velocity_policy()
+    sizes_by_profile = {r["profile"]: r["members"] for r in accepted["schedule"]}
     missing = {
         m: [
-            dict(profile=p, look=t, disposition="excluded_before_scoring", reason_ref=reason)
+            dict(profile=p, look=t, disposition="excluded_before_scoring", reason_ref=reason,
+                 denominator=sizes_by_profile[p], remaining_denominator=sizes_by_profile[p])
             for p in ("common", "full")
             for t in policy["profiles"][p]["looks"]
         ]
@@ -510,6 +526,7 @@ def check_account(account, science, frozen):
             receipt not in expected
             or expected[receipt]["role"] != role
             or expected[receipt]["charged_us"] != work["elapsed_us"]
+            or expected[receipt]["issued_tokens"] != work["tokens"]
         ):
             raise ValueError("public look cost differs from settled grant debit")
         for k in KEYS:
@@ -522,6 +539,15 @@ def check_account(account, science, frozen):
         or any(totals[k] + account["remaining"][k] != grant["resources"][k] for k in KEYS)
     ):
         raise ValueError("private and public cumulative debits differ")
+    coordinates = {d["receipt"]: frozen["operations"][d["logical"]]["coordinates"] for d in account["dispatches"]}
+    for row in accepted["schedule"]:
+        if row["method"] in accepted["supported"]:
+            refs = science["statistics"]["points"][row["roster"]]["work"]
+            projected = {k for k in refs if expected[k]["role"] == "train"}
+            actual = {k for k, c in coordinates.items() if c["role"] == "train" and
+                      c["method"] == row["method"] and c["look"] <= row["look"]}
+            if projected != actual:
+                raise ValueError("look omits or substitutes a settled learner debit")
     return account
 
 

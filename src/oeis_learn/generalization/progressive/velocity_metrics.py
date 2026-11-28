@@ -420,8 +420,10 @@ def study_curve(looks, measurements, *, stratum, seed, draws=10_000, budgets=Non
             probes = {ref: m["probe"] for ref, m in subset.items()}
             observed = (contrast(_score_rows(subset), terms, stratum=stratum, looks=probes)
                         if paired is None else paired(terms, stratum))
+            turnover = {k: observed[k] for k in ("gains", "losses", "both", "neither", "unresolved_overlay",
+                                                 "first_solve_families", "last_solve_families") if k in observed}
             estimates[key] = dict(
-                observed=observed["observed_pp"], lower=observed["lower_pp"], upper=observed["upper_pp"],
+                **turnover, observed=observed["observed_pp"], lower=observed["lower_pp"], upper=observed["upper_pp"],
                 denominator=observed["denominator"], family_counts=observed["family_counts"],
                 sampling=_sample_contrast(observed, terms, stratum, seed, draws),
             )
@@ -445,6 +447,10 @@ def study_curve(looks, measurements, *, stratum, seed, draws=10_000, budgets=Non
         else:
             row.update({k: m["cut"][k] for k in ("useful_tokens", "charged_tokens", "discarded_tokens",
                                                 "updates", "last_update_tokens", "overshoot")})
+            training = [w for w in m["work"] if w["role"] == "train"]
+            if training and all("issued_tokens" in w for w in training):
+                row["issued_tokens"] = sum(integer(w["issued_tokens"]) for w in training)
+                row["unknown_execution_tokens"] = integer(row["issued_tokens"] - row["charged_tokens"])
         row["yield"] = estimate({ref: 1})
         return row
 

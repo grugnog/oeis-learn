@@ -424,6 +424,8 @@ def test_study_reopens_scored_cuts_cost_rates_and_joint_factor_effects(tmp_path)
     assert report["curves"]["06"]["looks"][2]["discarded_tokens"] == 5
     interval = report["curves"]["06"]["intervals"][1]
     assert interval["change"]["observed"] == 75
+    assert interval["change"]["gains"] == interval["change"]["first_solve_families"] == 3
+    assert interval["change"]["losses"] == interval["change"]["last_solve_families"] == 0
     assert interval["rates"] == {"pp_per_million": 25, "pp_per_hour": 37.5}
     assert interval["sampling"]["pp_per_million"]["upper"] >= 25
     assert report["curves"]["02"]["intervals"][1]["rates"]["pp_per_hour"] is None

@@ -47,14 +47,16 @@ def should_prune(*, value, coordinate, references, control=False):
 
 
 class TrialJournal:
-    def __init__(self, root, *, study, token_cap=4000000, elapsed_cap_us=7200000000,provenance_root=None):
+    def __init__(self, root, *, study, token_cap=4000000, elapsed_cap_us=7200000000,provenance_root=None, readonly=False):
         if not isinstance(study, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", study) is None:
             raise ValueError("sealed study identity required")
         self.root = Path(root)
+        self.readonly = readonly
         self.provenance_root=Path(provenance_root) if provenance_root is not None else self.root
         if self.root.is_symlink():
             raise ValueError("journal symlink")
-        self.root.mkdir(parents=True, exist_ok=True)
+        if not readonly:
+            self.root.mkdir(parents=True, exist_ok=True)
         self.binding = seal(
             {
                 "version": "progressive-trial-journal/v1",
@@ -65,7 +67,7 @@ class TrialJournal:
         )
         with self.lock():
             p = self.root / "binding.json"
-            if p.exists():
+            if readonly or p.exists():
                 if load(p) != self.binding:
                     raise ValueError("trial allowance cannot change")
             else:
@@ -185,8 +187,17 @@ class TrialJournal:
             if prior is not None and record != prior:
                 raise ValueError("original recovery publication differs: " + str(path))
             if detail is not None:
-                retain(confined(self.root, "measurements/" + evidence[7:] + ".json", exists=False), detail)
-            retain(path, record)
+                measurement = confined(self.root, "measurements/" + evidence[7:] + ".json", exists=self.readonly)
+                if self.readonly:
+                    if load(measurement, maximum=128 << 20) != detail:
+                        raise ValueError("original trial measurement differs")
+                else:
+                    retain(measurement, detail)
+            if self.readonly:
+                if prior != record:
+                    raise ValueError("original trial observation missing or altered")
+            else:
+                retain(path, record)
             return record["identity"]
 
     def velocity_report(self, registration, *, stratum, seed, draws=10_000, budgets=None, model_seed=None):
@@ -278,8 +289,8 @@ class TrialJournal:
         p = self.root / "journal.lock"
         if p.is_symlink():
             raise ValueError("lock alias")
-        with p.open("a") as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
+        with p.open("rb" if self.readonly else "a") as f:
+            fcntl.flock(f, fcntl.LOCK_SH if self.readonly else fcntl.LOCK_EX)
             yield
 
     def read(self):

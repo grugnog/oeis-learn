@@ -61,6 +61,10 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     )
     folder = tmp_path / "run-state/discovery" / SESSION
     folder.mkdir(parents=True)
+    from oeis_learn.pipeline_validation.progressive_study import open_velocity_study
+    trial_journal = open_velocity_study(folder, reg)
+    accepted = seal(dict(accepted, trials={m: trial_journal.velocity_trial(m)["identity"]
+                         for m in accepted["trials"]}))
     atomic_write(folder / "accepted.json", accepted)
     qualification = tmp_path / "external/qualification.zip"
     public.install(qualification, preparation.MEMBER, accepted)
@@ -96,6 +100,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     monkeypatch.setattr(host, "next_files", lambda *a: [])
     calls = []
     failed = []
+    failure_role = "score" if len(methods) == 7 else "train"
 
     class Roles:
         startup_us = 20_000_000
@@ -125,7 +130,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
                 role, method, target = (request[k] for k in ("role", "method", "target"))
                 calls.append((role, method, target))
                 atomic_write(out / "cleanup.json", dict(acknowledged=True, within_bound=True))
-                if role == "score" and method == "00" and target == 1_000_000 and not failed:
+                if role == failure_role and method == "00" and target == 1_000_000 and not failed:
                     failed.append(True)
                     raise ValueError("fixture scorer interrupted after choices sealed")
                 if role == "train":
@@ -241,6 +246,17 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     v, code = command.execute(args, source)
     assert code == 1 and "fixture scorer interrupted" in v["reason"], v
     fixed = len(calls)
+    from oeis_learn.generalization.progressive.trials import TrialJournal
+    original_observe = TrialJournal.observe_velocity
+    def lose_observation(self, registration, look, **kwargs):
+        if look["method"] == "00" and look["look"] == 1_000_000:
+            raise RuntimeError("fixture stopped before trial observation installation")
+        return original_observe(self, registration, look, **kwargs)
+    with monkeypatch.context() as fault:
+        fault.setattr(TrialJournal, "observe_velocity", lose_observation)
+        paused, code = command.execute(args, source)
+        assert code == 1 and "before trial observation" in paused["reason"]
+    completed_searches = calls.count(("search", "00", 1_000_000))
     publish = report.deliver
 
     def interrupted_publication(*args, **kwargs):
@@ -259,9 +275,9 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     assert (
         len(calls) == settled_calls and partial["remaining_authority"] == v["remaining_authority"]
     )
-    assert calls[fixed] == ("score", "00", 1_000_000)
-    assert calls.count(("search", "00", 1_000_000)) == 1
-    assert len([r for r in calls if r[0] == "train"]) == 3 * len(methods)
+    assert calls[fixed] == (failure_role, "00", 1_000_000)
+    assert calls.count(("search", "00", 1_000_000)) == completed_searches == 1
+    assert len([r for r in calls if r[0] == "train"]) == 3 * len(methods) + (failure_role == "train")
     last = v["last_committed_ref"]
     count = len(calls)
     assert command.execute(args, source)[0]["last_committed_ref"] == last and len(calls) == count
@@ -270,7 +286,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     )
     assert private[1] == 0 and private[0]["report_ref"] == last, private
     area = folder / ("comparative/" + grant["identity"][7:])
-    assert load(area / "first-error.json")["stage"] == "score"
+    assert load(area / "first-error.json")["stage"] == failure_role
     import shutil
 
     copy = tmp_path / "copied.zip"
@@ -290,6 +306,13 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     assert code == 0 and result["report_ref"] == last, result
     value = report.verify(copy, qcopy)
     assert value["decision"]["excluded"] == accepted["omitted"]
+    assert len(list((renamed / "registrations" / reg["identity"][7:]).glob("look-*.json"))) == 32
+    for missing in value["decision"]["missing_looks"].values():
+        assert len(missing) == 4 and all(r["remaining_denominator"] == r["denominator"] > 0 for r in missing)
+    if failure_role == "train":
+        point = value["curves"]["oeis"]["curves"]["00"]["looks"][1]
+        assert point["issued_tokens"] == 2 * point["useful_tokens"]
+        assert point["unknown_execution_tokens"] == point["useful_tokens"] and point["discarded_tokens"] == 0
     assert value["direct"]["04"]["D"]["oeis"]["losses"] == 1
     assert value["curves"]["retention"]["endpoints"]["D"]["yield"]["denominator"] == 1
     assert (
@@ -313,6 +336,36 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         "score",
         "publish",
     }
+    if len(methods) == 7:
+        scenario = deepcopy(value["statistics"])
+        method_by_ref = {r["roster"]: r["method"] for r in accepted["schedule"]}
+        panel = scenario["panels"]["full"]
+        for family in panel["families"]:
+            for pattern in family["patterns"]:
+                for o, ref in zip(pattern["outcomes"], panel["rosters"], strict=True):
+                    o["status"] = "solve" if method_by_ref[ref] == "polynomial" else "miss"
+        for span in scenario["costs"].values():
+            if span["role"] == "search" and span["beneficiaries"] in (["polynomial"], ["D"]):
+                span["charged_us"] = 10 if span["beneficiaries"] == ["polynomial"] else 20
+                span["end_us"] = span["start_us"] + span["charged_us"]
+        alternative = report.reduce(accepted, scenario)["decision"]
+        assert alternative["spending_action"] == "price_control_repeat"
+        assert alternative["competitive_controls"][0]["method"] == "polynomial"
+        assert alternative["incumbent"] == "D" and alternative["next_dispatch"] is None
+        variant = seal(dict(value, statistics=scenario, **report.reduce(accepted, scenario)))
+        billed = deepcopy(account)
+        for dispatch in billed["dispatches"]:
+            span = scenario["costs"].get(dispatch["receipt"])
+            if span:
+                diff = span["charged_us"] - dispatch["work"]["elapsed_us"]
+                dispatch["work"]["elapsed_us"] += diff
+                billed["consumed"]["elapsed_us"] += diff
+                billed["remaining"]["elapsed_us"] -= diff
+        alt = tmp_path / "fixed-control.zip"
+        alt.write_bytes(report.archive_bytes({report.MEMBER: report.encode(variant),
+                        report.ACCOUNT: report.encode(seal(dict(billed, report=variant["identity"])))}))
+        assert report.verify(alt, qcopy)["decision"] == alternative
+
     for i, tamper in enumerate(("decision", "count", "reserve", "parent", "family", "cut",
                                 "larger_grant", "below_wave", "dispatch")):
         changed, ledger = deepcopy(value), deepcopy(account)

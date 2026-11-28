@@ -75,6 +75,7 @@ def costs(snapshot, grant, coords, op, names):
                 start_us=w["start_us"],
                 end_us=w["end_us"],
                 charged_us=w["charged_us"],
+                issued_tokens=snapshot["reserved_work"][key]["tokens"],
                 worker_cpu_us=proof.get("worker_cpu_us"),
                 lease_us=proof.get("lease_us"),
                 covered_us=device.get("covered_us"),
@@ -100,7 +101,7 @@ def alias(original, look, prompts, cut):
     return measured_look(probe, seal(scores), cut=cut, work=original["work"])
 
 
-def screen(area, grant, marker, accepted, packages, design, donor, invoke, progress):
+def screen(area, grant, marker, accepted, packages, design, donor, invoke, progress, observe):
     _, looks, crossings, ops = design
     cuts, generated, observed, train_work, common_work = {}, {}, {}, {}, {}
     shared = None
@@ -185,6 +186,7 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
                         cut=cut[0]["cut"],
                         work=train_work[method] + shared_roles,
                     )
+                    observe(look, observed[look["identity"]])
                     common_work.setdefault(method, []).extend(shared_roles)
                 continue
             if role == "search":
@@ -291,6 +293,7 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
             cumulative = train_work.get(method, []) + common_work.get(method, []) + probe_work
             m = measured_look(probe, scores, cut=cut[0]["cut"] if cut else None, work=cumulative)
             observed[look["identity"]] = m
+            observe(look, m)
             if profile == "common":
                 common_work.setdefault(method, []).extend(probe_work)
             if target == 0:
@@ -425,7 +428,20 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
         donor = physical.Donor(
             root, source, area, accepted, basis, revision, args, host_factory, readonly=readonly
         )
-        observed = screen(area, grant, marker, accepted, packages, design, donor, invoke, progress)
+        from oeis_learn.generalization.progressive.trials import TrialJournal
+
+        registry = confined(folder, "registrations/" + reg["identity"][7:])
+        trials = TrialJournal(registry, study=reg["identity"], readonly=readonly)
+        for method, expected_trial in accepted["trials"].items():
+            if trials.velocity_trial(method)["identity"] != expected_trial:
+                raise ValueError("research observation belongs to another frozen trial")
+        for method, reason in accepted["omitted"].items():
+            for series in design[0][method].values():
+                for look in series:
+                    trials.observe_velocity(reg, look, reason=reason)
+        def observe(look, measurement):
+            trials.observe_velocity(reg, look, evidence=measurement)
+        observed = screen(area, grant, marker, accepted, packages, design, donor, invoke, progress, observe)
         status.update(stage="publication", recipe=None, look=None)
         qualification = retained_qualification(root, grant)
         request = seal(
