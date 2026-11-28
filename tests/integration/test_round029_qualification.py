@@ -776,6 +776,10 @@ def test_single_funded_matrix_replays_all_prices_without_another_dispatch(
     scope = prices["timed_updates"]["preparation_cost"]
     assert scope["launch_to_decision_us"] >= scope["incremental"]["occupied"]["union_us"] > 0
     assert scope["incremental"]["ledger_us"] == completed["elapsed_us"]
+    assert scope["production_occupied"] == scope["incremental"]["occupied"]
+    assert sum(row["production_us"] for row in scope["by_beneficiary"].values()) == pytest.approx(
+        scope["production_occupied"]["union_us"]
+    )
     assert scope["incremental"]["resources"]["worker_cpu_us"] == {
         "observed": 1500,
         "missing_operations": 1 + int(cold_retry or route == "prelaunch"),

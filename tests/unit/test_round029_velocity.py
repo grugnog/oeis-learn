@@ -276,6 +276,42 @@ def test_original_and_incremental_work_keep_failed_debits_reuse_and_unknown_cloc
         workstation_accounting([dict(reused, charged_us=1)])
 
 
+def test_cut_costs_use_one_union_across_historical_and_incremental_work():
+    from oeis_learn.generalization.progressive.program_search_costing import workstation_accounting
+
+    def work(receipt, start, end, beneficiaries, **fields):
+        return dict(dict(receipt=receipt, role="train", state="complete", origin="incremental",
+                         host="test-host", boot="one", start_us=start, end_us=end,
+                         charged_us=end - start, beneficiaries=beneficiaries), **fields)
+
+    historical = work("original", 0, 8, ["00", "04"], origin="historical")
+    reuse = dict(historical, origin="incremental", state="reused", charged_us=0)
+    retry = work("retry", 4, 10, ["04"], state="failed")
+    scoring = work("score", 8, 12, ["00"], role="score", worker_cpu_us=6)
+    records = [historical, reuse, retry, scoring, scoring]
+    measured = workstation_accounting(records)
+    assert measured["historical"]["ledger_us"] == 8
+    assert measured["incremental"]["ledger_us"] == 10
+    assert measured["production_occupied"]["union_us"] == 12
+    assert measured["by_beneficiary"] == {
+        "00": {"historical_us": 4, "incremental_us": 3, "production_us": 7},
+        "04": {"historical_us": 4, "incremental_us": 5, "production_us": 5},
+    }
+    assert sum(v["production_us"] for v in measured["by_beneficiary"].values()) == 12
+
+    # Marginal reuse is free, even when the original's time cannot be reconstructed.
+    untraced = workstation_accounting([reuse])
+    assert untraced["by_beneficiary"]["04"] == {
+        "historical_us": None, "incremental_us": 0, "production_us": None,
+    }
+    assert untraced["production_occupied"]["unknown"] == ["original"]
+    reboot = workstation_accounting([historical, reuse, dict(scoring, boot="two")])
+    assert reboot["production_occupied"]["lower_us"] == 8
+    assert reboot["production_occupied"]["upper_us"] == 12
+    assert reboot["by_beneficiary"]["00"]["production_us"] is None
+    assert reboot["by_beneficiary"]["00"]["incremental_us"] == 4
+
+
 def test_contradictory_coordinate_and_unrelated_registrations_cannot_gain():
     rows = [cell(0, "miss", "solve")]
     views = frozen([0])

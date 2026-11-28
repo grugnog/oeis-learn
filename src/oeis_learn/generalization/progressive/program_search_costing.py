@@ -702,8 +702,31 @@ def workstation_accounting(records, *, launch=None, decision=None):
             and all(p.get("at_us") is not None for p in (launch, decision))
         ):
             elapsed = integer(integer(decision["at_us"]) - integer(launch["at_us"]))
+    historical = summarize(phases["historical"])
+    incremental = summarize(phases["incremental"])
+    work = [r for r in seen.values() if r["state"] not in {"reused", "unstarted"}]
+    # A free reuse can have an unknown original production cost. Its zero debit
+    # never supplies a workstation interval for that original.
+    missing = {
+        r["receipt"]: dict(r, host=None, boot=None, start_us=None, end_us=None)
+        for r in seen.values() if r["state"] == "reused" and r["receipt"] not in paid
+    }
+    production = occupied_time([*work, *missing.values()])
+    missing_names = {name for r in missing.values() for name in r["beneficiaries"]}
+    names = sorted({name for r in seen.values() for name in r["beneficiaries"]})
+
+    def share(occupied, name):
+        if occupied["attributed_us"] is None:
+            return None
+        return occupied["attributed_us"].get(name, 0)
+
     return dict(
-        historical=summarize(phases["historical"]),
-        incremental=summarize(phases["incremental"]),
+        historical=historical, incremental=incremental, production_occupied=production,
+        by_beneficiary={
+            name: dict(historical_us=None if name in missing_names else share(historical["occupied"], name),
+                       incremental_us=share(incremental["occupied"], name),
+                       production_us=share(production, name))
+            for name in names
+        },
         launch_to_decision_us=elapsed,
     )
