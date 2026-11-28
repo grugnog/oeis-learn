@@ -16,6 +16,9 @@ import zipfile
 DONOR = "77667e67176ae32fa16457d52565bae1dbe41afc"
 CACHE_HELPER = "specs/015-learned-program-search/validation/candidate_source.py"
 LAUNCHER = "specs/016-measure-learning-velocity/validation/launch-round029.sh"
+ZIP_SCOPES = {"readiness": "round029-readiness/v1", "checkpoints": "checkpoint_matrix",
+              "control-history": "round029-control-history/v1"}
+MODES = ("donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", *ZIP_SCOPES)
 
 
 def checked_json(argv, cwd, action):
@@ -588,12 +591,337 @@ def donor_checkpoints(action, root, source, revision, minutes):
     return report
 
 
+CONTROL_MODELS = ("retained_D", "random")
+
+
+def new_cell(expected):
+    return dict(
+        expected_cases=expected,
+        seen=0,
+        issued=0,
+        empty=0,
+        search_clocks=0,
+        score_clocks=0,
+        search_us=0,
+        scoring_us=0,
+        paired_cases=0,
+        paired_us=0,
+        observed_max_us=None,
+    )
+
+
+def microseconds(seconds):
+    from math import ceil, isfinite
+
+    if seconds is None:
+        return None
+    if type(seconds) not in (int, float) or not isfinite(seconds) or seconds < 0:
+        raise ValueError("invalid original elapsed seconds")
+    return ceil(seconds * 1_000_000)
+
+
+def observe(cell, method, record, score):
+    from oeis_learn.generalization.progressive.program_search_bank import selected_source
+
+    selected = selected_source(record["selections"][method], score, None)
+    if score.get("upstream") is not None and score["upstream"] != record["arm_evidence"][method]:
+        raise ValueError("selected score differs from its upstream method")
+    cost = record["costs"].get(method, {})
+    if method == "template":
+        elapsed = microseconds(cost.get("elapsed_seconds"))
+        attempts = len(cost["details"]) if "details" in cost else None
+        allowance = 8
+    else:
+        elapsed = cost.get("total_elapsed_us")
+        attempts = cost.get("attempts")
+        allowance = 1
+    if elapsed is not None and (type(elapsed) is not int or elapsed < 0):
+        raise ValueError("invalid original search elapsed time")
+    if attempts is not None and (type(attempts) is not int or not 0 <= attempts <= allowance):
+        raise ValueError("historical attempt count differs from the registered control")
+    scorer = score.get("scoring") or {}
+    scoring = microseconds(scorer.get("elapsed_seconds"))
+    cell["seen"] += 1
+    cell["issued"] += attempts == allowance
+    cell["empty"] += selected is None
+    if elapsed is not None:
+        cell["search_clocks"] += 1
+        cell["search_us"] += elapsed
+    if scoring is not None:
+        cell["score_clocks"] += 1
+        cell["scoring_us"] += scoring
+    if (
+        elapsed is not None
+        and scoring is not None
+        and attempts == allowance
+        and (selected is None or scorer.get("complete") is True)
+    ):
+        wall = elapsed + scoring
+        cell["paired_cases"] += 1
+        cell["paired_us"] += wall
+        cell["observed_max_us"] = max(cell["observed_max_us"] or 0, wall)
+
+
+def finish_cell(cell):
+    full = cell["expected_cases"] > 0 and cell["paired_cases"] == cell["expected_cases"]
+    cell["mean_us"] = (
+        (cell["paired_us"] + cell["paired_cases"] - 1) // cell["paired_cases"] if full else None
+    )
+    cell["max_us"] = cell["observed_max_us"] if full else None
+
+
+def control_prices(root, members, producers):
+    from collections import Counter
+    from oeis_learn.generalization.progressive.cohorts import STRATA
+    from oeis_learn.generalization.progressive.contracts import read_bound_record
+    from oeis_learn.pipeline_validation.progressive_round028_audit import METHODS
+
+    counts = Counter(members.values())
+    if counts != dict.fromkeys(STRATA, 32):
+        raise ValueError("original exposed development roster differs")
+    controls = {m: {} for m in METHODS}
+    coverage = {}
+    complete = True
+    used = set()
+    for model in CONTROL_MODELS:
+        strata = {m: {s: new_cell(counts[s]) for s in STRATA} for m in METHODS}
+        seen, missing = set(), []
+        for block in range(8):
+            pair = producers.get(f"capability-{model}-{block:02d}")
+            if pair is None:
+                missing.append(block)
+                continue
+            try:
+                gen = read_bound_record(root, pair["generation"], version="discovery-candidates/v1")
+                scores = read_bound_record(root, pair["scoring"], version="discovery-scoring/v1")
+            except FileNotFoundError:
+                missing.append(block)
+                continue
+            parent = pair["generation"]["sha256"]
+            if (
+                parent in used
+                or gen["model_control"] != model
+                or scores["candidates"] != parent
+                or scores["denominator"] != len(scores["outcomes"])
+                or gen["records"].keys() != scores["outcomes"].keys()
+            ):
+                raise ValueError("historical control partition or scorer parent differs")
+            used.add(parent)
+            cases = members.keys() & gen["records"].keys()
+            if seen & cases:
+                raise ValueError("repeated historical development case within a model")
+            seen.update(cases)
+            for case in cases:
+                for method in METHODS:
+                    if method in gen["methods"]:
+                        observe(
+                            strata[method][members[case]],
+                            method,
+                            gen["records"][case],
+                            scores["outcomes"][case][method],
+                        )
+        coverage[model] = dict(
+            expected_partitions=8,
+            missing_partitions=missing,
+            expected_cases=len(members),
+            covered_cases=len(seen),
+        )
+        for method, cells in strata.items():
+            for cell in cells.values():
+                finish_cell(cell)
+            controls[method][model] = dict(partitions=8 - len(missing), strata=cells)
+            if missing or any(c["mean_us"] is None for c in cells.values()):
+                complete = False
+    return dict(
+        status="COMPLETE" if complete else "PARTIAL",
+        controls=controls,
+        coverage=coverage,
+        basis="closed historical development partitions; one independent observation per model and case",
+        price_scope="historical search and selected-choice scoring only",
+        current_isolated_control_price_us=None,
+    )
+
+
+def read_history(root):
+    """Open only the original exposed study roster and its conventional-control producers."""
+    from functools import partial
+    from types import SimpleNamespace
+    from oeis_learn.generalization.progressive.campaign import learned_search_policy
+    from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES, read_bound_record, reference
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_round028_audit import ORIGINAL, metric_ref, roster_map
+
+    policy = learned_search_policy()
+    bound = partial(read_bound_record, root)
+    path = confined(root, ORIGINAL + "/prepare-research/frozen/campaign.json")
+    if path.stat().st_size > CAMPAIGN_DOCUMENT_BYTES:
+        raise ValueError("original frozen campaign exceeds the registered size")
+    campaign = bound(reference(root, path), identity=policy["campaign"])
+    entries = [r for r in campaign["payload"]["references"] if r["name"] == "study-policy"]
+    if len(entries) != 1 or (entries[0]["role"], entries[0]["kind"]) != ("proposal", "policy"):
+        raise ValueError("original study policy binding differs")
+    study = bound(entries[0]["artifact"])
+    if any(
+        plan["trial"]["study"] != study["identity"]
+        for plan in campaign["payload"]["tasks"]
+        if plan.get("trial")
+    ):
+        raise ValueError("original trial study differs")
+    roster = roster_map(study["evaluations"]["trial-05-1000000-development-score"]["roster"])
+    cut = policy["capability_cut"]
+    cut_path = f"run-state/discovery-control/{policy['campaign'][7:]}/{cut['name']}"
+    control = bound(dict(path=cut_path, bytes=cut["bytes"], sha256=cut["sha256"]))
+    outputs = control["state"]["outputs"]
+    donor = SimpleNamespace(root=root, policy=policy, bound=bound)
+    producers = {}
+    for model in CONTROL_MODELS:
+        for block in range(8):
+            tag = f"capability-{model}-{block:02d}"
+            if tag + "-generate" not in outputs or tag + "-score" not in outputs:
+                continue
+            try:
+                generation = metric_ref(donor, outputs[tag + "-generate"], "generate", "candidates")
+                scoring = metric_ref(donor, outputs[tag + "-score"], "score", "scores")
+            except FileNotFoundError:
+                continue
+            producers[tag] = dict(generation=generation, scoring=scoring)
+    return control_prices(root, {k: value[0] for k, value in roster.items()}, producers)
+
+
+def donor_control_history(action, root, revision):
+    files, checks, errors = {}, {}, {}
+    report = dict(
+        candidate=revision,
+        scope="round029-control-history/v1",
+        grant_minutes=0,
+        gpu_dispatches=0,
+        research_run_requested=False,
+        scientific_verdict=None,
+        files=files,
+        checks=checks,
+        errors=errors,
+    )
+
+    def failed(name, exc):
+        checks[name] = "FAILED"
+        errors[name] = type(exc).__name__
+        print(f"{name}: {exc}", file=sys.stderr)
+
+    try:
+        history = read_history(root)
+        for method, cohorts in history["controls"].items():
+            files["control-" + method + ".json"] = dict(
+                method=method,
+                models=cohorts,
+                basis=history["basis"],
+                price_scope=history["price_scope"],
+            )
+        files["coverage.json"] = select_fields(
+            history,
+            "coverage",
+            "basis",
+            "status",
+            "price_scope",
+            "current_isolated_control_price_us",
+        )
+        checks["historical-controls"] = history["status"]
+    except (OSError, KeyError, ValueError, TypeError) as exc:
+        failed("historical-controls", exc)
+
+    prices = {}
+    try:
+        inventory = action("preflight")["inventory"]
+        if inventory["gpu_dispatches"] != 0:
+            raise ValueError("control history preflight issued device work")
+        amounts = (
+            "device",
+            "available_bytes",
+            "available_inodes",
+            "required_bytes",
+            "required_inodes",
+            "reserved_bytes",
+            "reserved_inodes",
+            "deficit_bytes",
+            "deficit_inodes",
+        )
+        mounts = inventory["capacity"]["mounts"]
+        files["capacity.json"] = dict(
+            registration=inventory["capacity"]["registration"],
+            mount=select_fields(inventory["mount"], *amounts),
+            mounts=None if mounts is None else [select_fields(m, *amounts) for m in mounts],
+        )
+        checks["capacity"] = "COMPLETE"
+        prices = inventory["prices"]
+    except (Exception, SystemExit) as exc:
+        failed("capacity", exc)
+
+    try:
+        producer = (prices.get("checkpoint_cycles") or {}).get("candidate")
+        if not isinstance(producer, str) or not re.fullmatch(r"[a-f0-9]{40}", producer):
+            raise ValueError("missing original checkpoint candidate")
+        # The published verifier compares its own source snapshot to the funded binding.
+        checked = action("verify", at=producer)
+        if (
+            checked["mechanical_status"] != "VERIFIED"
+            or checked["verification_scope"] != "private_checkpoint_matrix"
+            or checked["scientific_verdict"] is not None
+            or checked["report_ref"] != checked["last_committed_ref"]
+        ):
+            raise ValueError("expected the completed private checkpoint matrix")
+        files["verification.json"] = select_fields(
+            checked,
+            "verification_scope",
+            "mechanical_status",
+            "report_ref",
+            "last_committed_ref",
+            "scientific_verdict",
+        )
+        checks["private-verification"] = "COMPLETE"
+    except (Exception, SystemExit) as exc:
+        failed("private-verification", exc)
+
+    if prices and "verification.json" in files:
+        try:
+            cycles = prices["checkpoint_cycles"]
+            wave = prices["supported_wave"]
+            if (
+                cycles["receipt"] != checked["report_ref"]
+                or wave["checkpoint_receipt"] != cycles["receipt"]
+            ):
+                raise ValueError("supported forecast belongs to a different checkpoint measurement")
+            files["capacity.json"]["measured_checkpoint_trees"] = {
+                m: select_fields(row, "checkpoint_bytes", "checkpoint_inodes")
+                for m, row in cycles["methods"].items()
+            }
+            files["forecast.json"] = select_fields(
+                prices,
+                "supported_wave",
+                "wave",
+                "common_probe",
+                "followup",
+                "followup_reserve_us",
+                "wave_with_reserve_us",
+            )
+            checks["supported-forecast"] = "COMPLETE"
+        except (KeyError, ValueError, TypeError) as exc:
+            failed("supported-forecast", exc)
+    else:
+        checks["supported-forecast"] = "UNAVAILABLE"
+    report["status"] = "COMPLETE" if all(v == "COMPLETE" for v in checks.values()) else "PARTIAL"
+    return report
+
+
 def main(revision, minutes, mode="donation", supplied=None):
-    if mode not in {"donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", "readiness", "checkpoints"}:
+    if mode not in MODES:
         raise SystemExit("Unknown continuation qualification mode.")
     root = Path.cwd().resolve()
-    if not re.fullmatch(r"[a-f0-9]{40}", revision) or not re.fullmatch(r"[1-9][0-9]*", minutes):
-        raise SystemExit("Supply a full candidate commit and a positive maximum number of minutes.")
+    if not re.fullmatch(r"[a-f0-9]{40}", revision):
+        raise SystemExit("Supply a full candidate commit.")
+    if mode == "control-history":
+        if minutes != "0":
+            raise SystemExit("Control history is read-only and takes exactly zero grant minutes.")
+    elif not re.fullmatch(r"[1-9][0-9]*", minutes):
+        raise SystemExit("Supply a positive maximum number of minutes.")
 
     def git(*args):
         return subprocess.check_output(["git", *args], cwd=root).decode().strip()
@@ -621,11 +949,11 @@ def main(revision, minutes, mode="donation", supplied=None):
     sys.path.insert(0, str(source / "src"))
     if mode == "review-children":
         return saved_children(root, source, revision, int(minutes))
-    launcher = ["bash", str(source / LAUNCHER), revision]
+    def action(name, *args, at=revision):
+        return checked_json(["bash", str(source / LAUNCHER), at, name, *map(str, args)], root, name)
 
-    def action(name, *args):
-        return checked_json([*launcher, name, *map(str, args)], root, name)
-
+    if mode == "control-history":
+        return donor_control_history(action, root, revision)
     if mode == "readiness":
         return donor_readiness(action, root, source, revision, minutes, supplied)
     if mode == "checkpoints":
@@ -733,17 +1061,17 @@ def cli(argv):
         "mode",
         nargs="?",
         default="donation",
-        choices=("donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", "readiness", "checkpoints"),
+        choices=MODES,
     )
     parser.add_argument(
         "--output",
         type=Path,
-        help="save the result to a new file (ZIP for readiness and checkpoints, JSON for other modes)",
+        help="save the result to a new file (ZIP for readiness, checkpoints and control history; JSON for other modes)",
     )
     parser.add_argument("--from-result", type=Path, help="completed fresh-start JSON for read-only readiness")
     args = parser.parse_args(argv)
     readiness = args.mode == "readiness"
-    zipped = readiness or args.mode == "checkpoints"
+    zipped = args.mode in ZIP_SCOPES
     if zipped and (not args.output or args.output.suffix.lower() != ".zip"):
         parser.error(f"{args.mode} requires --output NEW.zip")
     if readiness and (args.from_result is None or not args.output or args.output.suffix.lower() != ".zip"):
@@ -774,7 +1102,7 @@ def cli(argv):
             )
             if zipped:
                 print(f"{args.mode}: {exc}", file=sys.stderr)
-                report.update(scope="round029-readiness/v1" if readiness else "checkpoint_matrix", research_run_requested=False,
+                report.update(scope=ZIP_SCOPES[args.mode], research_run_requested=False,
                               scientific_verdict=None, checks={"bootstrap": "FAILED"})
             else:
                 report["reason"] = str(exc)

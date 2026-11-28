@@ -28,3 +28,21 @@ Each treatment starts from the shared weights, writes the initial and first-upda
 Attach `checkpoints.zip` from the printed path, including after an interruption. A completed ZIP contains one JSON per treatment, physical capacity at each dispatch, the receipt, private verification, and the refreshed forecast. Each treatment reports three storage writes, two storage reads, the enclosing phase times, charged tokens, and the largest observed on-disk allocation at the two saved cuts. The receipt also contains the device lease, peak device memory, worker CPU time and sampled GPU activity coverage.
 
 `summary.json` records the grant balance and the SHA-256 of each enclosed file. If a device attempt stops after publishing some treatments, their filenames start with `unverified-` and identify the attempt. A capacity block records the observed deficit. A forecast failure leaves the verified treatments in the ZIP. These two-update measurements supply preparation evidence for T019 and T059. The research screen has its own registration, full-wave capacity projection and grant.
+
+## Collect historical control costs and the supported forecast
+
+From the same donor checkout, use the full revision supplied with the control-history handoff.
+
+```bash
+(
+  set -euo pipefail
+  umask 077
+  : "${ROUND029_REV:?full control-history implementation commit}"
+  out=$(mktemp -d "$HOME/round029-controls.XXXXXX")
+  git fetch --no-tags origin "$ROUND029_REV"
+  git show "${ROUND029_REV}:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - "$ROUND029_REV" 0 control-history --output "$out/control-prices.zip"
+)
+```
+
+This command takes zero grant minutes. It reopens the registered historical development roster and both original capability cohorts, authenticates their generation and scoring records, and groups the three conventional controls by stratum. The ZIP includes observed clocks, attempt coverage, whole-stratum means and maxima when complete, current storage capacity, and the checkpoint-verified four-treatment forecast. The historical clocks cover the recorded searches and selected choices. The isolated round029 CPU service, bank scoring and supervision still require their own cost evidence. A partial ZIP preserves independently verified sections and identifies missing partitions or failed checks.

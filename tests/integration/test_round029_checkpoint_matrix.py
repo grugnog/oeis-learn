@@ -304,3 +304,15 @@ def test_preflight_reports_only_cycles_from_the_qualified_stream(tmp_path, monke
     prices = host.preflight(tmp_path)["inventory"]["prices"]
     assert "checkpoint_cycles" not in prices
     assert "different fresh stream" in prices["checkpoint_reason"]
+
+
+def test_control_history_cli_takes_only_zero_minutes_and_requires_a_new_zip(tmp_path):
+    validation = Path(__file__).resolve().parents[2] / "specs/016-measure-learning-velocity/validation"
+    op = runpy.run_path(str(validation / "qualify_continuation.py"))
+    rev = "a" * 40
+    with pytest.raises(SystemExit, match="zero grant minutes"):
+        op["main"](rev, "1", "control-history")
+    with pytest.raises(SystemExit, match="positive maximum"):
+        op["main"](rev, "0", "checkpoints")
+    with pytest.raises(SystemExit):
+        op["cli"]([rev, "0", "control-history", "--output", str(tmp_path / "result.json")])
