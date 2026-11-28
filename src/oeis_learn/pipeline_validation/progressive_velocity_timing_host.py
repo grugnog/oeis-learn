@@ -475,6 +475,8 @@ def checked_price_source(root, source, binding):
         "progressive_cli.py",  # acceptance-suite inventory
         "progressive_round029.py",
         "progressive_velocity_timing_host.py",
+        "progressive_velocity_checkpoint.py",
+        "progressive_velocity_checkpoint_host.py",
         "progressive_velocity_verify.py",
         "progressive_velocity_wheel.py",
         "progressive_velocity_image.py",
@@ -495,13 +497,14 @@ def checked_price_source(root, source, binding):
             continue
         if name == "src/oeis_learn/generalization/progressive/program_search_costing.py":
             continue
-        # Both matrices share integer validators from trials, but neither runs the
-        # trial journal or the outcome reducers. Keep everything else in trials pinned.
-        reporting = name in {
+        # Both price workers use the shared validators and calibration. They never
+        # drive train_to, the recovery rehearsal, the trial journal, or the outcome reducers.
+        shared_modules = name in {
             "src/oeis_learn/generalization/progressive/trials.py",
             "src/oeis_learn/generalization/progressive/velocity_metrics.py",
+            "src/oeis_learn/pipeline_validation/progressive_velocity_worker.py",
         }
-        if (binding.get("version") == VERSION or broader and reporting) and ordinary_workload_unchanged(
+        if (binding.get("version") == VERSION or broader and shared_modules) and ordinary_workload_unchanged(
             name, original, source
         ):
             continue

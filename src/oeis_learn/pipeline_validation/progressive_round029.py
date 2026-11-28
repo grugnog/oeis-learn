@@ -138,6 +138,17 @@ def preflight(root, source=None):
     except (OSError, ValueError, KeyError) as exc:
         info["prices"]["broader_reason"] = str(exc)
     info["prices"] = velocity_forecast(info, policy)
+    if info["prices"].get("fresh_start"):
+        from .progressive_velocity_checkpoint_host import inventory as checkpoint_inventory
+
+        try:
+            cycles = checkpoint_inventory(root, source)
+            if cycles is not None:
+                if cycles["origin"] != info["prices"]["fresh_start"]["identity"]:
+                    raise ValueError("checkpoint cycles belong to a different fresh stream")
+                info["prices"]["checkpoint_cycles"] = cycles
+        except (OSError, ValueError, KeyError) as exc:
+            info["prices"]["checkpoint_reason"] = str(exc)
     info["assessment"] = policy["assessment"]
     ordinary = next(r for r in info["cuts"] if (r["method"], r["look"]) == ("00", 4_000_000))
     if any(m["deficit_bytes"] or m["deficit_inodes"] for m in info["capacity"]["mounts"] or ()):
@@ -330,9 +341,9 @@ def execute(args, source, *, host_factory=None):
         donation = action == "qualify" and claimed == donation_parent(revision)
         preparation = action == "qualify" and claimed == preparation_parent(revision)
         from . import progressive_velocity_broad_host as broad
+        from . import progressive_velocity_checkpoint_host as checkpoints
 
-        timing = False
-        broader = fresh = False
+        timing = broader = fresh = checkpoint = False
         if (
             action == "qualify"
             and not donation
@@ -343,9 +354,14 @@ def execute(args, source, *, host_factory=None):
                 qualification_parent(revision, children=True),
             }
         ):
+            if (folder / broad.FRESH_MARKER).is_file():
+                try:
+                    checkpoint = claimed == checkpoints.parent(revision, checkpoints.origin(folder))
+                except (OSError, ValueError, KeyError):
+                    pass
             try:
-                timing = claimed == timing_parent(revision, pair_pointer(root)["receipt"])
-                if not timing:
+                timing = not checkpoint and claimed == timing_parent(revision, pair_pointer(root)["receipt"])
+                if not timing and not checkpoint:
                     broader = claimed == broad.parent(
                         revision, broad.original_pointers(root, folder)
                     )
@@ -362,6 +378,7 @@ def execute(args, source, *, host_factory=None):
                 or timing
                 or broader
                 or fresh
+                or checkpoint
                 or claimed == qualification_parent(revision, children=True)
                 else qualification_parent(revision)
             )
@@ -381,6 +398,8 @@ def execute(args, source, *, host_factory=None):
         folder.mkdir(parents=True, exist_ok=True)
         with RunStore.owner(folder):
             if action == "qualify":
+                if checkpoint:
+                    return checkpoints.qualify(args, root, folder, source, revision, grant, host_factory)
                 if broader or fresh:
                     return broad.qualify(args, root, folder, source, revision, grant, host_factory, fresh=fresh)
                 if timing:

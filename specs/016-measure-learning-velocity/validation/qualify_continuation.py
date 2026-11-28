@@ -532,8 +532,64 @@ def donor_readiness(action, root, source, revision, minutes, supplied):
                 checks=checks, errors=errors, research_run_requested=False, scientific_verdict=None, files=files)
 
 
+def donor_checkpoints(action, root, source, revision, minutes):
+    from oeis_learn.pipeline_validation.progressive_velocity_checkpoint_host import authorize, incomplete
+
+    grant = authorize(root, source, revision, minutes)
+    try:
+        first = action("qualify", grant)
+    except SystemExit as exc:
+        first = json.loads(str(exc))
+    files = {}
+    report = dict(candidate=revision, scope="checkpoint_matrix", grant=json.loads(grant.read_bytes())["identity"],
+                  status=first["mechanical_status"], research_run_requested=False, scientific_verdict=None, files=files,
+                  **select_fields(first, "elapsed_us", "remaining_authority", "charged_tokens", "research_dispatches",
+                                  "stage", "next_action", "deficit_bytes", "deficit_inodes"))
+    if first["mechanical_status"] != "COMPLETE":
+        problem = first.get("diagnostics") or first.get("first_error") or {}
+        files["failure.json"] = select_fields(problem, "stage", "error", "capacity", "deficit_bytes", "deficit_inodes")
+        if first.get("stage") == "measure":
+            try:
+                for key, observation in incomplete(root, source, grant).items():
+                    files["unverified-" + key + ".json"] = observation
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                files["failure.json"]["partial_read_error"] = type(exc).__name__
+        return report
+    record = first["receipt"]
+    files["receipt.json"] = record
+    try:
+        verify = action("verify")
+        if (first["scope"] != "checkpoint_matrix" or first["research_dispatches"] != 0
+                or verify["verification_scope"] != "private_checkpoint_matrix"
+                or verify["mechanical_status"] != "VERIFIED" or verify["report_ref"] != record["identity"]
+                or verify["last_committed_ref"] != first["last_committed_ref"] or verify["scientific_verdict"] is not None
+                or report["elapsed_us"] + report["remaining_authority"] != int(minutes) * 60_000_000):
+            raise ValueError("verified checkpoint matrix or grant balance differs")
+        files["verification.json"] = select_fields(verify, "mechanical_status", "last_committed_ref", "verification_scope")
+        files["capacity.json"] = dict(package=record["package_capacity"], device=record["capacity"])
+        for method, value in record["methods"].items():
+            files["recipe-" + method + ".json"] = value
+    except (Exception, SystemExit) as exc:
+        report.update(status="UNVERIFIED", error=type(exc).__name__)
+        print(f"private checkpoint verification: {exc}", file=sys.stderr)
+        return report
+    try:
+        flight = action("preflight")
+        prices = flight["inventory"]["prices"]
+        if (flight["inventory"]["gpu_dispatches"] != 0
+                or prices.get("checkpoint_cycles", {}).get("receipt") != record["identity"]):
+            raise ValueError("preflight did not reopen the verified checkpoint receipt")
+        files["forecast.json"] = dict(checkpoint_receipt=record["identity"], **select_fields(
+            prices, "common_probe", "wave", "followup", "wave_with_reserve_us", "followup_reserve_us",
+            "followup_family_available"))
+    except (Exception, SystemExit) as exc:
+        report.update(status="PARTIAL", forecast_error=type(exc).__name__)
+        print(f"checkpoint preflight: {exc}", file=sys.stderr)
+    return report
+
+
 def main(revision, minutes, mode="donation", supplied=None):
-    if mode not in {"donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", "readiness"}:
+    if mode not in {"donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", "readiness", "checkpoints"}:
         raise SystemExit("Unknown continuation qualification mode.")
     root = Path.cwd().resolve()
     if not re.fullmatch(r"[a-f0-9]{40}", revision) or not re.fullmatch(r"[1-9][0-9]*", minutes):
@@ -572,6 +628,8 @@ def main(revision, minutes, mode="donation", supplied=None):
 
     if mode == "readiness":
         return donor_readiness(action, root, source, revision, minutes, supplied)
+    if mode == "checkpoints":
+        return donor_checkpoints(action, root, source, revision, minutes)
     if mode in {"timings", "broader", "fresh-start"}:
         return donor_timings(action, root, revision, minutes, broader=mode == "broader", fresh=mode == "fresh-start")
     if mode == "supply":
@@ -675,16 +733,19 @@ def cli(argv):
         "mode",
         nargs="?",
         default="donation",
-        choices=("donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", "readiness"),
+        choices=("donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", "readiness", "checkpoints"),
     )
     parser.add_argument(
         "--output",
         type=Path,
-        help="save the result to a new file (ZIP for readiness, JSON for other modes)",
+        help="save the result to a new file (ZIP for readiness and checkpoints, JSON for other modes)",
     )
     parser.add_argument("--from-result", type=Path, help="completed fresh-start JSON for read-only readiness")
     args = parser.parse_args(argv)
     readiness = args.mode == "readiness"
+    zipped = readiness or args.mode == "checkpoints"
+    if zipped and (not args.output or args.output.suffix.lower() != ".zip"):
+        parser.error(f"{args.mode} requires --output NEW.zip")
     if readiness and (args.from_result is None or not args.output or args.output.suffix.lower() != ".zip"):
         parser.error("Readiness requires --from-result QUALIFICATION.json and --output NEW.zip")
     if args.from_result is not None and not readiness:
@@ -711,14 +772,14 @@ def cli(argv):
                 status="UNVERIFIED",
                 error=type(exc).__name__,
             )
-            if readiness:
-                print(f"readiness: {exc}", file=sys.stderr)
-                report.update(scope="round029-readiness/v1", research_run_requested=False,
+            if zipped:
+                print(f"{args.mode}: {exc}", file=sys.stderr)
+                report.update(scope="round029-readiness/v1" if readiness else "checkpoint_matrix", research_run_requested=False,
                               scientific_verdict=None, checks={"bootstrap": "FAILED"})
             else:
                 report["reason"] = str(exc)
             code = 1
-        if readiness:
+        if zipped:
             write_readiness_zip(out, report)
         else:
             out.write((json.dumps(report, indent=2, allow_nan=False) + "\n").encode("utf-8"))

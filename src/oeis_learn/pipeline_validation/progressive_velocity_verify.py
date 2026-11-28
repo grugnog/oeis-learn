@@ -170,14 +170,18 @@ def private_result(root, folder, *, source=None):
         from . import progressive_velocity_timing_host as timing
 
         from . import progressive_velocity_broad_host as broad
+        from . import progressive_velocity_checkpoint_host as checkpoints
 
         broader = binding["version"] == broad.VERSION
+        checkpoint = binding["version"] == checkpoints.matrix.VERSION
         supply = binding["version"] == preparation.VERSION
         matrix = binding["version"] == timing.VERSION
         if learner:
             parent = qualification_parent(
                 binding["candidate"], children=binding.get("child_restore", False)
             )
+        elif checkpoint:
+            parent = checkpoints.parent(binding["candidate"], binding["origin"])
         elif broader:
             parent = broad.parent(binding["candidate"], binding["origins"])
         elif supply:
@@ -204,7 +208,7 @@ def private_result(root, folder, *, source=None):
             action="qualify",
         )
         snapshot = BudgetJournal.inspect_existing(
-            confined(area, "accounting"), grant["identity"], grant["resources"]
+            confined(area, "accounting"), grant["identity"], grant["resources"], include_work=checkpoint
         )
         if (
             snapshot["pending"]
@@ -219,6 +223,9 @@ def private_result(root, folder, *, source=None):
             if any(key not in snapshot["committed"] for key in record["debits"]):
                 raise ValueError("original learner debit missing")
             report, scope = record["identity"], "private_learner_rehearsal"
+        elif checkpoint:
+            record = checkpoints.replay(root, folder, area, source, grant, binding, snapshot)
+            report, scope = record["identity"], "private_checkpoint_matrix"
         elif broader:
             fresh = "overlap" in binding["origins"]
             if binding["origins"] != broad.original_pointers(root, folder, fresh=fresh):

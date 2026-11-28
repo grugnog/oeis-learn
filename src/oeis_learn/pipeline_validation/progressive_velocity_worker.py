@@ -142,7 +142,8 @@ def optimizer_digest(runner):
     return digest([state["param_groups"], moments])
 
 
-def train_to(directory, package, *, target, cap, device, interrupt=False, parent_directory=None):
+def train_to(directory, package, *, target, cap, device, interrupt=False, parent_directory=None,
+             checkpoint_timing=None):
     """Resume a committed useful-token cut. Each issued update keeps its physical debit."""
     from oeis_learn.fresh.bigint_diagnostics import model_snapshot
     from oeis_learn.fresh.bigint_state import GeneralizationCheckpointStore
@@ -197,9 +198,18 @@ def train_to(directory, package, *, target, cap, device, interrupt=False, parent
     chain = digest(None)
     metrics = {}
     pointer = None
+
+    def storage(operation, action, *args):
+        if checkpoint_timing is None:
+            return action(*args)
+        started = time.monotonic_ns()
+        value = action(*args)
+        checkpoint_timing(operation, (time.monotonic_ns() - started) // 1000)
+        return value
+
     if pointer_path.exists():
         pointer = load(pointer_path)
-        saved = store.load(pointer)
+        saved = storage("load", store.load, pointer)
         state = saved["states"]
         useful, updates = state["history"]["useful_tokens"], saved["ledger"].updates
         schedule = state["optimizer"]["scheduler"]
@@ -268,7 +278,7 @@ def train_to(directory, package, *, target, cap, device, interrupt=False, parent
             pins={},
             selection=dict(order_digest=chain, package=package["identity"]),
         )
-        return store.save(RecoverableUpdate.capture_runner(runner, context), ledger)
+        return storage("save", store.save, RecoverableUpdate.capture_runner(runner, context), ledger)
 
     last_save = time.monotonic()
     if pointer is None:
