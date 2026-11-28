@@ -139,6 +139,7 @@ def preflight(root, source=None):
         info["prices"]["broader_reason"] = str(exc)
     info["prices"] = velocity_forecast(info, policy)
     if info["prices"].get("fresh_start"):
+        from oeis_learn.generalization.progressive.program_search_costing import supported_velocity_wave
         from .progressive_velocity_checkpoint_host import inventory as checkpoint_inventory
 
         try:
@@ -147,6 +148,9 @@ def preflight(root, source=None):
                 if cycles["origin"] != info["prices"]["fresh_start"]["identity"]:
                     raise ValueError("checkpoint cycles belong to a different fresh stream")
                 info["prices"]["checkpoint_cycles"] = cycles
+                supported = supported_velocity_wave(policy, info["prices"], info["prices"]["fresh_start"], cycles)
+                if supported is not None:
+                    info["prices"]["supported_wave"] = supported
         except (OSError, ValueError, KeyError) as exc:
             info["prices"]["checkpoint_reason"] = str(exc)
     info["assessment"] = policy["assessment"]
@@ -208,10 +212,16 @@ def preflight(root, source=None):
             "inspect_inputs",
         )
     elif (info["prices"].get("fresh_start") or {}).get("disposition") == "fresh_ordinary_only":
-        reason, next_action = (
-            "The fresh ordinary stream is priced. Inspect the native breadth shortage before extending the broader draw frame",
-            "inspect_inputs",
-        )
+        if info["prices"].get("supported_wave"):
+            reason, next_action = (
+                "Price the outstanding work for the four supported treatments using the exposed timing panel",
+                "qualify",
+            )
+        else:
+            reason, next_action = (
+                "The fresh ordinary stream is priced. Inspect the native breadth shortage before extending the broader draw frame",
+                "inspect_inputs",
+            )
     elif not info["prices"].get("fresh_start") and (info["prices"].get("broader_updates") or {}).get(
         "disposition"
     ) == "requires_fresh_disjoint_start":

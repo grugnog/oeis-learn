@@ -529,6 +529,62 @@ def velocity_forecast(info, policy):
     )
 
 
+def supported_velocity_wave(policy, prices, fresh, cycles):
+    """Separately price the measured ordinary-stream grid when input support settles the other arms."""
+    if not fresh or not cycles or fresh.get("identity") != cycles.get("origin"):
+        return None
+    supply = fresh.get("supply") or {}
+    matching = (supply.get("matching") or {}).get("ordinary") or {}
+    if (fresh.get("disposition") != "fresh_ordinary_only"
+            or not supply.get("slots") or supply.get("ordinary") != supply["slots"]
+            or (matching.get("coverage") or {}).get("full") is not True or matching.get("eligible_slots") != 0):
+        return None
+    methods, omitted = [], {}
+    for recipe in policy["recipes"]:
+        reasons = []
+        if recipe["stream"] == "broad":
+            reasons.append("ordinary already has a distinct composition in every matched slot")
+        if recipe["matching"]:
+            reasons.append("complete census found zero eligible ordinary matching slots")
+        if reasons:
+            omitted[recipe["id"]] = reasons
+        else:
+            methods.append(recipe["id"])
+    if (set(methods) != set(cycles["methods"])
+            or not set(methods) <= set((fresh.get("device") or {}).get("methods", {}))):
+        return None
+
+    operations = dict(prices["wave"]["operations"])
+    rates = dict(prices["unit_prices"])
+    for method in omitted:
+        del operations[f"optimizer_to_4M_recipe_{method}"]
+    all_challengers = len(policy["recipes"]) - 1
+    for name, count in list(operations.items()):
+        if name.startswith("learner."):
+            per_arm, remainder = divmod(count, all_challengers)
+            if remainder:
+                raise ValueError("challenger probe counts do not describe matched opportunities")
+            operations[name] = per_arm * (len(methods) - 1)
+    del operations["ordinary_matching_calibration"]
+    del operations["trajectory_startup_checkpoint_io_and_drain"]
+    operations["trajectory_startup_extra_checkpoints_and_drain"] = 1
+    storage = {}
+    for method in methods:
+        io = cycles["methods"][method]["storage_us"]
+        # Start, publish 1M, resume it, publish 4M. Final model scoring is priced separately.
+        # Actual extra hourly checkpoints, restarts and final supervision are still unmeasured.
+        rate = dict(expected_us=io["initial_save"] + io["first_save"] + io["resume_load"] + io["second_save"],
+                    tail_us=io["initial_save"] + 2 * max(io["first_save"], io["second_save"])
+                            + max(io["resume_load"], io["final_load"]))
+        name = "scheduled_checkpoint_storage_" + method
+        operations[name] = 1
+        rates[name] = storage[method] = rate
+    row = price_wave(dict(wave=operations, followup={}), rates)["wave"]
+    return dict(row, methods=methods, omitted=omitted, operations=operations, storage=storage,
+                fresh_receipt=fresh["identity"], checkpoint_receipt=cycles["receipt"],
+                followup_reserve_us=prices["followup_reserve_us"])
+
+
 def affordable_prefix(batches, prices, *, remaining_us, holdback_us, paid=(), opened=()):
     """Price whole registered batches against *unreserved* time. Open work still needs settlement."""
     from oeis_learn.generalization.budgets import integer
