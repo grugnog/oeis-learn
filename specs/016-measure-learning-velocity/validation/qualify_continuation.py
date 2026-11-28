@@ -2,6 +2,7 @@
 
 import argparse
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -10,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 
 DONOR = "77667e67176ae32fa16457d52565bae1dbe41afc"
 CACHE_HELPER = "specs/015-learned-program-search/validation/candidate_source.py"
@@ -252,6 +254,16 @@ def donor_supply(action, root, revision, minutes):
     )
 
 
+def check_price_links(prices, record, *, fresh):
+    key = "fresh_start" if fresh else "broader_updates"
+    if (
+        prices.get(key) != record
+        or (fresh and prices.get("broader_updates", {}).get("identity") != record["overlap"])
+        or prices.get("timed_updates", {}).get("measurement") != record["ordinary_measurement"]
+    ):
+        raise ValueError("Preflight did not reopen the paid timing scopes and their shared calibration")
+
+
 def donor_timings(action, root, revision, minutes, *, broader=False, fresh=False):
     from oeis_learn.pipeline_validation.progressive_velocity_timing_host import authorize_timing
 
@@ -306,15 +318,7 @@ def donor_timings(action, root, revision, minutes, *, broader=False, fresh=False
     inspected = action("preflight")
     prices = inspected["inventory"]["prices"]
     if broader or fresh:
-        key = "fresh_start" if fresh else "broader_updates"
-        if (
-            prices.get(key) != record
-            or (fresh and prices.get("broader_updates", {}).get("identity") != record["overlap"])
-            or prices.get("timed_updates", {}).get("measurement") != record["ordinary_measurement"]
-        ):
-            raise ValueError(
-                "preflight did not reopen both paid scopes and their shared calibration"
-            )
+        check_price_links(prices, record, fresh=fresh)
         return dict(summary, **{"fresh_start" if fresh else "broader": record}, prices=prices, next_action=inspected["reason"])
     if prices.get("timed_updates", {}).get("measurement") != record["measurement"]:
         raise ValueError("preflight did not reopen the original update matrix")
@@ -335,8 +339,201 @@ def donor_timings(action, root, revision, minutes, *, broader=False, fresh=False
     )
 
 
-def main(revision, minutes, mode="donation"):
-    if mode not in {"donation", "children", "review-children", "supply", "timings", "broader", "fresh-start"}:
+def select_fields(record, *keys):
+    return {key: record[key] for key in keys if key in record}
+
+
+def readiness_preflight(reply):
+    info = reply["inventory"]
+    if info["gpu_dispatches"] != 0:
+        raise ValueError("Read-only preflight issued device work")
+    amounts = ("device", "available_bytes", "available_inodes", "required_bytes", "required_inodes",
+               "reserved_bytes", "reserved_inodes", "deficit_bytes", "deficit_inodes")
+    mounts = info["capacity"]["mounts"]
+    return dict(
+        next_action=reply["next_action"], reason=reply["reason"], gpu_dispatches=0,
+        families=select_fields(info["families"], "count", "measurement", "registration", "by_role",
+                               "deficits", "eligible_cases", "eligible_components", "excluded_cases",
+                               "provenance_unavailable"),
+        matching_pairs=select_fields(info["matching_pairs"], "count", "measurement", "registration",
+                                     "eligible_families", "positive_rows", "excluded_rows", "dispositions"),
+        mount=select_fields(info["mount"], *amounts),
+        mounts=[select_fields(row, *amounts) for row in mounts] if mounts is not None else None,
+        prices=select_fields(info["prices"], "basis", "common_probe", "wave", "followup",
+                             "followup_family_available", "followup_reserve_us", "wave_with_reserve_us",
+                             "additional_control_tokens", "missing_control_looks", "prior_score_credits",
+                             "unit_prices"),
+    )
+
+
+def reopen_child_rehearsal(root, source):
+    validation = source / Path(LAUNCHER).parent
+    expected = json.loads((validation / "round029-child-qualification.json").read_bytes())
+    total = expected["elapsed_us"] + expected["remaining_us"]
+    minutes, remainder = divmod(total, 60_000_000)
+    if remainder or minutes < 1:
+        raise ValueError("Historical child grant duration differs")
+    # The original child grant has its own candidate and source identity.
+    command = [sys.executable, "-I", "-S", "-B", str(validation / "qualify_continuation.py"),
+               expected["candidate"], str(minutes), "review-children"]
+    reopened = json.loads(subprocess.check_output(command, cwd=root))
+    if reopened != expected:
+        raise ValueError("Reopened child rehearsal differs from the published receipt")
+    return expected
+
+
+def accounting_fixture():
+    from oeis_learn.generalization.progressive.program_search_costing import (
+        occupied_time, workstation_accounting,
+    )
+
+    failed = dict(receipt="first", state="failed", origin="incremental", role="learn",
+                  host="fixture", boot="one", start_us=0, end_us=6, charged_us=6, beneficiaries=["00"])
+    done = dict(failed, receipt="second", state="complete", start_us=3, end_us=9, beneficiaries=["02"])
+    result = workstation_accounting([failed, done, failed])["incremental"]
+    occupied = result["occupied"]
+    reboot = occupied_time([failed, dict(done, boot="two")])
+    if (result["ledger_us"] != 12 or occupied["union_us"] != 9
+            or occupied["attributed_us"] != {"00": 4.5, "02": 4.5}
+            or result["dispositions"] != {"complete": 1, "failed": 1}
+            or (reboot["union_us"], reboot["lower_us"], reboot["upper_us"]) != (None, 6, 12)):
+        raise ValueError("Reference workstation accounting differs")
+    return dict(scope="reference_fixture", ledger_us=result["ledger_us"], occupied_us=occupied["union_us"],
+                attributed_us=occupied["attributed_us"], dispositions=result["dispositions"],
+                cross_boot_bounds_us=[reboot["lower_us"], reboot["upper_us"]])
+
+
+def velocity_fixture():
+    from oeis_learn.generalization.progressive.velocity_metrics import affordable_look, factorial, rates
+
+    observed = rates(6, 3_000_000, 5_400_000_000)
+    controls = factorial(dict(zip(("00", "01", "02", "03", "04", "05", "06"), (1, 2, 3, 6, 5, 7, 12))))
+    interactions = {name: block["interaction"] for name, block in controls.items()}
+    looks = [dict(look=n, verified=(n != 2), cost=n) for n in (1, 2, 4)]
+    within = affordable_look(looks, "cost", 3, overlap=(1, 4))
+    outside = affordable_look(looks, "cost", 5, overlap=(1, 4))
+    if (observed != {"pp_per_million": 2, "pp_per_hour": 4}
+            or interactions != {"composition_matching": 2, "batch_decay": 1}
+            or within != looks[0] or outside is not None):
+        raise ValueError("Reference velocity reduction differs")
+    return dict(scope="reference_fixture", rates=observed, interactions=interactions,
+                affordable_look=within["look"], outside_overlap=outside)
+
+
+def donor_readiness(action, root, source, revision, minutes, supplied):
+    """Collect an already issued qualification. Every launcher action here is read-only."""
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from oeis_learn.pipeline_validation.identity import confined
+
+    checks, errors, files = {}, {}, {}
+
+    def inspect(name, operation):
+        try:
+            result = operation()
+            checks[name] = "PASS"
+            return result
+        except (Exception, SystemExit) as exc:
+            checks[name] = "FAILED"
+            errors[name] = type(exc).__name__
+            print(f"{name}: {exc}", file=sys.stderr)
+            return None
+
+    def read_result():
+        saved = json.loads(supplied.read_bytes())
+        if saved["candidate"] != revision:
+            raise ValueError("Supplied qualification has a different candidate")
+        if saved["status"] == "UNVERIFIED" and saved.get("mode") == "fresh-start":
+            return dict(candidate=revision, status="UNVERIFIED")
+        if (saved["scope"] != "fresh_start_timings" or saved["status"] not in {"COMPLETE", "BLOCKED", "FAILED"}
+                or not re.fullmatch(r"sha256:[0-9a-f]{64}", saved["grant"])
+                or any(type(saved[key]) is not int or saved[key] < 0
+                       for key in ("elapsed_us", "remaining_us", "charged_tokens"))
+                or saved["elapsed_us"] + saved["remaining_us"] != int(minutes) * 60_000_000
+                or saved["research_dispatches"] != 0):
+            raise ValueError("Supplied qualification scope, grant or debits differ")
+        if saved["status"] == "COMPLETE" and saved["receipt"] != saved["fresh_start"]["identity"]:
+            raise ValueError("Supplied qualification receipt differs")
+        return saved
+
+    saved = inspect("fresh-start", read_result)
+    if saved is not None:
+        summary = select_fields(saved, "candidate", "scope", "status", "grant", "receipt", "elapsed_us",
+                                "remaining_us", "charged_tokens", "research_dispatches")
+        if saved["status"] != "COMPLETE":
+            checks["fresh-start"] = saved["status"]
+            problem = saved.get("problem") or saved.get("first_error") or {}
+            summary.update(select_fields(problem, "deficit_bytes", "deficit_inodes"))
+            if problem.get("stage") in {"custodian", "package", "prepare", "measure"}:
+                summary["stage"] = problem["stage"]
+            if re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,64}", str(problem.get("error", ""))):
+                summary["error"] = problem["error"]
+            if saved.get("next_action") in {"inspect_capacity", "inspect_attempt"}:
+                summary["next_action"] = saved["next_action"]
+        files["fresh-start.json"] = summary
+
+    status = inspect("status", lambda: action("status"))
+    if status is not None:
+        files["status.json"] = select_fields(status, "owner_active", "mechanical_status", "next_action",
+                                             "last_committed_ref", "remaining_authority")
+        if "progress" in status:
+            files["status.json"]["progress"] = select_fields(
+                status["progress"], "scope", "stage", "mechanical_status", "elapsed_us",
+                "charged_tokens", "research_dispatches",
+            )
+
+    def preflight():
+        reply = action("preflight")
+        files["preflight.json"] = readiness_preflight(reply)
+        return reply["inventory"]["prices"]
+
+    prices = inspect("preflight", preflight)
+
+    def verify():
+        checked = action("verify")
+        if (checked["mechanical_status"] != "VERIFIED"
+                or checked["verification_scope"] != "private_fresh_start_timings"
+                or checked["last_committed_ref"] != saved["receipt"]
+                or checked["report_ref"] != saved["receipt"]
+                or checked["scientific_verdict"] is not None):
+            raise ValueError("Private verification did not reopen the supplied receipt")
+        return select_fields(checked, "mechanical_status", "verification_scope", "last_committed_ref",
+                             "report_ref", "scientific_verdict")
+
+    def link_receipts():
+        progress = status["progress"]
+        path = f"run-state/discovery/{SESSION}/qualification/{saved['grant'][7:]}/receipt.json"
+        binding = load(confined(root, Path(path).with_name("binding.json")))
+        if (status["owner_active"] or status["last_committed_ref"] != saved["receipt"]
+                or binding["candidate"] != revision or binding["grant"] != saved["grant"]
+                or progress["receipt_path"] != path or progress["receipt"] != saved["fresh_start"]
+                or progress["elapsed_us"] != saved["elapsed_us"]
+                or progress["remaining_authority"] != saved["remaining_us"]
+                or progress["charged_tokens"] != saved["charged_tokens"]
+                or saved["fresh_start"]["charged_work"]["tokens"] != saved["charged_tokens"]):
+            raise ValueError("Supplied grant, receipt or debits differ from the private session")
+        check_price_links(prices, progress["receipt"], fresh=True)
+        files["fresh-start.json"]["fresh_start"] = progress["receipt"]
+
+    checks.update({"verification": "NOT_RUN", "receipt-links": "NOT_RUN"})
+    if saved is not None and saved["status"] == "COMPLETE":
+        verified = inspect("verification", verify)
+        if verified is not None:
+            files["verification.json"] = verified
+            if prices is not None and status is not None:
+                inspect("receipt-links", link_receipts)
+    for name, op in (("recovery", lambda: reopen_child_rehearsal(root, source)),
+                     ("accounting-fixture", accounting_fixture), ("velocity-fixture", velocity_fixture)):
+        result = inspect(name, op)
+        if result is not None:
+            files[name + ".json"] = result
+    return dict(candidate=revision, scope="round029-readiness/v1", grant_minutes=int(minutes),
+                status="COMPLETE" if all(v == "PASS" for v in checks.values()) else "PARTIAL",
+                checks=checks, errors=errors, research_run_requested=False, scientific_verdict=None, files=files)
+
+
+def main(revision, minutes, mode="donation", supplied=None):
+    if mode not in {"donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", "readiness"}:
         raise SystemExit("Unknown continuation qualification mode.")
     root = Path.cwd().resolve()
     if not re.fullmatch(r"[a-f0-9]{40}", revision) or not re.fullmatch(r"[1-9][0-9]*", minutes):
@@ -373,6 +570,8 @@ def main(revision, minutes, mode="donation"):
     def action(name, *args):
         return checked_json([*launcher, name, *map(str, args)], root, name)
 
+    if mode == "readiness":
+        return donor_readiness(action, root, source, revision, minutes, supplied)
     if mode in {"timings", "broader", "fresh-start"}:
         return donor_timings(action, root, revision, minutes, broader=mode == "broader", fresh=mode == "fresh-start")
     if mode == "supply":
@@ -454,6 +653,20 @@ def main(revision, minutes, mode="donation"):
     )
 
 
+def write_readiness_zip(out, report):
+    def encoded(value):
+        return (json.dumps(value, indent=2, allow_nan=False) + "\n").encode("utf-8")
+
+    members = report.pop("files", {})
+    with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        hashes = {}
+        for name, value in members.items():
+            data = encoded(value)
+            archive.writestr(name, data)
+            hashes[name] = hashlib.sha256(data).hexdigest()
+        archive.writestr("summary.json", encoded(dict(report, sha256=hashes)))
+
+
 def cli(argv):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("revision", metavar="FULL_COMMIT")
@@ -462,38 +675,53 @@ def cli(argv):
         "mode",
         nargs="?",
         default="donation",
-        choices=("donation", "children", "review-children", "supply", "timings", "broader", "fresh-start"),
+        choices=("donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", "readiness"),
     )
     parser.add_argument(
         "--output",
         type=Path,
-        help="save the verified summary or failure diagnostic to a new JSON file",
+        help="save the result to a new file (ZIP for readiness, JSON for other modes)",
     )
+    parser.add_argument("--from-result", type=Path, help="completed fresh-start JSON for read-only readiness")
     args = parser.parse_args(argv)
+    readiness = args.mode == "readiness"
+    if readiness and (args.from_result is None or not args.output or args.output.suffix.lower() != ".zip"):
+        parser.error("Readiness requires --from-result QUALIFICATION.json and --output NEW.zip")
+    if args.from_result is not None and not readiness:
+        parser.error("--from-result is only valid with readiness")
     if args.mode in {"supply", "timings", "broader", "fresh-start"} and args.output is None:
         parser.error("Donor preparation requires an output file (--output PATH)")
     request = (args.revision, args.minutes, args.mode)
+    if readiness:
+        request += (args.from_result,)
     if args.output is None:
         print(json.dumps(main(*request), indent=2))
         return 0
     if os.path.lexists(args.output):
         parser.error(f"Output already exists; choose a new file: {args.output}")
     # Open the destination directory before any funded work. Publish only complete bytes.
-    with tempfile.NamedTemporaryFile(dir=args.output.parent, mode="w", encoding="utf-8") as out:
+    with tempfile.NamedTemporaryFile(dir=args.output.parent, mode="w+b") as out:
         try:
             report = main(*request)
-            code = 1 if report.get("status") in ("FAILED", "BLOCKED") else 0
+            code = int(report.get("status") in {"FAILED", "BLOCKED", "PARTIAL", "UNVERIFIED"})
         except (SystemExit, Exception) as exc:
             report = dict(
                 candidate=args.revision,
                 mode=args.mode,
                 status="UNVERIFIED",
                 error=type(exc).__name__,
-                reason=str(exc),
             )
+            if readiness:
+                print(f"readiness: {exc}", file=sys.stderr)
+                report.update(scope="round029-readiness/v1", research_run_requested=False,
+                              scientific_verdict=None, checks={"bootstrap": "FAILED"})
+            else:
+                report["reason"] = str(exc)
             code = 1
-        json.dump(report, out, indent=2, allow_nan=False)
-        out.write("\n")
+        if readiness:
+            write_readiness_zip(out, report)
+        else:
+            out.write((json.dumps(report, indent=2, allow_nan=False) + "\n").encode("utf-8"))
         out.flush()
         os.fsync(out.fileno())
         os.link(out.name, args.output)

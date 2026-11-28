@@ -80,6 +80,108 @@ def test_operator_writes_a_complete_attachment_on_success_or_failure(
     assert visits == [(candidate, "20", "review-children")]
 
 
+def test_readiness_zip_keeps_independent_checks_and_failed_grant(tmp_path, monkeypatch):
+    import hashlib
+    import json
+    import stat
+    import zipfile
+
+    source = Path(__file__).resolve().parents[2]
+    helper = source / "specs/016-measure-learning-velocity/validation/qualify_continuation.py"
+    api = runpy.run_path(str(helper))
+    cli = api["cli"]
+    driver = api["donor_readiness"]
+    rev = "a" * 40
+    grant = digest("existing fresh grant")
+    receipt_path = tmp_path / "fresh-start.json"
+    problem = dict(stage="prepare", error="CapacityShortfall", reason="PRIVATE-CANARY",
+                   deficit_bytes=100, deficit_inodes=2)
+    receipt_path.write_text(json.dumps(dict(
+        candidate=rev, scope="fresh_start_timings", grant=grant, status="BLOCKED", receipt=None,
+        elapsed_us=17, remaining_us=60_000_000-17, charged_tokens=0, research_dispatches=0,
+        next_action="inspect_capacity", first_error=problem, problem=problem,
+    )))
+    monkeypatch.setitem(driver.__globals__, "reopen_child_rehearsal", lambda *_: {"verified_replays": 2})
+    from oeis_learn.pipeline_validation.progressive_round029 import preflight
+    inspected = preflight(tmp_path)
+    inspected["inventory"]["private_rows"] = ["PRIVATE-CANARY"]
+    calls = []
+    def action(name, *args):
+        calls.append(name)
+        return {"preflight": inspected, "status": inspect_status(tmp_path)}[name]
+    monkeypatch.setitem(cli.__globals__, "main", lambda revision, minutes, mode, supplied:
+                        driver(action, tmp_path, source, revision, minutes, supplied))
+    output = tmp_path / "readiness.zip"
+    argv = [rev, "1", "readiness", "--from-result", str(receipt_path), "--output", str(output)]
+    assert cli(argv) == 1
+    assert sorted(calls) == ["preflight", "status"]
+    assert "verify" not in calls and stat.S_IMODE(output.stat().st_mode) == 0o600
+    with zipfile.ZipFile(output) as archive:
+        assert archive.testzip() is None
+        summary = json.loads(archive.read("summary.json"))
+        assert summary["status"] == "PARTIAL" and summary["research_run_requested"] is False
+        assert summary["checks"]["fresh-start"] == "BLOCKED"
+        assert summary["checks"]["verification"] == "NOT_RUN"
+        for name, checksum in summary["sha256"].items():
+            assert hashlib.sha256(archive.read(name)).hexdigest() == checksum
+        assert set(archive.namelist()) == {"summary.json", *summary["sha256"]}
+        assert all(b"PRIVATE-CANARY" not in archive.read(n) for n in archive.namelist())
+        receipt = json.loads(archive.read("fresh-start.json"))
+        assert receipt["elapsed_us"] == 17 and receipt["grant"] == grant and receipt["deficit_inodes"] == 2
+        assert json.loads(archive.read("accounting-fixture.json"))["occupied_us"] == 9
+        assert json.loads(archive.read("velocity-fixture.json"))["rates"]["pp_per_hour"] == 4
+        assert json.loads(archive.read("preflight.json"))["prices"]["wave"]["expected_us"] is None
+    original = output.read_bytes()
+    with pytest.raises(SystemExit):
+        cli(argv)
+    assert output.read_bytes() == original and sorted(calls) == ["preflight", "status"]
+
+
+def test_readiness_writes_bootstrap_failure_as_zip_and_requires_zip_output(tmp_path, monkeypatch):
+    import json
+    import zipfile
+
+    helper = Path(__file__).resolve().parents[2] / "specs/016-measure-learning-velocity/validation/qualify_continuation.py"
+    cli = runpy.run_path(str(helper))["cli"]
+    monkeypatch.chdir(tmp_path)
+    args = ["a" * 40, "37", "readiness", "--from-result", "fresh-start.json"]
+    for suffix in ([], ["--output", "wrong.json"]):
+        with pytest.raises(SystemExit):
+            cli(args + suffix)
+    with pytest.raises(SystemExit):
+        cli([*args[:3], "--output", "missing-input.zip"])
+    assert not (tmp_path / "wrong.json").exists()
+    assert cli(args + ["--output", "diagnostic.zip"]) == 1
+    with zipfile.ZipFile("diagnostic.zip") as archive:
+        assert archive.namelist() == ["summary.json"]
+        summary = json.loads(archive.read("summary.json"))
+        assert summary["status"] == "UNVERIFIED" and summary["sha256"] == {}
+
+
+def test_readiness_reopens_the_published_child_grant_with_its_own_candidate(tmp_path, monkeypatch):
+    import json
+    import sys
+
+    source = Path(__file__).resolve().parents[2]
+    validation = source / "specs/016-measure-learning-velocity/validation"
+    helper = validation / "qualify_continuation.py"
+    expected = load(validation / "round029-child-qualification.json")
+    review = runpy.run_path(str(helper))["reopen_child_rehearsal"]
+    returned, commands = expected.copy(), []
+
+    def replay(argv, *, cwd):
+        commands.append((argv, cwd))
+        return json.dumps(returned).encode()
+
+    monkeypatch.setattr("subprocess.check_output", replay)
+    assert review(tmp_path, source) == expected
+    assert commands == [([sys.executable, "-I", "-S", "-B", str(helper),
+                          expected["candidate"], "20", "review-children"], tmp_path)]
+    returned["charged_tokens"] += 1
+    with pytest.raises(ValueError, match="published receipt"):
+        review(tmp_path, source)
+
+
 @pytest.mark.parametrize(
     "fault,expected_calls",
     [
@@ -879,6 +981,40 @@ def test_broader_disjointness_failure_reopens_both_treatments_without_device_or_
     summary = runpy.run_path(str(helper))["donor_timings"](action, tmp_path, revision, "5", fresh=True)
     assert summary["scope"] == "fresh_start_timings" and summary["fresh_start"] == fresh["receipt"]
     assert summary["elapsed_us"] + summary["remaining_us"] == 300_000_000
+    assert len(calls) == 2
+
+    api = runpy.run_path(str(helper))
+    driver = api["donor_readiness"]
+    child = load(source / "specs/016-measure-learning-velocity/validation/round029-child-qualification.json")
+    monkeypatch.setitem(driver.__globals__, "reopen_child_rehearsal", lambda *_: child)
+    pre = progressive_round029.preflight(tmp_path)
+    pre["inventory"]["prices"].update(action("preflight")["inventory"]["prices"])
+    def ready_action(name, grant=None):
+        return pre if name == "preflight" else action(name, grant)
+    saved = tmp_path / "fresh-start.json"
+    atomic_write(saved, summary)
+    ready = driver(ready_action, tmp_path, source, revision, "5", saved)
+    assert ready["status"] == "COMPLETE" and len(calls) == 2
+    assert ready["files"]["fresh-start.json"]["fresh_start"] == fresh["receipt"]
+    assert ready["files"]["verification.json"]["last_committed_ref"] == fresh["receipt"]["identity"]
+    assert ready["files"]["status.json"]["last_committed_ref"] == fresh["receipt"]["identity"]
+    assert ready["files"]["recovery.json"] == child
+    assert ready["checks"]["receipt-links"] == "PASS"
+
+    # A different balance or historical price must leave the other checks intact.
+    for fault in ("debit", "price"):
+        altered = tmp_path / (fault + ".json")
+        if fault == "debit":
+            atomic_write(altered, dict(summary, elapsed_us=summary["elapsed_us"] + 1,
+                                       remaining_us=summary["remaining_us"] - 1))
+        else:
+            atomic_write(altered, summary)
+            pre["inventory"]["prices"]["broader_updates"] = dict(identity=digest("other overlap"))
+        partial = driver(ready_action, tmp_path, source, revision, "5", altered)
+        assert partial["status"] == "PARTIAL" and partial["checks"]["receipt-links"] == "FAILED"
+        assert partial["checks"]["recovery"] == partial["checks"]["verification"] == "PASS"
+        assert "fresh_start" not in partial["files"]["fresh-start.json"]
+        assert partial["files"]["status.json"]["progress"]["elapsed_us"] == summary["elapsed_us"]
     assert len(calls) == 2
 
     import json
