@@ -35,7 +35,19 @@ def training(work, request, package, device):
     )
     store = destination / "checkpoint"
     manifest = load(checked_file(store, cut["checkpoint"]))
-    return dict(cut=cut, weight=manifest["states"]["weights"])
+    result = dict(cut=cut, weight=manifest["states"]["weights"])
+    if request.get("qualify_restore"):
+        from oeis_learn.generalization.progressive.contracts import digest
+        reopened = train_to(destination, package, target=request["target"], cap=request["cap"], device=device)
+        fields = ("weights", "optimizer", "rng", "next_rows", "order_digest", "scheduler",
+                  "checkpoint", "charged_tokens", "updates", "useful_tokens")
+        proof = {name: digest({k: record[k] for k in fields})
+                 for name, record in (("written", cut), ("reopened", reopened))}
+        if (cut["updates"] != 1 or cut["weights"] == package["initial_weights"]
+                or proof["written"] != proof["reopened"]):
+            raise ValueError("disposable parameter update or full-state restore differs")
+        result["restore"] = proof
+    return result
 
 
 def search(work, request, data, client, device, evaluation):
@@ -64,6 +76,15 @@ def search(work, request, data, client, device, evaluation):
     probe = evaluation.velocity_probe(
         look, data["prompts"], mode=look["mode"], inference_seed=request["seed"], model=model
     )
+    from oeis_learn.generalization.progressive.contracts import load, seal
+    from oeis_learn.pipeline_validation.progressive_velocity_broad_host import MAX_INPUT
+    prior = work / "inputs/search-restart.json"
+    recovered = {}
+    if prior.exists():
+        record = load(prior, maximum=MAX_INPUT)
+        if record != seal(record) or record["request"] != request["identity"]:
+            raise ValueError("search recovery requires its original request")
+        recovered = record["cases"]
     neural = model is not None
     ref = evaluation.generate(
         work,
@@ -78,7 +99,7 @@ def search(work, request, data, client, device, evaluation):
         client=client,
         seconds=request["seconds"],
         methods=("correct",) if neural else (method,),
-        registered_probe=probe,
+        registered_probe=probe, recovered=recovered, case_boundary_dir=work / "output/cases",
         output_root=work / "output",
     )
     return dict(probe=probe, artifact=ref)
@@ -128,7 +149,7 @@ def installed(work, wheel, wheel_hash, source, prefix):
     if (
         request != seal(request)
         or request["version"] != "round029-comparative-wave/v1"
-        or request["driver"] != digest([file_hash(Path(__file__)), file_hash(adapter)])
+        or request["driver"] != digest([file_hash(Path(__file__)), file_hash(adapter), file_hash(work / "inputs/controls.py")])
         or request["data"] != digest(data)
         or request["source"] != source
         or request["wheel"] != wheel_hash
@@ -141,6 +162,10 @@ def installed(work, wheel, wheel_hash, source, prefix):
     spec = spec_from_file_location("oeis_learn.pipeline_validation._wave_evaluation", adapter)
     evaluation = module_from_spec(spec)
     spec.loader.exec_module(evaluation)
+    control_spec = spec_from_file_location("oeis_learn.pipeline_validation._wave_controls", work / "inputs/controls.py")
+    controls = module_from_spec(control_spec)
+    control_spec.loader.exec_module(controls)
+    evaluation.control_worker = controls.generate_control
     gpu = request["gpu"]
     client_context = (
         nullcontext(None) if request["role"] == "train" else SynthesisClient(request["identity"])

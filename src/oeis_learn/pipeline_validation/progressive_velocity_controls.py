@@ -26,6 +26,8 @@ def generate_control(
     case_elapsed_us,
     case_boundary_dir,
     measurements,
+    recovered=None,
+    recover_control=None,
 ):
     began_ns = time.monotonic_ns()
     look = probe["look"]
@@ -47,6 +49,9 @@ def generate_control(
     records, clocks = {}, []
     if measurements is not None:
         measurements["prepare_control_us"] = (time.monotonic_ns() - began_ns) // 1000
+    recovered = recovered or {}
+    if not set(recovered) <= {p["id"] for p in prompts}:
+        raise ValueError("unknown recovered control recipient")
     for prompt in prompts:
         if time.monotonic() >= deadline:
             raise TimeoutError("conventional search stopped before opening the next portfolio")
@@ -57,6 +62,13 @@ def generate_control(
         account = Portfolio()
         visible = VisiblePrompt(tuple(prompt["indices"]), tuple(prompt["values"]))
         binding = dict(prompt=digest(prompt), model=snapshot, velocity_probe=probe["identity"])
+        if prompt["id"] in recovered:
+            # Supplied by the bound evaluation adapter for historical installed wheels.
+            row, clock = recover_control(recovered[prompt["id"]], binding)
+            records[prompt["id"]] = row
+            if clock is not None:
+                clocks.append(clock)
+            continue
         if case_boundary_dir is not None:
             boundary = Path(case_boundary_dir) / digest(prompt["id"])[7:]
             boundary.mkdir(parents=True, exist_ok=False)
@@ -74,6 +86,9 @@ def generate_control(
             began = time.monotonic()
             deadline_fit = min(row["fit_deadline"], deadline) if budget else row["fit_deadline"]
             job = digest([probe["identity"], prompt["id"], ordinal, row["source"]])
+            if case_boundary_dir is not None:
+                atomic_write(boundary / f"issued-{ordinal:04d}.json",
+                             seal(dict(job=job, ordinal=ordinal, elapsed_us=int((began-account.started)*1e6))))
             try:
                 if began >= deadline_fit:
                     raise TimeoutError
@@ -167,7 +182,7 @@ def generate_control(
                 dict(
                     policy="round029-conventional-full/v1",
                     velocity_probe=probe["identity"],
-                    cost_complete=all(c["cost_complete"] for c in clocks),
+                    cost_complete=len(clocks) == len(prompts) and all(c["cost_complete"] for c in clocks),
                     inference_seed=probe["inference_seed"],
                     clocks=clocks,
                 )

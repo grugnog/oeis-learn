@@ -5,7 +5,9 @@ action=${2:?round029 action required}
 [[ $rev =~ ^[0-9a-f]{40}$ ]]
 case "$action" in
   preflight|status) [[ $# == 2 ]]; extra=() ;;
-  start-comparative) [[ $# == 4 && $3 =~ ^[1-9][0-9]*$ && $4 =~ ^sha256:[0-9a-f]{64}$ ]] ;;
+  qualify-comparative|start-comparative)
+    [[ $3 =~ ^[1-9][0-9]*$ && $4 =~ ^sha256:[0-9a-f]{64}$ ]]
+    [[ $# == 4 || ( $# == 5 && $action == start-comparative && $5 =~ ^[1-9][0-9]*$ ) ]] ;;
   verify) extra=()
     if [[ $# == 3 && $3 =~ ^[0-9a-f]{40}$ ]]; then extra=(--resume-initialization "$3")
     else [[ $# == 2 ]]; fi ;;
@@ -25,6 +27,22 @@ fi
 [[ $(git rev-parse --verify "${rev}^{commit}") == "$rev" ]]
 helper=specs/015-learned-program-search/validation/candidate_source.py
 source_root=$(git show "${rev}:${helper}" | python3 -I -B - "$workspace" "$rev")
+if [[ $action == qualify-comparative || ( $action == start-comparative && $# == 5 ) ]]; then
+  umask 077
+  preparation_minutes=${5:-$3}
+  preparation_grant=$(python3 -I -S -B - "$source_root" "$workspace" "$preparation_minutes" "$4" <<'PYTHON'
+from pathlib import Path
+import sys
+source, root = map(Path, sys.argv[1:3])
+sys.path.insert(0, str(source / "src"))
+from oeis_learn.pipeline_validation.progressive_velocity_wave_qualification import authorize
+print(authorize(root, source, int(sys.argv[3]), sys.argv[4]))
+PYTHON
+  )
+  python3 -S -B "$source_root/scripts/foundation_run.py" --engine podman discovery round029 \
+    --workspace "$workspace" --action qualify --authority "$preparation_grant"
+  if [[ $action == qualify-comparative ]]; then exit 0; fi
+fi
 if [[ $action == start-comparative ]]; then
   umask 077
   grant=$(python3 -I -S -B - "$source_root" "$workspace" "$3" "$4" <<'PY'

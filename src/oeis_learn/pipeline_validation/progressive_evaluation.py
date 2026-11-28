@@ -193,6 +193,20 @@ def probe_inference(probe):
                    [model[k] for k in ("profile", "weights", "checkpoint")] if model else method])
 
 
+def recover_case(entry, binding):
+    """An opened portfolio without a durable choice has no provable remaining clock."""
+    start = entry.get("start")
+    if start is not None and (start != seal(start) or any(start.get(k) != v for k, v in binding.items())):
+        raise ValueError("search recovery has a different prompt, model or probe")
+    choice = entry.get("choice")
+    if choice is not None:
+        if (start is None or choice != seal(choice) or any(choice.get(k) != v for k, v in binding.items())):
+            raise ValueError("previously sealed choice differs from its opening")
+        return choice["record"], choice["clock"]
+    return dict(selections=dict(equal_budget=None), arm_evidence=dict(equal_budget=dict(
+        complete=False, reason="interrupted_remaining_time_unknown")), costs=dict(issued=entry["issued"])), None
+
+
 def generate(
     root,
     output,
@@ -217,6 +231,7 @@ def generate(
     inference_seed=None,
     measurements=None,
     registered_probe=None,
+    recovered=None,
 ):
     prompts = list(prompts)
     if type(seconds) not in (int, float) or not 0 < seconds <= _maximum_seconds(budget):
@@ -247,7 +262,8 @@ def generate(
                 raise ValueError(
                     "registered CPU control requires its own method and visible inputs"
                 )
-            return generate_control(
+            control = globals().get("control_worker", generate_control)
+            return control(
                 output_root if output_root is not None else root,
                 output,
                 prompts,
@@ -259,6 +275,7 @@ def generate(
                 case_elapsed_us=case_elapsed_us,
                 case_boundary_dir=case_boundary_dir,
                 measurements=measurements,
+                **({"recovered": recovered, "recover_control": recover_case} if recovered is not None else {}),
             )
         if methods != ("correct",) or look["method"] not in {
             "00",
@@ -362,12 +379,23 @@ def generate(
         if "shuffled" in methods
         else prompts
     )
+    recovered = recovered or {}
+    if not set(recovered) <= set(encoder_values):
+        raise ValueError("unknown recovered recipient")
+    recovered_clocks = []
     rows = {}
     evidence = FullClockEvidence(
-        output / "attempts", prompts, source=digest(recipe), work=snapshot, policy=evaluation_policy
+        output / "attempts", [p for p in prompts if p["id"] not in recovered], source=digest(recipe), work=snapshot, policy=evaluation_policy
     )
     try:
         for ordinal, p in enumerate(prompts):
+            if p["id"] in recovered:
+                binding = dict(prompt=digest(p), model=snapshot, policy=evaluation_policy, **draw_identity)
+                row, clock = recover_case(recovered[p["id"]], binding)
+                rows[p["id"]] = row
+                if clock is not None:
+                    recovered_clocks.append(clock)
+                continue
             if inference_seed is not None and time.monotonic() >= deadline:
                 raise TimeoutError("resident search stopped before opening the next portfolio")
             case_start = time.monotonic_ns() if case_elapsed_us is not None else None
@@ -537,6 +565,14 @@ def generate(
         evidence.finish()
     if model_snapshot(encoder, decoder) != snapshot:
         raise RuntimeError("generator mutated frozen weights")
+    if recovered:
+        summary = evidence.clock_summary
+        clocks = sorted(summary["clocks"] + recovered_clocks, key=lambda c: c["prompt"])
+        from collections import Counter
+        evidence.clock_summary = seal(dict(summary, clocks=clocks, expected_portfolios=len(prompts),
+            missing_portfolios=len(prompts)-len(clocks), terminations=dict(Counter(c["termination"] for c in clocks)),
+            cost_complete=len(clocks)==len(prompts) and all(c["cost_complete"] for c in clocks),
+            resumed_cases=digest(recovered)))
     if draw_identity:
         evidence.clock_summary = seal(dict(evidence.clock_summary, **draw_identity))
     if measurements is not None:

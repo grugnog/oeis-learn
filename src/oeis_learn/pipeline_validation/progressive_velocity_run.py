@@ -345,6 +345,8 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
     design = wave.plan(accepted, reg, packages, sample)
     minutes, rest = divmod(grant["total_us"], 60_000_000)
     secret = wave.family_key(folder)
+    from .progressive_velocity_wave_qualification import required
+    qualified = required(root, folder, source, accepted)
     expected, _, marker = wave.authority(
         root,
         revision,
@@ -352,7 +354,7 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
         accepted,
         design[-1],
         wave.driver_identity(source),
-        secret["identity"],
+        secret["identity"], qualification=qualified,
     )
     if rest or grant != expected or load(confined(folder, wave.MARKER)) != marker:
         raise ValueError("controller, driver or cumulative research grant differs")

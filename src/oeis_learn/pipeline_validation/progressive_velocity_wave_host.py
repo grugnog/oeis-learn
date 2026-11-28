@@ -188,6 +188,38 @@ def next_files(directory, pointer):
 def restart_mounts(out, request, inputs, *, readonly):
     """Reopen the last stopped attempt's full state and all subsequent debits."""
     number = int(out.name.removeprefix("attempt-"))
+    if number and request["role"] == "search":
+        prior = confined(out.parent, f"attempt-{number - 1:04d}")
+        cleanup = load(confined(prior, "cleanup.json"))
+        if cleanup.get("acknowledged") is not True:
+            raise InsufficientAuthority("previous search has no verified termination")
+        cases = {}
+        for case in request["look"]["members"]:
+            folder = confined(prior, "cases/" + digest(case)[7:], exists=False)
+            if folder.is_dir():
+                entry = {}
+                for name in ("start", "choice"):
+                    path = confined(folder, name + ".json", exists=False)
+                    if path.exists():
+                        entry[name] = load(path, maximum=wave.MAX_INPUT)
+                entry["issued"] = [load(confined(folder, p.name)) for p in sorted(folder.glob("issued-*.json"))]
+                cases[case] = entry
+        # The original neural attempt journal records ordinal, seed, phase and timing.
+        events = confined(prior, "generated/attempts/attempts.jsonl", exists=False)
+        if events.exists():
+            import json
+            with events.open() as stream:
+                for line in stream:
+                    event = json.loads(line)
+                    if event["prompt"] in cases and event["event"] == "STARTED":
+                        cases[event["prompt"]]["issued"].append(dict(ordinal=event["attempt"], seed=event["payload"].get("seed")))
+        path = confined(out.parent, f"search-restart-{number:04d}.json", exists=readonly)
+        record = seal(dict(request=request["identity"], cases=cases))
+        if not readonly:
+            retain(path, record)
+        if load(path, maximum=wave.MAX_INPUT) != record:
+            raise ValueError("original search restart differs")
+        return [*inputs, (path, "/work/inputs/search-restart.json")]
     if not number or request["role"] != "train":
         return inputs
     prior = confined(out.parent, f"attempt-{number - 1:04d}")
@@ -363,7 +395,7 @@ class Donor:
         self.capacity_owners = basis["capacity_owners"]
         self.retained = {}
         self.incumbent = basis["incumbent"]
-        self.incumbent_path = checked_file(root, self.incumbent["weight"])
+        self.incumbent_path = checked_file(root, self.incumbent["weight"]) if self.incumbent else None
         self.role = confined(source, wave.DRIVER)
         self.evaluator = confined(source, wave.EVALUATOR)
         operator = confined(
@@ -407,6 +439,7 @@ class Donor:
         inputs = [
             (self.role, "/work/inputs/role.py"),
             (self.evaluator, "/work/inputs/evaluation.py"),
+            (self.evaluator.with_name("progressive_velocity_controls.py"), "/work/inputs/controls.py"),
             (self.wheel, wheel_dest),
             (rp, "/work/inputs/request.json"),
             (dp, "/work/inputs/data.json"),

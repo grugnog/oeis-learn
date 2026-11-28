@@ -428,7 +428,8 @@ def checked_science(value, qualification):
     public.hashes(value["grant"])
     pinned = value["controller"]
     public.closed(
-        pinned, "version accepted grant controller driver family_labels operations", sealed=True
+        pinned, "version accepted grant controller driver family_labels operations"
+        + (" qualification" if "qualification" in pinned else ""), sealed=True
     )
     public.hashes(pinned["driver"], pinned["family_labels"], pinned["operations"])
     if (
@@ -496,7 +497,7 @@ def check_account(account, science, frozen):
             pinned["driver"],
             pinned["family_labels"],
             pinned["operations"],
-        ]
+        ] + ([pinned["qualification"]] if "qualification" in pinned else [])
     ):
         raise ValueError(
             "controller or frozen statistical labels differ from the research authority"

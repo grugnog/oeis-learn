@@ -54,6 +54,11 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     monkeypatch.setattr(host, "panel", lambda *_: prompts)
     sample = conditioning.freeze(accepted, reg, price, prompts, 1680 * 60_000_000)
     design = wave.plan(accepted, reg, packages, sample)
+    from oeis_learn.pipeline_validation import progressive_velocity_wave_qualification as rehearsal
+    qualified = digest("fixture installed worker qualification")
+    with pytest.raises(ValueError, match="qualif"):
+        rehearsal.required(tmp_path, folder, source, accepted)
+    monkeypatch.setattr(rehearsal, "required", lambda *args: qualified)
     grant, approval, marker = wave.authority(
         tmp_path,
         revision,
@@ -61,7 +66,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         accepted,
         design[-1],
         wave.driver_identity(source),
-        wave.family_key(folder, create=True)["identity"],
+        wave.family_key(folder, create=True)["identity"], qualification=qualified,
     )
     monkeypatch.setattr(command, "candidate_revision", lambda *_: revision)
     monkeypatch.setattr(historical, "candidate_revision", lambda *_: revision)

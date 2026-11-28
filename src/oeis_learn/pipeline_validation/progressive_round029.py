@@ -421,12 +421,15 @@ def execute(args, source, *, host_factory=None):
 
         trial_prep = (action == "qualify" and (folder / trials.INITIAL_MARKER).is_file()
                       and claimed == trials.parent(revision, load(confined(folder, trials.INITIAL_MARKER))))
+        from . import progressive_velocity_wave_qualification as worker_check
+        accepted_wave = trials.accepted_preparation(folder) if action == "qualify" else None
+        worker_qualification = bool(accepted_wave and claimed == worker_check.binding(source, accepted_wave)["identity"])
         timing = broader = fresh = checkpoint = initialize = False
         if (
             action == "qualify"
             and not donation
             and not preparation
-            and not trial_prep
+            and not trial_prep and not worker_qualification
             and claimed
             not in {
                 qualification_parent(revision),
@@ -472,7 +475,7 @@ def execute(args, source, *, host_factory=None):
                 or fresh
                 or checkpoint
                 or initialize
-                or trial_prep
+                or trial_prep or worker_qualification
                 or claimed == qualification_parent(revision, children=True)
                 else qualification_parent(revision)
             )
@@ -492,6 +495,8 @@ def execute(args, source, *, host_factory=None):
         folder.mkdir(parents=True, exist_ok=True)
         with RunStore.owner(folder):
             if action == "qualify":
+                if worker_qualification:
+                    return worker_check.qualify(args, root, folder, source, revision, grant, host_factory)
                 if trial_prep:
                     return trials.qualify(args, root, folder, source, revision, grant)
                 if initialize:

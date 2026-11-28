@@ -24,8 +24,11 @@ DRIVER = "src/oeis_learn/pipeline_validation/progressive_velocity_wave_role.py"
 EVALUATOR = "src/oeis_learn/pipeline_validation/progressive_evaluation.py"
 
 
+CONTROLS = "src/oeis_learn/pipeline_validation/progressive_velocity_controls.py"
+
+
 def driver_identity(source):
-    return digest([file_hash(confined(source, path)) for path in (DRIVER, EVALUATOR)])
+    return digest([file_hash(confined(source, path)) for path in (DRIVER, EVALUATOR, CONTROLS)])
 
 
 def targets(learner, requested):
@@ -244,7 +247,7 @@ def family_key(folder, *, create=False):
     return value
 
 
-def authority(root, revision, minutes, accepted, operations, driver, key_ref):
+def authority(root, revision, minutes, accepted, operations, driver, key_ref, *, qualification=None):
     total = integer(minutes, 1) * 60_000_000
     if total < accepted["proposed_total_us"]:
         raise ValueError("grant is below the frozen full-wave tail and protected follow-up")
@@ -263,6 +266,7 @@ def authority(root, revision, minutes, accepted, operations, driver, key_ref):
         registration_or_parent_ref=accepted["identity"],
         controller_ref=digest(
             [VERSION, accepted["identity"], revision, driver, key_ref, digest(operations)]
+            + ([qualification] if qualification else [])
         ),
         state_root_id=physical_root_id(root),
         total_us=total,
@@ -281,6 +285,7 @@ def authority(root, revision, minutes, accepted, operations, driver, key_ref):
             grant=grant["identity"],
             accepted=accepted["identity"],
             operations=digest(operations),
+            **({"qualification": qualification} if qualification else {}),
         )
     )
     return grant, approval, marker
@@ -303,6 +308,8 @@ def authorize(root, source, minutes, expected):
                                        total_us=integer(minutes, 1) * 60_000_000)
         design = plan(accepted, reg, packages, sample)
         ops = design[-1]
+        from .progressive_velocity_wave_qualification import required
+        qualified = required(root, folder, source, accepted)
         key = family_key(folder, create=True)
         grant, approval, marker = authority(
             root,
@@ -311,7 +318,7 @@ def authorize(root, source, minutes, expected):
             accepted,
             ops,
             driver_identity(source),
-            key["identity"],
+            key["identity"], qualification=qualified,
         )
         # One owner per accepted wave, including concurrent or repeated start requests.
         retain(folder / MARKER, marker)

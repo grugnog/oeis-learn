@@ -46,7 +46,12 @@ def test_cpu_training_role_copies_only_verified_parent_and_resumes_full_optimize
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(old / f["path"], dst)
         request = dict(base, target=n, parent_files=files)
+        if n == 1:
+            request["qualify_restore"] = True
         producer = role.perform(work, request, dict(package=learner), device="cpu")
+        if n == 1:
+            assert producer["restore"]["written"] == producer["restore"]["reopened"]
+            assert producer["cut"]["weights"] != learner["initial_weights"]
         checked = host.check_cut(work / "output", request, learner, producer, targets[n])
         cut = checked["cut"]
         assert cut["model"]["registration"] == base["registration"]
@@ -148,9 +153,10 @@ def test_selected_control_role_cannot_read_truth_until_choices_are_sealed(tmp_pa
         inputs = work / "inputs"
         inputs.mkdir(exist_ok=True)
         adapter = Path(shutil.copyfile(evaluation.__file__, inputs / "evaluation.py"))
+        controls = Path(shutil.copyfile(code.with_name("progressive_velocity_controls.py"), inputs / "controls.py"))
         request = seal(dict(request, version="round029-comparative-wave/v1", gpu=False,
                             data=digest(data), source=source, image=image, wheel=wheel,
-                            driver=digest([file_hash(code), file_hash(adapter)])))
+                            driver=digest([file_hash(code), file_hash(adapter), file_hash(controls)])))
         atomic_write(inputs / "data.json", data)
         atomic_write(inputs / "request.json", request)
         role.installed(work, inputs / "worker.whl", wheel, source, code.parents[2])
@@ -240,7 +246,7 @@ def test_search_mounts_before_inference(tmp_path, monkeypatch, method, target):
     def inspect(*args, readonly_inputs, **kwargs):
         mounts = {dst: src for src, dst in readonly_inputs}
         assert set(mounts) == {"/work/inputs/" + name for name in
-                               ("role.py", "evaluation.py", "worker.whl", "data.json", "request.json")} | {
+                               ("role.py", "evaluation.py", "controls.py", "worker.whl", "data.json", "request.json")} | {
                                    dst for _, dst in extra}
         for path in mounts.values():
             raw = path.read_bytes()
@@ -254,3 +260,52 @@ def test_search_mounts_before_inference(tmp_path, monkeypatch, method, target):
     execute, _, _ = donor.supervise(request, data, extra, None)
     with pytest.raises(RuntimeError, match="mount inspection complete"):
         execute(tmp_path / "attempt-0000", 122_000_000)
+
+
+
+def test_search_retry_reuses_sealed_choice_and_preserves_interrupted_opportunity(tmp_path):
+    import shutil
+    from oeis_learn.generalization.progressive.contracts import atomic_write, load
+    from oeis_learn.generalization.progressive.graph import velocity_look
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.pipeline_validation import progressive_velocity_wave_host as host
+    from oeis_learn.pipeline_validation import progressive_velocity_wave_role as role
+    from tests.integration.test_round029_isolated_control_prices import panel, SelectedClient
+
+    members, prompts, _ = panel()
+    members, prompts = members[:3], prompts[:3]
+    for n, prompt in enumerate(prompts):
+        prompt["values"] = [str(i+n+1) for i in range(20)]
+    look = velocity_look(registration=digest("resume"), method="polynomial", seed=29, look=4_000_000,
+                         profile="full", development=members, retention=[])
+    view, visible, _ = host.visible_inputs(look, prompts, b"secret", "true")
+    request = seal(dict(role="search", look=view, model=None, weight=None, seed=29, seconds=120))
+    data = dict(prompts=visible, recipe=resolve({"version":"bigint-bootstrap/v1"}))
+    calls = []
+    class Client(SelectedClient):
+        def fit(self, source, visible, **options):
+            calls.append((visible.sha256, options["seed"]))
+            if len(calls) == 2:
+                raise RuntimeError("lost during the second fit")
+            return super().fit(source, visible, **options)
+    client = Client()
+    first = tmp_path / "first"
+    (first / "output").mkdir(parents=True)
+    with pytest.raises(RuntimeError, match="second fit"):
+        role.perform(first, request, data, device="cpu", client=client)
+    prior = tmp_path / "attempt-0000"
+    shutil.copytree(first / "output", prior)
+    atomic_write(prior / "cleanup.json", dict(acknowledged=True, within_bound=True))
+    retry = tmp_path / "attempt-0001"
+    inputs = host.restart_mounts(retry, request, [], readonly=False)
+    assert inputs == host.restart_mounts(retry, request, [], readonly=True)
+    (retry / "inputs").mkdir(parents=True)
+    shutil.copyfile(inputs[0][0], retry / "inputs/search-restart.json")
+    (retry / "output").mkdir()
+    output = role.perform(retry, request, data, device="cpu", client=client)
+    records = load(retry / "output" / output["artifact"]["path"])["records"]
+    assert len(calls) == len(set(calls)) == 3
+    assert sum(v["selections"]["equal_budget"] is not None for v in records.values()) == 2
+    missing, = [v for v in records.values() if v["selections"]["equal_budget"] is None]
+    assert missing["arm_evidence"]["equal_budget"]["reason"] == "interrupted_remaining_time_unknown"
+    assert len(missing["costs"]["issued"]) == 1

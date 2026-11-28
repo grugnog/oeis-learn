@@ -247,7 +247,12 @@ On a partial result, the archive retains the verified evidence and the local
 ## Start or resume the accepted comparative wave
 
 Run this from the physical root of the detached donor. Set `ROUND029_REV` to the full
-controller commit from the handoff. The example grants 1,680 cumulative minutes
+controller commit from the handoff. First qualify the effective worker with the same launcher
+and `qualify-comparative 30 "$accepted"` for a separately funded, 30-minute disposable
+check. This exercises an actual HIP parameter update, full-state restore and a known-answer
+CPU/native search and score on exposed input. Repeating that command reuses the paid receipt.
+To authorize both steps at once, append `30` to the `start-comparative` invocation below.
+The exploration grant opens only after the matching worker qualification. The example grants 1,680 cumulative minutes
 (28 hours). The original wave estimate was 8 h 21 min expected and 27 h 39 min
 including the tail and protected follow-up. A different limit must be chosen before
 the first start. The same command reopens the original grant after interruption.
