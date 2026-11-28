@@ -482,12 +482,27 @@ def launch_preflight(root, policy, info, *, floor):
             result["missing"]["publication_proxy"] = "original verified round028 release required"
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as exc:
         result["missing"]["publication_proxy"] = type(exc).__name__
+    bookkeeping = None
+    try:
+        from . import progressive_velocity_ledger_prices
+
+        accounting = progressive_velocity_ledger_prices.inventory(root, fresh, cycles)
+        if accounting:
+            result["accounting_receipt"] = accounting["identity"]
+            bookkeeping = {
+                m: accounting["batches"][str(row["batch"])]["price"]
+                for m, row in cycles["methods"].items()
+            }
+    except (OSError, ValueError, KeyError) as exc:
+        result["missing"]["accounting"] = type(exc).__name__
     try:
         if cycles.get("device_charge_us") is None:
             raise ValueError("original successful checkpoint dispatch has no proven wall interval")
         starts, counts = paid_training(root, fresh)
         result["updates_to_4M"] = counts
-        trajectory = trajectory_overheads(fresh["device"]["methods"], starts, cycles)
+        trajectory = trajectory_overheads(
+            fresh["device"]["methods"], starts, cycles, bookkeeping=bookkeeping
+        )
         result["trajectory"] = trajectory
         result["checkpoint_space"] = checkpoint_space(
             root, cycles, trajectory, floor, info["capacity"]["mounts"]
