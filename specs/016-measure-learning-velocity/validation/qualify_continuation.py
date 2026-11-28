@@ -1602,46 +1602,103 @@ def donor_isolated_controls(action, root, source, revision, minutes):
     from oeis_learn.pipeline_validation.identity import confined
     from oeis_learn.pipeline_validation.progressive_handoff import stage
 
-    inventory = action("preflight")["inventory"]
-    wave = inventory["prices"].get("supported_wave")
-    cycles = inventory["prices"].get("checkpoint_cycles") or {}
-    if (
-        inventory["gpu_dispatches"] != 0
-        or not wave
-        or cycles.get("receipt") != wave["checkpoint_receipt"]
-    ):
-        raise ValueError(
-            "verified four-treatment preflight required before issuing a preparation grant"
+    files = {}
+    step = "preflight"
+    try:
+        inventory = action("preflight")["inventory"]
+        files["preflight.json"] = dict(
+            gpu_dispatches=inventory["gpu_dispatches"],
+            mount=select_fields(
+                inventory.get("mount", {}),
+                "available_bytes",
+                "available_inodes",
+                "required_bytes",
+                "required_inodes",
+                "deficit_bytes",
+                "deficit_inodes",
+            ),
+            full_wave_capacity_registration=(inventory.get("capacity") or {}).get("registration"),
+            **select_fields(
+                inventory["prices"],
+                "supported_wave",
+                "common_probe",
+                "followup",
+                "followup_reserve_us",
+            ),
         )
-    checked = action("verify", at=cycles["candidate"])
-    if (
-        checked["mechanical_status"] != "VERIFIED"
-        or checked["verification_scope"] != "private_checkpoint_matrix"
-        or checked["report_ref"] != cycles["receipt"]
-        or checked["last_committed_ref"] != cycles["receipt"]
-    ):
-        raise ValueError("original checkpoint verification differs")
-    folder = confined(root, "run-state/discovery/" + SESSION)
-    with RunStore.owner(folder):
-        panel = exposed_control_inputs(root)
-        runtime = paid_control_runtime(root, source, folder, cycles["receipt"])
-        host_api = runpy.run_path(str(source / "scripts/foundation_local.py"))
-        args = host_api["parser"]().parse_args(
-            [
-                "--engine",
-                "podman",
-                "discovery",
-                "round029",
-                "--workspace",
-                str(root),
-                "--action",
-                "preflight",
-            ]
+        wave = inventory["prices"].get("supported_wave")
+        cycles = inventory["prices"].get("checkpoint_cycles") or {}
+        if (
+            inventory["gpu_dispatches"] != 0
+            or not wave
+            or cycles.get("receipt") != wave["checkpoint_receipt"]
+        ):
+            raise ValueError(
+                "verified four-treatment preflight required before issuing a preparation grant"
+            )
+        step = "checkpoint-verification"
+        checked = action("verify", at=cycles["candidate"])
+        if (
+            checked["mechanical_status"] != "VERIFIED"
+            or checked["verification_scope"] != "private_checkpoint_matrix"
+            or checked["scientific_verdict"] is not None
+            or checked["report_ref"] != cycles["receipt"]
+            or checked["last_committed_ref"] != cycles["receipt"]
+        ):
+            raise ValueError("original checkpoint verification differs")
+        files["checkpoint-verification.json"] = select_fields(
+            checked,
+            "mechanical_status",
+            "verification_scope",
+            "last_committed_ref",
+            "report_ref",
+            "scientific_verdict",
         )
-        host = host_api["Host"](args, source_root=source, workspace=root, revision=revision)
-        if host.engine.image(runtime["image"]) != runtime["image"]:
-            raise ValueError("qualified runtime image differs")
-        return isolated_control_matrix(root,source,folder,revision,minutes,runtime,panel,wave,host,stage)
+        step = "exposed-inputs"
+        folder = confined(root, "run-state/discovery/" + SESSION)
+        with RunStore.owner(folder):
+            panel = exposed_control_inputs(root)
+            step = "paid-runtime"
+            runtime = paid_control_runtime(root, source, folder, cycles["receipt"])
+            host_api = runpy.run_path(str(source / "scripts/foundation_local.py"))
+            args = host_api["parser"]().parse_args(
+                [
+                    "--engine",
+                    "podman",
+                    "discovery",
+                    "round029",
+                    "--workspace",
+                    str(root),
+                    "--action",
+                    "preflight",
+                ]
+            )
+            host = host_api["Host"](args, source_root=source, workspace=root, revision=revision)
+            if host.engine.image(runtime["image"]) != runtime["image"]:
+                raise ValueError("qualified runtime image differs")
+            step = "cpu-roles"
+            report = isolated_control_matrix(
+                root, source, folder, revision, minutes, runtime, panel, wave, host, stage
+            )
+        report["files"].update(files)
+        return report
+    except (Exception, SystemExit, KeyboardInterrupt) as exc:
+        print(f"{step}: {exc}", file=sys.stderr)
+        result = dict(
+            candidate=revision,
+            scope=ISOLATED_CONTROLS,
+            status="UNVERIFIED" if step == "cpu-roles" else "BLOCKED",
+            stage=step,
+            error=type(exc).__name__,
+            grant_minutes=int(minutes),
+            files=files,
+            research_run_requested=False,
+            scientific_verdict=None,
+            gpu_dispatches=0,
+        )
+        if step != "cpu-roles":
+            result.update(grant=None, elapsed_us=0)
+        return result
 
 
 def donor_control_history(action, root, revision):

@@ -213,6 +213,42 @@ def test_missing_verified_checkpoint_blocks_the_cpu_grant(tmp_path):
         assert name == "preflight"
         return dict(inventory=dict(gpu_dispatches=0, prices={}))
 
-    with pytest.raises(ValueError, match="before issuing"):
-        api["donor_isolated_controls"](action, tmp_path, tmp_path, "a" * 40, "15")
+    result = api["donor_isolated_controls"](action, tmp_path, tmp_path, "a" * 40, "15")
+    assert (
+        result["status"] == "BLOCKED"
+        and result["stage"] == "preflight"
+        and result["elapsed_us"] == 0
+    )
+    assert result["grant"] is None and "preflight.json" in result["files"]
     assert list(tmp_path.iterdir()) == []
+
+
+def test_failed_private_verification_preserves_readonly_prices_before_funding(tmp_path):
+    def action(name, *, at=None):
+        if name == "preflight":
+            return dict(
+                inventory=dict(
+                    gpu_dispatches=0,
+                    mount=dict(available_bytes=42),
+                    capacity=dict(registration=None),
+                    prices=dict(
+                        followup_reserve_us=3,
+                        supported_wave=dict(checkpoint_receipt="matrix", methods=["a"]),
+                        checkpoint_cycles=dict(candidate="b" * 40, receipt="matrix"),
+                    ),
+                )
+            )
+        assert name == "verify" and at == "b" * 40
+        return dict(
+            mechanical_status="VERIFIED",
+            verification_scope="private_checkpoint_matrix",
+            last_committed_ref="elsewhere",
+            report_ref="elsewhere",
+            scientific_verdict=None,
+        )
+
+    result = api["donor_isolated_controls"](action, tmp_path, tmp_path, "a" * 40, 15)
+    assert result["status"] == "BLOCKED" and result["stage"] == "checkpoint-verification"
+    assert result["files"]["preflight.json"]["mount"]["available_bytes"] == 42
+    assert result["files"]["preflight.json"]["followup_reserve_us"] == 3
+    assert "checkpoint-verification.json" not in result["files"] and not list(tmp_path.iterdir())
