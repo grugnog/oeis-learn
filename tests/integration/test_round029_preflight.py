@@ -360,7 +360,6 @@ def test_preflight_prices_verified_exposed_clocks_even_without_private_freeze(
     assert {"optimizer_to_4M_recipe_01", "optimizer_to_4M_recipe_03"} <= set(stale["wave"]["missing"])
 
 
-
 def test_preflight_opens_the_two_original_installed_role_boundaries(tmp_path):
     from oeis_learn.generalization.progressive.contracts import atomic_write, digest, reference, seal
     from oeis_learn.pipeline_validation.pilot_clocks import clock_record, DESCRIPTIVE
@@ -665,3 +664,56 @@ def test_cpu_supervisor_preserves_original_missing_input_reason(tmp_path):
     with pytest.raises(ValueError, match="pinned pilot and qualification archives required"):
         run_worker(tmp_path, source, out, "matching_pairs", 15_000_000)
     assert load(out / "cleanup.json") == dict(acknowledged=True, within_bound=True)
+
+
+def test_reopened_complete_prices_select_the_smallest_eligible_boundary():
+    from oeis_learn.pipeline_validation.progressive_velocity_launch import launch_options
+    import copy
+
+    def mounts(required):
+        return [
+            dict(
+                device=1,
+                available_bytes=18,
+                required_bytes=required,
+                reserved_bytes=5,
+                deficit_bytes=max(0, required + 5 - 18),
+                available_inodes=10,
+                required_inodes=5,
+                reserved_inodes=0,
+                deficit_inodes=0,
+            )
+        ]
+
+    preparation = dict(
+        wave_space=dict(
+            wave=mounts(20),
+            first_ordinary_cut=mounts(14),
+            ordinary_initialization=mounts(12),
+            fits_with_reserve=False,
+            missing=[],
+        ),
+        initialization_price=dict(expected_us=8, tail_us=10),
+    )
+    estimate = dict(
+        expected_us=100,
+        tail_us=140,
+        followup_reserve_us=5,
+        tail_with_reserve_us=145,
+        missing=[],
+        research_authority=None,
+    )
+    options = launch_options(estimate, preparation)
+    assert options["next_scope"] == "ordinary_initialization"
+    assert options["scopes"]["ordinary_initialization"]["tail_with_reserve_us"] == 15
+    assert options["scopes"]["wave"]["mounts"][0]["deficit_bytes"] == 7
+    failed = copy.deepcopy(preparation)
+    failed["wave_space"]["ordinary_initialization"][0]["deficit_inodes"] = 1
+    assert launch_options(estimate, failed)["next_scope"] is None
+    partial = dict(
+        estimate,
+        missing=["paired_conditioning_sample"],
+        expected_us=None,
+        tail_with_reserve_us=None,
+    )
+    assert launch_options(partial, preparation)["next_scope"] == "ordinary_initialization"

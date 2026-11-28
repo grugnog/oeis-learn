@@ -298,6 +298,44 @@ def test_preflight_reports_only_cycles_from_the_qualified_stream(tmp_path, monke
     prices = host.preflight(tmp_path)["inventory"]["prices"]
     assert prices["checkpoint_cycles"] == cycle
     assert prices["wave"]["tail_us"] is None
+    from oeis_learn.generalization.progressive import program_search_costing
+    from oeis_learn.pipeline_validation import progressive_velocity_launch as launch
+    from oeis_learn.pipeline_validation import progressive_velocity_verify as verification
+
+    source = Path(__file__).resolve().parents[2]
+    supported = dict(checkpoint_receipt=cycle["receipt"])
+    mount = dict(
+        device=7,
+        required_bytes=4,
+        available_bytes=7,
+        reserved_bytes=2,
+        deficit_bytes=0,
+        deficit_inodes=0,
+    )
+    prep = dict(
+        wave_space=dict(
+            wave=[dict(mount, required_bytes=12, deficit_bytes=7)],
+            first_ordinary_cut=[dict(mount, required_bytes=7, deficit_bytes=2)],
+            ordinary_initialization=[mount],
+            missing=[],
+        ),
+        initialization_price=dict(expected_us=7, tail_us=10),
+        missing={},
+    )
+    monkeypatch.setattr(program_search_costing, "supported_velocity_wave", lambda *_: supported)
+    monkeypatch.setattr(launch, "launch_preflight", lambda *_, **kw: prep)
+    monkeypatch.setattr(verification, "donor_continuation", lambda *_: None)
+
+    def quote(root, wave, preparation, reserve):
+        assert (root, wave, preparation) == (tmp_path, supported, prep)
+        return dict(expected_us=50, tail_us=80, followup_reserve_us=10)
+
+    monkeypatch.setattr(runpy, "run_path", lambda _: dict(settled_launch_estimate=quote))
+    scoped = host.preflight(tmp_path, source)
+    assert scoped["next_action"] == "qualify"
+    assert scoped["inventory"]["launch_options"]["next_scope"] == "ordinary_initialization"
+    assert scoped["inventory"]["prices"]["launch_estimate"]["tail_us"] == 80
+    assert not list(tmp_path.iterdir())
     monkeypatch.setattr(
         checkpoints, "inventory", lambda *_: dict(cycle, origin=digest("unrelated stream"))
     )

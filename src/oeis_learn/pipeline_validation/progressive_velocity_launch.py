@@ -176,7 +176,11 @@ def settled_area(root, parent, name, identity, *, field="identity", grant_ref=No
         grant, auth, root=physical_root_id(root), parent=plan["identity"], action="qualify"
     )
     state = BudgetJournal.inspect_existing(
-        area / "accounting", grant["identity"], grant["resources"], include_windows=True
+        area / "accounting",
+        grant["identity"],
+        grant["resources"],
+        include_windows=True,
+        include_work=True,
     )
     original_grant = confined(
         root, "run-state/discovery-authorizations/grant-" + area.name + ".json"
@@ -468,10 +472,16 @@ def wave_space(
             missing.append("learner_accounting")
     mounts = velocity_mounts(root, full, owner_floors(root, full, floor, registered))
     first = velocity_mounts(root, prefix, owner_floors(root, prefix, floor, registered))
+    # On an empty initialization only the new generation exists. Each staging blob
+    # is installed into that generation before the next blob. Its measured three-
+    # generation tree bounds all of those bytes. A later cut retains earlier states.
+    initial = [o for o in prefix if o["owner"] != "pending_checkpoint"]
+    initial_mounts = velocity_mounts(root, initial, owner_floors(root, initial, floor, registered))
     fits = not any(m["deficit_bytes"] or m["deficit_inodes"] for m in mounts)
     return dict(
         wave=mounts,
         first_ordinary_cut=first,
+        ordinary_initialization=initial_mounts,
         chunks=chunks,
         projected_private=private,
         sample_grant=sample.get("grant"),
@@ -535,6 +545,54 @@ def verification_forecast(space, sample, release, checkpoint_us, updates):
     )
 
 
+def launch_options(estimate, preparation):
+    """Physical admission scenarios. A scope still needs pre-score acceptance and a grant."""
+    capacity = preparation.get("wave_space") or {}
+    scopes = {}
+    reserve = estimate["followup_reserve_us"]
+    for name, price in (
+        ("wave", estimate),
+        ("first_ordinary_cut", preparation.get("ordinary_cut_price")),
+        ("ordinary_initialization", preparation.get("initialization_price")),
+    ):
+        rows = capacity.get(name, [])
+        missing = capacity.get("missing", [])
+        complete = bool(rows) and (
+            not missing
+            if name == "wave"
+            else not {"learner_accounting", "release_and_journal"}.intersection(missing)
+        )
+        deficit = any(m["deficit_bytes"] or m["deficit_inodes"] for m in rows)
+        tail = (price or {}).get("tail_us")
+        scopes[name] = dict(
+            fits=False if deficit else True if complete else None,
+            expected_us=(price or {}).get("expected_us"),
+            tail_us=tail,
+            tail_with_reserve_us=(
+                tail + reserve if tail is not None and reserve is not None else None
+            ),
+            mounts=[
+                {
+                    k: v
+                    for k, v in m.items()
+                    if k not in {"owners", "retained_bytes", "retained_inodes"}
+                }
+                for m in rows
+            ],
+        )
+    eligible = next(
+        (
+            name
+            for name, s in scopes.items()
+            if s["fits"] is True and s["tail_with_reserve_us"] is not None
+        ),
+        None,
+    )
+    return dict(
+        next_scope=eligible, scopes=scopes, followup_reserve_us=reserve, research_authority=None
+    )
+
+
 def launch_preflight(root, policy, info, *, floor, checkpoint_read_us=None):
     prices = info["prices"]
     cycles, fresh = prices["checkpoint_cycles"], prices["fresh_start"]
@@ -577,6 +635,28 @@ def launch_preflight(root, policy, info, *, floor, checkpoint_read_us=None):
             fresh["device"]["methods"], starts, cycles, bookkeeping=bookkeeping
         )
         result["trajectory"] = trajectory
+        ordinary = cycles["methods"]["00"]
+        observed = trajectory["methods"]["00"]
+        initial = (
+            observed["outside_cut_us_per_role"]
+            + max(starts["00"], ordinary["restore_us"] - ordinary["storage_us"]["final_load"])
+            + ordinary["storage_us"]["initial_save"]
+        )
+        result["initialization_price"] = dict(
+            expected_us=initial,
+            tail_us=initial,
+            basis="One cold zero-token ordinary role and its initial save. No probe or score.",
+        )
+        if observed["bookkeeping"]:
+            result["ordinary_cut_price"] = {
+                unit: fresh["device"]["methods"]["00"][unit]
+                + prices["supported_wave"]["storage"]["00"][unit]
+                + observed[unit]
+                for unit in ("expected_us", "tail_us")
+            }
+            result["ordinary_cut_price"][
+                "basis"
+            ] = "The full 4M ordinary training and scheduled-checkpoint price bounds the first training cut. Probe scoring is separate."
         result["checkpoint_space"] = checkpoint_space(
             root, cycles, trajectory, floor, info["capacity"]["mounts"]
         )

@@ -159,6 +159,25 @@ def preflight(root, source=None, *, free_disk_gib=5):
                     info["prices"]["launch_preparation"] = launch_preflight(
                         root, policy, info, floor=free_disk_gib << 30, checkpoint_read_us=read_us
                     )
+                    preparation = info["prices"]["launch_preparation"]
+                    if source is not None and preparation.get("wave_space"):
+                        import runpy
+                        from .progressive_velocity_launch import launch_options
+
+                        try:
+                            # Use the same source-pinned host pricing reader as the standalone ZIP.
+                            operator = confined(
+                                source,
+                                "specs/016-measure-learning-velocity/validation/qualify_continuation.py",
+                            )
+                            reader = runpy.run_path(str(operator))
+                            quote = reader["settled_launch_estimate"](
+                                root, supported, preparation, info["prices"]["followup_reserve_us"]
+                            )
+                            info["prices"]["launch_estimate"] = quote
+                            info["launch_options"] = launch_options(quote, preparation)
+                        except (OSError, ValueError, KeyError, TypeError) as exc:
+                            preparation["missing"]["settled_launch_estimate"] = type(exc).__name__
         except (OSError, ValueError, KeyError) as exc:
             info["prices"]["checkpoint_reason"] = str(exc)
     info["assessment"] = policy["assessment"]
@@ -168,6 +187,25 @@ def preflight(root, source=None, *, free_disk_gib=5):
             "Registered simultaneous writes exceed a physical mount reserve",
             "inspect_capacity",
         )
+    elif "launch_options" in info:
+        scope = info["launch_options"]["next_scope"]
+        if scope == "wave":
+            reason, next_action = (
+                "The priced wave fits its mount reserves. Freeze the funded scope before comparative scoring",
+                "qualify",
+            )
+        elif scope is not None:
+            reason, next_action = (
+                "The full wave is unavailable. The priced "
+                + scope.replace("_", " ")
+                + " fits its current mounts and requires pre-score acceptance and a separate grant",
+                "qualify",
+            )
+        else:
+            reason, next_action = (
+                "Inspect the recorded byte and inode shortfalls and the first eligible ordinary boundary",
+                "inspect_capacity",
+            )
     elif not ordinary["weights"]:
         reason, next_action = (
             "Open the original ordinary 4M weight slice and stream bound to the verified round028 pilot",

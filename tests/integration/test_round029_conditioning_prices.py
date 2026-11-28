@@ -245,8 +245,10 @@ def test_one_grant_resumes_one_search_and_seals_all_groups_before_scoring(
 
     fn = api["conditioning_matrix"]
     ns = fn.__globals__
-    folder = tmp_path / "state"
-    folder.mkdir()
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+
+    folder = tmp_path / "run-state/discovery" / SESSION
+    folder.mkdir(parents=True)
     source = OPERATOR.parents[3]
     wheel = tmp_path / "runtime.whl"
     with zipfile.ZipFile(wheel, "w") as z:
@@ -274,7 +276,11 @@ def test_one_grant_resumes_one_search_and_seals_all_groups_before_scoring(
     monkeypatch.setitem(
         ns, "paired_model_inputs", lambda *args: (models, {m: weight for m in models})
     )
-    monkeypatch.setitem(ns, "previous_bank_prices", lambda *args: dict(receipt=digest("paid-bank")))
+    monkeypatch.setitem(
+        ns,
+        "previous_bank_prices",
+        lambda *args: dict(receipt=digest("paid-bank"), controls=digest("paid-controls")),
+    )
     monkeypatch.setattr(
         bigint_generation,
         "sample_batch",
@@ -415,6 +421,41 @@ def test_one_grant_resumes_one_search_and_seals_all_groups_before_scoring(
         stage,
         digest("bank"),
     )
+    def verify_settled(full):
+        wave = dict(args[7], fresh_receipt=digest("fresh"))
+        parts = {**full["files"], "preflight.json": dict(supported_wave=wave)}
+        monkeypatch.setitem(
+            ns, "prior_launch_projection", lambda *args: parts["previous-prices.json"]
+        )
+        api["bound_conditioning"](tmp_path, full, parts, wave)
+        # The fixture has no earlier price matrix. Capture only after all original
+        # role requests, physical debits, barriers and CPU score receipts reopen.
+        monkeypatch.setitem(
+            ns,
+            "estimate_with_preparation",
+            lambda records, prep: dict(
+                verified=sorted(k for k in records if k.startswith("paired-"))
+            ),
+        )
+        prep = dict(
+            checkpoint_receipt=wave["checkpoint_receipt"],
+            wave_space=dict(sample_grant=full["grant"]),
+        )
+        result = api["settled_launch_estimate"](tmp_path, wave, prep, 30)
+        assert result["sources"]["paired"] == full["receipt"]
+        assert result["verified"] == sorted(
+            "paired-" + g + ".json" for g in api["CONDITIONING_GROUPS"]
+        )
+        area = folder / "preparation/paired-conditioning" / full["grant"][7:]
+        score = area / "inputs/D-full/score/request.json"
+        original = score.read_bytes()
+        import json
+
+        score.write_text(json.dumps(seal(dict(load(score), barrier=digest("unrelated")))))
+        with pytest.raises(ValueError, match="barrier"):
+            api["settled_launch_estimate"](tmp_path, wave, prep, 30)
+        score.write_bytes(original)
+
     if recover_paid:
 
         def legacy_check(*args):
@@ -479,6 +520,7 @@ def test_one_grant_resumes_one_search_and_seals_all_groups_before_scoring(
             api["verify_conditioning_zip"](tmp_path / "wrong-recovery.zip")
         again = fn(*args, recovery=recovery)
         assert again["receipt"] == full["receipt"] and again["charged_work"] == full["charged_work"]
+        verify_settled(full)
         assert len(calls) == 7
         return
     partial = fn(*args)
@@ -497,6 +539,7 @@ def test_one_grant_resumes_one_search_and_seals_all_groups_before_scoring(
         full["charged_work"]["tokens"] == 0
         and full["elapsed_us"] + full["remaining_us"] == 75 * 60_000_000
     )
+    verify_settled(full)
     report = deepcopy(full)
     dest = tmp_path / "conditioning.zip"
     api["write_readiness_zip"](dest, report)

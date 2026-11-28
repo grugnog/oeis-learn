@@ -835,6 +835,34 @@ def conditioning_coordinates(grant, group, phase, seed):
     )
 
 
+def conditioning_leases(area, grant, seed, balance):
+    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.generalization.progressive.velocity_records import operation_key
+    from oeis_learn.pipeline_validation.identity import confined
+
+    issued = leases = lease_us = 0
+    for group in CONDITIONING_GROUPS:
+        logical = operation_key(conditioning_coordinates(grant, group, "search", seed), 0)[
+            "logical"
+        ]
+        for key in balance["committed"]:
+            if key.startswith(logical + "/dispatch/"):
+                issued += 1
+                attempt = int(key.rsplit("/", 1)[-1])
+                path = confined(
+                    area,
+                    f"operations/{logical[7:]}/attempt-{attempt:04d}/gpu-lease.json",
+                    exists=False,
+                )
+                if path.is_file():
+                    us = load(path)["elapsed_us"]
+                    if type(us) is not int or us <= 0:
+                        raise ValueError("invalid original GPU lease clock")
+                    leases += 1
+                    lease_us += us
+    return issued, leases, lease_us
+
+
 def conditioning_work(group, phase, cases, bank_programs=None):
     from oeis_learn.generalization.progressive.budgets import role_work_requirements
 
@@ -3512,26 +3540,7 @@ def conditioning_matrix(
         != grant["total_us"]
     ):
         raise ValueError("conditioning charges do not reconcile to the original grant")
-    issued = leases = lease_us = 0
-    for group in CONDITIONING_GROUPS:
-        logical = operation_key(conditioning_coordinates(grant, group, "search", seed), 0)[
-            "logical"
-        ]
-        for key in balance["committed"]:
-            if key.startswith(logical + "/dispatch/"):
-                issued += 1
-                attempt = int(key.rsplit("/", 1)[-1])
-                path = confined(
-                    area,
-                    f"operations/{logical[7:]}/attempt-{attempt:04d}/gpu-lease.json",
-                    exists=False,
-                )
-                if path.is_file():
-                    us = load(path)["elapsed_us"]
-                    if type(us) is not int or us <= 0:
-                        raise ValueError("invalid original GPU lease clock")
-                    leases += 1
-                    lease_us += us
+    issued, leases, lease_us = conditioning_leases(area, grant, seed, balance)
     report.update(
         status="COMPLETE"
         if not errors and len(finished) == len(CONDITIONING_GROUPS)
@@ -3814,46 +3823,18 @@ def donor_control_history(action, root, revision):
     return report
 
 
-def bound_conditioning(root, summary, parts, wave):
+def prior_launch_projection(root, parent, plan, wave):
     from oeis_learn.generalization.progressive.contracts import load, seal
-    from oeis_learn.generalization.progressive.velocity_records import SESSION, operation_key
     from oeis_learn.pipeline_validation.identity import confined
     from oeis_learn.pipeline_validation.progressive_velocity_launch import settled_area
 
-    if (
-        summary["status"] not in {"COMPLETE", "PARTIAL"}
-        or parts["preflight.json"]["supported_wave"] != wave
-    ):
-        raise ValueError("same paid supported wave and issued conditioning grant required")
-    parent = confined(root, "run-state/discovery/" + SESSION + "/preparation")
-    area, plan, grant, state = settled_area(
-        root,
-        parent / "paired-conditioning",
-        "plan",
-        parts["verification.json"]["plan"],
-        grant_ref=summary["grant"],
-    )
-    previous = parts["previous-prices.json"]
-    if (
-        grant["identity"] != summary["grant"]
-        or summary["candidate"] != plan["candidate"]
-        or state["consumed"] != summary["charged_work"]
-        or plan["version"] != CONDITIONING
-        or plan["checkpoint"] != wave["checkpoint_receipt"]
-        or plan["previous"] != previous["receipt"]
-    ):
-        raise ValueError("conditioning diagnostic differs from the settled original")
     bank, bplan, _, _ = settled_area(
         root, parent / "matched-bank-prices", "receipt", plan["previous"]
     )
     controls, cplan, _, _ = settled_area(
         root, parent / "isolated-control-prices", "receipt", bplan["controls"]
     )
-    if (
-        previous["controls"] != bplan["controls"]
-        or bplan["checkpoint"] != plan["checkpoint"]
-        or cplan["checkpoint"] != plan["checkpoint"]
-    ):
+    if bplan["checkpoint"] != plan["checkpoint"] or cplan["checkpoint"] != plan["checkpoint"]:
         raise ValueError("different bank or control price source")
 
     def records(directory, field):
@@ -3866,64 +3847,303 @@ def bound_conditioning(root, summary, parts, wave):
     projection = bank_sample_forecast(
         records(bank, "blocks"), control_cost_forecast(records(controls, "controls"), wave)
     )
-    if previous["projection"] != projection:
-        raise ValueError("original bank forecast differs")
+    return dict(controls=bplan["controls"], receipt=plan["previous"], projection=projection)
+
+
+def paid_conditioning_operation(area, state, grant, coordinates, *, expected):
+    from oeis_learn.generalization.progressive.contracts import load, seal
+    from oeis_learn.generalization.progressive.velocity_records import operation_key
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_velocity_operations import (
+        check_reserved_work,
+        input_record,
+        operation_receipt,
+    )
+
+    logical = operation_key(coordinates, 0)["logical"]
+    block = confined(area, "operations/" + logical[7:])
+    row = load(confined(block, "receipt.json"))
+    req = load(confined(block, "input.json"))
+    attempt = row["attempt"]
+    key = f"{logical}/dispatch/{attempt}"
+    boundary = load(confined(block, f"boundary-{attempt:04d}.json"))
+    work = state["reserved_work"][key]
     if (
-        summary["status"] == "COMPLETE"
-        and summary["receipt"] != load(confined(area, "receipt.json"))["identity"]
+        expected != seal(expected)
+        or req != input_record(coordinates, expected, dict(work, elapsed_us=0), grant)
+        or row != operation_receipt(coordinates, expected, grant, attempt, row["evidence"])
+        or key not in state["committed"]
+        or boundary != seal(boundary)
+        or boundary["result"] != row["identity"]
     ):
-        raise ValueError("original paired conditioning receipt differs")
+        raise ValueError("original paid operation request or verified boundary differs")
+    check_reserved_work(state, logical + "/dispatch/", work)
+    return row
 
-    def operation(coordinates):
-        logical = operation_key(coordinates, 0)["logical"]
-        row = load(confined(area, "operations/" + logical[7:] + "/receipt.json"))
-        if (
-            row != seal(row)
-            or row["coordinates"] != coordinates
-            or row["grant"] != grant["identity"]
-            or (f"{logical}/dispatch/{row['attempt']}" not in state["committed"])
-        ):
-            raise ValueError("original conditioning debit differs")
-        return row
 
-    if "models.json" in parts:
-        model = operation(conditioning_coordinates(grant, "paired-models", "models", plan["seed"]))
-        if parts["models.json"] != dict(
-            receipt=model["identity"], elapsed_us=model["evidence"]["elapsed_us"]
-        ):
-            raise ValueError("original model inspection price differs")
-    for group in CONDITIONING_GROUPS:
-        if "paired-" + group + ".json" in parts and parts["paired-" + group + ".json"] != load(
-            confined(area, group + ".json")
-        ):
-            raise ValueError("original scored conditioning group differs")
-        public = parts.get("search-" + group + ".json")
-        if public is None:
-            continue
-        coords = conditioning_coordinates(grant, group, "search", plan["seed"])
-        try:
-            original = operation(coords)
-        except FileNotFoundError:
-            original = operation(dict(coords, role="verify-paid-search"))["evidence"]["original"]
-        expected = dict(
-            receipt=original["identity"],
-            **select_fields(
-                original["evidence"],
-                "elapsed_us",
-                "worker_us",
-                "lease_us",
-                "peak_device_bytes",
-                "telemetry",
-                "native",
-                "bank_programs",
-            ),
+def conditioning_role_request(area, plan, coordinates):
+    from oeis_learn.generalization.progressive.contracts import load, seal
+    from oeis_learn.pipeline_validation.identity import confined
+
+    phase, group = coordinates["role"], coordinates["method"]
+    req = load(confined(area, f"inputs/{group}/{phase}/request.json"))
+    if (
+        req != seal(req)
+        or req["plan"] != plan["identity"]
+        or req["phase"] != phase
+        or req["method"] != group
+        or any(
+            req[k] != plan[k]
+            for k in ("version", "candidate", "seed", "wheel", "image", "physical", "source")
         )
-        expected["modes"] = {
-            k: select_fields(v, "elapsed_us", "components")
-            for k, v in original["evidence"]["modes"].items()
-        }
-        if original != seal(original) or expected != public:
-            raise ValueError("paid search evidence differs from the diagnostic")
+    ):
+        raise ValueError("conditioning role differs from the registered plan")
+    return req
+
+
+def paid_search_projection(area, state, grant, plan, coords):
+    from oeis_learn.generalization.progressive.contracts import load, seal
+    from oeis_learn.generalization.progressive.velocity_records import operation_key
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_velocity_operations import (
+        input_record,
+        operation_receipt,
+    )
+
+    request = conditioning_role_request(area, plan, coords)
+    logical = operation_key(coords, 0)["logical"]
+    block = confined(area, "operations/" + logical[7:])
+    if confined(block, "receipt.json", exists=False).exists():
+        original = paid_conditioning_operation(area, state, grant, coords, expected=request)
+    else:
+        old = load(confined(block, "first-error.json"))
+        number = old["attempt"]
+        reader_coords = dict(coords, role="verify-paid-search")
+        reader_id = operation_key(reader_coords, 0)["logical"][7:]
+        registered = load(confined(area, f"operations/{reader_id}/input.json"))["request"]
+        key = f"{logical}/dispatch/{number}"
+        window = state["windows"][key]
+        expected = seal(
+            dict(
+                reader=registered["reader"],
+                original=request["identity"],
+                first_error=old["identity"],
+                key=key,
+                charged_us=window["charged_us"],
+            )
+        )
+        if (
+            old != seal(old)
+            or old["error"] != "ValueError"
+            or old["stage"] != coords["stage"]
+            or type(number) is not int
+            or number not in (0, 1)
+            or not re.fullmatch("[0-9a-f]{40}", registered["reader"])
+            or window["event"] != "COMMIT"
+            or window["end_us"] is None
+            or window["charged_us"] != window["end_us"] - window["start_us"]
+            or key not in state["committed"]
+            or load(confined(block, "input.json"))
+            != input_record(coords, request, dict(state["reserved_work"][key], elapsed_us=0), grant)
+            or confined(block, f"boundary-{number:04d}.json", exists=False).exists()
+        ):
+            raise ValueError("original failed conditioning dispatch differs")
+        receipt = paid_conditioning_operation(area, state, grant, reader_coords, expected=expected)
+        original = receipt["evidence"]["original"]
+        if (
+            original != operation_receipt(coords, request, grant, number, original["evidence"])
+            or original["evidence"]["elapsed_us"] > window["charged_us"]
+        ):
+            raise ValueError("paid search evidence differs")
+    evidence = original["evidence"]
+    return dict(
+        receipt=original["identity"],
+        **select_fields(
+            evidence,
+            "elapsed_us",
+            "worker_us",
+            "lease_us",
+            "peak_device_bytes",
+            "telemetry",
+            "native",
+            "bank_programs",
+        ),
+        modes={
+            k: select_fields(v, "elapsed_us", "components") for k, v in evidence["modes"].items()
+        },
+    )
+
+
+def paid_conditioning_parts(root, area, plan, grant, state, wave, *, groups, searches, models):
+    from oeis_learn.generalization.progressive.contracts import load, seal
+    from oeis_learn.pipeline_validation.identity import confined
+
+    if plan["version"] != CONDITIONING or plan["checkpoint"] != wave["checkpoint_receipt"]:
+        raise ValueError("original paired plan and checkpoint required")
+    parts = {"previous-prices.json": prior_launch_projection(root, area.parent.parent, plan, wave)}
+
+    def coords(group, role):
+        return conditioning_coordinates(grant, group, role, plan["seed"])
+
+    if models:
+        coordinate = coords("paired-models", "models")
+        model = paid_conditioning_operation(
+            area,
+            state,
+            grant,
+            coordinate,
+            expected=conditioning_role_request(area, plan, coordinate),
+        )
+        parts["models.json"] = dict(
+            receipt=model["identity"], elapsed_us=model["evidence"]["elapsed_us"]
+        )
+    for g in searches:
+        parts["search-" + g + ".json"] = paid_search_projection(
+            area, state, grant, plan, coords(g, "search")
+        )
+    if groups:
+        if set(searches) != set(CONDITIONING_GROUPS):
+            raise ValueError("all searches must seal before scoring")
+        barrier = load(confined(area, "sealed-searches.json"))
+        if barrier != seal(
+            dict(
+                plan=plan["identity"],
+                searches={g: parts["search-" + g + ".json"]["receipt"] for g in searches},
+            )
+        ):
+            raise ValueError("original paid search barrier differs")
+        for g in groups:
+            coordinate = coords(g, "score")
+            request = conditioning_role_request(area, plan, coordinate)
+            if request["barrier"] != barrier["identity"]:
+                raise ValueError("scorer used a different sealed search barrier")
+            score = paid_conditioning_operation(area, state, grant, coordinate, expected=request)
+            row = load(confined(area, g + ".json"))
+            expected = seal(
+                dict(
+                    group=g,
+                    search=barrier["searches"][g],
+                    score=score["identity"],
+                    barrier=barrier["identity"],
+                    **select_fields(
+                        score["evidence"],
+                        "elapsed_us",
+                        "worker_us",
+                        "native",
+                        "modes",
+                        "paired_selected",
+                    ),
+                )
+            )
+            if row != expected:
+                raise ValueError("scored conditioning group differs from its original boundary")
+            parts["paired-" + g + ".json"] = row
+    return parts
+
+
+def bound_conditioning(root, summary, parts, wave):
+    from oeis_learn.generalization.progressive.contracts import load, seal
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_velocity_launch import settled_area
+
+    if (
+        summary["status"] not in {"COMPLETE", "PARTIAL"}
+        or parts["preflight.json"]["supported_wave"] != wave
+    ):
+        raise ValueError("same paid supported wave and issued conditioning grant required")
+    parent = confined(root, "run-state/discovery/" + SESSION + "/preparation/paired-conditioning")
+    area, plan, grant, state = settled_area(
+        root, parent, "plan", parts["verification.json"]["plan"], grant_ref=summary["grant"]
+    )
+    if (
+        grant["identity"] != summary["grant"]
+        or summary["candidate"] != plan["candidate"]
+        or state["consumed"] != summary["charged_work"]
+    ):
+        raise ValueError("conditioning diagnostic differs from the settled original")
+    records = paid_conditioning_parts(
+        root,
+        area,
+        plan,
+        grant,
+        state,
+        wave,
+        groups=[g for g in CONDITIONING_GROUPS if "paired-" + g + ".json" in parts],
+        searches=[g for g in CONDITIONING_GROUPS if "search-" + g + ".json" in parts],
+        models="models.json" in parts,
+    )
+    if any(parts[k] != v for k, v in records.items()):
+        raise ValueError("returned conditioning inputs differ from original paid parts")
+    if summary["status"] == "COMPLETE":
+        if (
+            any("paired-" + g + ".json" not in records for g in CONDITIONING_GROUPS)
+            or "models.json" not in records
+        ):
+            raise ValueError("completed conditioning requires every paid role")
+        receipt = load(confined(area, "receipt.json"))
+        if (
+            receipt != seal(receipt)
+            or receipt["identity"] != summary["receipt"]
+            or receipt["plan"] != plan["identity"]
+            or receipt["grant"] != grant["identity"]
+            or receipt["charged"] != state["consumed"]
+        ):
+            raise ValueError("original paired conditioning receipt differs")
+
+
+def settled_launch_estimate(root, wave, preparation, reserve):
+    """Read the original settled preparation directly on an already qualified donor."""
+    from oeis_learn.generalization.progressive.contracts import load, seal
+    from oeis_learn.generalization.progressive.velocity_records import SESSION
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_velocity_launch import settled_area
+
+    parent = confined(root, "run-state/discovery/" + SESSION + "/preparation/paired-conditioning")
+    selected = (preparation.get("wave_space") or {}).get("sample_grant")
+    area, plan, grant, state = settled_area(
+        root, parent, "plan", wave["checkpoint_receipt"], field="checkpoint", grant_ref=selected
+    )
+    receipt = load(confined(area, "receipt.json"))
+    parts = paid_conditioning_parts(
+        root,
+        area,
+        plan,
+        grant,
+        state,
+        wave,
+        groups=CONDITIONING_GROUPS,
+        searches=CONDITIONING_GROUPS,
+        models=True,
+    )
+    issued, leases, lease_us = conditioning_leases(area, grant, plan["seed"], state)
+    if (
+        receipt != seal(receipt)
+        or receipt["plan"] != plan["identity"]
+        or receipt["grant"] != grant["identity"]
+        or receipt["charged"] != state["consumed"]
+        or issued != leases
+        or leases < len(CONDITIONING_GROUPS)
+        or (leases, lease_us) != (receipt["leases"], receipt["lease_us"])
+        or not 0 < lease_us <= state["consumed"]["elapsed_us"]
+        or receipt["groups"]
+        != {g: parts["paired-" + g + ".json"]["identity"] for g in CONDITIONING_GROUPS}
+    ):
+        raise ValueError("settled paired preparation receipt differs")
+    parts["preflight.json"] = dict(supported_wave=wave, followup_reserve_us=reserve)
+    parts["checkpoint-verification.json"] = dict(
+        report_ref=preparation["checkpoint_receipt"], mechanical_status="VERIFIED"
+    )
+    estimate = estimate_with_preparation(parts, preparation)
+    estimate["sources"] = dict(
+        paired=receipt["identity"],
+        bank=plan["previous"],
+        controls=parts["previous-prices.json"]["controls"],
+        checkpoint=wave["checkpoint_receipt"],
+        fresh=wave["fresh_receipt"],
+        accounting=preparation.get("accounting_receipt"),
+    )
+    return estimate
 
 
 def conditioning_copy(member):

@@ -168,6 +168,13 @@ def test_wave_storage_prices_resident_blocks_by_profile_and_keeps_gaps_visible(t
     }
     assert not result["missing"]
     assert result["wave"][0]["required_bytes"] > result["first_ordinary_cut"][0]["required_bytes"]
+    # The very first initialization starts in an empty learner directory. Its pending
+    # blobs become that checkpoint, whereas the next cut must retain the original.
+    initial = result["ordinary_initialization"][0]
+    owners = {o["owner"] for o in initial["owners"]}
+    assert owners == {"learner_00", "worker_staging", "first_account"}
+    assert initial["required_bytes"] + 2 * 20 == result["first_ordinary_cut"][0]["required_bytes"]
+    assert initial["reserved_inodes"] == 200
     assert result["wave"][0]["reserved_bytes"] == 70
     assert result["first_ordinary_cut"][0]["reserved_inodes"] == 200
     del sample["roles"]["D-full"]

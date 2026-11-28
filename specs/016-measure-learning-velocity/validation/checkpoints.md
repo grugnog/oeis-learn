@@ -245,3 +245,10 @@ The mount had 118,135,552 available inodes. The wave required 127,904 and the cu
 | Conditioning ZIP | `d1a54ad97d21fd18dd84f362883d3d103b0523a9682a92785cde00909faea0b1` |
 | Launch-pricing ZIP | `63b30739c0bfdaf968652248bd2e2afc545da1db24f057ad7800749d540ccab0` |
 | Conditioning receipt | `f7bd91485c8de8e7b5e3f8576715fa638a8592a979590757e3f544546812690c` |
+
+The installed preflight reopens these original grants and the paid search, barrier and scorer
+receipts. It reports a separate zero-token initialization in an empty checkpoint directory.
+The writer installs one generation before any later staged checkpoint can coexist. Keeping
+the complete observed three-generation tree, its factor-of-two guard, the learner journal
+and the runtime gives 5,916,677,854 bytes on the returned mount. That leaves 2,040,600,866
+bytes above the recorded reserve. A new capacity observation is required at dispatch.
