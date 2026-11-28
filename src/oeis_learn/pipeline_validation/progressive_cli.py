@@ -176,6 +176,8 @@ def register(commands):
     location.add_argument("--archive", help="copied round029 report for independent verification")
     velocity.add_argument("--qualification-archive", help="independently retained pre-score archive")
     velocity.add_argument("--authority", help="operator grant for qualify, cpu or run")
+    velocity.add_argument("--resume-initialization", metavar="ORIGINAL_COMMIT",
+                          help="reopen an existing ordinary initialization with its original worker")
     round028 = operations.add_parser("round028", help="registered learned program search")
     round028.add_argument("--action", choices=("preflight", "audit", "rehearse", "recover-rehearsal", "panels", "timing", "finalize", "pilot", "qualify-pilot", "pilot-status", "release-acceptance", "run", "status", "verify"), required=True)
     round028.add_argument("--replay-budget-seconds", type=int, help="CPU allowance for the single discriminating audit replay")

@@ -4,8 +4,14 @@ rev=${1:?full candidate commit required}
 action=${2:?round029 action required}
 [[ $rev =~ ^[0-9a-f]{40}$ ]]
 case "$action" in
-  preflight|status|verify) [[ $# == 2 ]]; extra=() ;;
-  qualify|cpu|run) [[ $# == 3 && $3 == /* && -f $3 ]]; extra=(--authority "$3") ;;
+  preflight|status) [[ $# == 2 ]]; extra=() ;;
+  verify) extra=()
+    if [[ $# == 3 && $3 =~ ^[0-9a-f]{40}$ ]]; then extra=(--resume-initialization "$3")
+    else [[ $# == 2 ]]; fi ;;
+  qualify|cpu|run) [[ $# -ge 3 && $3 == /* && -f $3 ]]; extra=(--authority "$3")
+    if [[ $# == 4 && $action == qualify && $4 =~ ^[0-9a-f]{40}$ ]]; then
+      extra+=(--resume-initialization "$4")
+    else [[ $# == 3 ]]; fi ;;
   *) exit 2 ;;
 esac
 workspace=$(pwd -P)

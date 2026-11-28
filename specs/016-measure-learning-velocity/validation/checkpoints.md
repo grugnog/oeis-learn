@@ -307,3 +307,29 @@ The qualification stopped at the historical stage label `package` after 72,050,2
 Grant `sha256:a38310c4081a609e16f9014f249363653a126ec2896c860d4861eefb65484fa5`
 retained 1,727,949,747 µs. The returned ZIP contained neither a zero-cut receipt nor
 an underlying exception message.
+
+### Resume the returned grant
+
+At the detached donor root, set `ROUND029_REV` to the full recovery reader commit in
+the handoff and run this block. It uses the original worker, approval, grant and
+paid trial registration. A rerun reopens the same journal.
+
+```bash
+(
+  set -euo pipefail
+  rev=${ROUND029_REV:?full recovery reader commit}
+  git fetch --no-tags origin "$rev"
+  git show "$rev:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - --resume-initialization "$rev"
+)
+```
+
+The command records the first failure and original settlement, checks current capacity,
+and uses the remaining balance to resume the earliest eligible step. If packaging
+installed a runtime before verification failed, a funded CPU reader can verify its
+original wheel, source, role confinement, capacity and cleanup. A failed build with
+no installed result can use the remaining package attempt. Publication precedes the
+single zero-token device role. Private replay, archive-pair verification and the
+standalone ZIP check run in the same command. Return the printed `initialization.zip`
+for either a complete or partial result. The sibling `operator.log` keeps the
+original error messages and bounded child stderr on the workstation.

@@ -3,7 +3,7 @@
 import time
 
 from oeis_learn.experiments.source_snapshot import collect_snapshot
-from oeis_learn.generalization.progressive.budgets import BudgetJournal
+from oeis_learn.generalization.progressive.budgets import KEYS, BudgetJournal
 from oeis_learn.generalization.progressive.contracts import digest, load, reference, seal
 from oeis_learn.generalization.progressive.trials import integer
 from oeis_learn.generalization.progressive.velocity_records import SESSION, operation_key
@@ -299,6 +299,9 @@ def replay(root, folder, area, source, grant, binding, snapshot):
     ):
         raise ValueError("checkpoint origins or recorded candidate source differ")
 
+    if binding["version"] == prescore.VERSION:
+        recover_package(root, area, grant, binding, snapshot=snapshot)
+
     def reopen(phase, request, work, verify, _installed):
         return replay_operation(
             area, coordinates(grant, phase), request, grant, work, snapshot, verify
@@ -342,8 +345,11 @@ def inventory(root, source):
     )
     original, _, _ = original_price_source(root, source, binding)
     balance = BudgetJournal.inspect_existing(
-        confined(area, "accounting"), grant["identity"], grant["resources"],
-        include_work=True, include_windows=True,
+        confined(area, "accounting"),
+        grant["identity"],
+        grant["resources"],
+        include_work=True,
+        include_windows=True,
     )
     record = replay(root, folder, area, original, grant, binding, balance)
     if (
@@ -365,6 +371,101 @@ def inventory(root, source):
         device_charge_us=window["charged_us"] if proven else None,
         charged_tokens=balance["consumed"]["tokens"],
     )
+
+
+def recover_package(root, area, grant, binding, journal=None, *, snapshot=None):
+    """Verify an already installed, paid package under the original grant's remaining clock."""
+    from . import progressive_velocity_prescore as prescore
+    from .progressive_velocity_operations import input_record, operation_receipt
+
+    coords = coordinates(grant, "package")
+    logical = operation_key(coords, 0)["logical"]
+    block = confined(area, "operations/" + logical[7:], exists=False)
+    state = snapshot or journal.snapshot(include_work=True)
+    reader_coords = dict(
+        coordinates(grant, "verify_paid_package"), method="ordinary_initialization"
+    )
+    reader_prefix = operation_key(reader_coords, 0)["logical"] + "/dispatch/"
+    reread = any(k.startswith(reader_prefix) for k in state["committed"])
+    # A normally completed package has no additional reader. Completed recoveries
+    # must reopen that reader even when an operator asks to resume again.
+    if (block / "receipt.json").is_file() and reread:
+        snapshot = state
+    elif (
+        snapshot is not None
+        or (block / "receipt.json").is_file()
+        or any(block.glob("boundary-*.json"))
+    ):
+        if snapshot is not None and reread:
+            raise ValueError("paid package reader lost its published operation")
+        return
+    if not (block / "first-error.json").is_file():
+        if reread:
+            raise ValueError("paid package reader lost its original failure")
+        return
+    error = load(confined(block, "first-error.json"))
+    attempt = error["attempt"]
+    if error != seal(error) or type(attempt) is not int or attempt not in (0, 1):
+        raise ValueError("original failed package attempt required")
+    key = f"{logical}/dispatch/{attempt}"
+    out = confined(block, f"attempt-{attempt:04d}", exists=False)
+    if (
+        key not in state["committed"]
+        or not (out / "runtime.json").is_file()
+        or (block / f"recovering-{attempt:04d}.json").exists()
+    ):
+        if reread:
+            raise ValueError("paid package reader lost its original installed runtime")
+        return
+    work = dict.fromkeys(KEYS, 0)
+    if load(confined(block, "input.json")) != input_record(coords, binding, work, grant) or any(
+        v for k, v in state["reserved_work"][key].items() if k != "elapsed_us"
+    ):
+        raise ValueError("original package registration or charge differs")
+    cleanup = load(confined(out, "cleanup.json"))
+    if cleanup.get("acknowledged") is not True or cleanup.get("within_bound") is not True:
+        raise ValueError("original package cleanup required for recovery")
+    terms = seal(
+        dict(
+            package=logical,
+            attempt=attempt,
+            binding=binding["identity"],
+            first_error=error["identity"],
+            grant=grant["identity"],
+        )
+    )
+
+    def recheck(readonly):
+        runtime = load(confined(out, "runtime.json"))
+        package_evidence(root, area, runtime, binding)
+        evidence = seal(dict(runtime=runtime["identity"], capacity=dispatch_capacity(out, binding)))
+        return operation_receipt(coords, binding, grant, attempt, evidence)
+
+    proof = prescore.host_operation(
+        area, grant, "verify_paid_package", terms, recheck, snapshot=snapshot
+    )
+    # A later inspection cannot change the end of an earlier reservation.
+    windows = BudgetJournal.inspect_existing(
+        confined(area, "accounting"), grant["identity"], grant["resources"], include_windows=True
+    )["windows"]
+    window = windows[key]
+    closed = window["end_us"] is not None
+    boundary = seal(
+        dict(
+            result=proof["identity"],
+            boot=window["boot"] if closed else None,
+            end_us=window["end_us"],
+            within_reservation=closed,
+            recovery=terms["identity"],
+        )
+    )
+    path = confined(block, f"boundary-{attempt:04d}.json", exists=False)
+    if snapshot is not None:
+        if load(path) != boundary or load(confined(block, "receipt.json")) != proof:
+            raise ValueError("paid package reader differs from the published installation")
+    else:
+        retain(path, boundary)
+        retain(block / "receipt.json", proof)
 
 
 def qualify(args, root, folder, source, revision, grant, host_factory, *, initialize=False):
@@ -520,6 +621,8 @@ def qualify(args, root, folder, source, revision, grant, host_factory, *, initia
             )
 
             def freeze(binding, request, terms, runtime):
+                nonlocal phase
+                phase = "publish_prescore"
                 return prescore.funded_publication(
                     root, area, grant, binding, request, quote, terms, runtime
                 )
@@ -537,7 +640,11 @@ def qualify(args, root, folder, source, revision, grant, host_factory, *, initia
             )
         )
         retain(area / "binding.json", binding)
+        if initialize and getattr(args, "resume_initialization", None):
+            phase = "verify_paid_package"
+            recover_package(root, area, grant, binding, journal)
         rec = stages(root, area, grant, binding, projection, plan, run, freeze=freeze)
+        phase = "publication" if initialize else phase
         retain(area / "receipt.json", rec)
         if initialize:
             from oeis_learn.generalization.progressive.velocity_donation_report import (

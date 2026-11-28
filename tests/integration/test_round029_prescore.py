@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 import runpy
+import subprocess
 import time
 from types import SimpleNamespace
 import zipfile
@@ -93,7 +94,76 @@ def test_partial_initialization_checks_capacity_and_original_balance(tmp_path):
         record[field] = previous
 
 
-def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(tmp_path, monkeypatch):
+def test_pinned_handoff_returns_partial_zip_and_keeps_terminal_output_private(
+    tmp_path, monkeypatch
+):
+    import os
+
+    root = tmp_path / "donor"
+    home = tmp_path / "operator"
+    root.mkdir()
+    home.mkdir()
+    monkeypatch.chdir(root)
+    monkeypatch.setenv("HOME", str(home))
+    subprocess.run(["git", "init", "-q"], check=True)
+    relative = Path("specs/016-measure-learning-velocity/validation/qualify_continuation.py")
+    script = root / relative
+    script.parent.mkdir(parents=True)
+    api = runpy.run_path(str(Path(__file__).resolve().parents[2] / relative))
+    # A pinned, stdlib-only donor process exercises the exact CLI transport without a device.
+    source = Path(api["__file__"]).read_text()
+    script.write_text(
+        source.replace(
+            'if __name__ == "__main__":',
+            """
+def fixture(revision, minutes, mode, supplied, recovery):
+    assert (minutes, mode, supplied, recovery) == ("30", "initialization", None, [INITIAL_WORKER, INITIAL_GRANT])
+    print("private-fixture-error", file=sys.stderr)
+    return dict(scope=INITIALIZATION, candidate=INITIAL_WORKER, grant=INITIAL_GRANT, grant_minutes=30,
+                research_run_requested=False, scientific_verdict=None, errors={"qualification": "SystemExit"},
+                status="PARTIAL", files={"failure.json": dict(stage="package", mechanical_status="FAILED",
+                                                              elapsed_us=1, remaining_authority=1799999999)})
+main = fixture
+if __name__ == "__main__":""",
+        )
+    )
+    subprocess.run(["git", "add", str(relative)], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=fixture@example.org",
+            "-c",
+            "user.name=Fixture",
+            "commit",
+            "-qm",
+            "pinned reader",
+        ],
+        check=True,
+    )
+    subprocess.run(["git", "checkout", "--detach", "-q"], check=True)
+    current = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    api["resume_initialization"].__globals__["DONOR"] = current
+    prior = os.umask(0o077)
+    try:
+        assert api["resume_initialization"](current) == 1
+    finally:
+        os.umask(prior)
+    (directory,) = home.iterdir()
+    assert directory.stat().st_mode & 0o077 == 0
+    assert "private-fixture-error" in (directory / "operator.log").read_text()
+    assert (
+        api["verify_initialization_zip"](directory / "initialization.zip")["failure"]["elapsed_us"]
+        == 1
+    )
+    with zipfile.ZipFile(directory / "initialization.zip") as archive:
+        assert all(b"private-fixture-error" not in archive.read(p) for p in archive.namelist())
+
+
+@pytest.mark.parametrize("installed_before_failure", (False, True))
+def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(
+    tmp_path, monkeypatch, installed_before_failure
+):
     from oeis_learn.fresh.bigint_config import resolve
     from oeis_learn.fresh.bigint_diagnostics import model_snapshot
     from oeis_learn.generalization.progressive.models import construct, resolve_profile
@@ -164,7 +234,13 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(tmp_pat
     monkeypatch.setattr(host, "physical_scope", lambda *a, **kw: physical)
     monkeypatch.setattr(host.broad, "archive_size", lambda *_: 1024)
     monkeypatch.setattr(host, "cached_runtime", lambda *_: dict(image=image))
-    monkeypatch.setattr(host, "package_evidence", lambda *_: None)
+
+    def verify_package(root, area, runtime, binding):
+        # The verifier runs in a separate process, just as it does on the physical host.
+        if installed_before_failure and not (area / "first-error.json").exists():
+            raise ValueError("fixture reader stopped after installation")
+
+    monkeypatch.setattr(host, "package_evidence", verify_package)
     monkeypatch.setattr(controller, "candidate_revision", lambda *_: rev)
     monkeypatch.setattr(
         progressive_round028,
@@ -220,6 +296,15 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(tmp_pat
 
     def pack(root, source, area, out, revision, parent, source_hash, host, stage, seconds):
         calls.append("package")
+        if calls == ["package"] and not installed_before_failure:
+            child = out / "package"
+            child.mkdir()
+            (child / "stderr.log").write_text(
+                "private-canary\nOSError: [Errno 28] No space left on device"
+            )
+            atomic_write(child / "process.json", dict(returncode=1))
+            atomic_write(child / "cleanup.json", dict(acknowledged=True, within_bound=True))
+            raise RuntimeError("exit 1: " + str(child / "stderr.log"))
         wheel, bootstrap = out / "candidate.whl", out / "bootstrap.py"
         with zipfile.ZipFile(wheel, "w") as z:
             z.writestr("fixture.py", "pass")
@@ -283,7 +368,9 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(tmp_pat
 
     monkeypatch.setattr(host, "stage", stage)
 
-    def invoke(action, grant=None):
+    reader_source = tmp_path / "reader"
+
+    def invoke(action, grant=None, *, resume=None):
         return controller.execute(
             SimpleNamespace(
                 workspace=tmp_path,
@@ -291,9 +378,10 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(tmp_pat
                 authority=grant,
                 archive=None,
                 qualification_archive=None,
+                resume_initialization=resume,
                 free_disk_gib=0,
             ),
-            source,
+            reader_source if resume else source,
             host_factory=lambda *a, **kw: machine,
         )
 
@@ -306,36 +394,105 @@ def test_funded_zero_scope_freezes_all_trials_and_recovers_before_device(tmp_pat
 
     monkeypatch.setattr(freeze, "dispatch_space", blocked)
     first, code = invoke("qualify", grant_path)
-    assert code == 2 and first["deficit_inodes"] == 1 and calls == ["package"], json.dumps(first)
+    assert code == 1 and first["stage"] == "package" and calls == ["package"], first
+    api = runpy.run_path(
+        str(source / "specs/016-measure-learning-velocity/validation/qualify_continuation.py")
+    )
+    from oeis_learn.pipeline_validation import (
+        progressive_velocity_initialization_recovery as recovery,
+    )
+
+    authority = recovery.original_grant(tmp_path, rev, grant["identity"], 15)
+    with pytest.raises(ValueError):
+        recovery.original_grant(tmp_path, rev, grant["identity"], 30)
+    area = folder / "qualification" / grant["identity"][7:]
+    from oeis_learn.generalization.progressive.lifecycle import RunStore
+
+    with RunStore.owner(folder), pytest.raises(BlockingIOError):
+        recovery.history(area, grant)
+    history = recovery.history(area, grant)
+    assert history["elapsed_us"] == first["elapsed_us"]
+    assert history["operations"]["freeze_trials"]["receipt"]
+    failed = history["operations"]["package"]["attempts"]
+    assert len(failed) == 1
+    if not installed_before_failure:
+        assert failed[0]["process_exit"] == 1 and failed[0]["diagnosis"] == "storage_full"
+    assert "private-canary" not in json.dumps(history) and str(tmp_path) not in json.dumps(history)
+    assert not history["operations"]["measure"]["attempts"] and not captured.exists()
+
+    reader_rev = "c" * 40
+
+    def worker_source(root, reader, worker):
+        assert root == tmp_path and reader == reader_source and worker == rev
+        return source
+
+    monkeypatch.setattr(recovery, "worker_source", worker_source)
+
+    def action(name, grant=None):
+        result, code = invoke(name, grant, resume=rev if name in {"qualify", "verify"} else None)
+        if code:
+            raise SystemExit(json.dumps(result))
+        return result
+
+    monkeypatch.setattr(
+        freeze, "authorize", lambda *_: pytest.fail("original grant required on recovery")
+    )
+
+    def resume():
+        return api["donor_initialization"](
+            action, tmp_path, rev, 15, recovery=dict(reader=reader_rev, grant=grant["identity"])
+        )
+
+    partial = resume()
+    packages = ["package"] if installed_before_failure else ["package", "package"]
+    assert partial["status"] == "PARTIAL" and calls == packages
+    dest = tmp_path / "result.zip"
+    api["write_readiness_zip"](dest, partial)
+    checked = api["verify_initialization_zip"](dest, captured)
+    assert checked["prescore"] == freeze.read_member(captured, freeze.MEMBER)["identity"]
+    assert checked["failure"]["deficit_inodes"] == 1 and checked["recovery"]["before"] == history
+    assert checked["recovery"]["after"]["operations"]["package"]["receipt"]
+    assert (
+        bool(checked["recovery"]["after"]["operations"]["verify_paid_package"]["receipt"])
+        == installed_before_failure
+    )
     assert captured.is_file() and not (folder / "accepted.json").exists()
     before = captured.read_bytes()
     assert protected.encode() not in before and b"private-development" not in before
     monkeypatch.setattr(freeze, "dispatch_space", original_space)
 
-    def action(name, grant=None):
-        result, code = invoke(name, grant)
-        assert code == 0, json.dumps(result)
-        return result
-
-    paid_result = action("qualify", grant_path)
-    assert paid_result["charged_tokens"] == 0 and calls == ["package", "initialization"]
+    bundle = resume()
+    assert bundle["status"] == "COMPLETE", bundle
+    pre, post = (bundle["files"]["recovery.json"][k] for k in ("before", "after"))
+    assert pre == checked["recovery"]["after"] and post["operations"]["measure"]["receipt"]
+    assert post["elapsed_us"] > pre["elapsed_us"]
+    assert post["first_error"] == pre["first_error"] == history["first_error"]
+    paid_result = action("qualify", authority)
+    assert paid_result["charged_tokens"] == 0 and calls == packages + ["initialization"]
     assert (
         action("qualify", grant_path) == paid_result
         and action("qualify", grant_path) == paid_result
     )
-    api = runpy.run_path(
-        str(source / "specs/016-measure-learning-velocity/validation/qualify_continuation.py")
-    )
-    bundle = api["donor_initialization"](action, tmp_path, rev, 15)
-    assert bundle["status"] == "COMPLETE", bundle
-    dest = tmp_path / "result.zip"
     api["write_readiness_zip"](dest, bundle)
     assert api["verify_initialization_zip"](dest, captured)["restores"] == 2
+    import copy
+
+    altered_history = copy.deepcopy(bundle)
+    old_package = altered_history["files"]["recovery.json"]["before"]["operations"]["package"]
+    old_package["attempts"][0]["process_exit"] = 99
+    altered_file = tmp_path / "altered-history.zip"
+    api["write_readiness_zip"](altered_file, altered_history)
+    with pytest.raises(ValueError, match="settled initialization debit"):
+        api["verify_initialization_zip"](altered_file)
+    assert (
+        bundle["files"]["recovery.json"]["before"]["operations"]["package"]["attempts"][0]
+        == failed[0]
+    )
     other = tmp_path / "unrelated.zip"
     other.write_bytes(b"another pre-score package")
     with pytest.raises(ValueError, match="independently retained"):
         api["verify_initialization_zip"](dest, other)
-    assert before == captured.read_bytes() and calls == ["package", "initialization"]
+    assert before == captured.read_bytes() and calls == packages + ["initialization"]
     assert len(list((folder / "registrations").glob("*/trial-*.json"))) == 7
     assert not list((folder / "registrations").glob("*/look-*.json"))
     from oeis_learn.generalization.progressive import velocity_donation_report as public

@@ -22,6 +22,8 @@ CONDITIONING = "round029-paired-conditioning-prices/v1"
 BANK_PRICES = "round029-matched-bank-prices/v1"
 LAUNCH_PRICES = "round029-launch-preparation/v1"
 INITIALIZATION = "round029-ordinary-initialization/v1"
+INITIAL_WORKER = "3c954c15a93a3ba08264910a038efb926e38bfeb"
+INITIAL_GRANT = "sha256:a38310c4081a609e16f9014f249363653a126ec2896c860d4861eefb65484fa5"
 ZIP_SCOPES = {
     "initialization": INITIALIZATION,
     "readiness": "round029-readiness/v1",
@@ -4373,7 +4375,7 @@ def verify_launch_zip(path):
     )
 
 
-def donor_initialization(action, root, revision, minutes):
+def donor_initialization(action, root, revision, minutes, *, recovery=None):
     from oeis_learn.generalization.progressive.contracts import load
     from oeis_learn.pipeline_validation import progressive_velocity_prescore as prescore
     from oeis_learn.pipeline_validation.progressive_velocity_donation import retained_qualification
@@ -4390,7 +4392,28 @@ def donor_initialization(action, root, revision, minutes):
         errors={},
     )
     stage = "preflight"
+    area = grant = None
     try:
+        if recovery:
+            from oeis_learn.generalization.progressive.velocity_records import SESSION
+            from oeis_learn.pipeline_validation.identity import confined
+            from oeis_learn.pipeline_validation.progressive_velocity_initialization_recovery import (
+                history,
+                original_grant,
+            )
+
+            stage = "original-grant"
+            authority = original_grant(root, revision, recovery["grant"], minutes)
+            grant = load(authority)
+            report["grant"] = grant["identity"]
+            area = confined(
+                root, f"run-state/discovery/{SESSION}/qualification/" + grant["identity"][7:]
+            )
+            stage = "original-attempt"
+            files["recovery.json"] = dict(
+                reader=recovery["reader"], before=history(area, grant, private_log=True)
+            )
+            stage = "preflight"
         flight = action("preflight")["inventory"]
         if flight["gpu_dispatches"] or flight["assessment"] != "sealed":
             raise ValueError("invalid read-only launch inventory")
@@ -4399,9 +4422,10 @@ def donor_initialization(action, root, revision, minutes):
         if options["scopes"]["ordinary_initialization"]["tail_with_reserve_us"] is None:
             raise ValueError("paid initialization and follow-up prices required")
         stage = "qualification"
-        authority = prescore.authorize(root, revision, minutes)
-        grant = load(authority)
-        report["grant"] = grant["identity"]
+        if not recovery:
+            authority = prescore.authorize(root, revision, minutes)
+            grant = load(authority)
+            report["grant"] = grant["identity"]
         paid = action("qualify", authority)
         rec = paid["receipt"]
         if (
@@ -4417,12 +4441,6 @@ def donor_initialization(action, root, revision, minutes):
             and checked["verification_scope"] == "private_ordinary_initialization"
         ):
             raise ValueError("private closure differs from issued initialization")
-        raw = retained_qualification(root, grant).read_bytes()
-        if len(raw) > 1 << 20:
-            raise ValueError("bounded pre-score archive required")
-        files["prescore.json"] = dict(
-            sha256=hashlib.sha256(raw).hexdigest(), base64=base64.b64encode(raw).decode("ascii")
-        )
         from oeis_learn.generalization.progressive.velocity_donation_report import REPORT
         from oeis_learn.pipeline_validation.identity import confined
         from oeis_learn.pipeline_validation.progressive_velocity_verify import archive_result
@@ -4469,6 +4487,51 @@ def donor_initialization(action, root, revision, minutes):
                 )
             except (ValueError, TypeError):
                 pass
+    if "recovery.json" in files:
+        try:
+            files["recovery.json"]["after"] = history(
+                area, grant, private_log=report["status"] != "COMPLETE"
+            )
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            print(f"final grant inspection: {exc}", file=sys.stderr)
+            report["errors"]["final-grant"] = type(exc).__name__
+            report["status"] = "PARTIAL"
+    if grant and (
+        report["status"] == "COMPLETE"
+        or files.get("recovery.json", {})
+        .get("after", {})
+        .get("operations", {})
+        .get("publish_prescore", {})
+        .get("receipt")
+    ):
+        try:
+            from oeis_learn.generalization.progressive.velocity_donation_report import QUALIFICATION
+            from oeis_learn.generalization.progressive.velocity_records import SESSION
+            from oeis_learn.pipeline_validation.identity import confined
+
+            retained = retained_qualification(root, grant)
+            with retained.open("rb") as stream:
+                raw = stream.read((1 << 20) + 1)
+            if len(raw) > 1 << 20:
+                raise ValueError("bounded pre-score archive required")
+            share = confined(
+                root,
+                f"run-state/discovery/{SESSION}/qualification/{grant['identity'][7:]}/share/{QUALIFICATION}",
+            )
+            with share.open("rb") as stream:
+                if stream.read(len(raw) + 1) != raw:
+                    raise ValueError(
+                        "installed and independently retained pre-score archives differ"
+                    )
+            member = dict(
+                sha256=hashlib.sha256(raw).hexdigest(), base64=base64.b64encode(raw).decode("ascii")
+            )
+            initialization_prescore(member, None, report)
+            files["prescore.json"] = member
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError, zipfile.BadZipFile) as exc:
+            print(f"pre-score archive: {exc}", file=sys.stderr)
+            report["errors"]["prescore-copy"] = type(exc).__name__
+            report["status"] = "PARTIAL"
     return report
 
 
@@ -4511,8 +4574,13 @@ def initialization_margins(options):
         margins[name] = rows
         shortage = any(min(row["margin_bytes"], row["margin_inodes"]) < 0 for row in rows)
         fits = scope["fits"]
-        if (fits is not None and type(fits) is not bool
-                or (fits is False) != shortage or fits is True and not rows):
+        if (
+            fits is not None
+            and type(fits) is not bool
+            or (fits is False) != shortage
+            or fits is True
+            and not rows
+        ):
             raise ValueError("reported launch fit differs from physical demand")
         expected, tail = scope["expected_us"], scope["tail_us"]
         for price in (expected, tail, scope["tail_with_reserve_us"]):
@@ -4530,38 +4598,102 @@ def initialization_margins(options):
     return dict(next_scope=options["next_scope"], capacity=margins)
 
 
-def verify_initialization_zip(path, qualification=None):
-    summary, files = diagnostic_zip_members(path, INITIALIZATION)
-    if (
-        summary.get("research_run_requested") is not False
-        or summary.get("scientific_verdict") is not None
+def check_initialization_history(summary, member):
+    phases = ("freeze_trials", "package", "verify_paid_package", "publish_prescore", "measure")
+
+    def ref(value):
+        if not isinstance(value, str) or not re.fullmatch("sha256:[0-9a-f]{64}", value):
+            raise ValueError("original initialization evidence digest required")
+
+    def error(value):
+        if value is not None:
+            if set(value) != {"identity", "stage", "error", "diagnosis"}:
+                raise ValueError("invalid public first error")
+            ref(value["identity"])
+            if not all(
+                re.fullmatch("[A-Za-z_]{1,40}", value[k]) for k in ("stage", "error", "diagnosis")
+            ):
+                raise ValueError("invalid public error classification")
+
+    if set(member) not in ({"reader", "before"}, {"reader", "before", "after"}) or not re.fullmatch(
+        "[0-9a-f]{40}", member["reader"]
     ):
-        raise ValueError("expected an initialization-only diagnostic")
-    launch = initialization_margins(files["launch.json"]) if "launch.json" in files else {}
-    if summary["status"] != "COMPLETE":
-        if summary["status"] not in {"PARTIAL", "UNVERIFIED"} or not summary.get(
-            "errors", summary.get("checks")
+        raise ValueError("initialization recovery requires the original journal and pinned reader")
+    total = measurement(summary["grant_minutes"]) * 60_000_000
+    ref(summary["grant"])
+    for snapshot in (member[k] for k in ("before", "after") if k in member):
+        stages = snapshot["operations"]
+        if (
+            set(snapshot) != {"grant", "first_error", "operations", "elapsed_us", "remaining_us"}
+            or snapshot["grant"] != summary["grant"]
+            or set(stages) != set(phases)
         ):
-            raise ValueError("missing initialization failure disposition")
-        failure = files.get("failure.json", {})
-        if "elapsed_us" in failure or "remaining_authority" in failure:
-            if (not re.fullmatch("sha256:[a-f0-9]{64}", summary.get("grant", ""))
-                    or measurement(failure.get("elapsed_us")) + measurement(failure.get("remaining_authority"))
-                    != measurement(summary["grant_minutes"]) * 60_000_000):
-                raise ValueError("failed operation differs from its original grant balance")
-        return dict(
-            status=summary["status"],
-            errors=summary.get("errors", summary.get("checks")),
-            grant=summary.get("grant"),
-            failure=files.get("failure.json"),
-            **launch,
+            raise ValueError("original initialization journal scope differs")
+        error(snapshot["first_error"])
+        elapsed = 0
+        for state in stages.values():
+            if set(state) != {"attempts", "receipt", "first_error"} or len(state["attempts"]) > 2:
+                raise ValueError("invalid initialization operation history")
+            error(state["first_error"])
+            if state["receipt"] is not None:
+                ref(state["receipt"])
+                if not any(a["event"] == "COMMIT" for a in state["attempts"]):
+                    raise ValueError("original committed attempt required")
+            for i, a in enumerate(state["attempts"]):
+                if (
+                    set(a)
+                    != {
+                        "ordinal",
+                        "event",
+                        "charged_us",
+                        "process_exit",
+                        "diagnosis",
+                        "stderr_digest",
+                    }
+                    or measurement(a["ordinal"]) != i
+                    or a["event"] not in {"RESERVE", "COMMIT"}
+                    or a["process_exit"] is not None
+                    and type(a["process_exit"]) is not int
+                    or not re.fullmatch("[a-z_]{1,40}", a["diagnosis"])
+                ):
+                    raise ValueError("invalid initialization attempt or supervisor result")
+                if a["stderr_digest"] is not None:
+                    ref(a["stderr_digest"])
+                elapsed += measurement(a["charged_us"])
+        if elapsed != measurement(snapshot["elapsed_us"]) or total != elapsed + measurement(
+            snapshot["remaining_us"]
+        ):
+            raise ValueError("original operation debits differ from grant balance")
+    before, after = member["before"], member.get("after")
+    if after is None:
+        if summary["status"] == "COMPLETE" or "final-grant" not in summary["errors"]:
+            raise ValueError("final grant inspection missing")
+        return
+    if before["first_error"] and before["first_error"] != after["first_error"]:
+        raise ValueError("first initialization failure changed")
+    for phase in phases:
+        old, new = (row["operations"][phase] for row in (before, after))
+        if len(old["attempts"]) > len(new["attempts"]) or any(
+            old[k] and new[k] != old[k] for k in ("receipt", "first_error")
+        ):
+            raise ValueError("lost original initialization operation")
+        for a, b in zip(old["attempts"], new["attempts"]):
+            if a["event"] == "COMMIT" and a != b:
+                raise ValueError("original settled initialization debit changed")
+    if summary["status"] == "COMPLETE" and (
+        after["elapsed_us"] != summary["elapsed_us"]
+        or after["remaining_us"] != summary["remaining_us"]
+        or any(
+            (name != "verify_paid_package" or row["attempts"])
+            and not row["receipt"]
+            or any(a["event"] != "COMMIT" for a in row["attempts"])
+            for name, row in after["operations"].items()
         )
-    if (
-        set(files) != {"prescore.json", "cut.json", "verification.json", "launch.json"}
-        or summary["errors"]
     ):
-        raise ValueError("incomplete initialization archive")
-    copy = files["prescore.json"]
+        raise ValueError("completed recovery differs from its original grant and four receipts")
+
+
+def initialization_prescore(copy, qualification, summary):
     raw = base64.b64decode(copy["base64"], validate=True)
     member = "ordinary-initialization-qualification.json"
     if len(raw) > 1 << 20 or hashlib.sha256(raw).hexdigest() != copy["sha256"]:
@@ -4588,6 +4720,89 @@ def verify_initialization_zip(path, qualification=None):
         )
     if raw != canonical.getvalue():
         raise ValueError("alternate pre-score archive encoding")
+
+    encoded = json.dumps(
+        {k: v for k, v in q.items() if k != "identity"},
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode()
+    if (
+        q["identity"] != "sha256:" + hashlib.sha256(encoded).hexdigest()
+        or q["version"] != INITIALIZATION
+        or q["scope"] != "ordinary_initialization"
+        or q["candidate"] != summary["candidate"]
+        or q["grant"] != summary["grant"]
+        or measurement(q["target"]) != 0
+        or q["score_authority"] is not None
+        or measurement(q["total_us"]) != measurement(summary["grant_minutes"]) * 60_000_000
+    ):
+        raise ValueError("pre-score archive differs from the original initialization grant")
+    return q
+
+
+def verify_initialization_zip(path, qualification=None):
+    summary, files = diagnostic_zip_members(path, INITIALIZATION)
+    if (
+        summary.get("research_run_requested") is not False
+        or summary.get("scientific_verdict") is not None
+    ):
+        raise ValueError("expected an initialization-only diagnostic")
+    launch = initialization_margins(files["launch.json"]) if "launch.json" in files else {}
+    recovery = files.get("recovery.json")
+    if recovery is not None:
+        check_initialization_history(summary, recovery)
+    if summary["status"] != "COMPLETE":
+        if summary["status"] not in {"PARTIAL", "UNVERIFIED"} or not summary.get(
+            "errors", summary.get("checks")
+        ):
+            raise ValueError("missing initialization failure disposition")
+        failure = files.get("failure.json", {})
+        if "elapsed_us" in failure or "remaining_authority" in failure:
+            if (
+                not re.fullmatch("sha256:[a-f0-9]{64}", summary.get("grant", ""))
+                or measurement(failure.get("elapsed_us"))
+                + measurement(failure.get("remaining_authority"))
+                != measurement(summary["grant_minutes"]) * 60_000_000
+            ):
+                raise ValueError("failed operation differs from its original grant balance")
+            if (
+                recovery
+                and "after" in recovery
+                and recovery["after"]["elapsed_us"] != failure["elapsed_us"]
+            ):
+                raise ValueError("failed action disagrees with the original journal")
+        prescore = None
+        if "prescore.json" in files:
+            if recovery and not recovery.get("after", {}).get("operations", {}).get(
+                "publish_prescore", {}
+            ).get("receipt"):
+                raise ValueError(
+                    "the returned pre-score archive requires the original publication receipt"
+                )
+            prescore = initialization_prescore(files["prescore.json"], qualification, summary)[
+                "identity"
+            ]
+        elif qualification is not None:
+            raise ValueError(
+                "an independently retained pre-score archive requires a returned commitment"
+            )
+        return dict(
+            status=summary["status"],
+            errors=summary.get("errors", summary.get("checks")),
+            grant=summary.get("grant"),
+            failure=files.get("failure.json"),
+            **({"prescore": prescore} if prescore else {}),
+            **({"recovery": recovery} if recovery else {}),
+            **launch,
+        )
+    if (
+        set(files) - {"recovery.json"}
+        != {"prescore.json", "cut.json", "verification.json", "launch.json"}
+        or summary["errors"]
+    ):
+        raise ValueError("incomplete initialization archive")
+    q = initialization_prescore(files["prescore.json"], qualification, summary)
 
     def identity(value):
         return (
@@ -4707,7 +4922,7 @@ def main(revision, minutes, mode="donation", supplied=None, recover_grant=None):
     if recover_grant is not None:
         original, grant_ref = recover_grant
         if (
-            mode != "conditioning"
+            mode not in {"conditioning", "initialization"}
             or not re.fullmatch("[a-f0-9]{40}", original)
             or not re.fullmatch("sha256:[a-f0-9]{64}", grant_ref)
             or git("rev-parse", "--verify", revision + "^{commit}") != revision
@@ -4719,8 +4934,7 @@ def main(revision, minutes, mode="donation", supplied=None, recover_grant=None):
                 "Recovery requires the original worker commit, grant and its pinned descendant reader."
             )
         recovery = dict(reader=revision, grant=grant_ref)
-        # Every subprocess, image and read-only worker mount keeps the original
-        # revision. Only this host receipt reader comes from the repair commit.
+        # The worker, source mounts, grants and study bindings keep the original revision.
         revision = original
     if (
         git("rev-parse", "--show-toplevel") != str(root)
@@ -4734,22 +4948,42 @@ def main(revision, minutes, mode="donation", supplied=None, recover_grant=None):
         raise SystemExit(
             "Run from the physical root of the detached round027 donor with the candidate fetched."
         )
-    helper = subprocess.check_output(["git", "show", revision + ":" + CACHE_HELPER], cwd=root)
-    source = Path(
-        subprocess.check_output(
-            [sys.executable, "-I", "-S", "-B", "-", str(root), revision], input=helper, cwd=root
+
+    def materialize(commit):
+        helper = subprocess.check_output(["git", "show", commit + ":" + CACHE_HELPER], cwd=root)
+        return Path(
+            subprocess.check_output(
+                [sys.executable, "-I", "-S", "-B", "-", str(root), commit], input=helper, cwd=root
+            )
+            .decode()
+            .strip()
         )
-        .decode()
-        .strip()
-    )
-    sys.path.insert(0, str(source / "src"))
+
+    source = materialize(revision)
+    resume_init = recovery is not None and mode == "initialization"
+    reader = materialize(recovery["reader"]) if resume_init else source
+    sys.path.insert(0, str(reader / "src"))
     if mode == "review-children":
         return saved_children(root, source, revision, int(minutes))
+
     def action(name, *args, at=revision):
+        if resume_init and name in {"qualify", "verify"}:
+            return checked_json(
+                [
+                    "bash",
+                    str(reader / LAUNCHER),
+                    recovery["reader"],
+                    name,
+                    *map(str, args),
+                    revision,
+                ],
+                root,
+                name,
+            )
         return checked_json(["bash", str(source / LAUNCHER), at, name, *map(str, args)], root, name)
 
     if mode == "initialization":
-        return donor_initialization(action, root, revision, minutes)
+        return donor_initialization(action, root, revision, minutes, recovery=recovery)
     if mode == "launch-prices":
         return donor_launch_prices(action, root, revision, minutes, supplied)
     if mode == "isolated-controls":
@@ -5218,7 +5452,7 @@ def cli(argv):
     parser.add_argument("--from-result", type=Path, help="fresh-start JSON for readiness or the original conditioning ZIP for launch-prices")
     parser.add_argument("--bank-receipt", help="completed matched bank qualification receipt for conditioning")
     parser.add_argument("--recover-grant", nargs=2, metavar=("ORIGINAL_COMMIT","GRANT"),
-                        help="recheck paid conditioning searches and finish CPU scoring under their original grant")
+                        help="resume conditioning or ordinary initialization on its original grant and worker")
     parser.add_argument("--controls-receipt", help="original isolated control receipt identity for bank pricing")
     args = parser.parse_args(argv)
     from_file = args.mode in {"readiness", "launch-prices"}
@@ -5234,10 +5468,10 @@ def cli(argv):
             parser.error("conditioning requires --bank-receipt sha256:ORIGINAL_RECEIPT")
     elif args.bank_receipt is not None:
         parser.error("--bank-receipt is only valid with conditioning")
-    if args.recover_grant is not None and (args.mode != "conditioning"
+    if args.recover_grant is not None and (args.mode not in {"conditioning", "initialization"}
             or not re.fullmatch("[0-9a-f]{40}", args.recover_grant[0])
             or not re.fullmatch("sha256:[0-9a-f]{64}", args.recover_grant[1])):
-        parser.error("--recover-grant requires conditioning, a full original commit and a grant identity")
+        parser.error("--recover-grant requires conditioning or initialization, a full original commit and a grant identity")
     if args.mode == "bank-prices":
         if not re.fullmatch("sha256:[a-f0-9]{64}", args.controls_receipt or ""):
             parser.error("bank-prices requires --controls-receipt sha256:ORIGINAL_RECEIPT")
@@ -5253,6 +5487,8 @@ def cli(argv):
     elif args.mode == "bank-prices":
         request += (args.controls_receipt,)
     if args.recover_grant is not None:
+        if args.mode == "initialization":
+            request += (None,)
         request += (args.recover_grant,)
     if args.output is None:
         print(json.dumps(main(*request), indent=2))
@@ -5301,12 +5537,89 @@ def cli(argv):
         elif args.mode == "bank-prices":
             verify_bank_zip(out.name)
         elif args.mode == "initialization":
-            verify_initialization_zip(out.name)
+            try:
+                verify_initialization_zip(out.name)
+            except (KeyError, TypeError, ValueError, OSError, zipfile.BadZipFile) as exc:
+                print(f"initialization ZIP verification: {exc}", file=sys.stderr)
+                # Preserve each independently checkable diagnostic after a publication error.
+                available = report.get("files", {})
+                report.update(status="UNVERIFIED", files={}, errors=dict(
+                    report.get("errors", {}), publication=type(exc).__name__))
+                for member in ("launch.json", "recovery.json", "failure.json", "prescore.json"):
+                    if member not in available:
+                        continue
+                    report["files"][member] = available[member]
+                    probe = io.BytesIO()
+                    write_readiness_zip(probe, report)
+                    try:
+                        verify_initialization_zip(probe)
+                    except (KeyError, TypeError, ValueError, OSError, zipfile.BadZipFile):
+                        del report["files"][member]
+                out.seek(0)
+                out.truncate()
+                write_readiness_zip(out, report)
+                out.flush()
+                os.fsync(out.fileno())
+                verify_initialization_zip(out.name)
+                code = 1
         elif args.mode == "launch-prices":
             verify_launch_zip(out.name)
         os.link(out.name, args.output)
     print(f"Saved {args.output.resolve()}", file=sys.stderr)
     return code
+
+
+def resume_initialization(revision):
+    """One donor handoff for the returned 30-minute grant, including a private terminal log."""
+    if not re.fullmatch("[a-f0-9]{40}", revision):
+        raise SystemExit("Supply the full recovery reader commit.")
+    root = Path.cwd().resolve()
+    operator = "specs/016-measure-learning-velocity/validation/qualify_continuation.py"
+    if (
+        subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip()
+        != str(root)
+        or subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip() != DONOR
+        or subprocess.run(
+            ["git", "symbolic-ref", "-q", "HEAD"], stdout=subprocess.DEVNULL
+        ).returncode
+        != 1
+    ):
+        raise SystemExit("Run at the physical root of the detached round027 donor.")
+    script = subprocess.check_output(["git", "show", revision + ":" + operator], cwd=root)
+    os.umask(0o077)
+    directory = Path(tempfile.mkdtemp(prefix="round029-init-recovery-", dir=Path.home()))
+    reader = directory / "reader.py"
+    reader.write_bytes(script)
+    result, log = directory / "initialization.zip", directory / "operator.log"
+    print(f"Private terminal output: {log}", file=sys.stderr, flush=True)
+    with log.open("xb") as stream:
+        proc = subprocess.run(
+            [
+                sys.executable,
+                "-I",
+                "-S",
+                "-B",
+                str(reader),
+                revision,
+                "30",
+                "initialization",
+                "--recover-grant",
+                INITIAL_WORKER,
+                INITIAL_GRANT,
+                "--output",
+                str(result),
+            ],
+            cwd=root,
+            stdout=stream,
+            stderr=subprocess.STDOUT,
+        )
+    if not result.is_file():
+        raise SystemExit(
+            f"Recovery exited {proc.returncode} before publishing the ZIP. Inspect {log}"
+        )
+    checked = verify_initialization_zip(result)
+    print(f"{checked['status']}. Return {result}", file=sys.stderr, flush=True)
+    return proc.returncode
 
 
 def review_launch(revision, minutes):
@@ -5386,7 +5699,9 @@ def review_launch(revision, minutes):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 4 and sys.argv[1] == "--review-launch":
+    if len(sys.argv) == 3 and sys.argv[1] == "--resume-initialization":
+        sys.exit(resume_initialization(sys.argv[2]))
+    elif len(sys.argv) == 4 and sys.argv[1] == "--review-launch":
         sys.exit(review_launch(*sys.argv[2:]))
     elif len(sys.argv) in (3, 4) and sys.argv[1] == "--verify-initialization-zip":
         print(json.dumps(verify_initialization_zip(*sys.argv[2:]), indent=2))

@@ -352,6 +352,9 @@ def inspect_status(folder):
 def execute(args, source, *, host_factory=None):
     action = args.action
     try:
+        original = getattr(args, "resume_initialization", None)
+        if original and (action not in {"qualify", "verify"} or not args.workspace or args.archive):
+            raise ValueError("initialization recovery requires the physical qualification or private verifier")
         funded = action in {"qualify", "run", "cpu"}
         if bool(args.authority) != funded:
             raise ValueError("only qualify, cpu and run require an operator grant")
@@ -372,6 +375,10 @@ def execute(args, source, *, host_factory=None):
         if not root.is_absolute() or root != root.resolve(strict=True):
             raise ValueError("absolute physical donor workspace required")
         folder = confined(root, "run-state/discovery/" + SESSION, exists=False)
+        if original:
+            from . import progressive_velocity_initialization_recovery as recovery
+
+            source = recovery.worker_source(root, source, original)
         if action == "preflight":
             return preflight(root, source, free_disk_gib=getattr(args, "free_disk_gib", 5)), 0
         if action == "status":
@@ -435,6 +442,9 @@ def execute(args, source, *, host_factory=None):
                         fresh = claimed == broad.parent(revision, broad.original_pointers(root, folder, fresh=True))
             except FileNotFoundError:
                 pass
+        if original and (not initialize or revision != original
+                         or load(confined(folder, "qualification/" + grant["identity"][7:] + "/grant.json")) != grant):
+            raise ValueError("original funded initialization and worker required for recovery")
         parent = None
         if action == "qualify":
             parent = (
