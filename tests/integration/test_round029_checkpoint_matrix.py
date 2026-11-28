@@ -467,6 +467,10 @@ def test_one_grant_preserves_other_methods_and_replays_six_cpu_roles(tmp_path, m
     assert full["files"]["forecast.json"]["measured_control_projection"]["missing"] == [
         "paired_conditioning_sample"
     ]
+    previous = (tmp_path, folder, full["receipt"], wave, inputs, runtime, digest("fixture qualification machine"))
+    assert api["reopen_control_costs"](*previous) == full["files"]["forecast.json"]["measured_control_projection"]
+    with pytest.raises(ValueError, match="original isolated control receipt"):
+        api["reopen_control_costs"](tmp_path, folder, digest("different grant"), *previous[3:])
     again = api["isolated_control_matrix"](*args)
     assert (
         len(calls) == 7

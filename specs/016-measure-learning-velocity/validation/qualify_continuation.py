@@ -16,8 +16,10 @@ import zipfile
 DONOR = "77667e67176ae32fa16457d52565bae1dbe41afc"
 CACHE_HELPER = "specs/015-learned-program-search/validation/candidate_source.py"
 LAUNCHER = "specs/016-measure-learning-velocity/validation/launch-round029.sh"
+BANK_PRICES = "round029-matched-bank-prices/v1"
 ZIP_SCOPES = {"readiness": "round029-readiness/v1", "checkpoints": "checkpoint_matrix",
-              "control-history": "round029-control-history/v1", "isolated-controls": "round029-isolated-control-prices/v1"}
+              "control-history": "round029-control-history/v1", "isolated-controls": "round029-isolated-control-prices/v1",
+              "bank-prices": BANK_PRICES}
 MODES = ("donation", "children", "review-children", "supply", "timings", "broader", "fresh-start", *ZIP_SCOPES)
 
 
@@ -806,6 +808,270 @@ CONTROL_METHODS = ("template", "polynomial", "linear_recurrence")
 ISOLATED_CONTROLS = "round029-isolated-control-prices/v1"
 
 
+BANK_SCORES = "round029-exposed-bank-scores/v1"
+
+
+def original_bank_rows(
+    rows, prompts, truths, gen, scores, parent, profile, case_us, released_cells
+):
+    """Freeze the original admitted identities and selections before opening a new scoring role."""
+    from oeis_learn.generalization.progressive.contracts import digest
+    from oeis_learn.generalization.progressive.program_search_bank import (
+        checked_bank,
+        selected_source,
+    )
+    from oeis_learn.pipeline_validation.pilot_clocks import CORRECT_FULL, DESCRIPTIVE
+    from oeis_learn.pipeline_validation.progressive_timing_worker import observations
+
+    members = {r["task"]: r["stratum"] for r in rows}
+    policy = DESCRIPTIVE if profile == "one" else CORRECT_FULL
+    if observations(gen, scores, members, case_us, parent, policy) != released_cells:
+        raise ValueError("private choices and scorer clocks differ from the released timing cells")
+    if gen["prompts"] != digest(sorted(prompts, key=lambda p: p["id"])):
+        raise ValueError("historical search used a different visible panel")
+    clocks = {c["prompt"]: c for c in gen["clock"]["clocks"]}
+    result = []
+    for row, prompt, truth in zip(rows, prompts, truths, strict=True):
+        key = row["task"]
+        if (
+            key != prompt["id"]
+            or key != truth["id"]
+            or any(
+                truth[k][:20] != prompt[k] or len(truth[k]) != 100 for k in ("indices", "values")
+            )
+        ):
+            raise ValueError("original scoring recipient differs")
+        rec = gen["records"][key]
+        score = scores["outcomes"][key]["equal_budget"]
+        portfolio = rec["costs"]["correct"]
+        envelope = rec["selections"]["equal_budget"]
+        if (
+            portfolio["equal_budget"] != envelope
+            or score["upstream"] != rec["arm_evidence"]["equal_budget"]
+        ):
+            raise ValueError("original choice differs from its sealed score")
+        selected = selected_source(envelope, score, prompt)
+        candidates, missing, gap = checked_bank(portfolio, selected)
+        details = portfolio["details"]
+        if [d["position"] for d in details] != list(range(len(details))):
+            raise ValueError("original attempt ordinals differ")
+        origins = {}
+        for detail in details:
+            fitting = detail["fitting"]
+            for admission in fitting.get("admission", []):
+                if admission["outcome"] == "verified_solution":
+                    sha = admission["source_sha256"]
+                    completed = fitting.get("clock", {}).get("completed")
+                    elapsed = (
+                        None
+                        if completed is None
+                        else microseconds(completed - clocks[key]["start"])
+                    )
+                    origins.setdefault(sha, {})[detail["position"]] = elapsed
+        programs = []
+        for candidate in candidates:
+            sha = candidate["source_sha256"]
+            attempts = origins.get(sha, {})
+            first = min(attempts) if attempts else None
+            if first is None:
+                if gap is None:
+                    raise ValueError("eligible source has no original admission")
+                continue
+            programs.append(
+                dict(
+                    source=candidate["source"],
+                    sha256=sha,
+                    ordinals=sorted(attempts),
+                    fit_completed_us=attempts.get(first),
+                )
+            )
+        original = score["scoring"]["outcome"]
+        verdict = {"success": "solve", "continuation_mismatch": "miss"}.get(original)
+        result.append(
+            dict(
+                id=key,
+                stratum=row["stratum"],
+                truth=truth,
+                programs=programs,
+                gap=gap,
+                absent_sources=len(missing),
+                issued=len(details),
+                expected=clocks[key]["expected"],
+                search_complete=portfolio["complete"],
+                selected=selected["source_sha256"] if selected else None,
+                selected_verdict=verdict,
+            )
+        )
+    return dict(rows=result)
+
+
+def score_banks(work, request, data, client, *, reference=None):
+    import time
+    from oeis_learn.generalization.progressive.contracts import (
+        atomic_write,
+        digest,
+        reference as artifact,
+        seal,
+    )
+    from oeis_learn.synthesis.admission import source_identity
+    from oeis_learn.synthesis.reference import evaluate
+
+    evaluate_reference = reference or evaluate
+
+    def execution(outcome, values):
+        values = list(values)
+        return dict(
+            outcome=outcome, count=len(values), values=digest(values), prefix=digest(values[:20])
+        )
+
+    if request["data"] != digest(data):
+        raise ValueError("sealed scoring input changed")
+    cases = {}
+    for row in data["rows"]:
+        began = time.monotonic_ns()
+        values = {}
+        truth = row["truth"]
+        if row["id"] in cases or truth["id"] != row["id"] or len(truth["indices"]) != 100:
+            raise ValueError("duplicate or incomplete scoring recipient")
+        for candidate in row["programs"]:
+            sha, source = candidate["sha256"], candidate["source"]
+            if sha in values or source_identity(source) != sha:
+                raise ValueError("duplicate or substituted admitted source")
+            native = client.execute(source, truth["indices"], deadline=time.monotonic() + 30)
+            independent = evaluate_reference(
+                source, truth["indices"], client.limits, deadline=time.monotonic() + 30
+            )
+            values[sha] = dict(
+                native=execution(native["outcome"], native.get("values", [])),
+                reference=execution(independent.outcome, independent.values),
+            )
+        cases[row["id"]] = dict(programs=values, elapsed_us=(time.monotonic_ns() - began) // 1000)
+    out = work / "output/bank/scores.json"
+    atomic_write(out, seal(dict(version=BANK_SCORES, request=request["identity"], cases=cases)))
+    return dict(artifact=artifact(work / "output", out))
+
+
+def bank_cost_cells(request, data, scores):
+    """Independently reduce two executions on the original truth, with unknown bounds."""
+    from oeis_learn.generalization.progressive.cohorts import STRATA
+    from oeis_learn.generalization.progressive.contracts import digest, seal
+
+    if (
+        request["data"] != digest(data)
+        or scores != seal(scores)
+        or scores["version"] != BANK_SCORES
+        or scores["request"] != request["identity"]
+        or len(data["rows"]) != 8
+        or set(scores["cases"]) != {r["id"] for r in data["rows"]}
+    ):
+        raise ValueError("bank scorer evidence differs from its frozen panel")
+    fields = (
+        "cases",
+        "issued",
+        "programs",
+        "empty",
+        "unresolved",
+        "any_solve",
+        "passed_over",
+        "short_rosters",
+        "incomplete_search",
+        "missing_sources",
+        "scoring_us",
+        "max_us",
+    )
+    cells = {s: dict.fromkeys(fields, 0) for s in STRATA}
+    for row in data["rows"]:
+        case = scores["cases"][row["id"]]
+        elapsed = case["elapsed_us"]
+        programs = case["programs"]
+        if (
+            type(elapsed) is not int
+            or elapsed < 0
+            or programs.keys() != {p["sha256"] for p in row["programs"]}
+            or len(programs) != len(row["programs"])
+        ):
+            raise ValueError("scored program roster or charge differs")
+        truth = row["truth"]["values"]
+        verdicts = {}
+        for sha, result in programs.items():
+            verdicts[sha] = None
+            pair = [result[k] for k in ("native", "reference")]
+            for evidence in pair:
+                if (
+                    type(evidence["count"]) is not int
+                    or not 0 <= evidence["count"] <= 100
+                    or any(
+                        not re.fullmatch("sha256:[a-f0-9]{64}", evidence[k])
+                        for k in ("values", "prefix")
+                    )
+                ):
+                    raise ValueError("invalid execution evidence")
+            if all(e["outcome"] == "ok" and e["count"] == 100 for e in pair):
+                first, other = pair
+                if first != other or first["prefix"] != digest(truth[:20]):
+                    raise ValueError(
+                        "independent executions or original visible admission disagree"
+                    )
+                verdicts[sha] = "solve" if first["values"] == digest(truth) else "miss"
+        chosen = verdicts.get(row["selected"])
+        if chosen and row["selected_verdict"] and chosen != row["selected_verdict"]:
+            raise ValueError("original sealed selection outcome differs")
+        found = "solve" in verdicts.values()
+        c = cells[row["stratum"]]
+        c["cases"] += 1
+        c["issued"] += row["issued"]
+        c["short_rosters"] += int(row["issued"] < row["expected"])
+        c["incomplete_search"] += int(not row["search_complete"])
+        c["programs"] += len(programs)
+        c["empty"] += int(not programs and row["gap"] is None)
+        c["unresolved"] += int(row["gap"] is not None or None in verdicts.values())
+        c["missing_sources"] += row["absent_sources"]
+        c["any_solve"] += int(found)
+        c["passed_over"] += int(found and (chosen == "miss" or row["selected"] is None))
+        c["scoring_us"] += elapsed
+        c["max_us"] = max(c["max_us"], elapsed)
+    if any(c["cases"] != 2 for c in cells.values()):
+        raise ValueError("two exposed families per stratum required")
+    return cells
+
+
+def bank_sample_forecast(results, controls):
+    from oeis_learn.generalization.progressive.program_search_timing import BLOCKS
+
+    sample = dict(
+        known_wave=controls,
+        observed_sample_us=sum(r["elapsed_us"] for r in results.values()),
+        nonempty_program_counts={
+            k: sum(c["programs"] for c in r["cells"].values()) for k, r in results.items()
+        },
+        matched_sample_expected_us=None,
+        matched_sample_tail_us=None,
+        full_wave_us=None,
+        basis="eight matched cases twice per learner, at one and eight attempts, and once for full D; "
+        "ordinary prices 00 and first-divergence is the cost proxy for 04/05/06",
+    )
+    if set(results) != set(BLOCKS):
+        return sample
+    expected = tail = 0
+    overheads = {}
+    for name, r in results.items():
+        cells = r["cells"].values()
+        if any(c["unresolved"] for c in cells):
+            return sample
+        overheads[name] = r["elapsed_us"] - sum(c["scoring_us"] for c in cells)
+        if overheads[name] < 0:
+            raise ValueError("bank role shorter than its constituent clocks")
+    if not any(c["programs"] for r in results.values() for c in r["cells"].values()):
+        return sample
+    for name, r in results.items():
+        count = 3 if name.startswith("first_divergence-") else 1
+        expected += count * r["elapsed_us"]
+        tail += count * (
+            max(overheads.values()) + sum(c["cases"] * c["max_us"] for c in r["cells"].values())
+        )
+    return dict(sample, matched_sample_expected_us=expected, matched_sample_tail_us=tail)
+
+
 def control_role(work, request, data, client):
     """Execute one installed role with only its own input projection."""
     from oeis_learn.generalization.progressive.cohorts import validate_prompt
@@ -887,7 +1153,7 @@ def isolated_control_worker(wheel_name, expected_hash, expected_source):
         )
         sys.path.insert(0, tmp)
         from oeis_learn.experiments import source_snapshot as provenance
-        from oeis_learn.generalization.progressive.contracts import atomic_write, digest, load, seal
+        from oeis_learn.generalization.progressive.contracts import CAMPAIGN_DOCUMENT_BYTES, atomic_write, digest, load, seal
         from oeis_learn.synthesis.client import SynthesisClient
 
         if (
@@ -896,10 +1162,10 @@ def isolated_control_worker(wheel_name, expected_hash, expected_source):
         ):
             raise ValueError("installed application differs from its funded source")
         request = load(work / "inputs/request.json")
-        data = load(work / "inputs/data.json")
+        data = load(work / "inputs/data.json", maximum=CAMPAIGN_DOCUMENT_BYTES)
         if (
             request != seal(request)
-            or request["version"] != ISOLATED_CONTROLS
+            or request["version"] not in (ISOLATED_CONTROLS, BANK_PRICES)
             or request["data"] != digest(data)
             or request["image"] != os.environ["OEIS_QUALIFICATION_IMAGE"]
             or request["source"] != expected_source
@@ -908,9 +1174,12 @@ def isolated_control_worker(wheel_name, expected_hash, expected_source):
         ):
             raise ValueError("isolated control request differs from its binding")
         began = time.monotonic_ns()
-        with SynthesisClient(digest([ISOLATED_CONTROLS, request["identity"]])) as client:
+        with SynthesisClient(digest([request["version"], request["identity"]])) as client:
             native = client.runtime_identity("bigint-body/v1")
-            result = control_role(work, request, data, client)
+            if request["version"] == BANK_PRICES and request["phase"] == "bank_score":
+                result = score_banks(work, request, data, client)
+            else:
+                result = control_role(work, request, data, client)
         atomic_write(
             work / "output/producer.json",
             seal(
@@ -1200,14 +1469,15 @@ def run_control_stage(
     from oeis_learn.generalization.progressive.budgets import BudgetJournal
 
     phase, method = request["phase"], request["method"]
+    bank = request["version"] == BANK_PRICES
     coords = dict(
         study=grant["identity"],
         stage="qualification",
         method=method,
         seed=29,
-        look=4_000_000,
+        look=0 if bank else 4_000_000,
         panel="exposed_development",
-        profile="full",
+        profile=method.split("-")[-1] if bank else "full",
         input_mode="true",
         role=phase,
         ordinal=0,
@@ -1296,15 +1566,16 @@ def run_control_stage(
             or not 0 < producer["worker_us"] <= dispatch["elapsed_us"]
         ):
             raise ValueError("original CPU confinement, producer or supervision clock differs")
-        name = "generated/candidates.json" if phase == "search" else "scored/scores.json"
+        if bank:
+            name, version = "bank/scores.json", BANK_SCORES
+        elif phase == "search":
+            name, version = "generated/candidates.json", "discovery-candidates/v1"
+        else:
+            name, version = "scored/scores.json", "discovery-scoring/v1"
         ref = producer["artifact"]
         if ref["path"] != name or ref["bytes"] > CAMPAIGN_DOCUMENT_BYTES:
             raise ValueError("unexpected isolated control artifact")
-        value = read_bound_record(
-            out,
-            ref,
-            version="discovery-candidates/v1" if phase == "search" else "discovery-scoring/v1",
-        )
+        value = read_bound_record(out, ref, version=version)
         return seal(
             dict(
                 artifact=ref,
@@ -1595,7 +1866,400 @@ def isolated_control_matrix(
     return report
 
 
-def donor_isolated_controls(action, root, source, revision, minutes):
+def paid_bank_boundary(root, rows):
+    """Anchor the private file index to the independently published round028 workstation."""
+    import io
+    from oeis_learn.generalization.progressive.campaign import velocity_policy
+    from oeis_learn.generalization.progressive.contracts import load, read_bound_record, seal
+    from oeis_learn.generalization.progressive.program_search_timing import BLOCKS, PANEL
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_round028_audit import SESSION as historical
+    from oeis_learn.pipeline_validation.progressive_round028_pilot import PARENT_WORKSTATION
+    from oeis_learn.pipeline_validation.progressive_round028_timing import AREA
+    from oeis_learn.pipeline_validation.progressive_velocity_donor import _archives
+
+    paths, _ = _archives(root, velocity_policy())
+    with zipfile.ZipFile(paths["pilot"]) as pilot:
+        with zipfile.ZipFile(io.BytesIO(pilot.read("round028-parent.zip"))) as parent:
+            workstation = json.loads(parent.read("workstation.json"))
+    folder = confined(root, historical)
+    area = confined(folder, AREA)
+    closure = load(confined(folder, "private/terminal/closure.json"))
+    replay = closure["replay"]
+    cut = load(confined(area, "boundary.json"))
+    if (
+        workstation != seal(workstation)
+        or workstation["identity"] != PARENT_WORKSTATION
+        or closure != seal(closure)
+        or replay != seal(replay)
+        or workstation["private_replay"] != replay["identity"]
+        or replay["timing_boundary"] != cut["identity"]
+        or cut != seal(cut)
+        or cut["panel"] != PANEL
+        or replay["portfolios"] != 40
+    ):
+        raise ValueError(
+            "historical bank file index differs from the independently verified terminal receipt"
+        )
+    reg = read_bound_record(area, cut["registration"], identity=replay["registration"])
+    if (
+        reg["roster"] != rows
+        or reg["blocks"] != list(BLOCKS)
+        or reg["panel"] != PANEL
+        or reg["scope"] != "previously_exposed_timing_only"
+        or reg["attempts"] != {"one": 1, "full": 8}
+    ):
+        raise ValueError("historical timing roster or attempt policy differs")
+    index = {f["path"]: f for f in cut["files"]}
+    if len(index) != len(cut["files"]):
+        raise ValueError("repeated path in the historical timing closure")
+    public = read_bound_record(area, cut["public"], identity=replay["timing"])
+    if public["registration"] != reg["identity"]:
+        raise ValueError("released clocks belong to another timing registration")
+    return area, reg["identity"], cut["identity"], index, public["blocks"]
+
+
+def paid_bank_inputs(area, registration, index, name, rows, prompts, truths, released):
+    """All opened files must be exact members of the previously committed role chain."""
+    from oeis_learn.generalization.progressive.contracts import read_bound_record
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_round028_receipts import sealed
+
+    results, refs = {}, {}
+    case_us = None
+    for role, label, expected, version, channel in (
+        ("search", "candidates", "generation/candidates.json", "discovery-candidates/v1", prompts),
+        ("score", "scores", "scored/scores.json", "discovery-scoring/v1", truths),
+    ):
+        # The assignment is only a locator. Every projected byte is authenticated by the original cut.
+        assignment = sealed(confined(area, "assignments/" + name + "-" + role + ".json"))
+        folder = Path("roles", assignment["request"][7:])
+
+        def at(path, **kwargs):
+            return read_bound_record(area, index[str(folder / path)], **kwargs)
+
+        request = at("request.json", identity=assignment["request"])
+        data = at("data.json", identity=request["data"])
+        boundary = at("boundary.json")
+        if (
+            request["registration"] != registration
+            or request["role"] != role
+            or data["block"] != name
+            or data["rows"] != channel
+            or boundary["request"] != request["identity"]
+        ):
+            raise ValueError("timing block, assignment, or frozen recipient differs")
+        producer_path = Path(boundary["producer"]["path"])
+        producer = at(producer_path, version="round028-timing-output/v1")
+        ref = producer["result"][label]
+        rel = folder / producer_path.parent / expected
+        if (
+            producer["request"] != request["identity"]
+            or ref["path"] != expected
+            or dict(ref, path=str(rel)) != index[str(rel)]
+        ):
+            raise ValueError("saved worker output differs from its private file reference")
+        if role == "score" and data["candidates"]["sha256"] != refs["search"]:
+            raise ValueError("original scorer did not mount this exact choice")
+        results[role] = read_bound_record(area, index[str(rel)], version=version)
+        refs[role] = ref["sha256"]
+        if role == "search":
+            case_us = producer["result"]["case_us"]
+    return original_bank_rows(
+        rows,
+        prompts,
+        truths,
+        results["search"],
+        results["score"],
+        refs["search"],
+        name.split("-")[-1],
+        case_us,
+        released["cells"],
+    ), refs
+
+
+def reopen_control_costs(root, folder, receipt_id, wave, panel, runtime, machine):
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.generalization.progressive.contracts import digest, load, seal
+    from oeis_learn.generalization.progressive.velocity_records import (
+        operation_key,
+        physical_root_id,
+        validate_grant,
+    )
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.progressive_velocity_operations import operation_receipt
+
+    def saved(base, rel):
+        obj = load(confined(base, rel))
+        if obj != seal(obj):
+            raise ValueError("original CPU control receipt is not sealed")
+        return obj
+
+    if not re.fullmatch("sha256:[a-f0-9]{64}", receipt_id):
+        raise ValueError("full original isolated control receipt required")
+    parent = confined(folder, "preparation/isolated-control-prices")
+    matches = []
+    for path in parent.glob("*/receipt.json"):
+        rec = saved(parent, path)
+        if rec["identity"] == receipt_id:
+            matches.append((path.parent, rec))
+    if len(matches) != 1:
+        raise ValueError("original isolated control receipt missing or duplicated")
+    area, receipt = matches[0]
+    plan, grant = (saved(area, n + ".json") for n in ("plan", "grant"))
+    auth = saved(
+        root, "run-state/discovery-authorizations/" + grant["authorizing_record_ref"][7:] + ".json"
+    )
+    validate_grant(
+        grant, auth, root=physical_root_id(root), parent=plan["identity"], action="qualify"
+    )
+    rows, visible, truth, recipe, timing = panel
+    binding = dict(
+        version=ISOLATED_CONTROLS,
+        checkpoint=wave["checkpoint_receipt"],
+        roster=digest(rows),
+        visible=digest(visible),
+        truth=digest(truth),
+        recipe=digest(recipe),
+        timing=timing,
+        machine=machine,
+        methods=list(CONTROL_METHODS),
+        mode="exposed_costs_only",
+        **select_fields(runtime, "wheel", "source", "image"),
+    )
+    snapshot = BudgetJournal.inspect_existing(
+        area / "accounting", grant["identity"], grant["resources"]
+    )
+    if (
+        any(plan[k] != v for k, v in binding.items())
+        or receipt["plan"] != plan["identity"]
+        or receipt["grant"] != grant["identity"]
+        or area.name != grant["identity"][7:]
+        or snapshot["pending"]
+        or receipt["charged"] != snapshot["consumed"]
+        or set(receipt["controls"]) != set(CONTROL_METHODS)
+    ):
+        raise ValueError("closed original control grant or current pricing operands differ")
+    results = {}
+    for method in CONTROL_METHODS:
+        row = saved(area, method + ".json")
+        if row["identity"] != receipt["controls"][method] or row["method"] != method:
+            raise ValueError("different original control costs")
+        for phase in ("search", "score"):
+            coords = dict(
+                study=grant["identity"],
+                stage="qualification",
+                method=method,
+                seed=29,
+                look=4_000_000,
+                panel="exposed_development",
+                profile="full",
+                input_mode="true",
+                role=phase,
+                ordinal=0,
+            )
+            logical = operation_key(coords, 0)["logical"]
+            op = saved(area, "operations/" + logical[7:] + "/receipt.json")
+            req = saved(area, f"inputs/{method}/{phase}/request.json")
+            if (
+                op["identity"] != row[phase]
+                or req["plan"] != plan["identity"]
+                or op != operation_receipt(coords, req, grant, op["attempt"], op["evidence"])
+                or f"{logical}/dispatch/{op['attempt']}" not in snapshot["committed"]
+                or op["evidence"]["elapsed_us"] != row[phase + "_elapsed_us"]
+            ):
+                raise ValueError("previously paid role receipt or debit differs")
+        results[method] = row
+    return control_cost_forecast(results, wave)
+
+
+def bank_price_matrix(
+    root, source, folder, revision, minutes, runtime, panel, wave, host, stage, previous
+):
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal
+    from oeis_learn.generalization.progressive.contracts import digest, load, seal
+    from oeis_learn.generalization.progressive.program_search_timing import BLOCKS
+    from oeis_learn.generalization.progressive.velocity_records import (
+        physical_root_id,
+        validate_grant,
+    )
+    from oeis_learn.pipeline_validation.identity import confined
+    from oeis_learn.pipeline_validation.preparation_recovery import retain
+    from oeis_learn.pipeline_validation.progressive_round028_rehearsal import physical_scope
+    from oeis_learn.pipeline_validation.progressive_velocity_qualification import (
+        authorize_qualification,
+    )
+
+    rows, prompts, truths, _, _ = panel
+    machine = physical_scope(host, "cpu", machine=True)
+    results, errors, batches, files = {}, {}, {}, {}
+    report = dict(
+        candidate=revision,
+        scope=BANK_PRICES,
+        grant_minutes=int(minutes),
+        grant=None,
+        elapsed_us=0,
+        files=files,
+        errors=errors,
+        gpu_dispatches=0,
+        research_run_requested=False,
+        scientific_verdict=None,
+    )
+    step = "paid-controls"
+    try:
+        controls = reopen_control_costs(root, folder, previous, wave, panel, runtime, machine)
+        files["paid-controls.json"] = dict(receipt=previous, projection=controls)
+        files["forecast.json"] = bank_sample_forecast(results, controls)
+        step = "original-bank-index"
+        original, registration, cut, index, released = paid_bank_boundary(root, rows)
+    except (KeyError, ValueError, TypeError, OSError) as exc:
+        print(f"{step}: {exc}", file=sys.stderr)
+        return dict(report, status="BLOCKED", stage=step, error=type(exc).__name__)
+    plan = seal(
+        dict(
+            version=BANK_PRICES,
+            candidate=revision,
+            original=cut,
+            timing=registration,
+            blocks=list(BLOCKS),
+            controls=previous,
+            checkpoint=wave["checkpoint_receipt"],
+            visible=digest(prompts),
+            truth=digest(truths),
+            machine=machine,
+            **select_fields(runtime, "wheel", "source", "image"),
+        )
+    )
+    for name in BLOCKS:
+        try:
+            batches[name] = paid_bank_inputs(
+                original, registration, index, name, rows, prompts, truths, released[name]
+            )
+        except (KeyError, ValueError, TypeError, OSError) as exc:
+            errors[name] = dict(phase="original-bank", error=type(exc).__name__)
+            print(f"{name} original bank: {exc}", file=sys.stderr)
+    if not batches:
+        files["forecast.json"] = bank_sample_forecast(results, controls)
+        return dict(report, status="BLOCKED", stage="original-banks")
+    # The historical archive bound is 64 distinct source identities per case. Debit only the
+    # actual frozen number of native requests for an issued block. One retry is bounded separately.
+    grant = load(
+        authorize_qualification(
+            root, int(minutes), plan["identity"], dict(native_work=2 * len(BLOCKS) * len(rows) * 64)
+        )
+    )
+    approval = load(
+        confined(
+            root,
+            "run-state/discovery-authorizations/" + grant["authorizing_record_ref"][7:] + ".json",
+        )
+    )
+    validate_grant(
+        grant, approval, root=physical_root_id(root), parent=plan["identity"], action="qualify"
+    )
+    area = confined(
+        folder, "preparation/matched-bank-prices/" + grant["identity"][7:], exists=False
+    )
+    retain(area / "plan.json", plan)
+    retain(area / "grant.json", grant)
+    journal = BudgetJournal(area / "accounting", grant["identity"], grant["resources"])
+    runtime = dict(runtime, installation=control_installation_peak(runtime["path"], area))
+    files["capacity.json"] = dict(
+        mounts=control_capacity(
+            root, area, revision, host.policy["free_disk_floor_bytes"], runtime["installation"]
+        )
+    )
+    for name, (data, refs) in batches.items():
+        request = seal(
+            dict(
+                version=BANK_PRICES,
+                candidate=revision,
+                method=name,
+                phase="bank_score",
+                plan=plan["identity"],
+                parents=refs,
+                data=digest(data),
+                **select_fields(runtime, "wheel", "source", "image"),
+            )
+        )
+        cost = dict(native_work=sum(len(r["programs"]) for r in data["rows"]))
+        try:
+            paid, _ = run_control_stage(
+                root,
+                source,
+                area,
+                grant,
+                journal,
+                host,
+                runtime,
+                request,
+                data,
+                cost,
+                [],
+                lambda value: dict(cells=bank_cost_cells(request, data, value)),
+                stage,
+            )
+            evidence = paid["evidence"]
+            result = seal(
+                dict(
+                    block=name,
+                    receipt=paid["identity"],
+                    **select_fields(evidence, "elapsed_us", "worker_us", "native", "cells"),
+                )
+            )
+            retain(area / (name + ".json"), result)
+            results[name] = files[name + ".json"] = result
+        except (
+            OSError,
+            ValueError,
+            RuntimeError,
+            KeyError,
+            TypeError,
+            subprocess.SubprocessError,
+            KeyboardInterrupt,
+        ) as exc:
+            errors[name] = dict(phase="bank-score", error=type(exc).__name__)
+            print(f"{name} bank scorer: {exc}", file=sys.stderr)
+            if isinstance(exc, KeyboardInterrupt):
+                break
+    balance = BudgetJournal.inspect_existing(
+        area / "accounting", grant["identity"], grant["resources"]
+    )
+    if (
+        balance["pending"]
+        or balance["consumed"]["elapsed_us"] + balance["remaining"]["elapsed_us"]
+        != grant["total_us"]
+    ):
+        raise ValueError("bank cost or remaining authority differs from the original grant")
+    files["forecast.json"] = bank_sample_forecast(results, controls)
+    files["verification.json"] = dict(
+        scope="original_admissions_on_exposed_timing_panel",
+        original=cut,
+        research_dispatches=0,
+        verified={k: r["receipt"] for k, r in results.items()},
+    )
+    report.update(
+        status="COMPLETE" if len(results) == len(BLOCKS) else "PARTIAL",
+        grant=grant["identity"],
+        elapsed_us=balance["consumed"]["elapsed_us"],
+        remaining_us=balance["remaining"]["elapsed_us"],
+        charged_work=balance["consumed"],
+    )
+    if report["status"] == "COMPLETE":
+        receipt = seal(
+            dict(
+                plan=plan["identity"],
+                grant=grant["identity"],
+                charged=balance["consumed"],
+                blocks={k: v["identity"] for k, v in results.items()},
+            )
+        )
+        retain(area / "receipt.json", receipt)
+        report["receipt"] = receipt["identity"]
+    return report
+
+
+def donor_isolated_controls(action, root, source, revision, minutes, previous=None):
     import runpy
     from oeis_learn.generalization.progressive.lifecycle import RunStore
     from oeis_learn.generalization.progressive.velocity_records import SESSION
@@ -1677,16 +2341,20 @@ def donor_isolated_controls(action, root, source, revision, minutes):
             if host.engine.image(runtime["image"]) != runtime["image"]:
                 raise ValueError("qualified runtime image differs")
             step = "cpu-roles"
-            report = isolated_control_matrix(
-                root, source, folder, revision, minutes, runtime, panel, wave, host, stage
-            )
+            if previous:
+                report = bank_price_matrix(root, source, folder, revision, minutes, runtime, panel,
+                                           wave, host, stage, previous)
+            else:
+                report = isolated_control_matrix(
+                    root, source, folder, revision, minutes, runtime, panel, wave, host, stage
+                )
         report["files"].update(files)
         return report
     except (Exception, SystemExit, KeyboardInterrupt) as exc:
         print(f"{step}: {exc}", file=sys.stderr)
         result = dict(
             candidate=revision,
-            scope=ISOLATED_CONTROLS,
+            scope=BANK_PRICES if previous else ISOLATED_CONTROLS,
             status="UNVERIFIED" if step == "cpu-roles" else "BLOCKED",
             stage=step,
             error=type(exc).__name__,
@@ -1827,6 +2495,8 @@ def donor_control_history(action, root, revision):
 def main(revision, minutes, mode="donation", supplied=None):
     if mode not in MODES:
         raise SystemExit("Unknown continuation qualification mode.")
+    if mode == "bank-prices" and not re.fullmatch("sha256:[a-f0-9]{64}", supplied or ""):
+        raise SystemExit("Bank pricing requires the original isolated control receipt.")
     root = Path.cwd().resolve()
     if not re.fullmatch(r"[a-f0-9]{40}", revision):
         raise SystemExit("Supply a full candidate commit.")
@@ -1867,6 +2537,8 @@ def main(revision, minutes, mode="donation", supplied=None):
 
     if mode == "isolated-controls":
         return donor_isolated_controls(action, root, source, revision, minutes)
+    if mode == "bank-prices":
+        return donor_isolated_controls(action, root, source, revision, minutes, previous=supplied)
     if mode == "control-history":
         return donor_control_history(action, root, revision)
     if mode == "readiness":
@@ -1954,6 +2626,67 @@ def main(revision, minutes, mode="donation", supplied=None):
     )
 
 
+def verify_bank_zip(path):
+    """Read the diagnostic ZIP without the donor, installed package, or permission to dispatch."""
+    with zipfile.ZipFile(path) as archive:
+        names = archive.namelist()
+        if (
+            len(names) != len(set(names))
+            or len(names) > 16
+            or any(
+                not re.fullmatch(r"[a-z0-9_-]+\.json", n) or archive.getinfo(n).file_size > 2 << 20
+                for n in names
+            )
+        ):
+            raise ValueError("unexpected bank ZIP members")
+        summary = json.loads(archive.read("summary.json"))
+        if summary["scope"] != BANK_PRICES or set(names) != {"summary.json", *summary["sha256"]}:
+            raise ValueError("bank ZIP scope or manifest differs")
+        parts = {}
+        for name, checksum in summary["sha256"].items():
+            raw = archive.read(name)
+            if hashlib.sha256(raw).hexdigest() != checksum:
+                raise ValueError("bank ZIP member digest differs")
+            parts[name] = json.loads(raw)
+    if (summary["status"] not in {"COMPLETE", "PARTIAL", "BLOCKED", "UNVERIFIED"}
+            or summary["research_run_requested"] is not False or summary["scientific_verdict"] is not None):
+        raise ValueError("unexpected scientific status in a diagnostic ZIP")
+    if summary["status"] == "COMPLETE":
+        expected = {
+            arm + "-" + look for arm in ("ordinary", "first_divergence") for look in ("one", "full")
+        }
+        expected.add("incumbent-full")
+        verified = parts["verification.json"]["verified"]
+        forecast = parts["forecast.json"]
+        supervised = 0
+        for name in expected:
+            block = parts[name + ".json"]
+            if (
+                block["block"] != name
+                or block["receipt"] != verified[name]
+                or len(block["cells"]) != 4
+                or any(c["cases"] != 2 for c in block["cells"].values())
+            ):
+                raise ValueError("returned bank coverage differs from the original role receipts")
+            supervised += block["elapsed_us"]
+        if (
+            set(verified) != expected
+            or len(set(verified.values())) != len(expected)
+            or summary["errors"]
+            or parts["verification.json"]["research_dispatches"] != 0
+            or summary["gpu_dispatches"] != 0
+            or summary["charged_work"]["tokens"] != 0
+            or not 0 < supervised <= summary["elapsed_us"]
+            or forecast["observed_sample_us"] != supervised
+            or parts["paid-controls.json"]["projection"] != forecast["known_wave"]
+            or summary["elapsed_us"] != summary["charged_work"]["elapsed_us"]
+            or summary["elapsed_us"] + summary["remaining_us"]
+            != summary["grant_minutes"] * 60_000_000
+        ):
+            raise ValueError("bank publication, verified costs or grant balance disagree")
+    return dict(status=summary["status"], verified_members=len(parts))
+
+
 def write_readiness_zip(out, report):
     def encoded(value):
         return (json.dumps(value, indent=2, allow_nan=False) + "\n").encode("utf-8")
@@ -1984,6 +2717,7 @@ def cli(argv):
         help="save the result to a new file (ZIP for readiness, checkpoints and control reports; JSON for other modes)",
     )
     parser.add_argument("--from-result", type=Path, help="completed fresh-start JSON for read-only readiness")
+    parser.add_argument("--controls-receipt", help="original isolated control receipt identity for bank pricing")
     args = parser.parse_args(argv)
     readiness = args.mode == "readiness"
     zipped = args.mode in ZIP_SCOPES
@@ -1993,11 +2727,18 @@ def cli(argv):
         parser.error("Readiness requires --from-result QUALIFICATION.json and --output NEW.zip")
     if args.from_result is not None and not readiness:
         parser.error("--from-result is only valid with readiness")
+    if args.mode == "bank-prices":
+        if not re.fullmatch("sha256:[a-f0-9]{64}", args.controls_receipt or ""):
+            parser.error("bank-prices requires --controls-receipt sha256:ORIGINAL_RECEIPT")
+    elif args.controls_receipt is not None:
+        parser.error("--controls-receipt is only valid with bank-prices")
     if args.mode in {"supply", "timings", "broader", "fresh-start"} and args.output is None:
         parser.error("Donor preparation requires an output file (--output PATH)")
     request = (args.revision, args.minutes, args.mode)
     if readiness:
         request += (args.from_result,)
+    elif args.mode == "bank-prices":
+        request += (args.controls_receipt,)
     if args.output is None:
         print(json.dumps(main(*request), indent=2))
         return 0
@@ -2028,13 +2769,17 @@ def cli(argv):
             out.write((json.dumps(report, indent=2, allow_nan=False) + "\n").encode("utf-8"))
         out.flush()
         os.fsync(out.fileno())
+        if args.mode == "bank-prices":
+            verify_bank_zip(out.name)
         os.link(out.name, args.output)
     print(f"Saved {args.output.resolve()}", file=sys.stderr)
     return code
 
 
 if __name__ == "__main__":
-    if sys.argv[1:2] == ["--isolated-control-worker"]:
+    if len(sys.argv) == 3 and sys.argv[1] == "--verify-bank-zip":
+        print(json.dumps(verify_bank_zip(sys.argv[2])))
+    elif sys.argv[1:2] == ["--isolated-control-worker"]:
         isolated_control_worker(*sys.argv[2:])
     else:
         raise SystemExit(cli(sys.argv[1:]))

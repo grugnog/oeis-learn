@@ -66,3 +66,24 @@ Run from the detached donor after checkpoint qualification. Set `ROUND029_REV` t
 The command takes a cumulative 15-minute CPU preparation grant. It binds the checkpoint and installed wheel, reopens the original eight exposed development cases (two families in each stratum), and checks mount capacity. Template, polynomial and linear recurrence each receive a supervised CPU search and a separate scorer. Each search sees only visible prefixes, and each scorer receives its committed candidates and original 100-term truth. This qualification uses zero HIP leases and zero optimizer tokens.
 
 The ZIP contains stage receipts, per-treatment search and scoring clocks, cold overhead, empty-case counts, private verification, charged and remaining work, capacity and the forecast. For planning, the slowest exposed stratum supplies the retention proxy. The full-wave storage registration and protected panels stay outside this measurement. A partial ZIP preserves completed roles. Repeating the same candidate and grant duration reopens those roles and uses the remaining balance for eligible retries. Attach the ZIP from the printed path even when the command reports a partial result.
+
+## Price matched candidate-bank scoring
+
+Run `bank-prices` from the detached round027 root. Set `ROUND029_REV` to the published implementation commit and `ROUND029_CONTROLS` to the `receipt` in the completed isolated-controls ZIP.
+
+```bash
+(
+  set -euo pipefail
+  umask 077
+  out=$(mktemp -d "$HOME/round029-banks.XXXXXX")
+  git fetch --no-tags origin "${ROUND029_REV:?full bank-pricing implementation commit}"
+  git show "${ROUND029_REV}:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - "$ROUND029_REV" 20 bank-prices \
+      --controls-receipt "${ROUND029_CONTROLS:?original isolated control receipt}" \
+      --output "$out/bank-prices.zip"
+)
+```
+
+The command authenticates the paid control costs, five original generation and scoring groups, and the previously exposed eight-case roster. It runs a separate CPU scorer for each group. The scorer executes each recoverable distinct admission on all 100 indices using the native and reference implementations. The ZIP reader checks the published bytes, case counts, receipt links and settled charges. The command uses one cumulative 20-minute qualification grant. Rerunning the same candidate and grant duration resumes individual groups.
+
+The measured groups are ordinary and first-divergence at one and eight attempts, and retained D at eight attempts. The ZIP reports missing sources, incomplete searches, empty banks, verified outcomes and timings separately. Its cost scenario uses eight cases per group and explicitly identifies the historical learner proxy. The full trial cost still depends on the prospective sample and its observed admissions. Attach the ZIP from the printed path, including a partial result.
