@@ -142,6 +142,8 @@ Run the following from the detached donor with `ROUND029_REV` set to the full pr
 
 The common-probe estimate covers ordinary and one challenger at one look. The follow-up reserve covers a matched full-profile comparison on one OEIS family with existing weights. Each price includes cold role startup and selected-choice scoring. Image acquisition is shown separately for an uncached host. Expected and tail estimates come from the historical exposed sample. The wave lists the sums of the priced items and each outstanding measurement. A null total means the listed work still needs pricing. Research funding requires a separate decision.
 
+After the fresh-start qualification, one read-only donor command bundles the verified timing receipt, preflight, grant balance, child recovery and reducer checks into a ZIP. [Collect the completed qualification and readiness checks](validation/update-timings.md#collect-the-completed-qualification-and-readiness-checks)
+
 ## Measure donor family and matching-pair supply
 
 Run this block from the physical root of the detached round027 donor. One CPU preparation grant covers the two measurements. The helper then reopens the private receipts and runs read-only preflight to reprice the common probe and the follow-up. It saves the results and any first failure in one file.

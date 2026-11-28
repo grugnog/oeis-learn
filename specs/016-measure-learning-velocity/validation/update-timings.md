@@ -67,3 +67,26 @@ Use `fresh-start` on the detached workstation after `broader` reports `requires_
 The rejection receipt fixes a new initialization and generator seed before new data are inspected. Under the pilot law, the first 256 ordinals supply ordinary candidates and the next 256 supply potential broader replacements. The custodian checks both ranges jointly against history, all original pilot rows, reservations and connecting families. An empty ordinary frame closes before native or HIP work.
 
 The native worker independently executes the eligible ordinary rows and prepares the matched broader stream. The timing stage uses one HIP lease to measure the ordinary calibration and eligible recipes. Recipes 02 and 03 require verified matching support. Recipes 01 and 03 require increased composition diversity at matched exposure. A breadth shortage still permits ordinary recipes 00, 04, 05 and 06. The attachment reports the new supply, shared start, measured methods, charged work and remaining forecast gaps. This qualification requests zero research updates.
+
+## Collect the completed qualification and readiness checks
+
+After the 37-minute fresh-start command prints `Saved`, run this block from the same detached round027 checkout. Paste the path to its `fresh-start.json` at the prompt.
+
+```bash
+(
+  set -euo pipefail
+  umask 077
+  read -r -p 'Path to the completed fresh-start.json: ' result
+  collector=76862d64bcb814e0994c7fb0aa6b056c9ecad115
+  worker=73b3aa26d4891d11238ff99c4736543382156f72
+  out=$(mktemp -d "$HOME/round029-readiness.XXXXXX")
+  git fetch --no-tags origin "$collector"
+  git show "$collector:specs/016-measure-learning-velocity/validation/qualify_continuation.py" |
+    python3 -I -S -B - "$worker" 37 readiness \
+      --from-result "$result" --output "$out/round029-readiness.zip"
+)
+```
+
+The collector uses the worker revision and duration to identify the completed grant. It requests zero additional HIP time. It compares the supplied charges with the private journal, checks that prices reopen the same ordinary, overlap and fresh-start receipts, and records current family and matching supply, mount capacity, forecast gaps and the follow-up reserve. It also reopens the original batch-16 and batch-32 child evidence twice and exercises the accounting and velocity reducers on labeled reference inputs.
+
+Attach the ZIP at the printed path, including after a partial result. Its `summary.json` lists each check and the SHA-256 of each enclosed JSON file. A complete collection can contain an ineligible stream or a wave with unpriced work. The physical outcome and forecast are in `fresh-start.json` and `preflight.json`. The seven-recipe screen and its research grant are separate milestones.
