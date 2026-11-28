@@ -1,22 +1,30 @@
 """Publish and independently reduce anonymous joint family counts for the exploration wave."""
 
-from collections import defaultdict
-import os
+import json
 import re
 
 from oeis_learn.generalization.progressive import velocity_donation_report as public
 from oeis_learn.generalization.progressive import velocity_metrics as metrics
 from oeis_learn.generalization.progressive.cohorts import STRATA
-from oeis_learn.generalization.progressive.contracts import digest, load, seal
+from oeis_learn.generalization.progressive.campaign import velocity_policy
+from oeis_learn.generalization.progressive.contracts import _atomic_write, digest, load, seal
+from oeis_learn.generalization.progressive.budgets import KEYS, vector
+from oeis_learn.generalization.progressive.program_search_outcome import (
+    archive_bytes,
+    read_canonical,
+)
+from oeis_learn.generalization.progressive.program_search_rehearsal_report import encode
+from oeis_learn.generalization.progressive.velocity_records import grant_terms, validate_grant
+from .identity import confined
 from oeis_learn.generalization.progressive.program_search_costing import workstation_accounting
 from oeis_learn.generalization.progressive.trials import integer
 from oeis_learn.generalization.progressive.velocity_report import public_family_cells
 from . import progressive_velocity_trial_preparation as preparation
-from .identity import confined
-from .preparation_recovery import retain
 
 ARCHIVE = public.REPORT
 MEMBER = "comparative-exploration.json"
+ACCOUNT = "comparative-accounting.json"
+SCIENCE = "comparative-observations.zip"
 VERSION = "round029-comparative-report/v1"
 EXPOSURE = (
     "useful_tokens charged_tokens discarded_tokens updates last_update_tokens overshoot".split()
@@ -256,25 +264,90 @@ def reduce(accepted, data, *, draws=10_000):
         reason="no_positive_supported_upper_bound" if negative else "independent_evidence_required",
         excluded=accepted["omitted"],
     )
+    shortlist = []
+    for method in accepted["supported"]:
+        if method == "00":
+            continue
+        contrasts = direct[method]["00"]
+        direct_oeis, structural = contrasts["oeis"], contrasts["structural"]
+        expected = direct_oeis["observed_pp"]
+        if (
+            expected is None
+            or max(expected, structural["observed_pp"] or 0, direct_oeis["upper_pp"] or 0) <= 0
+        ):
+            continue
+        arm = graph[method]["full"][0]["identity"]
+        ordinary = graph["00"]["full"][0]["identity"]
+        terms = {arm: 1, ordinary: -1}
+        groups = indexes["full"]
+        leave_one = []
+        for group in {label for s, label in groups if s == "oeis"}:
+            subset = {k: v for k, v in groups.items() if k[1] != group}
+            change = metrics.family_contrast(subset, [], terms, "oeis")["observed_pp"]
+            if change is not None:
+                leave_one.append(change)
+        sensitive = (
+            direct_oeis["lower_pp"] <= 0 < direct_oeis["upper_pp"]
+            or bool(leave_one)
+            and min(leave_one) <= 0 < max(leave_one)
+        )
+        followup = (
+            "resolve_missing"
+            if sensitive
+            else "oeis_measurement" if expected <= 0 else "confirmation"
+        )
+        shortlist.append(
+            dict(
+                method=method,
+                comparator="00",
+                direct_oeis_pp=expected,
+                structural_pp=structural["observed_pp"],
+                leave_one_family_out=[min(leave_one), max(leave_one)] if leave_one else None,
+                proposed_branch=followup,
+                marginal_us=(accepted["followup_us"] if followup == "oeis_measurement" else None),
+            )
+        )
+    shortlist.sort(
+        key=lambda r: (
+            -r["direct_oeis_pp"],
+            r["marginal_us"] is None,
+            r["marginal_us"] or 0,
+            r["method"],
+        )
+    )
+    decision.update(
+        shortlist=shortlist,
+        protected_followup_us=accepted["followup_us"],
+        spending_action="review_unfunded_branch" if shortlist else "retain_incumbent",
+        next_dispatch=None,
+    )
+    policy = velocity_policy()
+    missing = {
+        m: [
+            dict(profile=p, look=t, disposition="excluded_before_scoring", reason_ref=reason)
+            for p in ("common", "full")
+            for t in policy["profiles"][p]["looks"]
+        ]
+        for m, reason in accepted["omitted"].items()
+    }
+    decision["missing_looks"] = missing
     return dict(curves=curves, direct=direct, decision=decision)
 
 
-def publication(area, grant, accepted, graph, observed, *, readonly):
-    key_path = confined(area, "family-key.json", exists=readonly)
-    if not key_path.exists():
-        retain(key_path, dict(key=os.urandom(32).hex()))
-    data = sufficient(accepted, observed, bytes.fromhex(load(key_path)["key"]))
+def publication(area, grant, accepted, observed, *, marker, key, readonly):
+    data = sufficient(accepted, observed, bytes.fromhex(key))
     value = seal(
         dict(
             version=VERSION,
             accepted=accepted["identity"],
             grant=grant["identity"],
             registration=accepted["registration"],
+            controller=marker,
             statistics=data,
             **reduce(accepted, data),
         )
     )
-    path = area / "share" / ARCHIVE
+    path = area / "share" / SCIENCE
     if not readonly:
         public.install(path, MEMBER, value)
     if public.read_member(path, MEMBER) != value:
@@ -282,7 +355,7 @@ def publication(area, grant, accepted, graph, observed, *, readonly):
     return value
 
 
-def verify(path, qualification):
+def checked_science(value, qualification):
     q = public.read_member(qualification, preparation.MEMBER)
     if (
         q != seal(q)
@@ -291,11 +364,24 @@ def verify(path, qualification):
         or q["research_authority"] is not None
     ):
         raise ValueError("independent supported-wave commitment required")
-    value = public.read_member(path, MEMBER)
     public.closed(
-        value, "version accepted grant registration statistics curves direct decision", sealed=True
+        value,
+        "version accepted grant registration controller statistics curves direct decision",
+        sealed=True,
     )
     public.hashes(value["grant"])
+    pinned = value["controller"]
+    public.closed(
+        pinned, "version accepted grant controller driver family_labels operations", sealed=True
+    )
+    public.hashes(pinned["driver"], pinned["family_labels"], pinned["operations"])
+    if (
+        pinned["version"] != "round029-comparative-wave/v1"
+        or pinned["grant"] != value["grant"]
+        or pinned["accepted"] != q["identity"]
+        or not re.fullmatch("[a-f0-9]{40}", pinned["controller"])
+    ):
+        raise ValueError("comparative controller differs from the accepted wave")
     if (
         value["version"] != VERSION
         or value["accepted"] != q["identity"]
@@ -304,3 +390,130 @@ def verify(path, qualification):
     ):
         raise ValueError("comparative decision or statistics differ from independent replay")
     return value
+
+
+def accounting(area, grant, report, balance):
+    if balance["pending"]:
+        raise ValueError("unsettled comparative work")
+    dispatches = []
+    for key in sorted(balance["committed"]):
+        logical, verb, ordinal = key.split("/")
+        if verb != "dispatch":
+            raise ValueError("unexpected comparative journal operation")
+        block = confined(area, "operations/" + logical[7:])
+        registered = load(confined(block, "input.json"))
+        window = balance["windows"][key]
+        work = dict(balance["reserved_work"][key], elapsed_us=window["charged_us"])
+        dispatches.append(
+            dict(
+                receipt=digest([grant["identity"], key]),
+                role=registered["coordinates"]["role"],
+                attempt=int(ordinal),
+                work=work,
+                terminated=window["end_us"] is not None,
+            )
+        )
+    return seal(
+        dict(
+            version="round029-comparative-accounting/v1",
+            grant=grant,
+            report=report,
+            dispatches=dispatches,
+            consumed=balance["consumed"],
+            remaining=balance["remaining"],
+        )
+    )
+
+
+def check_account(account, science, accepted):
+    public.closed(account, "version grant report dispatches consumed remaining", sealed=True)
+    grant = account["grant"]
+    pinned = science["controller"]
+    if grant.get("controller_ref") != digest(
+        [
+            pinned["version"],
+            accepted["identity"],
+            pinned["controller"],
+            pinned["driver"],
+            pinned["family_labels"],
+            pinned["operations"],
+        ]
+    ):
+        raise ValueError(
+            "controller or frozen statistical labels differ from the research authority"
+        )
+    authorization = seal(
+        dict(version="round029-authorization/v1", terms=digest(grant_terms(grant)))
+    )
+    validate_grant(
+        grant, authorization, root=accepted["owner"], parent=accepted["identity"], action="run"
+    )
+    if (
+        account["version"] != "round029-comparative-accounting/v1"
+        or account["report"] != science["identity"]
+        or grant["identity"] != science["grant"]
+        or grant["allowed_operations"] != ["run"]
+        or grant["holdback_us"] != accepted["followup_us"]
+        or account["remaining"]["elapsed_us"] < grant["holdback_us"]
+    ):
+        raise ValueError("comparative accounting or protected reserve differs")
+    vector(account["consumed"])
+    vector(account["remaining"])
+    totals = dict.fromkeys(KEYS, 0)
+    seen, stages, expected = set(), set(), science["statistics"]["costs"]
+    for dispatch in account["dispatches"]:
+        public.closed(dispatch, "receipt role attempt work terminated")
+        receipt, role = dispatch["receipt"], dispatch["role"]
+        public.hashes(receipt)
+        integer(dispatch["attempt"])
+        if (
+            receipt in seen
+            or role not in {"prepare", "train", "search", "score", "publish"}
+            or type(dispatch["terminated"]) is not bool
+        ):
+            raise ValueError("duplicate or invalid comparative dispatch")
+        seen.add(receipt)
+        stages.add(role)
+        work = vector(dispatch["work"])
+        if role in {"train", "search", "score"} and (
+            receipt not in expected
+            or expected[receipt]["role"] != role
+            or expected[receipt]["charged_us"] != work["elapsed_us"]
+        ):
+            raise ValueError("public look cost differs from settled grant debit")
+        for k in KEYS:
+            totals[k] += work[k]
+    if (
+        not expected.keys() <= seen
+        or stages != {"prepare", "train", "search", "score", "publish"}
+        or totals != account["consumed"]
+        or any(totals[k] + account["remaining"][k] != grant["resources"][k] for k in KEYS)
+    ):
+        raise ValueError("private and public cumulative debits differ")
+    return account
+
+
+def deliver(area, grant, accepted, balance, *, readonly):
+    science = public.read_member(confined(area, "share/" + SCIENCE), MEMBER)
+    account = check_account(
+        accounting(area, grant, science["identity"], balance), science, accepted
+    )
+    records = {MEMBER: encode(science), ACCOUNT: encode(account)}
+    path = confined(area, "share/" + ARCHIVE, exists=readonly)
+    if not readonly and not path.exists():
+        _atomic_write(path, archive_bytes(records))
+    if read_canonical(path, (MEMBER, ACCOUNT)) != records:
+        raise ValueError(
+            "installed comparative release differs from the paid science and final debit"
+        )
+    return account
+
+
+def verify(path, qualification):
+    records = read_canonical(path, (MEMBER, ACCOUNT))
+    science, account = (json.loads(records[k]) for k in (MEMBER, ACCOUNT))
+    if records != {MEMBER: encode(science), ACCOUNT: encode(account)}:
+        raise ValueError("noncanonical comparative records")
+    checked_science(science, qualification)
+    check_account(account, science, public.read_member(qualification, preparation.MEMBER))
+    return science

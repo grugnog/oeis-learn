@@ -244,7 +244,45 @@ initialization archive, the checked public pair and the private replay result.
 On a partial result, the archive retains the verified evidence and the local
 `operator.log` records the failing check.
 
-## Start or resume after the round029 release
+## Start or resume the accepted comparative wave
+
+Run this from the physical root of the detached donor. Set `ROUND029_REV` to the full
+controller commit from the handoff. The example grants 1,680 cumulative minutes
+(28 hours). The original wave estimate was 8 h 21 min expected and 27 h 39 min
+including the tail and protected follow-up. A different limit must be chosen before
+the first start. The same command reopens the original grant after interruption.
+
+```bash
+(
+  set -euo pipefail
+  rev=${ROUND029_REV:?full comparative controller commit}
+  accepted=sha256:e7512055233ed8547357f01a1a8f0f59337707d0808f0952fbd5a9cedb9964ed
+  git fetch --no-tags origin "$rev"
+  git show "$rev:specs/016-measure-learning-velocity/validation/launch-round029.sh" |
+    bash -s -- "$rev" start-comparative 1680 "$accepted"
+)
+```
+
+The command binds the controller, role driver, physical owner and frozen family
+labels to one exploration grant. It reopens the accepted wheel, image, learner
+packages, incumbent and development inputs. Recipes 00, 04, 05 and 06 train to
+their whole-update crossings. One verified common zero-look probe serves the four
+initializations. Common 1M and 4M probes and the full 4M endpoints have distinct
+operation receipts. D, template, polynomial and linear recurrence each receive
+their registered full opportunity. The grant protects 101.546 s for the named
+follow-up and includes one shared retry allowance equal to the largest dispatch
+in each resource. A stopped learner resumes from its saved optimizer state and
+issued-update journal when available.
+
+Each stage prints its role, method, look and profile to stderr. On completion,
+`receipt_path` names the report ZIP, and `qualification_path` names the independent
+pre-score ZIP. The report includes anonymous joint family counts, separate curves
+and endpoints, paired bounds, the exploration decision and the settled cost of
+preparation, training, search, scoring, verification and publication. Copy those
+two ZIPs for independent review. A separate confirmation requires its own
+registration and grant.
+
+## Other round029 launcher actions
 
 Use the original private workstation, a local Podman engine with resource controls and a qualified HIP device for learner work. Start in the **physical root of the detached round027 donor**. Set `ROUND029_REV` from the implementation release, and `ROUND029_GRANT` to the absolute path of the operator-authorized grant. If all you need is inventory, run through the preflight line. The same `run` line starts or resumes an authorized campaign.
 

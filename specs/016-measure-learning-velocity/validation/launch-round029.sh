@@ -26,6 +26,7 @@ fi
 helper=specs/015-learned-program-search/validation/candidate_source.py
 source_root=$(git show "${rev}:${helper}" | python3 -I -B - "$workspace" "$rev")
 if [[ $action == start-comparative ]]; then
+  umask 077
   grant=$(python3 -I -S -B - "$source_root" "$workspace" "$3" "$4" <<'PY'
 from pathlib import Path
 import sys

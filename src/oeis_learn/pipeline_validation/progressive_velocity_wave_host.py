@@ -7,7 +7,7 @@ import time
 
 from oeis_learn.generalization.contracts import artifact_refs
 from oeis_learn.generalization.progressive.budgets import BudgetJournal, KEYS
-from oeis_learn.generalization.progressive.campaign import learned_search_policy, velocity_policy
+from oeis_learn.generalization.progressive.campaign import learned_search_policy
 from oeis_learn.generalization.progressive.contracts import (
     digest,
     load,
@@ -23,7 +23,7 @@ from . import progressive_velocity_trial_preparation as preparation
 from . import progressive_velocity_wave as wave
 from .identity import confined
 from .preparation_recovery import retain
-from .progressive_evaluation import model_receipt, velocity_probe
+from .progressive_evaluation import model_receipt
 from .progressive_handoff import stage
 from .progressive_panel_sources import read_inputs
 from .progressive_pilot_capacity import owned_allocations
@@ -113,6 +113,46 @@ def next_files(directory, pointer):
     return [reference(directory, confined(directory, rel)) for rel in sorted(set(names))]
 
 
+def restart_mounts(out, request, inputs, *, readonly):
+    """Reopen the last stopped attempt's full state and all subsequent debits."""
+    number = int(out.name.removeprefix("attempt-"))
+    if not number or request["role"] != "train":
+        return inputs
+    prior = confined(out.parent, f"attempt-{number - 1:04d}")
+    pointer = confined(prior, "learner/checkpoint/generalization-latest.json", exists=False)
+    if not pointer.exists():
+        return inputs
+    clean = load(confined(prior, "cleanup.json"))
+    if clean.get("acknowledged") is not True:
+        raise InsufficientAuthority(
+            "previous comparative learner needs verified engine termination"
+        )
+    original = confined(prior, "learner")
+    store = confined(original, "checkpoint")
+    selected = load(pointer)
+    manifest = load(checked_file(store, selected))
+    contract = digest([request["learner"], request["cap"]])
+    restore(manifest, contract=contract, cap=request["cap"], root=store)
+    files = next_files(original, selected)
+    binding = seal(
+        dict(campaign=contract, caps=dict(dict.fromkeys(KEYS, 0), tokens=request["cap"]))
+    )
+    if load(confined(original, "accounting/budget-binding.json")) != binding:
+        raise ValueError("interrupted learner debit binding differs")
+    record = seal(dict(request=request["identity"], prior=number - 1, files=files))
+    publication = confined(out.parent, f"restart-{number:04d}.json", exists=readonly)
+    if not readonly:
+        retain(publication, record)
+    if load(publication) != record:
+        raise ValueError("original interrupted checkpoint or issued token charges differ")
+    mounts = [(p, d) for p, d in inputs if not d.startswith("/work/inputs/parent/")]
+    return [
+        *mounts,
+        (publication, "/work/inputs/restart.json"),
+        *((checked_file(original, ref), "/work/inputs/parent/" + ref["path"]) for ref in files),
+    ]
+
+
 def check_cut(out, request, package, producer, expected):
     cut = producer["cut"]
     directory = confined(out, "learner")
@@ -172,28 +212,85 @@ def check_cut(out, request, package, producer, expected):
     return dict(cut=dict(cut, model=model), weight=weight)
 
 
+def custody(root, folder, accepted, reg):
+    """Only the custodian opens the source census, incumbent and paid acquisition."""
+    original = load(confined(folder, preparation.INITIAL_MARKER))
+    quote = load(confined(folder, "qualification/" + original["grant"][7:] + "/quote.json"))
+    fresh = checkpoint.origin(folder)
+    measurement = load(confined(folder, "qualification/" + fresh["grant"][7:] + "/receipt.json"))
+    if (
+        quote != seal(quote)
+        or quote["sources"] != accepted["sources"]
+        or measurement != seal(measurement)
+        or measurement["identity"] != fresh["receipt"]
+        or fresh["receipt"] != accepted["sources"]["fresh"]
+    ):
+        raise ValueError("comparative role prices differ from the paid pre-score quote")
+    from .progressive_velocity_census import training_source
+    from .progressive_velocity_donor import inventory
+
+    freeze, _, _ = training_source(root)
+    original_weight = freeze["reference"]
+    weight = checked_file(root, original_weight)
+    (cut,) = [c for c in inventory(root)["cuts"] if c["method"] == "D"]
+    parent = confined(root, ORIGINAL + "/prepare-research/frozen/campaign.json")
+    campaign = read_bound_record(
+        root, reference(root, parent), identity=learned_search_policy()["campaign"]
+    )
+    (recipe_ref,) = [r for r in campaign["payload"]["references"] if r["name"] == "recipe"]
+    if (recipe_ref["role"], recipe_ref["kind"]) != ("custodian", "recipe"):
+        raise ValueError("original incumbent recipe authority differs")
+    recipe = load(checked_file(root, recipe_ref["artifact"]))
+    if (
+        not cut["inference"]
+        or cut["weights"] != original_weight["sha256"]
+        or cut["recipe"] != digest(recipe)
+    ):
+        raise ValueError("original incumbent weights or recipe differ")
+    witnesses = {
+        k: {f: v[f] for f in ("id", "indices", "values")}
+        for k, v in panel(root, folder, reg).items()
+    }
+    return seal(
+        dict(
+            accepted=accepted["identity"],
+            wheel=reference(root, runtime(root, folder, accepted)),
+            startup_us=integer(quote["initial_role_us"], 1),
+            training_tail_us={
+                m: integer(v["tail_us"], 1) for m, v in measurement["device"]["methods"].items()
+            },
+            witnesses=witnesses,
+            incumbent=dict(
+                recipe=recipe,
+                weight=reference(root, weight),
+                origin=digest([cut["registration"], cut["lineage"], cut["weights"]]),
+            ),
+        )
+    )
+
+
 class Donor:
     def __init__(
-        self, root, folder, source, area, accepted, reg, args, host_factory, *, readonly=False
+        self, root, source, area, accepted, basis, revision, args, host_factory, *, readonly=False
     ):
-        self.accepted = accepted
-        self.source, self.area = source, area
+        if basis != seal(basis) or basis["accepted"] != accepted["identity"]:
+            raise ValueError("private comparative role inputs differ")
+        self.accepted, self.source, self.area = accepted, source, area
+        self.startup_us, self.training_tail_us = basis["startup_us"], basis["training_tail_us"]
+        self.wheel = checked_file(root, basis["wheel"])
+        self.witnesses = basis["witnesses"]
+        self.incumbent = basis["incumbent"]
+        self.incumbent_path = checked_file(root, self.incumbent["weight"])
         self.role = confined(source, wave.DRIVER)
-        self.wheel = runtime(root, folder, accepted)
-        self.witnesses = panel(root, folder, reg)
         operator = confined(
             source, "specs/016-measure-learning-velocity/validation/qualify_continuation.py"
         )
         self.operator = runpy.run_path(str(operator))
-        from .progressive_velocity_donor import inventory
-
-        models, paths = self.operator["paired_model_inputs"](root, inventory(root)["cuts"])
-        self.incumbent, self.incumbent_path = models["D"], paths["D"]
         self.readonly = readonly
         self.host = (
             None
             if readonly
-            else host_factory(args, source_root=source, workspace=root, revision=source.name)
+            else host_factory(args, source_root=source, workspace=root, revision=revision)
         )
 
     def channels(self, look):
@@ -252,7 +349,7 @@ class Donor:
                 ],
                 gpu=request["gpu"],
                 seconds=seconds,
-                readonly_inputs=inputs,
+                readonly_inputs=restart_mounts(out, request, inputs, readonly=False),
                 record_lease=request["gpu"],
             )
             end = time.monotonic_ns() // 1000
@@ -271,11 +368,12 @@ class Donor:
             )
 
         def verify(out):
+            mounts = restart_mounts(out, request, inputs, readonly=True)
             inspection = load(confined(out, "container-inspect.json"))
             verify_role_mounts(
                 inspection,
                 image,
-                {**{dst: (p, False) for p, dst in inputs}, "/work/output": (out, True)},
+                {**{dst: (p, False) for p, dst in mounts}, "/work/output": (out, True)},
             )
             process, cleanup, span, producer = [
                 load(confined(out, name + ".json"))

@@ -14,6 +14,9 @@
         "registration_or_parent_ref": {
           "$ref": "progressive-common.schema.json#/$defs/hash"
         },
+        "controller_ref": {
+          "$ref": "progressive-common.schema.json#/$defs/hash"
+        },
         "scope": {
           "enum": [
             "qualification",
@@ -351,6 +354,7 @@
         "cleanup_seconds": {"$ref": "progressive-common.schema.json#/$defs/integer"},
         "receipt": {"type": "object", "properties": {}, "additionalProperties": {}},
         "receipt_path": {"$ref": "progressive-common.schema.json#/$defs/path"},
+        "qualification_path": {"$ref": "progressive-common.schema.json#/$defs/path"},
         "diagnostics": {"$ref": "#/$defs/diagnostic"}
       },
       "required": [
@@ -488,7 +492,7 @@
             "oneOf": [
               {"$ref": "#/$defs/result_field"},
               {
-                "enum": ["stage", "recipe", "look", "seed", "charged_tokens", "elapsed_us", "diagnostics", "deficit_bytes", "deficit_inodes", "report_ref"]
+                "enum": ["stage", "recipe", "look", "seed", "charged_tokens", "elapsed_us", "diagnostics", "deficit_bytes", "deficit_inodes", "report_ref", "receipt_path", "qualification_path"]
               }
             ]
           },

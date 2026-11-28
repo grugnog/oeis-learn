@@ -1,10 +1,10 @@
 """Frozen operation order and the single cumulative authority for comparative exploration."""
 
 from collections import Counter
+import secrets
 from pathlib import Path
 
 from oeis_learn.generalization.progressive.budgets import KEYS, role_work_requirements
-from oeis_learn.generalization.progressive.campaign import velocity_policy
 from oeis_learn.generalization.progressive.contracts import digest, load, seal
 from oeis_learn.generalization.progressive.graph import velocity_study_looks
 from oeis_learn.generalization.progressive.lifecycle import RunStore
@@ -82,6 +82,17 @@ def plan(accepted, registration, packages):
         for series in profiles.values()
         for look in series
     }
+    eligible = {
+        look["identity"]
+        for method, profiles in graph.items()
+        if method not in accepted["omitted"]
+        for series in profiles.values()
+        for look in series
+    }
+    if len(eligible) != len(accepted["schedule"]) or eligible != {
+        r["roster"] for r in accepted["schedule"]
+    }:
+        raise ValueError("missing, repeated or unregistered comparative look")
     # Finish the matched common boundary across recipes before advancing to the next.
     # A 1M diagnostic cannot remove an arm from its registered 4M opportunity.
     for row in sorted(
@@ -143,7 +154,21 @@ def inputs(root, folder, accepted):
     return reg, packages
 
 
-def authority(root, revision, minutes, accepted, operations, driver):
+def family_key(folder, *, create=False):
+    path = confined(folder, "comparative/family-key.json", exists=not create)
+    if not path.exists():
+        retain(path, seal(dict(key=secrets.token_hex(32))))
+    value = load(path)
+    if (
+        value != seal(value)
+        or set(value) != {"key", "identity"}
+        or len(bytes.fromhex(value["key"])) != 32
+    ):
+        raise ValueError("original private family-label key differs")
+    return value
+
+
+def authority(root, revision, minutes, accepted, operations, driver, key_ref):
     total = integer(minutes, 1) * 60_000_000
     if total < accepted["proposed_total_us"]:
         raise ValueError("grant is below the frozen full-wave tail and protected follow-up")
@@ -160,6 +185,9 @@ def authority(root, revision, minutes, accepted, operations, driver):
         study_id=SESSION,
         scope="exploration",
         registration_or_parent_ref=accepted["identity"],
+        controller_ref=digest(
+            [VERSION, accepted["identity"], revision, driver, key_ref, digest(operations)]
+        ),
         state_root_id=physical_root_id(root),
         total_us=total,
         holdback_us=accepted["followup_us"],
@@ -172,6 +200,7 @@ def authority(root, revision, minutes, accepted, operations, driver):
         dict(
             version=VERSION,
             controller=revision,
+            family_labels=key_ref,
             driver=driver,
             grant=grant["identity"],
             accepted=accepted["identity"],
@@ -195,7 +224,13 @@ def authorize(root, source, minutes, expected):
         reg, packages = inputs(root, folder, accepted)
         ops = plan(accepted, reg, packages)[-1]
         grant, approval, marker = authority(
-            root, revision, minutes, accepted, ops, file_hash(confined(source, DRIVER))
+            root,
+            revision,
+            minutes,
+            accepted,
+            ops,
+            file_hash(confined(source, DRIVER)),
+            family_key(folder, create=True)["identity"],
         )
         # One owner per accepted wave, including concurrent or repeated start requests.
         retain(folder / MARKER, marker)

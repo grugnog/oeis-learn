@@ -1,10 +1,9 @@
 """Run or reopen the earliest eligible comparative operation under one session owner."""
 
 from copy import deepcopy
-from pathlib import Path
+import sys
 import time
 
-from oeis_learn.generalization.progressive import velocity_donation_report as public
 from oeis_learn.generalization.progressive.budgets import BudgetJournal
 from oeis_learn.generalization.progressive.campaign import velocity_policy
 from oeis_learn.generalization.progressive.contracts import digest, load, read_bound_record, seal
@@ -19,7 +18,12 @@ from .progressive_evaluation import probe_inference, velocity_probe
 from .progressive_research_inputs import checked_file
 from .progressive_velocity_broad_host import attempt
 from .progressive_velocity_donation import retained_qualification
-from .progressive_velocity_operations import InsufficientAuthority, replay_operation, run_operation
+from .progressive_velocity_operations import (
+    InsufficientAuthority,
+    funded_verification,
+    replay_operation,
+    run_operation,
+)
 
 
 def original_balance(area, grant):
@@ -30,6 +34,24 @@ def original_balance(area, grant):
         include_work=True,
         include_windows=True,
     )
+
+
+def window(grant, accepted, coords, request, donor, cost):
+    if coords["stage"] != "exploration":
+        return grant["total_us"] - grant["holdback_us"]
+    method = coords["method"]
+    if coords["role"] == "train":
+        tail = (donor.training_tail_us[method] * cost["tokens"] + 3_999_999) // 4_000_000
+    else:
+        look = request["look"] if coords["role"] == "search" else request["probe"]["look"]
+        # The paid matched follow-up covers two complete OEIS searches and their scoring.
+        # Also preserve each registered issuance and compact-fit drain opportunity.
+        per_case = max(
+            accepted["followup_us"],
+            look["opportunity"]["issue_us"] + look["attempts"] * look["opportunity"]["fit_us"],
+        )
+        tail = len(look["members"]) * per_case
+    return 120_000_000 + 2 * (donor.startup_us + tail)
 
 
 def costs(snapshot, grant, coords, op, names):
@@ -136,7 +158,12 @@ def screen(area, grant, marker, accepted, packages, design, donor, invoke, progr
                     gpu=True,
                     parent_files=parent_files,
                     learner=learner["identity"],
-                    cap=max_useful,
+                    cap=max_useful
+                    + max(
+                        o["cost"]["tokens"]
+                        for o in ops
+                        if o["role"] == "train" and looks[o["roster"]]["method"] == method
+                    ),
                 )
             )
 
@@ -283,8 +310,15 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
     reg, packages = wave.inputs(root, folder, accepted)
     design = wave.plan(accepted, reg, packages)
     minutes, rest = divmod(grant["total_us"], 60_000_000)
+    secret = wave.family_key(folder)
     expected, _, marker = wave.authority(
-        root, revision, minutes, accepted, design[-1], file_hash(confined(source, wave.DRIVER))
+        root,
+        revision,
+        minutes,
+        accepted,
+        design[-1],
+        file_hash(confined(source, wave.DRIVER)),
+        secret["identity"],
     )
     if rest or grant != expected or load(confined(folder, wave.MARKER)) != marker:
         raise ValueError("controller, driver or cumulative research grant differs")
@@ -295,9 +329,7 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
         journal = BudgetJournal(area / "accounting", grant["identity"], grant["resources"])
     elif grant != load(confined(area, "grant.json")):
         raise ValueError("original comparative grant differs")
-    donor = physical.Donor(
-        root, folder, source, area, accepted, reg, args, host_factory, readonly=readonly
-    )
+    donor = None
     status = dict(recipe=None, look=None, stage="preparation")
 
     def progress(method, target, phase):
@@ -318,6 +350,11 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
                 remaining=journal.snapshot()["remaining"]["elapsed_us"],
             )
             revise(folder / "status.json", seal(value))
+            print(
+                f"round029 {coords['role']} {coords['method']} {coords['look']} {coords['profile']}",
+                file=sys.stderr,
+                flush=True,
+            )
             paid = run_operation(
                 area=area,
                 journal=journal,
@@ -329,32 +366,134 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
                 verify=verify,
                 before_dispatch=guard,
                 max_attempts=2,
-                minimum_us=121_000_000,
-                maximum_us=max(121_000_000, accepted["tail_us"] // 3),
+                minimum_us=121_000_000 if coords["stage"] == "exploration" else 1,
+                maximum_us=window(grant, accepted, coords, request, donor, cost),
             )
             snapshot = original_balance(area, grant)
         return paid, attempt(area, coords, grant), snapshot
 
     try:
+        from .progressive_velocity_image import preparation_boundary
+
+        def host_space():
+            physical.capacity(area, accepted, getattr(args, "free_disk_gib", 5) << 30)
+
+        def custody_basis(out, *, install):
+            basis = physical.custody(root, folder, accepted, reg)
+            if install:
+                retain(out / "custodian.json", basis)
+            if load(confined(out, "custodian.json"), maximum=wave.MAX_INPUT) != basis:
+                raise ValueError("registered custodian material differs")
+            return seal(dict(inputs=basis["identity"]))
+
+        def prepare(out, allowance):
+            deadline = time.monotonic_ns() // 1000 + allowance
+            with preparation_boundary(out, deadline * 1000):
+                retain(
+                    out / "producer.json",
+                    funded_verification(
+                        lambda dest: custody_basis(dest, install=True), out, deadline
+                    ),
+                )
+
+        def verify_basis(out):
+            basis = custody_basis(out, install=False)
+            if load(confined(out, "producer.json")) != basis:
+                raise ValueError("original custodian receipt differs")
+            return basis
+
+        coords = dict(
+            study=grant["identity"],
+            stage="preparation",
+            method="wave",
+            seed=accepted["seed"],
+            look=0,
+            panel="development",
+            profile="full",
+            input_mode="true",
+            role="prepare",
+            ordinal=0,
+        )
+        request = seal(
+            dict(grant=grant["identity"], accepted=accepted["identity"], controller=revision)
+        )
+        _, private, _ = invoke(coords, request, {}, prepare, verify_basis, host_space)
+        basis = load(confined(private, "custodian.json"), maximum=wave.MAX_INPUT)
+        donor = physical.Donor(
+            root, source, area, accepted, basis, revision, args, host_factory, readonly=readonly
+        )
         observed = screen(area, grant, marker, accepted, packages, design, donor, invoke, progress)
         status.update(stage="publication", recipe=None, look=None)
-        record = report.publication(area, grant, accepted, design[0], observed, readonly=readonly)
         original_q = load(
             confined(folder, "qualification/" + accepted["preparation_grant"][7:] + "/grant.json")
         )
-        published = report.verify(
-            area / "share" / report.ARCHIVE, retained_qualification(root, original_q)
+        qualification = retained_qualification(root, original_q)
+        request = seal(
+            dict(
+                accepted=accepted["identity"],
+                grant=grant["identity"],
+                evidence=digest({k: v["identity"] for k, v in observed.items()}),
+            )
         )
-        if record != published:
-            raise ValueError("copied comparative report differs from private observations")
-        balance = original_balance(area, grant)
+        coords = dict(
+            study=grant["identity"],
+            stage="publication",
+            method="wave",
+            seed=accepted["seed"],
+            look=4_000_000,
+            panel="development",
+            profile="full",
+            input_mode="true",
+            role="publish",
+            ordinal=0,
+        )
+
+        def public_proof(out):
+            record = report.publication(
+                area, grant, accepted, observed, marker=marker, key=secret["key"], readonly=True
+            )
+            if record != report.checked_science(record, qualification):
+                raise ValueError("copied comparative report differs from private observations")
+            return seal(dict(report=record["identity"], verdict=record["decision"]["verdict"]))
+
+        def publish(out, allowance):
+            deadline = time.monotonic_ns() // 1000 + allowance
+            with preparation_boundary(out, deadline * 1000):
+
+                def install(_):
+                    record = report.publication(
+                        area,
+                        grant,
+                        accepted,
+                        observed,
+                        marker=marker,
+                        key=secret["key"],
+                        readonly=False,
+                    )
+                    return seal(
+                        dict(report=record["identity"], verdict=record["decision"]["verdict"])
+                    )
+
+                retain(out / "producer.json", funded_verification(install, out, deadline))
+
+        def verify_publication(out):
+            proof = public_proof(out)
+            if load(confined(out, "producer.json")) != proof:
+                raise ValueError("published report differs from its original grant receipt")
+            return proof
+
+        paid, _, balance = invoke(coords, request, {}, publish, verify_publication, host_space)
+        record = paid["evidence"]
+        settled = report.deliver(area, grant, accepted, balance, readonly=readonly)
+        if settled["report"] != record["report"]:
+            raise ValueError("installed final accounting belongs to another publication")
         value = result(
             "verify" if readonly else "run",
             "VERIFIED" if readonly else "COMPLETE",
             "Comparative exploration and independent archive replay complete",
             "review_exploration",
-            last=record["identity"],
-            report_ref=record["identity"],
+            last=record["report"],
+            report_ref=record["report"],
             remaining=balance["remaining"]["elapsed_us"],
             **(
                 dict(verification_scope="private_comparative_wave")
@@ -362,10 +501,12 @@ def run(args, root, folder, source, revision, grant, host_factory, *, readonly=F
                 else dict(
                     elapsed_us=balance["consumed"]["elapsed_us"],
                     charged_tokens=balance["consumed"]["tokens"],
+                    receipt_path=str((area / "share" / report.ARCHIVE).relative_to(root)),
+                    qualification_path=str(qualification.relative_to(root)),
                 )
             ),
         )
-        value["scientific_verdict"] = record["decision"]["verdict"]
+        value["scientific_verdict"] = record["verdict"]
         code = 0
     except (OSError, ValueError, KeyError, RuntimeError, KeyboardInterrupt) as exc:
         if readonly:

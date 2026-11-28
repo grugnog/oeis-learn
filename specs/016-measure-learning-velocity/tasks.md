@@ -56,8 +56,8 @@ The four supported recipes now have a complete planning estimate of 30,051.22000
 On the returned mount the full wave was short 361,616,039,406 bytes. The first ordinary cut
 was short 3,834,701,534 bytes. The zero-token ordinary initialization fits that snapshot with
 2,040,600,866 bytes above reserve. T051 now freezes the private trial proposals and publishes a
-prospective qualification for that scope. The returned HIP run verified the ordinary zero cut. T056 still
-requires funded learner and evaluation dispatch from the accepted comparative registration.
+prospective qualification for that scope. The returned HIP run verified the ordinary zero cut.
+The comparative launcher now issues funded training and evaluation from the accepted registration.
 
 **Checkpoint at T020.** The operator can run read-only preflight on the donor and decide whether to fund preparation using the inventory alone. Prices without a valid timing receipt are labeled unmeasured or provisional.
 
@@ -83,7 +83,7 @@ requires funded learner and evaluation dispatch from the accepted comparative re
 - [X] T029 [P] [US2] Extend `src/oeis_learn/generalization/progressive/program_search_costing.py` to charge the union of same-host/boot half-open intervals and split shared intervals across registered beneficiaries. Retain failed debits, historical production and incremental costs, CPU work, lease, sampled activity and launch-to-decision elapsed time. Report an unavailable rate or bounds where clocks cannot be reconciled. *After T019, T021–T023.*
 - [X] T030 [P] [US2] Create `src/oeis_learn/generalization/progressive/velocity_metrics.py` to count joint case transitions for each frozen family, method, look and seed. “One live choice per case and method.” Count exact solve, measured miss and unresolved, carrying scientific completion and search closure as separate fields. “A completed empty portfolio is a measured miss.” “Abandoned work can remain unresolved.” Compute parameter, composition, unseen structure and real OEIS yields with equal family weight within each stratum, half-weighted composition/unseen structure, retention, families gaining their first or losing their last solve, and paired bounds that share one unknown assignment per identical receipt. *After T006, T021–T023.*
 - [X] T031 [US2] Implement common-probe levels, adjacent yield changes per million useful tokens and per charged hour in `src/oeis_learn/generalization/progressive/velocity_metrics.py`. Select only the last verified affordable look within overlap. Report both conditional factor effects, means and interactions (03−02−01+00 and 06−05−04+00). Resample whole linked families jointly across arms/looks with recorded costs. Publish D’s yield level and inference cost. A learning rate requires two verified learner cuts. *After T029, T030.*
-- [ ] T032 [US2] Connect explicit profile, worker, scoring and trial-observation records in `src/oeis_learn/pipeline_validation/progressive_round029.py`. On an accepted fixture registration, drive all seven recipes to their registered looks or record an affected disposition. Treat 1M as diagnostic and preserve viable 4M arms even below the formal completion threshold. Emit separate common-probe curves, full endpoints and retention with denominators. Reopen frozen inputs through the installed path and pass T021–T023. *After T020, T027, T028, T031.*
+- [X] T032 [US2] Connect explicit profile, worker, scoring and trial-observation records in `src/oeis_learn/pipeline_validation/progressive_round029.py`. On an accepted fixture registration, drive all seven recipes to their registered looks or record an affected disposition. Treat 1M as diagnostic and preserve viable 4M arms even below the formal completion threshold. Emit separate common-probe curves, full endpoints and retention with denominators. Reopen frozen inputs through the installed path and pass T021–T023. *After T020, T027, T028, T031.*
 
 **Checkpoint at T032.** An accepted fixture registration yields a comparable curve or an explicit missing-look disposition for every recipe. Both factorial interactions, uncertainty, costs, direct OEIS performance and retention can be recomputed from the receipts.
 
@@ -251,7 +251,13 @@ independent pre-score archive. A fixture covers a numeric capacity stop, two
 resumes, private replay and a substituted public schedule. The donor completed
 wave qualification and private readback. The independent verifier accepted the
 returned report and pre-score pair for all 12 training targets and 20 evaluation
-looks. T032 and T056 still require the funded comparative trial and its runner.
+looks. The [comparative command](quickstart.md#start-or-resume-the-accepted-comparative-wave)
+opens a distinct exploration grant on this acceptance. The installed runner drives training,
+visible generation, selected scoring, private replay and copied-report verification. Fixture
+coverage includes all seven viable recipes and the four-recipe donor schedule, interruption
+after choice sealing, optimizer recovery with discarded debits, and separate common/full
+endpoints. The donor's comparative outcome awaits the funded run. T056's further branches
+depend on eligible research evidence and separately accepted authority.
 
 T052–T053 now support a [grant-specific verification command](quickstart.md#reopen-the-returned-trial-preparation)
 against the exact returned ZIP. It can recover the published wave across reader

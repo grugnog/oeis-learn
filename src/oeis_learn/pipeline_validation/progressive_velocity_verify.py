@@ -29,7 +29,7 @@ def archive_result(report, qualification):
         from . import progressive_velocity_wave_report as comparative
 
         with zipfile.ZipFile(report) as archive:
-            research = archive.namelist() == [comparative.MEMBER]
+            research = archive.namelist() == [comparative.MEMBER, comparative.ACCOUNT]
         if research:
             value = comparative.verify(report, qualification)
             verified = result("verify", "VERIFIED", "Recomputed the comparative decision from anonymous paired observations",

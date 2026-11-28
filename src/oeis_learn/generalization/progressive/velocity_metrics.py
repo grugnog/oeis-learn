@@ -2,6 +2,7 @@
 
 from collections import Counter, defaultdict
 from fractions import Fraction
+from functools import lru_cache
 from math import isfinite
 
 from .contracts import _check, schema, seal
@@ -266,6 +267,22 @@ def sampling_interval(rows, coefficients, *, stratum, seed, looks, scale=1, draw
     return _sample_contrast(result, coefficients, stratum, seed, draws, scale)
 
 
+@lru_cache(maxsize=32)
+def _supported_draws(masks, full, seed, draws):
+    import random
+
+    if all(m == full for m in masks):
+        return draws
+    rng = random.Random(seed)
+    supported = 0
+    for _ in range(draws):
+        mask = 0
+        for m in rng.choices(masks, k=len(masks)):
+            mask |= m
+        supported += mask == full
+    return supported
+
+
 def _sample_contrast(result, coefficients, stratum, seed, draws, scale=1):
     import random
 
@@ -279,6 +296,17 @@ def _sample_contrast(result, coefficients, stratum, seed, draws, scale=1):
                          for pattern in family["patterns"])
         by_group[family["family"]][family["stratum"]] = 100 * net_solves / family["frozen_size"]
     contributions = [by_group[g] for g in sorted(by_group)]
+    if not all(any(s in row for row in contributions) for s in strata):
+        return dict(lower=None, upper=None, draws=draws, supported_draws=0, seed=seed)
+    if len(contributions) == 1:
+        value = scale * sum(contributions[0][s] for s in strata) / len(strata)
+        return dict(lower=value, upper=value, draws=draws, supported_draws=draws, seed=seed)
+    constants = [{r[s] for r in contributions if s in r} for s in strata]
+    if all(len(v) == 1 and next(iter(v)).is_integer() for v in constants):
+        masks = tuple(sum(1 << i for i, s in enumerate(strata) if s in row) for row in contributions)
+        supported = _supported_draws(masks, (1 << len(strata)) - 1, seed, draws)
+        value = scale * sum(next(iter(v)) for v in constants) / len(strata) if supported else None
+        return dict(lower=value, upper=value, draws=draws, supported_draws=supported, seed=seed)
     values = []
     for _ in range(draws):
         totals, counts = Counter(), Counter()

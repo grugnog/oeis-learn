@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 
 from oeis_learn.generalization.progressive.contracts import digest, seal
@@ -27,7 +25,7 @@ def test_cpu_training_role_copies_only_verified_parent_and_resumes_full_optimize
     )
     learner = cp.package(ordinary, "04", 8, digest("training-origin"))
     targets = wave.targets(learner, [0, 1, 1000])
-    cap = targets[1000]["useful_tokens"]
+    cap = 2 * targets[1000]["useful_tokens"]
     base = dict(
         learner=learner["identity"],
         method="04",
@@ -55,8 +53,88 @@ def test_cpu_training_role_copies_only_verified_parent_and_resumes_full_optimize
         assert cut["charged_tokens"] == targets[n]["useful_tokens"]
         assert cut["weights"] == producer["cut"]["weights"]
         previous = work / "output/learner", cut
+        if n == 1:
+            interrupted = tmp_path / "recovery/attempt-0000"
+            shutil.copytree(previous[0], interrupted / "learner")
+            first = cut
+    # The next update was issued, but its tensors never became a saved cut.
+    from oeis_learn.generalization.progressive.budgets import BudgetJournal, KEYS
+    from oeis_learn.generalization.progressive.contracts import atomic_write
+
+    recovery_target = first["useful_tokens"] + 1
+    crossing = wave.targets(learner, [recovery_target])[recovery_target]
+    charge = crossing["last_update_tokens"]
+    journal = BudgetJournal(
+        interrupted / "learner/accounting",
+        digest([learner["identity"], cap]),
+        dict(dict.fromkeys(KEYS, 0), tokens=cap),
+    )
+    journal.reserve(
+        "learner",
+        "update",
+        first["updates"],
+        dict(dict.fromkeys(KEYS, 0), tokens=charge),
+        boot="fixture",
+        monotonic_us=1,
+    )
+    atomic_write(interrupted / "cleanup.json", dict(acknowledged=True, within_bound=True))
+    retry = interrupted.parent / "attempt-0001"
+    retry.mkdir()
+    req = seal(dict(base, target=recovery_target, parent_files=[]))
+    mounts = host.restart_mounts(retry, req, [], readonly=False)
+    assert mounts == host.restart_mounts(retry, req, [], readonly=True)
+    staged = tmp_path / "staged-recovery"
+    for src, mount in mounts:
+        path = staged / mount.removeprefix("/work/")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, path)
+    produced = role.perform(staged, req, dict(package=learner), device="cpu")
+    recovered = host.check_cut(staged / "output", req, learner, produced, crossing)["cut"]
+    assert recovered["discarded_tokens"] == charge
+    assert recovered["charged_tokens"] == recovered["useful_tokens"] + charge
     ref = previous[0] / "checkpoint" / checked["weight"]["path"]
     with ref.open("ab") as f:
         f.write(b"bad")
     with pytest.raises(ValueError):
         host.check_cut(work / "output", request, learner, producer, targets[1000])
+
+
+def test_selected_control_role_cannot_read_truth_until_choices_are_sealed(tmp_path):
+    import shutil
+    from oeis_learn.fresh.bigint_config import resolve
+    from oeis_learn.generalization.progressive.contracts import reference, read_bound_record
+    from oeis_learn.generalization.progressive.graph import velocity_look
+    from oeis_learn.generalization.progressive.velocity_metrics import measured_look
+    from oeis_learn.pipeline_validation.progressive_velocity_wave_role import perform
+    from tests.integration.test_round029_isolated_control_prices import SelectedClient, panel
+
+    members, prompts, truth = panel()
+    look = velocity_look(
+        registration=digest("fixture"),
+        method="polynomial",
+        seed=29,
+        look=4_000_000,
+        profile="full",
+        development=members,
+        retention=[],
+    )
+    search = tmp_path / "visible"
+    (search / "output").mkdir(parents=True)
+    req = dict(role="search", model=None, weight=None, look=look, seed=29, seconds=120)
+    data = dict(prompts=prompts, recipe=resolve({"version": "bigint-bootstrap/v1"}))
+    client = SelectedClient()
+    with pytest.raises(ValueError, match="projection"):
+        perform(search, req, dict(data, truth=truth), device="cpu", client=client)
+    generated = perform(search, req, data, device="cpu", client=client)
+    score = tmp_path / "scorer"
+    dest = score / "inputs/candidates.json"
+    dest.parent.mkdir(parents=True)
+    shutil.copyfile(search / "output" / generated["artifact"]["path"], dest)
+    score_req = dict(
+        role="score", probe=generated["probe"], candidates=reference(score, dest), seconds=120
+    )
+    scored = perform(score, score_req, dict(truth=truth), device="cpu", client=client)
+    result = read_bound_record(score / "output", scored["artifact"], version="discovery-scoring/v1")
+    measured = measured_look(generated["probe"], result)
+    assert result["candidates"] == generated["artifact"]["sha256"]
+    assert len(measured["scores"]["outcomes"]) == len(members)

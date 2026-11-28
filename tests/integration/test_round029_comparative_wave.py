@@ -8,12 +8,15 @@ from oeis_learn.pipeline_validation import progressive_velocity_wave as wave
 
 
 def fixture_wave(methods):
+    from oeis_learn.generalization.progressive.cohorts import STRATA
+
+    strata = STRATA if len(methods) == 7 else ("oeis",)
     registration = velocity_registration(
         source="a" * 40,
         design=digest("design"),
         initialization=9,
         stream_seed=42,
-        development=[dict(task="case", group="group", stratum="oeis")],
+        development=[dict(task="case-" + s, group="group-" + s, stratum=s) for s in strata],
         retention=[dict(task="other", group="family", stratum="retention")],
         ordinary=digest("stream"),
         broad=digest("broader"),
@@ -70,12 +73,17 @@ def test_frozen_wave_has_separate_endpoints_exact_crossings_and_one_allowance(tm
         methods
     )
     assert all(o["roster"] in looks for o in ops)
-    grant, approval, marker = wave.authority(tmp_path, "b" * 40, 2, accepted, ops, digest("driver"))
+    grant, approval, marker = wave.authority(
+        tmp_path, "b" * 40, 2, accepted, ops, digest("driver"), digest("labels")
+    )
     assert marker["grant"] == grant["identity"]
     assert grant["holdback_us"] == accepted["followup_us"]
     validate_grant(
         grant, approval, root=physical_root_id(tmp_path), parent=accepted["identity"], action="run"
     )
     with pytest.raises(ValueError, match="tail"):
-        wave.authority(tmp_path, "b" * 40, 1, accepted, ops, digest("driver"))
-    assert wave.authority(tmp_path, "b" * 40, 2, accepted, ops, digest("other"))[2] != marker
+        wave.authority(tmp_path, "b" * 40, 1, accepted, ops, digest("driver"), digest("labels"))
+    assert (
+        wave.authority(tmp_path, "b" * 40, 2, accepted, ops, digest("other"), digest("labels"))[2]
+        != marker
+    )

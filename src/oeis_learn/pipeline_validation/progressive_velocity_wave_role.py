@@ -10,7 +10,7 @@ import time
 
 
 def training(work, request, package, device):
-    from oeis_learn.generalization.progressive.contracts import load
+    from oeis_learn.generalization.progressive.contracts import load, seal
     from oeis_learn.pipeline_validation.progressive_research_inputs import checked_file
     from oeis_learn.pipeline_validation.progressive_velocity_worker import train_to
 
@@ -18,7 +18,14 @@ def training(work, request, package, device):
     if package["identity"] != request["learner"]:
         raise ValueError("mounted training package differs")
     # Only the last complete generation and its entire irrevocable journal cross targets.
-    for ref in request["parent_files"]:
+    parent_files = request["parent_files"]
+    restart = work / "inputs/restart.json"
+    if restart.exists():
+        record = load(restart)
+        if record != seal(record) or record["request"] != request["identity"]:
+            raise ValueError("interrupted learner belongs to another funded target")
+        parent_files = record["files"]
+    for ref in parent_files:
         src = checked_file(work / "inputs/parent", ref)
         dst = destination / ref["path"]
         dst.parent.mkdir(parents=True, exist_ok=True)

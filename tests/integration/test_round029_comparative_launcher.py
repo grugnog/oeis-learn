@@ -28,15 +28,16 @@ from oeis_learn.pipeline_validation.progressive_evaluation import (
 from tests.integration.test_round029_comparative_wave import fixture_wave
 
 
-def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypatch):
+@pytest.mark.parametrize("methods", [["00", "04", "05", "06"], [f"0{i}" for i in range(7)]])
+def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypatch, methods):
     from oeis_learn.pipeline_validation import progressive_round028 as historical
     from oeis_learn.pipeline_validation import progressive_velocity_trial_preparation as preparation
     from oeis_learn.pipeline_validation import progressive_velocity_wave_host as host
     from oeis_learn.pipeline_validation.identity import file_hash
+    from oeis_learn.generalization.progressive.velocity_records import physical_root_id
 
     source = Path(__file__).resolve().parents[2]
     revision = "b" * 40
-    methods = ["00", "04", "05", "06"]
     accepted, reg, packages = fixture_wave(methods)
     # Role calls, outcomes and hardware identities are synthetic in this fixture.
     for m in methods:
@@ -48,6 +49,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
             training=training,
             version=preparation.VERSION,
             seed=9,
+            owner=physical_root_id(tmp_path),
             source=digest("source"),
             wheel=digest("wheel"),
             image=digest("image"),
@@ -69,7 +71,13 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     (tmp_path / "run-state/discovery-authorizations").mkdir()
     design = wave.plan(accepted, reg, packages)
     grant, approval, marker = wave.authority(
-        tmp_path, revision, 1680, accepted, design[-1], file_hash(source / wave.DRIVER)
+        tmp_path,
+        revision,
+        1680,
+        accepted,
+        design[-1],
+        file_hash(source / wave.DRIVER),
+        wave.family_key(folder, create=True)["identity"],
     )
     monkeypatch.setattr(command, "candidate_revision", lambda *_: revision)
     monkeypatch.setattr(historical, "candidate_revision", lambda *_: revision)
@@ -90,6 +98,8 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     failed = []
 
     class Roles:
+        startup_us = 20_000_000
+        training_tail_us = dict.fromkeys(methods, 600_000_000)
         incumbent = {
             "recipe": {},
             "origin": digest("D"),
@@ -216,6 +226,8 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
             return execute, verify, lambda: None
 
     monkeypatch.setattr(host, "Donor", Roles)
+    monkeypatch.setattr(host, "capacity", lambda *args: None)
+    monkeypatch.setattr(host, "custody", lambda *args: seal(dict(accepted=accepted["identity"])))
     args = SimpleNamespace(
         action="run",
         workspace=str(tmp_path),
@@ -226,11 +238,27 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     v, code = command.execute(args, source)
     assert code == 1 and "fixture scorer interrupted" in v["reason"], v
     fixed = len(calls)
+    publish = report.deliver
+
+    def interrupted_publication(*args, **kwargs):
+        publish(*args, **kwargs)
+        raise RuntimeError("fixture interruption after ZIP installation")
+
+    with monkeypatch.context() as fault:
+        fault.setattr(report, "deliver", interrupted_publication)
+        partial, code = command.execute(args, source)
+        assert code == 1 and "after ZIP installation" in partial["reason"], partial
+    settled_calls = len(calls)
     v, code = command.execute(args, source)
-    assert code == 0 and v["scientific_verdict"] == "inconclusive", v
+    assert code == 0 and v["scientific_verdict"] == (
+        "retain_D" if len(methods) == 7 else "inconclusive"
+    ), v
+    assert (
+        len(calls) == settled_calls and partial["remaining_authority"] == v["remaining_authority"]
+    )
     assert calls[fixed] == ("score", "00", 1_000_000)
     assert calls.count(("search", "00", 1_000_000)) == 1
-    assert len([r for r in calls if r[0] == "train"]) == 12
+    assert len([r for r in calls if r[0] == "train"]) == 3 * len(methods)
     last = v["last_committed_ref"]
     count = len(calls)
     assert command.execute(args, source)[0]["last_committed_ref"] == last and len(calls) == count
@@ -257,7 +285,7 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
     )
     result, code = command.execute(verify_args, source)
     assert code == 0 and result["report_ref"] == last, result
-    value = public.read_member(copy, report.MEMBER)
+    value = report.verify(copy, qcopy)
     assert value["decision"]["excluded"] == accepted["omitted"]
     assert value["direct"]["04"]["D"]["oeis"]["losses"] == 1
     assert value["curves"]["retention"]["endpoints"]["D"]["yield"]["denominator"] == 1
@@ -266,8 +294,40 @@ def test_installed_action_reopens_failure_and_copies_decision(tmp_path, monkeypa
         == 1
     )
     assert b'"task"' not in copy.read_bytes() and b'"truth"' not in copy.read_bytes()
-    bad = tmp_path / "tampered.zip"
-    value["decision"]["verdict"] = "gain"
-    public.install(bad, report.MEMBER, seal(value))
-    with pytest.raises(ValueError):
-        report.verify(bad, qcopy)
+    import json
+    from copy import deepcopy
+
+    records = report.read_canonical(copy, (report.MEMBER, report.ACCOUNT))
+    account = json.loads(records[report.ACCOUNT])
+    assert (
+        account["consumed"]["elapsed_us"] + account["remaining"]["elapsed_us"] == grant["total_us"]
+    )
+    assert account["remaining"]["elapsed_us"] >= grant["holdback_us"]
+    assert {d["role"] for d in account["dispatches"]} == {
+        "prepare",
+        "train",
+        "search",
+        "score",
+        "publish",
+    }
+    for i, tamper in enumerate(("decision", "count", "reserve", "parent")):
+        changed, ledger = deepcopy(value), deepcopy(account)
+        if tamper == "decision":
+            changed["decision"]["verdict"] = "gain"
+        elif tamper == "count":
+            changed["statistics"]["panels"]["full"]["families"][0]["patterns"][0]["count"] += 1
+        elif tamper == "reserve":
+            ledger["remaining"]["elapsed_us"] += 1
+        else:
+            changed["accepted"] = digest("unrelated prescore")
+        bad = tmp_path / f"tampered-{i}.zip"
+        bad.write_bytes(
+            report.archive_bytes(
+                {
+                    report.MEMBER: report.encode(seal(changed)),
+                    report.ACCOUNT: report.encode(seal(ledger)),
+                }
+            )
+        )
+        with pytest.raises(ValueError):
+            report.verify(bad, qcopy)
